@@ -1,4 +1,4 @@
-# Guia de instalação — Meeds Suite
+# Guia de instalação — Assistente Meeds
 
 **Uma única instalação.** Depois dela, as 5 ferramentas aparecem sozinhas na
 tela do Meeds, e você liga ou desliga cada uma pelo botão ⚙️.

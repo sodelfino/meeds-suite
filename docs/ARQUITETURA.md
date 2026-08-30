@@ -1,4 +1,4 @@
-# Arquitetura da Meeds Suite
+# Arquitetura do Assistente Meeds
 
 Documento de referência do monorepo. Explica o desenho, o contrato de módulo,
 o **checklist de funções preservadas** de cada um dos 5 repositórios de origem,
