@@ -127,10 +127,8 @@
         '        <div><label for="msm-med-crm">CRM</label>' +
         '          <input id="msm-med-crm" placeholder="ex: 110540/MG" autocomplete="off"></div>' +
         '        <div><label for="msm-med-cpf">CPF</label>' +
-        '          <input id="msm-med-cpf" placeholder="000.000.000-00" autocomplete="off"></div>' +
-        '        <div class="msm-largo"><label for="msm-med-cns">CNS (Cartão Nacional de Saúde)</label>' +
-        '          <input id="msm-med-cns" placeholder="15 dígitos — usado só pela APAC de Itaúna" autocomplete="off">' +
-        '          <div class="msm-dica-campo">CRM e CPF são usados nos laudos de Sete Lagoas e Conceição do Mato Dentro. O CNS é usado na APAC de Itaúna. Preencha o que você usa — dá para completar depois.</div></div>' +
+        '          <input id="msm-med-cpf" placeholder="000.000.000-00" autocomplete="off">' +
+        '          <div class="msm-dica-campo">CRM e CPF são usados nos três geradores de laudo. Dá para completar depois.</div></div>' +
         "      </div>" +
         '      <div class="msm-botoes">' +
         '        <button type="button" class="msm-btn" id="msm-med-add">Salvar médico</button>' +
@@ -139,6 +137,22 @@
         '        <input type="file" id="msm-arquivo" accept="application/json,.json" hidden>' +
         "      </div>" +
         '      <p class="msm-rodape">O backup gera um arquivo <code>.json</code> com os médicos cadastrados. Use para trocar de computador ou de navegador — ou peça o arquivo pronto ao administrador e clique em “Restaurar backup”.</p>' +
+        "    </div>" +
+
+        '    <div class="msm-secao" id="msm-secao-estabelecimentos">' +
+        "      <h3>Estabelecimentos</h3>" +
+        '      <p class="msm-ajuda">Unidades solicitantes e seus códigos CNES. Aparecem para escolher no gerador de APAC — assim você não redigita nome e CNES a cada laudo.</p>' +
+        '      <div id="msm-estab-mensagem"></div>' +
+        '      <div id="msm-estab-lista"></div>' +
+        '      <div class="msm-form">' +
+        '        <div class="msm-largo"><label for="msm-estab-nome">Nome do estabelecimento</label>' +
+        '          <input id="msm-estab-nome" placeholder="como deve aparecer no laudo" autocomplete="off"></div>' +
+        '        <div class="msm-largo"><label for="msm-estab-cnes">CNES</label>' +
+        '          <input id="msm-estab-cnes" placeholder="somente números" inputmode="numeric" autocomplete="off"></div>' +
+        "      </div>" +
+        '      <div class="msm-botoes">' +
+        '        <button type="button" class="msm-btn" id="msm-estab-add">Salvar estabelecimento</button>' +
+        "      </div>" +
         "    </div>" +
 
         '    <div class="msm-secao">' +
@@ -158,6 +172,12 @@
     overlay.$("#msm-versao").textContent = ctx.versaoNucleo;
 
     overlay.$("#msm-med-add").addEventListener("click", salvarMedico);
+    overlay.$("#msm-estab-add").addEventListener("click", salvarEstabelecimento);
+    raiz.MeedsSuiteFormatos.aplicarMascaraCpf(overlay.$("#msm-med-cpf"));
+    overlay.$("#msm-estab-cnes").addEventListener("input", function () {
+      var el = overlay.$("#msm-estab-cnes");
+      el.value = el.value.replace(/\D/g, "").slice(0, 12);
+    });
     overlay.$("#msm-backup").addEventListener("click", fazerBackup);
     overlay.$("#msm-restaurar").addEventListener("click", function () {
       overlay.$("#msm-arquivo").click();
@@ -165,11 +185,19 @@
     overlay.$("#msm-arquivo").addEventListener("change", restaurarBackup);
 
     // Enter em qualquer campo do formulario salva — um clique a menos
-    ["#msm-med-nome", "#msm-med-crm", "#msm-med-cpf", "#msm-med-cns"].forEach(function (sel) {
+    ["#msm-med-nome", "#msm-med-crm", "#msm-med-cpf"].forEach(function (sel) {
       overlay.$(sel).addEventListener("keydown", function (ev) {
         if (ev.key === "Enter") {
           ev.preventDefault();
           salvarMedico();
+        }
+      });
+    });
+    ["#msm-estab-nome", "#msm-estab-cnes"].forEach(function (sel) {
+      overlay.$(sel).addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          salvarEstabelecimento();
         }
       });
     });
@@ -189,12 +217,20 @@
   function abrir(secao) {
     renderizarModulos();
     renderizarMedicos();
+    renderizarEstabelecimentos();
     mostrarMensagemMedicos(null);
+    mostrarMensagemEstab(null);
     overlay.abrir();
-    if (secao === "medicos") {
-      overlay.$("#msm-secao-medicos").scrollIntoView({ behavior: "smooth", block: "start" });
+
+    var destinos = {
+      medicos: ["#msm-secao-medicos", "#msm-med-nome"],
+      estabelecimentos: ["#msm-secao-estabelecimentos", "#msm-estab-nome"],
+    };
+    var d = destinos[secao];
+    if (d) {
+      overlay.$(d[0]).scrollIntoView({ behavior: "smooth", block: "start" });
       setTimeout(function () {
-        overlay.$("#msm-med-nome").focus();
+        overlay.$(d[1]).focus();
       }, 250);
     }
   }
@@ -273,7 +309,6 @@
         var docs = [];
         if (m.crm) docs.push("CRM " + m.crm);
         if (m.cpf) docs.push("CPF " + m.cpf);
-        if (m.cns) docs.push("CNS " + m.cns);
         return (
           '<div class="msm-med">' +
           '  <div class="msm-med-dados">' +
@@ -298,6 +333,80 @@
     });
   }
 
+  function mostrarMensagemEstab(texto, tipo) {
+    var caixa = overlay.$("#msm-estab-mensagem");
+    if (!texto) {
+      caixa.innerHTML = "";
+      return;
+    }
+    caixa.innerHTML = '<div class="msm-' + (tipo || "ok") + '">' + escapeHtml(texto) + "</div>";
+  }
+
+  function renderizarEstabelecimentos() {
+    var lista = Cadastro.listarEstabelecimentos();
+    var box = overlay.$("#msm-estab-lista");
+
+    if (!lista.length) {
+      box.innerHTML =
+        '<div class="msm-vazio">Nenhum estabelecimento cadastrado. Acrescente abaixo o nome e o CNES da unidade solicitante.</div>';
+      return;
+    }
+
+    box.innerHTML = lista
+      .map(function (e, i) {
+        return (
+          '<div class="msm-med">' +
+          '  <div class="msm-med-dados">' +
+          '    <div class="msm-med-nome">' + escapeHtml(e.nome) + "</div>" +
+          '    <div class="msm-med-doc">' + escapeHtml(e.cnes ? "CNES " + e.cnes : "sem CNES cadastrado") + "</div>" +
+          "  </div>" +
+          '  <button type="button" class="msm-med-remover" data-e="' + i + '">remover</button>' +
+          "</div>"
+        );
+      })
+      .join("");
+
+    box.querySelectorAll("[data-e]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var i = Number(btn.getAttribute("data-e"));
+        var alvo = Cadastro.listarEstabelecimentos()[i];
+        Cadastro.removerEstabelecimento(i);
+        renderizarEstabelecimentos();
+        mostrarMensagemEstab((alvo ? alvo.nome : "Estabelecimento") + " foi removido.", "ok");
+        avisarModulos();
+      });
+    });
+  }
+
+  function salvarEstabelecimento() {
+    var nome = overlay.$("#msm-estab-nome").value.trim();
+    if (!nome) {
+      mostrarMensagemEstab(
+        "Não consegui salvar porque o nome está vazio. Preencha o campo “Nome do estabelecimento”.",
+        "erro"
+      );
+      overlay.$("#msm-estab-nome").focus();
+      return;
+    }
+    var r = Cadastro.adicionarEstabelecimento({
+      nome: nome,
+      cnes: overlay.$("#msm-estab-cnes").value,
+    });
+    if (!r.ok) {
+      mostrarMensagemEstab(r.erro, "erro");
+      return;
+    }
+    overlay.$("#msm-estab-nome").value = "";
+    overlay.$("#msm-estab-cnes").value = "";
+    renderizarEstabelecimentos();
+    mostrarMensagemEstab(
+      r.atualizou ? nome + " já estava cadastrado — atualizei o CNES." : nome + " foi cadastrado com sucesso.",
+      "ok"
+    );
+    overlay.$("#msm-estab-nome").focus();
+    avisarModulos();
+  }
+
   function salvarMedico() {
     var nome = overlay.$("#msm-med-nome").value.trim();
     if (!nome) {
@@ -309,29 +418,28 @@
       return;
     }
 
-    var cns = overlay.$("#msm-med-cns").value.replace(/\D/g, "");
-    if (cns && cns.length !== 15) {
+    var cpf = overlay.$("#msm-med-cpf").value.trim();
+    if (cpf && !raiz.MeedsSuiteFormatos.cpfCompleto(cpf)) {
       mostrarMensagemMedicos(
-        "Não consegui salvar porque o CNS tem " + cns.length + " dígito(s) e o Cartão Nacional de Saúde tem 15. " +
-          "Confira o número, ou deixe o campo em branco se você não usa a APAC de Itaúna.",
+        "Não consegui salvar porque o CPF tem " + raiz.MeedsSuiteFormatos.soDigitos(cpf).length +
+          " dígito(s) e o CPF tem 11. Confira o número, ou deixe o campo em branco para completar depois.",
         "erro"
       );
-      overlay.$("#msm-med-cns").focus();
+      overlay.$("#msm-med-cpf").focus();
       return;
     }
 
     var r = Cadastro.adicionar({
       nome: nome,
       crm: overlay.$("#msm-med-crm").value.trim(),
-      cpf: overlay.$("#msm-med-cpf").value.trim(),
-      cns: cns,
+      cpf: cpf,
     });
     if (!r.ok) {
       mostrarMensagemMedicos(r.erro, "erro");
       return;
     }
 
-    ["#msm-med-nome", "#msm-med-crm", "#msm-med-cpf", "#msm-med-cns"].forEach(function (s) {
+    ["#msm-med-nome", "#msm-med-crm", "#msm-med-cpf"].forEach(function (s) {
       overlay.$(s).value = "";
     });
     renderizarMedicos();

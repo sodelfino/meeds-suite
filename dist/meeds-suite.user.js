@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Assistente Meeds - Por: Marcelo
 // @namespace    novetech-meeds-suite
-// @version      2.2.0
+// @version      2.3.0
 // @description  Assistente Meeds - Por: Marcelo. Alarme de fila, APAC de Itauna, laudos de Sete Lagoas e Conceicao do Mato Dentro e consulta a REMUME, numa instalacao unica. Cada funcao liga e desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
 // @author       Marcelo
 // @match        *://*.meeds.com.br/*
@@ -542,6 +542,13 @@
         return Array.prototype.slice.call(overlay.querySelectorAll(seletor));
       },
       abrir: function () {
+        /* Traz para a frente. Todos os overlays vivem no mesmo shadow e
+         * com o mesmo z-index, entao quem aparece por cima e quem esta
+         * por ULTIMO no DOM. Sem isto, abrir o painel de cadastro a
+         * partir do modal de um laudo abria o painel ATRAS do laudo — ele
+         * existia, mas o medico nao via, e parecia que o botao nao
+         * funcionava. */
+        if (overlay.parentNode) overlay.parentNode.appendChild(overlay);
         overlay.hidden = false;
       },
       fechar: function () {
@@ -1224,6 +1231,83 @@
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
 
+/* ===== core/formatos.js ===== */
+/* ------------------------------------------------------------------
+ * core/formatos.js — mascaras e formatacao de campos
+ * ------------------------------------------------------------------
+ * Fica no nucleo para que os cinco modulos (e um sexto) formatem CPF do
+ * mesmo jeito. Antes cada gerador tinha a sua funcao formatarCpf, e
+ * nenhum deles formatava ENQUANTO o medico digitava — ele tinha que
+ * digitar os pontos e o traco na mao, ou colar torto e nao perceber.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  function soDigitos(v) {
+    return String(v || "").replace(/\D/g, "");
+  }
+
+  /* 000.000.000-00 — formata o que der, sem exigir os 11 digitos.
+   * Assim o campo vai se montando enquanto o medico digita, em vez de
+   * so mudar de cara no ultimo caractere. */
+  function formatarCpf(valor) {
+    var d = soDigitos(valor).slice(0, 11);
+    if (d.length <= 3) return d;
+    if (d.length <= 6) return d.slice(0, 3) + "." + d.slice(3);
+    if (d.length <= 9) return d.slice(0, 3) + "." + d.slice(3, 6) + "." + d.slice(6);
+    return d.slice(0, 3) + "." + d.slice(3, 6) + "." + d.slice(6, 9) + "-" + d.slice(9);
+  }
+
+  function cpfCompleto(valor) {
+    return soDigitos(valor).length === 11;
+  }
+
+  /* Aplica a mascara num <input>. Preserva a posicao do cursor quando o
+   * medico edita no meio do texto — sem isso, o cursor pula para o fim a
+   * cada tecla e corrigir um digito no meio vira um sofrimento. */
+  function aplicarMascaraCpf(input) {
+    if (!input || input.__mascaraCpf) return;
+    input.__mascaraCpf = true;
+    input.setAttribute("inputmode", "numeric");
+    input.setAttribute("maxlength", "14");
+    if (!input.getAttribute("placeholder")) input.setAttribute("placeholder", "000.000.000-00");
+
+    input.addEventListener("input", function () {
+      var antes = input.value;
+      var posicao = input.selectionStart;
+      var digitosAntesDoCursor = soDigitos(antes.slice(0, posicao)).length;
+
+      input.value = formatarCpf(antes);
+
+      // recoloca o cursor depois do mesmo digito em que ele estava
+      var novaPos = 0;
+      var contados = 0;
+      while (novaPos < input.value.length && contados < digitosAntesDoCursor) {
+        if (/\d/.test(input.value[novaPos])) contados++;
+        novaPos++;
+      }
+      try {
+        input.setSelectionRange(novaPos, novaPos);
+      } catch (e) {
+        /* campos que nao suportam selecao: ignora */
+      }
+    });
+
+    // colar tambem passa pela mascara
+    input.addEventListener("blur", function () {
+      input.value = formatarCpf(input.value);
+    });
+  }
+
+  raiz.MeedsSuiteFormatos = {
+    soDigitos: soDigitos,
+    formatarCpf: formatarCpf,
+    cpfCompleto: cpfCompleto,
+    aplicarMascaraCpf: aplicarMascaraCpf,
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
 /* ===== core/mensagens.js ===== */
 /* ------------------------------------------------------------------
  * core/mensagens.js — como o sistema fala com o medico
@@ -1373,8 +1457,9 @@
 (function (raiz) {
   "use strict";
 
-  /* NUNCA TROQUE ESTA CHAVE. Ver decisao 2 acima. */
+  /* NUNCA TROQUE ESTAS CHAVES. Ver decisao 2 acima. */
   var CHAVE = "medicos";
+  var CHAVE_ESTABELECIMENTOS = "estabelecimentos";
 
   /* Chaves de formatos anteriores, lidas uma vez e apagadas depois de
    * migradas. Nao remova daqui sem ter certeza de que nenhum medico
@@ -1442,25 +1527,30 @@
     if (!item) return null;
 
     if (Array.isArray(item)) {
-      // [nome, cns] (APAC) — CNS tem 15 digitos; CRM nao
+      // [nome, cns] — formato antigo do APAC. O CNS nao e mais usado
+      // (ver abaixo), entao so o nome sobrevive: o medico completa o CPF.
       if (item.length === 2) {
-        return { nome: String(item[0] || "").trim(), crm: "", cpf: "", cns: String(item[1] || "").trim() };
+        return { nome: String(item[0] || "").trim(), crm: "", cpf: "" };
       }
-      // [nome, crm, cpf] (LME/CMD)
+      // [nome, crm, cpf] — formato antigo de LME/CMD
       return {
         nome: String(item[0] || "").trim(),
         crm: String(item[1] || "").trim(),
         cpf: String(item[2] || "").trim(),
-        cns: "",
       };
     }
 
     if (typeof item === "object") {
+      /* O CNS (Cartao Nacional de Saude) FOI REMOVIDO do cadastro.
+       * Motivo: o medico raramente sabe o proprio CNS de cabeca, e o
+       * formulario da APAC aceita CPF no campo 43/44 — ele tem uma caixa
+       * "( ) CNS  ( ) CPF" justamente para isso. Pedir um numero que a
+       * pessoa nao tem a mao era travar o cadastro por nada.
+       * Um `cns` que venha de cadastro antigo e simplesmente ignorado. */
       return {
         nome: String(item.nome || "").trim(),
         crm: String(item.crm || "").trim(),
         cpf: String(item.cpf || "").trim(),
-        cns: String(item.cns || "").trim(),
       };
     }
     return null;
@@ -1483,7 +1573,6 @@
       nome: a.nome || b.nome,
       crm: a.crm || b.crm,
       cpf: a.cpf || b.cpf,
-      cns: a.cns || b.cns,
     };
   }
 
@@ -1679,6 +1768,79 @@
     };
   }
 
+
+  /* ------------------------------------------------------------------
+   * ESTABELECIMENTOS (nome + CNES)
+   * ------------------------------------------------------------------
+   * Mesmo desenho do cadastro de medicos: vive no navegador, chave fixa,
+   * sobrevive a atualizacao. Antes o estabelecimento da APAC vinha fixo
+   * de dados/formularios.json e o medico que atendia por outra unidade
+   * tinha que digitar nome e CNES a cada laudo.
+   *
+   * A lista de dados/formularios.json continua servindo de SEMENTE: na
+   * primeira execucao ela e copiada para ca, e a partir dai quem manda e
+   * o que o medico cadastrou.
+   * ------------------------------------------------------------------ */
+  function normalizarEstabelecimento(item) {
+    if (!item || typeof item !== "object") return null;
+    return {
+      nome: String(item.nome || "").trim(),
+      cnes: String(item.cnes || "").replace(/\D/g, "").trim(),
+    };
+  }
+
+  function listarEstabelecimentos() {
+    var guardado = lerBruto(CHAVE_ESTABELECIMENTOS, null);
+    var lista = guardado && (Array.isArray(guardado) ? guardado : guardado.estabelecimentos);
+    if (!Array.isArray(lista)) return [];
+    return lista.map(normalizarEstabelecimento).filter(function (e) {
+      return e && e.nome;
+    });
+  }
+
+  function gravarEstabelecimentos(lista) {
+    return gravarBruto(CHAVE_ESTABELECIMENTOS, { versao: VERSAO_ESTRUTURA, estabelecimentos: lista });
+  }
+
+  function adicionarEstabelecimento(item) {
+    var novo = normalizarEstabelecimento(item);
+    if (!novo || !novo.nome) return { ok: false, erro: "Informe o nome do estabelecimento." };
+    var lista = listarEstabelecimentos();
+    var id = novo.nome.toLowerCase();
+    var existente = -1;
+    for (var i = 0; i < lista.length; i++) {
+      if (lista[i].nome.toLowerCase() === id) existente = i;
+    }
+    if (existente >= 0) lista[existente] = { nome: novo.nome, cnes: novo.cnes || lista[existente].cnes };
+    else lista.push(novo);
+    gravarEstabelecimentos(lista);
+    return { ok: true, atualizou: existente >= 0 };
+  }
+
+  function removerEstabelecimento(indice) {
+    var lista = listarEstabelecimentos();
+    if (indice < 0 || indice >= lista.length) return false;
+    lista.splice(indice, 1);
+    gravarEstabelecimentos(lista);
+    return true;
+  }
+
+  /* Copia a semente de dados/formularios.json na primeira execucao. Roda
+   * uma vez: depois disso a lista do medico e a que vale, mesmo que ele
+   * tenha apagado tudo (por isso a marca separada, e nao "lista vazia"). */
+  function semearEstabelecimentos(sementes) {
+    if (lerBruto("estabelecimentosSemeados", false)) return 0;
+    var n = 0;
+    (sementes || []).forEach(function (s) {
+      if (s && s.nome) {
+        adicionarEstabelecimento(s);
+        n++;
+      }
+    });
+    gravarBruto("estabelecimentosSemeados", true);
+    return n;
+  }
+
   raiz.MeedsSuiteCadastro = {
     CHAVE: CHAVE,
     listar: listar,
@@ -1690,6 +1852,10 @@
     importar: importar,
     normalizarFicha: normalizarFicha,
     montarSelect: montarSelect,
+    listarEstabelecimentos: listarEstabelecimentos,
+    adicionarEstabelecimento: adicionarEstabelecimento,
+    removerEstabelecimento: removerEstabelecimento,
+    semearEstabelecimentos: semearEstabelecimentos,
     usandoArmazenamentoDoTampermonkey: temGM,
   };
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
@@ -2350,10 +2516,8 @@
         '        <div><label for="msm-med-crm">CRM</label>' +
         '          <input id="msm-med-crm" placeholder="ex: 110540/MG" autocomplete="off"></div>' +
         '        <div><label for="msm-med-cpf">CPF</label>' +
-        '          <input id="msm-med-cpf" placeholder="000.000.000-00" autocomplete="off"></div>' +
-        '        <div class="msm-largo"><label for="msm-med-cns">CNS (Cartão Nacional de Saúde)</label>' +
-        '          <input id="msm-med-cns" placeholder="15 dígitos — usado só pela APAC de Itaúna" autocomplete="off">' +
-        '          <div class="msm-dica-campo">CRM e CPF são usados nos laudos de Sete Lagoas e Conceição do Mato Dentro. O CNS é usado na APAC de Itaúna. Preencha o que você usa — dá para completar depois.</div></div>' +
+        '          <input id="msm-med-cpf" placeholder="000.000.000-00" autocomplete="off">' +
+        '          <div class="msm-dica-campo">CRM e CPF são usados nos três geradores de laudo. Dá para completar depois.</div></div>' +
         "      </div>" +
         '      <div class="msm-botoes">' +
         '        <button type="button" class="msm-btn" id="msm-med-add">Salvar médico</button>' +
@@ -2362,6 +2526,22 @@
         '        <input type="file" id="msm-arquivo" accept="application/json,.json" hidden>' +
         "      </div>" +
         '      <p class="msm-rodape">O backup gera um arquivo <code>.json</code> com os médicos cadastrados. Use para trocar de computador ou de navegador — ou peça o arquivo pronto ao administrador e clique em “Restaurar backup”.</p>' +
+        "    </div>" +
+
+        '    <div class="msm-secao" id="msm-secao-estabelecimentos">' +
+        "      <h3>Estabelecimentos</h3>" +
+        '      <p class="msm-ajuda">Unidades solicitantes e seus códigos CNES. Aparecem para escolher no gerador de APAC — assim você não redigita nome e CNES a cada laudo.</p>' +
+        '      <div id="msm-estab-mensagem"></div>' +
+        '      <div id="msm-estab-lista"></div>' +
+        '      <div class="msm-form">' +
+        '        <div class="msm-largo"><label for="msm-estab-nome">Nome do estabelecimento</label>' +
+        '          <input id="msm-estab-nome" placeholder="como deve aparecer no laudo" autocomplete="off"></div>' +
+        '        <div class="msm-largo"><label for="msm-estab-cnes">CNES</label>' +
+        '          <input id="msm-estab-cnes" placeholder="somente números" inputmode="numeric" autocomplete="off"></div>' +
+        "      </div>" +
+        '      <div class="msm-botoes">' +
+        '        <button type="button" class="msm-btn" id="msm-estab-add">Salvar estabelecimento</button>' +
+        "      </div>" +
         "    </div>" +
 
         '    <div class="msm-secao">' +
@@ -2381,6 +2561,12 @@
     overlay.$("#msm-versao").textContent = ctx.versaoNucleo;
 
     overlay.$("#msm-med-add").addEventListener("click", salvarMedico);
+    overlay.$("#msm-estab-add").addEventListener("click", salvarEstabelecimento);
+    raiz.MeedsSuiteFormatos.aplicarMascaraCpf(overlay.$("#msm-med-cpf"));
+    overlay.$("#msm-estab-cnes").addEventListener("input", function () {
+      var el = overlay.$("#msm-estab-cnes");
+      el.value = el.value.replace(/\D/g, "").slice(0, 12);
+    });
     overlay.$("#msm-backup").addEventListener("click", fazerBackup);
     overlay.$("#msm-restaurar").addEventListener("click", function () {
       overlay.$("#msm-arquivo").click();
@@ -2388,11 +2574,19 @@
     overlay.$("#msm-arquivo").addEventListener("change", restaurarBackup);
 
     // Enter em qualquer campo do formulario salva — um clique a menos
-    ["#msm-med-nome", "#msm-med-crm", "#msm-med-cpf", "#msm-med-cns"].forEach(function (sel) {
+    ["#msm-med-nome", "#msm-med-crm", "#msm-med-cpf"].forEach(function (sel) {
       overlay.$(sel).addEventListener("keydown", function (ev) {
         if (ev.key === "Enter") {
           ev.preventDefault();
           salvarMedico();
+        }
+      });
+    });
+    ["#msm-estab-nome", "#msm-estab-cnes"].forEach(function (sel) {
+      overlay.$(sel).addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          salvarEstabelecimento();
         }
       });
     });
@@ -2412,12 +2606,20 @@
   function abrir(secao) {
     renderizarModulos();
     renderizarMedicos();
+    renderizarEstabelecimentos();
     mostrarMensagemMedicos(null);
+    mostrarMensagemEstab(null);
     overlay.abrir();
-    if (secao === "medicos") {
-      overlay.$("#msm-secao-medicos").scrollIntoView({ behavior: "smooth", block: "start" });
+
+    var destinos = {
+      medicos: ["#msm-secao-medicos", "#msm-med-nome"],
+      estabelecimentos: ["#msm-secao-estabelecimentos", "#msm-estab-nome"],
+    };
+    var d = destinos[secao];
+    if (d) {
+      overlay.$(d[0]).scrollIntoView({ behavior: "smooth", block: "start" });
       setTimeout(function () {
-        overlay.$("#msm-med-nome").focus();
+        overlay.$(d[1]).focus();
       }, 250);
     }
   }
@@ -2496,7 +2698,6 @@
         var docs = [];
         if (m.crm) docs.push("CRM " + m.crm);
         if (m.cpf) docs.push("CPF " + m.cpf);
-        if (m.cns) docs.push("CNS " + m.cns);
         return (
           '<div class="msm-med">' +
           '  <div class="msm-med-dados">' +
@@ -2521,6 +2722,80 @@
     });
   }
 
+  function mostrarMensagemEstab(texto, tipo) {
+    var caixa = overlay.$("#msm-estab-mensagem");
+    if (!texto) {
+      caixa.innerHTML = "";
+      return;
+    }
+    caixa.innerHTML = '<div class="msm-' + (tipo || "ok") + '">' + escapeHtml(texto) + "</div>";
+  }
+
+  function renderizarEstabelecimentos() {
+    var lista = Cadastro.listarEstabelecimentos();
+    var box = overlay.$("#msm-estab-lista");
+
+    if (!lista.length) {
+      box.innerHTML =
+        '<div class="msm-vazio">Nenhum estabelecimento cadastrado. Acrescente abaixo o nome e o CNES da unidade solicitante.</div>';
+      return;
+    }
+
+    box.innerHTML = lista
+      .map(function (e, i) {
+        return (
+          '<div class="msm-med">' +
+          '  <div class="msm-med-dados">' +
+          '    <div class="msm-med-nome">' + escapeHtml(e.nome) + "</div>" +
+          '    <div class="msm-med-doc">' + escapeHtml(e.cnes ? "CNES " + e.cnes : "sem CNES cadastrado") + "</div>" +
+          "  </div>" +
+          '  <button type="button" class="msm-med-remover" data-e="' + i + '">remover</button>' +
+          "</div>"
+        );
+      })
+      .join("");
+
+    box.querySelectorAll("[data-e]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var i = Number(btn.getAttribute("data-e"));
+        var alvo = Cadastro.listarEstabelecimentos()[i];
+        Cadastro.removerEstabelecimento(i);
+        renderizarEstabelecimentos();
+        mostrarMensagemEstab((alvo ? alvo.nome : "Estabelecimento") + " foi removido.", "ok");
+        avisarModulos();
+      });
+    });
+  }
+
+  function salvarEstabelecimento() {
+    var nome = overlay.$("#msm-estab-nome").value.trim();
+    if (!nome) {
+      mostrarMensagemEstab(
+        "Não consegui salvar porque o nome está vazio. Preencha o campo “Nome do estabelecimento”.",
+        "erro"
+      );
+      overlay.$("#msm-estab-nome").focus();
+      return;
+    }
+    var r = Cadastro.adicionarEstabelecimento({
+      nome: nome,
+      cnes: overlay.$("#msm-estab-cnes").value,
+    });
+    if (!r.ok) {
+      mostrarMensagemEstab(r.erro, "erro");
+      return;
+    }
+    overlay.$("#msm-estab-nome").value = "";
+    overlay.$("#msm-estab-cnes").value = "";
+    renderizarEstabelecimentos();
+    mostrarMensagemEstab(
+      r.atualizou ? nome + " já estava cadastrado — atualizei o CNES." : nome + " foi cadastrado com sucesso.",
+      "ok"
+    );
+    overlay.$("#msm-estab-nome").focus();
+    avisarModulos();
+  }
+
   function salvarMedico() {
     var nome = overlay.$("#msm-med-nome").value.trim();
     if (!nome) {
@@ -2532,29 +2807,28 @@
       return;
     }
 
-    var cns = overlay.$("#msm-med-cns").value.replace(/\D/g, "");
-    if (cns && cns.length !== 15) {
+    var cpf = overlay.$("#msm-med-cpf").value.trim();
+    if (cpf && !raiz.MeedsSuiteFormatos.cpfCompleto(cpf)) {
       mostrarMensagemMedicos(
-        "Não consegui salvar porque o CNS tem " + cns.length + " dígito(s) e o Cartão Nacional de Saúde tem 15. " +
-          "Confira o número, ou deixe o campo em branco se você não usa a APAC de Itaúna.",
+        "Não consegui salvar porque o CPF tem " + raiz.MeedsSuiteFormatos.soDigitos(cpf).length +
+          " dígito(s) e o CPF tem 11. Confira o número, ou deixe o campo em branco para completar depois.",
         "erro"
       );
-      overlay.$("#msm-med-cns").focus();
+      overlay.$("#msm-med-cpf").focus();
       return;
     }
 
     var r = Cadastro.adicionar({
       nome: nome,
       crm: overlay.$("#msm-med-crm").value.trim(),
-      cpf: overlay.$("#msm-med-cpf").value.trim(),
-      cns: cns,
+      cpf: cpf,
     });
     if (!r.ok) {
       mostrarMensagemMedicos(r.erro, "erro");
       return;
     }
 
-    ["#msm-med-nome", "#msm-med-crm", "#msm-med-cpf", "#msm-med-cns"].forEach(function (s) {
+    ["#msm-med-nome", "#msm-med-crm", "#msm-med-cpf"].forEach(function (s) {
       overlay.$(s).value = "";
     });
     renderizarMedicos();
@@ -2930,6 +3204,9 @@
         abrirCadastro: function () {
           raiz.MeedsSuiteManager.abrir("medicos");
         },
+        abrirCadastroEstabelecimentos: function () {
+          raiz.MeedsSuiteManager.abrir("estabelecimentos");
+        },
         /* Chamado sempre que o cadastro muda, para o modulo redesenhar o
          * <select> de medicos sem o usuario precisar reabrir o modal. */
         aoMudarCadastro: function (fn) {
@@ -3073,6 +3350,10 @@
     abrirCadastro: function () {
       raiz.MeedsSuiteManager.abrir("medicos");
     },
+    abrirCadastroEstabelecimentos: function () {
+      raiz.MeedsSuiteManager.abrir("estabelecimentos");
+    },
+    formatos: raiz.MeedsSuiteFormatos,
     dom: Dom,
     decisao: Decisao,
     auth: Auth,
@@ -3090,7 +3371,7 @@
   raiz.MEEDS_DADOS_FORMULARIOS = {"_leia_me":"Dados dos formularios: unidades de origem, catalogos de procedimento e listas de CID-10. Edite este arquivo e rode \"npm run build\" — as mudancas aparecem para os medicos sem precisar mexer em codigo. Ver docs/MANUAL-ADMIN.md.","lme-sete-lagoas":{"_leia_me":"Laudo Medico de Alto Custo de Sete Lagoas.","municipio":"SETE LAGOAS","origens":["SAÚDE AUDITIVA","UBS CIDADE DE DEUS","UBS BELO VALE"],"procedimentos":{"RM_CRANIO":{"nome":"Ressonância nuclear magnética de crânio","codigo":"02.07.01.006-4"},"RM_BASE_CRANIO":{"nome":"Ressonância nuclear magnética de base do crânio","codigo":"02.07.01.006-4"},"RM_SELA_TURCICA":{"nome":"Ressonância nuclear magnética de sela túrcica","codigo":"02.07.01.007-2"},"RM_ATM":{"nome":"Ressonância nuclear magnética de articulação temporomandibular (bilateral)","codigo":"02.07.01.002-1"},"ANGIO_RM_CEREBRAL":{"nome":"Angiorressonância cerebral","codigo":"02.07.01.001-3"},"RM_COLUNA_CERVICAL":{"nome":"Ressonância nuclear magnética de coluna cervical","codigo":"02.07.01.003-0"},"RM_COLUNA_TORACICA":{"nome":"Ressonância nuclear magnética de coluna torácica","codigo":"02.07.01.005-6"},"RM_COLUNA_LOMBOSSACRA":{"nome":"Ressonância nuclear magnética de coluna lombo-sacra","codigo":"02.07.01.004-8"},"RM_CORACAO_AORTA":{"nome":"Ressonância nuclear magnética de coração/aorta com cine","codigo":"02.07.02.001-9"},"RM_MEMBRO_SUPERIOR":{"nome":"Ressonância nuclear magnética de membro superior (unilateral)","codigo":"02.07.02.002-7"},"TC_CRANIO":{"nome":"Tomografia computadorizada do crânio","codigo":"02.06.01.007-9"},"TC_SELA_TURCICA":{"nome":"Tomografia computadorizada de sela túrcica","codigo":"02.06.01.006-0"},"TC_FACE_ATM":{"nome":"Tomografia computadorizada de face/seios da face/ATM","codigo":"02.06.01.004-4"},"TC_PESCOCO":{"nome":"Tomografia computadorizada do pescoço","codigo":"02.06.01.005-2"},"TC_COLUNA_CERVICAL":{"nome":"Tomografia computadorizada de coluna cervical (com ou sem contraste)","codigo":"02.06.01.001-0"},"TC_COLUNA_TORACICA":{"nome":"Tomografia computadorizada de coluna torácica (com ou sem contraste)","codigo":"02.06.01.003-6"},"TC_COLUNA_LOMBOSSACRA":{"nome":"Tomografia computadorizada de coluna lombo-sacra (com ou sem contraste)","codigo":"02.06.01.002-8"},"TC_TORAX":{"nome":"Tomografia computadorizada de tórax (sem contraste)","codigo":"02.06.02.003-1"},"TC_ABDOME_SUPERIOR":{"nome":"Tomografia computadorizada de abdome superior","codigo":"02.06.03.001-0"},"TC_PELVE":{"nome":"Tomografia computadorizada de pelve/bacia/abdome inferior","codigo":"02.06.03.003-7"},"TC_ARTIC_MEMBRO_SUP":{"nome":"Tomografia computadorizada de articulações de membro superior","codigo":"02.06.02.001-5"},"TC_ARTIC_MEMBRO_INF":{"nome":"Tomografia computadorizada de articulações de membro inferior","codigo":"02.06.03.002-9"},"TC_SEGMENTOS_APENDIC":{"nome":"Tomografia computadorizada de segmentos apendiculares (braço, antebraço, mão, coxa, perna, pé)","codigo":"02.06.02.002-3"},"DENSITOMETRIA_2SEG":{"nome":"Densitometria óssea (dois segmentos)","codigo":"02.04.06.002-8"},"DENSITOMETRIA_CORPO":{"nome":"Densitometria óssea (corpo inteiro)","codigo":"02.04.06.002-8"},"ENDOSCOPIA_DIGESTIVA_ALTA":{"nome":"Endoscopia digestiva alta (esofagogastroduodenoscopia)","codigo":"02.09.01.003-7"},"COLONOSCOPIA":{"nome":"Colonoscopia (coloscopia)","codigo":"02.09.01.002-9"},"ANGIOCORONARIOGRAFIA":{"nome":"Angiocoronariografia (cateterismo cardíaco)","codigo":"02.11.02.001-0"},"CINTILOGRAFIA_MIOCARDIO_ESTRESSE":{"nome":"Cintilografia de perfusão do miocárdio (estresse, mín. 3 projeções)","codigo":"02.08.01.002-5"},"CINTILOGRAFIA_MIOCARDIO_REPOUSO":{"nome":"Cintilografia de perfusão do miocárdio (repouso, mín. 3 projeções)","codigo":"02.08.01.003-3"},"ECOCARDIOGRAMA_TRANSTORACICO":{"nome":"Ecocardiograma transtorácico","codigo":"02.05.01.003-2"},"TESTE_ERGOMETRICO":{"nome":"Teste ergométrico (teste de esforço)","codigo":"02.11.02.006-0"},"HOLTER_24H":{"nome":"Holter 24 horas (eletrocardiograma dinâmico, 3 canais)","codigo":"02.11.02.004-4"},"MAPA_24H":{"nome":"MAPA 24 horas (monitorização ambulatorial da pressão arterial)","codigo":"02.11.02.005-2"},"RETOSSIGMOIDOSCOPIA":{"nome":"Retossigmoidoscopia (diagnóstica)","codigo":"02.09.01.005-3"}},"cids":{"G43.0":"Enxaqueca sem aura (enxaqueca comum)","G43.8":"Outras formas de enxaqueca","P14.3":"Outras lesões do plexo braquial devidas a traumatismo de parto","L93":"Lúpus eritematoso","M18.0":"Artrose primária bilateral das primeiras articulações carpometacarpianas","M25.5":"Dor articular","R73.9":"Hiperglicemia não especificada","G00.9":"Meningite bacteriana não especificada","H90.3":"Perda de audição neurossensorial bilateral","F82":"Transtorno específico do desenvolvimento motor","F80.9":"Transtorno de desenvolvimento da fala ou linguagem não especificado","G43.9":"Enxaqueca não especificada","G44.1":"Cefaleia vascular, não classificada em outra parte","G40.9":"Epilepsia não especificada","G93.4":"Encefalopatia não especificada","R51":"Cefaleia","G80.9":"Paralisia cerebral não especificada","F84.0":"Autismo infantil","F70":"Retardo mental leve","F71":"Retardo mental moderado","Q90.9":"Síndrome de Down não especificada","P07.3":"Outros recém-nascidos pré-termo","M19.9":"Artrose não especificada","M79.1":"Mialgia","M54.5":"Dor lombar baixa","M54.2":"Cervicalgia","M06.9":"Artrite reumatoide não especificada","M32.9":"Lúpus eritematoso sistêmico não especificado","M81.9":"Osteoporose não especificada","M85.8":"Outros transtornos especificados da densidade e da estrutura ósseas","M47.9":"Espondilose não especificada","M51.1":"Transtornos de discos lombares e de outros discos intervertebrais com radiculopatia","E10.9":"Diabetes mellitus tipo 1 sem complicações","E11.9":"Diabetes mellitus tipo 2 sem complicações","E03.9":"Hipotireoidismo não especificado","E05.9":"Tireotoxicose não especificada","E66.9":"Obesidade não especificada","E78.0":"Hipercolesterolemia pura","I10":"Hipertensão essencial (primária)","J44.9":"Doença pulmonar obstrutiva crônica não especificada","N18.9":"Doença renal crônica não especificada","R07.4":"Dor torácica, não especificada"}},"cmd":{"_leia_me":"Laudo Medico de Alto Custo de Conceicao do Mato Dentro.","municipio":"CONCEIÇÃO DO MATO DENTRO","origens":["CEMO DR SEBASTIAO SOARES DOS SANTOS"],"procedimentos":{"RM_CRANIO":{"nome":"Ressonância nuclear magnética de crânio","codigo":"02.07.01.006-4"},"RM_BASE_CRANIO":{"nome":"Ressonância nuclear magnética de base do crânio","codigo":"02.07.01.006-4"},"RM_SELA_TURCICA":{"nome":"Ressonância nuclear magnética de sela túrcica","codigo":"02.07.01.007-2"},"RM_ATM":{"nome":"Ressonância nuclear magnética de articulação temporomandibular (bilateral)","codigo":"02.07.01.002-1"},"ANGIO_RM_CEREBRAL":{"nome":"Angiorressonância cerebral","codigo":"02.07.01.001-3"},"RM_COLUNA_CERVICAL":{"nome":"Ressonância nuclear magnética de coluna cervical","codigo":"02.07.01.003-0"},"RM_COLUNA_TORACICA":{"nome":"Ressonância nuclear magnética de coluna torácica","codigo":"02.07.01.005-6"},"RM_COLUNA_LOMBOSSACRA":{"nome":"Ressonância nuclear magnética de coluna lombo-sacra","codigo":"02.07.01.004-8"},"RM_CORACAO_AORTA":{"nome":"Ressonância nuclear magnética de coração/aorta com cine","codigo":"02.07.02.001-9"},"RM_MEMBRO_SUPERIOR":{"nome":"Ressonância nuclear magnética de membro superior (unilateral)","codigo":"02.07.02.002-7"},"TC_CRANIO":{"nome":"Tomografia computadorizada do crânio","codigo":"02.06.01.007-9"},"TC_SELA_TURCICA":{"nome":"Tomografia computadorizada de sela túrcica","codigo":"02.06.01.006-0"},"TC_FACE_ATM":{"nome":"Tomografia computadorizada de face/seios da face/ATM","codigo":"02.06.01.004-4"},"TC_PESCOCO":{"nome":"Tomografia computadorizada do pescoço","codigo":"02.06.01.005-2"},"TC_COLUNA_CERVICAL":{"nome":"Tomografia computadorizada de coluna cervical (com ou sem contraste)","codigo":"02.06.01.001-0"},"TC_COLUNA_TORACICA":{"nome":"Tomografia computadorizada de coluna torácica (com ou sem contraste)","codigo":"02.06.01.003-6"},"TC_COLUNA_LOMBOSSACRA":{"nome":"Tomografia computadorizada de coluna lombo-sacra (com ou sem contraste)","codigo":"02.06.01.002-8"},"TC_TORAX":{"nome":"Tomografia computadorizada de tórax (sem contraste)","codigo":"02.06.02.003-1"},"TC_ABDOME_SUPERIOR":{"nome":"Tomografia computadorizada de abdome superior","codigo":"02.06.03.001-0"},"TC_PELVE":{"nome":"Tomografia computadorizada de pelve/bacia/abdome inferior","codigo":"02.06.03.003-7"},"TC_ARTIC_MEMBRO_SUP":{"nome":"Tomografia computadorizada de articulações de membro superior","codigo":"02.06.02.001-5"},"TC_ARTIC_MEMBRO_INF":{"nome":"Tomografia computadorizada de articulações de membro inferior","codigo":"02.06.03.002-9"},"TC_SEGMENTOS_APENDIC":{"nome":"Tomografia computadorizada de segmentos apendiculares (braço, antebraço, mão, coxa, perna, pé)","codigo":"02.06.02.002-3"},"DENSITOMETRIA_2SEG":{"nome":"Densitometria óssea (dois segmentos)","codigo":"02.04.06.002-8"},"DENSITOMETRIA_CORPO":{"nome":"Densitometria óssea (corpo inteiro)","codigo":"02.04.06.002-8"},"ENDOSCOPIA_DIGESTIVA_ALTA":{"nome":"Endoscopia digestiva alta (esofagogastroduodenoscopia)","codigo":"02.09.01.003-7"},"COLONOSCOPIA":{"nome":"Colonoscopia (coloscopia)","codigo":"02.09.01.002-9"},"ANGIOCORONARIOGRAFIA":{"nome":"Angiocoronariografia (cateterismo cardíaco)","codigo":"02.11.02.001-0"},"CINTILOGRAFIA_MIOCARDIO_ESTRESSE":{"nome":"Cintilografia de perfusão do miocárdio (estresse, mín. 3 projeções)","codigo":"02.08.01.002-5"},"CINTILOGRAFIA_MIOCARDIO_REPOUSO":{"nome":"Cintilografia de perfusão do miocárdio (repouso, mín. 3 projeções)","codigo":"02.08.01.003-3"},"ECOCARDIOGRAMA_TRANSTORACICO":{"nome":"Ecocardiograma transtorácico","codigo":"02.05.01.003-2"},"TESTE_ERGOMETRICO":{"nome":"Teste ergométrico (teste de esforço)","codigo":"02.11.02.006-0"},"HOLTER_24H":{"nome":"Holter 24 horas (eletrocardiograma dinâmico, 3 canais)","codigo":"02.11.02.004-4"},"MAPA_24H":{"nome":"MAPA 24 horas (monitorização ambulatorial da pressão arterial)","codigo":"02.11.02.005-2"},"RETOSSIGMOIDOSCOPIA":{"nome":"Retossigmoidoscopia (diagnóstica)","codigo":"02.09.01.005-3"}},"cids":{"K83.8":"Outras doenças especificadas das vias biliares","I10":"Hipertensão essencial (primária)","I11.9":"Doença cardíaca hipertensiva sem insuficiência cardíaca","I15.9":"Hipertensão secundária não especificada","I20.0":"Angina instável","I20.9":"Angina pectoris, não especificada","I21.9":"Infarto agudo do miocárdio não especificado","I22.9":"Infarto do miocárdio recorrente não especificado","I24.9":"Doença isquêmica aguda do coração, não especificada","I25.1":"Doença aterosclerótica do coração","I25.9":"Doença isquêmica crônica do coração, não especificada","I27.9":"Doença cardiopulmonar não especificada","I34.0":"Insuficiência da valva mitral","I34.9":"Transtorno não-reumático da valva mitral, não especificado","I35.0":"Estenose aórtica","I35.9":"Transtorno da valva aórtica não especificado","I36.1":"Insuficiência não-reumática da valva tricúspide","I38":"Endocardite de valva não especificada","I42.0":"Cardiomiopatia dilatada","I42.9":"Cardiomiopatia não especificada","I44.2":"Bloqueio atrioventricular total","I45.9":"Transtorno de condução não especificado","I47.1":"Taquicardia supraventricular","I47.2":"Taquicardia ventricular","I48":"Flutter e fibrilação atrial","I48.9":"Flutter e fibrilação atrial","I49.5":"Síndrome do nó sinusal","I49.9":"Arritmia cardíaca não especificada","I50":"Insuficiência cardíaca","I50.9":"Insuficiência cardíaca não especificada","I51.7":"Cardiomegalia","I70.0":"Aterosclerose da aorta","I70.2":"Aterosclerose das artérias das extremidades","I71.4":"Aneurisma da aorta abdominal, sem menção de ruptura","I73.9":"Doença vascular periférica não especificada","I80.2":"Flebite e tromboflebite de outros vasos profundos dos membros inferiores","I82.9":"Embolia e trombose venosa não especificada","Q21.1":"Comunicação interatrial","Q24.9":"Malformação congênita do coração não especificada","E78.5":"Hiperlipidemia não especificada","R00.0":"Taquicardia não especificada","R00.1":"Bradicardia não especificada","R00.2":"Palpitações","R07.2":"Dor precordial","R42":"Tontura e instabilidade","R55":"Síncope e colapso","Z95.0":"Presença de marca-passo cardíaco","Z95.1":"Presença de enxerto de ponte aortocoronária","Z95.5":"Presença de implante e enxerto de angioplastia coronária","G43.0":"Enxaqueca sem aura (enxaqueca comum)","G43.8":"Outras formas de enxaqueca","G43.9":"Enxaqueca não especificada","G44.1":"Cefaleia vascular, não classificada em outra parte","G40.9":"Epilepsia não especificada","G93.4":"Encefalopatia não especificada","R51":"Cefaleia","G80.9":"Paralisia cerebral não especificada","F84.0":"Autismo infantil","F70":"Retardo mental leve","F71":"Retardo mental moderado","F82":"Transtorno específico do desenvolvimento motor","F80.9":"Transtorno de desenvolvimento da fala ou linguagem não especificado","Q90.9":"Síndrome de Down não especificada","P07.3":"Outros recém-nascidos pré-termo","P14.3":"Outras lesões do plexo braquial devidas a traumatismo de parto","L93":"Lúpus eritematoso","G00.9":"Meningite bacteriana não especificada","H90.3":"Perda de audição neurossensorial bilateral","M18.0":"Artrose primária bilateral das primeiras articulações carpometacarpianas","M19.9":"Artrose não especificada","M25.5":"Dor articular","M79.1":"Mialgia","M54.5":"Dor lombar baixa","M54.2":"Cervicalgia","M06.9":"Artrite reumatoide não especificada","M32.9":"Lúpus eritematoso sistêmico não especificado","M81.9":"Osteoporose não especificada","M85.8":"Outros transtornos especificados da densidade e da estrutura ósseas","M47.9":"Espondilose não especificada","M51.1":"Transtornos de discos lombares e de outros discos intervertebrais com radiculopatia","E10.9":"Diabetes mellitus tipo 1 sem complicações","E11.9":"Diabetes mellitus tipo 2 sem complicações","E03.9":"Hipotireoidismo não especificado","E05.9":"Tireotoxicose não especificada","E66.9":"Obesidade não especificada","E78.0":"Hipercolesterolemia pura","R73.9":"Hiperglicemia não especificada","J44.9":"Doença pulmonar obstrutiva crônica não especificada","N18.9":"Doença renal crônica não especificada","R07.4":"Dor torácica, não especificada"}},"apac-itauna":{"_leia_me":"APAC de Itauna. O estabelecimento ja aparece preenchido no formulario.","estabelecimento":{"nome":"CENTRO DE ESPEC MEDICAS E ODONTO DR OVIDIO NOGUEIRA MACHADO","cnes":"2105578"},"procedimentos":{"HOLTER":{"nome":"Holter 24h","codigo":"02.11.02.004-4","label":"MONITORAMENTO PELO SISTEMA HOLTER 24 HS (3 CANAIS)"},"MAPA":{"nome":"MAPA 24h","codigo":"02.11.02.005-2","label":"MONITORIZAÇÃO AMBULATORIAL DE PRESSÃO ARTERIAL (MAPA)"},"TE":{"nome":"Teste Ergométrico","codigo":"02.11.02.006-0","label":"TESTE DE ESFORÇO / TESTE ERGOMÉTRICO"},"DOPPLER":{"nome":"Doppler vascular","codigo":"02.05.01.004-0","label":null},"CINTILO":{"nome":"Cintilografia miocárdio","codigo":"02.08.01.002-5","label":"CINTILOGRAFIA DE MIOCÁRDIO P/ AVALIAÇÃO DA PERFUSÃO EM SITUAÇÃO DE ESTRESSE (MÍNIMO 3 PROJEÇÕES)"},"ECO":{"nome":"Ecocardiograma","codigo":"02.05.01.003-2","label":null},"CATETER":{"nome":"Cateterismo cardíaco","codigo":"02.11.02.001-0","label":"CATETERISMO CARDÍACO (CINECORONARIOGRAFIA)"},"OUTRO":{"nome":"Outro procedimento…","codigo":"","label":null}},"ecoVariantes":{"REPOUSO":{"codigo":"02.05.01.003-2","nome":"ECOCARDIOGRAFIA TRANSTORACICA"},"ESTRESSE":{"codigo":"02.05.01.001-6","nome":"ECOCARDIOGRAFIA COM ESTRESSE"},"TRANSESOFAGICO":{"codigo":"02.05.01.002-4","nome":"ECOCARDIOGRAFIA BI-DIMENSIONAL TRANSESOFAGICO"}},"territorios":["DOPPLER DE ARTÉRIAS CARÓTIDAS E VERTEBRAIS","DOPPLER DE VEIAS CERVICAIS","DOPPLER AORTA ABDOMINAL","DOPPLER DE ARTÉRIAS RENAIS","DOPPLER ARTERIAL DE MEMBROS SUPERIORES","DOPPLER ARTERIAL DE MEMBROS INFERIORES","DOPPLER VENOSO DE MEMBROS SUPERIORES","DOPPLER VENOSO DE MEMBROS INFERIORES"],"cids":{"I10":"Hipertensão essencial (primária)","I11.9":"Doença cardíaca hipertensiva sem insuficiência cardíaca","I15.9":"Hipertensão secundária não especificada","I20.0":"Angina instável","I20.9":"Angina pectoris, não especificada","I21.9":"Infarto agudo do miocárdio não especificado","I22.9":"Infarto do miocárdio recorrente não especificado","I24.9":"Doença isquêmica aguda do coração, não especificada","I25.1":"Doença aterosclerótica do coração","I25.9":"Doença isquêmica crônica do coração, não especificada","I27.9":"Doença cardiopulmonar não especificada","I34.0":"Insuficiência da valva mitral","I34.9":"Transtorno não-reumático da valva mitral, não especificado","I35.0":"Estenose aórtica","I35.9":"Transtorno da valva aórtica não especificado","I36.1":"Insuficiência não-reumática da valva tricúspide","I38":"Endocardite de valva não especificada","I42.0":"Cardiomiopatia dilatada","I42.9":"Cardiomiopatia não especificada","I44.2":"Bloqueio atrioventricular total","I45.9":"Transtorno de condução não especificado","I47.1":"Taquicardia supraventricular","I47.2":"Taquicardia ventricular","I48":"Flutter e fibrilação atrial","I48.9":"Flutter e fibrilação atrial","I49.5":"Síndrome do nó sinusal","I49.9":"Arritmia cardíaca não especificada","I50":"Insuficiência cardíaca","I50.9":"Insuficiência cardíaca não especificada","I51.7":"Cardiomegalia","I70.0":"Aterosclerose da aorta","I70.2":"Aterosclerose das artérias das extremidades","I71.4":"Aneurisma da aorta abdominal, sem menção de ruptura","I73.9":"Doença vascular periférica não especificada","I80.2":"Flebite e tromboflebite de outros vasos profundos dos membros inferiores","I82.9":"Embolia e trombose venosa não especificada","Q21.1":"Comunicação interatrial","Q24.9":"Malformação congênita do coração não especificada","E11":"Diabetes mellitus não-insulino-dependente","E11.9":"Diabetes mellitus não-insulino-dependente - sem complicações","E78.0":"Hipercolesterolemia pura","E78.5":"Hiperlipidemia não especificada","R00.0":"Taquicardia não especificada","R00.1":"Bradicardia não especificada","R00.2":"Palpitações","R07.2":"Dor precordial","R07.4":"Dor torácica, não especificada","R42":"Tontura e instabilidade","R55":"Síncope e colapso","Z95.0":"Presença de marca-passo cardíaco","Z95.1":"Presença de enxerto de ponte aortocoronária","Z95.5":"Presença de implante e enxerto de angioplastia coronária"}}};
 
   var __inv = {
-  "versao": "2.2.0",
+  "versao": "2.3.0",
   "modulos": [
     {
       "id": "alarme-fila",
@@ -3103,7 +3384,7 @@
       "id": "apac-itauna",
       "nome": "APAC — Itaúna",
       "descricao": "Gera a APAC de Itaúna já preenchida com os dados do paciente que estão na tela e leva você direto para a assinatura no gov.br.",
-      "versao": "2.1.0",
+      "versao": "2.3.0",
       "origem": "sodelfino/apac-itauna-meeds"
     },
     {
@@ -3136,7 +3417,7 @@
    * cobre o resto: duas copias instaladas no Tampermonkey, ou uma
    * reexecucao do script numa navegacao da SPA. Sem ela, apareciam dois
    * docks sobrepostos e o alarme tocava duas vezes. */
-  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.2.0")) return;
+  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.3.0")) return;
 
   /* 2) O hook de rede precisa existir ANTES de qualquer chamada da
    * aplicacao — por isso e instalado aqui, em document-start, e nao
@@ -3833,7 +4114,7 @@
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
 
-/* ===== modules/apac-itauna/index.js (v2.1.0) ===== */
+/* ===== modules/apac-itauna/index.js (v2.3.0) ===== */
 /* ------------------------------------------------------------------
  * modules/apac-itauna/index.js
  * Origem: sodelfino/apac-itauna-meeds -> APAC_GERADOR_FINAL.user.js v1.9.0
@@ -4104,7 +4385,7 @@
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
   var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#apac-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #apac-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #apac-modal-head h2{ margin:0; font-size:15px; }\n    #apac-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #apac-body{ padding:18px 20px; }\n    .apac-sec{ margin-bottom:16px; }\n    .apac-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .apac-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .apac-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6c68; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8e6e3; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:56px; resize:vertical; }\n    .apac-proc-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }\n    .apac-proc-btn{ border:1.4px solid #d8e6e3; border-radius:9px; padding:9px; cursor:pointer; }\n    .apac-proc-btn:hover{ border-color:#17ab9e; }\n    .apac-proc-btn.sel{ border-color:#12958a; background:#e3f5f3; }\n    .apac-proc-btn .t{ font-size:11.5px; font-weight:700; }\n    .apac-proc-btn .c{ font-size:9.5px; color:#0e7a70; font-family:monospace; }\n    #apac-territorio-wrap{ display:none; margin-top:8px; }\n    #apac-territorio-wrap.show{ display:block; }\n    #apac-eco-variante-wrap{ display:none; margin-top:8px; }\n    #apac-eco-variante-wrap.show{ display:block; }\n    #apac-outro-wrap{ display:none; margin-top:8px; }\n    #apac-outro-wrap.show{ display:block; }\n    #apac-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    #apac-sec-assinatura{ border:1.5px dashed #17ab9e; border-radius:12px; padding:14px; background:#f9fdfc; }\n    .apac-opcoes-assinatura{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }\n    button.apac-primary{ background:#12958a; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.apac-primary:hover{ background:#0b6a62; }\n    button.apac-primary:disabled{ background:#a0c9c4; cursor:not-allowed; }\n    button.apac-secondary{ background:#fff; color:#0e7a70; border:1.4px solid #17ab9e; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.apac-secondary:hover{ background:#e3f5f3; }\n    button.apac-tertiary{ background:#f0f4f3; color:#0e7a70; border:1px solid #d8e6e3; border-radius:9px; padding:9px 14px; font-size:12px; font-weight:700; cursor:pointer; }\n    button.apac-tertiary:hover{ background:#e3f5f3; }\n    #apac-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #apac-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }\n    .apac-info-box{ background:#e8f4f8; color:#0e7a70; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:10px; line-height:1.4; }";
 
-  var HTML = "<div id=\"apac-modal\">\n      <div id=\"apac-modal-head\"><h2>Gerador de APAC — Itaúna</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"apac-refresh-modal\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"apac-historico-abrir\" title=\"Últimas APACs geradas nesta máquina\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"apac-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"apac-body\">\n        <div id=\"apac-auto-aviso\"></div>\n\n        <div id=\"apac-historico-painel\"></div>\n\n        <div class=\"apac-sec\">\n          <h3>Estabelecimento</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome</label><input id=\"apac-estab-nome\" ></div>\n            <div><label>CNES</label><input id=\"apac-estab-cnes\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Médico solicitante</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Selecionar *</label><select id=\"apac-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"apac-medico-nome\"></div>\n            <div><label>CNS *</label><input id=\"apac-medico-cns\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Paciente</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome completo *</label><input id=\"apac-pac-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-pac-cpf\"></div>\n          </div>\n          <div class=\"apac-grid3\" style=\"margin-top:8px;\">\n            <div><label>Nascimento *</label><input type=\"date\" id=\"apac-pac-nasc\"></div>\n            <div><label>Sexo *</label><select id=\"apac-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"M\">Masculino</option><option value=\"F\">Feminino</option></select></div>\n            <div><label>Nome da mãe *</label><input id=\"apac-pac-mae\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Procedimento *</h3>\n          <div class=\"apac-proc-grid\" id=\"apac-proc-grid\"></div>\n          <div id=\"apac-territorio-wrap\">\n            <label>Território vascular (obrigatório para Doppler)</label>\n            <select id=\"apac-territorio-sel\"></select>\n          </div>\n          <div id=\"apac-eco-variante-wrap\">\n            <label>Variante do ecocardiograma</label>\n            <select id=\"apac-eco-variante-sel\">\n              <option value=\"REPOUSO\">Transtorácica de repouso (padrão)</option>\n              <option value=\"ESTRESSE\">Com estresse (farmacológico/Dobutamina)</option>\n              <option value=\"TRANSESOFAGICO\">Transesofágico</option>\n            </select>\n          </div>\n          <div id=\"apac-outro-wrap\">\n            <label>Código SIGTAP *</label>\n            <input id=\"apac-outro-codigo\" placeholder=\"ex: 02.11.02.001-0\" style=\"margin-bottom:8px;\">\n            <label>Nome do procedimento *</label>\n            <input id=\"apac-outro-nome\" placeholder=\"como deve aparecer no campo 19\">\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>CID-10 *</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Principal *</label><input id=\"apac-cid1\" list=\"apac-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Secundário</label><input id=\"apac-cid2\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n            <div><label>Associados</label><input id=\"apac-cid3\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Descrição (campo 36) *</label><input id=\"apac-cid-desc\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Texto do pedido (campo 40) *</h3>\n          <textarea id=\"apac-obs\"></textarea>\n        </div>\n\n        <!-- ETAPA 2 — Assinatura -->\n        <div class=\"apac-sec\" id=\"apac-sec-assinatura\" style=\"display:none;\">\n          <h3>Etapa 2 — Assinatura</h3>\n          <div class=\"apac-info-box\">\n            ✅ <b>APAC gerada.</b> Ela já ficou registrada no 📜 Histórico. Escolha como quer finalizar:\n          </div>\n\n          <div class=\"apac-opcoes-assinatura\">\n            <button id=\"apac-assinar-govbr\" class=\"apac-primary\">\n              🏛️ Assinar via gov.br<br><small style=\"font-weight:400;opacity:.9;\">Baixa PDF e abre o portal</small>\n            </button>\n            <button id=\"apac-baixar-sem\" class=\"apac-tertiary\">\n              💾 Baixar sem assinar<br><small style=\"font-weight:400;opacity:.8;\">PDF simples</small>\n            </button>\n          </div>\n        </div>\n\n        <div id=\"apac-erro\"></div>\n        <datalist id=\"apac-cid-list\"></datalist>\n      </div>\n      <div id=\"apac-footer\">\n        <button class=\"apac-secondary\" id=\"apac-limpar\">Limpar</button>\n        <button class=\"apac-primary\" id=\"apac-gerar\">Gerar PDF</button>\n      </div>\n    </div>";
+  var HTML = "<div id=\"apac-modal\">\n      <div id=\"apac-modal-head\"><h2>Gerador de APAC — Itaúna</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"apac-refresh-modal\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"apac-historico-abrir\" title=\"Últimas APACs geradas nesta máquina\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"apac-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"apac-body\">\n        <div id=\"apac-auto-aviso\"></div>\n\n        <div id=\"apac-historico-painel\"></div>\n\n        <div class=\"apac-sec\">\n          <h3>Estabelecimento</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome *</label><select id=\"apac-estab-sel\"></select></div>\n            <div><label>CNES *</label><input id=\"apac-estab-cnes\" readonly style=\"background:#f1f5f9;\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Médico solicitante</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Selecionar *</label><select id=\"apac-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"apac-medico-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-medico-cpf\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Paciente</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome completo *</label><input id=\"apac-pac-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-pac-cpf\"></div>\n          </div>\n          <div class=\"apac-grid3\" style=\"margin-top:8px;\">\n            <div><label>Nascimento *</label><input type=\"date\" id=\"apac-pac-nasc\"></div>\n            <div><label>Sexo *</label><select id=\"apac-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"M\">Masculino</option><option value=\"F\">Feminino</option></select></div>\n            <div><label>Nome da mãe *</label><input id=\"apac-pac-mae\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Procedimento *</h3>\n          <div class=\"apac-proc-grid\" id=\"apac-proc-grid\"></div>\n          <div id=\"apac-territorio-wrap\">\n            <label>Território vascular (obrigatório para Doppler)</label>\n            <select id=\"apac-territorio-sel\"></select>\n          </div>\n          <div id=\"apac-eco-variante-wrap\">\n            <label>Variante do ecocardiograma</label>\n            <select id=\"apac-eco-variante-sel\">\n              <option value=\"REPOUSO\">Transtorácica de repouso (padrão)</option>\n              <option value=\"ESTRESSE\">Com estresse (farmacológico/Dobutamina)</option>\n              <option value=\"TRANSESOFAGICO\">Transesofágico</option>\n            </select>\n          </div>\n          <div id=\"apac-outro-wrap\">\n            <label>Código SIGTAP *</label>\n            <input id=\"apac-outro-codigo\" placeholder=\"ex: 02.11.02.001-0\" style=\"margin-bottom:8px;\">\n            <label>Nome do procedimento *</label>\n            <input id=\"apac-outro-nome\" placeholder=\"como deve aparecer no campo 19\">\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>CID-10 *</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Principal *</label><input id=\"apac-cid1\" list=\"apac-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Secundário</label><input id=\"apac-cid2\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n            <div><label>Associados</label><input id=\"apac-cid3\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Descrição (campo 36) *</label><input id=\"apac-cid-desc\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Texto do pedido (campo 40) *</h3>\n          <textarea id=\"apac-obs\"></textarea>\n        </div>\n\n        <!-- ETAPA 2 — Assinatura -->\n        <div class=\"apac-sec\" id=\"apac-sec-assinatura\" style=\"display:none;\">\n          <h3>Etapa 2 — Assinatura</h3>\n          <div class=\"apac-info-box\">\n            ✅ <b>APAC gerada.</b> Ela já ficou registrada no 📜 Histórico. Escolha como quer finalizar:\n          </div>\n\n          <div class=\"apac-opcoes-assinatura\">\n            <button id=\"apac-assinar-govbr\" class=\"apac-primary\">\n              🏛️ Assinar via gov.br<br><small style=\"font-weight:400;opacity:.9;\">Baixa PDF e abre o portal</small>\n            </button>\n            <button id=\"apac-baixar-sem\" class=\"apac-tertiary\">\n              💾 Baixar sem assinar<br><small style=\"font-weight:400;opacity:.8;\">PDF simples</small>\n            </button>\n          </div>\n        </div>\n\n        <div id=\"apac-erro\"></div>\n        <datalist id=\"apac-cid-list\"></datalist>\n      </div>\n      <div id=\"apac-footer\">\n        <button class=\"apac-secondary\" id=\"apac-limpar\">Limpar</button>\n        <button class=\"apac-primary\" id=\"apac-gerar\">Gerar PDF</button>\n      </div>\n    </div>";
 
   /* ---- extraidas do original sem alteracao ---- */
 
@@ -4119,8 +4400,10 @@
       { id: "apac-medico-sel", descricao: "escolher o médico solicitante", rotulo: "Selecionar",
         comoResolver: "se a lista estiver vazia, cadastre-se no painel da engrenagem (⚙️)" },
       { id: "apac-medico-nome", descricao: "o nome do médico", rotulo: "Nome" },
-      { id: "apac-medico-cns", descricao: "o CNS do médico", rotulo: "CNS",
+      { id: "apac-medico-cpf", descricao: "o CPF do médico", rotulo: "CPF",
         comoResolver: "complete o cadastro dele no painel da engrenagem (⚙️)" },
+      { id: "apac-estab-sel", descricao: "o estabelecimento solicitante", rotulo: "Nome",
+        comoResolver: "cadastre a unidade no painel da engrenagem (⚙️), em Estabelecimentos" },
       { id: "apac-pac-nome", descricao: "o nome do paciente", rotulo: "Nome completo",
         comoResolver: "clique em “Atualizar paciente” para ler da tela do atendimento" },
       { id: "apac-pac-cpf", descricao: "o CPF do paciente", rotulo: "CPF",
@@ -4216,7 +4499,7 @@
     y += 40;
 
     bar(11, 'IDENTIFICAÇÃO DO ESTABELECIMENTO DE SAÚDE (SOLICITANTE)');
-    box(M, y, CW-170, 20, '1 - NOME DO ESTABELECIMENTO', shadow.getElementById('apac-estab-nome').value, {size:8});
+    box(M, y, CW-170, 20, '1 - NOME DO ESTABELECIMENTO', estabelecimentoEscolhido(), {size:8});
     box(M+CW-170, y, 170, 20, '2 - CNES', shadow.getElementById('apac-estab-cnes').value); y += 20;
 
     bar(11, 'IDENTIFICAÇÃO DO PACIENTE');
@@ -4286,15 +4569,19 @@
 
     bar(11, 'SOLICITAÇÃO');
     const medicoNome = shadow.getElementById('apac-medico-nome').value;
-    const medicoCns = shadow.getElementById('apac-medico-cns').value;
+    // Documento do profissional: passou a ser o CPF. O formulario oficial
+    // aceita CNS ou CPF no campo 43/44 — tem a caixa de marcacao para
+    // isso — e o medico raramente sabe o proprio CNS de cabeca.
+    const medicoCpf = shadow.getElementById('apac-medico-cpf').value;
     const hoje = new Date();
     const dataHoje = `${String(hoje.getDate()).padStart(2,'0')} / ${String(hoje.getMonth()+1).padStart(2,'0')} / ${hoje.getFullYear()}`;
     box(M, y, CW-300, 24, '41 - NOME DO PROFISSIONAL', medicoNome);
     box(M+CW-300, y, 120, 24, '42-DATA', dataHoje, {center:true});
     box(M+CW-180, y, 180, 24, '45-ASSINATURA/CARIMBO', null); y += 24;
     box(M, y, 110, 24, '43 - DOCUMENTO', null);
-    doc.setFontSize(6); doc.text('(X) CNS', M+8, y+16); doc.text('(   ) CPF', M+58, y+16);
-    digitBox(M+110, y, CW-110, 24, '44 - Nº DOCUMENTO', medicoCns); y += 24;
+    doc.setFontSize(6); doc.text('(   ) CNS', M+8, y+16); doc.text('(X) CPF', M+58, y+16);
+    // 11 caixinhas: o CPF tem 11 digitos (o CNS tinha 15)
+    digitBox(M+110, y, CW-110, 24, '44 - Nº DOCUMENTO', medicoCpf, 11); y += 24;
 
     bar(11, 'AUTORIZAÇÃO');
     box(M, y, CW-320, 24, '46 - AUTORIZADOR', null);
@@ -4345,9 +4632,61 @@
    * cadastrado neste navegador. */
   var seletorMedico = null;
 
+  /* ---- estabelecimento ----
+   * A lista vem do cadastro do nucleo (⚙️ → Estabelecimentos), semeada
+   * na primeira execucao com o que estava em dados/formularios.json.
+   * Antes o nome e o CNES vinham fixos e o medico que atendesse por
+   * outra unidade tinha que digitar os dois a cada laudo. */
+  function estabelecimentoEscolhido() {
+    var sel = shadow.getElementById("apac-estab-sel");
+    var lista = d.cadastro.listarEstabelecimentos();
+    var e = lista[Number(sel && sel.value)];
+    return e ? e.nome : "";
+  }
+
+  function montarEstabelecimentos() {
+    var sel = shadow.getElementById("apac-estab-sel");
+    var cnesEl = shadow.getElementById("apac-estab-cnes");
+    var lista = d.cadastro.listarEstabelecimentos();
+    var anterior = sel.value;
+    sel.innerHTML = "";
+
+    var ph = document.createElement("option");
+    ph.value = "";
+    ph.textContent = lista.length ? "Selecione o estabelecimento…" : "Nenhum estabelecimento cadastrado";
+    ph.disabled = true;
+    ph.selected = true;
+    sel.appendChild(ph);
+
+    lista.forEach(function (e, i) {
+      var o = document.createElement("option");
+      o.value = String(i);
+      o.textContent = e.nome;
+      sel.appendChild(o);
+    });
+
+    var cadastrar = document.createElement("option");
+    cadastrar.value = "__cadastrar";
+    cadastrar.textContent = lista.length ? "＋ Cadastrar outro estabelecimento…" : "＋ Cadastrar estabelecimento…";
+    sel.appendChild(cadastrar);
+
+    // um so cadastrado: ja seleciona — o caso comum e o medico atender
+    // sempre pela mesma unidade
+    if (lista.length === 1) sel.value = "0";
+    else if (anterior && lista[Number(anterior)]) sel.value = anterior;
+    refletirCnes();
+  }
+
+  function refletirCnes() {
+    var sel = shadow.getElementById("apac-estab-sel");
+    var lista = d.cadastro.listarEstabelecimentos();
+    var e = lista[Number(sel.value)];
+    shadow.getElementById("apac-estab-cnes").value = e ? e.cnes : "";
+  }
+
   function preencherMedico(ficha) {
     shadow.getElementById("apac-medico-nome").value = ficha ? ficha.nome : "";
-    shadow.getElementById("apac-medico-cns").value = ficha ? ficha.cns : "";
+    shadow.getElementById("apac-medico-cpf").value = ficha ? ficha.cpf : "";
   }
 
   function montarMedicos() {
@@ -4532,10 +4871,25 @@
     shadow.getElementById("apac-baixar-sem").addEventListener("click", baixarSemAssinar);
     shadow.getElementById("apac-historico-abrir").addEventListener("click", historico.alternar);
 
-    // estabelecimento vem dos dados, nao do HTML
-    shadow.getElementById("apac-estab-nome").value = ESTABELECIMENTO.nome || "";
-    shadow.getElementById("apac-estab-cnes").value = ESTABELECIMENTO.cnes || "";
+    /* Semeia o cadastro de estabelecimentos com o que veio em
+     * dados/formularios.json. So na primeira execucao — depois quem manda
+     * e a lista que o medico mantem no painel. */
+    d.cadastro.semearEstabelecimentos(ESTABELECIMENTO && ESTABELECIMENTO.nome ? [ESTABELECIMENTO] : []);
+    montarEstabelecimentos();
+    shadow.getElementById("apac-estab-sel").addEventListener("change", function () {
+      var sel = shadow.getElementById("apac-estab-sel");
+      if (sel.value === "__cadastrar") {
+        sel.value = "";
+        refletirCnes();
+        d.core.abrirCadastroEstabelecimentos();
+        return;
+      }
+      refletirCnes();
+    });
 
+    // CPF se formata sozinho enquanto o medico digita (000.000.000-00)
+    raiz.MeedsSuiteFormatos.aplicarMascaraCpf(shadow.getElementById("apac-pac-cpf"));
+    raiz.MeedsSuiteFormatos.aplicarMascaraCpf(shadow.getElementById("apac-medico-cpf"));
     montarMedicos();
     montarProcGrid();
     montarCidList();
@@ -4580,6 +4934,7 @@
        * este modal. */
       deps.aoMudarCadastro(function () {
         if (seletorMedico) seletorMedico.atualizar();
+        montarEstabelecimentos();
       });
 
       deps.aoClicarBotao(abrirModal);
@@ -5224,6 +5579,9 @@
     shadow.getElementById("lme-limpar").addEventListener("click", limparForm);
     shadow.getElementById("lme-proc-nome").addEventListener("input", autoPreencherCodigoProc);
     shadow.getElementById("lme-cid").addEventListener("input", autoDescricaoCid);
+    // CPF se formata sozinho enquanto o medico digita (000.000.000-00)
+    raiz.MeedsSuiteFormatos.aplicarMascaraCpf(shadow.getElementById("lme-pac-cpf"));
+    raiz.MeedsSuiteFormatos.aplicarMascaraCpf(shadow.getElementById("lme-medico-cpf"));
     ativarMascaraData(shadow.getElementById("lme-pac-nasc"));
     montarOrigens(); montarProcList(); montarMedicos(); montarCidList();
   }
@@ -5896,6 +6254,9 @@
     shadow.getElementById("cmd-proc-nome").addEventListener("input", autoPreencherCodigoProc);
     shadow.getElementById("cmd-cid").addEventListener("input", autoDescricaoCid);
     shadow.getElementById("cmd-justificativa").addEventListener("input", atualizarContadorJustificativa);
+    // CPF se formata sozinho enquanto o medico digita (000.000.000-00)
+    raiz.MeedsSuiteFormatos.aplicarMascaraCpf(shadow.getElementById("cmd-pac-cpf"));
+    raiz.MeedsSuiteFormatos.aplicarMascaraCpf(shadow.getElementById("cmd-medico-cpf"));
     ativarMascaraData(shadow.getElementById("cmd-pac-nasc"));
     montarOrigens(); montarProcList(); montarMedicos(); montarCidList();
   }

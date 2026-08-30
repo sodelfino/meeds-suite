@@ -60,7 +60,8 @@ E o custo prático: **5 instalações e 5 atualizações separadas por médico**
   │                                                              │
   │  auth.js            trava de frame + detecção de login       │
   │  storage.js         config por módulo, namespaced            │
-  │  cadastro.js        médicos: cadastro único + backup         │
+  │  cadastro.js        médicos e estabelecimentos + backup      │
+  │  formatos.js        máscara de CPF e formatação de campos    │
   │  historico.js       documentos gerados, sem dado de paciente │
   │  mensagens.js       como o sistema fala com o médico         │
   │  diagnostico.js     instância única, scripts antigos, 1ª vez │
@@ -410,6 +411,32 @@ ficaria com botão duplicado sem saber por quê. São quatro tentativas (4s, 10s
 APAC e REMUME tinham cabeçalho verde-água; LME, CMD e o painel, azul. Sem um
 padrão, cada módulo novo escolheria o seu. O azul virou a cor de identidade e o
 verde ficou só como cor de ação nos botões primários, papel que já tinha.
+
+
+**D19 — CNS saiu do cadastro; a APAC passou a usar o CPF do médico.**
+O formulário oficial da APAC tem, no campo 43, uma caixa `( ) CNS  ( ) CPF` —
+os dois são aceitos. O médico raramente sabe o próprio CNS de cabeça, então
+exigi-lo travava o cadastro por nada. Agora a caixa marcada é a do CPF, o campo
+44 recebe o CPF e passou a ter 11 casas em vez de 15. Um `cns` que venha de
+cadastro antigo é simplesmente ignorado, sem quebrar nada.
+Atenção: o campo **6** do formulário continua recebendo o CPF do **paciente** —
+é outra regra de negócio, herdada e intocada.
+
+**D20 — Overlay aberto vai para a frente do DOM.**
+Todos os overlays vivem no mesmo shadow root e com o mesmo `z-index`, então
+quem aparece por cima é quem está por último no DOM. Abrir o painel de cadastro
+a partir do modal de um laudo abria o painel **atrás** do laudo: ele existia,
+mas o médico não via — e parecia que o botão "Cadastrar médico" não funcionava.
+Agora `abrir()` reposiciona o overlay no fim do shadow. Vale para qualquer
+módulo, inclusive um sexto.
+
+**D21 — Estabelecimentos viraram cadastro, com semente.**
+Nome e CNES da unidade solicitante eram fixos em `dados/formularios.json`, então
+o médico que atendesse por outra unidade redigitava os dois a cada laudo. Agora
+são um cadastro local (chave `estabelecimentos`), com a lista do arquivo de
+dados servindo de **semente** na primeira execução. A marca de "já semeei" é
+separada da lista estar vazia — senão, apagar tudo faria a semente voltar na
+recarga seguinte.
 
 ---
 

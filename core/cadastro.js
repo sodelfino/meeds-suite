@@ -34,8 +34,9 @@
 (function (raiz) {
   "use strict";
 
-  /* NUNCA TROQUE ESTA CHAVE. Ver decisao 2 acima. */
+  /* NUNCA TROQUE ESTAS CHAVES. Ver decisao 2 acima. */
   var CHAVE = "medicos";
+  var CHAVE_ESTABELECIMENTOS = "estabelecimentos";
 
   /* Chaves de formatos anteriores, lidas uma vez e apagadas depois de
    * migradas. Nao remova daqui sem ter certeza de que nenhum medico
@@ -103,25 +104,30 @@
     if (!item) return null;
 
     if (Array.isArray(item)) {
-      // [nome, cns] (APAC) — CNS tem 15 digitos; CRM nao
+      // [nome, cns] — formato antigo do APAC. O CNS nao e mais usado
+      // (ver abaixo), entao so o nome sobrevive: o medico completa o CPF.
       if (item.length === 2) {
-        return { nome: String(item[0] || "").trim(), crm: "", cpf: "", cns: String(item[1] || "").trim() };
+        return { nome: String(item[0] || "").trim(), crm: "", cpf: "" };
       }
-      // [nome, crm, cpf] (LME/CMD)
+      // [nome, crm, cpf] — formato antigo de LME/CMD
       return {
         nome: String(item[0] || "").trim(),
         crm: String(item[1] || "").trim(),
         cpf: String(item[2] || "").trim(),
-        cns: "",
       };
     }
 
     if (typeof item === "object") {
+      /* O CNS (Cartao Nacional de Saude) FOI REMOVIDO do cadastro.
+       * Motivo: o medico raramente sabe o proprio CNS de cabeca, e o
+       * formulario da APAC aceita CPF no campo 43/44 — ele tem uma caixa
+       * "( ) CNS  ( ) CPF" justamente para isso. Pedir um numero que a
+       * pessoa nao tem a mao era travar o cadastro por nada.
+       * Um `cns` que venha de cadastro antigo e simplesmente ignorado. */
       return {
         nome: String(item.nome || "").trim(),
         crm: String(item.crm || "").trim(),
         cpf: String(item.cpf || "").trim(),
-        cns: String(item.cns || "").trim(),
       };
     }
     return null;
@@ -144,7 +150,6 @@
       nome: a.nome || b.nome,
       crm: a.crm || b.crm,
       cpf: a.cpf || b.cpf,
-      cns: a.cns || b.cns,
     };
   }
 
@@ -340,6 +345,79 @@
     };
   }
 
+
+  /* ------------------------------------------------------------------
+   * ESTABELECIMENTOS (nome + CNES)
+   * ------------------------------------------------------------------
+   * Mesmo desenho do cadastro de medicos: vive no navegador, chave fixa,
+   * sobrevive a atualizacao. Antes o estabelecimento da APAC vinha fixo
+   * de dados/formularios.json e o medico que atendia por outra unidade
+   * tinha que digitar nome e CNES a cada laudo.
+   *
+   * A lista de dados/formularios.json continua servindo de SEMENTE: na
+   * primeira execucao ela e copiada para ca, e a partir dai quem manda e
+   * o que o medico cadastrou.
+   * ------------------------------------------------------------------ */
+  function normalizarEstabelecimento(item) {
+    if (!item || typeof item !== "object") return null;
+    return {
+      nome: String(item.nome || "").trim(),
+      cnes: String(item.cnes || "").replace(/\D/g, "").trim(),
+    };
+  }
+
+  function listarEstabelecimentos() {
+    var guardado = lerBruto(CHAVE_ESTABELECIMENTOS, null);
+    var lista = guardado && (Array.isArray(guardado) ? guardado : guardado.estabelecimentos);
+    if (!Array.isArray(lista)) return [];
+    return lista.map(normalizarEstabelecimento).filter(function (e) {
+      return e && e.nome;
+    });
+  }
+
+  function gravarEstabelecimentos(lista) {
+    return gravarBruto(CHAVE_ESTABELECIMENTOS, { versao: VERSAO_ESTRUTURA, estabelecimentos: lista });
+  }
+
+  function adicionarEstabelecimento(item) {
+    var novo = normalizarEstabelecimento(item);
+    if (!novo || !novo.nome) return { ok: false, erro: "Informe o nome do estabelecimento." };
+    var lista = listarEstabelecimentos();
+    var id = novo.nome.toLowerCase();
+    var existente = -1;
+    for (var i = 0; i < lista.length; i++) {
+      if (lista[i].nome.toLowerCase() === id) existente = i;
+    }
+    if (existente >= 0) lista[existente] = { nome: novo.nome, cnes: novo.cnes || lista[existente].cnes };
+    else lista.push(novo);
+    gravarEstabelecimentos(lista);
+    return { ok: true, atualizou: existente >= 0 };
+  }
+
+  function removerEstabelecimento(indice) {
+    var lista = listarEstabelecimentos();
+    if (indice < 0 || indice >= lista.length) return false;
+    lista.splice(indice, 1);
+    gravarEstabelecimentos(lista);
+    return true;
+  }
+
+  /* Copia a semente de dados/formularios.json na primeira execucao. Roda
+   * uma vez: depois disso a lista do medico e a que vale, mesmo que ele
+   * tenha apagado tudo (por isso a marca separada, e nao "lista vazia"). */
+  function semearEstabelecimentos(sementes) {
+    if (lerBruto("estabelecimentosSemeados", false)) return 0;
+    var n = 0;
+    (sementes || []).forEach(function (s) {
+      if (s && s.nome) {
+        adicionarEstabelecimento(s);
+        n++;
+      }
+    });
+    gravarBruto("estabelecimentosSemeados", true);
+    return n;
+  }
+
   raiz.MeedsSuiteCadastro = {
     CHAVE: CHAVE,
     listar: listar,
@@ -351,6 +429,10 @@
     importar: importar,
     normalizarFicha: normalizarFicha,
     montarSelect: montarSelect,
+    listarEstabelecimentos: listarEstabelecimentos,
+    adicionarEstabelecimento: adicionarEstabelecimento,
+    removerEstabelecimento: removerEstabelecimento,
+    semearEstabelecimentos: semearEstabelecimentos,
     usandoArmazenamentoDoTampermonkey: temGM,
   };
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);

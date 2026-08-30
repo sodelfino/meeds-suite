@@ -35,7 +35,7 @@ Os médicos recebem a mudança sozinhos, sem reinstalar nada.
 | Acrescentar uma **unidade de origem** num laudo | `dados/formularios.json` | `"lme-sete-lagoas"` → `"origens"`, ou `"cmd"` → `"origens"` |
 | Acrescentar um **exame/procedimento** com código SIGTAP | `dados/formularios.json` | o bloco `"procedimentos"` do laudo correspondente |
 | Acrescentar ou corrigir um **CID-10** | `dados/formularios.json` | o bloco `"cids"` do laudo correspondente |
-| Mudar o **estabelecimento/CNES** da APAC | `dados/formularios.json` | `"apac-itauna"` → `"estabelecimento"` |
+| Mudar o estabelecimento **inicial** da APAC | `dados/formularios.json` | `"apac-itauna"` → `"estabelecimento"` — vale só como semente da primeira execução; depois quem manda é o cadastro do médico (⚙️ → Estabelecimentos) |
 | Acrescentar um **território vascular** (Doppler) | `dados/formularios.json` | `"apac-itauna"` → `"territorios"` |
 | Mudar o **nome ou a descrição** de uma função no painel ⚙️ | `manifest.json` | bloco `"modulos"`, campos `nome` e `descricao` |
 | Mudar a **ordem dos botões** na tela | `manifest.json` | campo `prioridadeBotao` (menor = mais embaixo) |

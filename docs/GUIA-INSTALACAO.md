@@ -102,8 +102,18 @@ preencha:
 | Campo | Usado por |
 |---|---|
 | Nome completo | todos os laudos (é o único obrigatório) |
-| CRM e CPF | Sete Lagoas e Conceição do Mato Dentro |
-| CNS | APAC de Itaúna |
+| CRM | Sete Lagoas e Conceição do Mato Dentro |
+| CPF | os três laudos, inclusive a APAC |
+
+O CPF se formata sozinho enquanto você digita: basta teclar os números.
+
+> **Não pedimos mais o CNS.** O formulário da APAC aceita CNS **ou** CPF, e
+> quase ninguém sabe o próprio CNS de cabeça. O laudo sai com a caixa do CPF
+> marcada.
+
+Logo abaixo, em **Estabelecimentos**, cadastre as unidades solicitantes com o
+CNES. Elas aparecem para escolher no gerador de APAC, e o CNES preenche sozinho
+quando você escolhe a unidade.
 
 Leva menos de um minuto e **não se repete**: atualizar o Assistente não apaga
 o cadastro.

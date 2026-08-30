@@ -292,6 +292,9 @@
         abrirCadastro: function () {
           raiz.MeedsSuiteManager.abrir("medicos");
         },
+        abrirCadastroEstabelecimentos: function () {
+          raiz.MeedsSuiteManager.abrir("estabelecimentos");
+        },
         /* Chamado sempre que o cadastro muda, para o modulo redesenhar o
          * <select> de medicos sem o usuario precisar reabrir o modal. */
         aoMudarCadastro: function (fn) {
@@ -435,6 +438,10 @@
     abrirCadastro: function () {
       raiz.MeedsSuiteManager.abrir("medicos");
     },
+    abrirCadastroEstabelecimentos: function () {
+      raiz.MeedsSuiteManager.abrir("estabelecimentos");
+    },
+    formatos: raiz.MeedsSuiteFormatos,
     dom: Dom,
     decisao: Decisao,
     auth: Auth,

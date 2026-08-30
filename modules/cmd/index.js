@@ -605,6 +605,9 @@
     shadow.getElementById("cmd-proc-nome").addEventListener("input", autoPreencherCodigoProc);
     shadow.getElementById("cmd-cid").addEventListener("input", autoDescricaoCid);
     shadow.getElementById("cmd-justificativa").addEventListener("input", atualizarContadorJustificativa);
+    // CPF se formata sozinho enquanto o medico digita (000.000.000-00)
+    raiz.MeedsSuiteFormatos.aplicarMascaraCpf(shadow.getElementById("cmd-pac-cpf"));
+    raiz.MeedsSuiteFormatos.aplicarMascaraCpf(shadow.getElementById("cmd-medico-cpf"));
     ativarMascaraData(shadow.getElementById("cmd-pac-nasc"));
     montarOrigens(); montarProcList(); montarMedicos(); montarCidList();
   }

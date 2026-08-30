@@ -307,6 +307,13 @@
         return Array.prototype.slice.call(overlay.querySelectorAll(seletor));
       },
       abrir: function () {
+        /* Traz para a frente. Todos os overlays vivem no mesmo shadow e
+         * com o mesmo z-index, entao quem aparece por cima e quem esta
+         * por ULTIMO no DOM. Sem isto, abrir o painel de cadastro a
+         * partir do modal de um laudo abria o painel ATRAS do laudo — ele
+         * existia, mas o medico nao via, e parecia que o botao nao
+         * funcionava. */
+        if (overlay.parentNode) overlay.parentNode.appendChild(overlay);
         overlay.hidden = false;
       },
       fechar: function () {

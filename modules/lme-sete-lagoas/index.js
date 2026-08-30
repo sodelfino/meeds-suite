@@ -593,6 +593,9 @@
     shadow.getElementById("lme-limpar").addEventListener("click", limparForm);
     shadow.getElementById("lme-proc-nome").addEventListener("input", autoPreencherCodigoProc);
     shadow.getElementById("lme-cid").addEventListener("input", autoDescricaoCid);
+    // CPF se formata sozinho enquanto o medico digita (000.000.000-00)
+    raiz.MeedsSuiteFormatos.aplicarMascaraCpf(shadow.getElementById("lme-pac-cpf"));
+    raiz.MeedsSuiteFormatos.aplicarMascaraCpf(shadow.getElementById("lme-medico-cpf"));
     ativarMascaraData(shadow.getElementById("lme-pac-nasc"));
     montarOrigens(); montarProcList(); montarMedicos(); montarCidList();
   }
