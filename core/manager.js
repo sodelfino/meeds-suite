@@ -44,6 +44,8 @@
     ".msm-item-nome { font-size:13px; font-weight:700; color:#16221f; }",
     ".msm-item-desc { font-size:11.5px; color:#5b6672; line-height:1.45; margin-top:2px; }",
     ".msm-item-ver { font-size:10px; color:#9aa5b1; font-family:ui-monospace,Menlo,monospace; margin-top:3px; }",
+    ".msm-ajustes { background:none; border:none; color:#1a4fa0; cursor:pointer; font-size:10px; font-family:inherit; font-weight:700; padding:0; text-decoration:underline; }",
+    ".msm-ajustes:hover { color:#123a7a; }",
 
     ".msm-switch { position:relative; width:44px; height:25px; flex-shrink:0; cursor:pointer; }",
     ".msm-switch input { opacity:0; width:0; height:0; }",
@@ -214,7 +216,11 @@
           '  <div class="msm-item-txt">' +
           '    <div class="msm-item-nome">' + escapeHtml(m.nome) + "</div>" +
           '    <div class="msm-item-desc">' + escapeHtml(m.descricao) + "</div>" +
-          '    <div class="msm-item-ver">v' + escapeHtml(m.versao) + " · " + escapeHtml(m.id) + "</div>" +
+          '    <div class="msm-item-ver">v' + escapeHtml(m.versao) + " · " + escapeHtml(m.id) +
+          (m.temAjustes && m.habilitado
+            ? ' · <button type="button" class="msm-ajustes" data-ajustes="' + escapeHtml(m.id) + '">Ajustes</button>'
+            : "") +
+          "</div>" +
           "  </div>" +
           '  <label class="msm-switch">' +
           '    <input type="checkbox" data-id="' + escapeHtml(m.id) + '" ' + (m.habilitado ? "checked" : "") + " />" +
@@ -224,6 +230,13 @@
         );
       })
       .join("");
+
+    overlay.$$("button[data-ajustes]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        overlay.fechar();
+        ctx.abrirAjustesDe(btn.getAttribute("data-ajustes"));
+      });
+    });
 
     overlay.$$('input[type="checkbox"][data-id]').forEach(function (input) {
       input.addEventListener("change", function () {

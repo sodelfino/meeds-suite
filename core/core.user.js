@@ -173,6 +173,7 @@
       var m = fichaDoManifesto(e.def.id) || {};
       return {
         id: e.def.id,
+        temAjustes: typeof e.abrirAjustes === "function",
         nome: m.nome || e.def.nome || e.def.id,
         descricao: m.descricao || e.def.descricao || "",
         versao: m.versao || e.def.versao || "?",
@@ -267,6 +268,7 @@
           toast: Dock.toast,
           criarOverlay: Dock.criarOverlay,
           criarBanner: Dock.criarBanner,
+          criarMolduraAlerta: Dock.criarMolduraAlerta,
         },
         decisao: Decisao,
         auth: Auth,
@@ -276,6 +278,13 @@
         /* o modulo avisa o nucleo qual funcao roda no clique do botao */
         aoClicarBotao: function (fn) {
           entrada.aoClicarBotao = fn;
+        },
+        /* Tela de ajustes do modulo. Registrar aqui faz aparecer um link
+         * "Ajustes" ao lado da chave liga/desliga no painel da
+         * engrenagem. Antes, a configuracao do alarme so abria com clique
+         * direito no botao — ninguem descobre isso sozinho. */
+        aoAbrirAjustes: function (fn) {
+          entrada.abrirAjustes = fn;
         },
         /* Cadastro de medicos: unico e compartilhado. O modulo so LE a
          * lista e manda abrir o painel; quem edita e o nucleo. */
@@ -330,6 +339,7 @@
       entrada.botaoHandle = null;
     }
     entrada.aoClicarBotao = null;
+    entrada.abrirAjustes = null;
     entrada.rodando = false;
     if (!silencioso) console.debug("[Assistente Meeds] modulo parado:", def.id);
   }
@@ -358,6 +368,9 @@
 
     storageNucleo = Storage.storageDoNucleo();
     Dock.garantirHost();
+    /* Segunda camada contra dock duplicado: se sobrou um host de uma
+     * execucao anterior (SPA que remontou a pagina), remove o orfao. */
+    raiz.MeedsSuiteDiagnostico.limparDockOrfao("meeds-suite-dock-host");
 
     // engrenagem: SEMPRE presente, mesmo com todos os modulos desligados
     /* MIGRACAO DO CADASTRO — roda antes de qualquer modulo subir, para
@@ -374,6 +387,9 @@
       definirHabilitado: definirHabilitado,
       versaoNucleo: VERSAO_NUCLEO,
       manifesto: manifesto,
+      abrirAjustesDe: function (id) {
+        if (porId[id] && typeof porId[id].abrirAjustes === "function") porId[id].abrirAjustes();
+      },
       aoMudarCadastro: function () {
         ouvintesCadastro.forEach(function (o) {
           try {
@@ -393,6 +409,11 @@
     timerRecheck = setInterval(recheckPeriodico, INTERVALO_RECHECAGEM_MS);
 
     atualizarSeletoresRemoto(opcoes.urlSeletores);
+
+    /* Boas-vindas na primeira vez e aviso se os scripts antigos ainda
+     * estiverem ativos (eles rodam em document-idle, entao a checagem
+     * espera alguns segundos antes de olhar o DOM). */
+    raiz.MeedsSuiteDiagnostico.verificar(Dock, storageNucleo);
 
     iniciado = true;
     console.debug("[Assistente Meeds] nucleo " + VERSAO_NUCLEO + " iniciado com " + registro.length + " modulo(s).");

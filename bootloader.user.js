@@ -54,6 +54,13 @@
 
   /* __MEEDS_SUITE_NUCLEO__ */
 
+  /* 1.1) INSTANCIA UNICA — antes de instalar hook ou criar UI.
+   * A trava de frame acima cobre o iframe da videochamada. Esta marca
+   * cobre o resto: duas copias instaladas no Tampermonkey, ou uma
+   * reexecucao do script numa navegacao da SPA. Sem ela, apareciam dois
+   * docks sobrepostos e o alarme tocava duas vezes. */
+  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("__VERSAO__")) return;
+
   /* 2) O hook de rede precisa existir ANTES de qualquer chamada da
    * aplicacao — por isso e instalado aqui, em document-start, e nao
    * dentro do iniciar() que espera o DOM. */

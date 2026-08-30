@@ -96,6 +96,23 @@
     "}",
     ".ms-overlay[hidden] { display: none; }",
 
+    /* --- moldura de alerta em tela cheia ---
+       Plantao noturno costuma ser em sala com luz baixa e o medico
+       raramente esta olhando para o topo da tela. Uma moldura pulsante
+       na borda inteira do monitor e percebida pela visao periferica, de
+       qualquer angulo. Nao intercepta clique (pointer-events:none) para
+       nao atrapalhar o Meeds. */
+    ".ms-moldura-alerta {",
+    "  position: fixed; inset: 0; z-index: " + (Z_BASE + 1) + "; pointer-events: none;",
+    "  box-shadow: inset 0 0 0 6px rgba(220,38,38,.9), inset 0 0 60px rgba(220,38,38,.35);",
+    "  animation: ms-pulso-moldura 1.1s ease-in-out infinite;",
+    "}",
+    ".ms-moldura-alerta[hidden] { display: none; }",
+    "@keyframes ms-pulso-moldura {",
+    "  0%, 100% { box-shadow: inset 0 0 0 6px rgba(220,38,38,.9), inset 0 0 60px rgba(220,38,38,.35); }",
+    "  50% { box-shadow: inset 0 0 0 12px rgba(248,113,113,1), inset 0 0 110px rgba(220,38,38,.6); }",
+    "}",
+
     /* --- banner de topo (alarme) --- */
     ".ms-banner {",
     "  position: fixed; top: 0; left: 0; right: 0; z-index: " + (Z_BASE + 4) + ";",
@@ -307,6 +324,22 @@
     };
   }
 
+  /* Moldura de alerta em tela cheia, para o alarme ser visto de qualquer
+   * angulo em sala escura. Vive no dock porque e posicionamento — o
+   * modulo so liga e desliga. */
+  function criarMolduraAlerta() {
+    garantirHost();
+    var moldura = document.createElement("div");
+    moldura.className = "ms-moldura-alerta";
+    moldura.hidden = true;
+    shadow.appendChild(moldura);
+    return {
+      mostrar: function () { moldura.hidden = false; },
+      esconder: function () { moldura.hidden = true; },
+      remover: function () { if (moldura.parentNode) moldura.parentNode.removeChild(moldura); },
+    };
+  }
+
   /* Banner de topo (usado pelo alarme de fila). Tambem posicionado pelo
    * nucleo — o modulo so diz o texto e o que o botao faz. */
   function criarBanner(html) {
@@ -350,6 +383,7 @@
     toast: toast,
     criarOverlay: criarOverlay,
     criarBanner: criarBanner,
+    criarMolduraAlerta: criarMolduraAlerta,
     adicionarEstilo: adicionarEstilo,
     _reposicionarToast: reposicionarToast,
   };

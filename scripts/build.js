@@ -173,7 +173,8 @@ function main() {
   const saida = bootloader
     .replace(MARCADOR_NUCLEO, injetar(pecasNucleo.join("\n\n") + "\n" + injecaoDados + "\n  " + inventario))
     .replace(MARCADOR_MODULOS, injetar(pecasModulos.join("\n\n")))
-    .replace(/@version\s+[\d.]+/, injetar(`@version      ${manifest.versao}`));
+    .replace(/@version\s+[\d.]+/, injetar(`@version      ${manifest.versao}`))
+    .replace("__VERSAO__", injetar(manifest.versao));
 
   if (soChecar) {
     console.log("OK — manifest coerente, regras de arquitetura respeitadas.");

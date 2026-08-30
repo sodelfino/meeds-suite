@@ -1,6 +1,6 @@
 {
   "nome": "Assistente Meeds",
-  "versao": "2.1.0",
+  "versao": "2.2.0",
   "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
   "repositorio": "https://github.com/sodelfino/meeds-suite",
   "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -17,6 +17,7 @@
     "core/mensagens.js",
     "core/cadastro.js",
     "core/historico.js",
+    "core/diagnostico.js",
     "core/manager.js",
     "core/core.user.js"
   ],

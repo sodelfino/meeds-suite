@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Assistente Meeds - Por: Marcelo
 // @namespace    novetech-meeds-suite
-// @version      2.1.0
+// @version      2.2.0
 // @description  Assistente Meeds - Por: Marcelo. Alarme de fila, APAC de Itauna, laudos de Sete Lagoas e Conceicao do Mato Dentro e consulta a REMUME, numa instalacao unica. Cada funcao liga e desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
 // @author       Marcelo
 // @match        *://*.meeds.com.br/*
@@ -331,6 +331,23 @@
     "}",
     ".ms-overlay[hidden] { display: none; }",
 
+    /* --- moldura de alerta em tela cheia ---
+       Plantao noturno costuma ser em sala com luz baixa e o medico
+       raramente esta olhando para o topo da tela. Uma moldura pulsante
+       na borda inteira do monitor e percebida pela visao periferica, de
+       qualquer angulo. Nao intercepta clique (pointer-events:none) para
+       nao atrapalhar o Meeds. */
+    ".ms-moldura-alerta {",
+    "  position: fixed; inset: 0; z-index: " + (Z_BASE + 1) + "; pointer-events: none;",
+    "  box-shadow: inset 0 0 0 6px rgba(220,38,38,.9), inset 0 0 60px rgba(220,38,38,.35);",
+    "  animation: ms-pulso-moldura 1.1s ease-in-out infinite;",
+    "}",
+    ".ms-moldura-alerta[hidden] { display: none; }",
+    "@keyframes ms-pulso-moldura {",
+    "  0%, 100% { box-shadow: inset 0 0 0 6px rgba(220,38,38,.9), inset 0 0 60px rgba(220,38,38,.35); }",
+    "  50% { box-shadow: inset 0 0 0 12px rgba(248,113,113,1), inset 0 0 110px rgba(220,38,38,.6); }",
+    "}",
+
     /* --- banner de topo (alarme) --- */
     ".ms-banner {",
     "  position: fixed; top: 0; left: 0; right: 0; z-index: " + (Z_BASE + 4) + ";",
@@ -542,6 +559,22 @@
     };
   }
 
+  /* Moldura de alerta em tela cheia, para o alarme ser visto de qualquer
+   * angulo em sala escura. Vive no dock porque e posicionamento — o
+   * modulo so liga e desliga. */
+  function criarMolduraAlerta() {
+    garantirHost();
+    var moldura = document.createElement("div");
+    moldura.className = "ms-moldura-alerta";
+    moldura.hidden = true;
+    shadow.appendChild(moldura);
+    return {
+      mostrar: function () { moldura.hidden = false; },
+      esconder: function () { moldura.hidden = true; },
+      remover: function () { if (moldura.parentNode) moldura.parentNode.removeChild(moldura); },
+    };
+  }
+
   /* Banner de topo (usado pelo alarme de fila). Tambem posicionado pelo
    * nucleo — o modulo so diz o texto e o que o botao faz. */
   function criarBanner(html) {
@@ -585,6 +618,7 @@
     toast: toast,
     criarOverlay: criarOverlay,
     criarBanner: criarBanner,
+    criarMolduraAlerta: criarMolduraAlerta,
     adicionarEstilo: adicionarEstilo,
     _reposicionarToast: reposicionarToast,
   };
@@ -1938,6 +1972,239 @@
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
 
+/* ===== core/diagnostico.js ===== */
+/* ------------------------------------------------------------------
+ * core/diagnostico.js — instancia unica, scripts antigos e primeira vez
+ * ------------------------------------------------------------------
+ * Tres problemas de tela que so aparecem no mundo real:
+ *
+ * 1. BOTAO DUPLICADO POR DUPLA EXECUCAO
+ *    A trava de frame ja impede o script de rodar dentro do <iframe> da
+ *    videochamada. Mas ela nao cobre tudo: o Meeds e uma SPA e pode
+ *    reexecutar o script numa navegacao; e o medico pode acabar com duas
+ *    copias instaladas no Tampermonkey (por exemplo, instalando de novo
+ *    por um link diferente). Nesses casos apareciam dois docks, um por
+ *    cima do outro, e o alarme tocava duas vezes.
+ *    Solucao: uma marca no objeto global. A segunda execucao desiste.
+ *
+ * 2. BOTAO DUPLICADO PELOS SCRIPTS ANTIGOS
+ *    Os cinco scripts originais continuam publicados e podem estar
+ *    ativos. Cada um injeta o proprio botao. O resultado e a tela com
+ *    botoes repetidos e o alarme tocando duas vezes — e o medico nao tem
+ *    como saber que a causa e essa.
+ *    Solucao: procurar as marcas que os scripts antigos deixam no DOM e
+ *    avisar, dizendo exatamente o que fazer (DESATIVAR, nao desinstalar).
+ *
+ * 3. A PRIMEIRA VEZ
+ *    Quem instala nao sabe que existe um painel, nem que da para desligar
+ *    o que nao usa. Um aviso unico, na primeira execucao, aponta o ⚙️.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  var MARCA_INSTANCIA = "__ASSISTENTE_MEEDS_ATIVO__";
+
+  /* ------------------------------------------------------------------
+   * 1) INSTANCIA UNICA
+   * Devolve false quando JA existe uma instancia viva nesta pagina.
+   * Chamado pelo bootloader antes de qualquer coisa criar UI.
+   * ------------------------------------------------------------------ */
+  function reservarInstancia(versao) {
+    try {
+      if (raiz[MARCA_INSTANCIA]) {
+        console.warn(
+          "[Assistente Meeds] ja existe uma instancia rodando nesta pagina (versao " +
+            raiz[MARCA_INSTANCIA] +
+            "). Esta execucao vai parar aqui para nao duplicar os botoes."
+        );
+        return false;
+      }
+      raiz[MARCA_INSTANCIA] = versao || true;
+      return true;
+    } catch (e) {
+      return true; // na duvida, deixa rodar: melhor duplicar do que sumir
+    }
+  }
+
+  /* Segunda camada, contra duplicacao no DOM: se o host do dock ja existe
+   * mas foi criado por OUTRA instancia (por exemplo, a marca global se
+   * perdeu numa navegacao da SPA), removemos o orfao antes de montar. */
+  function limparDockOrfao(idHost) {
+    try {
+      var hosts = document.querySelectorAll("#" + idHost);
+      for (var i = 0; i < hosts.length - 1; i++) {
+        hosts[i].parentNode.removeChild(hosts[i]);
+      }
+      return hosts.length > 1;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /* ------------------------------------------------------------------
+   * 2) SCRIPTS ANTIGOS AINDA ATIVOS
+   * Cada um deixa uma marca propria no DOM. Sao os seletores reais dos
+   * cinco repositorios originais — se mudarem la, atualize aqui.
+   * ------------------------------------------------------------------ */
+  var ANTIGOS = [
+    { seletor: "#af-fab", nome: "Meeds - Alarme de Fila (Plantao Noturno)" },
+    { seletor: "#apac-host-root", nome: "Gerador de APAC Itaúna — Meeds + Assinatura" },
+    { seletor: "#lme-host-root", nome: "Gerador de Laudo — Sete Lagoas (Meeds)" },
+    { seletor: "#cmd-host-root", nome: "Gerador de Laudo de Alto Custo — Conceição do Mato Dentro" },
+    { seletor: "#remume-fab", nome: "Meeds - Assistente REMUME" },
+  ];
+
+  function detectarAntigos() {
+    var achados = [];
+    ANTIGOS.forEach(function (a) {
+      try {
+        if (document.querySelector(a.seletor)) achados.push(a.nome);
+      } catch (e) {
+        /* silencioso */
+      }
+    });
+    return achados;
+  }
+
+  /* ------------------------------------------------------------------
+   * 3) AVISOS NA TELA
+   * ------------------------------------------------------------------ */
+  var CSS = [
+    ".msd-aviso { width:100%; max-width:520px; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); overflow:hidden; }",
+    ".msd-aviso header { padding:16px 18px; color:#fff; display:flex; justify-content:space-between; align-items:center; gap:12px; }",
+    ".msd-aviso header h2 { margin:0; font-size:15px; font-weight:700; }",
+    ".msd-alerta header { background:linear-gradient(135deg,#b45309,#f59e0b); }",
+    ".msd-boas-vindas header { background:linear-gradient(135deg,#123a7a,#1a56ad); }",
+    ".msd-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; }",
+    ".msd-corpo { padding:16px 18px; font-size:13px; line-height:1.6; color:#16221f; }",
+    ".msd-corpo ol, .msd-corpo ul { margin:10px 0; padding-left:20px; }",
+    ".msd-corpo li { margin-bottom:5px; }",
+    ".msd-lista-scripts { background:#fff7ed; border:1px solid #fed7aa; border-radius:9px; padding:10px 12px; margin:10px 0; font-size:12.5px; }",
+    ".msd-lista-scripts li { color:#8a5200; }",
+    ".msd-rodape { display:flex; justify-content:flex-end; gap:8px; padding:12px 18px; border-top:1px solid #eef2f6; }",
+    ".msd-btn { background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 16px; font-size:13px; font-weight:700; cursor:pointer; }",
+    ".msd-btn:hover { background:#123a7a; }",
+    ".msd-btn-sec { background:#fff; color:#123a7a; border:1.4px solid #1a56ad; }",
+    ".msd-btn-sec:hover { background:#e8f0f8; }",
+    ".msd-destaque { color:#123a7a; font-weight:700; }",
+  ].join("\n");
+
+  function escapeHtml(str) {
+    return String(str == null ? "" : str).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function avisarScriptsAntigos(dock, nomes, storage) {
+    var overlay = dock.criarOverlay({
+      estilo: CSS,
+      html:
+        '<div class="msd-aviso msd-alerta" role="dialog" aria-modal="true">' +
+        "  <header><h2>⚠️ Botões duplicados na tela</h2>" +
+        '  <button type="button" class="msd-fechar" aria-label="Fechar">&#10005;</button></header>' +
+        '  <div class="msd-corpo">' +
+        "    <p>O Assistente Meeds já faz tudo o que os scripts antigos faziam. Encontrei " +
+        (nomes.length === 1 ? "<b>1 deles</b> ainda ativo" : "<b>" + nomes.length + " deles</b> ainda ativos") +
+        " neste navegador — por isso você está vendo botões repetidos" +
+        " (e o alarme pode tocar duas vezes).</p>" +
+        '    <ul class="msd-lista-scripts">' +
+        nomes.map(function (n) { return "<li>" + escapeHtml(n) + "</li>"; }).join("") +
+        "    </ul>" +
+        "    <p>Para resolver, <span class=\"msd-destaque\">desative</span> esses scripts:</p>" +
+        "    <ol>" +
+        "      <li>Clique no ícone do Tampermonkey, no canto do navegador.</li>" +
+        "      <li>Escolha <b>Painel de controle</b>.</li>" +
+        "      <li>Na coluna <b>Ativado</b>, clique no interruptor de cada um deles para ficar cinza.</li>" +
+        "      <li>Recarregue a página do Meeds.</li>" +
+        "    </ol>" +
+        "    <p><b>Desative, não desinstale.</b> Assim, se precisar, você volta atrás com um clique.</p>" +
+        "  </div>" +
+        '  <div class="msd-rodape">' +
+        '    <button type="button" class="msd-btn msd-btn-sec" id="msd-nao-avisar">Não avisar de novo</button>' +
+        '    <button type="button" class="msd-btn" id="msd-entendi">Entendi</button>' +
+        "  </div>" +
+        "</div>",
+    });
+
+    function fechar() {
+      overlay.fechar();
+    }
+    overlay.$(".msd-fechar").addEventListener("click", fechar);
+    overlay.$("#msd-entendi").addEventListener("click", fechar);
+    overlay.$("#msd-nao-avisar").addEventListener("click", function () {
+      storage.gravar("avisoScriptsAntigos", "silenciado");
+      fechar();
+    });
+    overlay.abrir();
+    return overlay;
+  }
+
+  function darBoasVindas(dock, storage) {
+    var overlay = dock.criarOverlay({
+      estilo: CSS,
+      html:
+        '<div class="msd-aviso msd-boas-vindas" role="dialog" aria-modal="true">' +
+        "  <header><h2>Bem-vindo ao Assistente Meeds</h2>" +
+        '  <button type="button" class="msd-fechar" aria-label="Fechar">&#10005;</button></header>' +
+        '  <div class="msd-corpo">' +
+        "    <p>Os botões ficam no <b>canto inferior direito</b> da tela e só aparecem depois que você entra no Meeds.</p>" +
+        "    <p>O botão <b>⚙️</b>, o menor de todos, embaixo da pilha, é onde você:</p>" +
+        "    <ul>" +
+        "      <li><b>liga e desliga</b> cada função — deixe só as que você usa;</li>" +
+        "      <li><b>cadastra seu nome e CRM</b>, uma única vez, para os laudos.</li>" +
+        "    </ul>" +
+        "    <p>Por segurança, os dados dos médicos não ficam mais no código do programa. " +
+        "O cadastro leva menos de um minuto e você não precisa repetir.</p>" +
+        "  </div>" +
+        '  <div class="msd-rodape">' +
+        '    <button type="button" class="msd-btn msd-btn-sec" id="msd-depois">Ver depois</button>' +
+        '    <button type="button" class="msd-btn" id="msd-cadastrar">Cadastrar agora</button>' +
+        "  </div>" +
+        "</div>",
+    });
+
+    function encerrar() {
+      storage.gravar("boasVindas", "vista");
+      overlay.fechar();
+    }
+    overlay.$(".msd-fechar").addEventListener("click", encerrar);
+    overlay.$("#msd-depois").addEventListener("click", encerrar);
+    overlay.$("#msd-cadastrar").addEventListener("click", function () {
+      encerrar();
+      raiz.MeedsSuiteManager.abrir("medicos");
+    });
+    overlay.abrir();
+    return overlay;
+  }
+
+  /* Roda os dois diagnosticos no start do nucleo. Os scripts antigos
+   * levam alguns segundos para injetar os proprios botoes (rodam em
+   * document-idle), entao a checagem espera antes de olhar. */
+  function verificar(dock, storage) {
+    if (storage.ler("boasVindas", null) !== "vista") {
+      setTimeout(function () {
+        darBoasVindas(dock, storage);
+      }, 1200);
+    }
+
+    if (storage.ler("avisoScriptsAntigos", null) === "silenciado") return;
+
+    setTimeout(function () {
+      var achados = detectarAntigos();
+      if (achados.length) avisarScriptsAntigos(dock, achados, storage);
+    }, 4000);
+  }
+
+  raiz.MeedsSuiteDiagnostico = {
+    reservarInstancia: reservarInstancia,
+    limparDockOrfao: limparDockOrfao,
+    detectarAntigos: detectarAntigos,
+    verificar: verificar,
+    MARCA_INSTANCIA: MARCA_INSTANCIA,
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
 /* ===== core/manager.js ===== */
 /* ------------------------------------------------------------------
  * core/manager.js — painel da engrenagem
@@ -1985,6 +2252,8 @@
     ".msm-item-nome { font-size:13px; font-weight:700; color:#16221f; }",
     ".msm-item-desc { font-size:11.5px; color:#5b6672; line-height:1.45; margin-top:2px; }",
     ".msm-item-ver { font-size:10px; color:#9aa5b1; font-family:ui-monospace,Menlo,monospace; margin-top:3px; }",
+    ".msm-ajustes { background:none; border:none; color:#1a4fa0; cursor:pointer; font-size:10px; font-family:inherit; font-weight:700; padding:0; text-decoration:underline; }",
+    ".msm-ajustes:hover { color:#123a7a; }",
 
     ".msm-switch { position:relative; width:44px; height:25px; flex-shrink:0; cursor:pointer; }",
     ".msm-switch input { opacity:0; width:0; height:0; }",
@@ -2155,7 +2424,11 @@
           '  <div class="msm-item-txt">' +
           '    <div class="msm-item-nome">' + escapeHtml(m.nome) + "</div>" +
           '    <div class="msm-item-desc">' + escapeHtml(m.descricao) + "</div>" +
-          '    <div class="msm-item-ver">v' + escapeHtml(m.versao) + " · " + escapeHtml(m.id) + "</div>" +
+          '    <div class="msm-item-ver">v' + escapeHtml(m.versao) + " · " + escapeHtml(m.id) +
+          (m.temAjustes && m.habilitado
+            ? ' · <button type="button" class="msm-ajustes" data-ajustes="' + escapeHtml(m.id) + '">Ajustes</button>'
+            : "") +
+          "</div>" +
           "  </div>" +
           '  <label class="msm-switch">' +
           '    <input type="checkbox" data-id="' + escapeHtml(m.id) + '" ' + (m.habilitado ? "checked" : "") + " />" +
@@ -2165,6 +2438,13 @@
         );
       })
       .join("");
+
+    overlay.$$("button[data-ajustes]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        overlay.fechar();
+        ctx.abrirAjustesDe(btn.getAttribute("data-ajustes"));
+      });
+    });
 
     overlay.$$('input[type="checkbox"][data-id]').forEach(function (input) {
       input.addEventListener("change", function () {
@@ -2516,6 +2796,7 @@
       var m = fichaDoManifesto(e.def.id) || {};
       return {
         id: e.def.id,
+        temAjustes: typeof e.abrirAjustes === "function",
         nome: m.nome || e.def.nome || e.def.id,
         descricao: m.descricao || e.def.descricao || "",
         versao: m.versao || e.def.versao || "?",
@@ -2610,6 +2891,7 @@
           toast: Dock.toast,
           criarOverlay: Dock.criarOverlay,
           criarBanner: Dock.criarBanner,
+          criarMolduraAlerta: Dock.criarMolduraAlerta,
         },
         decisao: Decisao,
         auth: Auth,
@@ -2619,6 +2901,13 @@
         /* o modulo avisa o nucleo qual funcao roda no clique do botao */
         aoClicarBotao: function (fn) {
           entrada.aoClicarBotao = fn;
+        },
+        /* Tela de ajustes do modulo. Registrar aqui faz aparecer um link
+         * "Ajustes" ao lado da chave liga/desliga no painel da
+         * engrenagem. Antes, a configuracao do alarme so abria com clique
+         * direito no botao — ninguem descobre isso sozinho. */
+        aoAbrirAjustes: function (fn) {
+          entrada.abrirAjustes = fn;
         },
         /* Cadastro de medicos: unico e compartilhado. O modulo so LE a
          * lista e manda abrir o painel; quem edita e o nucleo. */
@@ -2673,6 +2962,7 @@
       entrada.botaoHandle = null;
     }
     entrada.aoClicarBotao = null;
+    entrada.abrirAjustes = null;
     entrada.rodando = false;
     if (!silencioso) console.debug("[Assistente Meeds] modulo parado:", def.id);
   }
@@ -2701,6 +2991,9 @@
 
     storageNucleo = Storage.storageDoNucleo();
     Dock.garantirHost();
+    /* Segunda camada contra dock duplicado: se sobrou um host de uma
+     * execucao anterior (SPA que remontou a pagina), remove o orfao. */
+    raiz.MeedsSuiteDiagnostico.limparDockOrfao("meeds-suite-dock-host");
 
     // engrenagem: SEMPRE presente, mesmo com todos os modulos desligados
     /* MIGRACAO DO CADASTRO — roda antes de qualquer modulo subir, para
@@ -2717,6 +3010,9 @@
       definirHabilitado: definirHabilitado,
       versaoNucleo: VERSAO_NUCLEO,
       manifesto: manifesto,
+      abrirAjustesDe: function (id) {
+        if (porId[id] && typeof porId[id].abrirAjustes === "function") porId[id].abrirAjustes();
+      },
       aoMudarCadastro: function () {
         ouvintesCadastro.forEach(function (o) {
           try {
@@ -2736,6 +3032,11 @@
     timerRecheck = setInterval(recheckPeriodico, INTERVALO_RECHECAGEM_MS);
 
     atualizarSeletoresRemoto(opcoes.urlSeletores);
+
+    /* Boas-vindas na primeira vez e aviso se os scripts antigos ainda
+     * estiverem ativos (eles rodam em document-idle, entao a checagem
+     * espera alguns segundos antes de olhar o DOM). */
+    raiz.MeedsSuiteDiagnostico.verificar(Dock, storageNucleo);
 
     iniciado = true;
     console.debug("[Assistente Meeds] nucleo " + VERSAO_NUCLEO + " iniciado com " + registro.length + " modulo(s).");
@@ -2774,7 +3075,7 @@
   raiz.MEEDS_DADOS_FORMULARIOS = {"_leia_me":"Dados dos formularios: unidades de origem, catalogos de procedimento e listas de CID-10. Edite este arquivo e rode \"npm run build\" — as mudancas aparecem para os medicos sem precisar mexer em codigo. Ver docs/MANUAL-ADMIN.md.","lme-sete-lagoas":{"_leia_me":"Laudo Medico de Alto Custo de Sete Lagoas.","municipio":"SETE LAGOAS","origens":["SAÚDE AUDITIVA","UBS CIDADE DE DEUS","UBS BELO VALE"],"procedimentos":{"RM_CRANIO":{"nome":"Ressonância nuclear magnética de crânio","codigo":"02.07.01.006-4"},"RM_BASE_CRANIO":{"nome":"Ressonância nuclear magnética de base do crânio","codigo":"02.07.01.006-4"},"RM_SELA_TURCICA":{"nome":"Ressonância nuclear magnética de sela túrcica","codigo":"02.07.01.007-2"},"RM_ATM":{"nome":"Ressonância nuclear magnética de articulação temporomandibular (bilateral)","codigo":"02.07.01.002-1"},"ANGIO_RM_CEREBRAL":{"nome":"Angiorressonância cerebral","codigo":"02.07.01.001-3"},"RM_COLUNA_CERVICAL":{"nome":"Ressonância nuclear magnética de coluna cervical","codigo":"02.07.01.003-0"},"RM_COLUNA_TORACICA":{"nome":"Ressonância nuclear magnética de coluna torácica","codigo":"02.07.01.005-6"},"RM_COLUNA_LOMBOSSACRA":{"nome":"Ressonância nuclear magnética de coluna lombo-sacra","codigo":"02.07.01.004-8"},"RM_CORACAO_AORTA":{"nome":"Ressonância nuclear magnética de coração/aorta com cine","codigo":"02.07.02.001-9"},"RM_MEMBRO_SUPERIOR":{"nome":"Ressonância nuclear magnética de membro superior (unilateral)","codigo":"02.07.02.002-7"},"TC_CRANIO":{"nome":"Tomografia computadorizada do crânio","codigo":"02.06.01.007-9"},"TC_SELA_TURCICA":{"nome":"Tomografia computadorizada de sela túrcica","codigo":"02.06.01.006-0"},"TC_FACE_ATM":{"nome":"Tomografia computadorizada de face/seios da face/ATM","codigo":"02.06.01.004-4"},"TC_PESCOCO":{"nome":"Tomografia computadorizada do pescoço","codigo":"02.06.01.005-2"},"TC_COLUNA_CERVICAL":{"nome":"Tomografia computadorizada de coluna cervical (com ou sem contraste)","codigo":"02.06.01.001-0"},"TC_COLUNA_TORACICA":{"nome":"Tomografia computadorizada de coluna torácica (com ou sem contraste)","codigo":"02.06.01.003-6"},"TC_COLUNA_LOMBOSSACRA":{"nome":"Tomografia computadorizada de coluna lombo-sacra (com ou sem contraste)","codigo":"02.06.01.002-8"},"TC_TORAX":{"nome":"Tomografia computadorizada de tórax (sem contraste)","codigo":"02.06.02.003-1"},"TC_ABDOME_SUPERIOR":{"nome":"Tomografia computadorizada de abdome superior","codigo":"02.06.03.001-0"},"TC_PELVE":{"nome":"Tomografia computadorizada de pelve/bacia/abdome inferior","codigo":"02.06.03.003-7"},"TC_ARTIC_MEMBRO_SUP":{"nome":"Tomografia computadorizada de articulações de membro superior","codigo":"02.06.02.001-5"},"TC_ARTIC_MEMBRO_INF":{"nome":"Tomografia computadorizada de articulações de membro inferior","codigo":"02.06.03.002-9"},"TC_SEGMENTOS_APENDIC":{"nome":"Tomografia computadorizada de segmentos apendiculares (braço, antebraço, mão, coxa, perna, pé)","codigo":"02.06.02.002-3"},"DENSITOMETRIA_2SEG":{"nome":"Densitometria óssea (dois segmentos)","codigo":"02.04.06.002-8"},"DENSITOMETRIA_CORPO":{"nome":"Densitometria óssea (corpo inteiro)","codigo":"02.04.06.002-8"},"ENDOSCOPIA_DIGESTIVA_ALTA":{"nome":"Endoscopia digestiva alta (esofagogastroduodenoscopia)","codigo":"02.09.01.003-7"},"COLONOSCOPIA":{"nome":"Colonoscopia (coloscopia)","codigo":"02.09.01.002-9"},"ANGIOCORONARIOGRAFIA":{"nome":"Angiocoronariografia (cateterismo cardíaco)","codigo":"02.11.02.001-0"},"CINTILOGRAFIA_MIOCARDIO_ESTRESSE":{"nome":"Cintilografia de perfusão do miocárdio (estresse, mín. 3 projeções)","codigo":"02.08.01.002-5"},"CINTILOGRAFIA_MIOCARDIO_REPOUSO":{"nome":"Cintilografia de perfusão do miocárdio (repouso, mín. 3 projeções)","codigo":"02.08.01.003-3"},"ECOCARDIOGRAMA_TRANSTORACICO":{"nome":"Ecocardiograma transtorácico","codigo":"02.05.01.003-2"},"TESTE_ERGOMETRICO":{"nome":"Teste ergométrico (teste de esforço)","codigo":"02.11.02.006-0"},"HOLTER_24H":{"nome":"Holter 24 horas (eletrocardiograma dinâmico, 3 canais)","codigo":"02.11.02.004-4"},"MAPA_24H":{"nome":"MAPA 24 horas (monitorização ambulatorial da pressão arterial)","codigo":"02.11.02.005-2"},"RETOSSIGMOIDOSCOPIA":{"nome":"Retossigmoidoscopia (diagnóstica)","codigo":"02.09.01.005-3"}},"cids":{"G43.0":"Enxaqueca sem aura (enxaqueca comum)","G43.8":"Outras formas de enxaqueca","P14.3":"Outras lesões do plexo braquial devidas a traumatismo de parto","L93":"Lúpus eritematoso","M18.0":"Artrose primária bilateral das primeiras articulações carpometacarpianas","M25.5":"Dor articular","R73.9":"Hiperglicemia não especificada","G00.9":"Meningite bacteriana não especificada","H90.3":"Perda de audição neurossensorial bilateral","F82":"Transtorno específico do desenvolvimento motor","F80.9":"Transtorno de desenvolvimento da fala ou linguagem não especificado","G43.9":"Enxaqueca não especificada","G44.1":"Cefaleia vascular, não classificada em outra parte","G40.9":"Epilepsia não especificada","G93.4":"Encefalopatia não especificada","R51":"Cefaleia","G80.9":"Paralisia cerebral não especificada","F84.0":"Autismo infantil","F70":"Retardo mental leve","F71":"Retardo mental moderado","Q90.9":"Síndrome de Down não especificada","P07.3":"Outros recém-nascidos pré-termo","M19.9":"Artrose não especificada","M79.1":"Mialgia","M54.5":"Dor lombar baixa","M54.2":"Cervicalgia","M06.9":"Artrite reumatoide não especificada","M32.9":"Lúpus eritematoso sistêmico não especificado","M81.9":"Osteoporose não especificada","M85.8":"Outros transtornos especificados da densidade e da estrutura ósseas","M47.9":"Espondilose não especificada","M51.1":"Transtornos de discos lombares e de outros discos intervertebrais com radiculopatia","E10.9":"Diabetes mellitus tipo 1 sem complicações","E11.9":"Diabetes mellitus tipo 2 sem complicações","E03.9":"Hipotireoidismo não especificado","E05.9":"Tireotoxicose não especificada","E66.9":"Obesidade não especificada","E78.0":"Hipercolesterolemia pura","I10":"Hipertensão essencial (primária)","J44.9":"Doença pulmonar obstrutiva crônica não especificada","N18.9":"Doença renal crônica não especificada","R07.4":"Dor torácica, não especificada"}},"cmd":{"_leia_me":"Laudo Medico de Alto Custo de Conceicao do Mato Dentro.","municipio":"CONCEIÇÃO DO MATO DENTRO","origens":["CEMO DR SEBASTIAO SOARES DOS SANTOS"],"procedimentos":{"RM_CRANIO":{"nome":"Ressonância nuclear magnética de crânio","codigo":"02.07.01.006-4"},"RM_BASE_CRANIO":{"nome":"Ressonância nuclear magnética de base do crânio","codigo":"02.07.01.006-4"},"RM_SELA_TURCICA":{"nome":"Ressonância nuclear magnética de sela túrcica","codigo":"02.07.01.007-2"},"RM_ATM":{"nome":"Ressonância nuclear magnética de articulação temporomandibular (bilateral)","codigo":"02.07.01.002-1"},"ANGIO_RM_CEREBRAL":{"nome":"Angiorressonância cerebral","codigo":"02.07.01.001-3"},"RM_COLUNA_CERVICAL":{"nome":"Ressonância nuclear magnética de coluna cervical","codigo":"02.07.01.003-0"},"RM_COLUNA_TORACICA":{"nome":"Ressonância nuclear magnética de coluna torácica","codigo":"02.07.01.005-6"},"RM_COLUNA_LOMBOSSACRA":{"nome":"Ressonância nuclear magnética de coluna lombo-sacra","codigo":"02.07.01.004-8"},"RM_CORACAO_AORTA":{"nome":"Ressonância nuclear magnética de coração/aorta com cine","codigo":"02.07.02.001-9"},"RM_MEMBRO_SUPERIOR":{"nome":"Ressonância nuclear magnética de membro superior (unilateral)","codigo":"02.07.02.002-7"},"TC_CRANIO":{"nome":"Tomografia computadorizada do crânio","codigo":"02.06.01.007-9"},"TC_SELA_TURCICA":{"nome":"Tomografia computadorizada de sela túrcica","codigo":"02.06.01.006-0"},"TC_FACE_ATM":{"nome":"Tomografia computadorizada de face/seios da face/ATM","codigo":"02.06.01.004-4"},"TC_PESCOCO":{"nome":"Tomografia computadorizada do pescoço","codigo":"02.06.01.005-2"},"TC_COLUNA_CERVICAL":{"nome":"Tomografia computadorizada de coluna cervical (com ou sem contraste)","codigo":"02.06.01.001-0"},"TC_COLUNA_TORACICA":{"nome":"Tomografia computadorizada de coluna torácica (com ou sem contraste)","codigo":"02.06.01.003-6"},"TC_COLUNA_LOMBOSSACRA":{"nome":"Tomografia computadorizada de coluna lombo-sacra (com ou sem contraste)","codigo":"02.06.01.002-8"},"TC_TORAX":{"nome":"Tomografia computadorizada de tórax (sem contraste)","codigo":"02.06.02.003-1"},"TC_ABDOME_SUPERIOR":{"nome":"Tomografia computadorizada de abdome superior","codigo":"02.06.03.001-0"},"TC_PELVE":{"nome":"Tomografia computadorizada de pelve/bacia/abdome inferior","codigo":"02.06.03.003-7"},"TC_ARTIC_MEMBRO_SUP":{"nome":"Tomografia computadorizada de articulações de membro superior","codigo":"02.06.02.001-5"},"TC_ARTIC_MEMBRO_INF":{"nome":"Tomografia computadorizada de articulações de membro inferior","codigo":"02.06.03.002-9"},"TC_SEGMENTOS_APENDIC":{"nome":"Tomografia computadorizada de segmentos apendiculares (braço, antebraço, mão, coxa, perna, pé)","codigo":"02.06.02.002-3"},"DENSITOMETRIA_2SEG":{"nome":"Densitometria óssea (dois segmentos)","codigo":"02.04.06.002-8"},"DENSITOMETRIA_CORPO":{"nome":"Densitometria óssea (corpo inteiro)","codigo":"02.04.06.002-8"},"ENDOSCOPIA_DIGESTIVA_ALTA":{"nome":"Endoscopia digestiva alta (esofagogastroduodenoscopia)","codigo":"02.09.01.003-7"},"COLONOSCOPIA":{"nome":"Colonoscopia (coloscopia)","codigo":"02.09.01.002-9"},"ANGIOCORONARIOGRAFIA":{"nome":"Angiocoronariografia (cateterismo cardíaco)","codigo":"02.11.02.001-0"},"CINTILOGRAFIA_MIOCARDIO_ESTRESSE":{"nome":"Cintilografia de perfusão do miocárdio (estresse, mín. 3 projeções)","codigo":"02.08.01.002-5"},"CINTILOGRAFIA_MIOCARDIO_REPOUSO":{"nome":"Cintilografia de perfusão do miocárdio (repouso, mín. 3 projeções)","codigo":"02.08.01.003-3"},"ECOCARDIOGRAMA_TRANSTORACICO":{"nome":"Ecocardiograma transtorácico","codigo":"02.05.01.003-2"},"TESTE_ERGOMETRICO":{"nome":"Teste ergométrico (teste de esforço)","codigo":"02.11.02.006-0"},"HOLTER_24H":{"nome":"Holter 24 horas (eletrocardiograma dinâmico, 3 canais)","codigo":"02.11.02.004-4"},"MAPA_24H":{"nome":"MAPA 24 horas (monitorização ambulatorial da pressão arterial)","codigo":"02.11.02.005-2"},"RETOSSIGMOIDOSCOPIA":{"nome":"Retossigmoidoscopia (diagnóstica)","codigo":"02.09.01.005-3"}},"cids":{"K83.8":"Outras doenças especificadas das vias biliares","I10":"Hipertensão essencial (primária)","I11.9":"Doença cardíaca hipertensiva sem insuficiência cardíaca","I15.9":"Hipertensão secundária não especificada","I20.0":"Angina instável","I20.9":"Angina pectoris, não especificada","I21.9":"Infarto agudo do miocárdio não especificado","I22.9":"Infarto do miocárdio recorrente não especificado","I24.9":"Doença isquêmica aguda do coração, não especificada","I25.1":"Doença aterosclerótica do coração","I25.9":"Doença isquêmica crônica do coração, não especificada","I27.9":"Doença cardiopulmonar não especificada","I34.0":"Insuficiência da valva mitral","I34.9":"Transtorno não-reumático da valva mitral, não especificado","I35.0":"Estenose aórtica","I35.9":"Transtorno da valva aórtica não especificado","I36.1":"Insuficiência não-reumática da valva tricúspide","I38":"Endocardite de valva não especificada","I42.0":"Cardiomiopatia dilatada","I42.9":"Cardiomiopatia não especificada","I44.2":"Bloqueio atrioventricular total","I45.9":"Transtorno de condução não especificado","I47.1":"Taquicardia supraventricular","I47.2":"Taquicardia ventricular","I48":"Flutter e fibrilação atrial","I48.9":"Flutter e fibrilação atrial","I49.5":"Síndrome do nó sinusal","I49.9":"Arritmia cardíaca não especificada","I50":"Insuficiência cardíaca","I50.9":"Insuficiência cardíaca não especificada","I51.7":"Cardiomegalia","I70.0":"Aterosclerose da aorta","I70.2":"Aterosclerose das artérias das extremidades","I71.4":"Aneurisma da aorta abdominal, sem menção de ruptura","I73.9":"Doença vascular periférica não especificada","I80.2":"Flebite e tromboflebite de outros vasos profundos dos membros inferiores","I82.9":"Embolia e trombose venosa não especificada","Q21.1":"Comunicação interatrial","Q24.9":"Malformação congênita do coração não especificada","E78.5":"Hiperlipidemia não especificada","R00.0":"Taquicardia não especificada","R00.1":"Bradicardia não especificada","R00.2":"Palpitações","R07.2":"Dor precordial","R42":"Tontura e instabilidade","R55":"Síncope e colapso","Z95.0":"Presença de marca-passo cardíaco","Z95.1":"Presença de enxerto de ponte aortocoronária","Z95.5":"Presença de implante e enxerto de angioplastia coronária","G43.0":"Enxaqueca sem aura (enxaqueca comum)","G43.8":"Outras formas de enxaqueca","G43.9":"Enxaqueca não especificada","G44.1":"Cefaleia vascular, não classificada em outra parte","G40.9":"Epilepsia não especificada","G93.4":"Encefalopatia não especificada","R51":"Cefaleia","G80.9":"Paralisia cerebral não especificada","F84.0":"Autismo infantil","F70":"Retardo mental leve","F71":"Retardo mental moderado","F82":"Transtorno específico do desenvolvimento motor","F80.9":"Transtorno de desenvolvimento da fala ou linguagem não especificado","Q90.9":"Síndrome de Down não especificada","P07.3":"Outros recém-nascidos pré-termo","P14.3":"Outras lesões do plexo braquial devidas a traumatismo de parto","L93":"Lúpus eritematoso","G00.9":"Meningite bacteriana não especificada","H90.3":"Perda de audição neurossensorial bilateral","M18.0":"Artrose primária bilateral das primeiras articulações carpometacarpianas","M19.9":"Artrose não especificada","M25.5":"Dor articular","M79.1":"Mialgia","M54.5":"Dor lombar baixa","M54.2":"Cervicalgia","M06.9":"Artrite reumatoide não especificada","M32.9":"Lúpus eritematoso sistêmico não especificado","M81.9":"Osteoporose não especificada","M85.8":"Outros transtornos especificados da densidade e da estrutura ósseas","M47.9":"Espondilose não especificada","M51.1":"Transtornos de discos lombares e de outros discos intervertebrais com radiculopatia","E10.9":"Diabetes mellitus tipo 1 sem complicações","E11.9":"Diabetes mellitus tipo 2 sem complicações","E03.9":"Hipotireoidismo não especificado","E05.9":"Tireotoxicose não especificada","E66.9":"Obesidade não especificada","E78.0":"Hipercolesterolemia pura","R73.9":"Hiperglicemia não especificada","J44.9":"Doença pulmonar obstrutiva crônica não especificada","N18.9":"Doença renal crônica não especificada","R07.4":"Dor torácica, não especificada"}},"apac-itauna":{"_leia_me":"APAC de Itauna. O estabelecimento ja aparece preenchido no formulario.","estabelecimento":{"nome":"CENTRO DE ESPEC MEDICAS E ODONTO DR OVIDIO NOGUEIRA MACHADO","cnes":"2105578"},"procedimentos":{"HOLTER":{"nome":"Holter 24h","codigo":"02.11.02.004-4","label":"MONITORAMENTO PELO SISTEMA HOLTER 24 HS (3 CANAIS)"},"MAPA":{"nome":"MAPA 24h","codigo":"02.11.02.005-2","label":"MONITORIZAÇÃO AMBULATORIAL DE PRESSÃO ARTERIAL (MAPA)"},"TE":{"nome":"Teste Ergométrico","codigo":"02.11.02.006-0","label":"TESTE DE ESFORÇO / TESTE ERGOMÉTRICO"},"DOPPLER":{"nome":"Doppler vascular","codigo":"02.05.01.004-0","label":null},"CINTILO":{"nome":"Cintilografia miocárdio","codigo":"02.08.01.002-5","label":"CINTILOGRAFIA DE MIOCÁRDIO P/ AVALIAÇÃO DA PERFUSÃO EM SITUAÇÃO DE ESTRESSE (MÍNIMO 3 PROJEÇÕES)"},"ECO":{"nome":"Ecocardiograma","codigo":"02.05.01.003-2","label":null},"CATETER":{"nome":"Cateterismo cardíaco","codigo":"02.11.02.001-0","label":"CATETERISMO CARDÍACO (CINECORONARIOGRAFIA)"},"OUTRO":{"nome":"Outro procedimento…","codigo":"","label":null}},"ecoVariantes":{"REPOUSO":{"codigo":"02.05.01.003-2","nome":"ECOCARDIOGRAFIA TRANSTORACICA"},"ESTRESSE":{"codigo":"02.05.01.001-6","nome":"ECOCARDIOGRAFIA COM ESTRESSE"},"TRANSESOFAGICO":{"codigo":"02.05.01.002-4","nome":"ECOCARDIOGRAFIA BI-DIMENSIONAL TRANSESOFAGICO"}},"territorios":["DOPPLER DE ARTÉRIAS CARÓTIDAS E VERTEBRAIS","DOPPLER DE VEIAS CERVICAIS","DOPPLER AORTA ABDOMINAL","DOPPLER DE ARTÉRIAS RENAIS","DOPPLER ARTERIAL DE MEMBROS SUPERIORES","DOPPLER ARTERIAL DE MEMBROS INFERIORES","DOPPLER VENOSO DE MEMBROS SUPERIORES","DOPPLER VENOSO DE MEMBROS INFERIORES"],"cids":{"I10":"Hipertensão essencial (primária)","I11.9":"Doença cardíaca hipertensiva sem insuficiência cardíaca","I15.9":"Hipertensão secundária não especificada","I20.0":"Angina instável","I20.9":"Angina pectoris, não especificada","I21.9":"Infarto agudo do miocárdio não especificado","I22.9":"Infarto do miocárdio recorrente não especificado","I24.9":"Doença isquêmica aguda do coração, não especificada","I25.1":"Doença aterosclerótica do coração","I25.9":"Doença isquêmica crônica do coração, não especificada","I27.9":"Doença cardiopulmonar não especificada","I34.0":"Insuficiência da valva mitral","I34.9":"Transtorno não-reumático da valva mitral, não especificado","I35.0":"Estenose aórtica","I35.9":"Transtorno da valva aórtica não especificado","I36.1":"Insuficiência não-reumática da valva tricúspide","I38":"Endocardite de valva não especificada","I42.0":"Cardiomiopatia dilatada","I42.9":"Cardiomiopatia não especificada","I44.2":"Bloqueio atrioventricular total","I45.9":"Transtorno de condução não especificado","I47.1":"Taquicardia supraventricular","I47.2":"Taquicardia ventricular","I48":"Flutter e fibrilação atrial","I48.9":"Flutter e fibrilação atrial","I49.5":"Síndrome do nó sinusal","I49.9":"Arritmia cardíaca não especificada","I50":"Insuficiência cardíaca","I50.9":"Insuficiência cardíaca não especificada","I51.7":"Cardiomegalia","I70.0":"Aterosclerose da aorta","I70.2":"Aterosclerose das artérias das extremidades","I71.4":"Aneurisma da aorta abdominal, sem menção de ruptura","I73.9":"Doença vascular periférica não especificada","I80.2":"Flebite e tromboflebite de outros vasos profundos dos membros inferiores","I82.9":"Embolia e trombose venosa não especificada","Q21.1":"Comunicação interatrial","Q24.9":"Malformação congênita do coração não especificada","E11":"Diabetes mellitus não-insulino-dependente","E11.9":"Diabetes mellitus não-insulino-dependente - sem complicações","E78.0":"Hipercolesterolemia pura","E78.5":"Hiperlipidemia não especificada","R00.0":"Taquicardia não especificada","R00.1":"Bradicardia não especificada","R00.2":"Palpitações","R07.2":"Dor precordial","R07.4":"Dor torácica, não especificada","R42":"Tontura e instabilidade","R55":"Síncope e colapso","Z95.0":"Presença de marca-passo cardíaco","Z95.1":"Presença de enxerto de ponte aortocoronária","Z95.5":"Presença de implante e enxerto de angioplastia coronária"}}};
 
   var __inv = {
-  "versao": "2.1.0",
+  "versao": "2.2.0",
   "modulos": [
     {
       "id": "alarme-fila",
@@ -2814,6 +3115,13 @@
   ]
 };
   raiz.__MEEDS_SUITE_MANIFESTO__ = __inv;
+
+  /* 1.1) INSTANCIA UNICA — antes de instalar hook ou criar UI.
+   * A trava de frame acima cobre o iframe da videochamada. Esta marca
+   * cobre o resto: duas copias instaladas no Tampermonkey, ou uma
+   * reexecucao do script numa navegacao da SPA. Sem ela, apareciam dois
+   * docks sobrepostos e o alarme tocava duas vezes. */
+  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.2.0")) return;
 
   /* 2) O hook de rede precisa existir ANTES de qualquer chamada da
    * aplicacao — por isso e instalado aqui, em document-start, e nao
@@ -2967,6 +3275,7 @@
   var config = null;
   var painel = null;
   var banner = null;
+  var moldura = null; // moldura pulsante na borda da tela (plantao noturno)
   var observerToast = null;
   var timers = [];
 
@@ -3212,6 +3521,7 @@
     if (tocando) return;
     tocando = true;
     if (banner) banner.mostrar();
+    if (moldura) moldura.mostrar();
     iniciarPiscaTitulo();
     var tipo = TIPOS_DE_SOM[config.som] || TIPOS_DE_SOM[CONFIG_PADRAO.som];
     tocarSomAtual();
@@ -3229,6 +3539,7 @@
     tocando = false;
     pararPiscaTitulo();
     if (banner) banner.esconder();
+    if (moldura) moldura.esconder();
   }
 
   function cancelarReengateAgendado() {
@@ -3331,6 +3642,7 @@
   }
 
   function montarBanner() {
+    moldura = d.dock.criarMolduraAlerta();
     banner = d.dock.criarBanner(
       '<span>🚨 Novo paciente na fila!</span><button type="button" id="af-silenciar">Silenciar alarme</button>'
     );
@@ -3427,6 +3739,13 @@
       montarBanner();
       montarPainel();
       deps.aoClicarBotao(alternarAtivo);
+      /* A configuracao tambem abre pelo painel da engrenagem, em
+       * "Ajustes". O clique direito continua valendo como atalho, mas
+       * deixou de ser o UNICO caminho — ninguem descobre clique direito
+       * sozinho. */
+      deps.aoAbrirAjustes(function () {
+        painel.abrir();
+      });
 
       // clique com Shift, ou clique direito, abre a configuracao do modulo
       if (deps.botao) {
@@ -3482,6 +3801,10 @@
       if (banner) {
         banner.remover();
         banner = null;
+      }
+      if (moldura) {
+        moldura.remover();
+        moldura = null;
       }
       idsFilaPorAssinatura.clear();
       idsJaAlertadosPorEspera.clear();
@@ -3764,9 +4087,9 @@
 
 
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
-  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#apac-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #apac-modal-head{\n      background:linear-gradient(135deg,#0e7a70,#17ab9e); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #apac-modal-head h2{ margin:0; font-size:15px; }\n    #apac-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #apac-body{ padding:18px 20px; }\n    .apac-sec{ margin-bottom:16px; }\n    .apac-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#0e7a70; margin:0 0 8px; }\n    .apac-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .apac-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6c68; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8e6e3; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:56px; resize:vertical; }\n    .apac-proc-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }\n    .apac-proc-btn{ border:1.4px solid #d8e6e3; border-radius:9px; padding:9px; cursor:pointer; }\n    .apac-proc-btn:hover{ border-color:#17ab9e; }\n    .apac-proc-btn.sel{ border-color:#12958a; background:#e3f5f3; }\n    .apac-proc-btn .t{ font-size:11.5px; font-weight:700; }\n    .apac-proc-btn .c{ font-size:9.5px; color:#0e7a70; font-family:monospace; }\n    #apac-territorio-wrap{ display:none; margin-top:8px; }\n    #apac-territorio-wrap.show{ display:block; }\n    #apac-eco-variante-wrap{ display:none; margin-top:8px; }\n    #apac-eco-variante-wrap.show{ display:block; }\n    #apac-outro-wrap{ display:none; margin-top:8px; }\n    #apac-outro-wrap.show{ display:block; }\n    #apac-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    #apac-sec-assinatura{ border:1.5px dashed #17ab9e; border-radius:12px; padding:14px; background:#f9fdfc; }\n    .apac-opcoes-assinatura{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }\n    button.apac-primary{ background:#12958a; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.apac-primary:hover{ background:#0b6a62; }\n    button.apac-primary:disabled{ background:#a0c9c4; cursor:not-allowed; }\n    button.apac-secondary{ background:#fff; color:#0e7a70; border:1.4px solid #17ab9e; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.apac-secondary:hover{ background:#e3f5f3; }\n    button.apac-tertiary{ background:#f0f4f3; color:#0e7a70; border:1px solid #d8e6e3; border-radius:9px; padding:9px 14px; font-size:12px; font-weight:700; cursor:pointer; }\n    button.apac-tertiary:hover{ background:#e3f5f3; }\n    #apac-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #apac-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }\n    .apac-info-box{ background:#e8f4f8; color:#0e7a70; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:10px; line-height:1.4; }";
+  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#apac-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #apac-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #apac-modal-head h2{ margin:0; font-size:15px; }\n    #apac-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #apac-body{ padding:18px 20px; }\n    .apac-sec{ margin-bottom:16px; }\n    .apac-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .apac-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .apac-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6c68; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8e6e3; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:56px; resize:vertical; }\n    .apac-proc-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }\n    .apac-proc-btn{ border:1.4px solid #d8e6e3; border-radius:9px; padding:9px; cursor:pointer; }\n    .apac-proc-btn:hover{ border-color:#17ab9e; }\n    .apac-proc-btn.sel{ border-color:#12958a; background:#e3f5f3; }\n    .apac-proc-btn .t{ font-size:11.5px; font-weight:700; }\n    .apac-proc-btn .c{ font-size:9.5px; color:#0e7a70; font-family:monospace; }\n    #apac-territorio-wrap{ display:none; margin-top:8px; }\n    #apac-territorio-wrap.show{ display:block; }\n    #apac-eco-variante-wrap{ display:none; margin-top:8px; }\n    #apac-eco-variante-wrap.show{ display:block; }\n    #apac-outro-wrap{ display:none; margin-top:8px; }\n    #apac-outro-wrap.show{ display:block; }\n    #apac-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    #apac-sec-assinatura{ border:1.5px dashed #17ab9e; border-radius:12px; padding:14px; background:#f9fdfc; }\n    .apac-opcoes-assinatura{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }\n    button.apac-primary{ background:#12958a; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.apac-primary:hover{ background:#0b6a62; }\n    button.apac-primary:disabled{ background:#a0c9c4; cursor:not-allowed; }\n    button.apac-secondary{ background:#fff; color:#0e7a70; border:1.4px solid #17ab9e; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.apac-secondary:hover{ background:#e3f5f3; }\n    button.apac-tertiary{ background:#f0f4f3; color:#0e7a70; border:1px solid #d8e6e3; border-radius:9px; padding:9px 14px; font-size:12px; font-weight:700; cursor:pointer; }\n    button.apac-tertiary:hover{ background:#e3f5f3; }\n    #apac-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #apac-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }\n    .apac-info-box{ background:#e8f4f8; color:#0e7a70; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:10px; line-height:1.4; }";
 
-  var HTML = "<div id=\"apac-modal\">\n      <div id=\"apac-modal-head\"><h2>Gerador de APAC — Itaúna</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"apac-refresh-modal\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"apac-historico-abrir\" title=\"Últimas APACs geradas nesta máquina\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"apac-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"apac-body\">\n        <div id=\"apac-auto-aviso\"></div>\n\n        <div id=\"apac-historico-painel\"></div>\n\n        <div class=\"apac-sec\">\n          <h3>Estabelecimento</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome</label><input id=\"apac-estab-nome\" ></div>\n            <div><label>CNES</label><input id=\"apac-estab-cnes\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Médico solicitante</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Selecionar *</label><select id=\"apac-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"apac-medico-nome\"></div>\n            <div><label>CNS *</label><input id=\"apac-medico-cns\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Paciente</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome completo *</label><input id=\"apac-pac-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-pac-cpf\"></div>\n          </div>\n          <div class=\"apac-grid3\" style=\"margin-top:8px;\">\n            <div><label>Nascimento *</label><input type=\"date\" id=\"apac-pac-nasc\"></div>\n            <div><label>Sexo *</label><select id=\"apac-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"M\">Masculino</option><option value=\"F\">Feminino</option></select></div>\n            <div><label>Nome da mãe *</label><input id=\"apac-pac-mae\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Procedimento *</h3>\n          <div class=\"apac-proc-grid\" id=\"apac-proc-grid\"></div>\n          <div id=\"apac-territorio-wrap\">\n            <label>Território vascular (obrigatório para Doppler)</label>\n            <select id=\"apac-territorio-sel\"></select>\n          </div>\n          <div id=\"apac-eco-variante-wrap\">\n            <label>Variante do ecocardiograma</label>\n            <select id=\"apac-eco-variante-sel\">\n              <option value=\"REPOUSO\">Transtorácica de repouso (padrão)</option>\n              <option value=\"ESTRESSE\">Com estresse (farmacológico/Dobutamina)</option>\n              <option value=\"TRANSESOFAGICO\">Transesofágico</option>\n            </select>\n          </div>\n          <div id=\"apac-outro-wrap\">\n            <label>Código SIGTAP *</label>\n            <input id=\"apac-outro-codigo\" placeholder=\"ex: 02.11.02.001-0\" style=\"margin-bottom:8px;\">\n            <label>Nome do procedimento *</label>\n            <input id=\"apac-outro-nome\" placeholder=\"como deve aparecer no campo 19\">\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>CID-10 *</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Principal *</label><input id=\"apac-cid1\" list=\"apac-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Secundário</label><input id=\"apac-cid2\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n            <div><label>Associados</label><input id=\"apac-cid3\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Descrição (campo 36) *</label><input id=\"apac-cid-desc\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Texto do pedido (campo 40) *</h3>\n          <textarea id=\"apac-obs\"></textarea>\n        </div>\n\n        <!-- ETAPA 2 — Assinatura -->\n        <div class=\"apac-sec\" id=\"apac-sec-assinatura\" style=\"display:none;\">\n          <h3>Etapa 2 — Assinatura</h3>\n          <div class=\"apac-info-box\">\n            PDF gerado com sucesso. Escolha uma opção abaixo:\n          </div>\n\n          <div class=\"apac-opcoes-assinatura\">\n            <button id=\"apac-assinar-govbr\" class=\"apac-primary\">\n              🏛️ Assinar via gov.br<br><small style=\"font-weight:400;opacity:.9;\">Baixa PDF e abre o portal</small>\n            </button>\n            <button id=\"apac-baixar-sem\" class=\"apac-tertiary\">\n              💾 Baixar sem assinar<br><small style=\"font-weight:400;opacity:.8;\">PDF simples</small>\n            </button>\n          </div>\n        </div>\n\n        <div id=\"apac-erro\"></div>\n        <datalist id=\"apac-cid-list\"></datalist>\n      </div>\n      <div id=\"apac-footer\">\n        <button class=\"apac-secondary\" id=\"apac-limpar\">Limpar</button>\n        <button class=\"apac-primary\" id=\"apac-gerar\">Gerar PDF</button>\n      </div>\n    </div>";
+  var HTML = "<div id=\"apac-modal\">\n      <div id=\"apac-modal-head\"><h2>Gerador de APAC — Itaúna</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"apac-refresh-modal\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"apac-historico-abrir\" title=\"Últimas APACs geradas nesta máquina\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"apac-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"apac-body\">\n        <div id=\"apac-auto-aviso\"></div>\n\n        <div id=\"apac-historico-painel\"></div>\n\n        <div class=\"apac-sec\">\n          <h3>Estabelecimento</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome</label><input id=\"apac-estab-nome\" ></div>\n            <div><label>CNES</label><input id=\"apac-estab-cnes\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Médico solicitante</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Selecionar *</label><select id=\"apac-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"apac-medico-nome\"></div>\n            <div><label>CNS *</label><input id=\"apac-medico-cns\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Paciente</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome completo *</label><input id=\"apac-pac-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-pac-cpf\"></div>\n          </div>\n          <div class=\"apac-grid3\" style=\"margin-top:8px;\">\n            <div><label>Nascimento *</label><input type=\"date\" id=\"apac-pac-nasc\"></div>\n            <div><label>Sexo *</label><select id=\"apac-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"M\">Masculino</option><option value=\"F\">Feminino</option></select></div>\n            <div><label>Nome da mãe *</label><input id=\"apac-pac-mae\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Procedimento *</h3>\n          <div class=\"apac-proc-grid\" id=\"apac-proc-grid\"></div>\n          <div id=\"apac-territorio-wrap\">\n            <label>Território vascular (obrigatório para Doppler)</label>\n            <select id=\"apac-territorio-sel\"></select>\n          </div>\n          <div id=\"apac-eco-variante-wrap\">\n            <label>Variante do ecocardiograma</label>\n            <select id=\"apac-eco-variante-sel\">\n              <option value=\"REPOUSO\">Transtorácica de repouso (padrão)</option>\n              <option value=\"ESTRESSE\">Com estresse (farmacológico/Dobutamina)</option>\n              <option value=\"TRANSESOFAGICO\">Transesofágico</option>\n            </select>\n          </div>\n          <div id=\"apac-outro-wrap\">\n            <label>Código SIGTAP *</label>\n            <input id=\"apac-outro-codigo\" placeholder=\"ex: 02.11.02.001-0\" style=\"margin-bottom:8px;\">\n            <label>Nome do procedimento *</label>\n            <input id=\"apac-outro-nome\" placeholder=\"como deve aparecer no campo 19\">\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>CID-10 *</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Principal *</label><input id=\"apac-cid1\" list=\"apac-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Secundário</label><input id=\"apac-cid2\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n            <div><label>Associados</label><input id=\"apac-cid3\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Descrição (campo 36) *</label><input id=\"apac-cid-desc\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Texto do pedido (campo 40) *</h3>\n          <textarea id=\"apac-obs\"></textarea>\n        </div>\n\n        <!-- ETAPA 2 — Assinatura -->\n        <div class=\"apac-sec\" id=\"apac-sec-assinatura\" style=\"display:none;\">\n          <h3>Etapa 2 — Assinatura</h3>\n          <div class=\"apac-info-box\">\n            ✅ <b>APAC gerada.</b> Ela já ficou registrada no 📜 Histórico. Escolha como quer finalizar:\n          </div>\n\n          <div class=\"apac-opcoes-assinatura\">\n            <button id=\"apac-assinar-govbr\" class=\"apac-primary\">\n              🏛️ Assinar via gov.br<br><small style=\"font-weight:400;opacity:.9;\">Baixa PDF e abre o portal</small>\n            </button>\n            <button id=\"apac-baixar-sem\" class=\"apac-tertiary\">\n              💾 Baixar sem assinar<br><small style=\"font-weight:400;opacity:.8;\">PDF simples</small>\n            </button>\n          </div>\n        </div>\n\n        <div id=\"apac-erro\"></div>\n        <datalist id=\"apac-cid-list\"></datalist>\n      </div>\n      <div id=\"apac-footer\">\n        <button class=\"apac-secondary\" id=\"apac-limpar\">Limpar</button>\n        <button class=\"apac-primary\" id=\"apac-gerar\">Gerar PDF</button>\n      </div>\n    </div>";
 
   /* ---- extraidas do original sem alteracao ---- */
 
@@ -3995,7 +4318,7 @@
     });
     shadow.getElementById('apac-sec-assinatura').style.display = 'block';
     shadow.getElementById('apac-sec-assinatura').scrollIntoView({ behavior:'smooth', block:'center' });
-    toast('PDF gerado. Escolha como assinar ou baixar.', 5000);
+    toast("Pronto — APAC gerada. Escolha como assinar ou baixar.", 5000);
   }
 
 
@@ -4412,6 +4735,20 @@
     });
   }
 
+  function mostrarSucesso(nomeArquivo) {
+    var el = shadow.getElementById("lme-sucesso");
+    el.innerHTML =
+      "✅ <b>Laudo gerado e baixado.</b><br>Arquivo: <b>" + nomeArquivo + "</b> — procure na pasta de downloads do navegador. " +
+      "Ele já ficou registrado no <b>📜 Histórico</b>, caso precise repetir depois.";
+    el.style.display = "block";
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function limparSucesso() {
+    var el = shadow.getElementById("lme-sucesso");
+    if (el) { el.style.display = "none"; el.innerHTML = ""; }
+  }
+
   function limparErro() {
     var el = shadow.getElementById("lme-erro");
     el.style.display = "none";
@@ -4450,9 +4787,9 @@
   var CATALOGO_PROCEDIMENTOS = DADOS.procedimentos || {};
 
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
-  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#lme-modal{\n      background:#fff; border-radius:16px; max-width:680px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #lme-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #lme-modal-head h2{ margin:0; font-size:15px; }\n    #lme-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #lme-body{ padding:18px 20px; }\n    .lme-sec{ margin-bottom:16px; }\n    .lme-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .lme-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .lme-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:70px; resize:vertical; }\n    #lme-origem-outro-wrap{ display:none; margin-top:8px; }\n    #lme-origem-outro-wrap.show{ display:block; }\n    #lme-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .lme-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    button.lme-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.lme-primary:hover{ background:#123a7a; }\n    button.lme-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.lme-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.lme-secondary:hover{ background:#e8f0f8; }\n    #lme-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #lme-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
+  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#lme-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #lme-sucesso b{ color:#08574f; }\n" + "#lme-modal{\n      background:#fff; border-radius:16px; max-width:680px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #lme-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #lme-modal-head h2{ margin:0; font-size:15px; }\n    #lme-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #lme-body{ padding:18px 20px; }\n    .lme-sec{ margin-bottom:16px; }\n    .lme-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .lme-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .lme-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:70px; resize:vertical; }\n    #lme-origem-outro-wrap{ display:none; margin-top:8px; }\n    #lme-origem-outro-wrap.show{ display:block; }\n    #lme-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .lme-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    button.lme-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.lme-primary:hover{ background:#123a7a; }\n    button.lme-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.lme-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.lme-secondary:hover{ background:#e8f0f8; }\n    #lme-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #lme-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
 
-  var HTML = "<div id=\"lme-modal\">\n      <div id=\"lme-modal-head\"><h2>Laudo Procedimento Médico — Sete Lagoas</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"lme-historico-abrir\" title=\"Documentos gerados neste computador\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"lme-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"lme-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"lme-body\">\n        <div class=\"lme-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Sete Lagoas (mesmo PDF da prefeitura, logo e layout intactos). Município fixo: <b>SETE LAGOAS</b>. O Cartão Nacional do SUS é preenchido com o CPF do paciente.\n        </div>\n        <div id=\"lme-historico-painel\"></div>\n        <div id=\"lme-auto-aviso\"></div>\n\n        <div class=\"lme-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"lme-grid3\">\n            <div><label>Selecionar *</label><select id=\"lme-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"lme-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"lme-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"lme-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Unidade de origem</h3>\n          <select id=\"lme-origem-sel\"></select>\n          <div id=\"lme-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"lme-origem-outro\" placeholder=\"ex: UBS ITAPOÃ\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Paciente</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome completo *</label><input id=\"lme-pac-nome\"></div>\n            <div><label>CPF (usado como Cartão do SUS) *</label><input id=\"lme-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"lme-grid2\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"lme-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"lme-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n          </div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"lme-proc-nome\" list=\"lme-proc-list\" placeholder=\"digite e busque, ou digite algo novo\" autocomplete=\"off\"></div>\n            <div><label>Código SIGTAP *</label><input id=\"lme-proc-codigo\" placeholder=\"preenche sozinho se reconhecido\"></div>\n          </div>\n          <datalist id=\"lme-proc-list\"></datalist>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"lme-grid2\">\n            <div><label>CID-10</label><input id=\"lme-cid\" list=\"lme-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"lme-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          <datalist id=\"lme-cid-list\"></datalist>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"lme-justificativa\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado\"></textarea>\n        </div>\n\n        <div id=\"lme-erro\"></div>\n      </div>\n      <div id=\"lme-footer\">\n        <button class=\"lme-secondary\" id=\"lme-limpar\">Limpar</button>\n        <button class=\"lme-primary\" id=\"lme-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
+  var HTML = "<div id=\"lme-modal\">\n      <div id=\"lme-modal-head\"><h2>Laudo Procedimento Médico — Sete Lagoas</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"lme-historico-abrir\" title=\"Documentos gerados neste computador\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"lme-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"lme-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"lme-body\">\n        <div class=\"lme-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Sete Lagoas (mesmo PDF da prefeitura, logo e layout intactos). Município fixo: <b>SETE LAGOAS</b>. O Cartão Nacional do SUS é preenchido com o CPF do paciente.\n        </div>\n        <div id=\"lme-historico-painel\"></div>\n        <div id=\"lme-auto-aviso\"></div>\n\n        <div class=\"lme-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"lme-grid3\">\n            <div><label>Selecionar *</label><select id=\"lme-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"lme-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"lme-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"lme-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Unidade de origem</h3>\n          <select id=\"lme-origem-sel\"></select>\n          <div id=\"lme-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"lme-origem-outro\" placeholder=\"ex: UBS ITAPOÃ\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Paciente</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome completo *</label><input id=\"lme-pac-nome\"></div>\n            <div><label>CPF (usado como Cartão do SUS) *</label><input id=\"lme-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"lme-grid2\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"lme-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"lme-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n          </div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"lme-proc-nome\" list=\"lme-proc-list\" placeholder=\"digite e busque, ou digite algo novo\" autocomplete=\"off\"></div>\n            <div><label>Código SIGTAP *</label><input id=\"lme-proc-codigo\" placeholder=\"preenche sozinho se reconhecido\"></div>\n          </div>\n          <datalist id=\"lme-proc-list\"></datalist>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"lme-grid2\">\n            <div><label>CID-10</label><input id=\"lme-cid\" list=\"lme-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"lme-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          <datalist id=\"lme-cid-list\"></datalist>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"lme-justificativa\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado\"></textarea>\n        </div>\n\n        <div id=\"lme-sucesso\" style=\"display:none;\"></div>\n        <div id=\"lme-erro\"></div>\n      </div>\n      <div id=\"lme-footer\">\n        <button class=\"lme-secondary\" id=\"lme-limpar\">Limpar</button>\n        <button class=\"lme-primary\" id=\"lme-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
 
   /* ---- extraidas do original sem alteracao ---- */
   /* ---- validacao dos campos obrigatorios ----
@@ -4664,7 +5001,8 @@
       });
 
       baixarPdf(bytes, filename);
-      toast('PDF gerado e baixado: ' + filename, 5000);
+      mostrarSucesso(filename);
+      toast("Pronto — laudo de Sete Lagoas baixado.", 5000);
     } catch (e) {
       mostrarErro(
         raiz.MeedsSuiteMensagens.erroTecnico(
@@ -5060,6 +5398,20 @@
     });
   }
 
+  function mostrarSucesso(nomeArquivo) {
+    var el = shadow.getElementById("cmd-sucesso");
+    el.innerHTML =
+      "✅ <b>Laudo gerado e baixado.</b><br>Arquivo: <b>" + nomeArquivo + "</b> — procure na pasta de downloads do navegador. " +
+      "Ele já ficou registrado no <b>📜 Histórico</b>, caso precise repetir depois.";
+    el.style.display = "block";
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function limparSucesso() {
+    var el = shadow.getElementById("cmd-sucesso");
+    if (el) { el.style.display = "none"; el.innerHTML = ""; }
+  }
+
   function limparErro() {
     var el = shadow.getElementById("cmd-erro");
     el.style.display = "none";
@@ -5098,9 +5450,9 @@
   var CATALOGO_PROCEDIMENTOS = DADOS.procedimentos || {};
 
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
-  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#cmd-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #cmd-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #cmd-modal-head h2{ margin:0; font-size:15px; }\n    #cmd-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #cmd-body{ padding:18px 20px; }\n    .cmd-sec{ margin-bottom:16px; }\n    .cmd-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .cmd-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .cmd-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    .cmd-grid4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:90px; resize:vertical; }\n    #cmd-origem-outro-wrap{ display:none; margin-top:8px; }\n    #cmd-origem-outro-wrap.show{ display:block; }\n    #cmd-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .cmd-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    .cmd-contador{ text-align:right; font-size:10.5px; color:#8a97a4; margin-top:4px; }\n    button.cmd-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.cmd-primary:hover{ background:#123a7a; }\n    button.cmd-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.cmd-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.cmd-secondary:hover{ background:#e8f0f8; }\n    #cmd-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #cmd-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
+  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#cmd-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #cmd-sucesso b{ color:#08574f; }\n" + "#cmd-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #cmd-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #cmd-modal-head h2{ margin:0; font-size:15px; }\n    #cmd-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #cmd-body{ padding:18px 20px; }\n    .cmd-sec{ margin-bottom:16px; }\n    .cmd-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .cmd-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .cmd-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    .cmd-grid4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:90px; resize:vertical; }\n    #cmd-origem-outro-wrap{ display:none; margin-top:8px; }\n    #cmd-origem-outro-wrap.show{ display:block; }\n    #cmd-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .cmd-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    .cmd-contador{ text-align:right; font-size:10.5px; color:#8a97a4; margin-top:4px; }\n    button.cmd-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.cmd-primary:hover{ background:#123a7a; }\n    button.cmd-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.cmd-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.cmd-secondary:hover{ background:#e8f0f8; }\n    #cmd-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #cmd-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
 
-  var HTML = "<div id=\"cmd-modal\">\n      <div id=\"cmd-modal-head\"><h2>Laudo Médico de Alto Custo — Conceição do Mato Dentro</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"cmd-historico-abrir\" title=\"Documentos gerados neste computador\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"cmd-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"cmd-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"cmd-body\">\n        <div class=\"cmd-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Conceição do Mato Dentro (mesmo PDF da prefeitura, preenchido pelos campos reais do formulário). A seção 04 (Junta de Autorização) não é preenchida — é reservada para a regulação.\n        </div>\n        <div id=\"cmd-historico-painel\"></div>\n        <div id=\"cmd-auto-aviso\"></div>\n\n        <div class=\"cmd-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"cmd-grid3\">\n            <div><label>Selecionar *</label><select id=\"cmd-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"cmd-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"cmd-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"cmd-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Dados do atendimento</h3>\n          <div>\n            <label>Unidade de origem *</label>\n            <select id=\"cmd-origem-sel\"></select>\n            <div id=\"cmd-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"cmd-origem-outro\"></div>\n          </div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Paciente</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome completo *</label><input id=\"cmd-pac-nome\"></div>\n            <div><label>CPF</label><input id=\"cmd-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"cmd-grid3\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"cmd-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"cmd-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n            <div><label>Telefone</label><input id=\"cmd-pac-telefone\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Nome da mãe</label><input id=\"cmd-pac-mae\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"cmd-proc-nome\" list=\"cmd-proc-list\" placeholder=\"digite o exame\" autocomplete=\"off\"></div>\n            <div><label>Código do procedimento</label><input id=\"cmd-proc-codigo\" placeholder=\"ex: 41101170\"></div>\n          </div>\n          <datalist id=\"cmd-proc-list\"></datalist>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>CID-10</label><input id=\"cmd-cid\" list=\"cmd-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"cmd-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          <datalist id=\"cmd-cid-list\"></datalist>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"cmd-justificativa\" maxlength=\"700\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado (até 700 caracteres)\"></textarea>\n          <div class=\"cmd-contador\" id=\"cmd-justificativa-contador\">0/700</div>\n        </div>\n\n        <div id=\"cmd-erro\"></div>\n      </div>\n      <div id=\"cmd-footer\">\n        <button class=\"cmd-secondary\" id=\"cmd-limpar\">Limpar</button>\n        <button class=\"cmd-primary\" id=\"cmd-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
+  var HTML = "<div id=\"cmd-modal\">\n      <div id=\"cmd-modal-head\"><h2>Laudo Médico de Alto Custo — Conceição do Mato Dentro</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"cmd-historico-abrir\" title=\"Documentos gerados neste computador\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"cmd-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"cmd-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"cmd-body\">\n        <div class=\"cmd-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Conceição do Mato Dentro (mesmo PDF da prefeitura, preenchido pelos campos reais do formulário). A seção 04 (Junta de Autorização) não é preenchida — é reservada para a regulação.\n        </div>\n        <div id=\"cmd-historico-painel\"></div>\n        <div id=\"cmd-auto-aviso\"></div>\n\n        <div class=\"cmd-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"cmd-grid3\">\n            <div><label>Selecionar *</label><select id=\"cmd-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"cmd-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"cmd-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"cmd-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Dados do atendimento</h3>\n          <div>\n            <label>Unidade de origem *</label>\n            <select id=\"cmd-origem-sel\"></select>\n            <div id=\"cmd-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"cmd-origem-outro\"></div>\n          </div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Paciente</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome completo *</label><input id=\"cmd-pac-nome\"></div>\n            <div><label>CPF</label><input id=\"cmd-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"cmd-grid3\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"cmd-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"cmd-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n            <div><label>Telefone</label><input id=\"cmd-pac-telefone\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Nome da mãe</label><input id=\"cmd-pac-mae\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"cmd-proc-nome\" list=\"cmd-proc-list\" placeholder=\"digite o exame\" autocomplete=\"off\"></div>\n            <div><label>Código do procedimento</label><input id=\"cmd-proc-codigo\" placeholder=\"ex: 41101170\"></div>\n          </div>\n          <datalist id=\"cmd-proc-list\"></datalist>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>CID-10</label><input id=\"cmd-cid\" list=\"cmd-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"cmd-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          <datalist id=\"cmd-cid-list\"></datalist>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"cmd-justificativa\" maxlength=\"700\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado (até 700 caracteres)\"></textarea>\n          <div class=\"cmd-contador\" id=\"cmd-justificativa-contador\">0/700</div>\n        </div>\n\n        <div id=\"cmd-sucesso\" style=\"display:none;\"></div>\n        <div id=\"cmd-erro\"></div>\n      </div>\n      <div id=\"cmd-footer\">\n        <button class=\"cmd-secondary\" id=\"cmd-limpar\">Limpar</button>\n        <button class=\"cmd-primary\" id=\"cmd-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
 
   /* ---- extraidas do original sem alteracao ---- */
   /* ---- validacao dos campos obrigatorios ----
@@ -5280,7 +5632,8 @@
       });
 
       baixarPdf(bytes, filename);
-      toast('PDF gerado e baixado: ' + filename, 5000);
+      mostrarSucesso(filename);
+      toast("Pronto — laudo de Conceição do Mato Dentro baixado.", 5000);
     } catch (e) {
       mostrarErro(
         raiz.MeedsSuiteMensagens.erroTecnico(
@@ -9127,7 +9480,7 @@ function moverFocoResultado(delta) {
    * ---------------------------------------------------------------- */
   var CSS = [
     ".rm-modal { width:100%; max-width:640px; max-height:86vh; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); display:flex; flex-direction:column; overflow:hidden; }",
-    ".rm-modal header { background:linear-gradient(135deg,#0e7a70,#17ab9e); color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
+    ".rm-modal header { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
     ".rm-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
     ".rm-sub { margin:3px 0 0; font-size:11.5px; opacity:.9; }",
     ".rm-meta { margin:2px 0 0; font-size:10.5px; opacity:.75; }",

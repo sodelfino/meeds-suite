@@ -144,6 +144,7 @@
   var config = null;
   var painel = null;
   var banner = null;
+  var moldura = null; // moldura pulsante na borda da tela (plantao noturno)
   var observerToast = null;
   var timers = [];
 
@@ -389,6 +390,7 @@
     if (tocando) return;
     tocando = true;
     if (banner) banner.mostrar();
+    if (moldura) moldura.mostrar();
     iniciarPiscaTitulo();
     var tipo = TIPOS_DE_SOM[config.som] || TIPOS_DE_SOM[CONFIG_PADRAO.som];
     tocarSomAtual();
@@ -406,6 +408,7 @@
     tocando = false;
     pararPiscaTitulo();
     if (banner) banner.esconder();
+    if (moldura) moldura.esconder();
   }
 
   function cancelarReengateAgendado() {
@@ -508,6 +511,7 @@
   }
 
   function montarBanner() {
+    moldura = d.dock.criarMolduraAlerta();
     banner = d.dock.criarBanner(
       '<span>🚨 Novo paciente na fila!</span><button type="button" id="af-silenciar">Silenciar alarme</button>'
     );
@@ -604,6 +608,13 @@
       montarBanner();
       montarPainel();
       deps.aoClicarBotao(alternarAtivo);
+      /* A configuracao tambem abre pelo painel da engrenagem, em
+       * "Ajustes". O clique direito continua valendo como atalho, mas
+       * deixou de ser o UNICO caminho — ninguem descobre clique direito
+       * sozinho. */
+      deps.aoAbrirAjustes(function () {
+        painel.abrir();
+      });
 
       // clique com Shift, ou clique direito, abre a configuracao do modulo
       if (deps.botao) {
@@ -659,6 +670,10 @@
       if (banner) {
         banner.remover();
         banner = null;
+      }
+      if (moldura) {
+        moldura.remover();
+        moldura = null;
       }
       idsFilaPorAssinatura.clear();
       idsJaAlertadosPorEspera.clear();

@@ -712,7 +712,7 @@ function moverFocoResultado(delta) {
    * ---------------------------------------------------------------- */
   var CSS = [
     ".rm-modal { width:100%; max-width:640px; max-height:86vh; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); display:flex; flex-direction:column; overflow:hidden; }",
-    ".rm-modal header { background:linear-gradient(135deg,#0e7a70,#17ab9e); color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
+    ".rm-modal header { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
     ".rm-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
     ".rm-sub { margin:3px 0 0; font-size:11.5px; opacity:.9; }",
     ".rm-meta { margin:2px 0 0; font-size:10.5px; opacity:.75; }",
