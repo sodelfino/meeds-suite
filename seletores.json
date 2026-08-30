@@ -1,0 +1,16 @@
+{
+  "_comentario": "Config REMOTA de seletores de tela. O nucleo busca este arquivo a cada carregamento do Meeds e mescla por cima do fallback embutido (core/core.user.js). Serve para corrigir um rotulo que o Meeds mudar SEM redistribuir o userscript para todos os medicos. E DADO, nunca codigo: o nucleo so aceita grupos com listas de strings e, se o formato nao bater ou a busca falhar, mantem o fallback embutido. Ordem importa: a leitura tenta as variantes de cima para baixo e usa a primeira que casar. A comparacao ja e feita sem acento e sem diferenciar maiusculas, entao nao e preciso listar 'Mae' e 'Mãe' separados - mas nao custa.",
+  "_atualizadoEm": "30/08/2026",
+
+  "rotulos": {
+    "nascimento": ["Data de Nascimento", "Data de nascimento", "Nascimento", "Dt. Nascimento"],
+    "cpf": ["CPF", "C.P.F.", "CPF do paciente"],
+    "mae": ["Nome da Mãe", "Nome da mãe do paciente", "Nome da Mae", "Mãe", "Filiação", "Filiacao"],
+    "telefone": ["Telefone", "Celular", "Contato"],
+    "contadorFila": ["Aguardando", "Aguardando atendimento", "Na fila"]
+  },
+
+  "toasts": {
+    "novoAtendimento": ["novo atendimento"]
+  }
+}
