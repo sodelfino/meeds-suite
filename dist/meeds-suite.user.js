@@ -1,0 +1,8528 @@
+// ==UserScript==
+// @name         Meeds Suite — Novetech (instalacao unica)
+// @namespace    novetech-meeds-suite
+// @version      2.0.1
+// @description  Pacote unificado das ferramentas Meeds: alarme de fila, APAC Itauna, LME Sete Lagoas, laudo CMD e assistente REMUME. Uma instalacao so; cada funcao liga/desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
+// @author       Novetech
+// @match        *://*.meeds.com.br/*
+// @match        *://doctor-calltech.meeds.com.br/*
+// @exclude      *://*web-calltech-*.meeds.com.br/*
+// @exclude      *://meet.meeds.com.br/*
+// @require      https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js
+// @grant        GM_xmlhttpRequest
+// @grant        GM_setValue
+// @grant        GM_getValue
+// @grant        unsafeWindow
+// @connect      cdnjs.cloudflare.com
+// @connect      raw.githubusercontent.com
+// @run-at       document-start
+// @updateURL    https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.user.js
+// @downloadURL  https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.user.js
+// ==/UserScript==
+
+/* ------------------------------------------------------------------
+ * BOOTLOADER — o UNICO arquivo que o medico instala
+ * ------------------------------------------------------------------
+ * Este arquivo e o ESQUELETO. O artefato que o medico instala e
+ * dist/meeds-suite.user.js, gerado por `node scripts/build.js`, que
+ * substitui os marcadores abaixo pelo nucleo e pelos modulos
+ * habilitados no manifest.json.
+ *
+ * Responsabilidades do bootloader (e so estas):
+ *   1. rodar cedo (@run-at document-start) para o hook UNICO de rede do
+ *      nucleo estar instalado antes da primeira chamada da aplicacao;
+ *   2. respeitar a trava de frame antes de qualquer outra coisa;
+ *   3. instalar o hook de rede;
+ *   4. carregar nucleo e modulos;
+ *   5. subir o nucleo quando o DOM estiver pronto.
+ *
+ * O bootloader NAO conhece regra de negocio de nenhum modulo.
+ * ------------------------------------------------------------------ */
+(function () {
+  "use strict";
+
+  /* 1) TRAVA DE FRAME — antes de tudo.
+   * O widget de videochamada roda num <iframe> na mesma pagina do
+   * atendimento; sem isto, o Tampermonkey injetaria a suite inteira
+   * dentro do video tambem. Nos 5 scripts antigos essa checagem estava
+   * copiada cinco vezes. */
+  if (window.self !== window.top) return;
+
+  var raiz = typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
+
+  /* ===== core/storage.js ===== */
+/* ------------------------------------------------------------------
+ * core/storage.js — configuracao por modulo, namespaced
+ * ------------------------------------------------------------------
+ * REQUISITO DE SEGURANCA HERDADO DOS 5 SCRIPTS ORIGINAIS: e proibido
+ * gravar em disco qualquer dado de PACIENTE (nome, CPF, id de
+ * atendimento). Este storage existe so para PREFERENCIA DE USO do
+ * medico (modulo ligado/desligado, som do alarme, volume, lista de
+ * medicos cadastrados nesta maquina). Nada aqui sai do navegador.
+ *
+ * Todas as chaves sao prefixadas com "meeds-suite:" e depois com o id
+ * do modulo, entao dois modulos nunca colidem e o painel de
+ * gerenciamento consegue limpar tudo de uma vez se precisar.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  var PREFIXO = "meeds-suite:";
+
+  function chaveDe(idModulo, nome) {
+    return PREFIXO + idModulo + ":" + nome;
+  }
+
+  function lerBruto(chave, padrao) {
+    try {
+      var cru = localStorage.getItem(chave);
+      if (cru === null) return padrao;
+      return JSON.parse(cru);
+    } catch (e) {
+      return padrao;
+    }
+  }
+
+  function gravarBruto(chave, valor) {
+    try {
+      localStorage.setItem(chave, JSON.stringify(valor));
+      return true;
+    } catch (e) {
+      // modo privado / quota estourada: a preferencia simplesmente nao
+      // sobrevive ao F5, mas nada quebra.
+      return false;
+    }
+  }
+
+  function removerBruto(chave) {
+    try {
+      localStorage.removeItem(chave);
+    } catch (e) {
+      /* silencioso */
+    }
+  }
+
+  /* Storage do NUCLEO (usado pelo manager para saber quais modulos
+   * estao habilitados). Fica sob o id reservado "_core". */
+  function storageDoNucleo() {
+    return criarStorage("_core");
+  }
+
+  /* Storage entregue a cada modulo em start({ storage }). O modulo nao
+   * consegue (nem precisa) enxergar as chaves de outro modulo. */
+  function criarStorage(idModulo) {
+    return {
+      id: idModulo,
+
+      ler: function (nome, padrao) {
+        return lerBruto(chaveDe(idModulo, nome), padrao);
+      },
+
+      gravar: function (nome, valor) {
+        return gravarBruto(chaveDe(idModulo, nome), valor);
+      },
+
+      remover: function (nome) {
+        removerBruto(chaveDe(idModulo, nome));
+      },
+
+      /* Le um objeto de config aplicando os padroes do modulo por cima
+       * do que estiver salvo — mesmo comportamento do carregarConfig()
+       * original do alarme de fila. */
+      lerConfig: function (configPadrao) {
+        var salvo = lerBruto(chaveDe(idModulo, "config"), {});
+        var saida = {};
+        var k;
+        for (k in configPadrao) {
+          if (Object.prototype.hasOwnProperty.call(configPadrao, k)) saida[k] = configPadrao[k];
+        }
+        if (salvo && typeof salvo === "object") {
+          for (k in salvo) {
+            if (Object.prototype.hasOwnProperty.call(salvo, k)) saida[k] = salvo[k];
+          }
+        }
+        return saida;
+      },
+
+      gravarConfig: function (config) {
+        return gravarBruto(chaveDe(idModulo, "config"), config);
+      },
+    };
+  }
+
+  raiz.MeedsSuiteStorage = {
+    criarStorage: criarStorage,
+    storageDoNucleo: storageDoNucleo,
+    PREFIXO: PREFIXO,
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== core/auth.js ===== */
+/* ------------------------------------------------------------------
+ * core/auth.js — trava de frame + deteccao de login
+ * ------------------------------------------------------------------
+ * Os 5 scripts originais repetiam exatamente estas duas regras:
+ *
+ *  1) TRAVA DE FRAME: o widget de videochamada (meet.meeds.com.br) roda
+ *     dentro de um <iframe> na mesma pagina do atendimento. Sem a trava,
+ *     o Tampermonkey injeta o script tambem dentro do iframe e o botao
+ *     aparece duplicado, preso na janela de video.
+ *
+ *  2) DETECCAO DE LOGIN: o Meeds renderiza a tela de login e a aplicacao
+ *     autenticada sob a mesma URL, entao o caminho da pagina nao serve
+ *     para decidir se o medico ja entrou. Sinal confiavel: a tela de
+ *     login tem um campo de senha VISIVEL; a aplicacao autenticada, nao.
+ *
+ * Duas versoes da checagem existiam nos originais — uma so verificava a
+ * existencia do campo (alarme/REMUME) e outra checava tambem se ele esta
+ * de fato visivel (APAC/LME/CMD). A versao com checagem de visibilidade
+ * e estritamente mais correta (um campo de senha escondido num formulario
+ * inativo nao significa tela de login), entao e a que ficou no nucleo.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  function ehFramePrincipal() {
+    try {
+      return raiz.self === raiz.top;
+    } catch (e) {
+      // acesso cross-origin a window.top lanca — nesse caso estamos
+      // dentro de um frame de outra origem, entao nao e o principal.
+      return false;
+    }
+  }
+
+  function elementoEstaVisivel(el) {
+    var rect = el.getBoundingClientRect();
+    var st = raiz.getComputedStyle(el);
+    return (
+      rect.width > 0 &&
+      rect.height > 0 &&
+      st.display !== "none" &&
+      st.visibility !== "hidden" &&
+      st.opacity !== "0"
+    );
+  }
+
+  function estaNaTelaDeLogin() {
+    try {
+      var campos = document.querySelectorAll('input[type="password"]');
+      for (var i = 0; i < campos.length; i++) {
+        if (elementoEstaVisivel(campos[i])) return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function estaLogado() {
+    return !estaNaTelaDeLogin();
+  }
+
+  raiz.MeedsSuiteAuth = {
+    ehFramePrincipal: ehFramePrincipal,
+    estaNaTelaDeLogin: estaNaTelaDeLogin,
+    estaLogado: estaLogado,
+    elementoEstaVisivel: elementoEstaVisivel,
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== core/dock.js ===== */
+/* ------------------------------------------------------------------
+ * core/dock.js — gerenciador de elementos flutuantes
+ * ------------------------------------------------------------------
+ * PROBLEMA QUE ESTE ARQUIVO RESOLVE
+ * Nos 5 scripts separados, cada um posicionava o proprio botao com um
+ * `bottom` fixo em pixel, coordenado NA MAO entre repositorios:
+ *   APAC   -> bottom:24px  right:24px
+ *   LME    -> bottom:88px  right:24px
+ *   CMD    -> bottom:152px right:24px  (o comentario do arquivo ainda
+ *             dizia 224px, ja fora de sincronia com o codigo)
+ *   REMUME -> bottom:224px right:80px
+ *   ALARME -> bottom:24px  left:24px + engrenagem em left:82px
+ * Instalar ou remover um script quebrava a pilha inteira, e o CMD ja
+ * estava com comentario e codigo divergentes — prova de que coordenar
+ * pixel na mao nao escala.
+ *
+ * SOLUCAO
+ * O dock e um flex-container fixo no canto inferior direito. Cada modulo
+ * so DECLARA seu botao (rotulo, icone, prioridade) e o dock calcula o
+ * empilhamento sozinho. Modulo nenhum escreve bottom/right/left.
+ * Prioridade menor = mais embaixo na pilha (mais perto do canto).
+ *
+ * O dock tambem e dono de:
+ *   - toast (mensagens curtas), que antes cada modulo posicionava sozinho;
+ *   - overlay/modal em tela cheia, para que nenhum modulo precise de CSS
+ *     de posicionamento proprio.
+ *
+ * Tudo vive dentro de um shadow root do proprio nucleo, entao o CSS do
+ * Meeds nao vaza para dentro nem o nosso vaza para fora.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  var ID_HOST = "meeds-suite-dock-host";
+  var Z_BASE = 2147483000;
+
+  var shadow = null;
+  var elDock = null;
+  var elToast = null;
+  var botoes = []; // { id, prioridade, el, visivel }
+  var timerToast = null;
+
+  var ESTILOS = [
+    ":host { all: initial; }",
+    "* { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; }",
+
+    /* --- pilha de botoes --- */
+    "#dock {",
+    "  position: fixed; right: 24px; bottom: 24px; z-index: " + Z_BASE + ";",
+    "  display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 12px;",
+    "  pointer-events: none;",
+    "}",
+    "#dock[hidden] { display: none; }",
+    "#dock > * { pointer-events: auto; }",
+
+    ".ms-btn {",
+    "  display: flex; align-items: center; justify-content: center; gap: 8px;",
+    "  background: #1a4fa0; color: #fff; border: none; border-radius: 999px;",
+    "  padding: 13px 19px; font-size: 13.5px; font-weight: 800; cursor: pointer;",
+    "  box-shadow: 0 8px 22px rgba(26,79,160,.4); line-height: 1.2; white-space: nowrap;",
+    "  transition: transform .15s ease, box-shadow .15s ease, background .15s ease;",
+    "}",
+    ".ms-btn:hover { background: #0f3373; transform: translateY(-1px); }",
+    ".ms-btn:active { transform: scale(.97); }",
+    ".ms-btn[hidden] { display: none; }",
+
+    /* botao redondo (icone puro), usado por REMUME e pela engrenagem */
+    ".ms-btn.ms-btn-icone { width: 52px; height: 52px; padding: 0; border-radius: 50%; font-size: 24px; }",
+    ".ms-btn.ms-btn-engrenagem {",
+    "  width: 42px; height: 42px; font-size: 18px; padding: 0; border-radius: 50%;",
+    "  background: #fff; color: #334155; border: 1px solid #e2e8f0;",
+    "  box-shadow: 0 2px 10px rgba(15,23,42,.22);",
+    "}",
+    ".ms-btn.ms-btn-engrenagem:hover { background: #f1f5f9; }",
+
+    /* estado ligado/alerta (usado pelo alarme de fila) */
+    ".ms-btn.ms-ativo { background: linear-gradient(135deg, #f97316, #dc2626); box-shadow: 0 4px 18px rgba(220,38,38,.55); animation: ms-pulso 2.2s ease-in-out infinite; }",
+    ".ms-btn.ms-ativo:hover { background: linear-gradient(135deg, #ea6a0c, #c31c1c); }",
+    ".ms-btn.ms-neutro { background: linear-gradient(135deg, #64748b, #475569); box-shadow: 0 4px 14px rgba(71,85,105,.45); }",
+    "@keyframes ms-pulso { 0%,100% { box-shadow: 0 4px 18px rgba(220,38,38,.55); } 50% { box-shadow: 0 4px 26px rgba(220,38,38,.9); } }",
+
+    /* --- toast --- */
+    "#toast {",
+    "  position: fixed; right: 24px; bottom: 24px; z-index: " + (Z_BASE + 3) + ";",
+    "  background: #16221f; color: #fff; padding: 9px 14px; border-radius: 8px;",
+    "  font-size: 12px; line-height: 1.4; max-width: 340px;",
+    "  box-shadow: 0 6px 16px rgba(0,0,0,.25);",
+    "}",
+    "#toast[hidden] { display: none; }",
+
+    /* --- overlay/modal em tela cheia (dono do posicionamento) --- */
+    ".ms-overlay {",
+    "  position: fixed; inset: 0; z-index: " + (Z_BASE + 2) + ";",
+    "  background: rgba(10,20,18,.55); display: flex; align-items: center;",
+    "  justify-content: center; padding: 20px;",
+    "}",
+    ".ms-overlay[hidden] { display: none; }",
+
+    /* --- banner de topo (alarme) --- */
+    ".ms-banner {",
+    "  position: fixed; top: 0; left: 0; right: 0; z-index: " + (Z_BASE + 4) + ";",
+    "  display: flex; align-items: center; justify-content: center; gap: 16px;",
+    "  padding: 14px 20px; color: #fff; font-size: 16px; font-weight: 700;",
+    "  background: linear-gradient(90deg, #dc2626, #f97316, #dc2626);",
+    "  background-size: 200% 100%; box-shadow: 0 4px 16px rgba(0,0,0,.3);",
+    "  animation: ms-pisca-fundo 1.1s linear infinite;",
+    "}",
+    ".ms-banner[hidden] { display: none; }",
+    "@keyframes ms-pisca-fundo { 0% { background-position: 0% 0%; } 100% { background-position: 200% 0%; } }",
+    ".ms-banner button {",
+    "  background: rgba(255,255,255,.2); border: 1.5px solid rgba(255,255,255,.7); color: #fff;",
+    "  padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer;",
+    "}",
+    ".ms-banner button:hover { background: rgba(255,255,255,.35); }",
+  ].join("\n");
+
+  function garantirHost() {
+    if (shadow) return shadow;
+    var host = document.getElementById(ID_HOST);
+    if (host && host.shadowRoot) {
+      shadow = host.shadowRoot;
+      elDock = shadow.getElementById("dock");
+      elToast = shadow.getElementById("toast");
+      return shadow;
+    }
+    host = document.createElement("div");
+    host.id = ID_HOST;
+    document.body.appendChild(host);
+    shadow = host.attachShadow({ mode: "open" });
+
+    var estilo = document.createElement("style");
+    estilo.textContent = ESTILOS;
+    shadow.appendChild(estilo);
+
+    elDock = document.createElement("div");
+    elDock.id = "dock";
+    shadow.appendChild(elDock);
+
+    elToast = document.createElement("div");
+    elToast.id = "toast";
+    elToast.hidden = true;
+    shadow.appendChild(elToast);
+
+    return shadow;
+  }
+
+  /* Reordena o DOM do dock conforme a prioridade declarada. Como o
+   * container e column-reverse, o PRIMEIRO filho fica embaixo — entao
+   * ordenar por prioridade crescente coloca o de menor prioridade mais
+   * perto do canto, exatamente como o contrato promete. */
+  function reordenar() {
+    botoes.sort(function (a, b) {
+      if (a.prioridade !== b.prioridade) return a.prioridade - b.prioridade;
+      return String(a.id).localeCompare(String(b.id));
+    });
+    botoes.forEach(function (b) {
+      elDock.appendChild(b.el);
+    });
+    reposicionarToast();
+  }
+
+  /* O toast fica logo acima da pilha, sem ninguem precisar somar pixel
+   * na mao: mede a altura real do dock e desloca a partir dela. */
+  function reposicionarToast() {
+    if (!elToast || !elDock) return;
+    var altura = 0;
+    try {
+      altura = elDock.getBoundingClientRect().height;
+    } catch (e) {
+      altura = 0;
+    }
+    elToast.style.bottom = 24 + (altura > 0 ? altura + 12 : 0) + "px";
+  }
+
+  /* ------------------------------------------------------------------
+   * API PUBLICA
+   * ------------------------------------------------------------------ */
+
+  /* registrarBotao({ id, rotulo, icone, prioridade, titulo, variante, aoClicar })
+   * Retorna um handle com o que o modulo pode mexer NO SEU botao —
+   * e nada mais. Posicao nao esta no handle de proposito. */
+  function registrarBotao(spec) {
+    garantirHost();
+    removerBotao(spec.id); // idempotente: re-registrar substitui
+
+    var el = document.createElement("button");
+    el.type = "button";
+    el.className = "ms-btn";
+    if (spec.variante === "icone") el.classList.add("ms-btn-icone");
+    if (spec.variante === "engrenagem") el.classList.add("ms-btn-icone", "ms-btn-engrenagem");
+    el.title = spec.titulo || spec.rotulo || "";
+    el.textContent = spec.variante === "icone" || spec.variante === "engrenagem"
+      ? spec.icone || spec.rotulo || ""
+      : (spec.icone ? spec.icone + " " : "") + (spec.rotulo || "");
+    if (typeof spec.aoClicar === "function") el.addEventListener("click", spec.aoClicar);
+
+    var registro = {
+      id: spec.id,
+      prioridade: typeof spec.prioridade === "number" ? spec.prioridade : 100,
+      el: el,
+    };
+    botoes.push(registro);
+    elDock.appendChild(el);
+    reordenar();
+
+    return {
+      elemento: el,
+      definirTexto: function (icone, rotulo) {
+        el.textContent = rotulo ? icone + " " + rotulo : icone;
+        reposicionarToast();
+      },
+      definirTitulo: function (t) {
+        el.title = t;
+      },
+      definirClasse: function (nome, ligado) {
+        el.classList.toggle(nome, !!ligado);
+      },
+      mostrar: function () {
+        el.hidden = false;
+        reposicionarToast();
+      },
+      esconder: function () {
+        el.hidden = true;
+        reposicionarToast();
+      },
+      remover: function () {
+        removerBotao(spec.id);
+      },
+    };
+  }
+
+  function removerBotao(id) {
+    for (var i = botoes.length - 1; i >= 0; i--) {
+      if (botoes[i].id === id) {
+        if (botoes[i].el.parentNode) botoes[i].el.parentNode.removeChild(botoes[i].el);
+        botoes.splice(i, 1);
+      }
+    }
+    reposicionarToast();
+  }
+
+  /* Esconde/mostra a pilha inteira de uma vez — usado pelo nucleo na
+   * tela de login (regra que os 5 scripts implementavam separado). */
+  function definirVisibilidadeGeral(visivel) {
+    garantirHost();
+    elDock.hidden = !visivel;
+    if (!visivel && elToast) elToast.hidden = true;
+  }
+
+  function toast(mensagem, ms) {
+    garantirHost();
+    elToast.textContent = mensagem;
+    elToast.hidden = false;
+    reposicionarToast();
+    clearTimeout(timerToast);
+    timerToast = setTimeout(function () {
+      elToast.hidden = true;
+    }, ms || 3000);
+  }
+
+  /* criarOverlay(html) — devolve um overlay em tela cheia ja posicionado
+   * pelo nucleo. O modulo so entrega o conteudo interno e o CSS do
+   * proprio conteudo; posicionamento nao e problema dele. */
+  function criarOverlay(opcoes) {
+    garantirHost();
+    opcoes = opcoes || {};
+    var overlay = document.createElement("div");
+    overlay.className = "ms-overlay";
+    overlay.hidden = true;
+
+    if (opcoes.estilo) {
+      var st = document.createElement("style");
+      st.textContent = opcoes.estilo;
+      shadow.appendChild(st);
+      overlay.__estilo = st;
+    }
+    if (opcoes.html) overlay.innerHTML = opcoes.html;
+
+    overlay.addEventListener("click", function (ev) {
+      if (ev.target === overlay && opcoes.fecharAoClicarFora !== false) overlay.hidden = true;
+    });
+    shadow.appendChild(overlay);
+
+    return {
+      elemento: overlay,
+      $: function (seletor) {
+        return overlay.querySelector(seletor);
+      },
+      $$: function (seletor) {
+        return Array.prototype.slice.call(overlay.querySelectorAll(seletor));
+      },
+      abrir: function () {
+        overlay.hidden = false;
+      },
+      fechar: function () {
+        overlay.hidden = true;
+      },
+      estaAberto: function () {
+        return !overlay.hidden;
+      },
+      remover: function () {
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        if (overlay.__estilo && overlay.__estilo.parentNode) {
+          overlay.__estilo.parentNode.removeChild(overlay.__estilo);
+        }
+      },
+    };
+  }
+
+  /* Banner de topo (usado pelo alarme de fila). Tambem posicionado pelo
+   * nucleo — o modulo so diz o texto e o que o botao faz. */
+  function criarBanner(html) {
+    garantirHost();
+    var banner = document.createElement("div");
+    banner.className = "ms-banner";
+    banner.hidden = true;
+    banner.innerHTML = html;
+    shadow.appendChild(banner);
+    return {
+      elemento: banner,
+      $: function (s) {
+        return banner.querySelector(s);
+      },
+      mostrar: function () {
+        banner.hidden = false;
+      },
+      esconder: function () {
+        banner.hidden = true;
+      },
+      remover: function () {
+        if (banner.parentNode) banner.parentNode.removeChild(banner);
+      },
+    };
+  }
+
+  /* Ponto de extensao para conteudo solto no shadow do nucleo (raro). */
+  function adicionarEstilo(css) {
+    garantirHost();
+    var st = document.createElement("style");
+    st.textContent = css;
+    shadow.appendChild(st);
+    return st;
+  }
+
+  raiz.MeedsSuiteDock = {
+    garantirHost: garantirHost,
+    registrarBotao: registrarBotao,
+    removerBotao: removerBotao,
+    definirVisibilidadeGeral: definirVisibilidadeGeral,
+    toast: toast,
+    criarOverlay: criarOverlay,
+    criarBanner: criarBanner,
+    adicionarEstilo: adicionarEstilo,
+    _reposicionarToast: reposicionarToast,
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== core/network-hub.js ===== */
+/* ------------------------------------------------------------------
+ * core/network-hub.js — hook UNICO de fetch/XHR + barramento de eventos
+ * ------------------------------------------------------------------
+ * PROBLEMA QUE ESTE ARQUIVO RESOLVE
+ * Tres dos cinco scripts originais (alarme de fila, APAC e REMUME)
+ * instalavam CADA UM o seu proprio patch em XMLHttpRequest.prototype e
+ * em window.fetch. Com os tres instalados, toda chamada da aplicacao
+ * atravessava tres camadas de wrapper encadeadas, cada uma clonando e
+ * parseando a resposta por conta propria. Alem do desperdicio, a ordem
+ * de instalacao passava a importar e desinstalar um deles no meio ficava
+ * impossivel sem quebrar os outros.
+ *
+ * SOLUCAO
+ * O nucleo instala o patch UMA unica vez, o mais cedo possivel
+ * (@run-at document-start), e publica cada resposta em um barramento.
+ * Modulo nenhum toca em fetch/XHR: cada um so ASSINA os padroes de URL
+ * que lhe interessam.
+ *
+ * GARANTIAS QUE O HUB DA AOS MODULOS
+ *  - o corpo da resposta e lido no maximo UMA vez por chamada, e so se
+ *    existir pelo menos um assinante interessado naquela URL;
+ *  - um assinante que lanca excecao nunca derruba os outros nem a
+ *    pagina do Meeds (todo callback roda dentro de try/catch);
+ *  - o wrapper SEMPRE devolve a Promise/valor original intactos, entao
+ *    a aplicacao nao percebe que esta sendo observada;
+ *  - assinar() devolve uma funcao de cancelamento, o que torna o
+ *    stop() de modulo (desativar sem recarregar a pagina) possivel.
+ *
+ * PRIVACIDADE: o hub NAO guarda historico de respostas. Ele repassa o
+ * corpo para os assinantes no momento da chamada e esquece. Nada e
+ * gravado em disco nem enviado para fora do navegador.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  var instalado = false;
+  var proximoId = 1;
+  var assinaturas = []; // { id, regex, metodos, callback, idModulo }
+
+  function normalizarMetodos(metodos) {
+    if (!metodos || !metodos.length) return null; // null = qualquer metodo
+    return metodos.map(function (m) {
+      return String(m).toUpperCase();
+    });
+  }
+
+  /* assinar({ regex, metodos, idModulo }, callback)
+   * callback recebe { url, metodo, status, corpo, json() } */
+  function assinar(spec, callback) {
+    var registro = {
+      id: proximoId++,
+      regex: spec.regex,
+      metodos: normalizarMetodos(spec.metodos),
+      callback: callback,
+      idModulo: spec.idModulo || null,
+    };
+    assinaturas.push(registro);
+    return function cancelar() {
+      for (var i = assinaturas.length - 1; i >= 0; i--) {
+        if (assinaturas[i].id === registro.id) assinaturas.splice(i, 1);
+      }
+    };
+  }
+
+  function cancelarPorModulo(idModulo) {
+    for (var i = assinaturas.length - 1; i >= 0; i--) {
+      if (assinaturas[i].idModulo === idModulo) assinaturas.splice(i, 1);
+    }
+  }
+
+  function interessadosEm(url, metodo) {
+    var saida = [];
+    for (var i = 0; i < assinaturas.length; i++) {
+      var a = assinaturas[i];
+      if (a.metodos && a.metodos.indexOf(metodo) === -1) continue;
+      var bate = false;
+      try {
+        bate = a.regex.test(url);
+      } catch (e) {
+        bate = false;
+      }
+      // regex com flag /g mantem lastIndex entre chamadas e daria falso
+      // negativo na chamada seguinte — zeramos por seguranca.
+      if (a.regex && typeof a.regex.lastIndex === "number") a.regex.lastIndex = 0;
+      if (bate) saida.push(a);
+    }
+    return saida;
+  }
+
+  function publicar(alvos, evento) {
+    for (var i = 0; i < alvos.length; i++) {
+      try {
+        alvos[i].callback(evento);
+      } catch (e) {
+        // um assinante quebrado nunca pode derrubar os outros nem a pagina
+        console.warn("[Meeds Suite] assinante de rede falhou:", alvos[i].idModulo, e);
+      }
+    }
+  }
+
+  function montarEvento(url, metodo, status, corpoTexto) {
+    var jsonCache;
+    var jsonParseado = false;
+    return {
+      url: url,
+      metodo: metodo,
+      status: status,
+      corpo: corpoTexto,
+      /* parse preguicoso e memoizado: se cinco modulos assinarem a mesma
+       * URL, o JSON.parse acontece uma vez so. */
+      json: function () {
+        if (!jsonParseado) {
+          jsonParseado = true;
+          try {
+            jsonCache = JSON.parse(corpoTexto);
+          } catch (e) {
+            jsonCache = null;
+          }
+        }
+        return jsonCache;
+      },
+    };
+  }
+
+  function instalar() {
+    if (instalado) return;
+    instalado = true;
+
+    /* --- XMLHttpRequest --- */
+    var xhrOpenOriginal = XMLHttpRequest.prototype.open;
+    var xhrSendOriginal = XMLHttpRequest.prototype.send;
+
+    XMLHttpRequest.prototype.open = function (metodo, url) {
+      this.__msMetodo = metodo;
+      this.__msUrl = url;
+      return xhrOpenOriginal.apply(this, arguments);
+    };
+
+    XMLHttpRequest.prototype.send = function () {
+      this.addEventListener("load", function () {
+        try {
+          var metodo = String(this.__msMetodo || "GET").toUpperCase();
+          var url = this.__msUrl || "";
+          var alvos = interessadosEm(url, metodo);
+          if (!alvos.length) return; // ninguem quer: nem le o corpo
+          publicar(alvos, montarEvento(url, metodo, this.status, this.responseText));
+        } catch (e) {
+          /* silencioso: nunca deve quebrar a pagina do Meeds */
+        }
+      });
+      return xhrSendOriginal.apply(this, arguments);
+    };
+
+    /* --- fetch --- */
+    if (typeof raiz.fetch === "function") {
+      var fetchOriginal = raiz.fetch;
+      raiz.fetch = function (input, init) {
+        var url = "";
+        var metodo = "GET";
+        try {
+          url = typeof input === "string" ? input : (input && input.url) || "";
+          metodo = String((init && init.method) || (input && input.method) || "GET").toUpperCase();
+        } catch (e) {
+          /* segue com os padroes */
+        }
+
+        var promessa = fetchOriginal.apply(this, arguments);
+
+        var alvos = interessadosEm(url, metodo);
+        if (alvos.length) {
+          promessa
+            .then(function (resposta) {
+              try {
+                if (resposta && resposta.ok) {
+                  // .clone() e obrigatorio: consumir o corpo original
+                  // deixaria a aplicacao sem resposta para ler.
+                  resposta
+                    .clone()
+                    .text()
+                    .then(function (texto) {
+                      publicar(alvos, montarEvento(url, metodo, resposta.status, texto));
+                    })
+                    .catch(function () {});
+                }
+              } catch (e) {
+                /* silencioso */
+              }
+              return resposta;
+            })
+            .catch(function () {});
+        }
+
+        return promessa; // sempre a promessa original, intacta
+      };
+    }
+  }
+
+  raiz.MeedsSuiteNetwork = {
+    instalar: instalar,
+    assinar: assinar,
+    cancelarPorModulo: cancelarPorModulo,
+    _assinaturas: assinaturas,
+    estaInstalado: function () {
+      return instalado;
+    },
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== core/dom-reader.js ===== */
+/* ------------------------------------------------------------------
+ * core/dom-reader.js — leitura de tela com variantes de rotulo
+ * ------------------------------------------------------------------
+ * PROBLEMA QUE ESTE ARQUIVO RESOLVE
+ * APAC, LME e CMD tinham CADA UM a sua copia (praticamente identica) de
+ * valorAoLadoDoRotulo() e lerDadosDaTela(). O CMD foi o unico que evoluiu
+ * a ideia: como o rotulo exato do "nome da mae" nunca pode ser conferido
+ * numa gravacao, ele tenta VARIANTES em ordem ("Nome da Mãe", "Nome da
+ * mãe do paciente", "Mãe", "Filiação"). O APAC so tentava duas variantes,
+ * e o LME nem lia esse campo. Essa inteligencia estava presa num modulo.
+ *
+ * Aqui ela vira infraestrutura do nucleo, com duas melhorias:
+ *   1. comparacao NORMALIZADA (sem acento, caixa baixa, espacos
+ *      colapsados, ":" final ignorado) — antes a comparacao era um
+ *      toUpperCase() cru, entao "Nome da Mae" nao batia com "Nome da Mãe"
+ *      e cada modulo precisava listar as duas grafias na mao;
+ *   2. leitura de contador numerico que RECUSA decidir sob ambiguidade,
+ *      generalizando a regra do alarme de fila ("mais de um numero
+ *      candidato e leituras divergentes => nao decide").
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  function normalizarTexto(str) {
+    if (!str) return "";
+    return String(str)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // remove acentos
+      .replace(/\s+/g, " ")
+      .replace(/[:：]\s*$/, "") // rotulos costumam vir com ":" no fim
+      .trim()
+      .toLowerCase();
+  }
+
+  /* Todos os elementos-FOLHA da pagina (sem filhos), que sao os que
+   * carregam texto puro. Uma unica varredura serve para varias buscas
+   * no mesmo "pulso" de leitura — os originais varriam
+   * document.querySelectorAll('body *') de novo a cada rotulo, o que em
+   * telas grandes custava caro. */
+  function coletarFolhas() {
+    var folhas = [];
+    try {
+      var todos = document.querySelectorAll("body *");
+      for (var i = 0; i < todos.length; i++) {
+        if (todos[i].children.length === 0) folhas.push(todos[i]);
+      }
+    } catch (e) {
+      /* silencioso */
+    }
+    return folhas;
+  }
+
+  function textoDe(el) {
+    return (el.textContent || "").trim();
+  }
+
+  /* Valor que aparece AO LADO de um rotulo. Aceita uma string ou uma
+   * lista de variantes e devolve a primeira que casar — mesma estrategia
+   * do CMD, agora com normalizacao de acento embutida. */
+  function lerValorPorRotulo(variantes, folhasOpcional) {
+    var lista = Array.isArray(variantes) ? variantes : [variantes];
+    var folhas = folhasOpcional || coletarFolhas();
+
+    for (var v = 0; v < lista.length; v++) {
+      var alvo = normalizarTexto(lista[v]);
+      if (!alvo) continue;
+      for (var i = 0; i < folhas.length; i++) {
+        var el = folhas[i];
+        if (normalizarTexto(textoDe(el)) !== alvo) continue;
+        var prox = el.nextElementSibling;
+        if (!prox && el.parentElement) prox = el.parentElement.nextElementSibling;
+        if (prox && textoDe(prox)) return textoDe(prox);
+      }
+    }
+    return null;
+  }
+
+  /* Procura um texto exato isolado na tela (ex: "Masculino"/"Feminino").
+   * Devolve o primeiro valor mapeado que aparecer. */
+  function lerPorTextoExato(mapa, folhasOpcional) {
+    var folhas = folhasOpcional || coletarFolhas();
+    var chaves = Object.keys(mapa).map(function (k) {
+      return { normalizado: normalizarTexto(k), valor: mapa[k] };
+    });
+    for (var i = 0; i < folhas.length; i++) {
+      var t = normalizarTexto(textoDe(folhas[i]));
+      if (!t) continue;
+      for (var j = 0; j < chaves.length; j++) {
+        if (t === chaves[j].normalizado) return chaves[j].valor;
+      }
+    }
+    return null;
+  }
+
+  /* Texto do elemento imediatamente ANTERIOR ao que casa com um regex.
+   * E como os tres geradores acham o nome do paciente: o nome fica logo
+   * antes da linha "NN anos e MM meses" no cartao do paciente. */
+  function lerAnteriorAoPadrao(regex, folhasOpcional) {
+    var folhas = folhasOpcional || coletarFolhas();
+    for (var i = 0; i < folhas.length; i++) {
+      var t = textoDe(folhas[i]);
+      if (!t || !regex.test(t)) continue;
+      var ant = folhas[i].previousElementSibling;
+      if (!ant && folhas[i].parentElement) ant = folhas[i].parentElement.previousElementSibling;
+      var texto = ant && textoDe(ant);
+      if (texto && texto.length > 2 && !/^\d/.test(texto)) return texto;
+      return null;
+    }
+    return null;
+  }
+
+  var numeroPuroRx = /^\d{1,4}$/;
+
+  /* Contador numerico associado a um rotulo (ex: o card "Aguardando" do
+   * dashboard). REGRA HERDADA DO ALARME DE FILA, agora no nucleo: se
+   * houver mais de uma leitura candidata e elas nao baterem entre si,
+   * devolve null — preferimos NAO decidir a arriscar um falso disparo. */
+  function lerContadorPorRotulo(variantes, folhasOpcional) {
+    var lista = Array.isArray(variantes) ? variantes : [variantes];
+    var folhas = folhasOpcional || coletarFolhas();
+    var normalizadas = lista.map(normalizarTexto);
+
+    var rotulos = folhas.filter(function (el) {
+      return normalizadas.indexOf(normalizarTexto(textoDe(el))) !== -1;
+    });
+    if (rotulos.length === 0) return null;
+
+    var leituras = {};
+    var quantas = 0;
+    rotulos.forEach(function (rotulo) {
+      var pai = rotulo.parentElement;
+      if (!pai) return;
+      for (var i = 0; i < pai.children.length; i++) {
+        var irmao = pai.children[i];
+        if (irmao === rotulo) continue;
+        var t = textoDe(irmao);
+        if (numeroPuroRx.test(t)) {
+          var n = parseInt(t, 10);
+          if (!(n in leituras)) {
+            leituras[n] = true;
+            quantas++;
+          }
+        }
+      }
+    });
+
+    if (quantas !== 1) return null; // ambiguo ou nao encontrado: nao decide
+    return parseInt(Object.keys(leituras)[0], 10);
+  }
+
+  /* Texto normalizado da pagina inteira — usado pelo REMUME para achar
+   * o nome do municipio na tela. */
+  function textoDaPaginaNormalizado() {
+    try {
+      return normalizarTexto(document.body ? document.body.innerText : "");
+    } catch (e) {
+      return "";
+    }
+  }
+
+  /* Leitura padronizada do cartao de paciente do Meeds, unificando o que
+   * APAC/LME/CMD faziam separado. Devolve so o que conseguiu ler; nunca
+   * inventa valor. Os campos ficam em memoria e vao direto para o
+   * formulario — nada e gravado em disco. */
+  var VARIANTES = {
+    nascimento: ["Data de Nascimento", "Data de nascimento", "Nascimento", "Dt. Nascimento"],
+    cpf: ["CPF", "C.P.F.", "CPF do paciente"],
+    mae: ["Nome da Mãe", "Nome da mãe do paciente", "Nome da Mae", "Mãe", "Filiação", "Filiacao"],
+    telefone: ["Telefone", "Celular", "Contato"],
+  };
+
+  var RX_IDADE = /^\d+\s*anos?(\s+e\s+\d+\s*m[eê]s(es)?)?$/i;
+
+  function lerPaciente() {
+    var folhas = coletarFolhas();
+    var out = {};
+
+    var nascimento = lerValorPorRotulo(VARIANTES.nascimento, folhas);
+    if (nascimento) {
+      var m = nascimento.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+      if (m) {
+        out.nascimentoBR = m[1] + "/" + m[2] + "/" + m[3]; // dd/mm/aaaa (LME, CMD)
+        out.nascimentoISO = m[3] + "-" + m[2] + "-" + m[1]; // aaaa-mm-dd (APAC, input date)
+      }
+    }
+
+    var cpf = lerValorPorRotulo(VARIANTES.cpf, folhas);
+    if (cpf) out.cpf = cpf.replace(/\D/g, "");
+
+    var mae = lerValorPorRotulo(VARIANTES.mae, folhas);
+    if (mae) out.nomeDaMae = mae;
+
+    var telefone = lerValorPorRotulo(VARIANTES.telefone, folhas);
+    if (telefone) out.telefone = telefone;
+
+    // sexo: le a PALAVRA exibida na tela, nao um enum de API. Decisao
+    // herdada do APAC, onde o enum nunca pode ser confirmado com um caso
+    // feminino real — a palavra na tela e o dado mais confiavel.
+    var sexo = lerPorTextoExato({ Masculino: "M", Feminino: "F" }, folhas);
+    if (sexo) out.sexo = sexo;
+
+    var nome = lerAnteriorAoPadrao(RX_IDADE, folhas);
+    if (nome) out.nome = nome;
+
+    return out;
+  }
+
+  raiz.MeedsSuiteDom = {
+    normalizarTexto: normalizarTexto,
+    coletarFolhas: coletarFolhas,
+    lerValorPorRotulo: lerValorPorRotulo,
+    lerPorTextoExato: lerPorTextoExato,
+    lerAnteriorAoPadrao: lerAnteriorAoPadrao,
+    lerContadorPorRotulo: lerContadorPorRotulo,
+    textoDaPaginaNormalizado: textoDaPaginaNormalizado,
+    lerPaciente: lerPaciente,
+    VARIANTES: VARIANTES,
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== core/decision-engine.js ===== */
+/* ------------------------------------------------------------------
+ * core/decision-engine.js — fusao de sinais com confianca
+ * ------------------------------------------------------------------
+ * DE ONDE VEIO ESTA IDEIA
+ * O alarme de fila ja tinha a filosofia certa, so que espalhada em
+ * regras soltas dentro do proprio modulo:
+ *   - combinar TRES sinais independentes (toast nativo, resposta de rede,
+ *     contador no DOM) em vez de confiar num so;
+ *   - RECUSAR decidir quando a leitura e ambigua (duas leituras
+ *     numericas diferentes para "Aguardando" => nao decide);
+ *   - desconfiar de sinal VELHO (o contador do DOM so vale enquanto
+ *     esta atualizando; parado no tempo, ele nao prova nem que a fila
+ *     esvaziou nem que continua cheia).
+ * O REMUME aplicava a mesma filosofia para municipio ("achei dois nomes
+ * na tela => nao escolho nenhum").
+ *
+ * Aqui isso vira um mecanismo generico: cada sinal e um VOTO com peso de
+ * confiabilidade e prazo de validade. A decisao so sai quando a confianca
+ * somada dos votos que concordam atinge o limiar — e votos discordantes
+ * SUBTRAEM. Abstencao explicita e um resultado valido, nao um erro.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  var PESOS_PADRAO = {
+    rede: 1.0,      // resposta da propria API: o dado mais forte
+    toast: 0.8,     // a plataforma decidiu que isso e um evento novo
+    dom_contador: 0.6, // leitura de tela: bom reforco, sozinho e fraco
+    dom_rotulo: 0.6,
+    manual: 1.0,    // o medico escolheu na mao: sempre vence
+  };
+
+  /* criarDecisor({ limiar, validadeMs, pesos })
+   *  - limiar: confianca minima somada para decidir (padrao 1.0, ou
+   *    seja: um sinal forte sozinho decide, dois fracos tambem);
+   *  - validadeMs: depois disso o voto e considerado velho e ignorado
+   *    (generaliza o LIMITE_FRESCOR_DOM_MS do alarme). */
+  function criarDecisor(opcoes) {
+    opcoes = opcoes || {};
+    var limiar = typeof opcoes.limiar === "number" ? opcoes.limiar : 1.0;
+    var validadeMs = typeof opcoes.validadeMs === "number" ? opcoes.validadeMs : 12000;
+    var pesos = Object.assign({}, PESOS_PADRAO, opcoes.pesos || {});
+    var votos = {}; // fonte -> { valor, peso, em }
+
+    function agora() {
+      return Date.now();
+    }
+
+    function votar(fonte, valor, pesoExplicito) {
+      if (valor === null || valor === undefined) return; // "nao sei" nao vota
+      votos[fonte] = {
+        valor: valor,
+        peso: typeof pesoExplicito === "number" ? pesoExplicito : pesos[fonte] !== undefined ? pesos[fonte] : 0.5,
+        em: agora(),
+      };
+    }
+
+    function esquecer(fonte) {
+      delete votos[fonte];
+    }
+
+    function limpar() {
+      votos = {};
+    }
+
+    function votosValidos() {
+      var t = agora();
+      var lista = [];
+      Object.keys(votos).forEach(function (fonte) {
+        var v = votos[fonte];
+        if (validadeMs > 0 && t - v.em > validadeMs) return; // sinal velho
+        lista.push({ fonte: fonte, valor: v.valor, peso: v.peso, em: v.em });
+      });
+      return lista;
+    }
+
+    /* decidir() -> { valor, confianca, decidiu, motivo, votos }
+     * Agrupa os votos validos por valor, soma a confianca de cada grupo e
+     * so devolve decidiu:true quando o grupo lider atinge o limiar E a
+     * vantagem sobre o segundo colocado tambem chega la (senao a leitura
+     * e ambigua — exatamente o caso "dois numeros candidatos"). */
+    function decidir() {
+      var lista = votosValidos();
+      if (lista.length === 0) {
+        return { valor: null, confianca: 0, decidiu: false, motivo: "sem-sinal", votos: lista };
+      }
+
+      var grupos = {};
+      lista.forEach(function (v) {
+        var chave = JSON.stringify(v.valor);
+        grupos[chave] = (grupos[chave] || 0) + v.peso;
+      });
+
+      var ordenados = Object.keys(grupos)
+        .map(function (chave) {
+          return { chave: chave, valor: JSON.parse(chave), confianca: grupos[chave] };
+        })
+        .sort(function (a, b) {
+          return b.confianca - a.confianca;
+        });
+
+      var lider = ordenados[0];
+      var segundo = ordenados[1];
+      var margem = lider.confianca - (segundo ? segundo.confianca : 0);
+
+      if (lider.confianca < limiar) {
+        return {
+          valor: null,
+          confianca: lider.confianca,
+          decidiu: false,
+          motivo: "confianca-insuficiente",
+          votos: lista,
+        };
+      }
+      if (segundo && margem < limiar) {
+        // dois valores diferentes com forca parecida = ambiguidade real.
+        return {
+          valor: null,
+          confianca: lider.confianca,
+          decidiu: false,
+          motivo: "ambiguo",
+          votos: lista,
+        };
+      }
+
+      return {
+        valor: lider.valor,
+        confianca: lider.confianca,
+        decidiu: true,
+        motivo: "ok",
+        votos: lista,
+      };
+    }
+
+    return {
+      votar: votar,
+      esquecer: esquecer,
+      limpar: limpar,
+      decidir: decidir,
+      votosValidos: votosValidos,
+      definirLimiar: function (n) {
+        limiar = n;
+      },
+    };
+  }
+
+  /* Atalho para o caso mais comum: uma lista de candidatos onde so vale
+   * decidir se houver exatamente UM. E a regra que REMUME (municipio) e
+   * alarme (contador) aplicavam na mao. */
+  function unicoOuNada(candidatos) {
+    var unicos = [];
+    (candidatos || []).forEach(function (c) {
+      if (c === null || c === undefined) return;
+      if (unicos.indexOf(c) === -1) unicos.push(c);
+    });
+    return unicos.length === 1 ? unicos[0] : null;
+  }
+
+  raiz.MeedsSuiteDecisao = {
+    criarDecisor: criarDecisor,
+    unicoOuNada: unicoOuNada,
+    PESOS_PADRAO: PESOS_PADRAO,
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== core/manager.js ===== */
+/* ------------------------------------------------------------------
+ * core/manager.js — painel de gerenciamento de modulos (engrenagem)
+ * ------------------------------------------------------------------
+ * O botao de engrenagem SEMPRE aparece (com prioridade 0, ou seja, no
+ * pe da pilha), mesmo que todos os modulos estejam desativados — senao
+ * o medico que desligar tudo perde o caminho de volta.
+ *
+ * Ligar/desligar aqui chama definirHabilitado() no nucleo, que faz
+ * start()/stop() na hora. NAO existe "recarregue a pagina para valer" —
+ * o requisito e explicito no contrato de modulo, e e o que torna
+ * plausivel o cenario "plantonista de Itauna liga so o alarme e a APAC".
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  var ESTILO = [
+    ".msm-modal {",
+    "  background: #fff; border-radius: 16px; width: 100%; max-width: 460px;",
+    "  max-height: 86vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.35);",
+    "}",
+    ".msm-head {",
+    "  background: linear-gradient(135deg, #123a7a, #1a56ad); color: #fff;",
+    "  padding: 16px 18px; display: flex; justify-content: space-between;",
+    "  align-items: center; position: sticky; top: 0; z-index: 2;",
+    "}",
+    ".msm-head h2 { margin: 0; font-size: 15px; font-weight: 700; }",
+    ".msm-head .msm-sub { margin: 2px 0 0; font-size: 11px; opacity: .85; font-weight: 400; }",
+    ".msm-fechar { background: rgba(255,255,255,.2); border: none; color: #fff; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 14px; }",
+    ".msm-fechar:hover { background: rgba(255,255,255,.34); }",
+    ".msm-body { padding: 14px 18px 18px; }",
+    ".msm-intro { font-size: 11.5px; color: #5b6672; line-height: 1.5; margin: 0 0 14px; }",
+    ".msm-item {",
+    "  display: flex; align-items: flex-start; gap: 12px; padding: 11px 0;",
+    "  border-bottom: 1px solid #eef2f6;",
+    "}",
+    ".msm-item:last-child { border-bottom: none; }",
+    ".msm-item-txt { flex: 1; min-width: 0; }",
+    ".msm-item-nome { font-size: 13px; font-weight: 700; color: #16221f; }",
+    ".msm-item-desc { font-size: 11.5px; color: #5b6672; line-height: 1.45; margin-top: 2px; }",
+    ".msm-item-ver { font-size: 10px; color: #9aa5b1; font-family: monospace; margin-top: 3px; }",
+    /* interruptor liga/desliga */
+    ".msm-switch { position: relative; width: 44px; height: 25px; flex-shrink: 0; cursor: pointer; }",
+    ".msm-switch input { opacity: 0; width: 0; height: 0; }",
+    ".msm-slider {",
+    "  position: absolute; inset: 0; background: #cbd5e1; border-radius: 999px;",
+    "  transition: background .18s ease;",
+    "}",
+    ".msm-slider::before {",
+    "  content: ''; position: absolute; height: 19px; width: 19px; left: 3px; top: 3px;",
+    "  background: #fff; border-radius: 50%; transition: transform .18s ease;",
+    "  box-shadow: 0 1px 3px rgba(0,0,0,.3);",
+    "}",
+    ".msm-switch input:checked + .msm-slider { background: #12958a; }",
+    ".msm-switch input:checked + .msm-slider::before { transform: translateX(19px); }",
+    ".msm-vazio { font-size: 12px; color: #8a97a4; font-style: italic; padding: 10px 0; }",
+    ".msm-rodape { font-size: 10.5px; color: #9aa5b1; margin-top: 14px; line-height: 1.5; border-top: 1px solid #eef2f6; padding-top: 10px; }",
+  ].join("\n");
+
+  var overlay = null;
+  var ctx = null;
+
+  function escapeHtml(str) {
+    return String(str == null ? "" : str).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function montar(contexto) {
+    ctx = contexto;
+
+    overlay = ctx.dock.criarOverlay({
+      estilo: ESTILO,
+      html:
+        '<div class="msm-modal" role="dialog" aria-modal="true" aria-labelledby="msm-title">' +
+        '  <div class="msm-head">' +
+        "    <div>" +
+        '      <h2 id="msm-title">Meeds Suite</h2>' +
+        '      <p class="msm-sub">Nucleo ' +
+        escapeHtml(ctx.versaoNucleo) +
+        " &middot; ative so o que voce usa</p>" +
+        "    </div>" +
+        '    <button type="button" class="msm-fechar" aria-label="Fechar">&#10005;</button>' +
+        "  </div>" +
+        '  <div class="msm-body">' +
+        '    <p class="msm-intro">Cada funcao e um modulo independente. Desligar um modulo tira o botao dele da tela na hora — nao precisa recarregar a pagina nem reinstalar nada.</p>' +
+        '    <div id="msm-lista"></div>' +
+        '    <div class="msm-rodape">As preferencias ficam salvas so neste navegador. Nenhum dado de paciente e gravado em disco nem enviado para fora.</div>' +
+        "  </div>" +
+        "</div>",
+    });
+
+    overlay.$(".msm-fechar").addEventListener("click", function () {
+      overlay.fechar();
+    });
+
+    ctx.dock.registrarBotao({
+      id: "_manager",
+      icone: "⚙️",
+      variante: "engrenagem",
+      titulo: "Gerenciar modulos da Meeds Suite",
+      prioridade: 0, // sempre no pe da pilha
+      aoClicar: abrir,
+    });
+  }
+
+  function abrir() {
+    renderizar();
+    overlay.abrir();
+  }
+
+  function renderizar() {
+    var lista = overlay.$("#msm-lista");
+    var modulos = ctx.listarModulos();
+
+    if (!modulos.length) {
+      lista.innerHTML = '<div class="msm-vazio">Nenhum modulo carregado neste pacote.</div>';
+      return;
+    }
+
+    lista.innerHTML = modulos
+      .map(function (m) {
+        return (
+          '<div class="msm-item">' +
+          '  <div class="msm-item-txt">' +
+          '    <div class="msm-item-nome">' +
+          escapeHtml(m.nome) +
+          "</div>" +
+          '    <div class="msm-item-desc">' +
+          escapeHtml(m.descricao) +
+          "</div>" +
+          '    <div class="msm-item-ver">v' +
+          escapeHtml(m.versao) +
+          " &middot; " +
+          escapeHtml(m.id) +
+          "</div>" +
+          "  </div>" +
+          '  <label class="msm-switch">' +
+          '    <input type="checkbox" data-id="' +
+          escapeHtml(m.id) +
+          '" ' +
+          (m.habilitado ? "checked" : "") +
+          " />" +
+          '    <span class="msm-slider"></span>' +
+          "  </label>" +
+          "</div>"
+        );
+      })
+      .join("");
+
+    overlay.$$('input[type="checkbox"][data-id]').forEach(function (input) {
+      input.addEventListener("change", function () {
+        var id = input.getAttribute("data-id");
+        ctx.definirHabilitado(id, input.checked);
+        // reflete o estado real (se o start() falhou, o modulo nao subiu)
+        renderizar();
+      });
+    });
+  }
+
+  raiz.MeedsSuiteManager = {
+    montar: montar,
+    abrir: function () {
+      if (overlay) abrir();
+    },
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== core/core.user.js ===== */
+/* ------------------------------------------------------------------
+ * core/core.user.js — nucleo compartilhado da Meeds Suite
+ * ------------------------------------------------------------------
+ * Expoe window.MeedsSuite, o unico ponto de contato entre o nucleo e os
+ * modulos. Um modulo NAO conhece o Tampermonkey, nao toca em fetch/XHR,
+ * nao sabe onde o botao dele vai parar na tela e nao decide sozinho se
+ * o medico esta logado. Ele so declara o que e e implementa a sua regra
+ * de negocio.
+ *
+ * CONTRATO DE MODULO (ver docs/ARQUITETURA.md)
+ *   {
+ *     id, nome, descricao, versao,
+ *     configPadrao: {},
+ *     botao: { rotulo, icone, prioridade, variante } | null,
+ *     assinaturasRede: [ { regex, metodos } ],
+ *     start(deps), stop(), aoCargaRede(evt)
+ *   }
+ * deps = { core, network, dom, storage, dock, decisao, config, botao }
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  var VERSAO_NUCLEO = "2.0.0";
+
+  var Auth = raiz.MeedsSuiteAuth;
+  var Dock = raiz.MeedsSuiteDock;
+  var Net = raiz.MeedsSuiteNetwork;
+  var Dom = raiz.MeedsSuiteDom;
+  var Decisao = raiz.MeedsSuiteDecisao;
+  var Storage = raiz.MeedsSuiteStorage;
+
+  var registro = [];          // definicoes na ordem de registro
+  var porId = {};             // id -> { def, estado }
+  var iniciado = false;
+  var storageNucleo = null;
+  var manifesto = null;
+
+  /* ------------------------------------------------------------------
+   * CONFIG REMOTA DE SELETORES (com fallback embutido)
+   * ------------------------------------------------------------------
+   * Permite corrigir rotulos/textos que o Meeds mudar sem redistribuir o
+   * userscript para todos os medicos. E DADO, nunca codigo: o nucleo so
+   * aceita um objeto JSON com listas de strings e mescla por cima do
+   * fallback. Se a busca falhar (sem internet, dominio bloqueado, CSP),
+   * o fallback embutido continua valendo — mesma estrategia ja provada
+   * pelo remumes.json do Assistente REMUME.
+   * ------------------------------------------------------------------ */
+  var SELETORES_FALLBACK = {
+    rotulos: {
+      nascimento: ["Data de Nascimento", "Data de nascimento", "Nascimento", "Dt. Nascimento"],
+      cpf: ["CPF", "C.P.F.", "CPF do paciente"],
+      mae: ["Nome da Mãe", "Nome da mãe do paciente", "Nome da Mae", "Mãe", "Filiação", "Filiacao"],
+      telefone: ["Telefone", "Celular", "Contato"],
+      contadorFila: ["Aguardando", "Aguardando atendimento", "Na fila"],
+    },
+    toasts: {
+      novoAtendimento: ["novo atendimento"],
+    },
+  };
+
+  var seletores = JSON.parse(JSON.stringify(SELETORES_FALLBACK));
+  var URL_SELETORES_PADRAO =
+    "https://raw.githubusercontent.com/sodelfino/meeds-suite/main/seletores.json";
+
+  function validarSeletores(dados) {
+    if (!dados || typeof dados !== "object" || Array.isArray(dados)) return false;
+    var grupos = ["rotulos", "toasts"];
+    for (var i = 0; i < grupos.length; i++) {
+      var g = dados[grupos[i]];
+      if (g === undefined) continue;
+      if (!g || typeof g !== "object" || Array.isArray(g)) return false;
+      var chaves = Object.keys(g);
+      for (var j = 0; j < chaves.length; j++) {
+        var v = g[chaves[j]];
+        if (!Array.isArray(v)) return false;
+        for (var k = 0; k < v.length; k++) {
+          if (typeof v[k] !== "string") return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  function atualizarSeletoresRemoto(url) {
+    var alvo = url || URL_SELETORES_PADRAO;
+    try {
+      return fetch(alvo, { cache: "no-store" })
+        .then(function (r) {
+          if (!r.ok) return null;
+          return r.json();
+        })
+        .then(function (dados) {
+          if (!dados) return false;
+          if (!validarSeletores(dados)) {
+            console.warn("[Meeds Suite] seletores remotos com formato inesperado, mantendo fallback embutido.");
+            return false;
+          }
+          // mescla por GRUPO, nao substitui o objeto inteiro: um arquivo
+          // remoto que so corrige "mae" nao pode apagar o resto.
+          Object.keys(dados).forEach(function (grupo) {
+            seletores[grupo] = Object.assign({}, seletores[grupo] || {}, dados[grupo]);
+          });
+          // repassa ao dom-reader para a leitura de paciente ja usar
+          if (seletores.rotulos) Object.assign(Dom.VARIANTES, seletores.rotulos);
+          return true;
+        })
+        .catch(function (e) {
+          console.warn("[Meeds Suite] nao foi possivel buscar seletores remotos, usando fallback.", e);
+          return false;
+        });
+    } catch (e) {
+      return Promise.resolve(false);
+    }
+  }
+
+  function obterSeletor(grupo, chave) {
+    var g = seletores[grupo] || {};
+    if (g[chave]) return g[chave].slice();
+    var f = (SELETORES_FALLBACK[grupo] || {})[chave];
+    return f ? f.slice() : [];
+  }
+
+  /* ------------------------------------------------------------------
+   * REGISTRO DE MODULOS
+   * ------------------------------------------------------------------ */
+  function registerModule(def) {
+    if (!def || !def.id) {
+      console.warn("[Meeds Suite] registerModule chamado sem id, ignorando.");
+      return;
+    }
+    if (porId[def.id]) {
+      console.warn("[Meeds Suite] modulo duplicado ignorado:", def.id);
+      return;
+    }
+    var entrada = {
+      def: def,
+      rodando: false,
+      cancelamentosRede: [],
+      botaoHandle: null,
+      deps: null,
+    };
+    porId[def.id] = entrada;
+    registro.push(entrada);
+
+    // Se o nucleo ja subiu (modulo registrado tarde), respeita a
+    // preferencia salva e sobe o modulo na hora.
+    if (iniciado && estaHabilitado(def.id)) iniciarModulo(entrada);
+    return entrada;
+  }
+
+  function listarModulos() {
+    return registro.map(function (e) {
+      return {
+        id: e.def.id,
+        nome: e.def.nome || e.def.id,
+        descricao: e.def.descricao || "",
+        versao: e.def.versao || "?",
+        habilitado: estaHabilitado(e.def.id),
+        rodando: e.rodando,
+      };
+    });
+  }
+
+  /* Preferencia de habilitacao. Padrao: modulo novo entra HABILITADO,
+   * para que quem ja usava os 5 scripts nao precise ligar nada na mao
+   * depois de migrar. */
+  function estaHabilitado(id) {
+    var mapa = storageNucleo ? storageNucleo.ler("modulos", {}) : {};
+    if (mapa && Object.prototype.hasOwnProperty.call(mapa, id)) return !!mapa[id];
+    return true;
+  }
+
+  function definirHabilitado(id, valor) {
+    if (!storageNucleo) return;
+    var mapa = storageNucleo.ler("modulos", {}) || {};
+    mapa[id] = !!valor;
+    storageNucleo.gravar("modulos", mapa);
+
+    var entrada = porId[id];
+    if (!entrada) return;
+    // HABILITAR/DESABILITAR NAO PODE EXIGIR RELOAD (requisito do contrato)
+    if (valor && !entrada.rodando) iniciarModulo(entrada);
+    else if (!valor && entrada.rodando) pararModulo(entrada);
+  }
+
+  /* ------------------------------------------------------------------
+   * CICLO DE VIDA DE UM MODULO
+   * ------------------------------------------------------------------ */
+  function iniciarModulo(entrada) {
+    if (entrada.rodando) return;
+    var def = entrada.def;
+    try {
+      var storage = Storage.criarStorage(def.id);
+      var config = storage.lerConfig(def.configPadrao || {});
+
+      // Botao: o modulo DECLARA, o dock POSICIONA.
+      var botaoHandle = null;
+      if (def.botao) {
+        botaoHandle = Dock.registrarBotao({
+          id: def.id,
+          rotulo: def.botao.rotulo,
+          icone: def.botao.icone,
+          titulo: def.botao.titulo || def.nome,
+          variante: def.botao.variante,
+          prioridade: def.botao.prioridade,
+          aoClicar: function () {
+            if (typeof entrada.aoClicarBotao === "function") entrada.aoClicarBotao();
+          },
+        });
+      }
+      entrada.botaoHandle = botaoHandle;
+
+      // Assinaturas de rede declaradas no contrato — o nucleo assina por
+      // conta do modulo e guarda os cancelamentos para o stop().
+      (def.assinaturasRede || []).forEach(function (assinatura) {
+        var cancelar = Net.assinar(
+          { regex: assinatura.regex, metodos: assinatura.metodos, idModulo: def.id },
+          function (evt) {
+            if (typeof def.aoCargaRede === "function") {
+              try {
+                def.aoCargaRede(evt);
+              } catch (e) {
+                console.warn("[Meeds Suite] aoCargaRede falhou em", def.id, e);
+              }
+            }
+          }
+        );
+        entrada.cancelamentosRede.push(cancelar);
+      });
+
+      var deps = {
+        core: API,
+        network: {
+          assinar: function (spec, cb) {
+            var cancelar = Net.assinar(
+              { regex: spec.regex, metodos: spec.metodos, idModulo: def.id },
+              cb
+            );
+            entrada.cancelamentosRede.push(cancelar);
+            return cancelar;
+          },
+        },
+        dom: Dom,
+        storage: storage,
+        dock: {
+          toast: Dock.toast,
+          criarOverlay: Dock.criarOverlay,
+          criarBanner: Dock.criarBanner,
+        },
+        decisao: Decisao,
+        auth: Auth,
+        config: config,
+        botao: botaoHandle,
+        seletor: obterSeletor,
+        /* o modulo avisa o nucleo qual funcao roda no clique do botao */
+        aoClicarBotao: function (fn) {
+          entrada.aoClicarBotao = fn;
+        },
+      };
+      entrada.deps = deps;
+
+      if (typeof def.start === "function") def.start(deps);
+      entrada.rodando = true;
+      console.debug("[Meeds Suite] modulo iniciado:", def.id, def.versao);
+    } catch (e) {
+      console.error("[Meeds Suite] falha ao iniciar modulo", def.id, e);
+      // Um modulo que explode no start nao pode derrubar os outros:
+      // desfazemos o que ja foi criado e seguimos.
+      pararModulo(entrada, true);
+    }
+  }
+
+  function pararModulo(entrada, silencioso) {
+    var def = entrada.def;
+    try {
+      if (entrada.rodando && typeof def.stop === "function") def.stop();
+    } catch (e) {
+      console.warn("[Meeds Suite] stop() falhou em", def.id, e);
+    }
+    entrada.cancelamentosRede.forEach(function (cancelar) {
+      try {
+        cancelar();
+      } catch (e) {
+        /* silencioso */
+      }
+    });
+    entrada.cancelamentosRede = [];
+    Net.cancelarPorModulo(def.id);
+    if (entrada.botaoHandle) {
+      try {
+        entrada.botaoHandle.remover();
+      } catch (e) {
+        /* silencioso */
+      }
+      entrada.botaoHandle = null;
+    }
+    entrada.aoClicarBotao = null;
+    entrada.rodando = false;
+    if (!silencioso) console.debug("[Meeds Suite] modulo parado:", def.id);
+  }
+
+  /* ------------------------------------------------------------------
+   * BOOTSTRAP
+   * ------------------------------------------------------------------ */
+  var INTERVALO_RECHECAGEM_MS = 1500;
+  var timerRecheck = null;
+
+  function recheckPeriodico() {
+    // Regra unica de visibilidade que os 5 scripts implementavam cada um
+    // por si: na tela de login, nada da suite aparece.
+    Dock.definirVisibilidadeGeral(Auth.estaLogado());
+  }
+
+  function iniciar(opcoes) {
+    if (iniciado) return;
+    opcoes = opcoes || {};
+    manifesto = opcoes.manifesto || null;
+
+    if (!Auth.ehFramePrincipal()) {
+      // TRAVA DE FRAME: uma vez, no nucleo, em vez de cinco vezes.
+      return;
+    }
+
+    storageNucleo = Storage.storageDoNucleo();
+    Dock.garantirHost();
+
+    // engrenagem: SEMPRE presente, mesmo com todos os modulos desligados
+    raiz.MeedsSuiteManager.montar({
+      dock: Dock,
+      listarModulos: listarModulos,
+      estaHabilitado: estaHabilitado,
+      definirHabilitado: definirHabilitado,
+      versaoNucleo: VERSAO_NUCLEO,
+      manifesto: manifesto,
+    });
+
+    registro.forEach(function (entrada) {
+      if (estaHabilitado(entrada.def.id)) iniciarModulo(entrada);
+    });
+
+    recheckPeriodico();
+    timerRecheck = setInterval(recheckPeriodico, INTERVALO_RECHECAGEM_MS);
+
+    atualizarSeletoresRemoto(opcoes.urlSeletores);
+
+    iniciado = true;
+    console.debug("[Meeds Suite] nucleo " + VERSAO_NUCLEO + " iniciado com " + registro.length + " modulo(s).");
+  }
+
+  var API = {
+    versao: VERSAO_NUCLEO,
+    registerModule: registerModule,
+    listarModulos: listarModulos,
+    estaHabilitado: estaHabilitado,
+    definirHabilitado: definirHabilitado,
+    iniciar: iniciar,
+    toast: function (msg, ms) {
+      Dock.toast(msg, ms);
+    },
+    seletor: obterSeletor,
+    atualizarSeletoresRemoto: atualizarSeletoresRemoto,
+    dom: Dom,
+    decisao: Decisao,
+    auth: Auth,
+    _registro: registro,
+    _pararModulo: function (id) {
+      if (porId[id]) pararModulo(porId[id]);
+    },
+  };
+
+  raiz.MeedsSuite = API;
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+  var __inv = {
+  "versao": "2.0.1",
+  "modulos": [
+    {
+      "id": "alarme-fila",
+      "nome": "Alarme de Fila",
+      "descricao": "Alarme sonoro/visual para a fila de espera do Pronto Atendimento.",
+      "versao": "2.0.0",
+      "origem": "sodelfino/meeds-alarme-fila"
+    },
+    {
+      "id": "apac-itauna",
+      "nome": "APAC - Itauna",
+      "descricao": "Gera o laudo de APAC de Itauna em PDF e encaminha para assinatura gov.br.",
+      "versao": "2.0.0",
+      "origem": "sodelfino/apac-itauna-meeds"
+    },
+    {
+      "id": "lme-sete-lagoas",
+      "nome": "Laudo - Sete Lagoas",
+      "descricao": "Preenche o LME oficial de Sete Lagoas por cima do PDF da prefeitura.",
+      "versao": "2.0.0",
+      "origem": "sodelfino/lme-sete-lagoas-gerador"
+    },
+    {
+      "id": "cmd",
+      "nome": "Laudo - Conceicao do Mato Dentro",
+      "descricao": "Preenche o laudo de alto custo de CMD pelos campos reais do formulario PDF.",
+      "versao": "2.0.0",
+      "origem": "sodelfino/laudo-cmd-meeds"
+    },
+    {
+      "id": "remume",
+      "nome": "Assistente REMUME",
+      "descricao": "Consulta a relacao municipal de medicamentos do municipio do atendimento.",
+      "versao": "2.0.1",
+      "origem": "sodelfino/meeds-remume-assistant"
+    }
+  ]
+};
+  raiz.__MEEDS_SUITE_MANIFESTO__ = __inv;
+
+  /* 2) O hook de rede precisa existir ANTES de qualquer chamada da
+   * aplicacao — por isso e instalado aqui, em document-start, e nao
+   * dentro do iniciar() que espera o DOM. */
+  raiz.MeedsSuiteNetwork.instalar();
+
+  /* ===== modules/alarme-fila/index.js (v2.0.0) ===== */
+/* ------------------------------------------------------------------
+ * modules/alarme-fila/index.js
+ * Origem: sodelfino/meeds-alarme-fila -> meeds-alarme-fila.user.js v1.4.0
+ * ------------------------------------------------------------------
+ * O QUE MUDOU NA MIGRACAO (e o que NAO mudou)
+ *  - REMOVIDO daqui: trava de frame, deteccao de login, patch proprio de
+ *    fetch/XHR, CSS de posicionamento do botao (left:24px / left:82px) e
+ *    a engrenagem propria. Tudo isso agora e do nucleo.
+ *  - PRESERVADO integralmente: os tres sinais de chegada, o modo
+ *    "espera" com limite por paciente, os quatro sons sintetizados, a
+ *    trava de seguranca de 2 min, o reengate de 5 min, a parada
+ *    automatica quando a fila esvazia e a recusa de decidir sob leitura
+ *    ambigua.
+ *  - GANHOU: a fusao dos sinais passou a usar o decision-engine do
+ *    nucleo em vez de regras soltas (mesmo comportamento observavel,
+ *    agora explicito e testavel).
+ *
+ * PRIVACIDADE: ids de atendimento e contadores vivem so em memoria
+ * (variaveis de closure) e morrem quando a aba fecha. Nada de paciente
+ * vai para localStorage — so a preferencia do medico (ligado, modo,
+ * som, volume), via storage do nucleo.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  /* ----------------------------------------------------------------
+   * BIBLIOTECA DE SONS (Web Audio API — sem arquivo externo)
+   * Copiada sem alteracao do script original: cada som define quanto
+   * dura uma "unidade" (para espacar as repeticoes) e como toca-la.
+   * Sintetizado por osciladores, entao funciona sem internet.
+   * ---------------------------------------------------------------- */
+  var TIPOS_DE_SOM = {
+    "sirene-classica": {
+      nome: "Sirene clássica (2 notas)",
+      intervaloMs: 1100,
+      tocar: function (ctx, volume) {
+        var agora = ctx.currentTime;
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = "square";
+        osc.frequency.setValueAtTime(880, agora);
+        osc.frequency.linearRampToValueAtTime(1320, agora + 0.35);
+        osc.frequency.linearRampToValueAtTime(880, agora + 0.7);
+        gain.gain.setValueAtTime(0, agora);
+        gain.gain.linearRampToValueAtTime(0.35 * volume, agora + 0.05);
+        gain.gain.linearRampToValueAtTime(0.35 * volume, agora + 0.65);
+        gain.gain.linearRampToValueAtTime(0, agora + 0.75);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(agora);
+        osc.stop(agora + 0.8);
+      },
+    },
+    "sirene-ambulancia": {
+      nome: "Sirene rápida (estilo ambulância)",
+      intervaloMs: 1050,
+      tocar: function (ctx, volume) {
+        var agora = ctx.currentTime;
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(700, agora);
+        osc.frequency.setValueAtTime(950, agora + 0.25);
+        osc.frequency.setValueAtTime(700, agora + 0.5);
+        osc.frequency.setValueAtTime(950, agora + 0.75);
+        gain.gain.setValueAtTime(0.3 * volume, agora);
+        gain.gain.setValueAtTime(0, agora + 0.98);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(agora);
+        osc.stop(agora + 1.0);
+      },
+    },
+    "alarme-incendio": {
+      nome: "Alarme (bipes curtos repetidos)",
+      intervaloMs: 700,
+      tocar: function (ctx, volume) {
+        var base = ctx.currentTime;
+        for (var i = 0; i < 3; i++) {
+          var inicio = base + i * 0.2;
+          var osc = ctx.createOscillator();
+          var gain = ctx.createGain();
+          osc.type = "square";
+          osc.frequency.setValueAtTime(1200, inicio);
+          gain.gain.setValueAtTime(0.3 * volume, inicio);
+          gain.gain.setValueAtTime(0, inicio + 0.12);
+          osc.connect(gain).connect(ctx.destination);
+          osc.start(inicio);
+          osc.stop(inicio + 0.13);
+        }
+      },
+    },
+    campainha: {
+      nome: "Campainha (mais suave)",
+      intervaloMs: 2000,
+      tocar: function (ctx, volume) {
+        var agora = ctx.currentTime;
+        [
+          { freq: 900, inicio: 0, duracao: 0.3 },
+          { freq: 700, inicio: 0.3, duracao: 0.4 },
+        ].forEach(function (n) {
+          var osc = ctx.createOscillator();
+          var gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(n.freq, agora + n.inicio);
+          gain.gain.setValueAtTime(0, agora + n.inicio);
+          gain.gain.linearRampToValueAtTime(0.3 * volume, agora + n.inicio + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.001, agora + n.inicio + n.duracao);
+          osc.connect(gain).connect(ctx.destination);
+          osc.start(agora + n.inicio);
+          osc.stop(agora + n.inicio + n.duracao + 0.05);
+        });
+      },
+    },
+  };
+
+  var CSS_PAINEL = [
+    ".af-modal { width: 100%; max-width: 380px; background: #fff; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden; }",
+    ".af-modal header { background: linear-gradient(135deg,#dc2626,#f97316); color:#fff; padding:16px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
+    ".af-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
+    ".af-fechar { background: rgba(255,255,255,.18); border:none; color:#fff; width:28px; height:28px; border-radius:8px; font-size:15px; cursor:pointer; flex-shrink:0; }",
+    ".af-fechar:hover { background: rgba(255,255,255,.32); }",
+    ".af-body { padding:16px 18px 20px; display:flex; flex-direction:column; gap:16px; }",
+    ".af-body label { font-size:12.5px; font-weight:600; color:#334155; display:block; margin-bottom:6px; }",
+    ".af-hint { font-size:11px; color:#94a3b8; margin-top:4px; font-weight:400; line-height:1.45; }",
+    ".af-radio-linha { display:flex; align-items:center; gap:8px; font-size:13.5px; color:#1e293b; font-weight:400; margin-bottom:8px; cursor:pointer; }",
+    ".af-radio-linha input { cursor:pointer; }",
+    "#af-tempo-espera-linha { display:flex; align-items:center; gap:8px; margin-left:24px; }",
+    "#af-tempo-espera-linha input[type=number] { width:60px; padding:6px 8px; border-radius:8px; border:1.5px solid #cbd5e1; font-size:13px; }",
+    ".af-body select { width:100%; box-sizing:border-box; padding:9px 10px; border-radius:10px; border:1.5px solid #cbd5e1; font-size:13.5px; color:#0f172a; background:#f8fafc; }",
+    ".af-body input[type=range] { width:100%; }",
+    "#af-testar-som { width:100%; padding:10px; border-radius:10px; border:none; background:linear-gradient(135deg,#f97316,#dc2626); color:#fff; font-size:13.5px; font-weight:700; cursor:pointer; }",
+    "#af-testar-som:hover { opacity:.92; }",
+  ].join("\n");
+
+  var CONFIG_PADRAO = {
+    ativo: false,
+    modo: "imediato", // "imediato" | "espera"
+    tempoEsperaMin: 5,
+    som: "sirene-classica",
+    volume: 70,
+  };
+
+  /* --- estado do modulo (recriado a cada start, zerado a cada stop) --- */
+  var d = null;          // deps do nucleo
+  var config = null;
+  var painel = null;
+  var banner = null;
+  var observerToast = null;
+  var timers = [];
+
+  // ids vistos na fila por "assinatura" de chamada -> Map<id, {primeiraVezVistoEm}>
+  var idsFilaPorAssinatura = new Map();
+  var idsJaAlertadosPorEspera = new Set();
+  var decisorFila = null; // fusao dos sinais sobre "tem gente esperando?"
+  var ultimoDisparoTs = 0;
+
+  var DEBOUNCE_MS = 2500;
+  var DURACAO_MAX_SOM_MS = 120000;      // trava de seguranca do som (2 min)
+  var COOLDOWN_REENGATE_MS = 5 * 60000; // toca de novo 5 min apos silenciar
+  var LIMITE_FRESCOR_DOM_MS = 12000;    // 3x o intervalo de polling do DOM
+  var INTERVALO_RECHECAGEM_MS = 4000;
+  var INTERVALO_CHECAGEM_ESPERA_MS = 15000;
+
+  var audioCtx = null;
+  var tocando = false;
+  var intervaloSirene = null;
+  var timeoutLimiteSirene = null;
+  var intervaloPiscaTitulo = null;
+  var tituloOriginal = "";
+  var timeoutReengate = null;
+
+  /* ----------------------------------------------------------------
+   * SINALIZACAO CENTRAL
+   * No modo "imediato", os sinais de chegada disparam. No modo "espera",
+   * esses mesmos sinais sao ignorados DE PROPOSITO — so a checagem de
+   * tempo de espera dispara.
+   * ---------------------------------------------------------------- */
+  function sinalizarNovoPaciente(origem) {
+    if (origem !== "tempo-de-espera" && config.modo !== "imediato") return;
+    var agora = Date.now();
+    if (agora - ultimoDisparoTs < DEBOUNCE_MS) return; // outro sinal ja tratou
+    ultimoDisparoTs = agora;
+    console.debug("[Alarme Fila] disparo via " + origem);
+    if (config.ativo) dispararAlarme();
+  }
+
+  /* --- SINAL A: toast nativo "Novo Atendimento" ------------------- */
+  var TAMANHO_MAX_TEXTO_TOAST = 80;
+
+  function textosDeToast() {
+    return d.seletor("toasts", "novoAtendimento");
+  }
+
+  function pareceToastNovoAtendimento(elemento) {
+    var alvos = textosDeToast().map(function (t) {
+      return d.dom.normalizarTexto(t);
+    });
+    var candidatos = [elemento].concat(Array.prototype.slice.call(elemento.querySelectorAll("*")));
+    for (var i = 0; i < candidatos.length; i++) {
+      var el = candidatos[i];
+      if (el.childElementCount > 0) continue;
+      var texto = (el.textContent || "").trim();
+      if (!texto || texto.length > TAMANHO_MAX_TEXTO_TOAST) continue;
+      var norm = d.dom.normalizarTexto(texto);
+      for (var j = 0; j < alvos.length; j++) {
+        // exige que o texto do PROPRIO elemento (nao um resumo de tela
+        // inteira) contenha o alvo — evita falso positivo com um botao
+        // estatico "+ Novo Atendimento" em algum canto da aplicacao.
+        if (alvos[j] && norm.indexOf(alvos[j]) !== -1) return true;
+      }
+    }
+    return false;
+  }
+
+  /* --- SINAL B: rede (fila de espera geral) ----------------------- */
+  var REGEX_ATENDIMENTO_LISTA = /\/api\/v1\/Atendimento\?/i;
+
+  function ehChamadaFilaDeEspera(url) {
+    if (!REGEX_ATENDIMENTO_LISTA.test(url)) return false;
+    if (!/[?&]StatusAtendimentoId=2(?:&|$)/i.test(url)) return false;
+    if (/[?&]ProfissionalId=/i.test(url)) return false; // exclui "meus atendimentos"
+    return true;
+  }
+
+  function assinaturaDaChamada(url) {
+    // ignora paginacao para tratar a mesma "vista" de fila como a mesma
+    // assinatura ao longo do tempo
+    return url.replace(/[?&](skip|take|version)=[^&]*/gi, "");
+  }
+
+  function extrairListaDeItens(json) {
+    if (Array.isArray(json)) return json;
+    if (json && typeof json === "object") {
+      var chaves = ["data", "items", "result", "results"];
+      for (var i = 0; i < chaves.length; i++) {
+        if (Array.isArray(json[chaves[i]])) return json[chaves[i]];
+      }
+    }
+    return null;
+  }
+
+  function processarRespostaFilaDeEspera(url, json) {
+    try {
+      var itens = extrairListaDeItens(json);
+      if (!itens) return; // formato inesperado: outros sinais cobrem
+
+      var agora = Date.now();
+      var assinatura = assinaturaDaChamada(url);
+      var mapaAnterior = idsFilaPorAssinatura.get(assinatura);
+      var mapaAtual = new Map();
+
+      itens.forEach(function (item) {
+        var id = item && item.id;
+        if (!id) return;
+        var jaVistoEm =
+          mapaAnterior && mapaAnterior.has(id) ? mapaAnterior.get(id).primeiraVezVistoEm : agora;
+        mapaAtual.set(id, { primeiraVezVistoEm: jaVistoEm });
+      });
+
+      // A PRIMEIRA leitura de cada assinatura so define a base — nunca
+      // dispara, para nao soar por quem ja estava esperando antes de o
+      // medico ligar o alarme.
+      if (mapaAnterior) {
+        var apareceuIdNovo = Array.from(mapaAtual.keys()).some(function (id) {
+          return !mapaAnterior.has(id);
+        });
+        if (apareceuIdNovo) sinalizarNovoPaciente("rede-fila-espera");
+      }
+
+      idsFilaPorAssinatura.set(assinatura, mapaAtual);
+
+      // voto de rede sobre "quantos estao esperando"
+      var total = 0;
+      idsFilaPorAssinatura.forEach(function (mapa) {
+        total += mapa.size;
+      });
+      decisorFila.votar("rede", total > 0);
+
+      limparIdsAlertadosQueSairamDaFila();
+      checarSeDeveSilenciarPorFilaVazia();
+    } catch (e) {
+      /* silencioso: sinal de reforco, nunca deve quebrar a pagina */
+    }
+  }
+
+  /* --- SINAL C: contador "Aguardando" no DOM ---------------------- */
+  var ultimoValorAguardandoDOM = null;
+
+  function atualizarLeituraContadorAguardando() {
+    var valor = d.dom.lerContadorPorRotulo(d.seletor("rotulos", "contadorFila"));
+    if (valor !== null) {
+      ultimoValorAguardandoDOM = valor;
+      // o voto carrega o carimbo de tempo: o decisor descarta sozinho
+      // uma leitura velha (validadeMs), que era o LIMITE_FRESCOR_DOM_MS
+      decisorFila.votar("dom_contador", valor > 0);
+    }
+    return valor;
+  }
+
+  function tentarChecarContadorAguardando() {
+    var anterior = ultimoValorAguardandoDOM;
+    var atual = atualizarLeituraContadorAguardando();
+    if (atual === null) return; // leitura ambigua: NAO decide
+    if (anterior !== null && atual > anterior) sinalizarNovoPaciente("dom-contador-aguardando");
+    checarSeDeveSilenciarPorFilaVazia();
+  }
+
+  /* --- SINAL D: tempo de espera (modo "espera") ------------------- */
+  function limparIdsAlertadosQueSairamDaFila() {
+    var idsAtuais = new Set();
+    idsFilaPorAssinatura.forEach(function (mapa) {
+      mapa.forEach(function (_v, id) {
+        idsAtuais.add(id);
+      });
+    });
+    idsJaAlertadosPorEspera.forEach(function (id) {
+      if (!idsAtuais.has(id)) idsJaAlertadosPorEspera.delete(id);
+    });
+  }
+
+  function checarLimiteDeEspera() {
+    if (!config.ativo || config.modo !== "espera") return;
+    var limiteMs = config.tempoEsperaMin * 60000;
+    var agora = Date.now();
+    idsFilaPorAssinatura.forEach(function (mapa) {
+      mapa.forEach(function (info, id) {
+        if (idsJaAlertadosPorEspera.has(id)) return;
+        if (agora - info.primeiraVezVistoEm >= limiteMs) {
+          idsJaAlertadosPorEspera.add(id);
+          sinalizarNovoPaciente("tempo-de-espera");
+        }
+      });
+    });
+  }
+
+  /* ----------------------------------------------------------------
+   * ALARME (som + banner + titulo da aba)
+   * ---------------------------------------------------------------- */
+  function obterAudioContext() {
+    if (!audioCtx) {
+      var Ctor = raiz.AudioContext || raiz.webkitAudioContext;
+      if (!Ctor) return null;
+      audioCtx = new Ctor();
+    }
+    if (audioCtx.state === "suspended") audioCtx.resume().catch(function () {});
+    return audioCtx;
+  }
+
+  function tocarSomAtual() {
+    try {
+      var ctx = obterAudioContext();
+      if (!ctx) return;
+      var tipo = TIPOS_DE_SOM[config.som] || TIPOS_DE_SOM[CONFIG_PADRAO.som];
+      tipo.tocar(ctx, config.volume / 100);
+    } catch (e) {
+      /* silencioso */
+    }
+  }
+
+  function iniciarPiscaTitulo() {
+    if (intervaloPiscaTitulo) return;
+    tituloOriginal = document.title;
+    var ligado = false;
+    intervaloPiscaTitulo = setInterval(function () {
+      document.title = ligado ? tituloOriginal : "🚨 NOVO PACIENTE NA FILA";
+      ligado = !ligado;
+    }, 1000);
+  }
+
+  function pararPiscaTitulo() {
+    if (intervaloPiscaTitulo) {
+      clearInterval(intervaloPiscaTitulo);
+      intervaloPiscaTitulo = null;
+    }
+    if (tituloOriginal) document.title = tituloOriginal;
+  }
+
+  function pararSom() {
+    if (intervaloSirene) {
+      clearInterval(intervaloSirene);
+      intervaloSirene = null;
+    }
+    if (timeoutLimiteSirene) {
+      clearTimeout(timeoutLimiteSirene);
+      timeoutLimiteSirene = null;
+    }
+  }
+
+  function dispararAlarme() {
+    if (tocando) return;
+    tocando = true;
+    if (banner) banner.mostrar();
+    iniciarPiscaTitulo();
+    var tipo = TIPOS_DE_SOM[config.som] || TIPOS_DE_SOM[CONFIG_PADRAO.som];
+    tocarSomAtual();
+    intervaloSirene = setInterval(tocarSomAtual, tipo.intervaloMs);
+    // BUG JA CORRIGIDO NO ORIGINAL v1.4.0 E PRESERVADO AQUI: o limite de
+    // seguranca faz uma parada COMPLETA (que reseta `tocando`), senao o
+    // alarme ficava travado em silencio para sempre depois da primeira
+    // vez que ninguem clicasse em "Silenciar" a tempo.
+    timeoutLimiteSirene = setTimeout(silenciarComReengate, DURACAO_MAX_SOM_MS);
+  }
+
+  function silenciarAlarme() {
+    cancelarReengateAgendado();
+    pararSom();
+    tocando = false;
+    pararPiscaTitulo();
+    if (banner) banner.esconder();
+  }
+
+  function cancelarReengateAgendado() {
+    if (timeoutReengate) {
+      clearTimeout(timeoutReengate);
+      timeoutReengate = null;
+    }
+  }
+
+  /* Fila vazia? Usa o decisor do nucleo: o voto do DOM so vale enquanto
+   * fresco (validadeMs); vencido ele some sozinho e sobra o voto de rede.
+   * Se nenhum sinal for confiavel, NAO decide e o alarme continua
+   * tocando — preferir errar tocando a errar calando. */
+  function filaDeEsperaEstaVazia() {
+    var r = decisorFila.decidir();
+    if (!r.decidiu) return false;
+    return r.valor === false;
+  }
+
+  function checarSeDeveSilenciarPorFilaVazia() {
+    if (!tocando) return;
+    if (filaDeEsperaEstaVazia()) {
+      console.debug("[Alarme Fila] fila esvaziou, silenciando automaticamente");
+      silenciarAlarme(); // sem reengate: nao ha mais ninguem esperando
+    }
+  }
+
+  function tentarReengatarAlarme() {
+    timeoutReengate = null;
+    if (!config.ativo) return;
+    if (filaDeEsperaEstaVazia()) return;
+    console.debug("[Alarme Fila] fila ainda cheia apos silenciar, tocando de novo");
+    dispararAlarme();
+  }
+
+  function silenciarComReengate() {
+    silenciarAlarme();
+    if (config.ativo) timeoutReengate = setTimeout(tentarReengatarAlarme, COOLDOWN_REENGATE_MS);
+  }
+
+  /* ----------------------------------------------------------------
+   * UI (painel de configuracao + banner) — sem posicionamento proprio:
+   * overlay e banner vem prontos do dock do nucleo.
+   * ---------------------------------------------------------------- */
+  function montarPainel() {
+    var opcoesSom = Object.keys(TIPOS_DE_SOM)
+      .map(function (chave) {
+        return '<option value="' + chave + '">' + TIPOS_DE_SOM[chave].nome + "</option>";
+      })
+      .join("");
+
+    painel = d.dock.criarOverlay({
+      estilo: CSS_PAINEL,
+      html:
+        '<div class="af-modal" role="dialog" aria-modal="true">' +
+        "  <header><h2>Alarme de fila</h2>" +
+        '  <button type="button" class="af-fechar" aria-label="Fechar">&#10005;</button></header>' +
+        '  <div class="af-body">' +
+        "    <div>" +
+        "      <label>Quando alertar</label>" +
+        '      <label class="af-radio-linha"><input type="radio" name="af-modo" value="imediato" /> Assim que um paciente entra na fila</label>' +
+        '      <label class="af-radio-linha"><input type="radio" name="af-modo" value="espera" /> Quando um paciente ultrapassar um tempo de espera</label>' +
+        '      <div id="af-tempo-espera-linha"><input type="number" id="af-tempo-espera" min="1" max="120" step="1" /><span>minutos</span></div>' +
+        '      <div class="af-hint">No modo "tempo de espera", o alarme soa uma vez por paciente que ultrapassar o limite — contado a partir de quando este script viu o paciente na fila pela primeira vez.</div>' +
+        "    </div>" +
+        '    <div><label for="af-som">Som do alarme</label><select id="af-som">' + opcoesSom + "</select></div>" +
+        '    <div><label for="af-volume">Volume</label><input type="range" id="af-volume" min="0" max="100" step="5" /></div>' +
+        '    <button type="button" id="af-testar-som">🔊 Testar som</button>' +
+        "  </div>" +
+        "</div>",
+    });
+
+    painel.$(".af-fechar").addEventListener("click", painel.fechar);
+
+    painel.$$('input[name="af-modo"]').forEach(function (radio) {
+      radio.addEventListener("change", function () {
+        config.modo = radio.value;
+        salvar();
+        refletirEstado();
+      });
+    });
+    painel.$("#af-tempo-espera").addEventListener("change", function () {
+      var v = parseInt(painel.$("#af-tempo-espera").value, 10);
+      config.tempoEsperaMin = Math.min(120, Math.max(1, v || CONFIG_PADRAO.tempoEsperaMin));
+      painel.$("#af-tempo-espera").value = config.tempoEsperaMin;
+      salvar();
+    });
+    painel.$("#af-som").addEventListener("change", function () {
+      config.som = painel.$("#af-som").value;
+      salvar();
+    });
+    painel.$("#af-volume").addEventListener("input", function () {
+      config.volume = parseInt(painel.$("#af-volume").value, 10);
+      salvar();
+    });
+    painel.$("#af-testar-som").addEventListener("click", function () {
+      obterAudioContext();
+      tocarSomAtual();
+    });
+  }
+
+  function montarBanner() {
+    banner = d.dock.criarBanner(
+      '<span>🚨 Novo paciente na fila!</span><button type="button" id="af-silenciar">Silenciar alarme</button>'
+    );
+    banner.$("#af-silenciar").addEventListener("click", silenciarComReengate);
+  }
+
+  function salvar() {
+    d.storage.gravarConfig(config);
+  }
+
+  function refletirEstado() {
+    if (d.botao) {
+      d.botao.definirTexto(config.ativo ? "🔔" : "🔕");
+      d.botao.definirClasse("ms-ativo", config.ativo);
+      d.botao.definirClasse("ms-neutro", !config.ativo);
+      d.botao.definirTitulo(
+        (config.ativo ? "Alarme LIGADO" : "Alarme desligado") + " — clique para alternar, ⚙️ para configurar"
+      );
+    }
+    if (!painel) return;
+    painel.$$('input[name="af-modo"]').forEach(function (r) {
+      r.checked = r.value === config.modo;
+    });
+    painel.$("#af-tempo-espera").value = config.tempoEsperaMin;
+    painel.$("#af-tempo-espera").disabled = config.modo !== "espera";
+    painel.$("#af-som").value = config.som;
+    painel.$("#af-volume").value = config.volume;
+  }
+
+  function alternarAtivo() {
+    config.ativo = !config.ativo;
+    salvar();
+    refletirEstado();
+    if (config.ativo) {
+      // desbloqueia o audio no mesmo gesto de clique (politica do navegador)
+      obterAudioContext();
+      // recalibra a base agora: so alarma por quem chegar/exceder DEPOIS
+      atualizarLeituraContadorAguardando();
+      idsJaAlertadosPorEspera.clear();
+      d.core.toast("Alarme de fila ligado.", 2500);
+    } else {
+      silenciarAlarme();
+      d.core.toast("Alarme de fila desligado.", 2500);
+    }
+  }
+
+  /* ----------------------------------------------------------------
+   * CONTRATO DE MODULO
+   * ---------------------------------------------------------------- */
+  raiz.MeedsSuite.registerModule({
+    id: "alarme-fila",
+    nome: "Alarme de Fila",
+    descricao:
+      "Alarme sonoro e visual quando um paciente entra na fila do Pronto Atendimento (ou ultrapassa um tempo de espera). Para sozinho quando a fila esvazia.",
+    versao: "2.0.0",
+    configPadrao: CONFIG_PADRAO,
+
+    botao: {
+      icone: "🔕",
+      rotulo: "",
+      variante: "icone",
+      titulo: "Alarme de fila (plantao noturno)",
+      prioridade: 10, // logo acima da engrenagem
+    },
+
+    assinaturasRede: [{ regex: /\/api\/v1\/Atendimento\?/i, metodos: ["GET"] }],
+
+    aoCargaRede: function (evt) {
+      if (evt.status !== 200) return;
+      if (!ehChamadaFilaDeEspera(evt.url)) return;
+      var json = evt.json();
+      if (json) processarRespostaFilaDeEspera(evt.url, json);
+    },
+
+    start: function (deps) {
+      d = deps;
+      config = deps.config;
+      // saneia a config carregada, como o carregarConfig() original fazia
+      config.ativo = !!config.ativo;
+      config.modo = config.modo === "espera" ? "espera" : "imediato";
+      config.tempoEsperaMin = Math.min(
+        120,
+        Math.max(1, parseInt(config.tempoEsperaMin, 10) || CONFIG_PADRAO.tempoEsperaMin)
+      );
+      config.volume = Math.min(100, Math.max(0, parseInt(config.volume, 10) || 0));
+      if (!TIPOS_DE_SOM[config.som]) config.som = CONFIG_PADRAO.som;
+
+      decisorFila = deps.decisao.criarDecisor({
+        limiar: 0.6,                    // um voto de DOM sozinho ja decide
+        validadeMs: LIMITE_FRESCOR_DOM_MS,
+        pesos: { rede: 1.0, dom_contador: 0.6 },
+      });
+
+      montarBanner();
+      montarPainel();
+      deps.aoClicarBotao(alternarAtivo);
+
+      // clique com Shift, ou clique direito, abre a configuracao do modulo
+      if (deps.botao) {
+        deps.botao.elemento.addEventListener("contextmenu", function (ev) {
+          ev.preventDefault();
+          painel.abrir();
+        });
+        deps.botao.elemento.addEventListener("click", function (ev) {
+          if (ev.shiftKey) {
+            ev.stopImmediatePropagation();
+            painel.abrir();
+          }
+        });
+      }
+
+      observerToast = new MutationObserver(function (mutacoes) {
+        for (var i = 0; i < mutacoes.length; i++) {
+          var nodes = mutacoes[i].addedNodes;
+          for (var j = 0; j < nodes.length; j++) {
+            if (nodes[j].nodeType !== 1) continue;
+            try {
+              if (pareceToastNovoAtendimento(nodes[j])) {
+                sinalizarNovoPaciente("toast-nativo");
+                return;
+              }
+            } catch (e) {
+              /* silencioso */
+            }
+          }
+        }
+      });
+      observerToast.observe(document.body, { childList: true, subtree: true });
+
+      atualizarLeituraContadorAguardando(); // primeira leitura so define a base
+      refletirEstado();
+
+      timers.push(setInterval(tentarChecarContadorAguardando, INTERVALO_RECHECAGEM_MS));
+      timers.push(setInterval(checarLimiteDeEspera, INTERVALO_CHECAGEM_ESPERA_MS));
+    },
+
+    stop: function () {
+      silenciarAlarme();
+      timers.forEach(clearInterval);
+      timers = [];
+      if (observerToast) {
+        observerToast.disconnect();
+        observerToast = null;
+      }
+      if (painel) {
+        painel.remover();
+        painel = null;
+      }
+      if (banner) {
+        banner.remover();
+        banner = null;
+      }
+      idsFilaPorAssinatura.clear();
+      idsJaAlertadosPorEspera.clear();
+      ultimoValorAguardandoDOM = null;
+      decisorFila = null;
+      d = null;
+    },
+
+    _TIPOS_DE_SOM: TIPOS_DE_SOM, // exposto so para o teste de fumaca
+  });
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== modules/apac-itauna/index.js (v2.0.0) ===== */
+/* ------------------------------------------------------------------
+ * modules/apac-itauna/index.js
+ * Origem: sodelfino/apac-itauna-meeds -> APAC_GERADOR_FINAL.user.js v1.9.0
+ * ------------------------------------------------------------------
+ * O QUE MUDOU NA MIGRACAO (e o que NAO mudou)
+ *  - REMOVIDO daqui: trava de frame, deteccao de login, patch proprio de
+ *    fetch/XHR, o shadow host proprio, o CSS de posicionamento do botao
+ *    (#apac-fab bottom:24px right:24px) e o toast proprio. Tudo isso e
+ *    do nucleo agora.
+ *  - PRESERVADO byte a byte: a funcao gerarPdfInterno() inteira, com
+ *    TODAS as coordenadas do formulario da APAC, e as tabelas de dados
+ *    (CATALOGO, ECO_VARIANTES, TERRITORIOS, CID_DIC, MEDICOS_PADRAO).
+ *    Essas coordenadas foram calibradas na mao contra o formulario
+ *    oficial; reescrever qualquer uma seria arriscar o layout do laudo.
+ *  - PRESERVADO em comportamento: captura passiva da API + polling de
+ *    URL, leitura da tela como reforco, painel de medicos, historico
+ *    local, validacao de campos e as duas saidas (assinar via gov.br /
+ *    baixar sem assinar).
+ *
+ * DADOS DOS MEDICOS: MEDICOS_PADRAO abaixo mantem os mesmos CNS que
+ * estavam no repositorio de origem. Continuam sendo apenas o
+ * PRE-CADASTRO: na primeira execucao sao copiados para o armazenamento
+ * local do Tampermonkey (GM_setValue) e a partir dai o medico edita ou
+ * remove pelo painel "Gerenciar medicos" — a escolha dele e respeitada e
+ * nunca mais sobrescrita.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  var d = null;
+  var overlay = null;
+  var timers = [];
+  var procedimentoAtivo = null;
+  var pdfGerado = null;
+  var cache = null;    // ultimo payload de /api/v1/Atendimento/{uuid}
+  var cacheId = null;
+  var ultimaUrl = "";
+
+  /* SHIM DE COMPATIBILIDADE
+   * O codigo original acessava o formulario por shadow.getElementById().
+   * Em vez de reescrever centenas de chamadas (e arriscar trocar um id),
+   * este objeto reproduz a mesma interface por cima do overlay que o
+   * dock do nucleo entrega. E a fronteira entre "codigo migrado sem
+   * alteracao" e "codigo novo". */
+  var shadow = {
+    getElementById: function (id) {
+      return overlay ? overlay.elemento.querySelector("#" + id) : null;
+    },
+    querySelector: function (sel) {
+      return overlay ? overlay.elemento.querySelector(sel) : null;
+    },
+    querySelectorAll: function (sel) {
+      return overlay ? overlay.elemento.querySelectorAll(sel) : [];
+    },
+  };
+
+  function toast(msg, ms) {
+    d.core.toast(msg, ms || 3000);
+  }
+
+  /* ----------------------------------------------------------------
+   * jsPDF — resolvido do escopo global (o bootloader ja o carrega via
+   * @require) com o mesmo fallback do original para o caso de o
+   * @require nao ter exposto a lib no escopo esperado.
+   * ---------------------------------------------------------------- */
+  function resolverJsPDF() {
+    var escopos = [];
+    try { escopos.push(raiz); } catch (e) {}
+    try { if (typeof unsafeWindow !== "undefined") escopos.push(unsafeWindow); } catch (e) {}
+    try { escopos.push(window); } catch (e) {}
+    try { escopos.push(globalThis); } catch (e) {}
+    for (var i = 0; i < escopos.length; i++) {
+      var g = escopos[i];
+      if (g && g.jspdf && g.jspdf.jsPDF) return g.jspdf.jsPDF;
+      if (g && g.jsPDF) return g.jsPDF;
+    }
+    return null;
+  }
+
+  var jsPDFCarregandoPromise = null;
+  function garantirJsPDF() {
+    var direto = resolverJsPDF();
+    if (direto) return Promise.resolve(direto);
+    if (jsPDFCarregandoPromise) return jsPDFCarregandoPromise;
+    jsPDFCarregandoPromise = new Promise(function (resolve, reject) {
+      if (typeof GM_xmlhttpRequest !== "function") {
+        reject(new Error("jsPDF indisponível e GM_xmlhttpRequest não concedido."));
+        return;
+      }
+      GM_xmlhttpRequest({
+        method: "GET",
+        url: "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
+        onload: function (res) {
+          try {
+            (0, eval)(res.responseText);
+            var lib = resolverJsPDF();
+            if (lib) resolve(lib);
+            else reject(new Error("jsPDF avaliado mas não exposto."));
+          } catch (e) {
+            reject(e);
+          }
+        },
+        onerror: function () {
+          reject(new Error("Falha de rede ao baixar o jsPDF."));
+        },
+      });
+    });
+    return jsPDFCarregandoPromise;
+  }
+
+  /* ----------------------------------------------------------------
+   * ARMAZENAMENTO LOCAL (medicos + historico)
+   * Continua no GM_setValue/GM_getValue do Tampermonkey, como no
+   * original: e por instalacao, nao sai do navegador e nao entra no
+   * codigo publicado. Cai para o storage do nucleo se o grant faltar.
+   * ---------------------------------------------------------------- */
+  var CHAVE_MEDICOS = "apac_medicos_v1";
+  var CHAVE_HISTORICO = "apac_historico_v1";
+
+  function lerGuardado(chave, padrao) {
+    try {
+      if (typeof GM_getValue === "function") return GM_getValue(chave, padrao);
+    } catch (e) {}
+    return d.storage.ler(chave, padrao);
+  }
+  function gravarGuardado(chave, valor) {
+    try {
+      if (typeof GM_setValue === "function") { GM_setValue(chave, valor); return; }
+    } catch (e) {}
+    d.storage.gravar(chave, valor);
+  }
+
+  function carregarMedicos() {
+    try {
+      var salvo = lerGuardado(CHAVE_MEDICOS, undefined);
+      if (salvo === undefined) {
+        gravarGuardado(CHAVE_MEDICOS, MEDICOS_PADRAO.slice());
+        return MEDICOS_PADRAO.slice();
+      }
+      return salvo;
+    } catch (e) {
+      return MEDICOS_PADRAO.slice();
+    }
+  }
+  function salvarMedicos(lista) { gravarGuardado(CHAVE_MEDICOS, lista); }
+  function carregarHistorico() { return lerGuardado(CHAVE_HISTORICO, []) || []; }
+  function registrarHistorico(entrada) {
+    var lista = carregarHistorico();
+    lista.unshift(entrada);
+    gravarGuardado(CHAVE_HISTORICO, lista.slice(0, 30));
+  }
+  function limparHistorico() { gravarGuardado(CHAVE_HISTORICO, []); }
+
+  function titleCase(s) {
+    return String(s).split(" ").map(function (w) {
+      return w ? w[0] + w.slice(1).toLowerCase() : w;
+    }).join(" ");
+  }
+  var ESCAPE_HTML_MAP = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+  function escapeHtml(str) {
+    return String(str == null ? "" : str).replace(/[&<>"']/g, function (c) { return ESCAPE_HTML_MAP[c]; });
+  }
+  function formatarCpf(digits) {
+    var dd = (digits || "").replace(/\D/g, "").padStart(11, "0");
+    return dd.slice(0,3) + "." + dd.slice(3,6) + "." + dd.slice(6,9) + "-" + dd.slice(9,11);
+  }
+
+  /* ----------------------------------------------------------------
+   * CAPTURA DO PACIENTE (rede + URL + leitura de tela)
+   * ---------------------------------------------------------------- */
+  var ATEND_RE = /\/api\/v1\/Atendimento\/([0-9a-fA-F-]{36})(\?|$)/i;
+  var UUID_RE = /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/;
+
+  function aplicarPayload(id, dados) {
+    if (!dados || !dados.prontuario) return false;
+    cache = dados;
+    cacheId = id || cacheId;
+    // se o modal ja estiver aberto, atualiza na hora
+    if (overlay && overlay.estaAberto()) preencherDoCache();
+    return true;
+  }
+
+  function idAtualDaUrl() {
+    var m = location.href.match(UUID_RE);
+    return m ? m[0] : null;
+  }
+
+  function buscarAtendimento(id) {
+    return fetch("/api/v1/Atendimento/" + id, { credentials: "include" })
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (dados) {
+        if (!aplicarPayload(id, dados)) throw new Error("Sem dados.");
+        return dados;
+      });
+  }
+
+  function tentarAtualizarAutomaticamente() {
+    var idUrl = idAtualDaUrl();
+    if (idUrl && idUrl !== cacheId) buscarAtendimento(idUrl).catch(function () {});
+  }
+
+  /* Leitura da tela: agora delega ao dom-reader do nucleo, que ja tenta
+   * as variantes de rotulo e normaliza acento — antes cada gerador tinha
+   * a sua copia com listas de variantes diferentes. */
+  function lerDadosDaTela() {
+    return d.dom.lerPaciente();
+  }
+
+  function aplicarLeituraDaTela(dadosTela) {
+    if (!overlay || !dadosTela) return 0;
+    var n = 0;
+    if (dadosTela.nome) { shadow.getElementById("apac-pac-nome").value = dadosTela.nome; n++; }
+    if (dadosTela.cpf) { shadow.getElementById("apac-pac-cpf").value = formatarCpf(dadosTela.cpf); n++; }
+    if (dadosTela.nascimentoISO) { shadow.getElementById("apac-pac-nasc").value = dadosTela.nascimentoISO; n++; }
+    if (dadosTela.nomeDaMae) { shadow.getElementById("apac-pac-mae").value = dadosTela.nomeDaMae; n++; }
+    // sexo lido da tela (a palavra Masculino/Feminino) tem prioridade
+    // sobre o enum da API, que nunca foi confirmado com um caso feminino
+    if (dadosTela.sexo) { shadow.getElementById("apac-pac-sexo").value = dadosTela.sexo; n++; }
+    return n;
+  }
+
+  function preencherDoCache() {
+    if (!cache || !cache.prontuario) return;
+    var ind = cache.prontuario.individuo || {};
+    var ficha = ind.fichaIndividual || {};
+    if (ind.nome) shadow.getElementById("apac-pac-nome").value = ind.nome;
+    if (ind.cpf) shadow.getElementById("apac-pac-cpf").value = formatarCpf(ind.cpf);
+    if (ind.dataNascimento) shadow.getElementById("apac-pac-nasc").value = ind.dataNascimento.slice(0, 10);
+    if (ficha.nomeDaMae) shadow.getElementById("apac-pac-mae").value = ficha.nomeDaMae;
+    if (typeof ficha.sexo === "number") shadow.getElementById("apac-pac-sexo").value = ficha.sexo === 0 ? "M" : "F";
+    var aviso = shadow.getElementById("apac-auto-aviso");
+    aviso.style.display = "block";
+    aviso.textContent = "Preenchido automaticamente. Confira antes de gerar.";
+  }
+
+  function forcarAtualizacao() {
+    var btn = shadow.getElementById("apac-refresh-modal");
+    var original = btn.textContent;
+    btn.textContent = "Atualizando…";
+    btn.disabled = true;
+
+    // 1) sempre le a tela primeiro — e instantaneo e nao depende de rede
+    //    nem da URL conter o UUID do atendimento.
+    var camposDaTela = aplicarLeituraDaTela(lerDadosDaTela());
+
+    // 2) tambem tenta a API quando a URL trouxer o UUID: os dados de la
+    //    sao mais completos e completam o que a tela nao deu.
+    var id = idAtualDaUrl();
+    if (!id) {
+      var aviso = shadow.getElementById("apac-auto-aviso");
+      aviso.style.display = "block";
+      aviso.textContent = "Preenchido lendo a tela. Confira antes de gerar.";
+      toast(
+        camposDaTela > 0
+          ? "Dados lidos da tela (" + camposDaTela + " campo" + (camposDaTela > 1 ? "s" : "") + ")."
+          : "Não encontrei o identificador do atendimento na URL nem consegui ler a tela. Abra o paciente na tela de Atendimento e tente de novo.",
+        4500
+      );
+      btn.textContent = original;
+      btn.disabled = false;
+      return;
+    }
+    buscarAtendimento(id)
+      .then(function (dd) {
+        toast(dd.prontuario.individuo.nome ? "Atualizado: " + dd.prontuario.individuo.nome : "OK");
+      })
+      .catch(function (e) {
+        // a API falhou, mas a leitura da tela ja preencheu o que deu —
+        // nunca deixa o medico sem nada so porque a rede falhou.
+        toast(
+          camposDaTela > 0
+            ? "A busca pela API falhou (" + e.message + "), mas preenchi " + camposDaTela + " campo(s) lendo a tela."
+            : "Erro: " + e.message,
+          4500
+        );
+      })
+      .then(function () {
+        btn.textContent = original;
+        btn.disabled = false;
+      });
+  }
+
+
+  /* ---- tabelas de dados, preservadas do repositorio de origem ---- */
+
+  const CATALOGO = {
+    HOLTER:  { nome: 'Holter 24h',              codigo: '02.11.02.004-4', label: 'MONITORAMENTO PELO SISTEMA HOLTER 24 HS (3 CANAIS)' },
+    MAPA:    { nome: 'MAPA 24h',                codigo: '02.11.02.005-2', label: 'MONITORIZAÇÃO AMBULATORIAL DE PRESSÃO ARTERIAL (MAPA)' },
+    TE:      { nome: 'Teste Ergométrico',       codigo: '02.11.02.006-0', label: 'TESTE DE ESFORÇO / TESTE ERGOMÉTRICO' },
+    DOPPLER: { nome: 'Doppler vascular',        codigo: '02.05.01.004-0', label: null },
+    CINTILO: { nome: 'Cintilografia miocárdio', codigo: '02.08.01.002-5', label: 'CINTILOGRAFIA DE MIOCÁRDIO P/ AVALIAÇÃO DA PERFUSÃO EM SITUAÇÃO DE ESTRESSE (MÍNIMO 3 PROJEÇÕES)' },
+    ECO:     { nome: 'Ecocardiograma',          codigo: '02.05.01.003-2', label: null },
+    CATETER: { nome: 'Cateterismo cardíaco',    codigo: '02.11.02.001-0', label: 'CATETERISMO CARDÍACO (CINECORONARIOGRAFIA)' },
+    OUTRO:   { nome: 'Outro procedimento…',     codigo: '', label: null }, // médico digita código e nome
+  };
+
+  const ECO_VARIANTES = {
+    REPOUSO:        { codigo: '02.05.01.003-2', nome: 'ECOCARDIOGRAFIA TRANSTORACICA' },
+    ESTRESSE:       { codigo: '02.05.01.001-6', nome: 'ECOCARDIOGRAFIA COM ESTRESSE' },
+    TRANSESOFAGICO: { codigo: '02.05.01.002-4', nome: 'ECOCARDIOGRAFIA BI-DIMENSIONAL TRANSESOFAGICO' },
+  };
+
+  const TERRITORIOS = [
+    'DOPPLER DE ARTÉRIAS CARÓTIDAS E VERTEBRAIS', 'DOPPLER DE VEIAS CERVICAIS',
+    'DOPPLER AORTA ABDOMINAL', 'DOPPLER DE ARTÉRIAS RENAIS',
+    'DOPPLER ARTERIAL DE MEMBROS SUPERIORES', 'DOPPLER ARTERIAL DE MEMBROS INFERIORES',
+    'DOPPLER VENOSO DE MEMBROS SUPERIORES', 'DOPPLER VENOSO DE MEMBROS INFERIORES',
+  ];
+
+  const CID_DIC = {
+    "I10":"Hipertensão essencial (primária)","I11.9":"Doença cardíaca hipertensiva sem insuficiência cardíaca",
+    "I15.9":"Hipertensão secundária não especificada",
+    "I20.0":"Angina instável","I20.9":"Angina pectoris, não especificada",
+    "I21.9":"Infarto agudo do miocárdio não especificado","I22.9":"Infarto do miocárdio recorrente não especificado",
+    "I24.9":"Doença isquêmica aguda do coração, não especificada","I25.1":"Doença aterosclerótica do coração",
+    "I25.9":"Doença isquêmica crônica do coração, não especificada",
+    "I27.9":"Doença cardiopulmonar não especificada",
+    "I34.0":"Insuficiência da valva mitral","I34.9":"Transtorno não-reumático da valva mitral, não especificado",
+    "I35.0":"Estenose aórtica","I35.9":"Transtorno da valva aórtica não especificado",
+    "I36.1":"Insuficiência não-reumática da valva tricúspide",
+    "I38":"Endocardite de valva não especificada",
+    "I42.0":"Cardiomiopatia dilatada","I42.9":"Cardiomiopatia não especificada",
+    "I44.2":"Bloqueio atrioventricular total","I45.9":"Transtorno de condução não especificado",
+    "I47.1":"Taquicardia supraventricular","I47.2":"Taquicardia ventricular",
+    "I48":"Flutter e fibrilação atrial","I48.9":"Flutter e fibrilação atrial",
+    "I49.5":"Síndrome do nó sinusal","I49.9":"Arritmia cardíaca não especificada",
+    "I50":"Insuficiência cardíaca","I50.9":"Insuficiência cardíaca não especificada",
+    "I51.7":"Cardiomegalia",
+    "I70.0":"Aterosclerose da aorta","I70.2":"Aterosclerose das artérias das extremidades",
+    "I71.4":"Aneurisma da aorta abdominal, sem menção de ruptura",
+    "I73.9":"Doença vascular periférica não especificada",
+    "I80.2":"Flebite e tromboflebite de outros vasos profundos dos membros inferiores",
+    "I82.9":"Embolia e trombose venosa não especificada",
+    "Q21.1":"Comunicação interatrial","Q24.9":"Malformação congênita do coração não especificada",
+    "E11":"Diabetes mellitus não-insulino-dependente","E11.9":"Diabetes mellitus não-insulino-dependente - sem complicações",
+    "E78.0":"Hipercolesterolemia pura","E78.5":"Hiperlipidemia não especificada",
+    "R00.0":"Taquicardia não especificada","R00.1":"Bradicardia não especificada",
+    "R00.2":"Palpitações",
+    "R07.2":"Dor precordial","R07.4":"Dor torácica, não especificada",
+    "R42":"Tontura e instabilidade","R55":"Síncope e colapso",
+    "Z95.0":"Presença de marca-passo cardíaco","Z95.1":"Presença de enxerto de ponte aortocoronária",
+    "Z95.5":"Presença de implante e enxerto de angioplastia coronária"
+  };
+
+  /* PRE-CADASTRO de medicos (nome, CNS). Copiado para o armazenamento
+   * local do Tampermonkey na primeira execucao; depois disso o medico
+   * gerencia a lista pelo painel e esta escolha NAO e mais sobrescrita.
+   * Mantidos exatamente como estavam em apac-itauna-meeds. */
+
+  const MEDICOS_PADRAO = [
+    ['NEMER MARTINS TARRAF', '702604785248241'],
+    ['KARLA PEREIRA RESENDE', '704604186091724'],
+    ['ANA BEATRIZ JUNQUEIRA DE CASTRO', '709809077179292'],
+  ];
+
+  /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
+  var CSS = "#apac-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #apac-modal-head{\n      background:linear-gradient(135deg,#0e7a70,#17ab9e); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #apac-modal-head h2{ margin:0; font-size:15px; }\n    #apac-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #apac-body{ padding:18px 20px; }\n    .apac-sec{ margin-bottom:16px; }\n    .apac-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#0e7a70; margin:0 0 8px; }\n    .apac-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .apac-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6c68; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8e6e3; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:56px; resize:vertical; }\n    .apac-proc-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }\n    .apac-proc-btn{ border:1.4px solid #d8e6e3; border-radius:9px; padding:9px; cursor:pointer; }\n    .apac-proc-btn:hover{ border-color:#17ab9e; }\n    .apac-proc-btn.sel{ border-color:#12958a; background:#e3f5f3; }\n    .apac-proc-btn .t{ font-size:11.5px; font-weight:700; }\n    .apac-proc-btn .c{ font-size:9.5px; color:#0e7a70; font-family:monospace; }\n    #apac-territorio-wrap{ display:none; margin-top:8px; }\n    #apac-territorio-wrap.show{ display:block; }\n    #apac-eco-variante-wrap{ display:none; margin-top:8px; }\n    #apac-eco-variante-wrap.show{ display:block; }\n    #apac-outro-wrap{ display:none; margin-top:8px; }\n    #apac-outro-wrap.show{ display:block; }\n    #apac-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    #apac-sec-assinatura{ border:1.5px dashed #17ab9e; border-radius:12px; padding:14px; background:#f9fdfc; }\n    .apac-opcoes-assinatura{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }\n    button.apac-primary{ background:#12958a; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.apac-primary:hover{ background:#0b6a62; }\n    button.apac-primary:disabled{ background:#a0c9c4; cursor:not-allowed; }\n    button.apac-secondary{ background:#fff; color:#0e7a70; border:1.4px solid #17ab9e; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.apac-secondary:hover{ background:#e3f5f3; }\n    button.apac-tertiary{ background:#f0f4f3; color:#0e7a70; border:1px solid #d8e6e3; border-radius:9px; padding:9px 14px; font-size:12px; font-weight:700; cursor:pointer; }\n    button.apac-tertiary:hover{ background:#e3f5f3; }\n    #apac-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #apac-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }\n    .apac-info-box{ background:#e8f4f8; color:#0e7a70; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:10px; line-height:1.4; }";
+
+  var HTML = "<div id=\"apac-modal\">\n      <div id=\"apac-modal-head\"><h2>Gerador de APAC — Itaúna</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"apac-refresh-modal\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"apac-historico-abrir\" title=\"Últimas APACs geradas nesta máquina\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"apac-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"apac-body\">\n        <div id=\"apac-auto-aviso\"></div>\n\n        <div id=\"apac-historico-painel\" style=\"display:none;border:1px solid #d8e6e3;border-radius:9px;padding:10px;margin-bottom:12px;background:#f7fbfa;\">\n          <div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;\">\n            <strong style=\"font-size:11px;color:#0e7a70;text-transform:uppercase;\">Últimos gerados nesta máquina</strong>\n            <button id=\"apac-historico-limpar\" class=\"apac-tertiary\" style=\"padding:3px 8px;font-size:10.5px;\">Limpar</button>\n          </div>\n          <div id=\"apac-historico-lista\" style=\"font-size:11.5px;line-height:1.6;\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Estabelecimento</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome</label><input id=\"apac-estab-nome\" value=\"CENTRO DE ESPEC MEDICAS E ODONTO DR OVIDIO NOGUEIRA MACHADO\"></div>\n            <div><label>CNES</label><input id=\"apac-estab-cnes\" value=\"2105578\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Médico solicitante\n            <button id=\"apac-medicos-gerenciar\" class=\"apac-tertiary\" style=\"padding:3px 8px;font-size:10.5px;margin-left:6px;text-transform:none;letter-spacing:normal;\">⚙️ Gerenciar médicos</button>\n          </h3>\n          <div class=\"apac-grid3\">\n            <div><label>Selecionar *</label><select id=\"apac-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"apac-medico-nome\"></div>\n            <div><label>CNS *</label><input id=\"apac-medico-cns\"></div>\n          </div>\n          <div id=\"apac-medicos-painel\" style=\"display:none;margin-top:10px;border:1px solid #d8e6e3;border-radius:9px;padding:10px;background:#f7fbfa;\">\n            <div id=\"apac-medicos-lista\" style=\"margin-bottom:8px;font-size:12px;\"></div>\n            <div class=\"apac-grid3\">\n              <input id=\"apac-novo-medico-nome\" placeholder=\"Nome completo\">\n              <input id=\"apac-novo-medico-cns\" placeholder=\"CNS (15 dígitos)\">\n              <button id=\"apac-novo-medico-add\" class=\"apac-secondary\">+ Adicionar</button>\n            </div>\n            <div style=\"font-size:10.5px;color:#5b6c68;margin-top:6px;\">Fica salvo só neste navegador (Tampermonkey) — não é enviado a lugar nenhum nem entra no código do script.</div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Paciente</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome completo *</label><input id=\"apac-pac-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-pac-cpf\"></div>\n          </div>\n          <div class=\"apac-grid3\" style=\"margin-top:8px;\">\n            <div><label>Nascimento *</label><input type=\"date\" id=\"apac-pac-nasc\"></div>\n            <div><label>Sexo *</label><select id=\"apac-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"M\">Masculino</option><option value=\"F\">Feminino</option></select></div>\n            <div><label>Nome da mãe *</label><input id=\"apac-pac-mae\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Procedimento *</h3>\n          <div class=\"apac-proc-grid\" id=\"apac-proc-grid\"></div>\n          <div id=\"apac-territorio-wrap\">\n            <label>Território vascular (obrigatório para Doppler)</label>\n            <select id=\"apac-territorio-sel\"></select>\n          </div>\n          <div id=\"apac-eco-variante-wrap\">\n            <label>Variante do ecocardiograma</label>\n            <select id=\"apac-eco-variante-sel\">\n              <option value=\"REPOUSO\">Transtorácica de repouso (padrão)</option>\n              <option value=\"ESTRESSE\">Com estresse (farmacológico/Dobutamina)</option>\n              <option value=\"TRANSESOFAGICO\">Transesofágico</option>\n            </select>\n          </div>\n          <div id=\"apac-outro-wrap\">\n            <label>Código SIGTAP *</label>\n            <input id=\"apac-outro-codigo\" placeholder=\"ex: 02.11.02.001-0\" style=\"margin-bottom:8px;\">\n            <label>Nome do procedimento *</label>\n            <input id=\"apac-outro-nome\" placeholder=\"como deve aparecer no campo 19\">\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>CID-10 *</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Principal *</label><input id=\"apac-cid1\" list=\"apac-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Secundário</label><input id=\"apac-cid2\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n            <div><label>Associados</label><input id=\"apac-cid3\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Descrição (campo 36) *</label><input id=\"apac-cid-desc\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Texto do pedido (campo 40) *</h3>\n          <textarea id=\"apac-obs\"></textarea>\n        </div>\n\n        <!-- ETAPA 2 — Assinatura -->\n        <div class=\"apac-sec\" id=\"apac-sec-assinatura\" style=\"display:none;\">\n          <h3>Etapa 2 — Assinatura</h3>\n          <div class=\"apac-info-box\">\n            PDF gerado com sucesso. Escolha uma opção abaixo:\n          </div>\n\n          <div class=\"apac-opcoes-assinatura\">\n            <button id=\"apac-assinar-govbr\" class=\"apac-primary\">\n              🏛️ Assinar via gov.br<br><small style=\"font-weight:400;opacity:.9;\">Baixa PDF e abre o portal</small>\n            </button>\n            <button id=\"apac-baixar-sem\" class=\"apac-tertiary\">\n              💾 Baixar sem assinar<br><small style=\"font-weight:400;opacity:.8;\">PDF simples</small>\n            </button>\n          </div>\n        </div>\n\n        <div id=\"apac-erro\"></div>\n        <datalist id=\"apac-cid-list\"></datalist>\n      </div>\n      <div id=\"apac-footer\">\n        <button class=\"apac-secondary\" id=\"apac-limpar\">Limpar</button>\n        <button class=\"apac-primary\" id=\"apac-gerar\">Gerar PDF</button>\n      </div>\n    </div>";
+
+  /* ---- extraidas do original sem alteracao ---- */
+
+  function camposFaltando(){
+    const faltam = []; const v = id => shadow.getElementById(id).value.trim();
+    if(!shadow.getElementById('apac-medico-sel').value) faltam.push('seleção do médico');
+    if(!v('apac-medico-nome')) faltam.push('nome do médico');
+    if(!v('apac-medico-cns')) faltam.push('CNS do médico');
+    if(!v('apac-pac-nome')) faltam.push('nome do paciente');
+    if(!v('apac-pac-cpf')) faltam.push('CPF do paciente');
+    if(!v('apac-pac-nasc')) faltam.push('data de nascimento');
+    if(!v('apac-pac-sexo')) faltam.push('sexo');
+    if(!v('apac-pac-mae')) faltam.push('nome da mãe');
+    if(!procedimentoAtivo) faltam.push('procedimento');
+    if(procedimentoAtivo === 'DOPPLER' && !v('apac-territorio-sel')) faltam.push('território vascular');
+    if(procedimentoAtivo === 'OUTRO'){
+      if(!v('apac-outro-codigo')) faltam.push('código SIGTAP do procedimento');
+      if(!v('apac-outro-nome')) faltam.push('nome do procedimento');
+    }
+    if(!v('apac-cid1')) faltam.push('CID-10 principal');
+    if(!v('apac-cid-desc')) faltam.push('descrição do diagnóstico');
+    if(!v('apac-obs')) faltam.push('texto do pedido');
+    return faltam;
+  }
+
+  function renderMedicosPainel() {
+    const lista = carregarMedicos();
+    const box = shadow.getElementById('apac-medicos-lista');
+    if (!lista.length) {
+      box.innerHTML = '<em style="color:#5b6c68;">Nenhum médico cadastrado ainda neste navegador. Adicione abaixo.</em>';
+      return;
+    }
+    box.innerHTML = lista.map(([nome, cns], i) =>
+      `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #e5efed;">
+        <span>${escapeHtml(titleCase(nome))} <span style="color:#5b6c68;font-family:monospace;font-size:10.5px;">(${escapeHtml(cns)})</span></span>
+        <button data-idx="${i}" class="apac-medico-remover" style="background:none;border:none;color:#a12626;cursor:pointer;font-size:11px;">remover</button>
+      </div>`
+    ).join('');
+    box.querySelectorAll('.apac-medico-remover').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const atual = carregarMedicos();
+        atual.splice(Number(btn.dataset.idx), 1);
+        salvarMedicos(atual);
+        renderMedicosPainel();
+        montarMedicos();
+        const sel = shadow.getElementById('apac-medico-sel');
+        if (!sel.value) {
+          shadow.getElementById('apac-medico-nome').value = '';
+          shadow.getElementById('apac-medico-cns').value = '';
+        }
+      });
+    });
+  }
+
+  function renderHistorico() {
+    const lista = carregarHistorico();
+    const box = shadow.getElementById('apac-historico-lista');
+    if (!lista.length) {
+      box.innerHTML = '<em style="color:#5b6c68;">Nenhuma APAC gerada ainda nesta máquina.</em>';
+      return;
+    }
+    box.innerHTML = lista.map(item =>
+      `<div style="padding:3px 0;border-bottom:1px solid #e5efed;">
+        <strong>${escapeHtml(item.paciente)}</strong> — ${escapeHtml(item.procedimento)} <span style="color:#5b6c68;">(${escapeHtml(item.quando)})</span>
+      </div>`
+    ).join('');
+  }
+
+
+
+  /* GERACAO DO PDF — funcao extraida VERBATIM do original.
+   * Todas as coordenadas (x, y, larguras, tamanhos de fonte, posicao dos
+   * X de sexo, das caixinhas de digito do CNS) foram calibradas na mao
+   * contra o formulario oficial da APAC. Nada aqui foi reescrito. */
+
+  function gerarPdfInterno(jsPDFCtor) {
+    const nome = shadow.getElementById('apac-pac-nome').value.trim();
+    const cpf = shadow.getElementById('apac-pac-cpf').value.trim();
+    const nascInput = shadow.getElementById('apac-pac-nasc').value;
+    const doc = new jsPDFCtor({ unit: 'pt', format: 'a4' });
+    const W = 595.28, M = 20, CW = W - 2 * M; const TEAL = [0, 51, 160]; let y = 20;
+    function bar(h, texto, size) {
+      size = size || 6.5;
+      doc.setFillColor(0,0,0); doc.rect(M, y, CW, h, 'F');
+      doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(size);
+      doc.text(texto, W/2, y+h/2+size/3, {align:'center'}); doc.setTextColor(0,0,0); y += h;
+    }
+    function box(x, yy, w, h, rotulo, valor, opts) {
+      opts = opts || {};
+      doc.setDrawColor(0,0,0); doc.setLineWidth(0.6); doc.rect(x, yy, w, h);
+      doc.setFont('helvetica','normal'); doc.setFontSize(6.2); doc.setTextColor(0,0,0);
+      doc.text(rotulo, x+4, yy+7);
+      if (valor) {
+        doc.setTextColor(TEAL[0],TEAL[1],TEAL[2]);
+        let size = opts.size || 9.5; doc.setFont('helvetica','bold'); doc.setFontSize(size);
+        while (size > 4.2 && doc.getTextWidth(String(valor)) > w-9) { size -= 0.3; doc.setFontSize(size); }
+        const vy = Math.max(yy+h-4, yy+13);
+        if (opts.center) doc.text(String(valor), x+w/2, vy, {align:'center'}); else doc.text(String(valor), x+5, vy);
+        doc.setTextColor(0,0,0);
+      }
+    }
+    function digitBox(x, yy, w, h, rotulo, valor, n) {
+      n = n || 15; box(x, yy, w, h, rotulo, null);
+      const cw = w/n; for (let i=1;i<n;i++) doc.line(x+i*cw, yy+h-16, x+i*cw, yy+h);
+      if (valor) {
+        doc.setTextColor(TEAL[0],TEAL[1],TEAL[2]); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+        String(valor).replace(/\D/g,'').slice(0,n).split('').forEach((c,i)=> doc.text(c, x+cw*(i+0.5), yy+h-4, {align:'center'}));
+        doc.setTextColor(0,0,0);
+      }
+    }
+    function linhaProc(yy, h, cod, nome_, qtd, rot) {
+      const w1=150, w3=55, w2=CW-w1-w3;
+      box(M, yy, w1, h, rot[0], cod, {center:true}); box(M+w1, yy, w2, h, rot[1], nome_, {center:true}); box(M+w1+w2, yy, w3, h, rot[2], qtd, {center:true});
+    }
+    function wrap(x, yy, w, texto, size, leading) {
+      if (!texto) return; doc.setTextColor(TEAL[0],TEAL[1],TEAL[2]); doc.setFont('helvetica','normal'); doc.setFontSize(size);
+      doc.splitTextToSize(String(texto), w).forEach((ln,i)=> doc.text(ln, x, yy+i*leading)); doc.setTextColor(0,0,0);
+    }
+
+    doc.rect(M, y, CW, 40); doc.line(M+180, y, M+180, y+40);
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text('SUS', M+8, y+24);
+    doc.setFont('helvetica','bolditalic'); doc.setFontSize(10.5);
+    doc.text('LAUDO PARA SOLICITAÇÃO/AUTORIZAÇÃO DE', M+180+(CW-180)/2, y+18, {align:'center'});
+    doc.text('PROCEDIMENTO AMBULATORIAL', M+180+(CW-180)/2, y+30, {align:'center'});
+    y += 40;
+
+    bar(11, 'IDENTIFICAÇÃO DO ESTABELECIMENTO DE SAÚDE (SOLICITANTE)');
+    box(M, y, CW-170, 20, '1 - NOME DO ESTABELECIMENTO', shadow.getElementById('apac-estab-nome').value, {size:8});
+    box(M+CW-170, y, 170, 20, '2 - CNES', shadow.getElementById('apac-estab-cnes').value); y += 20;
+
+    bar(11, 'IDENTIFICAÇÃO DO PACIENTE');
+    const sexo = shadow.getElementById('apac-pac-sexo').value;
+    box(M, y, CW-210, 22, '3 - NOME DO PACIENTE', nome);
+    box(M+CW-210, y, 100, 22, '4 - SEXO', null);
+    doc.setFontSize(6); doc.text('Mas.', M+CW-203, y+14); doc.text('Fem.', M+CW-160, y+14);
+    doc.rect(M+CW-183, y+9, 8, 8); doc.rect(M+CW-140, y+9, 8, 8);
+    if (sexo) { doc.setTextColor(TEAL[0],TEAL[1],TEAL[2]); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+      doc.text('X', sexo==='M'? M+CW-181.5 : M+CW-138.5, y+16); doc.setTextColor(0,0,0); }
+    box(M+CW-110, y, 110, 22, '5 - Nº DO PRONTUÁRIO', null); y += 22;
+
+    const [ay,am,ad] = nascInput.split('-');
+    digitBox(M, y, CW-320, 22, '6 - CNS', cpf);
+    box(M+CW-320, y, 145, 22, '7 - DATA DE NASCIMENTO', `${ad} / ${am} / ${ay}`, {center:true});
+    box(M+CW-175, y, 90, 22, '8 - RAÇA/COR', null); box(M+CW-85, y, 85, 22, '8.1 - ETNIA', null); y += 22;
+
+    box(M, y, CW-170, 22, '9 - NOME DA MÃE', shadow.getElementById('apac-pac-mae').value);
+    box(M+CW-170, y, 170, 22, '10 - TELEFONE', null); y += 22;
+    box(M, y, CW-170, 22, '11 - RESPONSÁVEL', null);
+    box(M+CW-170, y, 170, 22, '12 - TELEFONE', null); y += 22;
+    box(M, y, CW, 22, '13 - ENDEREÇO', null); y += 22;
+    box(M, y, CW-295, 22, '14 - MUNICÍPIO', null);
+    box(M+CW-295, y, 115, 22, '15 - IBGE', null);
+    box(M+CW-180, y, 55, 22, '16 - UF', null); box(M+CW-125, y, 125, 22, '17 - CEP', null); y += 22;
+
+    bar(11, 'PROCEDIMENTO SOLICITADO');
+    let principal;
+    if (procedimentoAtivo === 'DOPPLER') {
+      const terr = shadow.getElementById('apac-territorio-sel').value || 'ULTRASSONOGRAFIA DOPPLER COLORIDO DE VASOS';
+      principal = { codigo: CATALOGO.DOPPLER.codigo, nome: terr, qtde: '01' };
+    } else if (procedimentoAtivo === 'CINTILO') {
+      principal = { codigo: CATALOGO.CINTILO.codigo, nome: CATALOGO.CINTILO.label, qtde: '01' };
+    } else if (procedimentoAtivo === 'ECO') {
+      const variante = ECO_VARIANTES[shadow.getElementById('apac-eco-variante-sel').value || 'REPOUSO'];
+      principal = { codigo: variante.codigo, nome: variante.nome, qtde: '01' };
+    } else if (procedimentoAtivo === 'OUTRO') {
+      principal = {
+        codigo: shadow.getElementById('apac-outro-codigo').value.trim().toUpperCase(),
+        nome: shadow.getElementById('apac-outro-nome').value.trim().toUpperCase(),
+        qtde: '01',
+      };
+    } else {
+      const p = CATALOGO[procedimentoAtivo]; principal = { codigo: p.codigo, nome: p.label, qtde: '01' };
+    }
+    linhaProc(y, 24, principal.codigo, principal.nome, principal.qtde, ['18 - CÓDIGO','19 - NOME','20 - QTDE.']); y += 24;
+
+    bar(11, 'PROCEDIMENTO(S) SECUNDÁRIO(S)');
+    const rots = [
+      ['21 - CÓDIGO','22 - NOME','23 - QTDE.'],['24 - CÓDIGO','25 - NOME','26 - QTDE.'],
+      ['27 - CÓDIGO','28 - NOME','29 - QTDE.'],['30 - CÓDIGO','31 - NOME','32 - QTDE.'],
+      ['33 - CÓDIGO','34 - NOME','35 - QTDE.'],
+    ];
+    rots.forEach((rot,i)=>{ linhaProc(y, 20, '', '', '', rot); y += 20; });
+
+    bar(11, 'JUSTIFICATIVA');
+    const cid1v = shadow.getElementById('apac-cid1').value.trim().toUpperCase();
+    const cid2v = shadow.getElementById('apac-cid2').value.trim().toUpperCase();
+    const cid3v = shadow.getElementById('apac-cid3').value.trim().toUpperCase();
+    box(M, y, CW-240, 24, '36 - DESCRIÇÃO DO DIAGNÓSTICO', null, {size:7});
+    wrap(M+4, y+13, CW-250, shadow.getElementById('apac-cid-desc').value, 6.6, 7);
+    box(M+CW-240, y, 80, 24, '37-CID10 PRINC.', cid1v, {center:true});
+    box(M+CW-160, y, 80, 24, '38-CID10 SEC.', cid2v, {center:true});
+    box(M+CW-80, y, 80, 24, '39-ASSOC.', cid3v, {center:true}); y += 24;
+    box(M, y, CW, 78, '40 - OBSERVAÇÕES', null);
+    wrap(M+6, y+16, CW-12, shadow.getElementById('apac-obs').value, 7.4, 9); y += 78;
+
+    bar(11, 'SOLICITAÇÃO');
+    const medicoNome = shadow.getElementById('apac-medico-nome').value;
+    const medicoCns = shadow.getElementById('apac-medico-cns').value;
+    const hoje = new Date();
+    const dataHoje = `${String(hoje.getDate()).padStart(2,'0')} / ${String(hoje.getMonth()+1).padStart(2,'0')} / ${hoje.getFullYear()}`;
+    box(M, y, CW-300, 24, '41 - NOME DO PROFISSIONAL', medicoNome);
+    box(M+CW-300, y, 120, 24, '42-DATA', dataHoje, {center:true});
+    box(M+CW-180, y, 180, 24, '45-ASSINATURA/CARIMBO', null); y += 24;
+    box(M, y, 110, 24, '43 - DOCUMENTO', null);
+    doc.setFontSize(6); doc.text('(X) CNS', M+8, y+16); doc.text('(   ) CPF', M+58, y+16);
+    digitBox(M+110, y, CW-110, 24, '44 - Nº DOCUMENTO', medicoCns); y += 24;
+
+    bar(11, 'AUTORIZAÇÃO');
+    box(M, y, CW-320, 24, '46 - AUTORIZADOR', null);
+    box(M+CW-320, y, 140, 24, '47 - ÓRGÃO EMISSOR', null);
+    box(M+CW-180, y, 180, 24, '52 - Nº DA APAC', null); y += 24;
+    box(M, y, 110, 24, '48 - DOCUMENTO', null);
+    digitBox(M+110, y, CW-290, 24, '49 - Nº DOCUMENTO', null);
+    box(M+CW-180, y, 180, 24, '53 - VALIDADE', null); y += 24;
+    box(M, y, 120, 24, '50-DATA', null);
+    box(M+120, y, CW-120, 24, '51 - ASSINATURA/CARIMBO', null); y += 24;
+
+    bar(11, 'ESTABELECIMENTO EXECUTANTE');
+    box(M, y, CW-170, 20, '54 - NOME FANTASIA', null);
+    box(M+CW-170, y, 170, 20, '55 - CNES', null);
+
+    const slug = nome.replace(/[^A-Za-z0-9]+/g,'_').toUpperCase().slice(0,40);
+    const filename = `APAC_${slug || 'PACIENTE'}.pdf`;
+    pdfGerado = { bytes: new Uint8Array(doc.output('arraybuffer')), filename };
+    registrarHistorico({
+      paciente: nome || 'Paciente',
+      procedimento: principal.nome || procedimentoAtivo,
+      quando: new Date().toLocaleString('pt-BR'),
+    });
+    shadow.getElementById('apac-sec-assinatura').style.display = 'block';
+    shadow.getElementById('apac-sec-assinatura').scrollIntoView({ behavior:'smooth', block:'center' });
+    toast('PDF gerado. Escolha como assinar ou baixar.', 5000);
+  }
+
+
+  /* ----------------------------------------------------------------
+   * UI — montagem, paineis e validacao
+   * ---------------------------------------------------------------- */
+  function montarMedicos() {
+    var sel = shadow.getElementById("apac-medico-sel");
+    var valorAtual = sel.value;
+    sel.innerHTML = "";
+    var ph = document.createElement("option");
+    ph.value = ""; ph.textContent = "Selecione o médico…"; ph.selected = true; ph.disabled = true;
+    sel.appendChild(ph);
+    carregarMedicos().forEach(function (par) {
+      var o = document.createElement("option");
+      o.value = par[0] + "|" + par[1];
+      o.textContent = titleCase(par[0]);
+      sel.appendChild(o);
+    });
+    var outro = document.createElement("option");
+    outro.value = "outro"; outro.textContent = "Outro médico…";
+    sel.appendChild(outro);
+    if (valorAtual && Array.prototype.some.call(sel.options, function (o) { return o.value === valorAtual; })) {
+      sel.value = valorAtual;
+    }
+  }
+
+  function alternarPainelMedicos() {
+    var p = shadow.getElementById("apac-medicos-painel");
+    var abrindo = p.style.display === "none";
+    p.style.display = abrindo ? "block" : "none";
+    if (abrindo) renderMedicosPainel();
+  }
+
+  function adicionarMedico() {
+    var nomeEl = shadow.getElementById("apac-novo-medico-nome");
+    var cnsEl = shadow.getElementById("apac-novo-medico-cns");
+    var nome = nomeEl.value.trim().toUpperCase();
+    var cns = cnsEl.value.replace(/\D/g, "");
+    if (!nome || cns.length !== 15) { toast("Informe nome e CNS com 15 dígitos.", 3500); return; }
+    var atual = carregarMedicos();
+    atual.push([nome, cns]);
+    salvarMedicos(atual);
+    nomeEl.value = ""; cnsEl.value = "";
+    renderMedicosPainel();
+    montarMedicos();
+    toast("Médico adicionado.", 2500);
+  }
+
+  function alternarPainelHistorico() {
+    var p = shadow.getElementById("apac-historico-painel");
+    var abrindo = p.style.display === "none";
+    p.style.display = abrindo ? "block" : "none";
+    if (abrindo) renderHistorico();
+  }
+
+  function onMedicoChange() {
+    var sel = shadow.getElementById("apac-medico-sel");
+    if (sel.value === "" || sel.value === "outro") {
+      shadow.getElementById("apac-medico-nome").value = "";
+      shadow.getElementById("apac-medico-cns").value = "";
+      return;
+    }
+    var partes = sel.value.split("|");
+    shadow.getElementById("apac-medico-nome").value = partes[0];
+    shadow.getElementById("apac-medico-cns").value = partes[1];
+  }
+
+  function montarProcGrid() {
+    var grid = shadow.getElementById("apac-proc-grid");
+    Object.keys(CATALOGO).forEach(function (key) {
+      var p = CATALOGO[key];
+      var btn = document.createElement("div");
+      btn.className = "apac-proc-btn";
+      btn.id = "apac-proc-" + key;
+      btn.innerHTML = '<div class="t">' + p.nome + '</div><div class="c">' + (p.codigo || "digitar manualmente") + "</div>";
+      btn.addEventListener("click", function () { selecionarProc(key); });
+      grid.appendChild(btn);
+    });
+  }
+
+  function selecionarProc(key) {
+    procedimentoAtivo = key;
+    Array.prototype.forEach.call(shadow.querySelectorAll(".apac-proc-btn"), function (b) { b.classList.remove("sel"); });
+    shadow.getElementById("apac-proc-" + key).classList.add("sel");
+    shadow.getElementById("apac-territorio-wrap").classList.toggle("show", key === "DOPPLER");
+    shadow.getElementById("apac-eco-variante-wrap").classList.toggle("show", key === "ECO");
+    shadow.getElementById("apac-outro-wrap").classList.toggle("show", key === "OUTRO");
+    if (key === "DOPPLER") {
+      var sel = shadow.getElementById("apac-territorio-sel");
+      if (!sel.dataset.filled) {
+        TERRITORIOS.forEach(function (t) {
+          var o = document.createElement("option");
+          o.value = t; o.textContent = t;
+          sel.appendChild(o);
+        });
+        sel.dataset.filled = "1";
+      }
+    }
+  }
+
+  function montarCidList() {
+    var dl = shadow.getElementById("apac-cid-list");
+    Object.keys(CID_DIC).sort().forEach(function (cod) {
+      var o = document.createElement("option");
+      o.value = cod; o.label = cod + " — " + CID_DIC[cod]; o.textContent = CID_DIC[cod];
+      dl.appendChild(o);
+    });
+  }
+
+  function autoDescricaoCid() {
+    var campo = shadow.getElementById("apac-cid1");
+    var cid = campo.value.trim().toUpperCase();
+    if (campo.value !== cid) campo.value = cid;
+    var desc = shadow.getElementById("apac-cid-desc");
+    if (CID_DIC[cid]) { desc.value = CID_DIC[cid]; desc.dataset.auto = "1"; }
+    else if (desc.dataset.auto === "1") { desc.value = ""; desc.dataset.auto = ""; }
+  }
+
+  function limparErro() {
+    var el = shadow.getElementById("apac-erro");
+    el.style.display = "none";
+    el.textContent = "";
+  }
+  function mostrarErro(msg) {
+    var el = shadow.getElementById("apac-erro");
+    el.textContent = msg;
+    el.style.display = "block";
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function limparForm() {
+    ["apac-pac-nome","apac-pac-cpf","apac-pac-mae","apac-cid1","apac-cid2","apac-cid3",
+     "apac-cid-desc","apac-obs","apac-medico-nome","apac-medico-cns","apac-outro-codigo","apac-outro-nome"
+    ].forEach(function (id) { shadow.getElementById(id).value = ""; });
+    shadow.getElementById("apac-pac-nasc").value = "";
+    shadow.getElementById("apac-pac-sexo").value = "";
+    shadow.getElementById("apac-medico-sel").value = "";
+    shadow.getElementById("apac-auto-aviso").style.display = "none";
+    limparErro();
+    procedimentoAtivo = null;
+    pdfGerado = null;
+    Array.prototype.forEach.call(shadow.querySelectorAll(".apac-proc-btn"), function (b) { b.classList.remove("sel"); });
+    shadow.getElementById("apac-territorio-wrap").classList.remove("show");
+    shadow.getElementById("apac-eco-variante-wrap").classList.remove("show");
+    shadow.getElementById("apac-outro-wrap").classList.remove("show");
+    shadow.getElementById("apac-sec-assinatura").style.display = "none";
+  }
+
+  function abrirModal() {
+    preencherDoCache();
+    // reforco: ao abrir, tambem le a tela na hora — cobre o caso do cache
+    // (API) estar vazio ou desatualizado quando o medico clica.
+    aplicarLeituraDaTela(lerDadosDaTela());
+    overlay.abrir();
+  }
+
+  function gerarPdf() {
+    limparErro();
+    var faltam = camposFaltando();
+    if (faltam.length) { mostrarErro("Preencha: " + faltam.join(", ") + "."); return; }
+    var btn = shadow.getElementById("apac-gerar");
+    var original = btn.textContent;
+    btn.textContent = "Gerando…";
+    btn.disabled = true;
+    garantirJsPDF()
+      .then(function (jsPDFCtor) {
+        try { gerarPdfInterno(jsPDFCtor); }
+        catch (e) { mostrarErro("Erro ao gerar PDF: " + e.message); }
+      })
+      .catch(function (e) { mostrarErro("jsPDF não carregou: " + e.message); })
+      .then(function () { btn.textContent = original; btn.disabled = false; });
+  }
+
+  function baixarPdf(bytes, filename) {
+    var blob = new Blob([bytes], { type: "application/pdf" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+  }
+
+  function baixarSemAssinar() {
+    if (!pdfGerado) { mostrarErro("Gere o PDF primeiro."); return; }
+    baixarPdf(pdfGerado.bytes, pdfGerado.filename);
+  }
+
+  function assinarGovBr() {
+    if (!pdfGerado) { mostrarErro("Gere o PDF primeiro."); return; }
+    baixarPdf(pdfGerado.bytes, pdfGerado.filename);
+    window.open("https://assinador.iti.br", "_blank");
+    toast("PDF baixado. Acesse assinador.iti.br, faça login com gov.br e assine o arquivo.", 7000);
+  }
+
+  function montarUI() {
+    overlay = d.dock.criarOverlay({ estilo: CSS, html: HTML });
+
+    shadow.getElementById("apac-refresh-modal").addEventListener("click", forcarAtualizacao);
+    shadow.getElementById("apac-close").addEventListener("click", overlay.fechar);
+    shadow.getElementById("apac-gerar").addEventListener("click", gerarPdf);
+    shadow.getElementById("apac-limpar").addEventListener("click", limparForm);
+    shadow.getElementById("apac-cid1").addEventListener("input", autoDescricaoCid);
+    shadow.getElementById("apac-medico-sel").addEventListener("change", onMedicoChange);
+    shadow.getElementById("apac-assinar-govbr").addEventListener("click", assinarGovBr);
+    shadow.getElementById("apac-baixar-sem").addEventListener("click", baixarSemAssinar);
+    shadow.getElementById("apac-medicos-gerenciar").addEventListener("click", alternarPainelMedicos);
+    shadow.getElementById("apac-novo-medico-add").addEventListener("click", adicionarMedico);
+    shadow.getElementById("apac-historico-abrir").addEventListener("click", alternarPainelHistorico);
+    shadow.getElementById("apac-historico-limpar").addEventListener("click", function () {
+      limparHistorico();
+      renderHistorico();
+    });
+
+    montarMedicos();
+    montarProcGrid();
+    montarCidList();
+  }
+
+  /* ----------------------------------------------------------------
+   * CONTRATO DE MODULO
+   * ---------------------------------------------------------------- */
+  raiz.MeedsSuite.registerModule({
+    id: "apac-itauna",
+    nome: "APAC — Itaúna",
+    descricao:
+      "Gera o Laudo para Solicitação/Autorização de Procedimento Ambulatorial (APAC) de Itaúna em PDF e encaminha para assinatura no gov.br.",
+    versao: "2.0.0",
+    configPadrao: {},
+
+    botao: {
+      icone: "📋",
+      rotulo: "APAC - Itaúna",
+      titulo: "Gerador de APAC — Itaúna",
+      prioridade: 20,
+    },
+
+    // captura passiva: e a via mais confiavel de detectar troca de
+    // paciente, porque nao depende de a URL mudar nem de conter o UUID
+    assinaturasRede: [{ regex: /\/api\/v1\/Atendimento\/[0-9a-fA-F-]{36}(\?|$)/i, metodos: ["GET"] }],
+
+    aoCargaRede: function (evt) {
+      if (evt.status !== 200) return;
+      var m = evt.url.match(ATEND_RE);
+      if (!m) return;
+      var json = evt.json();
+      if (json) aplicarPayload(m[1], json);
+    },
+
+    start: function (deps) {
+      d = deps;
+      montarUI();
+      deps.aoClicarBotao(abrirModal);
+
+      // polling de URL: segunda camada, para o caso de a captura passiva
+      // nao ter visto a chamada do paciente atual
+      ultimaUrl = location.href;
+      timers.push(
+        setInterval(function () {
+          if (location.href !== ultimaUrl) {
+            ultimaUrl = location.href;
+            setTimeout(tentarAtualizarAutomaticamente, 400);
+          }
+        }, 1500)
+      );
+    },
+
+    stop: function () {
+      timers.forEach(clearInterval);
+      timers = [];
+      if (overlay) { overlay.remover(); overlay = null; }
+      cache = null;
+      cacheId = null;
+      pdfGerado = null;
+      procedimentoAtivo = null;
+      d = null;
+    },
+  });
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== modules/lme-sete-lagoas/assets/base-pdf.js ===== */
+/* modules/lme-sete-lagoas/assets/base-pdf.js
+ * PDF BASE OFICIAL DE SETE LAGOAS, embutido em base64 — byte a byte o
+ * mesmo que estava em LME_SETE_LAGOAS_GERADOR.user.js v1.4.0.
+ * E o arquivo "1 - LAUDO ALTO CUSTO SETE LAGOAS.pdf" fornecido pela
+ * prefeitura (perfil ICC de impressao removido para reduzir o tamanho;
+ * renderizacao visual identica ao original, ja conferida pixel a pixel).
+ *   Pagina 1 = formulario (recebe o preenchimento).
+ *   Pagina 2 = orientacoes de preenchimento (nunca e tocada).
+ * Separado do index.js so para o codigo do modulo continuar legivel — o
+ * build reune os dois no bundle final. */
+(function (raiz) {
+  "use strict";
+  raiz.MEEDS_LME_BASE_PDF_B64 = "JVBERi0xLjMKJb/3ov4KMSAwIG9iago8PCAvQURCRV9GaWxsU2lnbkluZm8gPDwgL1ZlcnNpb24gMTAwID4+IC9NZXRhZGF0YSAzIDAgUiAvT0NQcm9wZXJ0aWVzIDw8IC9EIDw8IC9PTiBbIDQgMCBSIF0gL09yZGVyIFsgXSAvUkJHcm91cHMgWyBdID4+IC9PQ0dzIFsgNCAwIFIgXSA+PiAvUGFnZXMgNSAwIFIgL1R5cGUgL0NhdGFsb2cgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL0F1dGhvciAoTHVjYXMpIC9DcmVhdGlvbkRhdGUgKEQ6MjAyMzA1MDgxNDE2NTUtMDMnMDAnKSAvQ3JlYXRvciAoQ29yZWxEUkFXIDIwMjIpIC9HVFNfUERGWENvbmZvcm1hbmNlIChQREYvWC0xYToyMDAxKSAvR1RTX1BERlhWZXJzaW9uIChQREYvWC0xOjIwMDEpIC9Nb2REYXRlIChEOjIwMjYwNzEzMTE0MTMxLTAzJzAwJykgL1Byb2R1Y2VyIChDb3JlbCBQREYgRW5naW5lIFZlcnNpb24gMjQuMi4wLjQ0NCkgL1RpdGxlIChTRVRFIExBR09BUyAtIExBVURPIE3JRElDTyBERSBBTFRPIENVU1RPLmNkcikgL1RyYXBwZWQgL0ZhbHNlID4+CmVuZG9iagozIDAgb2JqCjw8IC9TdWJ0eXBlIC9YTUwgL1R5cGUgL01ldGFkYXRhIC9MZW5ndGggMTc4NiA+PgpzdHJlYW0KPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgOS4xLWMwMDEgNzkuNjc1ZDBmNywgMjAyMy8wNi8xMS0xOToyMToxNiAgICAgICAgIj4KICAgPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICAgICAgPHJkZjpEZXNjcmlwdGlvbiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iIHhtbG5zOnhtcD0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wLyIgeG1sbnM6cGRmeD0iaHR0cDovL25zLmFkb2JlLmNvbS9wZGZ4LzEuMy8iIHhtbG5zOnBkZnhpZD0iaHR0cDovL3d3dy5ucGVzLm9yZy9wZGZ4L25zL2lkLyIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnBkZj0iaHR0cDovL25zLmFkb2JlLmNvbS9wZGYvMS4zLyIgcmRmOmFib3V0PSIiPgogICAgICAgICA8ZGM6Zm9ybWF0PmFwcGxpY2F0aW9uL3BkZjwvZGM6Zm9ybWF0PgogICAgICAgICA8ZGM6Y3JlYXRvcj4KICAgICAgICAgICAgPHJkZjpTZXE+CiAgICAgICAgICAgICAgIDxyZGY6bGk+THVjYXM8L3JkZjpsaT4KICAgICAgICAgICAgPC9yZGY6U2VxPgogICAgICAgICA8L2RjOmNyZWF0b3I+CiAgICAgICAgIDxkYzp0aXRsZT4KICAgICAgICAgICAgPHJkZjpBbHQ+CiAgICAgICAgICAgICAgIDxyZGY6bGkgeG1sOmxhbmc9IngtZGVmYXVsdCI+U0VURSBMQUdPQVMgLSBMQVVETyBNw4lESUNPIERFIEFMVE8gQ1VTVE8uY2RyPC9yZGY6bGk+CiAgICAgICAgICAgIDwvcmRmOkFsdD4KICAgICAgICAgPC9kYzp0aXRsZT4KICAgICAgICAgPHhtcDpDcmVhdGVEYXRlPjIwMjMtMDUtMDhUMTQ6MTY6NTUtMDM6MDA8L3htcDpDcmVhdGVEYXRlPgogICAgICAgICA8eG1wOkNyZWF0b3JUb29sPkNvcmVsRFJBVyAyMDIyPC94bXA6Q3JlYXRvclRvb2w+CiAgICAgICAgIDx4bXA6TW9kaWZ5RGF0ZT4yMDI2LTA3LTEzVDExOjQxOjMxLTAzOjAwPC94bXA6TW9kaWZ5RGF0ZT4KICAgICAgICAgPHhtcDpNZXRhZGF0YURhdGU+MjAyNi0wNy0xM1QxMTo0MTozMS0wMzowMDwveG1wOk1ldGFkYXRhRGF0ZT4KICAgICAgICAgPHBkZng6R1RTX1BERlhDb25mb3JtYW5jZT5QREYvWC0xYToyMDAxPC9wZGZ4OkdUU19QREZYQ29uZm9ybWFuY2U+CiAgICAgICAgIDxwZGZ4OkdUU19QREZYVmVyc2lvbj5QREYvWC0xOjIwMDE8L3BkZng6R1RTX1BERlhWZXJzaW9uPgogICAgICAgICA8cGRmeGlkOkdUU19QREZYVmVyc2lvbj5QREYvWC0xOjIwMDE8L3BkZnhpZDpHVFNfUERGWFZlcnNpb24+CiAgICAgICAgIDx4bXBNTTpWZXJzaW9uSUQ+MTwveG1wTU06VmVyc2lvbklEPgogICAgICAgICA8eG1wTU06RG9jdW1lbnRJRD51dWlkOjUyMjRkNTZjLTQxZDYtNDExMi05NzVmLThiYTQzMTQ1ZWQ0OTwveG1wTU06RG9jdW1lbnRJRD4KICAgICAgICAgPHhtcE1NOkluc3RhbmNlSUQ+dXVpZDplMjUwMDNiOS0yZDg0LTRmNzItYjc5My1mMmI0ZWIyM2YzYTk8L3htcE1NOkluc3RhbmNlSUQ+CiAgICAgICAgIDxwZGY6UHJvZHVjZXI+Q29yZWwgUERGIEVuZ2luZSBWZXJzaW9uIDI0LjIuMC40NDQ8L3BkZjpQcm9kdWNlcj4KICAgICAgICAgPHBkZjpUcmFwcGVkPkZhbHNlPC9wZGY6VHJhcHBlZD4KICAgICAgPC9yZGY6RGVzY3JpcHRpb24+CiAgIDwvcmRmOlJERj4KPC94OnhtcG1ldGE+Cgo8P3hwYWNrZXQgZW5kPSJ3Ij8+CgplbmRzdHJlYW0KZW5kb2JqCjQgMCBvYmoKPDwgL05hbWUgKEFkb2JlIEZpbGwgJiBTaWduKSAvVHlwZSAvT0NHID4+CmVuZG9iago1IDAgb2JqCjw8IC9Db3VudCAyIC9LaWRzIFsgNiAwIFIgNyAwIFIgXSAvVHlwZSAvUGFnZXMgPj4KZW5kb2JqCjYgMCBvYmoKPDwgL0NvbnRlbnRzIFsgOCAwIFIgOSAwIFIgMTAgMCBSIDExIDAgUiAxMiAwIFIgMTMgMCBSIDE0IDAgUiAxNSAwIFIgXSAvQ3JvcEJveCBbIDAuMCAwLjAgNTk1LjI3NTYgODQxLjg4OTggXSAvTWVkaWFCb3ggWyAwLjAgMC4wIDU5NS4yNzU2IDg0MS44ODk4IF0gL1BhcmVudCA1IDAgUiAvUmVzb3VyY2Vz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LjAgMC4wIDAuMCBdIC9Eb21haW4gWyAwLjAgMS4wIF0gL0Z1bmN0aW9uVHlwZSAyIC9OIDEuMCA+PgplbmRvYmoKMzIgMCBvYmoKPDwgL0MwIFsgMC4wIDAuMCAwLjAgMC4wIF0gL0MxIFsgMC4wIDAuMCAxLjAgMC4wIF0gL0RvbWFpbiBbIDAuMCAxLjAgXSAvRnVuY3Rpb25UeXBlIDIgL04gMS4wID4+CmVuZG9iagozMyAwIG9iago8PCAvT3JkZXJpbmcgKElkZW50aXR5KSAvUmVnaXN0cnkgKEFkb2JlKSAvU3VwcGxlbWVudCAwID4+CmVuZG9iagozNCAwIG9iago8PCAvQXNjZW50IDcyOCAvQXZnV2lkdGggNDc5IC9DYXBIZWlnaHQgNTAwIC9EZXNjZW50IC0yMTAgL0ZsYWdzIDQgL0ZvbnRCQm94IFsgLTYyOCAtMzc2IDIwMDAgMTA1NiBdIC9Gb250RmlsZTMgNDMgMCBSIC9Gb250TmFtZSAvRERGU09IK0FyaWFsLUJvbGRNVCAvSXRhbGljQW5nbGUgMCAvTGVhZGluZyAxNTAgL01heFdpZHRoIDI2MjggL1N0ZW1WIDAgL1R5cGUgL0ZvbnREZXNjcmlwdG9yIC9YSGVpZ2h0IDI1MCA+PgplbmRvYmoKMzUgMCBvYmoKWyAzIFsgMjc4IF0gMTEgWyAzMzMgMzMzIF0gMTUgWyAyNzggMzMzIDI3OCAyNzggXSAxOSAyNCA1NTYgMjcgWyA1NTYgNTU2IDMzMyAzMzMgXSAzMiBbIDU4NCBdIDM2IDM5IDcyMiA0MCBbIDY2NyA2MTEgNzc4IDcyMiAyNzggNTU2IF0gNDcgWyA2MTEgODMzIDcyMiA3NzggNjY3IDc3OCA3MjIgNjY3IDYxMSA3MjIgNjY3IF0gNTkgWyA2NjcgXSA2MSBbIDYxMSBdIDY4IFsgNTU2IF0gNzIgWyA1NTYgXSA3NCBbIDYxMSBdIDgyIFsgNjExIF0gODYgWyA1NTYgMzMzIF0gMTAwIFsgNzIyIDY2NyBdIDE1OCBbIDM2NSBdIDE3MyBbIDcyMiA3NzggXSAxOTggWyA3MjIgNjY3IDcyMiBdIDIwMyBbIDI3OCBdIDIwNyBbIDc3OCBdIDIxMCBbIDcyMiBdIF0KZW5kb2JqCjM2IDAg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c3RyZWFtCmVuZG9iago0NCAwIG9iago8PCAvQmFzZUZvbnQgL0FUWlhDTytBcmlhbCAvRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZyAvRmlyc3RDaGFyIDAgL0ZvbnREZXNjcmlwdG9yIDUwIDAgUiAvTGFzdENoYXIgMjU1IC9TdWJ0eXBlIC9UcnVlVHlwZSAvVHlwZSAvRm9udCAvV2lkdGhzIFsgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCAyNzggMjc4IDM1NSA1NTYgNTU2IDg4OSA2NjcgMTkxIDMzMyAzMzMgMzg5IDU4NCAyNzggMzMzIDI3OCAyNzggNTU2IDU1NiA1NTYgNTU2IDU1NiA1NTYgNTU2IDU1NiA1NTYgNTU2IDI3OCAyNzggNTg0IDU4NCA1ODQgNTU2IDEwMTUgNjY3IDY2NyA3MjIgNzIyIDY2NyA2MTEgNzc4IDcyMiAyNzggNTAwIDY2NyA1NTYgODMzIDcyMiA3NzggNjY3IDc3OCA3MjIgNjY3IDYxMSA3MjIgNjY3IDk0NCA2NjcgNjY3IDYxMSAyNzggMjc4IDI3OCA0NjkgNTU2IDMzMyA1NTYgNTU2IDUwMCA1NTYgNTU2IDI3OCA1NTYgNTU2IDIyMiAyMjIgNTAwIDIyMiA4MzMgNTU2IDU1NiA1NTYgNTU2IDMzMyA1MDAgMjc4IDU1NiA1MDAgNzIyIDUwMCA1MDAgNTAwIDMzNCAyNjAgMzM0IDU4NCAzNTAgNTU2IDM1MCAyMjIgNTU2IDMzMyAxMDAwIDU1NiA1NTYgMzMzIDEwMDAgNjY3IDMzMyAxMDAwIDM1MCA2MTEgMzUwIDM1MCAyMjIgMjIyIDMzMyAzMzMgMzUwIDU1NiAxMDAwIDMzMyAxMDAwIDUwMCAzMzMgOTQ0IDM1MCA1MDAgNjY3IDI3OCAzMzMgNTU2IDU1NiA1NTYgNTU2IDI2MCA1NTYgMzMzIDczNyAzNzAgNTU2IDU4NCAzMzMgNzM3IDU1MiA0MDAgNTQ5IDMzMyAzMzMgMzMzIDU3NiA1MzcgMzMzIDMzMyAzMzMgMzY1IDU1NiA4MzQgODM0IDgzNCA2MTEgNjY3IDY2NyA2NjcgNjY3IDY2NyA2NjcgMTAwMCA3MjIgNjY3IDY2NyA2NjcgNjY3IDI3OCAyNzggMjc4IDI3OCA3MjIgNzIyIDc3OCA3NzggNzc4IDc3OCA3NzggNTg0IDc3OCA3MjIgNzIyIDcyMiA3MjIgNjY3IDY2NyA2MTEgNTU2IDU1NiA1NTYgNTU2IDU1NiA1NTYgODg5IDUwMCA1NTYgNTU2IDU1NiA1NTYgMjc4IDI3OCAyNzggMjc4IDU1NiA1NTYgNTU2IDU1NiA1NTYgNTU2IDU1NiA1NDkgNjExIDU1NiA1NTYgNTU2IDU1NiA1MDAgNTU2IDUwMCBdID4+CmVuZG9iago0NSAwIG9iago8PCAvQmFzZUZvbnQgL1pQWFZBUStBcmlhbCAvRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZyAvRmlyc3RDaGFyIDAgL0ZvbnREZXNjcmlwdG9yIDUxIDAgUiAvTGFzdENoYXIgMjU1IC9TdWJ0eXBlIC9UcnVlVHlwZSAvVHlwZSAvRm9udCAvV2lkdGhzIFsgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCAyNzggMjc4IDM1NSA1NTYgNTU2IDg4OSA2NjcgMTkxIDMzMyAzMzMgMzg5IDU4NCAyNzggMzMzIDI3OCAyNzggNTU2IDU1NiA1NTYgNTU2IDU1NiA1NTYgNTU2IDU1NiA1NTYgNTU2IDI3OCAyNzggNTg0IDU4NCA1ODQgNTU2IDEwMTUgNjY3IDY2NyA3MjIgNzIyIDY2NyA2MTEgNzc4IDcyMiAyNzggNTAwIDY2NyA1NTYgODMzIDcyMiA3NzggNjY3IDc3OCA3MjIgNjY3IDYxMSA3MjIgNjY3IDk0NCA2NjcgNjY3IDYxMSAyNzggMjc4IDI3OCA0NjkgNTU2IDMzMyA1NTYgNTU2IDUwMCA1NTYgNTU2IDI3OCA1NTYgNTU2IDIyMiAyMjIgNTAwIDIyMiA4MzMgNTU2IDU1NiA1NTYgNTU2IDMzMyA1MDAgMjc4IDU1NiA1MDAgNzIyIDUwMCA1MDAgNTAwIDMzNCAyNjAgMzM0IDU4NCAzNTAgNTU2IDM1MCAyMjIgNTU2IDMzMyAxMDAwIDU1NiA1NTYgMzMzIDEwMDAgNjY3IDMzMyAxMDAwIDM1MCA2MTEgMzUwIDM1MCAyMjIgMjIyIDMzMyAzMzMgMzUwIDU1NiAxMDAwIDMzMyAxMDAwIDUwMCAzMzMgOTQ0IDM1MCA1MDAgNjY3IDI3OCAzMzMgNTU2IDU1NiA1NTYgNTU2IDI2MCA1NTYgMzMzIDczNyAzNzAgNTU2IDU4NCAzMzMgNzM3IDU1MiA0MDAgNTQ5IDMzMyAzMzMgMzMzIDU3NiA1MzcgMzMzIDMzMyAzMzMgMzY1IDU1NiA4MzQgODM0IDgzNCA2MTEgNjY3IDY2NyA2NjcgNjY3IDY2NyA2NjcgMTAwMCA3MjIgNjY3IDY2NyA2NjcgNjY3IDI3OCAyNzggMjc4IDI3OCA3MjIgNzIyIDc3OCA3NzggNzc4IDc3OCA3NzggNTg0IDc3OCA3MjIgNzIyIDcyMiA3MjIgNjY3IDY2NyA2MTEgNTU2IDU1NiA1NTYgNTU2IDU1NiA1NTYgODg5IDUwMCA1NTYgNTU2IDU1NiA1NTYgMjc4IDI3OCAyNzggMjc4IDU1NiA1NTYgNTU2IDU1NiA1NTYgNTU2IDU1NiA1NDkgNjExIDU1NiA1NTYgNTU2IDU1NiA1MDAgNTU2IDUwMCBdID4+CmVuZG9iago0NiAwIG9iago8PCAvQmFzZUZvbnQgL09MSUJKTStBcmlhbCAvRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZyAvRmlyc3RDaGFyIDAgL0ZvbnREZXNjcmlwdG9yIDUyIDAgUiAvTGFzdENoYXIgMjU1IC9TdWJ0eXBlIC9UcnVlVHlwZSAvVHlwZSAvRm9udCAvV2lkdGhzIFsgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCAyNzggMjc4IDM1NSA1NTYgNTU2IDg4OSA2NjcgMTkxIDMzMyAzMzMgMzg5IDU4NCAyNzggMzMzIDI3OCAyNzggNTU2IDU1NiA1NTYgNTU2IDU1NiA1NTYgNTU2IDU1NiA1NTYgNTU2IDI3OCAyNzggNTg0IDU4NCA1ODQgNTU2IDEwMTUgNjY3IDY2NyA3MjIgNzIyIDY2NyA2MTEgNzc4IDcyMiAyNzggNTAwIDY2NyA1NTYgODMzIDcyMiA3NzggNjY3IDc3OCA3MjIgNjY3IDYxMSA3MjIgNjY3IDk0NCA2NjcgNjY3IDYxMSAyNzggMjc4IDI3OCA0NjkgNTU2IDMzMyA1NTYgNTU2IDUwMCA1NTYgNTU2IDI3OCA1NTYgNTU2IDIyMiAyMjIgNTAwIDIyMiA4MzMgNTU2IDU1NiA1NTYgNTU2IDMzMyA1MDAgMjc4IDU1NiA1MDAgNzIyIDUwMCA1MDAgNTAwIDMzNCAyNjAgMzM0IDU4NCAzNTAgNTU2IDM1MCAyMjIgNTU2IDMzMyAxMDAwIDU1NiA1NTYgMzMzIDEwMDAgNjY3IDMzMyAxMDAwIDM1MCA2MTEgMzUwIDM1MCAyMjIgMjIyIDMzMyAzMzMgMzUwIDU1NiAxMDAwIDMzMyAxMDAwIDUwMCAzMzMgOTQ0IDM1MCA1MDAgNjY3IDI3OCAzMzMgNTU2IDU1NiA1NTYgNTU2IDI2MCA1NTYgMzMzIDczNyAzNzAgNTU2IDU4NCAzMzMgNzM3IDU1MiA0MDAgNTQ5IDMzMyAzMzMgMzMzIDU3NiA1MzcgMzMzIDMzMyAzMzMgMzY1IDU1NiA4MzQgODM0IDgzNCA2MTEgNjY3IDY2NyA2NjcgNjY3IDY2NyA2NjcgMTAwMCA3MjIgNjY3IDY2NyA2NjcgNjY3IDI3OCAyNzggMjc4IDI3OCA3MjIgNzIyIDc3OCA3NzggNzc4IDc3OCA3NzggNTg0IDc3OCA3MjIgNzIyIDcyMiA3MjIgNjY3IDY2NyA2MTEgNTU2IDU1NiA1NTYgNTU2IDU1NiA1NTYgODg5IDUwMCA1NTYgNTU2IDU1NiA1NTYgMjc4IDI3OCAyNzggMjc4IDU1NiA1NTYgNTU2IDU1NiA1NTYgNTU2IDU1NiA1NDkgNjExIDU1NiA1NTYgNTU2IDU1NiA1MDAgNTU2IDUwMCBdID4+CmVuZG9iago0NyAwIG9iago8PCAvQmFzZUZvbnQgL0xUTUlIQitDb3VyaWVyU3RkIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9GaXJzdENoYXIgMCAvRm9udERlc2NyaXB0b3IgNTMgMCBSIC9MYXN0Q2hhciAyNTUgL1N1YnR5cGUgL1R5cGUxIC9UeXBlIC9Gb250IC9XaWR0aHMgWyA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgXSA+PgplbmRvYmoKNDggMCBvYmoKPDwgL0Jhc2VGb250IC9WQUJIQkgrQ291cmllclN0ZCAvRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZyAvRmlyc3RDaGFyIDAgL0ZvbnREZXNjcmlwdG9yIDU0IDAgUiAvTGFzdENoYXIgMjU1IC9TdWJ0eXBlIC9UeXBlMSAvVHlwZSAvRm9udCAvV2lkdGhzIFsgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIDYwMCA2MDAgNjAwIF0gPj4KZW5kb2JqCjQ5IDAgb2JqCjw8IC9CYXNlRm9udCAvREtKUlFTK0FyaWFsIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9GaXJzdENoYXIgMCAvRm9udERlc2NyaXB0b3IgNTUgMCBSIC9MYXN0Q2hhciAyNTUgL1N1YnR5cGUgL1RydWVUeXBlIC9UeXBlIC9Gb250IC9XaWR0aHMgWyA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDc1MCA3NTAgNzUwIDI3OCAyNzggMzU1IDU1NiA1NTYgODg5IDY2NyAxOTEgMzMzIDMzMyAzODkgNTg0IDI3OCAzMzMgMjc4IDI3OCA1NTYgNTU2IDU1NiA1NTYgNTU2IDU1NiA1NTYgNTU2IDU1NiA1NTYgMjc4IDI3OCA1ODQgNTg0IDU4NCA1NTYgMTAxNSA2NjcgNjY3IDcyMiA3MjIgNjY3IDYxMSA3NzggNzIyIDI3OCA1MDAgNjY3IDU1NiA4MzMgNzIyIDc3OCA2NjcgNzc4IDcyMiA2NjcgNjExIDcyMiA2NjcgOTQ0IDY2NyA2NjcgNjExIDI3OCAyNzggMjc4IDQ2OSA1NTYgMzMzIDU1NiA1NTYgNTAwIDU1NiA1NTYgMjc4IDU1NiA1NTYgMjIyIDIyMiA1MDAgMjIyIDgzMyA1NTYgNTU2IDU1NiA1NTYgMzMzIDUwMCAyNzggNTU2IDUwMCA3MjIgNTAwIDUwMCA1MDAgMzM0IDI2MCAzMzQgNTg0IDM1MCA1NTYgMzUwIDIyMiA1NTYgMzMzIDEwMDAgNTU2IDU1NiAzMzMgMTAwMCA2NjcgMzMzIDEwMDAgMzUwIDYxMSAzNTAgMzUwIDIyMiAyMjIgMzMzIDMzMyAzNTAgNTU2IDEwMDAgMzMzIDEwMDAgNTAwIDMzMyA5NDQgMzUwIDUwMCA2NjcgMjc4IDMzMyA1NTYgNTU2IDU1NiA1NTYgMjYwIDU1NiAzMzMgNzM3IDM3MCA1NTYgNTg0IDMzMyA3MzcgNTUyIDQwMCA1NDkgMzMzIDMzMyAzMzMgNTc2IDUzNyAzMzMgMzMzIDMzMyAzNjUgNTU2IDgzNCA4MzQgODM0IDYxMSA2NjcgNjY3IDY2NyA2NjcgNjY3IDY2NyAxMDAwIDcyMiA2NjcgNjY3IDY2NyA2NjcgMjc4IDI3OCAyNzggMjc4IDcyMiA3MjIgNzc4IDc3OCA3NzggNzc4IDc3OCA1ODQgNzc4IDcyMiA3MjIgNzIyIDcyMiA2NjcgNjY3IDYxMSA1NTYgNTU2IDU1NiA1NTYgNTU2IDU1NiA4ODkgNTAwIDU1NiA1NTYgNTU2IDU1NiAyNzggMjc4IDI3OCAyNzggNTU2IDU1NiA1NTYgNTU2IDU1NiA1NTYgNTU2IDU0OSA2MTEgNTU2IDU1NiA1NTYgNTU2IDUwMCA1NTYgNTAwIF0gPj4KZW5kb2JqCjUwIDAgb2JqCjw8IC9Bc2NlbnQgMTA0MCAvQ2FwSGVpZ2h0IDcxNiAvRGVzY2VudCAtMzI1IC9GbGFncyAzMiAvRm9udEJCb3ggWyAtNjY1IC0zMjUgMjAwMCAxMDQwIF0gL0ZvbnRGYW1pbHkgKEFyaWFsKSAvRm9udEZpbGUyIDU2IDAgUiAvRm9udE5hbWUgL0FUWlhDTytBcmlhbCAvRm9udFN0cmV0Y2ggL05vcm1hbCAvRm9udFdlaWdodCA0MDAgL0l0YWxpY0FuZ2xlIDAgL1N0ZW1WIDg4IC9UeXBlIC9Gb250RGVzY3JpcHRvciAvWEhlaWdodCA1MTkgPj4KZW5kb2JqCjUxIDAgb2JqCjw8IC9Bc2NlbnQgMTA0MCAvQ2FwSGVpZ2h0IDcxNiAvRGVzY2VudCAtMzI1IC9GbGFncyAzMiAvRm9udEJCb3ggWyAtNjY1IC0zMjUgMjAwMCAxMDQwIF0gL0ZvbnRGYW1pbHkgKEFyaWFsKSAvRm9udEZpbGUyIDU3IDAgUiAvRm9udE5hbWUgL1pQWFZBUStBcmlhbCAvRm9udFN0cmV0Y2ggL05vcm1hbCAvRm9udFdlaWdodCA0MDAgL0l0YWxpY0FuZ2xlIDAgL1N0ZW1WIDg4IC9UeXBlIC9Gb250RGVzY3JpcHRvciAvWEhlaWdodCA1MTkgPj4KZW5kb2JqCjUyIDAgb2JqCjw8IC9Bc2NlbnQgMTA0MCAvQ2FwSGVpZ2h0IDcxNiAvRGVzY2VudCAtMzI1IC9GbGFncyAzMiAvRm9udEJCb3ggWyAtNjY1IC0zMjUgMjAwMCAxMDQwIF0gL0ZvbnRGYW1pbHkgKEFyaWFsKSAvRm9udEZpbGUyIDU4IDAgUiAvRm9udE5hbWUgL09MSUJKTStBcmlhbCAvRm9udFN0cmV0Y2ggL05vcm1hbCAvRm9udFdlaWdodCA0MDAgL0l0YWxpY0FuZ2xlIDAgL1N0ZW1WIDg4IC9UeXBlIC9Gb250RGVzY3JpcHRvciAvWEhlaWdodCA1MTkgPj4KZW5kb2JqCjUzIDAgb2JqCjw8IC9Bc2NlbnQgODU3IC9DYXBIZWlnaHQgNTczIC9DaGFyU2V0ICgvc2xhc2gvemVyby9vbmUvZm91ci9maXZlL0cvTSkgL0Rlc2NlbnQgLTI1MCAvRmxhZ3MgMzQgL0ZvbnRCQm94IFsgLTU2IC0yNTAgNjc4IDg1NyBdIC9Gb250RmFtaWx5IChDb3VyaWVyIFN0ZCkgL0ZvbnRGaWxlMyA1OSAwIFIgL0ZvbnROYW1lIC9MVE1JSEIrQ291cmllclN0ZCAvRm9udFN0cmV0Y2ggL05vcm1hbCAvRm9udFdlaWdodCA1MDAgL0l0YWxpY0FuZ2xlIDAgL1N0ZW1WIDU2IC9UeXBlIC9Gb250RGVzY3JpcHRvciAvWEhlaWdodCA0MzQgPj4KZW5kb2JqCjU0IDAgb2JqCjw8IC9Bc2NlbnQgODU3IC9DYXBIZWlnaHQgNTczIC9DaGFyU2V0ICgvaHlwaGVuL3BlcmlvZC96ZXJvL29uZS9mb3VyL3NpeCkgL0Rlc2NlbnQgLTI1MCAvRmxhZ3MgMzQgL0ZvbnRCQm94IFsgLTU2IC0yNTAgNjc4IDg1NyBdIC9Gb250RmFtaWx5IChDb3VyaWVyIFN0ZCkgL0ZvbnRGaWxlMyA2MCAwIFIgL0ZvbnROYW1lIC9WQUJIQkgrQ291cmllclN0ZCAvRm9udFN0cmV0Y2ggL05vcm1hbCAvRm9udFdlaWdodCA1MDAgL0l0YWxpY0FuZ2xlIDAgL1N0ZW1WIDU2IC9UeXBlIC9Gb250RGVzY3JpcHRvciAvWEhlaWdodCA0MzQgPj4KZW5kb2JqCjU1IDAgb2JqCjw8IC9Bc2NlbnQgMTA0MCAvQ2FwSGVpZ2h0IDcxNiAvRGVzY2VudCAtMzI1IC9GbGFncyAzMiAvRm9udEJCb3ggWyAtNjY1IC0zMjUgMjAwMCAxMDQwIF0gL0ZvbnRGYW1pbHkgKEFyaWFsKSAvRm9udEZpbGUyIDYxIDAgUiAvRm9udE5hbWUgL0RLSlJRUytBcmlhbCAvRm9udFN0cmV0Y2ggL05vcm1hbCAvRm9udFdlaWdodCA0MDAgL0l0YWxpY0FuZ2xlIDAgL1N0ZW1WIDg4IC9UeXBlIC9Gb250RGVzY3JpcHRvciAvWEhlaWdodCA1MTkgPj4KZW5kb2JqCjU2IDAgb2JqCjw8IC9GaWx0ZXIgL0ZsYXRlRGVjb2RlIC9MZW5ndGgxIDU1ODIzIC9MZW5ndGggMjEwMzQgPj4Kc3RyZWFtCkiJfJZ5VBRXFod/t6vr0TQNsoi4AFXdUG3cjTiOOmhc0HGSqGR0MGpE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MDAwMDAwMjQ1MyAwMDAwMCBuIAowMDAwMDAyNTE4IDAwMDAwIG4gCjAwMDAwMDI5MzMgMDAwMDAgbiAKMDAwMDAwMzIzMSAwMDAwMCBuIAowMDAwMDAzNjQ4IDAwMDAwIG4gCjAwMDAwMDM5NzkgMDAwMDAgbiAKMDAwMDAwNDM4MSAwMDAwMCBuIAowMDAwMDA1MDgzIDAwMDAwIG4gCjAwMDAwMDU2OTIgMDAwMDAgbiAKMDAwMDAwNjM4OSAwMDAwMCBuIAowMDAwMDA2OTcwIDAwMDAwIG4gCjAwMDAwMDc2NjcgMDAwMDAgbiAKMDAwMDAwNzc3MyAwMDAwMCBuIAowMDAwMDA3ODM5IDAwMDAwIG4gCjAwMDAwMDc5ODggMDAwMDAgbiAKMDAwMDAwODM2MCAwMDAwMCBuIAowMDAwMDE4MTYxIDAwMDAwIG4gCjAwMDAwMjIxODggMDAwMDAgbiAKMDAwMDAyMjI1MyAwMDAwMCBuIAowMDAwMDIyMzE5IDAwMDAwIG4gCjAwMDAwMjI2MTYgMDAwMDAgbiAKMDAwMDAyMjgzOCAwMDAwMCBuIAowMDAwMDIyOTgxIDAwMDAwIG4gCjAwMDAwMjM1NTMgMDAwMDAgbiAKMDAwMDAyNDAyNyAwMDAwMCBuIAowMDAwMDI0MTQwIDAwMDAwIG4gCjAwMDAwMjQyNTMgMDAwMDAgbiAKMDAwMDAyNDM2NiAwMDAwMCBuIAowMDAwMDI0NDc5IDAwMDAwIG4gCjAwMDAwMjQ1NTQgMDAwMDAgbiAKMDAwMDAyNDgxMCAwMDAwMCBuIAowMDAwMDI1MTk1IDAwMDAwIG4gCjAwMDAwMjUyNDEgMDAwMDAgbiAKMDAwMDAyNTc0MCAwMDAwMCBuIAowMDAwMDI2MjUyIDAwMDAwIG4gCjAwMDAwMjY3NjYgMDAwMDAgbiAKMDAwMDAyNzMxMSAwMDAwMCBuIAowMDAwMDI3ODYxIDAwMDAwIG4gCjAwMDAwMjgzNzYgMDAwMDAgbiAKMDAwMDAzMzMxNCAwMDAwMCBuIAowMDAwMDM0NTExIDAwMDAwIG4gCjAwMDAwMzU3MDggMDAwMDAgbiAKMDAwMDAzNjkwNSAwMDAwMCBuIAowMDAwMDM4MDk3IDAwMDAwIG4gCjAwMDAwMzkyODkgMDAwMDAgbiAKMDAwMDA0MDQ4NiAwMDAwMCBuIAowMDAwMDQwNzUzIDAwMDAwIG4gCjAwMDAwNDEwMjAgMDAwMDAgbiAKMDAwMDA0MTI4NyAwMDAwMCBuIAowMDAwMDQxNjAyIDAwMDAwIG4gCjAwMDAwNDE5MjAgMDAwMDAgbiAKMDAwMDA0MjE4NyAwMDAwMCBuIAowMDAwMDYzMzExIDAwMDAwIG4gCjAwMDAwODM5NzYgMDAwMDAgbiAKMDAwMDEwNTg2NyAwMDAwMCBuIAowMDAwMTA2Njk0IDAwMDAwIG4gCjAwMDAxMDc0NjUgMDAwMDAgbiAKdHJhaWxlciA8PCAvSW5mbyAyIDAgUiAvUm9vdCAxIDAgUiAvU2l6ZSA2MiAvSUQgWzwwZTRhNmUxMWI3ZTMwYzg3ZWMzNmZhODAwNzNlYTIxMT48MWE5MzZlNTMxOGZiMDZiZjRhZjJkNjk2MGViODg3N2M+XSA+PgpzdGFydHhyZWYKMTI4NTkwCiUlRU9GCg==";
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== modules/lme-sete-lagoas/index.js (v2.0.0) ===== */
+/* ------------------------------------------------------------------
+ * modules/lme-sete-lagoas/index.js
+ * Origem: sodelfino/lme-sete-lagoas-gerador -> LME_SETE_LAGOAS_GERADOR.user.js v1.4.0
+ * ------------------------------------------------------------------
+ * O QUE MUDOU NA MIGRACAO (e o que NAO mudou)
+ *  - REMOVIDO daqui: trava de frame, deteccao de login, shadow host
+ *    proprio, CSS de posicionamento do botao (#lme-fab) e do toast,
+ *    e o loop proprio de recheque de login. Tudo isso e do nucleo.
+ *  - PRESERVADO byte a byte: a funcao gerarPdf() inteira, com TODAS as
+ *    coordenadas calibradas na mao contra o PDF oficial da prefeitura
+ *    (posicao de cada campo, os retangulos brancos que limpam as celulas
+ *    antes de reescrever, a fonte adaptativa do diagnostico e do CID), e
+ *    as tabelas MEDICOS / ORIGENS / CID_DIC / CATALOGO_PROCEDIMENTOS.
+ *  - A leitura da tela passou a usar o dom-reader do nucleo, que ja
+ *    tenta as variantes de rotulo e normaliza acento. Ganho colateral: este
+ *    gerador nao lia o nome da mae; agora a leitura e a mesma dos outros.
+ *
+ * PRIVACIDADE: os dados do paciente ficam so no formulario em memoria.
+ * Nada e gravado em disco nem enviado para fora do navegador.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  var d = null;
+  var overlay = null;
+  var timers = [];
+
+  /* PDF base oficial, embutido em base64 pelo asset do modulo. */
+  var BASE_PDF_B64 = raiz.MEEDS_LME_BASE_PDF_B64;
+
+  /* Nome herdado do original, para gerarPdf() continuar valendo sem
+   * reescrita. */
+  var LME_BASE_PDF_B64 = BASE_PDF_B64;
+
+  /* SHIM DE COMPATIBILIDADE — ver modules/apac-itauna/index.js.
+   * Reproduz a interface shadow.getElementById() por cima do overlay do
+   * dock, para o codigo migrado continuar valendo sem reescrita. */
+  var shadow = {
+    getElementById: function (id) {
+      return overlay ? overlay.elemento.querySelector("#" + id) : null;
+    },
+    querySelector: function (sel) {
+      return overlay ? overlay.elemento.querySelector(sel) : null;
+    },
+    querySelectorAll: function (sel) {
+      return overlay ? overlay.elemento.querySelectorAll(sel) : [];
+    },
+  };
+
+  function toast(msg, ms) {
+    d.core.toast(msg, ms || 3000);
+  }
+
+  function b64ToBytes(b64) {
+    var bin = atob(b64);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+
+  /* ----------------------------------------------------------------
+   * pdf-lib — resolvido do escopo global (o bootloader carrega via
+   * @require), com o mesmo fallback do original.
+   * ---------------------------------------------------------------- */
+  function resolverPdfLib() {
+    var escopos = [];
+    try { escopos.push(raiz); } catch (e) {}
+    try { if (typeof unsafeWindow !== "undefined") escopos.push(unsafeWindow); } catch (e) {}
+    try { escopos.push(window); } catch (e) {}
+    try { escopos.push(globalThis); } catch (e) {}
+    for (var i = 0; i < escopos.length; i++) {
+      if (escopos[i] && escopos[i].PDFLib) return escopos[i].PDFLib;
+    }
+    return null;
+  }
+
+  var pdfLibCarregandoPromise = null;
+  function garantirPdfLib() {
+    var direto = resolverPdfLib();
+    if (direto) return Promise.resolve(direto);
+    if (pdfLibCarregandoPromise) return pdfLibCarregandoPromise;
+    pdfLibCarregandoPromise = new Promise(function (resolve, reject) {
+      if (typeof GM_xmlhttpRequest !== "function") {
+        reject(new Error("pdf-lib indisponível e GM_xmlhttpRequest não concedido."));
+        return;
+      }
+      GM_xmlhttpRequest({
+        method: "GET",
+        url: "https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js",
+        onload: function (res) {
+          try {
+            (0, eval)(res.responseText);
+            var lib = resolverPdfLib();
+            if (lib) resolve(lib);
+            else reject(new Error("pdf-lib avaliado mas não exposto."));
+          } catch (e) { reject(e); }
+        },
+        onerror: function () { reject(new Error("Falha de rede ao baixar o pdf-lib.")); },
+      });
+    });
+    return pdfLibCarregandoPromise;
+  }
+
+  function formatarCpf(digits) {
+    var dd = (digits || "").replace(/\D/g, "");
+    if (dd.length !== 11) return digits || "";
+    return dd.slice(0,3) + "." + dd.slice(3,6) + "." + dd.slice(6,9) + "-" + dd.slice(9,11);
+  }
+
+  /* Mascara dd/mm/aaaa: insere as barras enquanto digita, aceita colar a
+   * data ja formatada e ignora tudo que nao for digito. */
+  function ativarMascaraData(input) {
+    input.addEventListener("input", function () {
+      var dd = input.value.replace(/\D/g, "").slice(0, 8);
+      var out = dd;
+      if (dd.length > 4) out = dd.slice(0,2) + "/" + dd.slice(2,4) + "/" + dd.slice(4);
+      else if (dd.length > 2) out = dd.slice(0,2) + "/" + dd.slice(2);
+      input.value = out;
+    });
+  }
+
+  function limparErro() {
+    var el = shadow.getElementById("lme-erro");
+    el.style.display = "none";
+    el.textContent = "";
+  }
+  function mostrarErro(msg) {
+    var el = shadow.getElementById("lme-erro");
+    el.textContent = msg;
+    el.style.display = "block";
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function baixarPdf(bytes, filename) {
+    var blob = new Blob([bytes], { type: "application/pdf" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+  }
+
+
+  /* ---- dados fixos, preservados do repositorio de origem ---- */
+  // Municipio fixo: ja vem impresso no PDF oficial.
+  var MUNICIPIO_FIXO = "SETE LAGOAS";
+
+  /* Lista de medicos solicitantes [nome, CRM, CPF], mantida exatamente
+   * como estava em sodelfino/lme-sete-lagoas-gerador. Nenhum vem pre-selecionado:
+   * a selecao e obrigatoria a cada laudo, para evitar assinatura errada. */
+  var MEDICOS = [
+    ['JEAN MILLER NERY DE LACERDA', '110540/MG', '061.411.666-01'],
+    ['WARLLON DE SOUZA BARCELLOS', '1359592 RJ', '120.566.827-61'],
+    ['GIZELLE FERNANDES DOS SANTOS', '0127071 RJ', '126.751.407-83'],
+    ['NATÁLIA JARDIM MARTINS DA SILVA', '18372 CE', '733.786.312-87'],
+    ['RAFAELLA LEAO OLIVEIRA SILVA', '91694 MG', '106.149.136-67'],
+    ['GUILHERME HENRIQUE OLIVEIRA BORGES', '30341-GO', '038.851.681-03'],
+  ];
+
+  var ORIGENS = ['SAÚDE AUDITIVA', 'UBS CIDADE DE DEUS', 'UBS BELO VALE'];
+
+  var CID_DIC = {
+    // ja usados
+    'G43.0': 'Enxaqueca sem aura (enxaqueca comum)',
+    'G43.8': 'Outras formas de enxaqueca',
+    'P14.3': 'Outras lesões do plexo braquial devidas a traumatismo de parto',
+    'L93': 'Lúpus eritematoso',
+    'M18.0': 'Artrose primária bilateral das primeiras articulações carpometacarpianas',
+    'M25.5': 'Dor articular',
+    'R73.9': 'Hiperglicemia não especificada',
+    'G00.9': 'Meningite bacteriana não especificada',
+    'H90.3': 'Perda de audição neurossensorial bilateral',
+    'F82': 'Transtorno específico do desenvolvimento motor',
+    'F80.9': 'Transtorno de desenvolvimento da fala ou linguagem não especificado',
+    // neurologia / cefaleia
+    'G43.9': 'Enxaqueca não especificada',
+    'G44.1': 'Cefaleia vascular, não classificada em outra parte',
+    'G40.9': 'Epilepsia não especificada',
+    'G93.4': 'Encefalopatia não especificada',
+    'R51': 'Cefaleia',
+    'G80.9': 'Paralisia cerebral não especificada',
+    'F84.0': 'Autismo infantil',
+    'F70': 'Retardo mental leve',
+    'F71': 'Retardo mental moderado',
+    'Q90.9': 'Síndrome de Down não especificada',
+    'P07.3': 'Outros recém-nascidos pré-termo',
+    // reumatologia / ortopedia
+    'M19.9': 'Artrose não especificada',
+    'M79.1': 'Mialgia',
+    'M54.5': 'Dor lombar baixa',
+    'M54.2': 'Cervicalgia',
+    'M06.9': 'Artrite reumatoide não especificada',
+    'M32.9': 'Lúpus eritematoso sistêmico não especificado',
+    'M81.9': 'Osteoporose não especificada',
+    'M85.8': 'Outros transtornos especificados da densidade e da estrutura ósseas',
+    'M47.9': 'Espondilose não especificada',
+    'M51.1': 'Transtornos de discos lombares e de outros discos intervertebrais com radiculopatia',
+    // endocrinologia
+    'E10.9': 'Diabetes mellitus tipo 1 sem complicações',
+    'E11.9': 'Diabetes mellitus tipo 2 sem complicações',
+    'E03.9': 'Hipotireoidismo não especificado',
+    'E05.9': 'Tireotoxicose não especificada',
+    'E66.9': 'Obesidade não especificada',
+    'E78.0': 'Hipercolesterolemia pura',
+    // geral
+    'I10': 'Hipertensão essencial (primária)',
+    'J44.9': 'Doença pulmonar obstrutiva crônica não especificada',
+    'N18.9': 'Doença renal crônica não especificada',
+    'R07.4': 'Dor torácica, não especificada',
+  };
+
+  var CATALOGO_PROCEDIMENTOS = {
+    RM_CRANIO:            { nome: 'Ressonância nuclear magnética de crânio',                              codigo: '02.07.01.006-4' },
+    RM_BASE_CRANIO:       { nome: 'Ressonância nuclear magnética de base do crânio',                      codigo: '02.07.01.006-4' },
+    RM_SELA_TURCICA:      { nome: 'Ressonância nuclear magnética de sela túrcica',                        codigo: '02.07.01.007-2' },
+    RM_ATM:                { nome: 'Ressonância nuclear magnética de articulação temporomandibular (bilateral)', codigo: '02.07.01.002-1' },
+    ANGIO_RM_CEREBRAL:     { nome: 'Angiorressonância cerebral',                                          codigo: '02.07.01.001-3' },
+    RM_COLUNA_CERVICAL:    { nome: 'Ressonância nuclear magnética de coluna cervical',                    codigo: '02.07.01.003-0' },
+    RM_COLUNA_TORACICA:    { nome: 'Ressonância nuclear magnética de coluna torácica',                    codigo: '02.07.01.005-6' },
+    RM_COLUNA_LOMBOSSACRA: { nome: 'Ressonância nuclear magnética de coluna lombo-sacra',                  codigo: '02.07.01.004-8' },
+    RM_CORACAO_AORTA:      { nome: 'Ressonância nuclear magnética de coração/aorta com cine',              codigo: '02.07.02.001-9' },
+    RM_MEMBRO_SUPERIOR:    { nome: 'Ressonância nuclear magnética de membro superior (unilateral)',        codigo: '02.07.02.002-7' },
+    TC_CRANIO:             { nome: 'Tomografia computadorizada do crânio',                                codigo: '02.06.01.007-9' },
+    TC_SELA_TURCICA:       { nome: 'Tomografia computadorizada de sela túrcica',                           codigo: '02.06.01.006-0' },
+    TC_FACE_ATM:           { nome: 'Tomografia computadorizada de face/seios da face/ATM',                 codigo: '02.06.01.004-4' },
+    TC_PESCOCO:            { nome: 'Tomografia computadorizada do pescoço',                                codigo: '02.06.01.005-2' },
+    TC_COLUNA_CERVICAL:    { nome: 'Tomografia computadorizada de coluna cervical (com ou sem contraste)', codigo: '02.06.01.001-0' },
+    TC_COLUNA_TORACICA:    { nome: 'Tomografia computadorizada de coluna torácica (com ou sem contraste)', codigo: '02.06.01.003-6' },
+    TC_COLUNA_LOMBOSSACRA: { nome: 'Tomografia computadorizada de coluna lombo-sacra (com ou sem contraste)', codigo: '02.06.01.002-8' },
+    TC_TORAX:              { nome: 'Tomografia computadorizada de tórax (sem contraste)',                  codigo: '02.06.02.003-1' },
+    TC_ABDOME_SUPERIOR:    { nome: 'Tomografia computadorizada de abdome superior',                        codigo: '02.06.03.001-0' },
+    TC_PELVE:              { nome: 'Tomografia computadorizada de pelve/bacia/abdome inferior',            codigo: '02.06.03.003-7' },
+    TC_ARTIC_MEMBRO_SUP:   { nome: 'Tomografia computadorizada de articulações de membro superior',        codigo: '02.06.02.001-5' },
+    TC_ARTIC_MEMBRO_INF:   { nome: 'Tomografia computadorizada de articulações de membro inferior',        codigo: '02.06.03.002-9' },
+    TC_SEGMENTOS_APENDIC:  { nome: 'Tomografia computadorizada de segmentos apendiculares (braço, antebraço, mão, coxa, perna, pé)', codigo: '02.06.02.002-3' },
+    DENSITOMETRIA_2SEG:    { nome: 'Densitometria óssea (dois segmentos)',                                 codigo: '02.04.06.002-8' },
+    DENSITOMETRIA_CORPO:   { nome: 'Densitometria óssea (corpo inteiro)',                                  codigo: '02.04.06.002-8' },
+    ENDOSCOPIA_DIGESTIVA_ALTA: { nome: 'Endoscopia digestiva alta (esofagogastroduodenoscopia)',           codigo: '02.09.01.003-7' },
+    COLONOSCOPIA:          { nome: 'Colonoscopia (coloscopia)',                                            codigo: '02.09.01.002-9' },
+    ANGIOCORONARIOGRAFIA:  { nome: 'Angiocoronariografia (cateterismo cardíaco)',                           codigo: '02.11.02.001-0' },
+    CINTILOGRAFIA_MIOCARDIO_ESTRESSE: { nome: 'Cintilografia de perfusão do miocárdio (estresse, mín. 3 projeções)', codigo: '02.08.01.002-5' },
+    CINTILOGRAFIA_MIOCARDIO_REPOUSO:  { nome: 'Cintilografia de perfusão do miocárdio (repouso, mín. 3 projeções)',  codigo: '02.08.01.003-3' },
+    ECOCARDIOGRAMA_TRANSTORACICO: { nome: 'Ecocardiograma transtorácico',                                  codigo: '02.05.01.003-2' },
+    TESTE_ERGOMETRICO:     { nome: 'Teste ergométrico (teste de esforço)',                                 codigo: '02.11.02.006-0' },
+    HOLTER_24H:            { nome: 'Holter 24 horas (eletrocardiograma dinâmico, 3 canais)',                codigo: '02.11.02.004-4' },
+    MAPA_24H:              { nome: 'MAPA 24 horas (monitorização ambulatorial da pressão arterial)',        codigo: '02.11.02.005-2' },
+    RETOSSIGMOIDOSCOPIA:   { nome: 'Retossigmoidoscopia (diagnóstica)',                                     codigo: '02.09.01.005-3' },
+  };
+
+  /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
+  var CSS = "#lme-modal{\n      background:#fff; border-radius:16px; max-width:680px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #lme-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #lme-modal-head h2{ margin:0; font-size:15px; }\n    #lme-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #lme-body{ padding:18px 20px; }\n    .lme-sec{ margin-bottom:16px; }\n    .lme-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .lme-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .lme-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:70px; resize:vertical; }\n    #lme-origem-outro-wrap{ display:none; margin-top:8px; }\n    #lme-origem-outro-wrap.show{ display:block; }\n    #lme-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .lme-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    button.lme-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.lme-primary:hover{ background:#123a7a; }\n    button.lme-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.lme-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.lme-secondary:hover{ background:#e8f0f8; }\n    #lme-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #lme-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
+
+  var HTML = "<div id=\"lme-modal\">\n      <div id=\"lme-modal-head\"><h2>Laudo Procedimento Médico — Sete Lagoas</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"lme-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"lme-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"lme-body\">\n        <div class=\"lme-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Sete Lagoas (mesmo PDF da prefeitura, logo e layout intactos). Município fixo: <b>SETE LAGOAS</b>. O Cartão Nacional do SUS é preenchido com o CPF do paciente.\n        </div>\n        <div id=\"lme-auto-aviso\"></div>\n\n        <div class=\"lme-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"lme-grid3\">\n            <div><label>Selecionar *</label><select id=\"lme-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"lme-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"lme-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"lme-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Unidade de origem</h3>\n          <select id=\"lme-origem-sel\"></select>\n          <div id=\"lme-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"lme-origem-outro\" placeholder=\"ex: UBS ITAPOÃ\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Paciente</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome completo *</label><input id=\"lme-pac-nome\"></div>\n            <div><label>CPF (usado como Cartão do SUS) *</label><input id=\"lme-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"lme-grid2\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"lme-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"lme-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n          </div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"lme-proc-nome\" list=\"lme-proc-list\" placeholder=\"digite e busque, ou digite algo novo\" autocomplete=\"off\"></div>\n            <div><label>Código SIGTAP *</label><input id=\"lme-proc-codigo\" placeholder=\"preenche sozinho se reconhecido\"></div>\n          </div>\n          <datalist id=\"lme-proc-list\"></datalist>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"lme-grid2\">\n            <div><label>CID-10</label><input id=\"lme-cid\" list=\"lme-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"lme-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          <datalist id=\"lme-cid-list\"></datalist>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"lme-justificativa\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado\"></textarea>\n        </div>\n\n        <div id=\"lme-erro\"></div>\n      </div>\n      <div id=\"lme-footer\">\n        <button class=\"lme-secondary\" id=\"lme-limpar\">Limpar</button>\n        <button class=\"lme-primary\" id=\"lme-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
+
+  /* ---- extraidas do original sem alteracao ---- */
+  function camposFaltando() {
+    const faltam = []; const v = id => shadow.getElementById(id).value.trim();
+    if (!shadow.getElementById('lme-medico-sel').value) faltam.push('seleção do médico');
+    if (!v('lme-medico-nome')) faltam.push('nome do médico');
+    if (!v('lme-medico-crm')) faltam.push('CRM do médico');
+    if (!v('lme-medico-cpf')) faltam.push('CPF do médico');
+    const origemSel = shadow.getElementById('lme-origem-sel').value;
+    if (!origemSel) faltam.push('unidade de origem');
+    if (origemSel === 'outro' && !v('lme-origem-outro')) faltam.push('nome da unidade de origem');
+    if (!v('lme-pac-nome')) faltam.push('nome do paciente');
+    if (!v('lme-pac-cpf')) faltam.push('CPF do paciente');
+    if (!v('lme-pac-sexo')) faltam.push('sexo');
+    if (!v('lme-justificativa')) faltam.push('justificativa clínica');
+    if (!v('lme-proc-nome')) faltam.push('nome do procedimento');
+    if (!v('lme-proc-codigo')) faltam.push('código SIGTAP do procedimento');
+    return faltam;
+  }
+
+  function wrapTexto(font, size, texto, maxWidth) {
+    const palavras = String(texto).split(/\s+/);
+    const linhas = [];
+    let atual = '';
+    palavras.forEach(w => {
+      const tentativa = atual ? atual + ' ' + w : w;
+      if (font.widthOfTextAtSize(tentativa, size) > maxWidth && atual) {
+        linhas.push(atual);
+        atual = w;
+      } else {
+        atual = tentativa;
+      }
+    });
+    if (atual) linhas.push(atual);
+    return linhas;
+  }
+
+  /* GERACAO DO PDF — funcao extraida VERBATIM do original.
+   * Sobrepoe o PDF OFICIAL embutido nas coordenadas ja calibradas e
+   * validadas manualmente. A pagina 2 (orientacoes) e copiada sem
+   * nenhuma alteracao. Nada aqui foi reescrito. */
+  async function gerarPdf() {
+    limparErro();
+    const faltam = camposFaltando();
+    if (faltam.length) { mostrarErro('Preencha: ' + faltam.join(', ') + '.'); return; }
+
+    const btn = shadow.getElementById('lme-gerar');
+    const original = btn.textContent;
+    btn.textContent = 'Gerando…'; btn.disabled = true;
+
+    try {
+      const PDFLibRef = await garantirPdfLib();
+      const { PDFDocument, StandardFonts, rgb } = PDFLibRef;
+
+      const origemSel = shadow.getElementById('lme-origem-sel').value;
+      const origem = (origemSel === 'outro' ? shadow.getElementById('lme-origem-outro').value : origemSel).trim().toUpperCase();
+      const nome = shadow.getElementById('lme-pac-nome').value.trim().toUpperCase();
+      const cpf = shadow.getElementById('lme-pac-cpf').value.trim();
+      const nasc = shadow.getElementById('lme-pac-nasc').value.trim();
+      const sexo = shadow.getElementById('lme-pac-sexo').value;
+      const diagnostico = shadow.getElementById('lme-diagnostico').value.trim();
+      const cid = shadow.getElementById('lme-cid').value.trim().toUpperCase();
+      const justificativa = shadow.getElementById('lme-justificativa').value.trim();
+
+      const procNome = shadow.getElementById('lme-proc-nome').value.trim();
+      const procCodigo = shadow.getElementById('lme-proc-codigo').value.trim();
+
+      const pdfDoc = await PDFDocument.load(b64ToBytes(LME_BASE_PDF_B64));
+      const page = pdfDoc.getPages()[0]; // pagina 2 (orientacoes) fica intocada
+      const H = page.getHeight();
+      const y = (top) => H - top;
+
+      const fontR = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+      const WHITE = rgb(1, 1, 1);
+      const BLACK = rgb(0, 0, 0);
+
+      function rectSpan(x, topTop, topBottom, width) {
+        page.drawRectangle({ x, y: y(topBottom), width, height: topBottom - topTop, color: WHITE });
+      }
+      function text(str, x, topBaseline, opts) {
+        opts = opts || {};
+        page.drawText(str, { x, y: y(topBaseline), size: opts.size || 10, font: opts.bold ? fontB : fontR, color: BLACK });
+      }
+      function fitFont(str, font, maxSize, minSize, maxWidth) {
+        let size = maxSize;
+        while (size > minSize && font.widthOfTextAtSize(str, size) > maxWidth) size -= 1;
+        return size;
+      }
+
+      // --- ORIGEM (limpa a celula inteira, rotulo + valor, e redesenha) ---
+      rectSpan(54, 80, 101, 186);
+      text('ORIGEM', 56.1, 87.3, { bold: true, size: 7 });
+      text(origem, 74, 100.4, { bold: true, size: 11 });
+
+      // --- NOME / DATA NASCIMENTO / SEXO ---
+      text(nome, 56, 177, { bold: true, size: 11 });
+      if (nasc) text(nasc, 335, 177, { size: 10 });
+      if (sexo === 'FEM') text('X', 504.2, 174.2, { bold: true, size: 9 });
+      else if (sexo === 'MASC') text('X', 445.4, 174.2, { bold: true, size: 9 });
+
+      // --- CARTAO NACIONAL DO SUS (regra de negocio: usa o CPF do paciente) ---
+      text(cpf, 335, 259, { size: 10 });
+
+      // --- JUSTIFICATIVA CLINICA (quebra automatica de linha) ---
+      const linhasJust = wrapTexto(fontR, 9, justificativa, 484);
+      let ty = 302;
+      linhasJust.forEach(linha => { text(linha, 56, ty, { size: 9 }); ty += 11.5; });
+
+      // --- DIAGNOSTICO INICIAL (fonte reduz automaticamente ate nao invadir o CID) ---
+      if (diagnostico) {
+        const diagMaxWidth = 458.9 - 56 - 4;
+        const diagFont = fitFont(diagnostico, fontR, 9, 6, diagMaxWidth);
+        text(diagnostico, 56, 557, { size: diagFont });
+      }
+
+      // --- CID (limpa a faixa de caixinhas e centraliza, com fonte adaptativa) ---
+      if (cid) {
+        rectSpan(459.9, 551.5, 562, 81.2);
+        const cidColWidth = 542.1 - 458.9;
+        const cidFont = fitFont(cid, fontR, 10, 5, cidColWidth - 4);
+        const cidWidth = fontR.widthOfTextAtSize(cid, cidFont);
+        text(cid, 458.9 + (cidColWidth - cidWidth) / 2, 558.5, { size: cidFont });
+      }
+
+      // --- CLINICA SOLICITANTE (regra de negocio: sempre repete ORIGEM) ---
+      rectSpan(54, 564, 584, 456);
+      text('CLÍNICA SOLICITANTE', 56.1, 571.5, { bold: true, size: 7 });
+      text(origem, 65, 581, { bold: true, size: 11 });
+
+      // --- PROCEDIMENTO SOLICITADO + CODIGO SIGTAP ---
+      text(procNome, 56, 604, { size: 10 });
+      rectSpan(446.5, 594.5, 605.5, 94.5);
+      const codeWidth = fontR.widthOfTextAtSize(procCodigo, 9);
+      text(procCodigo, 445.5 + ((542.1 - 445.5) - codeWidth) / 2, 602.5, { size: 9 });
+
+      // --- MEDICO SOLICITANTE (nome / CRM / CPF — agora selecionavel).
+      //     O PDF oficial ja traz "JEAN MILLER NERY DE LACERDA" impresso
+      //     como exemplo; a celula e limpa e redesenhada com o medico
+      //     escolhido, ficando dentro das bordas da linha (top 606.2-646.8,
+      //     divisores em x=307.5 e x=376.1) e acima da faixa de caixinhas
+      //     de dígito que comeca em top=637.5.
+      const medicoNome = shadow.getElementById('lme-medico-nome').value.trim().toUpperCase();
+      const medicoCrm = shadow.getElementById('lme-medico-crm').value.trim();
+      const medicoCpf = shadow.getElementById('lme-medico-cpf').value.trim();
+      rectSpan(58, 617, 636, 247);
+      rectSpan(309, 617, 632, 65);
+      rectSpan(378, 617, 632, 162);
+      const medicoFont = fitFont(medicoNome, fontB, 14, 8, 245);
+      text(medicoNome, 62.5, 633.9, { bold: true, size: medicoFont });
+      text(medicoCrm, 314.3, 627.4, { size: 10 });
+      text(medicoCpf, 399.4, 629.6, { size: 10 });
+
+      void MUNICIPIO_FIXO; // ja vem impresso no PDF oficial (SETE LAGOAS)
+
+      const bytes = await pdfDoc.save();
+      const slug = nome.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60);
+      const filename = `LME_${slug || 'PACIENTE'}.pdf`;
+      baixarPdf(bytes, filename);
+      toast('PDF gerado e baixado: ' + filename, 5000);
+    } catch (e) {
+      mostrarErro('Erro ao gerar PDF: ' + e.message);
+    } finally {
+      btn.textContent = original; btn.disabled = false;
+    }
+  }
+
+
+  /* ----------------------------------------------------------------
+   * UI
+   * ---------------------------------------------------------------- */
+  function montarMedicos() {
+    var sel = shadow.getElementById("lme-medico-sel");
+    var ph = document.createElement("option");
+    ph.value = ""; ph.textContent = "Selecione…"; ph.selected = true; ph.disabled = true;
+    sel.appendChild(ph);
+    MEDICOS.forEach(function (m) {
+      var op = document.createElement("option");
+      op.value = m[0] + "|" + m[1];
+      op.textContent = m[0];
+      sel.appendChild(op);
+    });
+    var outro = document.createElement("option");
+    outro.value = "outro"; outro.textContent = "Outro médico…";
+    sel.appendChild(outro);
+    // Nao ha medico pre-selecionado: obrigatorio escolher a cada laudo.
+  }
+
+  function onMedicoChange() {
+    var sel = shadow.getElementById("lme-medico-sel");
+    if (sel.value === "" || sel.value === "outro") {
+      shadow.getElementById("lme-medico-nome").value = "";
+      shadow.getElementById("lme-medico-crm").value = "";
+      shadow.getElementById("lme-medico-cpf").value = "";
+      return;
+    }
+    var partes = sel.value.split("|");
+    var cadastro = MEDICOS.find(function (m) { return m[0] === partes[0] && m[1] === partes[1]; });
+    shadow.getElementById("lme-medico-nome").value = partes[0];
+    shadow.getElementById("lme-medico-crm").value = partes[1];
+    shadow.getElementById("lme-medico-cpf").value = cadastro ? cadastro[2] : "";
+  }
+
+  function montarOrigens() {
+    var sel = shadow.getElementById("lme-origem-sel");
+    ORIGENS.forEach(function (o) {
+      var op = document.createElement("option");
+      op.value = o; op.textContent = o;
+      sel.appendChild(op);
+    });
+    var outro = document.createElement("option");
+    outro.value = "outro"; outro.textContent = "Outra unidade…";
+    sel.appendChild(outro);
+    sel.addEventListener("change", function () {
+      shadow.getElementById("lme-origem-outro-wrap").classList.toggle("show", sel.value === "outro");
+    });
+  }
+
+  function montarCidList() {
+    var dl = shadow.getElementById("lme-cid-list");
+    Object.keys(CID_DIC).sort().forEach(function (cod) {
+      var o = document.createElement("option");
+      o.value = cod; o.label = cod + " — " + CID_DIC[cod]; o.textContent = CID_DIC[cod];
+      dl.appendChild(o);
+    });
+  }
+
+  function autoDescricaoCid() {
+    var campo = shadow.getElementById("lme-cid");
+    var cid = campo.value.trim().toUpperCase();
+    if (campo.value !== cid) campo.value = cid;
+    var desc = shadow.getElementById("lme-diagnostico");
+    if (CID_DIC[cid] && (!desc.value || desc.dataset.auto === "1")) {
+      desc.value = CID_DIC[cid]; desc.dataset.auto = "1";
+    } else if (desc.dataset.auto === "1" && !CID_DIC[cid]) {
+      desc.value = ""; desc.dataset.auto = "";
+    }
+  }
+
+  function montarProcList() {
+    var dl = shadow.getElementById("lme-proc-list");
+    Object.keys(CATALOGO_PROCEDIMENTOS).forEach(function (k) {
+      var p = CATALOGO_PROCEDIMENTOS[k];
+      var o = document.createElement("option");
+      o.value = p.nome; o.label = p.nome + " (" + p.codigo + ")";
+      dl.appendChild(o);
+    });
+  }
+
+  /* Campo de procedimento e 100% livre: o medico digita qualquer nome.
+   * Se o texto bater exatamente (sem diferenciar caixa) com um
+   * procedimento conhecido, o codigo preenche sozinho — mas pode ser
+   * sobrescrito a qualquer momento, na mao. */
+  function autoPreencherCodigoProc() {
+    var nomeCampo = shadow.getElementById("lme-proc-nome");
+    var codigoCampo = shadow.getElementById("lme-proc-codigo");
+    var alvo = nomeCampo.value.trim().toLowerCase();
+    var achado = Object.keys(CATALOGO_PROCEDIMENTOS)
+      .map(function (k) { return CATALOGO_PROCEDIMENTOS[k]; })
+      .find(function (p) { return p.nome.toLowerCase() === alvo; });
+    if (achado && (!codigoCampo.value || codigoCampo.dataset.auto === "1")) {
+      codigoCampo.value = achado.codigo; codigoCampo.dataset.auto = "1";
+    } else if (!achado && codigoCampo.dataset.auto === "1") {
+      codigoCampo.value = ""; codigoCampo.dataset.auto = "";
+    }
+  }
+
+  function aplicarLeituraDaTela(dadosTela) {
+    if (!overlay || !dadosTela) return 0;
+    var n = 0;
+    if (dadosTela.nome) { shadow.getElementById("lme-pac-nome").value = dadosTela.nome; n++; }
+    if (dadosTela.cpf) { shadow.getElementById("lme-pac-cpf").value = formatarCpf(dadosTela.cpf); n++; }
+    if (dadosTela.nascimentoBR) { shadow.getElementById("lme-pac-nasc").value = dadosTela.nascimentoBR; n++; }
+    if (dadosTela.sexo) { shadow.getElementById("lme-pac-sexo").value = dadosTela.sexo === "F" ? "FEM" : "MASC"; n++; }
+    return n;
+  }
+
+  /* Evita que dados clinicos (diagnostico, CID, justificativa,
+   * procedimento, medico) de um paciente vazem para o laudo de outro
+   * quando o medico troca de atendimento sem clicar em "Limpar" antes.
+   * Se o CPF lido da tela for diferente do que ja esta no formulario, o
+   * formulario inteiro e resetado antes de aplicar a nova leitura. */
+  function trocouDePaciente(dadosTela) {
+    var cpfTela = (dadosTela.cpf || "").replace(/\D/g, "");
+    var cpfForm = shadow.getElementById("lme-pac-cpf").value.replace(/\D/g, "");
+    return !!cpfTela && !!cpfForm && cpfTela !== cpfForm;
+  }
+
+  function atualizarPaciente() {
+    var btn = shadow.getElementById("lme-refresh");
+    var original = btn.textContent;
+    btn.textContent = "Atualizando…";
+    btn.disabled = true;
+    var dadosTela = d.dom.lerPaciente();
+    if (trocouDePaciente(dadosTela)) limparForm();
+    var n = aplicarLeituraDaTela(dadosTela);
+    var aviso = shadow.getElementById("lme-auto-aviso");
+    aviso.style.display = "block";
+    aviso.textContent = n > 0
+      ? "Dados lidos da tela (" + n + " campo" + (n > 1 ? "s" : "") + "). Confira antes de gerar."
+      : "Não consegui ler os dados do paciente na tela. Preencha manualmente.";
+    toast(n > 0 ? "Paciente atualizado (" + n + " campo" + (n > 1 ? "s" : "") + ")." : "Nada encontrado na tela.", 3000);
+    btn.textContent = original;
+    btn.disabled = false;
+  }
+
+  function abrirModal() {
+    var dadosTela = d.dom.lerPaciente();
+    if (trocouDePaciente(dadosTela) || !shadow.getElementById("lme-pac-cpf").value.trim()) limparForm();
+    aplicarLeituraDaTela(dadosTela);
+    overlay.abrir();
+  }
+
+  function limparForm() {
+    ["lme-pac-nome","lme-pac-cpf","lme-pac-nasc","lme-diagnostico","lme-cid",
+     "lme-justificativa","lme-origem-outro","lme-proc-nome","lme-proc-codigo"].forEach(function (id) { shadow.getElementById(id).value = ""; });
+    shadow.getElementById("lme-pac-sexo").value = "";
+    shadow.getElementById("lme-origem-sel").value = "";
+    shadow.getElementById("lme-origem-outro-wrap").classList.remove("show");
+    shadow.getElementById("lme-auto-aviso").style.display = "none";
+    // medico sempre volta vazio: selecao obrigatoria a cada laudo
+    shadow.getElementById("lme-medico-sel").value = "";
+    onMedicoChange();
+    limparErro();
+  }
+
+  function montarUI() {
+    overlay = d.dock.criarOverlay({ estilo: CSS, html: HTML });
+    shadow.getElementById("lme-refresh").addEventListener("click", atualizarPaciente);
+    shadow.getElementById("lme-close").addEventListener("click", overlay.fechar);
+    shadow.getElementById("lme-gerar").addEventListener("click", gerarPdf);
+    shadow.getElementById("lme-limpar").addEventListener("click", limparForm);
+    shadow.getElementById("lme-proc-nome").addEventListener("input", autoPreencherCodigoProc);
+    shadow.getElementById("lme-medico-sel").addEventListener("change", onMedicoChange);
+    shadow.getElementById("lme-cid").addEventListener("input", autoDescricaoCid);
+    ativarMascaraData(shadow.getElementById("lme-pac-nasc"));
+    montarOrigens(); montarProcList(); montarMedicos(); montarCidList();
+  }
+
+  /* ----------------------------------------------------------------
+   * CONTRATO DE MODULO
+   * ---------------------------------------------------------------- */
+  raiz.MeedsSuite.registerModule({
+    id: "lme-sete-lagoas",
+    nome: "Laudo — Sete Lagoas",
+    descricao: "Preenche o LAUDO MÉDICO DE ALTO CUSTO oficial de Sete Lagoas por cima do PDF da prefeitura, mantendo logo e layout intactos.",
+    versao: "2.0.0",
+    configPadrao: {},
+
+    botao: {
+      icone: "📄",
+      rotulo: "Laudo - Sete Lagoas",
+      titulo: "Laudo — Sete Lagoas",
+      prioridade: 30,
+    },
+
+    // Este modulo nao precisa ouvir a rede: le tudo da tela do
+    // atendimento. Fica sem assinaturasRede de proposito.
+    assinaturasRede: [],
+
+    start: function (deps) {
+      d = deps;
+      montarUI();
+      deps.aoClicarBotao(abrirModal);
+    },
+
+    stop: function () {
+      timers.forEach(clearInterval);
+      timers = [];
+      if (overlay) { overlay.remover(); overlay = null; }
+      d = null;
+    },
+  });
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== modules/cmd/assets/base-pdf.js ===== */
+/* modules/cmd/assets/base-pdf.js
+ * PDF BASE OFICIAL DE CONCEICAO DO MATO DENTRO, embutido em base64 —
+ * byte a byte o mesmo que estava em CMD_GERADOR.user.js v1.4.0.
+ * E o arquivo "laudo_editavel_700_caracteres - CMD.pdf" fornecido pela
+ * prefeitura: formulario com campos de PDF reais (AcroForm), nao desenho
+ * por cima. Por isso o preenchimento usa form.getTextField/getCheckBox e
+ * nao ha coordenada calibrada na mao.
+ * Separado do index.js so para o codigo do modulo continuar legivel. */
+(function (raiz) {
+  "use strict";
+  raiz.MEEDS_CMD_BASE_PDF_B64 = "JVBERi0xLjMKJeLjz9MKMSAwIG9iago8PAovQWNyb0Zvcm0gMiAwIFIKL1BhZ2VNb2RlIC9Vc2VOb25lCi9QYWdlcyAxMjIgMCBSCi9UeXBlIC9DYXRhbG9nCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9EQSAoXDA1N0hlbHYgMCBUZiAwIGcpCi9EUiA8PAovRW5jb2RpbmcgPDwKL1JMQUZlbmNvZGluZyAzIDAgUgo+PgovRm9udCA8PAovSGVsdiA0IDAgUgo+Pgo+PgovRmllbGRzIFsgNSAwIFIgOCAwIFIgMTEgMCBSIDE0IDAgUiAxNyAwIFIgMjAgMCBSIDIzIDAgUiAyNiAwIFIgMjkgMCBSIDM2IDAgUiAzNyAwIFIgNDAgMCBSIDQzIDAgUiA0NiAwIFIgNDkgMCBSIDUyIDAgUiA1NSAwIFIgNTggMCBSIDYxIDAgUiA2NCAwIFIgNjcgMCBSIDcwIDAgUiA3MyAwIFIgNzYgMCBSIDc5IDAgUiA4MiAwIFIgODUgMCBSIDg4IDAgUiA5MSAwIFIgOTQgMCBSIDk3IDAgUiA5OCAwIFIgOTkgMCBSIDEwMCAwIFIgMTAzIDAgUiAxMDYgMCBSIDEwOSAwIFIgMTEyIDAgUiAxMTUgMCBSIDExOCAwIFIgXQo+PgplbmRvYmoKMyAwIG9iago8PAovVHlwZSAvRW5jb2RpbmcKL0RpZmZlcmVuY2VzIFsgMjQgL2JyZXZlIC9jYXJvbiAvY2lyY3VtZmxleCAvZG90YWNjZW50IC9odW5nYXJ1bWxhdXQgL29nb25layAvcmluZyAvdGlsZGUgMzkgL3F1b3Rlc2luZ2xlIDk2IC9ncmF2ZSAxMjggL2J1bGxldCAvZGFnZ2VyIC9kYWdnZXJkYmwgL2VsbGlwc2lzIC9lbWRhc2ggL2VuZGFzaCAvZmxvcmluIC9mcmFjdGlvbiAvZ3VpbHNpbmdsbGVmdCAvZ3VpbHNpbmdscmlnaHQgL21pbnVzIC9wZXJ0aG91c2FuZCAvcXVvdGVkYmxiYXNlIC9xdW90ZWRibGxlZnQgL3F1b3RlZGJscmlnaHQgL3F1b3RlbGVmdCAvcXVvdGVyaWdodCAvcXVvdGVzaW5nbGJhc2UgL3RyYWRlbWFyayAvZmkgL2ZsIC9Mc2xhc2ggL09FIC9TY2Fyb24gL1lkaWVyZXNpcyAvWmNhcm9uIC9kb3RsZXNzaSAvbHNsYXNoIC9vZSAvc2Nhcm9uIC96Y2Fyb24gMTYwIC9FdXJvIDE2NCAvY3VycmVuY3kgMTY2IC9icm9rZW5iYXIgMTY4IC9kaWVyZXNpcyAvY29weXJpZ2h0IC9vcmRmZW1pbmluZSAxNzIgL2xvZ2ljYWxub3QgLy5ub3RkZWYgL3JlZ2lzdGVyZWQgL21hY3JvbiAvZGVncmVlIC9wbHVzbWludXMgL3R3b3N1cGVyaW9yIC90aHJlZXN1cGVyaW9yIC9hY3V0ZSAvbXUgMTgzIC9wZXJpb2RjZW50ZXJlZCAvY2VkaWxsYSAvb25lc3VwZXJpb3IgL29yZG1hc2N1bGluZSAxODggL29uZXF1YXJ0ZXIgL29uZWhhbGYgL3RocmVlcXVhcnRlcnMgMTkyIC9BZ3JhdmUgL0FhY3V0ZSAvQWNpcmN1bWZsZXggL0F0aWxkZSAvQWRpZXJlc2lzIC9BcmluZyAvQUUgL0NjZWRpbGxhIC9FZ3JhdmUgL0VhY3V0ZSAvRWNpcmN1bWZsZXggL0VkaWVyZXNpcyAvSWdyYXZlIC9JYWN1dGUgL0ljaXJjdW1mbGV4IC9JZGllcmVzaXMgL0V0aCAvTnRpbGRlIC9PZ3JhdmUgL09hY3V0ZSAvT2NpcmN1bWZsZXggL090aWxkZSAvT2RpZXJlc2lzIC9tdWx0aXBseSAvT3NsYXNoIC9VZ3JhdmUgL1VhY3V0ZSAvVWNpcmN1bWZsZXggL1VkaWVyZXNpcyAvWWFjdXRlIC9UaG9ybiAvZ2VybWFuZGJscyAvYWdyYXZlIC9hYWN1dGUgL2FjaXJjdW1mbGV4IC9hdGlsZGUgL2FkaWVyZXNpcyAvYXJpbmcgL2FlIC9jY2VkaWxsYSAvZWdyYXZlIC9lYWN1dGUgL2VjaXJjdW1mbGV4IC9lZGllcmVzaXMgL2lncmF2ZSAvaWFjdXRlIC9pY2lyY3VtZmxleCAvaWRpZXJlc2lzIC9ldGggL250aWxkZSAvb2dyYXZlIC9vYWN1dGUgL29jaXJjdW1mbGV4IC9vdGlsZGUgL29kaWVyZXNpcyAvZGl2aWRlIC9vc2xhc2ggL3VncmF2ZSAvdWFjdXRlIC91Y2lyY3VtZmxleCAvdWRpZXJlc2lzIC95YWN1dGUgL3Rob3JuIC95ZGllcmVzaXMgXQo+PgplbmRvYmoKNCAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYQovU3VidHlwZSAvVHlwZTEKL05hbWUgL0hlbHYKL1R5cGUgL0ZvbnQKL0VuY29kaW5nIDMgMCBSCj4+CmVuZG9iago1IDAgb2JqCjw8Ci9BUCA8PAovTiA2IDAgUgo+PgovQlMgPDwKL1MgL1MKL1cgMC42Cj4+Ci9EQSAoXDA1N0hlbHYgOCBUZiAwIDAgMCByZykKL0RWICgpCi9GIDQKL0ZUIC9UeAovRmYgMAovTUsgPDwKL0JDIFsgMC41NDkwMiAwLjU0OTAyIDAuNTQ5MDIgXQovQkcgWyAxIDEgMSBdCj4+Ci9NYXhMZW4gMTAwCi9QIDcgMCBSCi9SZWN0IFsgNDQxLjI3NTYgNzg0Ljg4OTggNTczLjI3NTYgODAyLjg4OTggXQovU3VidHlwZSAvV2lkZ2V0Ci9UIChudW1lcm9cMTM3bGF1ZG8pCi9UVSAoTlwzNzJtZXJvIGRvIGxhdWRvIFwwNTBmb3JtYXRvIFwxMzdcMTM3XDA1N1wxMzdcMTM3XDEzN1wxMzdcMDU1XDEzN1wxMzdcMDU1XDEzN1wxMzdcMDUxKQovVHlwZSAvQW5ub3QKL1YgKCkKPj4KZW5kb2JqCjYgMCBvYmoKPDwKL0JCb3ggWyAwIDAgMTMyIDE4IF0KL0ZpbHRlciBbIC9GbGF0ZURlY29kZSBdCi9Gb3JtVHlwZSAxCi9NYXRyaXggWyAxIDAgMCAxIDAgMCBdCi9SZXNvdXJjZXMgPDwKL1Byb2NTZXQgWyAvUERGIC9UZXh0IF0KL0ZvbnQgPDwKL0hlbHYgNCAwIFIKPj4KPj4KL1N1YnR5cGUgL0Zvcm0KL1R5cGUgL1hPYmplY3QKL0xlbmd0aCAxMDUKPj4Kc3RyZWFtCnicVY2xDYNAFEN7T+EJPvfvIEALQlQUoEiZAOiQQgoyPoYOWX5ubNnp0r4iMNBTNLHiPmOBFXkdIp8x9Qj24iEmXvbkltNLQasfsvefzdASX7hF3o61Jl4Iqnyw6ew67DGiG1qczJEaSAplbmRzdHJlYW0KZW5kb2JqCjcgMCBvYmoKPDwKL0Fubm90cyBbIDUgMCBSIDggMCBSIDExIDAgUiAxNCAwIFIgMTcgMCBSIDIwIDAgUiAyMyAwIFIgMjYgMCBSIDI5IDAgUiAzNiAwIFIgMzcgMCBSIDQwIDAgUiA0MyAwIFIgNDYgMCBSIDQ5IDAgUiA1MiAwIFIgNTUgMCBSIDU4IDAgUiA2MSAwIFIgNjQgMCBSIDY3IDAgUiA3MCAwIFIgNzMgMCBSIDc2IDAgUiA3OSAwIFIgODIgMCBSIDg1IDAgUiA4OCAwIFIgOTEgMCBSIDk0IDAgUiA5NyAwIFIgOTggMCBSIDk5IDAgUiAxMDAgMCBSIDEwMyAwIFIgMTA2IDAgUiAxMDkgMCBSIDExMiAwIFIgMTE1IDAgUiAxMTggMCBSIF0KL0NvbnRlbnRzIDEyMSAwIFIKL01lZGlhQm94IFsgMCAwIDU5NS4yNzU2IDg0MS44ODk4IF0KL1BhcmVudCAxMjIgMCBSCi9SZXNvdXJjZXMgPDwKL0ZvbnQgMTIzIDAgUgovUHJvY1NldCBbIC9QREYgL1RleHQgL0ltYWdlQiAvSW1hZ2VDIC9JbWFnZUkgXQovWE9iamVjdCA8PAovRm9ybVhvYi5hODQ0MzI3M2QxMTU2ZWY5ZTY1ZWZkZjQ4MjA5MDYwMSAxMjYgMCBSCi9Gb3JtWG9iLmUxZTk0MDFhYjhmYmM3Zjk0NjVlYmQ2ODEzZmFmODhjIDEyOCAwIFIKPj4KPj4KL1JvdGF0ZSAwCi9UcmFucyA8PAo+PgovVHlwZSAvUGFnZQo+PgplbmRvYmoKOCAwIG9iago8PAovQVAgPDwKL04gOSAwIFIKPj4KL0JTIDw8Ci9TIC9TCi9XIDAuNgo+PgovREEgKFwwNTdIZWx2IDggVGYgMCAwIDAgcmcpCi9EViAoQ0VNTyBEUiBTRUJBU1RJQU8gU09BUkVTIERPUyBTQU5UT1MpCi9GIDQKL0ZUIC9UeAovRmYgMAovTUsgPDwKL0JDIFsgMC41NDkwMiAwLjU0OTAyIDAuNTQ5MDIgXQovQkcgWyAxIDEgMSBdCj4+Ci9NYXhMZW4gMTAwCi9QIDcgMCBSCi9SZWN0IFsgMjAgNzQyLjg4OTggMjM5LjcxMDIgNzU5Ljg4OTggXQovU3VidHlwZSAvV2lkZ2V0Ci9UIChvcmlnZW0pCi9UVSAob3JpZ2VtKQovVHlwZSAvQW5ub3QKL1YgKENFTU8gRFIgU0VCQVNUSUFPIFNPQVJFUyBET1MgU0FOVE9TKQo+PgplbmRvYmoKOSAwIG9iago8PAovQkJveCBbIDAgMCAyMTkuNzEwMiAxNyBdCi9GaWx0ZXIgWyAvRmxhdGVEZWNvZGUgXQovRm9ybVR5cGUgMQovTWF0cml4IFsgMSAwIDAgMSAwIDAgXQovUmVzb3VyY2VzIDw8Ci9Qcm9jU2V0IFsgL1BERiAvVGV4dCBdCi9Gb250IDw8Ci9IZWx2IDEwIDAgUgo+Pgo+PgovU3VidHlwZSAvRm9ybQovVHlwZSAvWE9iamVjdAovTGVuZ3RoIDE4MAo+PgpzdHJlYW0KeJxdjkELwjAMhe/5Fe+ol9pkdXXHbZbpYRbXgr9ABVFBBfXn2+6kEl4SyOPLY3Cq+5E0NIQrZVlLUYpoY8VYsMV9TwdSc1Npwe8YOtKqxCv1AlkZwH+AUpmMeNAsvtH0LehGrARZwlYV3/4SbBIx+Xd0TZlyro6aSLPV/vzEAvEwJtU5Mo8LQ9IHq9LtQpPW9R7LAcE1dYjr2iP4enABSx8Q6k30YYp4IhdpS65v6QNF0zZfCmVuZHN0cmVhbQplbmRvYmoKMTAgMCBvYmoKPDwKL0Jhc2VGb250IC9IZWx2ZXRpY2EKL1N1YnR5cGUgL1R5cGUxCi9OYW1lIC9IZWx2Ci9UeXBlIC9Gb250Ci9FbmNvZGluZyAzIDAgUgo+PgplbmRvYmoKMTEgMCBvYmoKPDwKL0FQIDw8Ci9OIDEyIDAgUgo+PgovQlMgPDwKL1MgL1MKL1cgMC42Cj4+Ci9EQSAoXDA1N0hlbHYgOCBUZiAwIDAgMCByZykKL0RWICgpCi9GIDQKL0ZUIC9UeAovRmYgMAovTUsgPDwKL0JDIFsgMC41NDkwMiAwLjU0OTAyIDAuNTQ5MDIgXQovQkcgWyAxIDEgMSBdCj4+Ci9NYXhMZW4gMTAwCi9QIDcgMCBSCi9SZWN0IFsgMjQzLjcxMDIgNzQyLjg4OTggMzQwLjM3OTggNzU5Ljg4OTggXQovU3VidHlwZSAvV2lkZ2V0Ci9UIChjb2RpZ29cMTM3c2lhKQovVFUgKGNvZGlnb1wxMzdzaWEpCi9UeXBlIC9Bbm5vdAovViAoKQo+PgplbmRvYmoKMTIgMCBvYmoKPDwKL0JCb3ggWyAwIDAgOTYuNjY5NjEgMTcgXQovRmlsdGVyIFsgL0ZsYXRlRGVjb2RlIF0KL0Zvcm1UeXBlIDEKL01hdHJpeCBbIDEgMCAwIDEgMCAwIF0KL1Jlc291cmNlcyA8PAovUHJvY1NldCBbIC9QREYgL1RleHQgXQovRm9udCA8PAovSGVsdiAxMyAwIFIKPj4KPj4KL1N1YnR5cGUgL0Zvcm0KL1R5cGUgL1hPYmplY3QKL0xlbmd0aCAxMTcKPj4Kc3RyZWFtCnicVY4xDsJQDEN3n8InSJPwCcpKhTp1oELiBMCGRBng+ORvVJGTJX620WrWB5TKDInI0PBMNw/agesNd8i+pTq3Z5mgEvzU3rGr7PpvL3JI64Q3hsuXx3kkXjBxdmUT36a1wtX3Fc+q0ytNOOM0j/gB3aAhZgplbmRzdHJlYW0KZW5kb2JqCjEzIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhCi9TdWJ0eXBlIC9UeXBlMQovTmFtZSAvSGVsdgovVHlwZSAvRm9udAovRW5jb2RpbmcgMyAwIFIKPj4KZW5kb2JqCjE0IDAgb2JqCjw8Ci9BUCA8PAovTiAxNSAwIFIKPj4KL0JTIDw8Ci9TIC9TCi9XIDAuNgo+PgovREEgKFwwNTdIZWx2IDcgVGYgMCAwIDAgcmcpCi9EViAoUFJFRkVJVFVSQSBNVU5JQ0lQQUwgREUgQ09OQ0VJQ0FPIERPIE1BVE8gREVOVFJPKQovRiA0Ci9GVCAvVHgKL0ZmIDAKL01LIDw8Ci9CQyBbIDAuNTQ5MDIgMC41NDkwMiAwLjU0OTAyIF0KL0JHIFsgMSAxIDEgXQo+PgovTWF4TGVuIDEwMAovUCA3IDAgUgovUmVjdCBbIDM0NC4zNzk4IDc0Mi44ODk4IDU3NS4yNzU2IDc1OS44ODk4IF0KL1N1YnR5cGUgL1dpZGdldAovVCAobXVuaWNpcGlvXDEzNzEpCi9UVSAobXVuaWNpcGlvXDEzNzEpCi9UeXBlIC9Bbm5vdAovViAoUFJFRkVJVFVSQSBNVU5JQ0lQQUwgREUgQ09OQ0VJQ0FPIERPIE1BVE8gREVOVFJPKQo+PgplbmRvYmoKMTUgMCBvYmoKPDwKL0JCb3ggWyAwIDAgMjMwLjg5NTcgMTcgXQovRmlsdGVyIFsgL0ZsYXRlRGVj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Ci9GVCAvVHgKL0ZmIDAKL01LIDw8Ci9CQyBbIDAuNTQ5MDIgMC41NDkwMiAwLjU0OTAyIF0KL0JHIFsgMSAxIDEgXQo+PgovTWF4TGVuIDEwMAovUCA3IDAgUgovUmVjdCBbIDIwIDY2Mi44ODk4IDQxOC42Nzg0IDY3MS44ODk4IF0KL1N1YnR5cGUgL1dpZGdldAovVCAobm9tZVwxMzdtYWUpCi9UVSAobm9tZVwxMzdtYWUpCi9UeXBlIC9Bbm5vdAovViAoKQo+PgplbmRvYmoKMzggMCBvYmoKPDwKL0JCb3ggWyAwIDAgMzk4LjY3ODQgOSBdCi9GaWx0ZXIgWyAvRmxhdGVEZWNvZGUgXQovRm9ybVR5cGUgMQovTWF0cml4IFsgMSAwIDAgMSAwIDAgXQovUmVzb3VyY2VzIDw8Ci9Qcm9jU2V0IFsgL1BERiAvVGV4dCBdCi9Gb250IDw8Ci9IZWx2IDM5IDAgUgo+Pgo+PgovU3VidHlwZSAvRm9ybQovVHlwZSAvWE9iamVjdAovTGVuZ3RoIDExNwo+PgpzdHJlYW0KeJxVTjsOwlAM230KnyDk/cLLSoU6dQAhcQJgQ6IMcHzyNirL9mJbTkyB9QGlsngX2/eaW3LrTSud6w13SKuumVs7z1AxfkILB0ddN/UudQy8sbt8eVgm4oUkmYPFTfJ/utBiLuJXPOPOuDTjhOMy4QflWyF9CmVuZHN0cmVhbQplbmRvYmoKMzkgMCBvYmoKPDwKL0Jhc2VGb250IC9IZWx2ZXRpY2EKL1N1YnR5cGUgL1R5cGUxCi9OYW1lIC9IZWx2Ci9UeXBlIC9Gb250Ci9FbmNvZGluZyAzIDAgUgo+PgplbmRvYmoKNDAgMCBvYmoKPDwKL0FQIDw8Ci9OIDQxIDAgUgo+PgovQlMgPDwKL1MgL1MKL1cgMC42Cj4+Ci9EQSAoXDA1N0hlbHYgOCBUZiAwIDAgMCByZykKL0RWICgpCi9GIDQKL0ZUIC9UeAovRmYgMAovTUsgPDwKL0JDIFsgMC41NDkwMiAwLjU0OTAyIDAuNTQ5MDIgXQovQkcgWyAxIDEgMSBdCj4+Ci9NYXhMZW4gMTAwCi9QIDcgMCBSCi9SZWN0IFsgNDIyLjY3ODQgNjYyLjg4OTggNTc1LjI3NTYgNjcxLjg4OTggXQovU3VidHlwZSAvV2lkZ2V0Ci9UICh0ZWxlZm9uZSkKL1RVICh0ZWxlZm9uZSkKL1R5cGUgL0Fubm90Ci9WICgpCj4+CmVuZG9iago0MSAwIG9iago8PAovQkJveCBbIDAgMCAxNTIuNTk3MiA5IF0KL0ZpbHRlciBbIC9GbGF0ZURlY29kZSBdCi9Gb3JtVHlwZSAxCi9NYXRyaXggWyAxIDAgMCAxIDAgMCBdCi9SZXNvdXJjZXMgPDwKL1Byb2NTZXQgWyAvUERGIC9UZXh0IF0KL0ZvbnQgPDwKL0hlbHYgNDIgMCBSCj4+Cj4+Ci9TdWJ0eXBlIC9Gb3JtCi9UeXBlIC9YT2JqZWN0Ci9MZW5ndGggMTIwCj4+CnN0cmVhbQp4nFWOsQ7CMAxE9/uK+wJjJ3FKVirUqQMIiS8ANiTKAJ9fh4nKer7lfD6jxSwPKJXmSbwNVj17yVmHwsblhjvES9PErZwnqFR+Ymd2zE3a/71zL6UnvLG7fHmYR+IFk8QfrmLbdzXywn7FMwr1UhNOOM4jVhf3IbcKZW5kc3RyZWFtCmVuZG9iago0MiAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYQovU3VidHlwZSAvVHlwZTEKL05hbWUgL0hlbHYKL1R5cGUgL0ZvbnQKL0VuY29kaW5nIDMgMCBSCj4+CmVuZG9iago0MyAwIG9iago8PAovQVAgPDwKL04gNDQgMCBSCj4+Ci9CUyA8PAovUyAvUwovVyAwLjYKPj4KL0RBIChcMDU3SGVsdiA4IFRmIDAgMCAwIHJnKQovRFYgKCkKL0YgNAovRlQgL1R4Ci9GZiAwCi9NSyA8PAovQkMgWyAwLjU0OTAyIDAuNTQ5MDIgMC41NDkwMiBdCi9CRyBbIDEgMSAxIF0KPj4KL01heExlbiAxMDAKL1AgNyAwIFIKL1JlY3QgWyAyMCA2NDIuODg5OCAzNjIuNzUwOSA2NTEuODg5OCBdCi9TdWJ0eXBlIC9XaWRnZXQKL1QgKHJ1YVwxMzdsb2dyYWRvdXJvKQovVFUgKHJ1YVwxMzdsb2dyYWRvdXJvKQovVHlwZSAvQW5ub3QKL1YgKCkKPj4KZW5kb2JqCjQ0IDAgb2JqCjw8Ci9CQm94IFsgMCAwIDM0Mi43NTA5IDkgXQovRmlsdGVyIFsgL0ZsYXRlRGVjb2RlIF0KL0Zvcm1UeXBlIDEKL01hdHJpeCBbIDEgMCAwIDEgMCAwIF0KL1Jlc291cmNlcyA8PAovUHJvY1NldCBbIC9QREYgL1RleHQgXQovRm9udCA8PAovSGVsdiA0NSAwIFIKPj4KPj4KL1N1YnR5cGUgL0Zvcm0KL1R5cGUgL1hPYmplY3QKL0xlbmd0aCAxMjAKPj4Kc3RyZWFtCnicVY6xDsJADEN3f4W/IL1cctd2pUKdOhQh8QXAhkQZ4POb24oix4ufZaXGbU8kJppn6UsaalXX3rIZR253PCDFx5T5b5cZSSq/8Y1Njdcjz0G8FXzQXX88LRPxhkpmk3kwx3RhjbqI3/CKPW3TjBXnZcIO7qYhbQplbmRzdHJlYW0KZW5kb2JqCjQ1IDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhCi9TdWJ0eXBlIC9UeXBlMQovTmFtZSAvSGVsdgovVHlwZSAvRm9udAovRW5jb2RpbmcgMyAwIFIKPj4KZW5kb2JqCjQ2IDAgb2JqCjw8Ci9BUCA8PAovTiA0NyAwIFIKPj4KL0JTIDw8Ci9TIC9TCi9XIDAuNgo+PgovREEgKFwwNTdIZWx2IDggVGYgMCAwIDAgcmcpCi9EViAoKQovRiA0Ci9GVCAvVHgKL0ZmIDAKL01LIDw8Ci9CQyBbIDAuNTQ5MDIgMC41NDkwMiAwLjU0OTAyIF0KL0JHIFsgMSAxIDEgXQo+PgovTWF4TGVuIDEwMAovUCA3IDAgUgovUmVjdCBbIDM2Ni43NTA5IDY0Mi44ODk4IDQzNS40NTY3IDY1MS44ODk4IF0KL1N1YnR5cGUgL1dpZGdldAovVCAobnVtZXJvXDEzN2VuZGVyZWNvKQovVFUgKG51bWVyb1wxMzdlbmRlcmVjbykKL1R5cGUgL0Fubm90Ci9WICgpCj4+CmVuZG9iago0NyAwIG9iago8PAovQkJveCBbIDAgMCA2OC43MDU4MyA5IF0KL0ZpbHRlciBbIC9GbGF0ZURlY29kZSBdCi9Gb3JtVHlwZSAxCi9NYXRyaXggWyAxIDAgMCAxIDAgMCBdCi9SZXNvdXJjZXMgPDwKL1Byb2NTZXQgWyAvUERGIC9UZXh0IF0KL0ZvbnQgPDwKL0hlbHYgNDggMCBSCj4+Cj4+Ci9TdWJ0eXBlIC9Gb3JtCi9UeXBlIC9YT2JqZWN0Ci9MZW5ndGggMTE3Cj4+CnN0cmVhbQp4nFVOOQ7CQBDr/Qq/YDJ7zW5aIpQqRRASLwA6JEIBz89sR2TZbmzLgcGxPaFUWpOqpUWrNVhJpXDkdscDUvKokUe7zFAxfl0TO70ejvUmuQ98MFx/PC0T8UaQyE4zSf/pTPM1T9/w8jf90YwV52XCDr89IT0KZW5kc3RyZWFtCmVuZG9iago0OCAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYQovU3VidHlwZSAvVHlwZTEKL05hbWUgL0hlbHYKL1R5cGUgL0ZvbnQKL0VuY29kaW5nIDMgMCBSCj4+CmVuZG9iago0OSAwIG9iago8PAovQVAgPDwKL04gNTAgMCBSCj4+Ci9CUyA8PAovUyAvUwovVyAwLjYKPj4KL0RBIChcMDU3SGVsdiA4IFRmIDAgMCAwIHJnKQovRFYgKCkKL0YgNAovRlQgL1R4Ci9GZiAwCi9NSyA8PAovQkMgWyAwLjU0OTAyIDAuNTQ5MDIgMC41NDkwMiBdCi9CRyBbIDEgMSAxIF0KPj4KL01heExlbiAxMDAKL1AgNyAwIFIKL1JlY3QgWyA0MzkuNDU2NyA2NDIuODg5OCA1NzUuMjc1NiA2NTEuODg5OCBdCi9TdWJ0eXBlIC9XaWRnZXQKL1QgKGNvbXBsZW1lbnRvKQovVFUgKGNvbXBsZW1lbnRvKQovVHlwZSAvQW5ub3QKL1YgKCkKPj4KZW5kb2JqCjUwIDAgb2JqCjw8Ci9CQm94IFsgMCAwIDEzNS44MTg5IDkgXQovRmlsdGVyIFsgL0ZsYXRlRGVjb2RlIF0KL0Zvcm1UeXBlIDEKL01hdHJpeCBbIDEgMCAwIDEgMCAwIF0KL1Jlc291cmNlcyA8PAovUHJvY1NldCBbIC9QREYgL1RleHQgXQovRm9udCA8PAovSGVsdiA1MSAwIFIKPj4KPj4KL1N1YnR5cGUgL0Zvcm0KL1R5cGUgL1hPYmplY3QKL0xlbmd0aCAxMTkKPj4Kc3RyZWFtCnicVU45DsJAEOv9Cr9g2NnZsyVCqVKAkHgB0CERCng+s1RBlu3GtqxUx3pHYKBalqat9Vqs1p5jYed6xQ2SUw+R/3aaEaTw7WocHP247Vc2SWPhhd35w/0yEU+oRP5oJmkbzyy+5/ELHn5onJpxxGGZ8AUt0yH4CmVuZHN0cmVhbQplbmRvYmoKNTEgMCBvYmoKPDwKL0Jhc2VGb250IC9IZWx2ZXRpY2EKL1N1YnR5cGUgL1R5cGUxCi9OYW1lIC9IZWx2Ci9UeXBlIC9Gb250Ci9FbmNvZGluZyAzIDAgUgo+PgplbmRvYmoKNTIgMCBvYmoKPDwKL0FQIDw8Ci9OIDUzIDAgUgo+PgovQlMgPDwKL1MgL1MKL1cgMC42Cj4+Ci9EQSAoXDA1N0hlbHYgOCBUZiAwIDAgMCByZykKL0RWICgpCi9GIDQKL0ZUIC9UeAovRmYgMAovTUsgPDwKL0JDIFsgMC41NDkwMiAwLjU0OTAyIDAuNTQ5MDIgXQovQkcgWyAxIDEgMSBdCj4+Ci9NYXhMZW4gMTAwCi9QIDcgMCBSCi9SZWN0IFsgMjAgNjIyLjg4OTggMjY3LjY3NCA2MzEuODg5OCBdCi9TdWJ0eXBlIC9XaWRnZXQKL1QgKGJhaXJybykKL1RVIChiYWlycm8pCi9UeXBlIC9Bbm5vdAovViAoKQo+PgplbmRvYmoKNTMgMCBvYmoKPDwKL0JCb3ggWyAwIDAgMjQ3LjY3NCA5IF0KL0ZpbHRlciBbIC9GbGF0ZURlY29kZSBdCi9Gb3JtVHlwZSAxCi9NYXRyaXggWyAxIDAgMCAxIDAgMCBdCi9SZXNvdXJjZXMgPDwKL1Byb2NTZXQgWyAvUERGIC9UZXh0IF0KL0ZvbnQgPDwKL0hlbHYgNTQgMCBSCj4+Cj4+Ci9TdWJ0eXBlIC9Gb3JtCi9UeXBlIC9YT2JqZWN0Ci9MZW5ndGggMTE4Cj4+CnN0cmVhbQp4nFVOMQ7CMBDb/Qq/4Li7XJJ2pUKdOoCQeAGwIVEGeH6TjcqyvdiWjdawPqFUelQpNdRyjUGT5eDI9Y4HJMeozr1dZqgUfpsmdva+7vuDRF/44HD98bhMxBsmzk6PLP4fTyxtr8VveLVD/dSMM07LhA0SvCGmCmVuZHN0cmVhbQplbmRvYmoKNTQgMCBvYmoKPDwKL0Jhc2VGb250IC9IZWx2ZXRpY2EKL1N1YnR5cGUgL1R5cGUxCi9OYW1lIC9IZWx2Ci9UeXBlIC9Gb250Ci9FbmNvZGluZyAzIDAgUgo+PgplbmRvYmoKNTUgMCBvYmoKPDwKL0FQIDw8Ci9OIDU2IDAgUgo+PgovQlMgPDwKL1MgL1MKL1cgMC42Cj4+Ci9EQSAoXDA1N0hlbHYgOCBUZiAwIDAgMCByZykKL0RWICgpCi9GIDQKL0ZUIC9UeAovRmYgMAovTUsgPDwKL0JDIFsgMC41NDkwMiAwLjU0OTAyIDAuNTQ5MDIgXQovQkcgWyAxIDEgMSBdCj4+Ci9NYXhMZW4gMTAwCi9QIDcgMCBSCi9SZWN0IFsgMjcxLjY3NCA2MjIuODg5OCA1NzUuMjc1NiA2MzEuODg5OCBdCi9TdWJ0eXBlIC9XaWRnZXQKL1QgKG11bmljaXBpb1wxMzdwYWNpZW50ZSkKL1RVIChtdW5pY2lwaW9cMTM3cGFjaWVudGUpCi9UeXBlIC9Bbm5vdAovViAoKQo+PgplbmRvYmoKNTYgMCBvYmoKPDwKL0JCb3ggWyAwIDAgMzAzLjYwMTYgOSBdCi9GaWx0ZXIgWyAvRmxhdGVEZWNvZGUgXQovRm9ybVR5cGUgMQovTWF0cml4IFsgMSAwIDAgMSAwIDAgXQovUmVzb3VyY2VzIDw8Ci9Qcm9jU2V0IFsgL1BERiAvVGV4dCBdCi9Gb250IDw8Ci9IZWx2IDU3IDAgUgo+Pgo+PgovU3VidHlwZSAvRm9ybQovVHlwZSAvWE9iamVjdAovTGVuZ3RoIDExNgo+PgpzdHJlYW0KeJxVTjEOwkAM2/0Kv+BImvTorVSoU4dWSLwA2JAoAzyfZKOybC+2ZaUGtgeEQhMrVbQ/+iCm3iobtxvuKL036bi3dYKUyk+oMZl12dWH4jnwxuHy5WkeiRe0dEyahP6nnTXmIn7FM+7kpQkLzvOIH8omITMKZW5kc3RyZWFtCmVuZG9iago1NyAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYQovU3VidHlwZSAvVHlwZTEKL05hbWUgL0hlbHYKL1R5cGUgL0ZvbnQKL0VuY29kaW5nIDMgMCBSCj4+CmVuZG9iago1OCAwIG9iago8PAovQVAgPDwKL04gNTkgMCBSCj4+Ci9CUyA8PAovUyAvUwovVyAwLjYKPj4KL0RBIChcMDU3SGVsdiA4IFRmIDAgMCAwIHJnKQovRFYgKCkKL0YgNAovRlQgL1R4Ci9GZiAwCi9NSyA8PAovQkMgWyAwLjU0OTAyIDAuNTQ5MDIgMC41NDkwMiBdCi9CRyBbIDEgMSAxIF0KPj4KL01heExlbiAxMDAKL1AgNyAwIFIKL1JlY3QgWyAyMCA2MDIuODg5OCA5NC4yOTg1OCA2MTEuODg5OCBdCi9TdWJ0eXBlIC9XaWRnZXQKL1QgKGNlcCkKL1RVIChjZXApCi9UeXBlIC9Bbm5vdAovViAoKQo+PgplbmRvYmoKNTkgMCBvYmoKPDwKL0JCb3ggWyAwIDAgNzQuMjk4NTggOSBdCi9GaWx0ZXIgWyAvRmxhdGVEZWNvZGUgXQovRm9ybVR5cGUgMQovTWF0cml4IFsgMSAwIDAgMSAwIDAgXQovUmVzb3VyY2VzIDw8Ci9Qcm9jU2V0IFsgL1BERiAvVGV4dCBdCi9Gb250IDw8Ci9IZWx2IDYwIDAgUgo+Pgo+PgovU3VidHlwZSAvRm9ybQovVHlwZSAvWE9iamVjdAovTGVuZ3RoIDExOQo+PgpzdHJlYW0KeJxVTjsOwjAU230Kn+CRl897yUqFOnUAIXECYEOiDHD8JluRZXuxLSu1Y30iMNCzxFZLjeauVpKzcb3jASm5hch/u8wIYvx2TRz0JLavV1bJY+CDw/XH4zIRb6hEDrpK3aeN1td6+oZXfzMezTjjtEzYAMnYIWIKZW5kc3RyZWFtCmVuZG9iago2MCAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYQovU3VidHlwZSAvVHlwZTEKL05hbWUgL0hlbHYKL1R5cGUgL0ZvbnQKL0VuY29kaW5nIDMgMCBSCj4+CmVuZG9iago2MSAwIG9iago8PAovQVAgPDwKL04gNjIgMCBSCj4+Ci9CUyA8PAovUyAvUwovVyAwLjYKPj4KL0RBIChcMDU3SGVsdiA4IFRmIDAgMCAwIHJnKQovRFYgKCkKL0YgNAovRlQgL1R4Ci9GZiAwCi9NSyA8PAovQkMgWyAwLjU0OTAyIDAuNTQ5MDIgMC41NDkwMiBdCi9CRyBbIDEgMSAxIF0KPj4KL01heExlbiAxMDAKL1AgNyAwIFIKL1JlY3QgWyA5OC4yOTg1OCA2MDIuODg5OCAxMzkuMDQwNiA2MTEuODg5OCBdCi9TdWJ0eXBlIC9XaWRnZXQKL1QgKHVmKQovVFUgKHVmKQovVHlwZSAvQW5ub3QKL1YgKCkK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OnUAIXECYEOiDHD8vrcVRV+82ImN1md9QqmMQSVWbylk89KyJjrXOx6QnFwD/+UyQ6Xw23fkIJpL3eXZJI38B4frj8dlIt4wCRxEq+L7Z4WlX+v2G169zqg044zTMmED4X4hgQplbmRzdHJlYW0KZW5kb2JqCjY5IDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhCi9TdWJ0eXBlIC9UeXBlMQovTmFtZSAvSGVsdgovVHlwZSAvRm9udAovRW5jb2RpbmcgMyAwIFIKPj4KZW5kb2JqCjcwIDAgb2JqCjw8Ci9BUCA8PAovTiA3MSAwIFIKPj4KL0JTIDw8Ci9TIC9TCi9XIDAuNgo+PgovREEgKFwwNTdIZWx2IDAgVGYgMCAwIDAgcmcpCi9EViAoQSBwYWNpZW50ZSBhcHJlc2VudGEgYWNoYWRvIGRlIGRpbGF0YVwzNDdcMzQzbyBkbyBjb2xcMzUxZG9jb1wwNTQgbmVjZXNzaXRhbmRvIGRlIGludmVzdGlnYVwzNDdcMzQzbyBjb21wbGVtZW50YXJcMDEycGFyYSBlc2NsYXJlY2ltZW50byBkYSBjYXVzYSBlIGF2YWxpYVwzNDdcMzQzbyBkZXRhbGhhZGEgZGFzIHZpYXMgYmlsaWFyZXMgaW50cmEgZSBleHRyYVwwNTVoZXBcMzQxdGljYXNcMDU2KQovRiA0Ci9GVCAvVHgKL0ZmIDQwOTYKL01LIDw8Ci9CQyBbIDAuNTQ5MDIgMC41NDkwMiAwLjU0OTAyIF0KL0JHIFsgMSAxIDEgXQo+PgovTWF4TGVuIDIwMDAKL1AgNyAwIFIKL1JlY3QgWyAyMCAyMzQuODg5OCA1NzUuMjc1NiA1NzcuODg5OCBdCi9TdWJ0eXBlIC9XaWRnZXQKL1QgKGp1c3RpZmljYXRpdmFcMTM3Y2xpbmljYSkKL1RVIChqdXN0aWZpY2F0aXZhXDEzN2NsaW5pY2EpCi9UeXBlIC9Bbm5vdAovViAoQSBwYWNpZW50ZSBhcHJlc2VudGEgYWNoYWRvIGRlIGRpbGF0YVwzNDdcMzQzbyBkbyBjb2xcMzUxZG9jb1wwNTQgbmVjZXNzaXRhbmRvIGRlIGludmVzdGlnYVwzNDdcMzQzbyBjb21wbGVtZW50YXJcMDEycGFyYSBlc2NsYXJlY2lt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Ci9IIC9OCi9NSyA8PAovQkMgWyAwIDAgMCBdCi9CRyBbIDEgMSAxIF0KL0NBICg0KQo+PgovUCA3IDAgUgovUmVjdCBbIDIyIDEwNy44ODk4IDI5IDExNC44ODk4IF0KL1N1YnR5cGUgL1dpZGdldAovVCAoc2l0dWFjYW9cMTM3YXV0b3JpemFkbykKL1RVIChzaXR1YWNhb1wxMzdhdXRvcml6YWRvKQovVHlwZSAvQW5ub3QKL1YgL09mZgo+PgplbmRvYmoKOTggMCBvYmoKPDwKL0FQIDw8Ci9EIDw8Ci9PZmYgMzAgMCBSCi9ZZXMgMzEgMCBSCj4+Ci9OIDw8Ci9PZmYgMzIgMCBSCi9ZZXMgMzMgMCBSCj4+Ci9SIDw8Ci9PZmYgMzQgMCBSCi9ZZXMgMzUgMCBSCj4+Cj4+Ci9BUyAvT2ZmCi9CUyA8PAovUyAvUwovVyAwLjcKPj4KL0YgNAovRlQgL0J0bgovRmYgMgovSCAvTgovTUsgPDwKL0JDIFsgMCAwIDAgXQovQkcgWyAxIDEgMSBdCi9DQSAoNCkKPj4KL1AgNyAwIFIKL1JlY3QgWyAyMiA5MS44ODk3NiAyOSA5OC44ODk3NiBdCi9TdWJ0eXBlIC9XaWRnZXQKL1QgKHNpdHVhY2FvXDEzN25hb1wxMzdhdXRvcml6YWRvKQovVFUgKHNpdHVhY2FvXDEzN25hb1wxMzdhdXRvcml6YWRvKQovVHlwZSAvQW5ub3QKL1YgL09mZgo+PgplbmRvYmoKOTkgMCBvYmoKPDwKL0FQIDw8Ci9EIDw8Ci9PZmYgMzAgMCBSCi9ZZXMgMzEgMCBSCj4+Ci9OIDw8Ci9PZmYgMzIgMCBSCi9ZZXMgMzMgMCBSCj4+Ci9SIDw8Ci9PZmYgMzQgMCBSCi9ZZXMgMzUgMCBSCj4+Cj4+Ci9BUyAvT2ZmCi9CUyA8PAovUyAvUwovVyAwLjcKPj4KL0YgNAovRlQgL0J0bgovRmYgMgovSCAvTgovTUsgPDwKL0JDIFsgMCAwIDAgXQovQkcgWyAxIDEgMSBdCi9DQSAoNCkKPj4KL1AgNyAwIFIKL1JlY3QgWyAyMiA3NS44ODk3NiAyOSA4Mi44ODk3NiBdCi9TdWJ0eXBlIC9XaWRnZXQKL1QgKHNpdHVhY2FvXDEzN2luY29uY2x1c2l2bykKL1RVIChzaXR1YWNhb1wxMzdpbmNvbmNsdXNpdm8pCi9UeXBlIC9Bbm5vdAovViAvT2ZmCj4+CmVuZG9iagoxMDAgMCBvYmoKPDwKL0FQIDw8Ci9OIDEwMSAwIFIKPj4KL0JTIDw8Ci9TIC9TCi9XIDAuNgo+PgovREEgKFwwNTdIZWx2IDggVGYgMCAwIDAgcmcpCi9EViAoKQovRiA0Ci9GVCAvVHgKL0ZmIDQwOTYKL01LIDw8Ci9CQyBbIDAuNTQ5MDIgMC41NDkwMiAwLjU0OTAyIF0KL0JHIFsgMSAxIDEgXQo+PgovTWF4TGVuIDEwMAovUCA3IDAgUgovUmVjdCBbIDE0My4wNDA2IDYxLjg4OTc2IDI5NS42Mzc4IDEwMy44ODk4IF0KL1N1YnR5cGUgL1dpZGdldAovVCAocHJvY2VkaW1lbnRvXDEzN2F1dG9yaXphZG8pCi9UVSAocHJvY2VkaW1lbnRvXDEzN2F1dG9yaXphZG8pCi9UeXBlIC9Bbm5vdAovViAoKQo+PgplbmRvYmoKMTAxIDAgb2JqCjw8Ci9CQm94IFsgMCAwIDE1Mi41OTcyIDQyIF0KL0ZpbHRlciBbIC9GbGF0ZURlY29kZSBdCi9Gb3JtVHlwZSAxCi9NYXRyaXggWyAxIDAgMCAxIDAgMCBdCi9SZXNvdXJjZXMgPDwKL1Byb2NTZXQgWyAvUERGIC9UZXh0IF0KL0ZvbnQgPDwKL0hlbHYgMTAyIDAgUgo+Pgo+PgovU3VidHlwZSAvRm9ybQovVHlwZSAvWE9iamVjdAovTGVuZ3RoIDEyMQo+PgpzdHJlYW0KeJxVjjEOwlAMQ3efwicIyf9Jq79SoU4dQEicANiQKAMcn3wmKsv2Er3YaKn1DqXSoki00Yao4bXq6PTC9YobJLxp4bZOM1QGvjMruy1M2j8g6CbeES/szh/ul4l4wqTw51Cx7cPakpj3FzxyU98144jDMuELeK4iRwplbmRzdHJlYW0KZW5kb2JqCjEwMiAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYQovU3VidHlwZSAvVHlwZTEKL05hbWUgL0hlbHYKL1R5cGUgL0ZvbnQKL0VuY29kaW5nIDMgMCBSCj4+CmVuZG9iagoxMDMgMCBvYmoKPDwKL0FQIDw8Ci9OIDEwNCAwIFIKPj4KL0JTIDw8Ci9TIC9TCi9XIDAuNgo+PgovREEgKFwwNTdIZWx2IDggVGYgMCAwIDAgcmcpCi9EViAoKQovRiA0Ci9GVCAvVHgKL0ZmIDQwOTYKL01LIDw8Ci9CQyBbIDAuNTQ5MDIgMC41NDkwMiAwLjU0OTAyIF0KL0JHIFsgMSAxIDEgXQo+PgovTWF4TGVuIDEwMAovUCA3IDAgUgovUmVjdCBbIDI5OS42Mzc4IDYxLjg4OTc2IDQ1Mi4yMzUgMTE3Ljg4OTggXQovU3VidHlwZSAvV2lkZ2V0Ci9UIChkZXN0aW5vKQovVFUgKGRlc3Rpbm8pCi9UeXBlIC9Bbm5vdAovViAoKQo+PgplbmRvYmoKMTA0IDAgb2JqCjw8Ci9CQm94IFsgMCAwIDE1Mi41OTcyIDU2IF0KL0ZpbHRlciBbIC9GbGF0ZURlY29kZSBdCi9Gb3JtVHlwZSAxCi9NYXRyaXggWyAxIDAgMCAxIDAgMCBdCi9SZXNvdXJjZXMgPDwKL1Byb2NTZXQgWyAvUERGIC9UZXh0IF0KL0ZvbnQgPDwKL0hlbHYgMTA1IDAgUgo+Pgo+PgovU3VidHlwZSAvRm9ybQovVHlwZSAvWE9iamVjdAovTGVuZ3RoIDExOQo+PgpzdHJlYW0KeJxdjrEOwjAQQ3d/hb/guMvlUmWlQp06gJD4AmBDogzw+U06AbKevdk2WtNyh1JpkSTqYCU8srsOmVG4XHGDRK6a+BunCSqF7+bOjoVJ/S4IRkjuFS/szh/u55F4wiRxI1Tsb9Blm7zg0T71XxOOOMwjVnxtIk0KZW5kc3RyZWFtCmVuZG9iagoxMDUgMCBvYmoKPDwKL0Jhc2VGb250IC9IZWx2ZXRpY2EKL1N1YnR5cGUgL1R5cGUxCi9OYW1lIC9IZWx2Ci9UeXBlIC9Gb250Ci9FbmNvZGluZyAzIDAgUgo+PgplbmRvYmoKMTA2IDAgb2JqCjw8Ci9BUCA8PAovTiAxMDcgMCBSCj4+Ci9CUyA8PAovUyAvUwovVyAwLjYKPj4KL0RBIChcMDU3SGVsdiA4IFRmIDAgMCAwIHJnKQovRFYgKCkKL0YgNAovRlQgL1R4Ci9GZiA0MDk2Ci9NSyA8PAovQkMgWyAwLjU0OTAyIDAuNTQ5MDIgMC41NDkwMiBdCi9CRyBbIDEgMSAxIF0KPj4KL01heExlbiAxMDAKL1AgNyAwIFIKL1JlY3QgWyA0NTYuMjM1IDYxLjg4OTc2IDU3NS4yNzU2IDExNy44ODk4IF0KL1N1YnR5cGUgL1dpZGdldAovVCAoY29kaWdvXDEzN2F1dG9yaXphY2FvKQovVFUgKGNvZGlnb1wxMzdhdXRvcml6YWNhbykKL1R5cGUgL0Fubm90Ci9WICgpCj4+CmVuZG9iagoxMDcgMCBvYmoKPDwKL0JCb3ggWyAwIDAgMTE5LjA0MDYgNTYgXQovRmlsdGVyIFsgL0ZsYXRlRGVjb2RlIF0KL0Zvcm1UeXBlIDEKL01hdHJpeCBbIDEgMCAwIDEgMCAwIF0KL1Jlc291cmNlcyA8PAovUHJvY1NldCBbIC9QREYgL1RleHQgXQovRm9udCA8PAovSGVsdiAxMDggMCBSCj4+Cj4+Ci9TdWJ0eXBlIC9Gb3JtCi9UeXBlIC9YT2JqZWN0Ci9MZW5ndGggMTE5Cj4+CnN0cmVhbQp4nF1OMQ7CMBDb/Qq/4LhL7qJmpUKdOoCQeAGwIVEGeH6TToAs24tl22gNyx1KpVkVdS2p1mQp6uCMwuWKGyS8auKvnSaoFL6bZnaaDeJ/BSHeK17YnT/czyPxhEniRitSvvOZkWWbvODRPvVfE444zCNWfl8iWgplbmRzdHJlYW0KZW5kb2JqCjEwOCAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYQovU3VidHlwZSAvVHlwZTEKL05hbWUgL0hlbHYKL1R5cGUgL0ZvbnQKL0VuY29kaW5nIDMgMCBSCj4+CmVuZG9iagoxMDkgMCBvYmoKPDwKL0FQIDw8Ci9OIDExMCAwIFIKPj4KL0JTIDw8Ci9TIC9TCi9XIDAuNgo+PgovREEgKFwwNTdIZWx2IDggVGYgMCAwIDAgcmcpCi9EViAoKQovRiA0Ci9GVCAvVHgKL0ZmIDQwOTYKL01LIDw8Ci9CQyBbIDAuNTQ5MDIgMC41NDkwMiAwLjU0OTAyIF0KL0JHIFsgMSAxIDEgXQo+PgovTWF4TGVuIDEwMAovUCA3IDAgUgovUmVjdCBbIDE0My4wNDA2IDYxLjg4OTc2IDI5NS42Mzc4IDExMy44ODk4IF0KL1N1YnR5cGUgL1dpZGdldAovVCAobW90aXZvKQov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TXoR3hguXx6XiXihibEUXWyfVrj8vuKZdarSjDNOy4Qf2gQhWgplbmRzdHJlYW0KZW5kb2JqCjEyMCAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYQovU3VidHlwZSAvVHlwZTEKL05hbWUgL0hlbHYKL1R5cGUgL0ZvbnQKL0VuY29kaW5nIDMgMCBSCj4+CmVuZG9iagoxMjEgMCBvYmoKPDwKL0ZpbHRlciBbIC9BU0NJSTg1RGVjb2RlIC9GbGF0ZURlY29kZSBdCi9MZW5ndGggMjUzMAo+PgpzdHJlYW0KR2F1MEZoZiU3LyZxOVJeXzhrQDg6PnRcJCsmdUljbCFSXyU+QCYjIV1WTEMqa2koN04jJHAkIUltWykvLFdpPEw8XmkuXDgzI1poMVomVVJMJmpYMisxMG9JXkNddDArWkhrcUo8QXVeSkIuay08aHNPSVI/bG9gJGVoYzxoKD8+UjBMUWtLKS5PLDxkVWwwRzc+KWtnOCRdbkI+KzwlaWNOUjg3LDVgIihCSWolRWEiTkA/Z1IkTUYrKCUzQyVuNmlNMWssUmdsTSwxVjhmalVzU3FVViY7RlEtZj9QXkMwM251SytKWkZfNWk6bV1ERlE+N2xedF5bJk8obD1pP2FkL1lrTXRgREolXCUtb2o7Jmo1Q1dWI19nZmJWblE0MDpSbCVtTm0oY1JpU1kiUVZJWVpxRWxmN08sNFZvJE9wXjtAbittWG8lMDRdQStxWCpyZVlnSms9WFFscSkiY1I8TkM7ZUkoWFhAKFtjNHBFJjExZCJuWG0sQVdvIyVhW2xbJyxHWEdXR3Q5OVFLSVJNOk8qO2RZLCRcRnBJWC1rTExZLm4iJiIuLGRybDAqXUxQbm9NUGRpRmlDS0xKUiguZSJfQiMhcl9pVzhLJEk0JidyNlhOcjViMG1hVGAobVdQSikwSyckOCkpOHBRMilrNzxJdFg5IXFAPC9vRXJkTGAwL0E2LUFsO2FSYVM1a2YjJXBIc3FDZWEybDZDcS5VIixiOzdLQC0iTCxTaHIpWmk0Lj4lU0p0NkJdZ0RHIWtGMUFQUVw7NmQrcltwVjtLUlZpQSQ1Yy8oLFMiLzdZYDRLKzo5cnU1LCdiQmlYTGNeU3NdWE9jSjtJRCFlR0A4bC1nOG9kO01wdGwtZStMYj9GcEBZRjhXWz9VW2pXdEJyYUovOGlAbSY0akFuIz9yWDtQM0M+bkxYdWRTKSk4cDdyKjUvRT5Gb2NmJCcoPHBEKykqYD1cTFtSR1pMUygsKDhZJEI6PSIlTWZjL1wlXFkiIWpMOyZPV2Q4XzdMODljP3BrLGtSYmIjZVFuLkVnL24pJEo7KShDcEhmLD1AXCxuNjVXV1M9SFs1Jmc1bkJBPyNAX243bmYucElgb1A+YCM9YU8sVWFMNnJMIkFVOy9gbSZRVkpbRCtyLyltSS10Wi5pNyRNc01lTiEkImlBOGYnPSlYT0Q1L0smPEVmUydwbFRiUEhvSCEvQCs9Ijg0aG9qYigtXlokQjxTbGZ0cmcvI0lZO1VaSWZdQzJqLDJaRGQmLCNuKUYoalBFUWtpITdMPyROSFNcW2hNVWFBcz1rIjI7cyVbJjRaLUlIWzo8OTxmLlc4X3FvRmJba2pFZz1nOVNuJDNQTGJcczRHPVclaDFAPj5eO1gmYEBcIV1OVDdbXEg1PGBxTCxDcVZINixIPE0pYUUicmRXRGcjUSc5ZVJmbFxtYmhcVEkyVk1lZU9GJFwrX2xQJXNKO2xlVHFIIyc6bCxERmhjIWNsKFwnNmVxUzBqKDUkNGtpQHFSX3BIdWhMXjU2JTRsKE40SlxsZl5FQ1RdUWQySiFoM0I5Zy5kZGZIIV4sMiRsKi5EK3BaWVAsZmtcM01gO2FHdUFDS0VvbDU0ZDcxVFs4JysnV3RjWjZDSUNiK3BcJFJXJG0rWCJcZ0ssPUQrMDpvVlBsWVwrTz5LVF5Ec0tYaWpLbStFUVdrPFsuNWkkQGJrPVprJ1xbSVJUTEsvQ1JROklfa0otKTJiYjJSLThgUzBdKTZVWS5baGBcJjchTmZaZlJpXVhMNltqIW47UWIsMEtTWDNRX01eaHBWOjkuRW4lVVlaOnQ7Sl0rJEZbQGk6QGpXMD4vYUUiUDxSLW9BaCcoSmMrQWU4M0tDOShiUSdzOHIoLmAmNjA0WWxyQ3FDZl5vSl8rQGFiRTc5TFYyP2M4TShfI0E6WkFfbCQ3cXJEaFxrRlxaOiUjTGkjazM9czctbihRR2FFbGlOLCZlLEk1OGBpazFSZkxvbmosTlEzP2knZzlCPFA7KDVNRzxZLjE+ZTxjKTojaEUuJFlXJyUkPlFsKyJNIztCPW8wX0NRaF8kZk80K1pgbCUwYCY5MlhBM05AXmdCY0w7SFY4PEBvSisjVF1DVnUkVVpUa09bPVcyIXUlZWkoR1hWSSQlOjNKRlFaMW1pcTtjX09wPEQtI0tJU1NxUlwwNWBCWWUrdHE4NTc2Zj5POXEsb2trUEo4PT4kQUVlbUIoYDlOXzsrWUt0a0FDQVtYZlRMRDtmXShQSXJTdCwjV25YUHBTKkgoNDhmPmAxNCRnXG8+LCpAZkAqVUpmUk03OT0qJjB0LzFTbyg3YkJQc0tQZ1c4ayoqdDAzL2dqLW4rams7Ukk5XU9uM3M5SFQvZE4qKl0iZ2xXRzsvQWhxbkIvU21sJDJzQlViX0MnY05taj03X2dfNkAuUjc3ajdgaVxIYGxvU1F1R3VNZVk3RiVIOlFOZXRhSDYhIVxFPWwocnIjbFNsJkdjUWU4XyNHXTJkJl1tIWViNUYlSkpFOC9zXVFScFRRdSdPLFE7UVhnQmFKQlpPUjkyJ2F0V1EiLUNPJD9eZnM0RTlZO0BdTnE7LWdmYnElQVlaJUxMSD9bTV1FS1YmSnFYU0BLa0ZtMWVBUmI3c2trKjdGM2tmPjxKcTJZUmchTDkpSCc6cnUkIjZWIj9gQlFPVVRdZWBgR1YhLk1gQyRbNWw0XGMxM2w2QjJbNmssbTleV0FtST5NRFR1WyVtTSh1TGZWJj85SDVUOUNJTS5pclJOPzsqXUxTaXAuczMuYFdlJVRTNysxPypNcV5ZKm45N1B0YSNdUW5lbCIuYHVDSm9taVVfcV0xNzQrbnE4U0ZbJlkhc3A+WWIta1RjIWI6WG89KkhKbGwpcilkR0NZaisrMDNgMm1ZRXBDOVtIPGApOjYzXGxWVCJfbF9jZnBNWSRRQm83KWNXXS5SJ2YvVjEkIlRNNj42ciMjSyJBVldYSGlIcDFaKWtXKWMxZlBwM0dbYTpPU01WQ1ZdckZqIUNHVHBiZGQxTmI7cD0zXjlfREIvRV5nQVk0SyU+UzZwLTtrOktfaUlKKFczLkNlaG1SRU5BdDJuQj0iSjNhUEFyanJocmJXPjxjKytVS1gkalZHQFc4QmgoNik0Q0I3TF0/NDpqMUA1Y1NyOmMualouJCtWOC9aMjQ1XFZvZGNiMTVHT2owR0BbLDlDMmNsRT43UWVIO0RWc3JOaWk6XDAwZDMoQjwwMWIkJ3BPaCVTUUlVbWdNNy9oQTtaMFhSQ1crcWAvalIjTDcwUFZ0Y1I+WEhWIy5GbHU7bFIwbFp0W3JrWFYwYCsnbyk4W1lXcnJeTXNCWl5+PgplbmRzdHJlYW0KZW5kb2JqCjEyMiAwIG9iago8PAovQ291bnQgMQovS2lkcyBbIDcgMCBSIF0KL1R5cGUgL1BhZ2VzCj4+CmVuZG9iagoxMjMgMCBvYmoKPDwKL0YxIDEyNCAwIFIKL0YyIDEyNSAwIFIKPj4KZW5kb2JqCjEyNCAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYQovRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZwovTmFtZSAvRjEKL1N1YnR5cGUgL1R5cGUxCi9UeXBlIC9Gb250Cj4+CmVuZG9iagoxMjUgMCBvYmoKPDwKL0Jhc2VGb250IC9IZWx2ZXRpY2EtQm9sZAovRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZwovTmFtZSAvRjIKL1N1YnR5cGUgL1R5cGUxCi9UeXBlIC9Gb250Cj4+CmVuZG9iagoxMjYgMCBvYmoKPDwKL0JpdHNQZXJDb21wb25lbnQgOAovQ29sb3JTcGFjZSAvRGV2aWNlUkdCCi9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXQovSGVpZ2h0IDIyMwovU01hc2sgMTI3IDAgUgovU3VidHlwZSAvSW1hZ2UKL1R5cGUgL1hPYmplY3QKL1dpZHRoIDIxMAovTGVuZ3RoIDY4MzQxCj4+CnN0cmVhbQpHYiItNkc/PlI4VCdzajAxXDhpJEhZMnVDXiVeaW5XMk42XjltPidTYzhqPiJgJFhaO0YpI2AzRW0/WlAjVC9AQUxeOG0yTF1LcTRQJTdCRFVOSHM4XXE3PUpTcFNlUkhZMkUyclUwWUlwJTIwPjxOQjBQcVVSPSRXalBHbzo1MC9wMTFcSWYrW150bSkpPmFETzxIdUckbExnMmFILlE0TCgicVRBQjlpVTZcWiFlMTFcSWYrW150bSkpPmFETzxIdUckbExnMmFILlE0TCgicVRBQjlpVTZcWiFlMTFcSWYrW18hQ3MiRkY8L3BeJj9ccU5vUlY6NFtEaFwjZjteZCVqUzRlZV5ITFBDUFg+P1smUVRjakNlNiYoP3VHRS0ySipBKkZIT2hTUE9IWz5oOGQqUnBFajxQbCs1Sl80OVFgOyMkWHUoKkVFJG9ULiddRytkK0o8SmdAUG4zUTVzYUhvcy80ITYwKjNPMVwsPzAwU3Q7OCRmZnM5NDg0YkJiaTo6QFs3UlA/UlgjTFIzMElYZiJjODJjNXBVNSk2Rio4KVMoYDNXS1ZMRiheTmlvTjNRPCQkUCdIRjVuQzJPMyZWa3BMZ2o6dShoJ2dmMEZycSMqYUpkRSVyLi0qVUI2XkxGNF8uLyRXcy9vdVBeSWw7XUFcI0AuST0yRXAhNTxNYl8tMSQmRlJpXkwvMGJob2FFWzxEPDBnPTlUcG1eVWFQPj8qYmZqR2JHQ1RASmF0VENzTUJwPGlUOj8lPydFYyhXUm0pSFYxOiUsWCgiaC51cWhLRCNhKjdoWThbQWJiXjlNazA3SV1DIXJfP3VXNjBQWiRTNipbLVIhOnQrTD1oVj5aNltpLlteSFs9cnJsLVVPaSJqOHFKbkkkKCdsL3RQKmkxRT1YYmBpYkNAJiZKNkdTUjtMMWFTR0NDQyEsUE5RNWtOYTQnKlk5Qlk7MzUpQCVTRl5WaCQ0WFpaI2NSTEx0IyhcY1M7XEZOXyY4aFNhIi9GUDVPVi1YKj1NUFpIc2sjPWoqMi85QDFjKD4mRDpjTl5VSzdvaDhYZWNTbm1ObUQ1NnVYPCE8SEo0MSZQYGxZJk8yJDVjSC83IkFUMTVgbSpNXUs7Y1NudSMwWkVaYytAU1Q3KS1GZDJkQVkhZzcnJWJabC41MW5qJDgvKEFRYyJsIUtCcjcpcDI0YmM1QURfLzA3b3NkJEZDV01uQUNWNXI+Q2E1WzwrPEtwOU8+dCM2Mic5Ri9FcUc+UlJhLlw4bS5nNGRGJnQxK2RtalBPOiVGYmo+SHFZdTNFSDZmXE1FJTAhQFY5ODxNb0k9NEV1TTtqclU+TS1Oal5CSjNiRyFPU3BJNWFjXC5Daj9zP3RhUWpMOzQyQUNoWGxha25jImg2YiE6KC8ja3M1Ij9NamlDcWhrZ3JVUigvRj1OUG9tLU51WzIpNW4scUpuLkJwIjlPIyIjREpPIlxUK2dqMUwzKV44UnQ5aCpCaj5lSFI+b3JzVG9acjdCbXQxRWhsZy5jOl1TQmc0cDhHImUnUktvTFMkR2JCUGInQSYnZFlbQ1QxUW9LalQzVGVWWXJbXkZDWS1IWV1UN0RsWDorLUltJm1GIyJHZ0M7V2giXztRKD1tNmI2ODprSCdTWFtYLi1fX2ArLUtUclchK0plbStLQlosckpDN1xUS2xkOmdpOCwxXCVfaW9JQCVfJEk/cG9lJi0yVypIVmpHZlNtK08nREZxKT5BWk1LTmxpXVNLZ1NjbHAoKV8xcHNkKFdMVk1Cal9bPVUtTCooODxUNmBlMyQ2Mzs8YTonK2dCWyU7Ul9HTCsuJnE8I3QkTjs1dCtxNGROcjlONjI1R0FTWWBTWU8tTippL0BCOiFZciVHZXRsXXFnPCozUCIjc19NTkxVVVM0Q1FYR1ZtSjcpSWRBMmc6a1wwRl5dQycsLUwxQFNwKEVkZi9GMm8oay1sUk5nKCYoMS8lNy9YR08hbms/dEkpVFVGVkt1USJuRipaOlBZMSpzO0QmZzM4QStLSGJnc1ktKVVTNnFNMl1hUlw0XWlTS11cLlhFXjI7cVtvP0BMVkRFWzZvM0UoQGpBa2MoOU5PUmUqJ2pYSEMrIVIxTUErN0FdYWlRT0hDbl1PJTcza3UmW19VdFxyNXQjQCknKFxRbyhkPkhLaWNfXHBqPTBmbmFQLl5AZ0VLJFNTTzFaKXVdLmdhR10rSWcnVzAmcVA7V2plM0JlWFRdRGhzbDE9bCphQUUwLGpwIjo9VFEwazglb1MxdSUqZDFtZGpyTjRTU2FjUFpNJz0mWGZpXDJvRj9qTGtnT2RSPGonLyZPI0hddEc3TW1hPmdGZzVPbl9ybU5vJGJTb2hqMC5gMTRpJV81WFRCXGAoVDQpTEhEXlcqRTAxY0U4M2YoL0pXM1Nza2tQbl9xQVUhKkQ4XmVkZkZeSUpwVlIhRWU0V1tlOmJFcVpzOVEidWI/PkRuWjk3ITNjdDZZNXQ7a15ERzQoJDtHP2RbJVVtMGkrLSMhPmlOMFVxNktGWCJWJi8uUzguTHBCbFsnUkUtLk51JHImVzYiJ3AhMmQpPSdTXmVlaFJKYD1hVSxFTT5JQ0QyV3ItMSpPX0tuNGY/USoiaUZwVmIqOydfQkBUTDQ7QXRUXkByXklmQmBQODMrbDliJ21VajVFKSlrR3VhQSpcI05VP0BuLyJVbGx1aEFcK2VzPy8+ZiZCSjVXcD0xM0hualJxdV9tX0Q/ZlgxKHQkNywxQjJrQytpcWM+KnJMSVNRWXBoQS9qMXMiRnVNVHMiIVNYQV9ZU2VLIzZLNlFzN1hbUVQqZ0soMHBEISVCKnJSOUolWlYoLF1YYjJQZkR1LVlGMTRVX1AtaTxDQ0RiNzslcF9rKkpeSzhoK1NGajNvZmtUbUNnUyctJ2FBOy5nXk05OzBpMkRxczFRSjtxbF5baCQ2VUlLPSYpNHEtPXFmbD8lXGpsT2xkQm5baDEwSy03LjZQbGVZLDYsbjBzLVFoZl0qQT8tRG5eZWImV05cTEdRdVJKLT5ZSUtHcFNFPmghXCIwOyQpWnBpTV82YHJNIWxTbW0hJFkwY1BBR0JhYyZQRFpsWVExNmpJJyNUUHQlRVo5PkU/Z04jbS02WSdmJzUmKmElTXAlUzw4Wk9LKUMlLERGSC8iakNgJlRZXSFxVFprTXNpMllsIis3OVlLKD1JL0lIX0JDb01PcEo9bV45bGJDWDdwcSxyUEs9NFsnRkguO1FvSUApOiphPVJJQzpnVlgha1RdaVZNb2FsU0MzXzA1ay1nSCdWZGpyYTokP2stTD5COlI2P0ZjOicjbls5VDNaUyhWSUFPSihbTSZsK3JWIVMxQ1I2XEIvZEFmcmtQL1QsQzoxPjROPjEmNXFNampxJjFdOCYnNl5WJjRycixObShdX1Y5QGJfcygzV0lndWdmQUwzNjg0aEBOXjR1PmYlNEglPyM+aiIiMToyNHE+IT9XNTUlWDBBTThrWk9gSyQ0SzZQZTZqMFNHV0Bia21JQGZbTFc1MXEqS11vbCI0QDUrRzAxODVkOUJfQGVWMUlnJiI8NVwmdT0oKTAzcSQ5R1opMWooTz0yUConcSVwZzRVWU1LQGhWUmNSJmdXXTZeZCsiaEZObyVfKHI3SWdoYU9FUDVbJ1szRjFHZzhRWiM7YFFXPVpFZzphP3FuW1xmb0thWjtgO2RfYEYmWy5YZUNTWFtCQUkxI1Y/Z0wlXC8iK1pzOlQzPGxZSy5DbFRJSmBPJGdOcnA2bDV0TktyXyU5PGpcSDZIT11bJTkiOVxlIlRWK09tJjwraE1NLGBNbVE5SWxQPVtbUiVGQVlic1ptW3I4XD9yZ2JQaCs0IksqUjtiYk0uZnFxblVXcWk3W09iSFM9OGdRYUNKQ29sKmxiXW5gZVdRPG1IYS0kWTVBISs+JiVZNyZBWjlNQCxMYCZwdV1UMi1RXnE5cnQuTm1nIi9oc1pGIlo0NkZWaiUlLygqWFpJckI0cFNsKy1LZWkwS0o9Uyc4L103QlBcOTVAby06XFAkKFVyamxRWScnbz1ULnFzS0lyL1QjP0BDXk5nTllEZURVPFJySSxqQDFHKy0wTmdDRzdETE88YTZZbjM0Smc3RVZnLXJUXT0/NkRFV0EmcD8yW0MtRDlzaV87NSw2JnVnUjQnKm81JUI3dVBAOTRoPSJOJjc8N1xcNGBLVVtDSHU4YjZOTmAvTSFbSyo9dE4ucilcIi9tXSNZTjJycWltLVBeY05DQEBIOU1mbEpfL1lhKlEtalNrVlVlTDZSP2FGVz4tPGZKaD5LPUpJbFAoMlZJQXQ7NnRVRmZJOm1ZNkJqZEdmLlErdTZVOnR0Xm9cJXJJQ083XygwLWk2NF9GbCplSFJLbSJqO2gzSFoqMVAmSyMyZUUtU0tzM05MPSgjblxNOiNIJCdxViwoImx0ZGhzc0IsS1tMLHJOYV0/LyoiXCsiP0htZExXKV8wVi9JRnMiXzFoJFVIY3BEVl0wdU1mblA4MFEhUD5YUCNdbmcsdVtaQ3I/IU1zWXJSXWFjSERqQykyVE9tOGlwcUlKJFQlM2BRZjpIQUcodT0pJyIuMW9iIl8ySS5RbV5EVnMpZ0NnKF5PR3MsLSFnYz40IUE4WkkxO3Vjb1ouV3UzWylyJFgkP0dDYUY6MzUvZEdcWmQsYmdXMCpcYy5CMV07T2RQYHVeI1RrJmgpbVtMSjgpTiklIls3P1QmPTpqJkZIRnEwPGhsND9fOCtMInVJOy9yXiQiN19kXjtbXmJaP2JMcF0lXy1dRmRIK1NuMlpfallrKk8xO0hnTmNbIj0zKDNWZHJcXSRsclY6Pm0vSG1oQW87N0Q9LCUwRTBUUzlna2hwSiJjWD47WSg3UUsrIWNQaGxlcjQqcCZiYzZLcmtfJkwiQ05oUDYzSE8/Ziw0ck9hX0cnUDRTWEQ0UDFKaSRdVS9DWSloMGtGaEBMKFxWMjpkb1QuZzRnamNrWSNsNlhPMFN0c2lBbChrdVxAbilpJzwmVT5dK1YhJDhKcmZWRzkuMmY1JFwqajRQYkMza0wjNDlMQSZFbWU9dFksXlgyYzZmU20sdWhPOlZIcClESkhOa1BdQS5nJzk5XDBLO2AtcHIoYExtMC8iKXVvdEBybGAhYU5VPj1eSjwnPGxnUUEtLHBoZyRNOnRzWzRxPi9BMEJBYWBtQi5yc25rYkBeckZSW1dtOj5xalpVR0FsRW0hUXIuPmNtNSZRO0gpJD4kTWpiU1hlPGEqMEhDYzw3YGldcS4rWV9HQENCZHJQYzFRSlFtPTZHMGFwZ1xiVXJLUiMtO3RCTGlnSEtxYzNVS2NVOmMuRjdVMD9cXVtVaz5vIz0oPWxkKDNvJk05b3Q3L2ZeRWFFLyhQM1M+QUBDcGApbjU6PCs8VjxQSSwjOTg5VFVOLkVjMHBmKExVXE9iTDxsdHJgYlQ2OF9KRGxySiNsU0xtVjtrYTxXI1ZSJSMyYmpRbUtILVY6PCspQDI6WGMpW2NSTl9QSlVYMz5AbmUyZkAxRiszZilYW2VBO1lDP18rcFJhWyZUN3A6SXFJQ3FPM3EucWlTXlZWI1BJUHBvR1FpYy0/K2NLXEVqX2pCNHUrViVZLlVhSlZQMVo4VicqT1xaRlwuJixWNl4tWStoVydVTjgrTzM9U0tVO2BJN2gmMjwiK0NNPGdkO1RqXGtFYFBDRV5BLnRgZW5PWDFlKGkpPTJrT3FEJW5tYHFwO0glRCJHWGxlWlYrZjdaM3RHT3FhU1JLRTVbZi1Vcy4nLF1ZMiJwJ2YrTUw3cShSXjIsLTtAPigtQTIyI3Q5TSJKNSUxOjw+JDtkKzFXITgtQixxbVgoay5YO0MhVSpRYW9wZ0pDZEpWZj9RSWMtPjlIO3UwIiU8UmJDRiV1Q1VXLFpmLiFuazxqOz5YPDdJbCtdPz4iP2o/RDA9KDkwKG11YzVmK2JVYz5vXDlTPWwvZGtuKU10OEAvZ1Y9cXIsX25WOzcpbm5rN1NQPys+MjRaYCk8bzU4NlZfUyhgK3MiaW4tLi1QQUZvL2o+dVtYb1dnJS9UJC0oWGsydUkpN3RCNHB0anJiVmBFOm8wJk0nJzNBVERGSV9XR2ZEWDUpK0MvS1VePUtGXFRALS1Tb1IjcEREUj1KY2JKLmNubiUnVCFiQyR0QzBTVT1cbUktSmVwalBEJmFuX3JnIWdUVHIzSld1PVBNWEc4RihCdDRdNDJgY04wS2ZnV0ZlaS1ecE5xMlppQSIwPzBLLTg7cFwnNnQoaG01YURKTWMiYDRcW19SSFl0WCpDRjRWTmZJa2xAKSRbOHI3KydrMFJyaS9oZUIjVEBadGovbiciZUA/TmkjXWtJIk1KSTU5R1dbV19ALzJBOFktanBvXSlyX2BEc1koOUhzPjYpMVs0Kl1sQGZdQ01tVjAwMFBmc3Nzb0duQ250OGBmVVsoSXRMO1lLKkgoTV1GcGo8ZlZVO21xczBKQ2goWkxqUStQLVtcPDZnQCspPVVqYCcyT185OkkhNWtkPGVDTzBeaGg+Li9WWy5pUFAoXCRAdV90aGlALEJuNWFBNlQ8PWBKcEdDbzg+O2VeLjJqX0A7QmUkSFhCVFlERm8xbjZzYi4yOi8sbkdDTWU6aVEoY3JCR0ciJXRlODJldFxHI25AKGk9ajM8KXFEdWQqcikzRFg/VG9CJGMqc2BVNy9LRjZlMjJkOy08YC01UDAxLypnM0JbP05La2FxdVYhQilsaGswZWlBSz5OLjpGaSpaIm1oYi02OUlhZ0cvO1VdOFZbJ2Q9NU1YLytQYjAkbWdJOnVLIzFRImY2RUhcW3FaJVlOPEMoVDJHVmVnNl4rOzM1NnBVJ1ZLYT1NJWVBPGZWVU1jLmAlQExGWiMvcnIzUHE+MGdOT1cpJUFtMGBwRDIuIVw2JFRiR2BPQllPQUc1IjFfLjcvKU1saVRUV1BFTjQkPk4uRjBVYTs7RmppbXNfUHBSOVRsJ1tNa3EvcEMzZFktdGdyNDVXcDkicW9lMygrOUlqLW0+W2xIXyZhcXRdRihOckpRKTk9cmZSVDhsLUIhMHNuXWprSmhPMDEtNmNVVSNkS2xGU0BxYEBfMGdkYUYjPVk1WkpCcWdqbkkwSiNXUGtbOmZsOi86TF9OR2FvLCNRTWwqVGtmdWItXnFWbV88QSYlWCZmZylGbjpNWDptaFh0JEsuNiwzbzVDZ2ZDJVA/cnQhWEdTWS1nWy47NlVJTCplZjJtWk8oWyNRTztBUk82QFJSI284R0tZMiY2QU1dMV5pPlw4TT1UV1BoNzdEJ1JKWCorOFkuOTBsUGRJcjVDNDo/bF9wWlNEOThDPGhOU1ZkMWopWl90X3BiciJKc2ZoQlEndFZsJnRgWkFDMUQvSy0qPWZzUGEkVVhmIy40P0hQdD9NREVfPkZTUWM5QjxvOiNsTzRIT25mPGRzLDxxUDc6UnAoM2sxaVUodDZKb0oxWGJpbVZkWi1MSS1YWj9eczBzbiJBT2Y6K0tvKF5gPGI4JUU8KkVJMzdGUk9ZWSVzZyxTaEpGKGZdZyJucEVLWiNyckNoV0guMTIrPG1vRlhpWS1tXSc8KzxcTkg5Y2M0QSNZVC1EPC5rZmk6Sy5yRThnXD1rKz46TUcjVWBncDIqRCFHKVFuQE09SVgnSSxkWTZAYjQ0V1FDX0FyTztANFgjZl9ZVUM6Im1uO3FIUiw6QDk2SjJYcUJmSykmc2ZtP19APzNTNzVsYStwbFlNViZNZ1hwaUtvMWEnYiwjYDtfSztfYGpjYFhxW2RlMDxVUkdIMylvP0kkXWB1ZC1DXHM/TiVhdTIpOjgxQmRoWzhoO1dwZEpnK2hMRTk9KS8tY0MqWkNYXGc4MSpkWi1ORj5pOG1HW2teQ2VwbUssWkZpOThBL0sqTWVNZmVvbGI/W29kTDQ5NkxGSD0+cHRvTCR1I0ptUzBAX0k+Y0hvKElqQk4+SUFjWFMxJl1nUkEsKFFnWUgnNGttSi1xQyIwSC5sSzE6WU5EUyNnO3VRQVteQm5UR09Xbz1yN151alldXUg8XHBLWXBbYiFlaWJhakI9ZGprXW9VTCkhamghMXJsVmpJLzhEJmldVjFcOjwoJlNOLi0rZm1yYFNWQFhmaWUwV0dAaW1fUU80K2FvXTIuczhpST1YRyt1b2hYOy0tITQ8OVJqOmQ0aUQ6KTUxX1c5MCEwZG9eXGxaUTpsR2JRUzJWM1wrTCVAZzpOTDM5WC9yW2VEZVhMKFUkW10oJy4wJGM3MkItLydmY0wlP190X2pBZz9aR2BZdF5TbHNwdDBtJUAqZGlrWlhsYUxMQzxdMzQyNF4tX1dmZkRlaT49bSRpa2lmWEA+P3I+OVBnT1RQXCtXLmRJbkZscjxPbElJYms4UlVxayZIPW5ZcTJJUChfOVtNITQzZmBvZCx1PytINVtqcWJDQjRUZEYsKT1xJjsoXSg6QVxpJ2EuXkFSRDxtaTBWdUJrVk1cZSVrJilSLjwvXm9fIjQjY2BfJ1AlI11zNWIiNS5HTihNPCwkITxYQmA4OG5AXF5fLUAockZpSyt0VGlFNyQ7Wk5sTGp0dHBZdWNyZHUyQzc5LStrOSRNQGpAZ3JLYj4lU2dqPDZMciI7LCNTJW5iLmcwOElwKUVeLGVoVitpXyVcKkxNTG9icD8oY0U2UnJ1USZAXlM6a01RWD9kK0lYcFFMQ3VqMlI3TChMWmxeVFZZPy4xQSpGMUVjRyRIcStXIyhQUjlBN1MzJjMzTkYhIkBfRyJwMD88c1FGSkJBPDhQVldTYmxgQU9VdVYlcENUZEFgT0VeNiomLUMwRmI9cTFZaz1HK09QRTInWG1iIi1YN04rImQwQlFxZjMySSdXVWdiLyVlPnAvdVJwS29tYDlIZ1dNUFtXRWwyPE9ERlpZXzxpUVEwbWhkYm44Qj87YGkkZVhKMi9Ecm9XcTJrLHM5MmJpNkArR09oZFJRVGZmQi5dWmA3R2VYTEcjYVwjYGg0Ty9Nb2NQYGw9QnUvK0BbamF0JTdlQFZzNT1MJ1gxPD9EISEiTSZxQFxcTlo3OSZWX05Uc1IvWzZpL1hgSi9SSmVjRTBgc05BY28+REowJzo4c21XNSljT09hXlU2OFRJRV0mQSJcVS5UTSEvK0suIlBGZHNrZzFjSDViJXRbJjsuJnBKRyEqbSlpblJ1P1ZFVVRJI1MjNkgxQSpZIVIrSFstdTRNJ2NhaERyKzlxJTFiM1N1dXMzMlJXOjxoRyxYT0hiLWFQWmIyYWFkJEBeOUhaPTpOalJNaWJfZnRCLHFHTjFpb0JQJmRKK29zc1heKSNCO2tRYldeTy0mXGZAbUFYW2lXNXFFMmhVVDJ1YmtlMnBjbyRESiZuMCM2Oi07cDJdcmpiZSkyLl1FL2NAaExUIzYoXS9xI0VbbVx0XlVsWUQzQUNIQlw+O0ViXUtJTXBIWz5NPGpmc1oiZWdtbFlUTSZYK2xQXExYaD9BPUFGT1xEW0JRZVljLzJdWE8uMlBlQ1ZkdSg6YmNmTVNHQWhtLnFLMjExZVxzZ0soXW9caVc/JGNZYS1taVU+MnR1UGRzO2dEMTcsZj1uVFtQX25tb0ZXcyI1OjZdOD4kJmFmMVpsZEtQQDouQDNxR1cxcCM2YzM4cS5CJTpEV0Q6a0ZoOlRvQVVnO1dHNGpjKlE7NidASXFcdGtLaVRuVVxNcCYwVXFfb2k5LEcubXRQVixcUTdmO2ksJjFXbyNuMVEkaEVVaHAzRGYxJSpIcHE0MClmPWZmKUpbdG9MZixtM0wlYytpWzRSIWs3PWt1NWNZZGcqZz9eK1hIMWpYQUNVTSRDKF4qUVs/cm9hZSZBUyZEbz83Ri5MQm0vZWIxVWoqKD9rPi9bZnQkMmg7bVlXWzAiMmxjPVA3czVUOlZOWj9AUHI6UWBpKDpeOTZsKzImRUlPSV4qM2BoXiQ1K0svUE1KMkVyWGcvMyJ1T1oobE9AZDhGZFE4cGtzMVpgVV5wWzApbC1iaEB0VFNfIylBYjwsbSVsS1VGJm4lPl5kXD1hNUkxQSROTSI+U0RdOiFGSmdQK2Q3ViIsZiZaQVRQTU4zNWohJTVrOmhYK1lzJG1xIWpsWS0zXC4jQ28/TWosQCEoVzZFNlYiVzlLUTs7Ols7NEwiT1ZzS0JERCJVWW0tKV1ZW1BTTDdiUDFnY3QoIlBAUlcsZW9mSmE+YGlQNGA5M0VUIlFJcTpdKFQ/LF9tOmp0ITc1bjNALGdFQzZWVyIsczdLMVRYbU5VXDJWUyR0I0IqP29HT3UkVzcqIkclUElNZy9kK0hSdEMsXF5eOjNCTF1gKFlWY1ZkIzdZRipPR1ptUyZiI3FLaiY5NldzKjlscytnT1FfdSldXXQwdTRHSVk7ZjgiW1VQWiNjM0hmJ3VIJDRAPmojKV9VMlExY0FcKFhENyUhbV5OSSVZN1FEJEstVCppQXBfTzE/RyY7Mm81JExobDlcWkcsPWNFXmo2PCUwO1ZnImozckpKbTt0JldTISVgTnVVbm8qUmpmSlJSLkNyP0MpP0ZWZUFsYmdTImxbREk5a0lPP1xgYT9eUC5oJm0zIVg8QSM3WUttPGtiJm1SciNuI3JzPCokIS5kRE4nYmw6UjBPXm91O29zIlw3QT9Zcy1rMmNmX2Y7WTg0JExzLyEjb2o0JkAkanQ7UjorIlZcV1cmZm01bVVscj9ldCljV0ZMUnAva0IyVj9BPCtnVVVJXCUnLV4hOEU6ZHA6YnEhL3ViQ0pyPzFiQD4kIWVQNl9tQ21ENUg7UHFFdVQ4KU9tPUNeQHBSSEA7J0onQDpSP2FgUlYiVlBGTD0iVlpnXCheJHEiUVNVVi9cYFB0WSRXUD9GY0wpJiJwVWhBTTFvZj1FS0RnbSpWRks7J28xM2A6XWJVV144aFljKSMyXWpbX2dqZU4uU1hFSmFtaC08ciM+MyhkRz4yQUArK1wxailKXF5bSCpSMF9rOFZja21Jbz50QipZJyVbJWIub1RvJVJFKlk4OzdQL2JmO1ZtI00/bUY1TFYwdSYmSFFXYTY1UHFzW10vaGJNPUE4UW82WjhmNzgjKU9bRSkzK3BrN2VXK00kPWswLG1oYzpCPSY8ci5vKCdQO2UsPypFSDN0VDEpYzFjTSdUUio+VWhraDhNQmBmJEVAO0pfV2xSSEMkNl5OcGtaVnUxVjhjYUgnNFQvLGFgI0M9bS1rRkEuXWcyPSg3XlVyZ1o5SElmUG9zS1Mqcy5NImlSPSoyUkhiWlw8Z0ZLJmVHZCJScDE4aXJDXDtkSXQzKCw7R2tWMTk3Pz03OEJcIWZoVi1cMyYrJHQrKDgiV0BrTlEmRUkzQnE8PjIiQS9pVVUiS0oxLUovVy8jXkExV2NebT8wRG9oXD82IiUoXk0yT0hvLzIjODRrUFowPF9La2w2OjxFUUw1Z21bcT1WdCReVU5OOkhXcE1kUVFCNm1EYiw1KW0sSTBbJTk+UyJjJ2pwIilEYmM7VlE9VzFhRyxrXUtAQERBRmY4cmQpS2hxcnF0PktALGdFPz90KlBKYFBvaWdNPjVqNThPY1J0ZCM5NSlvNFBXTWFyMmM5MiskR14yLyE4OUo6TGZJMlk6V2xRbWhcOV5HPzk9I1FdaydQQ0RiPnFoa1kkJjtFSS9xMEBcK1JYOlRYNkY/KTUpRiIhJywrUCc+IUBxZSg1Q0VURjo7WVViZlorOzw1dWFzb146aFR0QCxhSWdJVC05clpeRm01Ul1oYTM1RlFaYyVOYD1YXEYiJSdDUVFLX2ZyciYiWV1vKjM6T0k9Yz5RO1dvalRbPFhLIkM0VyZtZy9YTk5UcE86RyVkK2pAUExqNEcwQGtfXCxPN1VZUCxVXjhZQ1lAR1VHPkVgdGI3Z1Y8cS9oLUVxMUdtMmZKTC4mX2smSVVGPCMrbUdHP0tlTis0UTdHNS9cM1hXMlJOKWI6J3VnI0BAR28nYEZvJzxWKWwwYDJnLFZiPkMvJCI7KVU2UkhUOGtlRmo5MydubG5vQVBHTC1eRmtwMThTWTwlOUUkREVdam0oKDw3YThuOUJncXB0YFFjWSdedEBcREUsIiIjPTc3IjheNyNRPSc/KjhxZENQR1NidE5aaTkmNnFsPTJnNj1ZZ2hoclooXFZFWmFzbHNdInVNO2tDMlsocWhzUUwydWsoQWIxTSJBVyQqbEZHVERUITZcRD1xODddUiUlPFFCRTovZlxDUCxLLWJfUVgjTVYtIktuN1stWHJbV1FTXElDN1tNRm85NHU2IjUiN0ciRS4mLWFMLFBjKVlbS1Jzcyk8NDgvKWhiInRvNDtxNCdObURiXTRDP2hpXDNicl1RTjF0PyRFb05YJilwUjJIOVhSalFHJj80MihGUXRaZVYhVixlXWtjZG10KVVoW15DSHVJXFMjMElUQWknVjRRTmYkRlBOK29VXSdeWUE6bS9bc1tmSGo3XCVuQC8xRD4pMiEsUz5hbyVqL0FCSWlvals0SmdQIWZBcVs3YU4sbyUoQ2c9bGJJM1pAcmA5c1ojbUZuRkAtSD8mJ0dmNURgM0AtbGBbLDxMW2pscilgPkdbJUFlWWFGTFZmciRMW0kmWktRR2UhVUlELiInNGA4TW4uVV5HbCo9SSQ1aFJUYCFWNzY7TCsmNS5pay5MNGxoOFhlZzY+MDZ1TUErQnUoQE9GOWgrbnFsPnJkWDBlci85T3QyQ2dwL2JaaFckTTBMMUpjKD4mWy0pbSE2JllXMUtCSV1nPCM+SlpBIkkhNjRtKkt0YjlrdFVFV1o8VipkYTZFMzZXbERsK0U2bERAOUJUZlVVIkhFcUg3XDBFMWZWUTNINSN0X0ZlRUthZWFQbVRgOTApJS46aGlnWUNMRFVTZFEiTkVedSFtSEhyUEVWYFUsKW9LLSwwNVxIdWF0OkFKR0xqWFoscTFedGJwVUZTODVgUHIvUDQ1KkolOyZoajZqYlZROC4kN1NHaiE2cyVILU1lTFU6VmNEVG05PCk5Li1cZE1kZkNZS1w/RyJRWGBTP3VodGRER09OYD0mIyZWakAoWDBaNW5Iaj4kZUFKT0psbEBFIWN1X2JYPiNTXGFbKV4zPWg3XVY0Iis+JnMjSDY+UEsyUSE0ZDFhLzlTQ1d0T3RyYShBRUEwPENvU0dTXDEyJ2U0bClFM29fR28iKXNuSmJvLjQiJT1SbzBqKEM2Sj4kVjZvSSwjdS4lODt1I1liTitWZWpSK2QvQFlRSCZKY11wdGxHO3FnXmNAXXQmbkglMkVjUlNdanBuXzlbLG9GQmtjQ0NjOEFaSXA+V3Q+XSIpP2JcKWssVGdfKSViTy5jPjZfXExMSzVaOkhpamwpI0w+MSR1cWVlUCIvXk1TcihVOjxVXWpESztyW2NuKHI4TFlxa0xXPmtZKVlWSVgtUj9LQzIuVHFZVjEsQTQlU0Y8QVc7U1FiMGJ0dDZmWlY0ZFctUy9RJ08kR2tLZHBnIj1OaDowMyEtK1EuTDNSaEw8aEYkW1taSkQ7YXFnNyxldVJHXnIsWUV0KV8/aEJxQWNvU2glPGhnL2htKDRcWzhnTnU/bVVfUU91cTxuNWpwS3RWOzohXlNWViIiWGJnazxRPDBVUm5MOVlSKDhYaThRLnJIQjI2Tzg/aG1NZD86IzFnV0ZINj82dT5iO1onL0E3VSgiWjFJZ0VgRDsjUGFTPSE0WmJVPlZtcHVpZzE2SStoQUthW2YoWEosTCFaZ1xILEloJ206dUBjJT5APVhFVU1qPVJWXSVtMT07WE5JLSVfSiNiPzBaUlREZWZKYTRzOTBHV106NSVbUmljKiNvV0Y1IzBmOD5XIjI1MURGczhYOUwjMU5bdG5iO2NRZlpfRCFHMjFHRGgtMmtKSytNJUFYWFBQZS5HJycnJDglbmkoY1dhMjNBZ2pmMzA7RisvWjtRPnEhUiZzMDpLQ3Q5P1NPOzRjQGg3YWhcdXEkIlJwMycnUFxgVC1DSWxzNC9wJTcoSGBNcUUyYCxjaFtXYzpuKUdFRTNlOGYqbktkSWQ+PSpISjpGXlQ8Y3M3VF0nQV9mTERmS1E1bSFjXG03SXRjPzllMGJ1R2xPRCthR1AkcnVYRGBZbyg9ZmVeOUg+TFBeQUokNGUrOVdqU1x0MiZHJi1gVFlCPThYR2spbVdcVjNHITY9VUJsKDtrM3NMKmlNYWhqSmNkQytoMDosWGJoJT8uaVpUKSc1QjY8RiIhWmRrVWRrKktVZ09DTktEIVE3NEwiZ1UjUiI3KC8yQUEkM2gmVGo0T0pBLi8hTGEmQEFBW01hc2pEZTB1KUouaDFTX01vWmU5VSUnJmEqb1FiLi5WJVpZSSIrZScyLDBCSiU9Xz8wPzksJDBcc0NTcnEtXycyVTFcLictS1xJKz1kby9TVCwhNS0kO0JTVCNqKzxMVCFmbi1qZmRQIXQmW28nQlBYXWBETyMzODk5TylPSVV1PWsocU4+JiJja21BJEJpKG1xKCpvLWcwKzxScDFjL2JCVUowUD5nOylQI0xaKSp0XWhrU1FKIlFHUDlhQl8mJjZUPEFcOyIkQGRpTyVCPTJjcFwzUW1vUEVhMjw6QDVPZ2txdE0uT3AxTWspJj4qSWM5ZlVUJ2JcOkxXak8kMnRjXUYiT109QHMlOHBRT1tTRzVkcUtYOSknJDlPJywkUyU9X19SN1VvQzFoPElgdWlgNGJIJU1cIkVIP2A3azA7SDVmbydEQVlgOWRGSGVKYmp1PCdfLWpPOlViX2cnQVMyNjArUWpHRzRURDRtQ3RFKGtKbCJWZSJyT2pcSkppb3A1N1JOMVpWP0RTUUQrSV9BRWRGSWJLNmk+O0BDbE8qQlYuM0gtMy1KUSY+QThjW2hCTzM5PSlJITJldCIwSl51TE1CPkBGW0toTUpmaiVuJChiNjgoVSktMGRKTltpL1prVEQ0R1srWk8rKEpQLVYnO08xWV4sT2pRSF9oRVxhQm9cNj9mcTtbbXVaUT4tS14pO1ZXXCNkT007N2pGNHNTUCVvKFMqNV8lQmVDWnVQY25iUV5kMERVPzZOdSReN0gnMmdQL3ExS3QpNGs0c2E0P3EhS2k2XVcmOURmdSMxaGJyK0dkL1E3TkZhNi1na2VUUW02SElaVkFycyIzWzdcWDN0WWZoIigicFZbQkpgSSUzSzVxRG8ucmMoa1crcyVZQz9aWSM7Y3FHdD9bOlckalE+YlgsS2lrQmJeMWkkLEYuaGNKOkM0Y0lfanRhQmtzJCNlX0hfUS8/IUkwWChWcyI6U2V0NUtWWG5ucGs0PHRBM1xmRj4vVjFtQztZM0xLTyM7YydoaU81JixjZmdjNF8mTVIsOT8yXF5FOygrPVhjPE1Tc0tEN0J1KmZxNmI/ZlFgZjRtWjg4YmtqYjg2QTwpSExWWGI4QVVQOVdmWzoyS2E0LVImSipJWj9TOT9OZTJbcUhybUYkKTI0Rjp0LXB0aj91P2VZM21EMm40MCRnUlZqVUFhVlJlayooPDpiMl1Gc3NhJVRsVSctKlZBST5ZYFM9YzJgWjxaSCZeX2t1WlJuOVUrUlJbVF5oT1UzUWgoUmglIjJqKSJCUmBNN2dGbVtRPWBAKiRSVWZKTSpQcGU9WSZZQE42VmpHMUFGZE9aNUBlIUYrWHA3RD8jPjVFJEVnKGx1Oz46VDtYYHUuV18pbV5oSEgkcy1qLW9nXm5oJzU7RDRLYChRYmRgTGhnMCJ0ZnJLIUhSbDpXNiQ2JE9YTFJPIjk8XFdfaiJAPVxrRS1xLTpuPTwnJFFgb2IpcUFQdWw7O11mLWZtInF1L1o1XUtDNjVJQCEkJ15pJUk7RzI+XzhcUjIwRStcK2RIW1M0XFZ0PSM6SDZUUCVwSz8xQz5Wa091I1MpKmBvZ25OXXBiOl5HLmRIWDdxSEU+aDo/PkBJUyU8ZS02aWMlWilfazJCPylVXG87M1xGTXMpVSYramZYJEhKaDNfTjpPQjwtaTlXWCxoZTdeXTNwZFYuKzp0LUNKXztpPzFsTUBDOTkqL1o/X14nWkU2N3BlViZNLUhuRWgoKWFxNydjU1RLVF0haCc2NGQnaT0lU2N0VjNmSyhnNmgqcT0/Y1lVLVVDUCQ3Ty82SWRwQClbXmMxUSlQREsycW8+QXIuUig4U0ZcU0JsXGVLVXByNHE6PUJkNTJkdUw5anUwUiJCQFNTcU8rWWcoO09RZT91U0JcY2w/JkE0JGZubmQuZWhePVghJ2FaXzwtZElKVnVgRFJpcCNjJlwqNEtqXmZAI1JJRzpYOkc2KTROaEVxRz5eajFvZFVQaUlbTWE8YCElKz1CcVNrUE5VVGhjNlk6JE8nKDFBMUFPKSluLnEmOmQ9ai9mNW1yXkRMZVEjZDhoWT0wJCZoSi5ucXAyJjhDISs3LXFfUlsucitJbkRzT09sKmlaaC5nIUtibEA6NltMbXJoXzI9QUArPG5ccVBTL1FcXWcvIyJmQklBPFQlK19jTGonSDhFbFU7ZFtdMVw4PmVDOW90VE1xVj9RQCdHJjlpW2w0JCEvImwmPk1ORTlwQyU+TWM3XltyRGlkMitZNGNvKS1OSWclUl5pKj5WdHM7QGsnPyd0I19cJicjMlVZcispWGpIQiZSMyQ6XlFVI2BdODhFZ1MyWWNfXG8/WT0kXGlEb3Fga1cjYTI+SipwNXFCbmZaTTslTS9yN2lGNVFlMiVAI2kwSyskLVw8SFNbMFAlSl9PKj85NHBDUjIpcS1OSExcVCZVQmM5TytXa0tfS0ksI1Jya0xqbUEnISdgUGg1SDlwMFdrMUk2S2xVNWVTLjhiIWB1Oy5OOCM3UGhQYFNNWzopSDlUM0NfMD1PPjhaO2k0OTRvL051cWElPlQsaE9aWFdGJmVdNSxkQFsrOWBAIkZzMXByOmVYW0ZHMUdrX0lgPSY9JkpOQ2JhPWE9X0JMP1tnUEZqWShDYG9dWC9taVJoWyUwQG5dOSxyJSdmXHVUc11FYnQxKl9YPDI1SzxPVTVKYjtnU2BgSFI4clBvXjlEXWNbSEgxNjJtbExFPGlMSipoLGYsZCtfUj1ESiZcJTk+YXBNcCNyYSxSdVQ/azBJTyEzXFFlMEFoOEtoPlRQM2pDUWZKV1QoQGVkYz9vOFl0JCFwUURMXzpHIyU7cSsmOWBuKXBkbGEwNVlFIS8/Sk4kOGovck4pJmYtNTtkQS10RVRsaUVOWHBkODhtLFhsKFRORDMmPC1mYDkvW3VVX3Q7bSckRm9aPDhtN1ghRjsyY3VgdG9YYDRlWy5dO0JpdEhvLy1USiNRYUBIcURna24+OjVrMllWWloqTlZCbz0tNiE9TTZSWSckTi8hcElFYm1JXTg8YHVHZSgrSCorWVBKWilFSnNQJkM4MnApVCJnZk9Oa3I4JmFvUl9gIj1xcDpuY04wX2lrRzo1cCY+XSdBQTJCbFVTcCpuX28zVlg8QldAZkc+PmxjbV1iWilzQUpeI2crTCpsTG1jOTJwOUBkPWldM1NEVCRWNyZZRWc7WUdlJTpeYGFmZCplXkdWLUMyI2I3amFIWj5vXlJDY1NOJWVhaXEiSFlSTDJjOFshJEg0U3JVY2k2MSxoLENxR1xxPiw+UUlJLG90Y2ZmV05RInVZZVFkUTZrUC1gPVdcUSpXYGBTZ3RoMHRJKzpCZ2lZSzsuPFJPRWI5I1A/PUE0WTstXFFtXVgvcThWKVU0Wi5qX2VdXTwlXjluTm9zamBNJi1mZnA9Yy5xXUFuVFAucSZTKythRUZlWFliQzVHKElTRi9TZzIrc1QxPVQhQE9Day1pTCZWWVdzJyg+Y21WWUk3QyMuW3VeS11TPC9EMidGRmgqYTEqMWZcL1spV0VOT2QyTkZKR0tpRTRhWDYpLyxwOCFyOyhycCllWmsodDhic1drL1RuOmhrcTkwXzQoQk5lZkEoZlJqM01saWohK250bDg2Py5QU3JzQmc5O1pfPE45JV8hI1BIXTo8cj1YbjdRTWtgRV5NKioxTC4/cF9qTnVUJzVEa0xyQjFlbEQzRjZSREFqISFaajAkKzw8NnVsPSNBRz4nSCFuIUZeZzdbJl5DTV9VRE9WOGExRy9pQ3A4ZT1GYEtJImNER1slTDIlbmlFXlRvXGIsU1lScCghcVJFRTRPI1ldPjNVTkRFNkJdM2hAYktpTihxRElRMylgUzZGcV5BNURDISYrKDJoT10vUEVIclwxVWE8Lj0xLGM8WVZTIyslcSs9NlE6dE9ANXJnQENYa0xYPEg/ZEorZj1rRXROSUsxLUkhTyczPWJNUmhNISpEQWVlZGRhMVZsa0lLalUwNiErJjRCUyVtRistNFQ7OzxsRS0jJltjbVlDSkNyO1NcQk49MFNFLWQyTDowYCJHQHFdYiVsVi0mJFFtLSw6IT1ySzJoaVNMYVw0dWdAXSE0OztVPi46a3VXM0RBQVQ2WW4kcnBlJXUkLkItIUVEU04oJCY9LjlebV8zIklBKG9bMlQpVFRvXjJCYlhpRzcrSTg2YSlEXXQjPlprNkZXLjAkbSs8YSU7XmdMXUMjb3QqJjVhKWFNVVFbRWtmN2JvW0MpNWM4YTZBYUtxWC4kTlchNCI9b2xeZistI0UsN19AW0Q0TDZBUTtNSUZBVltGJHA1VSlVJS9WOWBwNyNVTj5bWVRlTFUrNmthY2clJCEwbmFPRWJ0J0FnXyUiXyhZbkU9KGtTV1FBO0BOVHFsdUJOZVQmUlRGP3BvOCJVRVQtXDUwZTBLJi47IVZLUDNTNCNGXCMpXD9zJSc0SkRFLE5Obz45TCZLP0RbbSg/dTVIX2BJKk0kSVphWFRwLFhqMWRwZy01QFBGRS4ybzNwOCovSmpOWCo0SVZaKmBWdTM6bGBWRDNDZWkzWGhMJTpBMWleOnJgXktSQkU3YWRBVCguWzpuXzhbMHBJPVI1KTRQcXVrUDxvV01jXDUqcFFzYGNnQUgrTjoqOSw6UyJSN2gjWCRzLCotbzFvSXNqKUlcaCxUb2YvazAmODxSMCtkITAnX2RER1V0b2BPLXRiJ21ZYVt1aiVOOlVpZitEJ2YtUHJYXStCSk9WbmRHVEBcQTRCWCFgL2ZYc1RQYUoxM0wtKTNiWXA1NGhSRyxTI1gjIlgsJUJgYE5LV3U6NVUoVGRsJyddPmZUNy48SSwiKW9NOmY0S0spMFMsLEdSdENKYiNfR0E2JiFdME9VTnBcIVdTRkxQa25JSzxyQT9MZT0pbzhrcixTWjlRS0BrZFZxW0o8KUxTdSlGTlE7J1QvOz0vJyxwayE2OGAnTmBEWEdVV0NzI2AsZHEpbGs7RjtXJS1pUzJXIzA/VmBdJDtjVTYkTl9sPW46TjJVKDY0QiNIPCxwcixBaydeXk4iUjBWZkpzIVI5SkZOLVRkRS4rQGMtTzFYam8qMlpKWERCb15OYUk3N1JdYyNecWZvOFpRI08nNHMnT05YVWk1Jmc/VnNBbyxVIScuW2lEPmIqbDU2YiRxLm04YnIxTVYsY2MqKlFfbHBmcCsvO2IqTVwqY0VzbUNna1A2a0w5JWstUVxvUmphdWNhc2xXXjQpYyxrNnJuTiNeWkp1WSg1UUwpYz5bZExsJE05MmAwQ1g3MjdbTFNAaTlFdC9QXiVVbWJqTzheXF48aSpSY2dcbSplPT1QUGhUKmZkM3JndEpaQm5TP0FgRFdaWTVyOiw0SlBJXSYuSGdXOi8zXGdoT21ESSwhJHAqN2hWIjEkW2BZQjpnRlUrNityMmhbMyFnLVYyXEFPTydzSSxGVC1PXyhyX0hYJmZIRlo3Ni1mYCRMaCotaUc7SyQ4LXU7NicjaGFaIlw6LzRUcVAxSDsyTyomJVlTMW0jbGduJTBRXiF1NTgudDZrcz5yajM1TVw4a0xhYGtYWWhBWzlyMiM7Rk5DPGBYcC8sXU4jVi9jW1pcOipmO1FkM2c2JjJrY1pKVUksV1pSV1NwXiFPajU0T0JVdVtzJSw+QkZ1Xi5fSlsrL3RZcjE7cE0+OE1CS0tnXGVHVidwc0xEWStfVXRQI2BFZSxnRTkqXkd1LjFDQSNLbShHSixUKEE4NGMqXEdvZD8tZldmTUcsVC05Lj5rRFhpUEdFQ2BKdTFcWy03JUBJKjBJWUZzOWlyVl1VZW07S2VzPSd1Q0VzNSJjXXEvI2BBcjddblpYZ2E0bDVIaF4lNVpSOShgcEZdRkwyXXE0NT40Mm9eLDM2IjVCblFkWm49MjtmSFZSdDFhWE5IXEAvX15BRXE7NWxLYEBNTFZVbkdALVlfQ3A3WzZqYEQpcXQkKmhWKjlqTjBfSE8nIT4/dVVESy8kWUpXMld1LS8mczhYSWpRLENnbGc1YDIkT15Vclg2ZiotLz5gZ1AnTy1iP0MhSzcuUWFfTTBPRT1uc0EvMiEwY08pJigyIWVicixeOkJXLy4yWVsja01dSENcVUw5PypYY2tPV20lW25JUURXZD5TNDovb2xIMS9GMEtqNVBOUkE7JkJRVlYlXyhYY2FDYUcnJU9bUFlVQzhES1AtKXBqNi5NQyFnbWcqJjBmaDJBXTlqRjBdUFIoV3VwNFloVWpBSyNmV2U1Nm9ZVypnbmBOUC4qJUBlRihiJ19kLW9ISk9KazlcYSwnQFM6YWInJGZBZVdtNlhrJ2xNVkMwXSpeLz1CIlJYPXItWGM2KDtGPU44O0k0M0o4c1VhOS4mV2NGQVUqTSZvQmhuNUpYN0kwKE43KEQ+P0w9KkhhZ1B0LWA9PHEyQzJLTThJLF83JTEhPEZZXSk7KFs7clhaRktmcXEyNydiTVphUjpYUyhhPGdYVy5GMCwoMD9ALSc5bmcjcTYjbWVKSixaRGJcUjVKJTt0NW43Z2hqMFhMSkhEZ0pbZ0YhTnJZLFonWmQoUl5TVD5NPU8/alBKPlliKGgyZjVNUTBcSDFYczM4T0hUYj88Vk5rbkFHRSpIWFkjNmtLXiZZJDQyV0ohZTZIXWFpX3ViKj5MKXRrKnAsbTs5RGlpL0lrX3NBN1NwLE5vX0wuPVU1YkpjRVMmUkg6NjM9Z1NJMEldKlYuZTtoYkN1U1ldPy1LZk4mWTRGTDYxTFI5W3NTUC0mQmVDcl5PWUEwTyMrKzg1TiI0MUpcMXFAOi9QYF5CVyk5LlxlbzsvSHVkR1s6VUZAKjZfQ2dlS21jKE9RRzlbXzhNY15aa0dUbzpdLyVLXkxNSitoWiMvTmpQIU01ZWBnN3A8Vj1iKCgjI1BHKGYkUCJOVzJSNm1VL0JQXz9zQVNeYnNWUEY9OVkzaGg8IjRrMjpAUVY2cW45Sl9ISFUpLDFHQDQqPEA3L046cWlgXGkvMDRmNyNOKUROL0BUZnEtOyhXIkk9NylsbSclMDohV2M1IjRvX15kU1goVilXTjRAKk50NkRSRUFPciowWFdTbjIlTCooYU5obzxmXE4qZVFMWCxpczVuOCFrLC9tLTdqJkAmLlQ6InNrMzstJFAqWFlUSVgxNStkZGltMlRaZmx0RE8sSSxMKm1hYCJBJ2ZjWlBvdVFIYj9gX2pxKFltbkVuTkUyYmRAbGwhWy5xanFdM1w3dTtpR2k9UXFhX11QI1VbRXQsdTAlTlouXmxuSj1jO1pzQGhKW29APjlqW0dSLFknQ0lmPlJ0ZFZrLzwjX2hLTEAwZzxIYTNNb1YhOixISEIrcGM6Rmt0Lko8dS41N0BpKmRyUjo0SGczIkdPbl1eOScrMS8kXkpOLEVMJztFMEdUP3JKOVolPUZSMzBgZ14/WUZYIS9SQnI3ciVXW0RfL1FDalJOTD9pSHJMOSE4LyY5WTFXJSs9VEJjTDI6RmNOLmdjU05MTilGRChyR2JIUkxIU2UpUidUNDtJZmhhXyk7aFRdPSZqN2cvYVlZVzFETlwuKW81JiE1VXFTPz0yVElhLztkLlorRm1KOmVRJVFXNHBJIUROTCNuVDkmV3NOMSpYaUJLbC5rTUZGWCxCIjwhRkFATzQyXyRXTXVsVm5UYU9ZIUlgYjxdWCtVITpHOV1fJzdWKE8kXF5XbVFkZCxXODVOL2BgYVVcISJNQkFOWl5sYHRwSlYlYmU+Xz9jMGZUUE5YL08rPGIuP15zJWkvTz0qNyFwaz9DSDgxPjJCbVZTPEs9QyVScE5LMEBvUFQ9YlwsV2s7QEEiNnAlPXQoWnJjYl9TYyQwQTVCZy5DUEZuTiJVKTkiVyMvSDZXTCtRQUEvJmFxKFIqNjUvNzIqSkIxMnVQS3AwdSVwOEE6NU8/a2ZdMT8ua00ta2klVEopR1UhUXBJczVWUkRwalorWmtsci8/NWo6UGNzOmckTzpjNkY6KTs1QHRXNzx1P1wzJ1lgZUBOWTNeR04sa1hYMy1tQ2hKbmNcTyZrP049JTJtMUpfJlZEZk0zJyYwaGtgI0ctVnNbMW0mPHBQa0tmXSM8Ll8nRGApTiphImAlcjRpWSRqOzFTPiNEM1FrWUYkLS5mLlRYSCsnQ0ZEZUssOGJGQUZKSm0waHUzcUIsMi5CdC01QUIwOXM7azAhPXROQD4uWFVLLCpPUS9tLDJqWFolInFBPGxRakpNL08nJEwoWEJbL2JmUlBTKjNYZElKUFxTb1QqYT5UOyk2ZGhwLVpJcilvSiwkVzhOVScxSU5dYyp1Mi9nKFJhUS1McmJlbkl0I3U1OUtacU88OXBFMTdcQUkmWjtSJV85YWBMKjttU11JZTI9T1U8dU1vZkhNZG9xO1QxPChgWV8kcGleZkY3Oz5EWFFSJTknQlJKc1QkNC8jY3FnQiUqU0FJZjJuXCRuQ1E2YDJxIUtVbV1hVWJaOFxUcEcmYT5Uby80IUUuN0NEZU5fY1txYjk1NXRrUD4uQ1RcO1xWLV02ZWFGMTg9MUJKSj8tajpxPV1UPSciRCwyMyIwJDtXbEEmWExOckNmPVptSCpYSUg4a1FlXDNaWiRyZkNbaUBRZUM/Y29PKC5IK11sMDpRJj9FP1wlS0wuQWQ+WlpxbC9tbFIzOipYZlQ3YjBqMCgvbHAjSFFwSGcjMik5I1srcyFCczdySmc9WiRxQitcLG9hI1JsWTpaOGw8RChkKyhgMDAjI0hCWkpLaTsyLm85L2g+N0lgdSdqTTBNa2BPSTZfJmRecUhgP2NdP1pnUlFHbC9yUFI4PWhBS25kaHVFXU1GOVZ1TExHZ3RLbm0lPiQ1WVdNREVbbUEiOEU8L2pFWUA7W11tdVVOJXVadEFKK2RIczs0Lk9uQkVmMz5UJjlZa2pfLC1SVGIpdCpVVHE/L24uNSguKUchJWYnR19KQEgkT0BIcFxqYVxxdSJIX0BzXkcnXmxsUG1KVyIzSzhvcGIoWihkZz5kWWVPP1VeLitTNm9uOCwrRDZfQiI2OUZqWUZOUWgtRUNwUDstLHBjO1xQYSNdV1wlYVZiY1knZHNUQFtYa2hjUz09IUpCJitMcWY3MiZyTiRZRVVdWDZOPlUmT0ZeW1pzPVpIJHE0ZENtYTQwZm1WKilHJFRZK00wK3M+JDhFWyJNMS0iZSpQVF8qImYlK3NqMFVqJ0NvaTYqQUJJaU5XOEIkakEnUD9YKztXWUk8NW5HV05WT0YtZz4vKVs+KWljYjs4QW5PZS1rbSNfTV1qN1MtcWY7WDFJYl9kTjheT2M7UilaSDo2MzwyMFklVEVuLEQ8SWhpNkJJTTkwQEFgZW5GLiE3aDA8J3VCTUdnL29NX0JTZVlWcDUxRW44U3JVL1dUMU1OLEUzdSZMNUA6OyRmbkVvaklMWVpTVSsnaz5XbHRTcTNYbi46R3VNIUNiSGc4XTZyRG1hcEgqMEgoM0JLQWVjWyZaZk9XZC1VYkwwJGFZbStAWktEV05ZPmt0I11kXkwqclAqXiolLDpxTihIM25QVUkuSGU7MnU4QS5KZ3Robmg3cWZkanReLVBdQ15lJ1IsaF9XV1shKksrUV1GWlhzRDFuVltITi9rVjRySE41VVhlQ0cpVCNYP2hZZ0RuRVMxSDInIlt1LV1QRj82XkRNR0UuXTouRFdKUzFYc1xpQSpmW2k3dU1OLmUlLkMtKlJuaD9YcmI4TGEvUUd1SFwtNz9SZUZGJSdARFhPUCZPVTZmbVs/SyhNbztFLm4yIlxWVyhCYTlhSDFeOHJdUWhxaVtyRUFbNnJvYWM3JGhrLVRNMissR1prQCViXVdpZ0pWSiUuREdRNzteODBoP2pqSiE/P2RoUydzKDRdR0xROlJwbDBTZ0pPQjg5KFQiWWRsYEtqZzE5QkwhKExDaFI5aEBZTWpDa2RrNGQxRSY5NllOLzJjcSRZLy1MMD4nVDw8bXEuMUtQaVVVQklALy43T1o1cVQ7Pmk3YzZZPkxgaSZmT0A0WSE7KWsqKTVxaVk+KGU6N3BJTWAvT0lBOSZVQDUsTVdTN0VQOGE3TVYoIVxqbSYuI29zRCcqK2Y9bCZabEJvYzgtRlh0WjpcS11cPFVxUCszW0JPMjZSKGxDNS41YVhzV0tGdXA7P1MvISpPckp1NUw/Z1FdT21JJEQyXEpSZmV0ci9aKTFiPkkldVRLUS1bV15FP0AhazUuKT9kXVt0Qmgwb3IuUnRNQCMjUCFlLWwjK3Nia0pOVDJQVEAjZ2pXViwuOjUmMHVyVVUnbDQ5PlslWVVQImhWcGA8YmUibF8qVDtKLihqX2IpdS5RRTpQWEQocCIjSGZiV0FAOmdGa1NQUUs4JTxuJDlMJlhrRUshIyFjXDZGWm1fMUZnLThWTTEnLG5VLFZcJyVALGRpZUJEOFspU0UkQzc+aF1wKEEiVWk5OElmTlFqKy5PVCxsPkk/NDZnbStrbnEtQUlUYlFEdT4vXC06QmdkJTUsRXFZVDs7MHJjZjZiS1xBMlBCOllVWS0lcHBBXTFtPGpec1U0X24hKyZhNWhzRlZsJWwqQDZON2sqJ1ckJ0w8bTFfQjAuUE9pIShLZjkiJC1BLiwyViQ2UCdvPk0tTmIwLkUrJi8jc2goOjokUDpjJi5zc1hPYFI+Wjc8N1tOSWJbJTdGYnVFcmFYbCk8QT9BZTlmPyJuR047Uk5mYVdAWCFMS2hEZWNlWUYuREdgNCFhTzFOMGM4STFjTWphKm1QNTo/MFs2ZFNsMVRMOGQuPTk1ZGc/Mk9laSlJRiMndSs+c15aSk0uVlxkKGQtYHJUPVtNYWVyaSEsXyIiKHBEKkhIbi0hSiJOPUc4IVwkaVo4VGhRRlw6QDcyMTpzW1osdClAQFV1VUlFXS5YImxdZUpOO1Q6SUhEJkYhT08sZVpVOHNtTGFiVF9YTmVRbSlbPnFWW0llaGUrRl9FQj9mRDtPRnI/a2FRY1VYVShKOklVIUQnW0ViWkNFamplJU1IOC8pZ00nM0wiVzMnQFd0R2xqZkRwUVdxKT0+OWYqVS5AO2xASGlxI1FEWF1SVkBTQUBpMFUkVkNwN1ZHZSdQJysyOFR1OUBMTzNWPSpQKmNHbyJHNUAyWkp1RHBqTTAiUC9oZHB1PyRYQEw7ZVFhMFIlXFwyTkxSMSlqNnRzKW1CP0AqKDdIX0xPayRSKkY7JWw8TGM+XT86VEMuUlcyMDpAXzRsXjxHPyomJ042ajVTWXNgLzVSY2dCWlFUbiY7W05LayQ6UF4vRDBHVTpiK1lDbCo3NylgTFcmVVoqKU89KWtTMF1GNSchbGRRS3MpQF9dQD4lXj4wWz5RRS8wVWM6IVZRPWtBMWJlZiw7UT5TO01fYWFXQFFsTEpiRUtjSXAoM1hRWlJhSyldOXBtQlZYbkdibz8yOXFQT3ErL3NPNHI3WHJqWjMqU1w+QC43VUIlOHRkZVUpSlk0JUFhRTxxLzd0Xy8iQXIpZ1ZaUVhaNUNsIitvN1FTO0lEXG5II0VTSjZobDI8VWtjRG9VXHFONXU4J3RSZlJFXytmamxhXUI1MlRuVkk7Nz5QKnFZcUxPaCxMNyM1PTlcW0NdRCw+N3NhRWF0R1dATkhcWFU8WkxfP0NYSy5ML0cmaCZkMkAqUSprTTYtUVssPUE7OzYnYShmXSpKbkV0ams8OlhrVCUpJ1dgU0MwXnNwXztuTj8wVm5IXkVtI0VoOSU2PENFVyZNKSk0LDNjYE9RPnJXUjlTY2BXNitFL2lpOjtpN0BRNExuSjdFOzllM0pOWV9fOCpRcnJATVxkK2dII3BPOW49ZzdROXFAI0tqJnMhNXIiL3A0WXBqU3BMUlFKQD8xLTVySkFrYzUnTDREVlBFKEApIWBrXTk1KDlNKz8rUWZUL0YxSC4vSSdpMFFPVzk1bihWZUhcTzJdT0RBb0o+ZGZFSyUxdE9OPWBIOWQ+bDBuUjQzKy08LTs9LUMwVnVTJ3BuRTglVE1QVU1tSFxobTVySz1oMztCT3VOJEcvY0RLM1VzKFxvanN0MmwoOycyclpZNVxzXlZxXFosQTQwMSRUMlEhLj0iW1MvZldBamBpJSZNaW5NXE9sUzIub1NDNy89cjNzVkcqR1khUFwvMjQsITdWRmhpV0hZIidbSnJsQ1MpRyg3LyY9Y3BFKnEzSHNpNVBAMi8mX28iVjYxaSU2WylMSzpWaSlGZDNEKWMjJ0o/NnM4QyYlRUBJRFZsKmBbbjBgV20uLEFNbHRvWV9eNCxuby0/WVNZbi5sbWJuIyV1LGs3bDVdJGBtP2Y7NVEzJ2coQCIxUktoNjNFUkdjKlNdbnRJZFpJNykzV1VjZypZNGpzKiVYKkYpcXI2KEtXPT0lX0puPFZiVE1YKjtILGhrSzQuajkrQiFuIUhdaTZLLHUwOTUzS3JpRlNNX1grY20wQ1BsdERzdGdXOEJMN2YoWmtRREsoXHEzUGwtUkNiYmBbUWcmND9xdXFpciVnZGgvXjtsJUtvKFVzLV1ebkNRPiJOamsnOVVZTWltNjpORiQ4N104ZjQmU05fKiJOT2FxX2pPY05ZQzFCK1BuYGhoQ1NMYXNrYVxcTjtzLi5GUVtubWFJPzVJbGNMbUVeZl9vJWk6cDk8MjAzZDpha2pGSXBzOWwwOWRRc1dZWlghVkFrJ05EYU4vSnRVL1J1dEJVYnVjP2lYY2grNi5ASTZkUzYqKTElOUNSXC5IOy10QSFMMyhhaU41cWY3MV1ZJU9QMXRlVFVZczctM18+cDlIdUpRKyc5KyMvMFU8M0ZlTmNISSVOajkoaj00cGFuTDlNZEgkSWNhRDRKMWM7MjZNXVU1PWNAL0pASSpYP2diOkdiYGpNLkRNbTUlRGxaY1lKOWIyLl4naiZMSjdRUS5dO2hMYCRZSzwhLEpAP2VGYDwhLkZZXCNHclZbUDkoIWI7P28qUkBoZj9TbC5RNmxDIlQxNiolV1VoPFIzMWQ2KF1uW1w9cD00Yz9JT0w7WmAxQyc+VEUrLDskbyRGNnMvNy1WYDdkPyhcSShHJS1OQ2VbRCs9USs3UjU4bGRJcTNLKiQhdD5LJUAnMFRsS2VjQFYxV189MkB1JlEuVlBFTEdsTilOS2BQZy5jXEEsY29yNz9WOHJSJyhPMlEiZEZgcjlxNiEqM3VGOyFUSChmKzgtJ0VpXl51JTNDW2pASWFJPz0/MGFGJEdnO1htcE0hdW5FPTEhKkFxKzNIYVozY2NWdGskZFczP0NRZ2YqOyhuLEZpNFljcE04IWNWdWBKZidhRjQhb0U3cWhiVz05Uiora1pnJSM/JilnPE5oNGByR1JiMCYydHRTMTNca1U6PkRRKCVBRCRJND9GV14kP19zWCdPY2wncTM/JlovQmtdKmlscU1Ocy5SJjk3PE8rLVZJNEsuME4vUiYnXDhsKHVJIzhiR2NgNyNcL0gjXTRAWD9FQEIjdCc6bWtsRCxRXlk2TmJMbitPQ20xW0xVcExUIkZIXW84Xm5bTWBhJlZpZyhhaloyRjM2XVNDVlBEWSswLFtzaEFcclMhUEE3My1yQ20ibilhI0UkSyFPcWhDbztvWjpqKHBNS102Uz9hUk1NTDFgPktdJWdmYFNWcUlVSmQ5WCRGQHRybT1bYzg5OkdMWnNPVTlZNGAoQFBYWVJKYDFXLkljLjgoZTNMRE0tSW0xdE41N2wkPi02NyxCXiJAKFozK0o+aTwyMWBvaz45QW1saSRLazNJPE9rLUA/bEgqNDpOVlJNZiNERCIyWV4vT2tibFxhWVpyNylUJilmdShVa3M7ST1JPUwwLmlCO0I3PXNfKXRNMmo2dDkyWjgzTVNrMC8/JURZciciO0JHNTQ5OD46T0ZgR3IuQF1OaDZcZFFNbThJI0xUOSIsNVpBZydBYWA4KjsqUmNsLigwTkRjb1srcDQ6UzRqU2AuUERrTUYnS3VHNm1iVGIwTkdEMCc8UDxUbGsrNnFHblpmMmE7NTBFWzVpZUhfaC5RZUoka2BcYWM4ZUUwLkhWVThKZm0+bGJiUVg6YkkzcF5PRTZaUiw/cUlUODRxKWQ4ZWJqW0dUM0FpQ0A5RTlxa2RVXl09T0YyI2JXLU1eXSlnXHA9YTshQ0NMNUZjcDxMSVVLZylRNykybzhWKU5YXUZWTSpDP2lJMTNwLiYtTy9AanVWbS4xLzEnOG9fIV91LzRBWiInSEk9LFxMSldWWTMpYF9mJT48RGghdUVUSXBsQmU4MlxCIyc3WXFHV0hyPWY4Q2JoT0llVDtKNVxQYzlGJm1oWmozTkJFbGNeSyFdcidmSiFVaGNiTS09ZFosV2wxPDZUMCRfKyFvNF8hZiJXa2kka0xIXVM+M3JBJzlsYl8vI2g4az9NaktJOzo5a0RvWWMxLC5sO2VKKWc+TXByV18hdGUoNmJiKUgqXCcyZG91QSpWU1psJEs/RUVHKUU6cj82LipUaTgqSltrTjMkZ2ZWRy86YCFIRVxPcnBnJCg0akJYPDQ3XVtgUydYY11FUkc9VjFZPFk4NCdeMHFTVSxcTlY7MDEzT1B1KSRfQT8la2NeNShaP1EtXz9aTE9CJSwqaGEhQlNXUiFVQSR1UVc1bSI8TzxWKDNlWUVoYVIoOi1hPkVLW184V2loYDMtYEItLGNcXTR1OXQzTTBfUSkmQ2xRdG1ZPFZqbW9JOipbVjhOSFRIU04nQyo9WS9SQGtyamE9cj1qMHFJJGRoNGUmZmNoMSw6Ums8XzNdOE9hRkxbPFhrcnNuIVBoLGAxVENEQFc9X1RvXW1CQVxGLSg5KUdfVEM4T0UmOEt0ckNhbkh1I3M2X1dmNmAyNztfbzUzRldkbzAmV28kNTM5KXRvMDdvQ0BLIUVUTys4WD9LS05MRmZiVi5ecGs8VElWLmsmVyYuI1ZmZWNDKWhQXkdnUEp1UmZeOEBvJzJbazdqNjknK2dUbVEnOiMlX00uQ2diKVxMMC4sLC0+cCJxYE46YiNAOCtyTm0kLz1PaypbLjtjIlRAM11AcCJjIU9oaW8kNF4nVWhRQ2pwMVwrJCFvLmdjUkleYkVxX1lxWzRfRipjRzJcNSNlNyM/TFtkKUtpWnQ1XG9vZzNaUVJKQCpeX209LlJqcD4mLlU4VltfO3U0dTJLRDopJVNzVlxzLzM5M0VpcFpQIlliK1lcTXJfRD5MXXAwMU9xV3QmUF8qaDkrUGlgVSxYL1V0TGJEMl4uXGY4KUZSZig/QjsjcytwamZbWTRxZU8qLDBZRWBGdWllQCQtQGRRa25kN2xuOFpWRSZHWiYsSVdEKUVoXTxAJlZCYCo9bl11cU5jNF5TRCJmOS0/azBmLVBVXiM9KU8naEtRUjVBKDgtaCcxZ0lOZCEtVVJfWjUtTSdDTkNnbi02UV1QPGAnIjxMMmkmN0soSC9yIUBZc1lLUFEsKWg+Km1nJGo6RjhfbTIhUjJnW3U/K2k5KTchVUIvZlFXTXJnVF5aPT9EJGRtNC47JjBTKE0hQi9nSFJyMFc4LTpJNVdnOWNVWGY1SWtIbTllWTtsOSwkZlxecyZrbiFlKTc/YjpgKXE7TEgiW0hlS0EoT206aElJPWRYbz9cR0tJaColY2xGUmsvZVhyZSREK1pCWWZZQXVmXWBkdGBZak8tUW5yRE02THBkQy5ibTU3OU9IcyVaQDEkKz1gJWoiMz05YidqZzprP1JdYlpjLzNkI3JGZ08iIU1LbkdpLFkrVjtqQz9yLmJZQzEoJV1bMiNuU1o3XjRka0FKJmhKdHIqR1VUWXRxb2xaWmdwYyVdYnVYUGMlZyQpNCU7cmEpbW9cWTk/LytJLUUtOm1gTlFqOXMnO1NPPjQsPCRgYG9HK11TZ00jMzI8KExWLTxKRWA8ZkJvXTw1KFg0QWlrX1hrK0Y3b1otREZuayhRU0NdJFlLQiI+QE4hI2Q6KEYkPXE1IVRuMGFYMlRDdUwlNSlELGlEXjU1LzZKRjg7YkZLIjNdQCEvKCI1PmhRZ15sUyRyJm51TktkOGctJmBWWV4rYSRNNC4vTk0lc3RScFhOLUplVVptYCRSS0pYKTRxQiEqOGokJmU4aTVHV1FORVtDRWdARFA8RkVdVkMuazNxIm1WIiM5XmU5RHBnZVRHUVRBJWVFXiJZMmo/blxGTmBgWjovL01dRVRnMyYoRmk2JGJZLmxFJFNeXGBjaiMycGw7MEI9YCc2ZmFsUkc1KUU1LVJnRllnNUxcNEZbPV4+S1tQXDpOKTgxNEokbG9nVG9aN2wuJnV1QWJHdSZQS0wlNEo+cG5VM0xMPTFnVDkwZ2EwLVRGPDhVMElGIjBHJzlpS2o0MHIvQGJXaDgzTk48K0cuVWsuIz0yXHJjUVMrSXE0Q1NLImRdLztMWF5AZ085X1VTR0JgSjs0UXJGdVNsX1FXWnU/W2w6KFBmUz1LTzFTPyJmLGZEO2osX21UNGhRQi1adEZoZHA0MSRdISYpK3NHUDhPRGgqJkVnaWonYyZaWUslbUkvLUkuSEMwcyhVR1tlQFxGJUtrJFZtWF1uZCZiWzpCZ1BARTRKQ21eRVVWRmJOSUYpVERSVj1JTl1bSSZycCVmVm1JdCVfY1ckUSQnT21XYF1VQWFLTGo5T25MOEdAJFZBITMhdTtaaCdLV0RPNUEqZ1phV1JCOV1gP0NiMmJMbktBb05mQzVdJE5CcyFTVjlaNDwvYF1hS09xaT8yMkNOYiJJT2pSPjxTIkJNJVthJEU4dDBWcV1EQzZwPCxWImVUbWgyX21GWkVRXkBZcmQuLDk0aFtDZiM+IzBUbTQ9c0pPSFcpVSdfMFhJIWc8SEhtaU5mOjFDYVtDUy1wImM+WTlkO2NLYElqV2VIPVY3XkMvVnMyYTQ7ZW49WVtyKmQ3TkBtRStGOHFUU2VPUzZSMlFvbkBcMihPQkQvJnNIXFs8NTxeIklHYzNLPyF0aFJBKkRjSCdmMGIoNCxEYjlYIlYyVl4nYWtRQj5EL0AhSm4zWk8rIVlJbEJhKkNtND49UCdSY0IxNnQwMGYvOD1BUTNZQWMsX0YoSVBKOT5eVGsiY0ErQlFebnRXSkM3bUJeZD9DcCRLRUdHPUdkY1RxbjdsUWBfXE45PSlVIVVbJDMzVFVEOzBAayxddXRITksiUS46cG1gdE4qLVkzSUo+aE9yS1JCbUZNUEYlM1hFKShuTz4nOlskak1ucXIuImRANCVwaUIvLF11JVg5P0knTlQhUVAtZF9XZF1iLjMocjwsbzQrPCdOJXFQPFcvKVBVXXRhcHVgc100KUpYISUtSjZAWCgpLjxOSmNMMDwtUykiKGl0TVQ2LmNjIXVxZWluJXVGJitEaENqMlw6SUBqOyxjY3FYUjFJM0UxZ15uWjxGJTFbOWdZUjNNb0AxJFRMaT9xMUxgTGwuUldpNEJgaGRrVSwlJ101YS9hXkNxW0NPTzlBM0EjNllmLi5CcXJCKGBxUFhIb29SajZqZ0QkTF87LjcrQF0rRFNWQ2xeMS4nVnJgP01YUTZdUmQ3TmVWcD4rciRyUHQ+NlQ0ZFdNPlE0PEBnPy8oPUxCJTxVQkNAcDQybW1kRmlTaF5CcV9wSXJeViloIjxiQCVaZj9iI2NWXydDcT0oMURPQFwiKWc5aEIyWzE+QHRkQipDUF8+Q1Z1QEhdTU1pYWY/OydyMlhtKW1NTTJDS05dLlVhZDFbazJdJHRPP181cEZIMW9ZOVdKdTgqTylIV0xIPUxzXC1OTFQvWGlpTnBuI1xhZTRMOTNGQFdENVxxcSImOyRWZWlVQW1BMSpoQTtWLVYhVWZHZHA2I3BmQFEoVk1iRnAqWzpDUkIzJiRxaS09YFBTcDUwTkciLjhCUSNaZTIpUjliL3I8PisxdStaaSoxREBVWCpuRG5ETVYxTyo0M1AwNTgtMSswPUhQQShTJVIiOExxbDMmVCtFZXEocUJsVT9oXyF1NVdkLi9TcWFHalFlJWtZY1khM2dJcyIsaCtWJDVYUSJcNmNAMy9WIkEsO21aN3E+THRFVlVgRmNrWTFPLyo3dCJfRU4scCJgZ0spLExZYW5aa20qPygkNWQtLmRRQCxWYFgoSUAoP01CI0VbNEAxLVYnTD8pZkNtKCdCaSghQTEyZVZsJ09sPWRRS1VIaDlAT2tNXiMjQCtcOm9eQV4+dDhDRExjWGBIcHI+RC49OFM/OzVrOGYwQSpkREtQLW9vWVs7NjxlJF50cUkqazNhNkQtWls5bWYoNG8wMHRpT2JfMmdHXnQtY3QqSmVtZmdDNiNPXCtYSTAiJk8oUm8oNW9va0pLKDJmVW8+QSJbNmJFQjtGP0otb1JmYz1ETEtXb250I1w2QFs1aiJmSkYlUDZnSkNBYT1UMl49IW9hZ0s3WUMoSkBsSU9DZTx1MnE3UiIjNmhHXHVdcyliWjVFYyMyPD5oQVRcdWppNWBkZXJGNmtCcTwtI0RlMzR0Vy0mOl1ES2JpQ1ReKFonMDwwZio6SmJSXzpRK1VqRzQ7bDssRVxkLTpFOXFBLSZMRmghYU1TX0JOXVFeTXBlSnUuQEpvITtYKkZUcVFMR0cwMEk9cm4iWSxjPlAuNEdAIWpnXzhdU0VXWDQ+MF1HQyJWc11pSCtzLy9hZTBsNkUlL251QDNYV2ooMVU9bkJWQFVdNlRqb3NZbSxRcis0XzZCaTlVViYhUnNHOkZnbmVeU2FFL3NONkJLVGhHXmE6MWJxQEhmdGdMUjROKWxxbTo4Rl8kSHRkaWJMXGw5LCUkJklrci1YK0ojZyVoQkYxazJnXFdaN25oP2FePk1VRDpYQiYkbExMJ1VXPlBFQnFIMiNPN1IsUzVnQiUmXWg5Vk5ZclxZOihRZVtQbFBLI21nSFc7KUVIdXMlTFVrW3VgdWZcTEQ9IjBncWtLJyJkWVJJRW9RSSs6PldGTDkqYVZcUUQublxIX05vSW1gc1FRZSZ0QSZQOiIqUyNTQ0Z1OmNUJnRJXiEzTXBrPnBJIjxmY2hrQj5pcDk7PWZhRkduci8yLyEmQEg2QCs5WkBhYEVRKVtCXWBeQS1wY2IhV3NlNUw5PUxJSjAiQyRicSg5RGUhVl5cJCg6cUdPaVxxaUB1NSJfTi5ZYE8rRVcnUnFMQGdHP0V0OVxgR2RFcV86NEdJIShRQ1pKWV5EU14nWlhCanBoRTg8ZGA4Jk0kXmVMJ0M4NS5xMj90VSx0RzQ4Xl9bYU9ZQlhiIyskXUpwNF9sKUcnMWZNUEguTiY7JVVFODZdKUpJcWxXTW5rTzksR1syOC9BJzcmKF1XJDFoOUsnZXE4KmtUXGphKCIpRFk7ckolanVJJDc3Nz1RKmVVXk9pKGkxcilOU3AhIT1rPChYSDEnPmVINFdHKiY7ZmpWZDQvWnRUKS5dQl02b2Rcajt0RyU5XjtfQyhhaztMOF4oaD1oJ0ZgK21HVCsuQDIhXDwzXCVCTy1xWUFKU0g/TlRoYGdgLEpOUEBtOy9DYmVuJl1vV09rKzU0ckt0WV8wKDUvMmU7IkxmQmptbWdfYWVVSUNqbDYhcHM9YChzIlVlUGMxUkBOWUMxWTpHLWU3RDMlcUVVW1ZbRVI9MFM4cldHUDNnXVNaPF8rZyg/LE1hTzVdSGUqXW5gPElFQDhqQCJRbEJgUT88UjxHPy4zSVlPTkpqN2c3SFNsPW9mWihDMyQ6XT9bWUM2UjhLNUQoZjciYSo7dD8iKG8sbXJjcm0/ZE5ZMEIsPjB1JWwlWGo9YnBaYHM1V0RCMV8kV087NE5oTHFBSUo9QzJqOXA8NkRdP0pdbWdtVilocCNuXGtbXHBVLC9oL2sqNSdkJHMsMTlSY0JhPmtjTGk4USgtPzpCbk1XLUVwT0cqWThkciVyKVEnKUkmXG9sa1UuZWduUSVrVlNDSmMzPTlAUkZGa243OGIxLGo1KDE8R1dQZGpPSy5fUTw2P3JMSHFiIThEcyx1VE9bS2tGS3InbUlxdCZsOls1WyJPZG8pLURjNyhLaUh1Z289bWQqS2xNbk4+P1ZZJXBcQyowQWAuN250VlV1XC9zKmBjV0BfSVpVWDYoZCNdYFk0XytpQWJsZ1dmb3VybzFYbidWZDVTVE1qUFlrYkFiakMrREhoaVNcTGppWDJxbSRrQDxuTEkiP1JPSHJiI0FRbWQlJGsvbD9Hbkw0LkljJFQvaTFbMUs2PGBmPmYwNnJxSDBmdXNhNkNkQnBWNDQhZWI/clhRZ1YjQTJxVllcLT01TWVYQ0s/YTBIRzFlJmVzLztQLXVbOEJoaUs1PD1jOjY3dDBRIUhzTEQnSVZjSnQ3YyVZcXElQnM2WllMbGpWSEVtXWlLTHQtNE86NCc3VHUtaEk8T1xtRiIxST89XT1kSW1wRz8+cSVEVzwwNWYoKkhMJEtZOT48Qi1PKF5rU2Q9UEgpNXMqTickQ1BPJ2xRWGhAYjo0R0cxcz80RWEuOWprWHJjR1NcO1xxbSxRRCdzX1NzXU5fXEkySkFhbnI7STJJWzBMRDUyQlRTZXMzckdQSVJqUGleOT4pJi9sPUguZSoxOGhoXzRPcGguVkFTOCJpS1NHKDhSNy0vJygsSiI/O2s1Q1Y0cC41I083SiFzI0Q9LmdGSi1cZ0RqcilOV1RjbixnW0IiNDxZcT06alNzTE8yKi4jKDZAX2FkTztCW0NhPl1ZbFBtZHRqKU1rL0xhUTknXFFzTklRS2FzYmo0I09Yam8+LWBxXGYxbyhKPkZSaXM2Ql06QjMxOylbISg5TmhJZUlMIWZbQjE6cjtgTV1yV0dlUXJMWUw+KGJuTktab1ZYRDItS2ctMVEsZ2tSSmpQKUNsWC04bickM2M/J2FtXGUwXnMxI1tBaF9qdUJlM2UkPyktNUpXRTlpdDI0SyVDRz03Z0ZQM2BmaTQudTdjIT9UVEY5YltILj0jZ0ImcDNBJmpcMmIiVTVTKFclUj1GM0FGU3EvSWRLI1NbOmRsYkRlWWQ4PDdaSDBdIllGQW85TyRXMFZdJl4wWmhRdStyPypUdUdwI2FKOm1zXVFKbTRXQVQyIzRZbW9BbjxJQW9APGhiKDItOWI6S1JOMCJZcC5aYE83N0tlOko3ZSJqO1xlXl9pJTBKUCguXkJlKDNbSkcpJms5Mk8zK10pMGwuVUdZLSZCbylrcVpXUk1AMlZJL3JRaEI0NzFxcCQwPCRHPjNzNDQmaVRlUylhYzosaChTVmMiI2IrQ1pDUTImaiNuUT9bJzooJVtDYkAyOXJhRSYrbXFhQi9wYkYpZ2tqTTxfWF1lbDxYXmshVyRIV0BAaDwxO1YyTi0wK2E6QXViSzQtO0hQK0UzWTJsU25fX1IkQz9gIjkoaVkjcCQ3IzA2QCdIQHRISjRDc2M8Z2YvV0pDVWNtK2ZLRz1Rbi5gbUhFLkRbXlY0MXVvR2ItLSk2YEpaZkBAXDJMJk5BTjQ5VHQiaktNQFppVkNCZDpMOCY7cVpkIkNpazsrU19OJVNwcUdcK0pQZ2o6dFxsclYxYz5QX146RXBuUzRwKyFFLl0iN2MmZiFVQlhZRyg+VlF1LDpCWlIyY0NqQWV1SFhjKWJkN3RPLmA+TWlcdF4laEJmb1ojQ1hyTDcjJEUoW21sXVlKSFFpbWdhKW9hOCksXUUqIiwiMUtoPEMqdUdVUyJkIUhEbSVzbUgkNk4+aTpLZy8mKVI5VWtJdSJVZ2clOWBZLG9KcC9jO0o3N0pBOUo9VjAoWUYiNTAxVVdWO1dkI00rR28+RWdHTVMiWEZnPGpZJjcqSVJARC0pSDhQOFdvXHE2Jy1sXyRyLGZyWVRCYUo7XXFQJXFCbDZsJyptMV05LS0wOUItaGVUOz9lbFIwN3NRNy4hdDY2TCJAWEdcIztPaVpeQztlZ1AsPS5UNzE4WDE2JiVgRydcPC80XTxOJzwiVTVoSS04RlkwalMoZ0BhVE8hNSwyKz9BOj9EXUVEP19wZ2lKJjxHNSc2Rko6USstT3BsKElVMjFWYD1SJlwzJnVoRC00bGRaXS8vcidNNFMkJ1AnN2YkY2tfOnVPcW1ZQGFyJjc5XWZMVGhpWihQXyNVJyQ/OnEpaztKTj5hISpJLFZpbzdmZVZHbUddaUZIP1VCWzpAWUk9aTw/Kzwkc0ErYi5ea0lnRlFtKDZAKFBfUGhuJ3JOSUVhckdpPVgjRHBTRS9IWTA+UUtiKG8yM1pfUks2PT82SlJVdVRaP3NSUVBIIV00OVReI1xyZXI0W05tVTxPdUhIQSwtU0tpQEBtOGtZb0lVOm4vQyY1WzxRSkY9ay5RLXNBWnRmY0I9K0QoKVxoJ2VMIWg2LHMpREl1Pl1ZWjI2MWpKR1pjYFR1ZE40ZilLalE+WFdBdCZTQk5dc1w+SUprP09yQUEwRCxPZHVqcVwhRzIoSCdEOkdYSUlzTGdyWCFiXkxaMV40I2tdOGR1ZCguLjJ1NWJPUEFiO2kvJUlRcGZwbk9eJzpoXVYqT2Vvbj9ASCpRSm08JkVIZSxLbiRLXixJS2J0MC5zbDlIalY2K2FSJTduSjhmcyRtT1ksaGUiZ0VsTVdvK29ISGFkWkNyXSdlQytTLyM4cEhOc0stT2lHTV5vSD1lJGcuanBkNVljP1lTYiMuVSFvRC5hLHJVSk85S1tPMSZZJVtZJVh0MkIxOmFQbFdVMSRtU0wuKm1aO1dhQiJwLWZdMjRCSkRzJidXUCJMLD5XQ25zXnQ2S0ZLaGhwPTE4TlwqOi4xNCFuK0VMVCQ5dSFiUlhbPEtnIkBULVs0ITpHbyYkZFleXys3SyJJVmVKOi5PTl1iKEZNdDtnXzVVPkQrUmFCWkU2bjNoUyFXTj4mVVhIMHFTZFhPOyRmPiMwVkRqMVBzVjpZcVZOTzA3MkRxIlZtbmNiSC8lSUxVIW9LcSMhZWVqWDw9VTtYVktTKi9fLCQlRDgpTTBXLkxaVSlpYG87LE1QXSIuPipsST5bXGcmImpqMmIpRWRZQyxnVy0yZzhIY1s/WnI/MEAqWEc9LHRISl4iUzwnbmkmZ0tGTGszY0diMVNGKFxrW2k0OFRyXG9fYEhMVSI4NGl0bTBXXTlIN0ZhIWVWSkNMNzRlIlVHWllMNix0TWZKKVFvWWNTOztBX2JDa1xwTmxlVC5sOUo4RWlrYTNVU0UxJkp0bUczaFxkVyY9aFpKcCVRVEBwZF05cTo/UDhXOTYkIyYrKXBpKGwwRHFUUTxXMm9xNWAqSlpATCIoaiY8JzAyXEJLTWUlPlI+ODQmZmBVbTUrWVVyIzwvMl0maVE0Jy1AJSFGUDM9MnArSzMzKFs0R0MrQS9RbTQ+ZTQoZG4/IVtbbDlVJWxGUWYsUzxBUm0hLHI6XVxWQitwbUchNTs7X25mPCRCaC5yMGZAK0wvbWVuT11yW1lhbjVZLzsrNDs5TTJCKE8qJXU/Ky1LOUNlN3Q/P3IiTXNwIT5uaEtBLSZuOlFcMiJBIjw5KiIzZ0A5KGZoI01lWU0ubkdGJjBZIkQxK0NqTThpSGMjWDttTEowPz8zO1lUPGU5OFdkXlJmSm5fMi9ndSZfVjRIcTBfb0o0NzNhX2RaYjAwNyZzMmxfSF1gJCk+aVxGMEdLY2MvP2sralQ4QlptTCQxNWY9SzcxRDIkMiljaGBiQWQnY0M/UF0paV8mc1xvOThxOTU+Sj1mKS1hZC9eK208PURzSFxjKmtKLWhZUWtVOFdwIVstXGxXdHUldG9wQFU6UCc7SUtGQVM1bUxITjhrdWtoTnI3cV9kX3IvNmwqOjNhXUFwIXE2Z0MyKjZHVEZHTlgyaHVHbVw5ZXJaTWg6O3JDVWVsYidgUWJmUSddcXJzWy5SPSZIXiwycmFjYD1dbUczUFw1PUQwLj5PYWM9UFBNcmhsLmAyPzJII28iL0hiJTtbR0dwXEI+SEAhJTJgT2swVDtLaTp1J1pjTEFFRzgtPihRdWdWUCxEdEEzMzpKVzFeJEYnSzJXdDhfM15yZlYqZDxlaSRgP0owb1QnTDItT1pJTDlwW1EqPWc5aVZqZ3VZLituYiY2bWo2aC5EYEFqWXRsYllNVTNHIyglJXNUQEVgbz01RzpvQFouXVVpLmNPYl1MQHEpM2tFO0ctZ15nNnMkajUqUzZbKzA9aWY1LjBMJV5yN29saDMyZj1fNS0+U2JPMzxLWWJMPCZVKWg3PVJQSVBNZmtfNkM8Mk46NmI/YUFlaEY9YzcyKEEtJCRNNSo6OTdgPixOWmAxR1tedEB1Ok5sO1ZSX1NGXiEyJDosPFNiUlM4Lm0vakI9NyYqTWpNVT9nPGVqYykvbnAzREw7KmNASlpmJV5HaS1FZDhMOmosdVBTbWoiOmBOb0A1ImJWY2BGNC1sWGdYRChpKDRRQCxHQFVXPS8jLz0hVWktNSEmIiVXVChxRlJAbEU0WCotK05jWmAmXURkUzpqVmNCW2AzQUYnXUsiYDgmbnBKLDg4LjU1PXUuRzxVP0BYaj07NidONVsiJ1NCVWxmPVwyKyZPOStAMWFRZlAjRmo0KDBDKWJwPjQrQ3JPRVUqS2xcXmRXRCs4aV0xc29FSE9ERnBCYjc4TzklX0ViKzAwPEtpSlliWiI/JGAjNGFqZFJQPEMraVshMDctJmNEUGlPRjxzZlY8NmwsZStWb2ZSQTpOQEFRV14xW20+MjRQJDVCOWNaX003aTlYZWpmJSRMKyFCZTFvLzovLUhIOzJXMF0iQzo1YFo1UHVeQSdVJUg0UjRUcixzLkVvKDAwWypgST9sYTcnJzRoVTtjJldINmJSLWlsLCVqcS9SZFY7clxlNjBQIWA0O01DVSxSbTBPPGNpYEhhLXVUVzhwSEE7PF5dKiVQUHQsYWtIVVgpaExMaF9DbiZrR2QjKkhDVCQuL2NMIz9WNFJLUmtZLklCdT5ZbVFhWiw9JzIuWTVqLlZlRFpcRVs+LFJMaz1lSTJoNWYhKEUhc10/T1Q7UTU2UnAiNlcqSTZjQWJBVWImMnUzRUNLcjFSLGJycnUwZ2BCZVgiSzFrcmdpdW9TXE8pMzs4XkRbN1RALFtqZF5xR01RWXQka11eWUc7SktfWSRaJCNjRnJPXVxiWl5eWk9nL2JsUUUpa05TRjc0TChtJXNIT25rO201UWFBXyZeXEBwLGkwTCpJP0pgOTEuSlkvO1ZuRDNiTCJhZ1xiTV5Qc0lYSiw5akFeRSI3P2xZXUY/PEFZaTNpZzExKFU9Tj0qIzFmIUtzbE89bmA5VzUvI2ozXjw+MmQmLlIjIkBJNmttOThYPCFOWSdGYFxmQnBqVVFWM2otcD01UlVfOyhlIVhWbTouPlouVyZQdV05QkJeSG0tJ0tsJypYbFciKlJZTzVeKGNPXG9bO15mL0BEYzQqNiREVzl1cj5CXjM8Ukc/Im9hYVdMJSVaOm84bWRCb0NwZypPVSlQUyhpL2JMWktCUCdXbitoJDk3WGNQIyR0UXFWZWUoOFknYGBiTDgsMDgnNyQwWiNIczMiQloiTVtqaG5pPmovb0AlJElrIlstZTkhWD08b2VmYE5USUdVLj0uQD5yUEFtLTRJcVluTSw3aixsTVRXYyssYC9mJV1sXUcqImloKjAhVCRHOVZ0MEowUjEoRyQrLSMuJihbbHBSNyQjPGI/N29CVTxmSjpLTjUiL3FGOygqK1kpTiNnUHAvQzpgXC5CNytdaTo/OXFtc2U8bjUxbjUpZ3NsKTJgRzFUTCUnbHBHIjtObFc1XyhcTUg2R2okUmJFZU5EYTFWYGE0Pl5NWk07Vl1RTWxUPFElNkIvcFYtRU9AYC8zQDpObUBlYmY7cyk9aCEtdSpyUyJpYU0sPVs5ND9TIz9TJVpfPFttOkowQztyKVtCSGxySWFfYUZrclxTJ006WHAvSS49Pm1KTVdWLjtwQEhtbldqJXNvLyg5UCdLKzI8aHVXIVNTMDdyT09MQTs7biFeJiNiMVZdWUY2P2tFVGJPRWRXLC5VZyNkST9EPCsjYUJqLC9lU2duKClYVEYyOW1WYmc+Wig2QWojX00qZDw8IUFKTSxdXmw3XTZTYjVgR2VlXU9HZ19APDBmWCMkamouLW8kcURiOjs7bUdKQnJ0KDd0PkpkLDtBImFUUzNcXkY3bV1EK0laSXJvQ2Y7LWEzWGJMJEpfMTpJaWRPYTtVVWJbUGN0Z2RkTyMmS09RaGYjWiJzJF5CTHQ3UilxTlRKOiUmQ25xJEg9IUlfOm5ZIlZ1XjMlcU40Kkk2QTRRPDA5QlpPJHBaW1ViW15PMEttJyolJiRBJi9Rc1pLPCEkLChrZ2pUcChJOWQxNV8oTVM2PXVLaSJwYEJfOVBGb0lCTjFMajQ0OlErRVYjdE40dUtSIVppTHRrOjFCY0hSXHFGXidnZ11EWWBxTC5JSWI/PWhxcl9WbnI5ZmRAODknKl5bYGFZZVNUZDIvVWxNOCxQX2BgO29mRU9yY3F1QGNHSUpnbzM5XDVeS2REJD5oSD9zcCFxVEVFbSlVRHAwczZdbStcL1Y0RiRNYyVwLWQmKydpNy0pSShua0A6RUNbTzthUWc4TUMmXWwjTlNHIVJfWUVUI2UpbV4lS1dHKE9yc2pgb2dGPF4zKUBrWiYiYGQ2Lio8XFd1X3FCVlQjRE1ecixgNygjW2U7SF5COilPXW5bV0guL0FAXFZHPy1rJjk+TWxhPmReZlNgI29tLVchPEJ0OTZzcFM8P0Y7JVpBJ25XZCdROEJkPlRjZmpJMiZcTEAwTl5fVWBJKSZgUit0OUhDREQmWUorMEBEXileMTFNMyMmPFBmV1ApYFIxUC1nWysoaWZkdTtaZ041TlBRXDEvcTMlcz4+U1QnLzY6M2JWby9pL1wmaUojWz5yUmhWZE5qSmpcNDhYUVMsT3FvODZOVD0iLytBJDJvPD04cCxBPF5VUkEhR3A3IzZpKDkuRktXIid1JFlwK3JUamduYiV1QnAsVlNTVkJYayhnY2RySDQ9WC9yInEicDtldEJEKW5dJEguSShFNFRGSz9OVkBVZytyPTNpMkRiR2RvWTBjUUNyLkxIRGpdayhyJXEkaXUlSlxjcGhaXV4+b2kmRiI8TFtYOjAyViFiXGglK2QiKERALTtvO1tnYFBgTEpDW28yaDQ3bHNkdEZaNSJTVVdnIl9ucyNIcUwyTGsuSCRvR1hPN1FTIig6VTxUY0RYQUBaSElTWnE8Q1Q8a21LLmxwbEQrTWhMR080cFFSWllpcD9aLUw0Ty1IcFx1dFVIPXRdRThDIkFRbC9qJTU3R0BLJEM3LnJtWEpqR0UtSEovJDBgNjxoal0kXi04NEAjOXFzWGRBW0tVPj1Dbj0rIig/RG8oVWlkXmkxQFhncW1SPUwqIUdULVdmOEk0VXBKK0pbZFItTmdUOSM2b0tePklZaVgiVFhnSkRZWUA7cHFsU2kjcFpVLTlaKDtCQVYlI1NiYEtvWjVdXklqS0huaGZlRFlGKj1EVG1XaitDMUQrKW4uMDo1PS5WJjZzI0RsazdoTyR1cCg2YWdEXXUhbDs4W0BSL09maGhSW1RacD9DRltDaVxkZSFqKGVPYXFbWi5rVWdyQjJsKmIjXFYzZ21ubjdzbVxWXixbQk8+NnFpLC1cOnIxNzJgbGVLN2l1RnFVIjBBR1FqNEw6ZHM2IUYkJj1DXSVfQUJkdCVWdXImYko7JCMiU0FxIlxwNDYxdCtWKWlgNGBNcWNFPGI+Z2lTQSNjVC1ZPyo/cDNKKXUqOTZMYz1hSi5lREQjbUJPJ1dTbnExXV5kTCc6V1cmYnFpMj5YS1pDV11IWDtIUFpTXS9kaEhQJGtGKjFNQVJqNkxnW3FLcD1tTVNpRSNuNEsmTio1cG89clZRWkMtY2VgJiRJXT8kSiczcTpmWyQ1TmVBPWAvYFVKUUAkM1xTWSg8ME8pSlh1Siw4YygsajBqT0grV2M9NDZzdFdrP243NkZPUFxjbCZkZVZEInJfOVosNiwnT15GZ0VCdC8uUDRuOy0oR2I4PmVMIzUhQkMwX0ItTzZLR1dXPFA3V2xRVGYrOCQsRkFZJnVKRzAuak0kUmoySlFtOSMqSFZPWTs1XTpPSCU9O2c3dFVUMHJJUExUaF1XcCUoTj5eY05hbUhzamAsck9ITiFtI1YqYElTS1Y2dGk6clo6LCpIMUpkJmdVIkxbLTVJOStkYWs6cihmdUkjVz03WTpSVlBfLyVZakxDVltGJENcMWliVlpCTUJzcCU1a0M/PU9PNm0lOlg6LGBbdHVJR3NcRVlYcy5BalVbRjNNVFskbXQ2SGhfIjtzWl1aLWlVPztIV1VVcU8hNyNjNzlUPF1FK3N1a1IybSg9K1k5cWIiOGYlKFNicitGXTZFX01IaFJFL2xLM2YpVVsuNEpKb20kKEY3QWROVEJvYWRdbCVYUUU1IzI4OFE6UUVuY1kxNCVAWCZQSTY3PFReXHMhODYyVzpUJzM6IlZtVyEjbkYkOzNpUy0kRGNkXkJFY2pzQkNmQGFjbTNIMy5vJWUjXkVwLCY6UDpSVXVcRkBuPkBFVTQzOVhKUjpBI1FoQTwwO3QjVmRJSUc9OnJxdSZQM1A1Ny5sWC8mRz9XQE48TWxTTixWN2s1aGwrYWskOTU0ODA+NEdcKmhMImdyRl4zQTlSPExnciVjMUQzPzZbOCtjW0hxYyhFQTNXbVIpdUw+P2YjTSphbFxJTVovQzJfK2o9ZVhoW2xNImU5dDkrNSRdSC1gaXBBanFWZConL1dDPlJWJGc7UEhySUtDIVM5VzUvNUYxcm4ibkxYaktjPTxFLygkJCI4SUM/N0k6LmMjZmhtJmE3SGo6NDNgailYIlVVXnNiIXNcJCVtR1RqLlZvTlhWYV8uVG49MlFjQ28tY0hnZ0g9R1ojUVdNRzFQYWc4OGU+IThiMmEra2BMazZMUjUlKElOOzdNJVpZNmpmbW5uSUIuOiczI3R1KkpbUGByaFFKQ2JBUEJaMkglRihULVFuZyliNWBfTDNrRD5TcTNvUlVbY2tfOCMpJCE5SmpxRjpDJjUsQHRKJyZjRUpcOUFwU18kQV5DQChxW1Y3XFg+YWdPJi0yaWYjPShQXmlKZnFnZ1g/V1FvKjgpbUZnJ3A/OF1KYSRiTV5qc2leQVgjMmJcRVJTZDg4WS8mT14uUEMySXFARWkoYWgpTWxZOVBCbEQha0FKK2dDZHRAMTNoUDkjUHNscjNza1UvbkdTZWZwcEsuQjMhLW0ocnMhXVtRaGEnXkwkZElOV2lyaVQuX0dNZ1RDN2BCczQwMS1DLitKVGE6SC9JQzk0PT9sQCZJa0NZdTFdWmoqNmExcWBgY0BKY0o/TFxCS085Q2cuUkk4XDgsZ2JQQlYrPmc6O05ST29BI0k8NGBFOWlbY0JiJ0gzUVRyU2kiPChGckc5PEwnJk8ndXQoLHNOcjlMKTMkI1FZITIoU2s/O2xARUxfSitiTVhyU0E2WVJnPzJbKWpnLENWRTc5MSpFJ0k9ZHI8XFlcZDRVOEZoO2ZXckkzLUUuXDlNPCFEOFNdcG8kYHQmLzhZTjpPJkwqcU5ubUJaTWpdZidac2hmci1ndFdOJmlwUWlEPWNIUTcrLkhoQipvPmY2YT1hP21AVy88NzNzdDgzQDRlaWckc2lELGxAa3MpXSQiPj49YkFTTGxSIj06Iz5ENyMnRDJCZiY4aCM7U2ghWWVfK0RoaFgmOmVXJmsyJDw5VlUrMTMnO1Q7UkBwIipHXUtmbWhcZ3BPLTA5STs3UFhFYD1FV11BcSZoP1xAKChLUFctMDBWMmJrT0BkZFcsNyhEREphXF0kPXNILi9LWikyV1lwTEo1VkVja2xvTCwoKTVVTk0jaTcxUStiSm1yXTRPYzI8W0I6Vyg5QipyTz9zV2xeNyNjYFMqNzdjQ0FeUz1NcCFgaT0kJUNEYWYiV1BMPzZnUWowZiNSQCY2RD1xW24kPzhCXyNQTzhYRlNwSSFZI1ctZmBfWWUlZjFbSUpENHErMXVhZGltRlZaQTYkbkU7XlduLlE9Iy41U11IMmJHUCNrO1xUYE9sPUNCLFg2I0UrSE1MMS5qOFRXbG1YRDoyT1taJVJGX2xfK0JOOXBPPDxXQXFqSFVEVjwoWSRgPDJYb1RNNjEoSkBAMFVVUlE/S0U+ZXFGM1QqMmliXF1DQmMsTG0lQyJEU2lBUEI5QTdwJnJLSk9PO11pPzEqZFBgZktBLFEtWGY8XUNhSF5sUkhpS0hrMicvYmItLUMzUVFuakVWNllTbmcvZ185NE5gSTdgSjB0RiVMazZhYEUtL2YvJ2NUZidcbiE8NCglLTorcS0rMWNrSFwnUEprW1RIOG5oIlFMLy1lRT80Ny9cUW8sKDZnNmhfW1Q/bVQzYiFIRm4yPEwraUUoaXAmaWE7RUJlNTQiTzVoVVpiOWlMSSR1OkE/LzBsWi4yKT9ITTkvYXU9QTNKckNPOEBrS1NiSEtmMUhzNy5tS1JDa2tfcE9LQjZINzJcKVUlQiNTMklLMDBnZUVoRU0vZTFhbEo+SDooaWZKSmAuXG9kW1A1YXEtOEclN1hVO19GKCwwKFowcnVGNWsxVyNOWFUqQDVAbSYwVytGQURjJCVxVypwU3UkaWhQbFc1LCEraiJSdFVvOjMxNyJnWTpNbEs9N2pXZW5cYisrQVIlKm4uMk5DJDQiJ2BQbC1QMGlpJ3NbZW4iNy9vMGBKM2EtSWUzX2lAbzdGXz9uU1Q1QCdEXHFRTCxqQ21mUD4iMyVZSidWWkdJNC9laWcoJF4qQUYvWFxsNFs/ckw8QFErSmtGQ2pvbmNiIjNwPiRHNS4yb3FgXElsN2EtZGhGVGpITlZyQWJxRWE3Ql4lbFU4JEVQRVQyY2kyYkcxKG9IK2dbZlE5QlFwMGFoYExESixeTG86KiJKbVNDXS9EMiw7RFtrNDpzaTc+PjEiOStwJDNIbUJtU1c8Q0hKSTg2ZV8vTFxeXUxxIllISUJsPUAzJlpBQjVbbXVcNiJcISM5aWU7Pl8rQXJsZzVFI2RtQ1ZnVHRBIlFPQFtPRFgsTm8/NThGQFVKbzU/Q1p0SF5sSlw6bl1Xa1MwKmNSUlA2QXM7cGxLKEovUmJlWyspUiopN14kVGhuWTkhIyVzYXRoTDgmM0FCKTBpWDUscGI4XTVyXzxNNkRJMFs/bFlmOlQxcVAtWShKLy5zbGM0XUBTOUxkTSZVPEYxSVVral9KcC5kQzRpYWFRQzJhcnMyVWo3L3RFaSo8NEk6ck9sdC9TXmA5Rm9cYHVXLVVEYFNMXWBKTTw2aEZcX28zODMrMVBCYks4SikhVkhjYVY/JD0/RCRAKzZnRDhsK15RPSlNWUlzVm9VPjlfVDNfLkgpJkglRGtmUGk+cC03PydzNS0ocjxrZWFzUD9pMFc4Z1JpWV1JUW5zV0pmYFZPTztbVlRTSjl1NEZsSlokXUE7MV5NTz0tcFshYCQyY1xuOC5ZZWEmaWE8UHVeLl44U1RvLE1TPDtcKSNmKlQnMUY8ZVg3aGk0XTMzRmghXC9QTysxPV9ZUnVWQVBVWFxpLj5UJypIWWErWDdybTRURFB1SEIvazVrS1pqL08uKEtiSzxUa19WX1ltLChOXlNKNSooLmJnM28pTHVAYEpzNiErJlQmRkRzZDU+Mi11J2ZiOipfbyokWmgsRVk2Lyc4VlVQaUx0ci9CWEgvR1EocCcoTStaO1gyJjAwXWI/ckdmPVl1I2VkJzIkcGZUYDBQSicqVCJOV1lkUko9SGBjO0pBcl1YJHQ6U1AjMDxfMWFEYUZMNj9RSDBJS1JnbHJHa1RBQFcvUSdvN1EuQmlROD1bI3JXZFpQKTVATFo0cDpmIXRfSl5LJzNKQDNRITRcU19VQV9XRVdxKmFoY1NjcmtaNFYqZyM2a0JpUE9BOjRaIiJIVjk/PFs6Jy5LPjhScE1PVDJEa0NYOTgwT0RqQUVRYl9eQDJ0KCxiZE9QOD8zOzVoP2xmUiRKM2pBWkQ0VXRPZCNTME9edE9ZYUFjTjhBWFQ6SEVTODhoRWhDa3NEUlhcdW1odSdVVEgmLlY7VyM6JkNQXmFSIVprI2cuMiJxSVw2Pi5IIyZYSFQ6PVlkJnJeOGpLcVFsPVhxKklSOytdYCVgNCQkRERmZi8sLl5TYEVqSiwtQiVvXkFHTCgvXC5YZmVATUdjOEhMbFtJMEhzWmFQMjY2VClRRT5LbHA3I1JjW1kzIitFXkNrN3RGTihIX3FBU1pZJiNUOkJsUSdcMmwoaUdPbFpJJlZbJS1ZR2pVW0RVdHVBcklRVSQ0VFU6RXIiSjQ8I1FaRVwoYWhtZkxtXG80SXBJSDsiSVAxZCI0YFFhSiJZIWxQOW0wcj42O0lmImsiQ3FoRlw2Sy8mPSxhSGJcU0NlZDcsJS5qVExWRSRAVjNeb2FuNCU/J0ZlMz1eOHMrTWRxRSgnXi5AYC0mLDtzPUhAXDNDKjRiYmxdbV1KMmI4LVxtZ1hOKnFnMmRlTnJdZkc/NzY7NFJXI0lgczYqXkxRLExUOCtuImchZ0NXaFJXcGdQL1U7IWVTbXBQNlZKQVcjTyJoZktfXTdPa3JmcyIwVUAzUDlPXEFQImdUIl9DK04mWzRXM08lQC1NI2krYHJSU2AraWAyMytTRW0yLDZDZzFXbUVoS2shJTxTP1FFZ2ghPjpJOEQ8NEEtOEo6ZzNlM3RfMC8/Ni9sR2ZNRlRgTSo7PiM1YUpgPXUkTnI3TyJuNSJWQEVWPlw+KlhTPFFTcSxhazNTKzc1UlU1RGFdb11mWi4oJD86LzJIQSlYQU0nNzFbJEcyPGhTMilOaTZKQFkyTChbWHE+dCwzKCJTSDlDKyFUK2xZLSNCWWp0b0pSZUdBOWMtVjNQSTZsRW84OWJWXVNKQFZAOzxzRSQhcDFBPGMhPmRuQG9zWyk6V1lcMWgyKSEsR1EtRFBTNCQpN3FBPy9SWG1zbVA6PlJBO1wtZVRBXmJkJGhgYGowNzktP1NKT20zcy9HTVsiLDhQQ2E0YW5UMG4/U19pWSJtTSJRU2pOY0pSdUIiYVU2ZUwkZGRYdXFMZU8iczZBamFzYHNQLj9jZ1xsLzwvO2hATVhudSdXSl5rPzF0QF9pbEQxNE5FNUFPJ3FFR2xkczY2c1RkalpqdFk7IU1MJ0hyUjFOPW0mbnBMPT4sI1Y1WVU2Py9sU2hcQWc5S21FTzFbaCo1LC5wVixAYkMiXjQjN29sOG47O0dfSHNlRGklWz9xLWlNPC9MUGVwNic2JGVyXUptaCVnTyYuKF1ldU9ZdDRJZWo7WzcqbyRSKTA4Y1kkL2xpTEBFO29wPWw4ZFg0MytaJzM8cydSL3RYWDhpbWgoSUIvQipAZTJGLConaSRCYD9OTilQNGg+REQmJEZoQyMsQkwxJHE1M2I7PGF1JkNqUj1GMiYyWC4ydVB0cS1lWWppTmA/XmxYTXJfPy9mQi4ydCZSXGs3J0BxI3NJSG9jQ25ZdFhnPkJbbj0rMydcKiJqaj5edUQxJW1UUiRDJzlpNjs+ImQ/YS4wKUI3USVKI2xXWFVtO3RYclRcbFt0JDc7O1kzYmRSOUxqUFZrRkxadDA6aispSTM0Yjc7U20/ailpMm1nb0AnNyU0YG1YbVBlSydHXHNhOWVTW1lyIyI5bm9nPUdKSHVlXkxDVjhcYl04JDVMNzBRTDJzKk06bDpSaFYzXEo3SzJFXUtoNTpCPT1RUTlYVjNnYkZGalNTYkBuRGwqR2J0MUhwQXJQXjZgUGFrVmwqKTtqWFhuK1IoRik+aEM9Z2tNS18zMEQzN25mQ01GXGZpbmRVWltvQXFHX2suW15qI0gkVlNfYTliUCQvX0hhSDZxO2BvQi1yTU5MLV1VZmVTaj5KODgxKlYiZUxoYFAqVUpMWTNaTFwrZHVtPnBGdSFpbz1HYG81Q3JBLDdMXyM0dDBJUDhaIWpjLHU/OS5OZlcqc0hhVzJBS2w4Zj0zMkFGPUtoSVNTZFdASV0sTVpTZ01rNXRBXkRWVEBfQERaWC1UcnJhYzc/Sm1WNyZnb0RjUFotJShBb2dSXGxiRlddNGknSjZUNmE3bW9VPTVKYUg/Im9VJmcjMiNDSTRyJj1YLkRJPEc+OVRvWlE8UjE3SGcxT1tgSmxzOyVyTnV1byhnaGAxW2ZoTEZuVkI3UWYlLEBuRiMlPHJTc2YmLyMyRyhULC9VKT5kSnAockppcXVZXFw3c2xXRTV1TjIlRE9PQ19gXW5rZGc/QCgpZE9maSVOXjgzPC9MPy1AOG1bNE9wUUFkKy8tIVddZE44VWdXSks4M1lPLFYzZT48N2hzbE0qZStnSGk4Z0lKSzRyM10kY0ZmLEkkW0JrTDJPYys/VTE0WVFSUkVfQUdGTj4oXTs/ZUxFN2FFY1ExLC9CT2tHXWA8bz8nI1FuIXBmb3ExKGtTcV4tLGlpZCZNcS4sZzdqXUlyP0QoNEBPXDNYPFZDMVFJU1gkP1YpJE89Nk9ARSYtT1toRFBPYEtgXm9aSlUiK1NgIydFRTo2cjcpKzFccWskbDVjWGZPIWxedDVNIilfQWw7VjxxaElXcGs1S3E2Z2FodTpgXEBwXUkzNCdaJHErOEgocFteZ1k0YCoxNiQnbWlZZTQvWyguWCpsRVglRkRKOzR1RGNONytWdC1dQG9OIm5aOmM/KShgIihCdGpacT0/JkYzXDk6YCdcWi1MSWxQSz4hOnN1RCFDJzMtWW9tY2NtJzMzJT05bkkiVEknJjUiOHNpaVIwUzBUZiJELislMmA+OXJCOE5saSJcTE9edWRbRSI2TElyalhtaVZlTSNvXTY/XjEoNU1jMF1pVUpqOmxlZGFWP1FFTGI0YipMX2d0J3VcclBuQ11RWTNlMTlLYTxPWyhsQHNCNHQrIlVbbElgPTcnLFlaSHRFU205RHMyKEghU0wnWl1XV0wqJFZrcUEiZWxNMDJESFt0XSNZQSFWQ3NHdC06PW1FY1pPJGlHYSFJX3U7KVI9UUBHa1FLPHJqJG5YbzMnSFJDX3NvPmooN2lTKzZqb1hgbFY6bEZfRTIrVCdCI2okTG5aVXAzIlFNOilVZylKVG9NdFshMGdySCQ5O0AzKGxNQUJHU1ZiUmMtSm89bV1OPWpNZk5rQjgxOUtqaWBjITJmYExEJ0dmYGVZSVtrYzEpaSMsKUBhPzs4OF45TlFzK1wpWVw3OjNsOkRKSFpPM1JHRjZsOz4za2lndT89I1FYZkE3OStcZ2RDPSdmczhdQUU3WS9fakBrZHNMWiQsQUUyV1E/Ji9jNW5POG5qWW9mQDNCUy9dTjEqXDheKSRCQTBURTVaKGZwcF5AYiEnT1hTbEc3Ll4+KFcoJj0hMXEzKHNtWGolZC1SSScwTTBxblNnPEcmRjo8JFYzLEomMzEqV2ckUDQ2MyRIUWBqRSI1LFVnOUNkOiVWaE8+TyRQRm9TXWNOYCpHSls9PWImdDNdVz9CSkJVWFtJS0o6MzIiViRZXmk5Wmt1JCg6NlRpW1Aubk5FaiZDRiotZyQ0IkonT1QlXmg0clRNREJlcj5zODJeVlNecjonPFBNTCVsWy9faTMobnNXajRucSJsRU9VXFxlV2s8T11HTnQ8IkJOJHEkJU9gLlo9ZClyKF83cCEhNkIrNiNiXnAoWz1JPUFvPHNMO0NLVjM0Nz0rLUVCNCFDXT1cKTNQPmxGcm01PVItVT8wcEVTO0RqbCchcnFqW2s/SEZhSlIiUitdIkJkTTVuUnVbKEpmSCNbVTFUK2k0OGFTSWMlRSZIRz9kMG4kcWsxQFdvciYlW0A+blpOKkhvXWM4XFVGNmBATkxrU0Qtc0dWTEAoN2s8L0lQanRcQiJQWWtmOUIlWlo/Ylo0KyhSS104XWxONVcrLGxma0M+NGJGUGEnY0ctNUxySTgwMXJ0K0FrVEllOUxKJjBlJi4lZWYhWSdJSXNuIT1ebUIqYSxgUidWNmo+TE80ZjlePnNYMWAvQ0JKLj0vXWMoZ1tTZl8nUmlgQT07dWpRKEQzYmRUZ1Mmaiw1O2o8XVE6bmMnKFhaU3EzNkFwTGolUmhYNCtEJSRtI2BvLTpJQi8qRnRiJ0ctLVJoLVVGQCtqVG1jREQkPWZdRkEyR3I+RjBLNyFiTVBLKitFNGM0JlQ1RUdrSTdyUCxyO2c/c20jS1JMcUkmTGBHQls0JVMsNUZDOloyckx1LXJQWXAvZ2VvVWNVTWY1K0dzKkZeZFxhJj4uWWlJOS88IXNsQj8icjJeazNPPks9VEddJ1U/NEpAQUtEZ1tIW0pLP0YnbV82IkhKTjhYPyVQRi9iPidMJWBoWSFLLU8+Q0RPRC5wOjRdPC43bHFuQTIzK3FXbjNCcjttZC8tUmtIbFVdLWxuWClFRlxtUj8qPElBVm5uNVJbMyo1MTZATjYwSSVsYEptMF1RdGtwVTdaVyREdThXalpQQCNGNkE+VzMwL1Q4OGc6JDhOdSFESCojSSVmaU1XOzJqPjNOPXNqM0hlMidaNXBLVGhPOlxDTFhwYSxKSig2KjVgTERfTjttYzBjRVpSYWQnIm9aajxxKEZZJGQxTihuM0lKLFhBQWxaUGxsRi4+OyxjLVcuZWREVDwpMDgpNWgrcyE4TFo+OiNLZUEpbWEsWiQuTz1DJGc/cStOQHUzQks1LXNlV108a1hHaF8kJGMjYEUodVFyYyw2Qz1VXFQkNV05bV4tXVt1WTQ6T3Q0LFwqUzVxVF1ELnFwYTdRNjtiPWRdOTlAT2U8N09fakRcPSFONjxvVVBMRVNHK2RhP3AqSzJuZF1yRUlHVXFjY1RIQk5eNG1WWzEyOnNcMVlGYmZSazpqKFQ3bTxdY2BHL1ptMiw4dUhgb1BdYm9uZ19QXyhCITIvUGFdP1spQjxDYClGbihRY1xMXFo1YDhMZWRdLSM7Oltxc0o4cz0rVE4yJUhMRkteNyFoOVgmKCskQ0hjMSs7bWlAV1FqK0RJREwtTy10MkpGYGc5S3FORShDMnAmOkVONyVTMiVzcyNYSXNHPFRGUF8qM2U2NlJda183Vz0rXVI+ciVpLmJmYio+ZE1oRCFLcy81UU1xJC9ZUVdlSzs1LURzTzA1LEcudTs5NEQ/WFdoLjdHVWg4LkFTUmJYNyYqMD5yVEtkR2U+aT4zWVRYbyhUKzElZCZdLVJMXi8tIic8dWZsXSFwKnFrQiI7TSVMNk8jbilzISJsQyttOSo0aW1Ybl9ybmVlbjlEYXNwQUNdQ15cSGVXIWYnS2FPQVtZW0JzbmUmK2k8LVArRFdzdGRsUD5YLGJjWlAsVHNiZWs0USdZaF1ZJGZHcHFjV0tzLytMTyQ0YVdFaHE+YkNVJ2ZYPlFiK3JJU2BKMT5QK187XFtxaTswSXRNcTVZbThtOlE4PyMqSkJeX2QmVV9xVGFYT0lFZDswdS1PZi5maCNlSnIkM0NDSl8pLWVRMz9oaC8ncSE5WEozJUU9TVFDbGo+T1dmaTE5TU9BVzlpQ0VmRnAvPCEnLG08KlA8WThFZj9WdT8pcGxoJyFsRDU9JEo+KT1ITjlZIytVLkA1QSxgaWEkZD0iLjBtPSVvcl5DLmA1I0VeYltGZG1vJDE2PHFoayQmRTVtNG00JWElbS9oKVBzV2VNVjtxX3RhMUZhPHVvPiFKbk49ZE84TC1qTVhGcj0+XTBsXkhkJlpIZFQ5b3FcNyw+WjpzUkBHMWBIZSdwWzhFN2BzW1hAaUhNJidOJ2BXaCEsQDFILTNcbCxwZD1sYSoqZCJlZTZJVHIkXVxLc1dXc0M6VE1SKENEbklHLmFEPUBsJClSUCkoIzEoYHNCVypDdW1ST21qPiJMTGVnOTJGT2lmPiJaTT4wP1pfUFUvQ09jTVFPXkA7XmBmPlVQWHJWIjorblFXOzQySE5kOiEtXyYhLGE9ST49UE8mOjUyciZkRiVxL2clQFlVQTonZS8uJUxiYD9VdCZpQ1Z1cSNrLjgpXSdfMSQ6SjM/bG9lK2ghX0NVRW9DLiFQNnFDOVBGS21AOmhgazE1L3NjPUBhPzBWL0hEYXFGWTItImxsLURoN05wLUJrOmlAU0JlPWNIX01mM2FRbTRTdCZbXU1tRktXJm1aPHMoRiEjcl4qM21SI1ZDSlpnQmc/NGlZQ11bNFInTix1Ii9HKT1gXXFMazpSNm1mXWlkZ2tpTEglQW1LSls/c1ZISWNOclM/MTE6YXBFR2ZmdFhJRnA0LzslIV5UbzQwIkU7YDpJMzczQlxPMDhnXCl0Lj42OFZxZyRWNTBKNWZTaVtKXj1nT2o1aSZaQEkpJGI/QU9JPV9DUnNQXUddRVVAM1laJj8rO1dZWHBsVlIyLEorUSQ8JShHPUBLZWBpQyUqITgkVmxcXV9TZk5JPGYzcCFwdFs4ajdLdS8lK3FhcnI7YkNzIzI2LmFsajdVNzt0RkYqO1onJztFNilRbE1cOUsqPiU5YiZDRUteUzJcRG04ZzZebzRQWT1zJFc2QEY0X1s6bDxAVDNpQSsxOFgwOCttaCZQP0BsTVE5N0JcbWxUKSZFQVJHKj9JdCZQNG5aYE4oWCMnQiZDOWAqVy01JE45Il8uQzlzQVtXVjxTblUlKzwqLmplXio0NShbN1lKWlRtbEBfK0VoL2lEL286XypUWFY0KkMmYGBWcW1pc1R1MXFvYFgrK3FqSzs3UVRDQFQnMXE8Wys9Mi4sOEE0QFp1UEItVWFQImMpUVdpOSZrLkNFS21SO2JbWCxUNkxhJSJkcHUjcV5aTVxsRFY+XEBYZGJRXzAkKC07TmJKTDxGNDBiLiEiOzxuWkNrWF9SPj8waTlCOUFfWk0jUzVwSCQpOHFJRW9pSzUvWCUhLTcjckAkPmY7ITtXVlw/XkdzZ1RyZytRY05ZXSRnUVNJRio0YTpzKWpMS0xDTCR0dClVYm84bGU3SC1ZSy9ialYvOElXQ11fOEM+c0xKOWk3NiwpRFplWFhSNzdeTStFI2xRV287IVlfWC0pb2xNXyRHWHUzSXVRPGlxInJGX0lYM0xtWzgpNUx0YTVFPmNmO2MhOTIoKSduUDInOClNPEkwT1k0VCdXXmhmZUpcJVZJU1BLQUFwYG1qJkxhVlNlYkFhVyhkVmkkYytPZS0rOm5PKkghL11YPF1OKidFMS5gWW89cHAjcTVKYllTbkk0VmdVQ2FgbVduYFlKYFVdVUZPUmxVP3FGXkhyNWEpW2QuOk9YbWhoZFx0KjZDdUc0M0gnUD01KV1WOiI7XDspRlxoMV1CU3MucyRSZiNkXDRAQm0xLlkvPk1jW1dGYj9sVTNTI2g+RzxeYnIoRyJGLWhzI0s+Kl1rZ1dlJThFRUpnRUtqQFk3NnNXLiZeKGFeVEdBP1w7QVVnamZyRTNSNlFRRl1YcGguPSwsKTJOOzQ/JEc9UmMtOmBLLiY1ZURBKVpDUzFvYGZodXBuNWMuW2xcWSxnJiNNbGYzXzlGZENnZVRBRCpzLExzWEkyTnVwJiguZSpAbi5dJUJ0PjZlUy9FUmlUPkUiZ1FKcFI3PDhsPmk9Mmw4KTNDR19JWW9JRitkLlxgWyExSmBdQ0kjYCQ1QmRAYScmSUBnSClSK1dyPEksRlZWNUc7ImQmNltdXm4ibzxRcG5XK2NKJ2ZPWDBZRyZaPjZDPUVnR1tHZjNoWVVqN0RhbSlPVz05KkIzTVMkTyRFSCUpOGBgWmFDLFhDMjJWazNTZ2lWSnBQZ11Ga0NxY1tWVTAmTiw5T1lRU1wuIllzJjMkLUkjPyViOWBwPCslb2lwaGVdPiF1ZydXXGpvSyxXXjpfbitaT21gc1ImWTdlSzpkV0NsLE5NJlBddFY4a3M5ajdtTlsjOyUlSjhyb3EoN1FzIkM2RUdpU1oxPVlbKVFKWjdILmhsYEolaGwiSXIrJ0BfNjdOJ0RiRWVhNkI0SkBlSWtfdDBXQTpCKSwvOjhJOTpuZ0YvVVpzJ1QqVFI+MmwkbXBINllXUzRKZWFNZk1KUishPmZDTllsPl5raHE3ajg/TzhUNjshamsoWEFhU2E5WFs9Oyw5IUZhaldvIzgyO0JsPEpONHJfTjFWOTo1KVc4J2JpQSolKGEyJTlbWWdMV2g0ZVtWa2ZWPVcqdGlqRVMkPkdnLEswOkxUUDtqaFlrZWc/KC5qJlRQT2ZpbWl0OUk2Y2FARkFtN2FaW2lyKl00dCpATEdaaUpHSC5gJWo+XEYpOlo/SmxdQ2w9Yl41MFRvcC10bHFtNkUnI2ZnP1FjRV9FJkdZL1tMVktIKXU/XWc6N1YvOllDKDoiXmhIIUM3U0ZKMCQ4I3I1MlopSjdcaE4lcmRvKVxlI11WY1RSLFM9UGVWS1ByQEdSJE4qMT1eJFM4QW4kQElvUTRFSjtGXEVpVEZdY2AmWlNuK0lSKUorcjFxUVNaXy1CUDIqOjE/SFw6cVI9ZFFWXHB1OiNrL1FLcyNOSTlWc0pGWE5ybklQYE50MTQxVmosSSomY09BUkNbdD5ZRj4uajBNMXJTT3FoV0pBOixNb0JLaEclVi1VYD9XRHRcYXNFaGojc1YlJVZWb1pgbGdSLCkiaV1rdEZVXmQqXGFzdTE7QldKIlBxP0c2bk0kLCNNaVNJZ2VcaXU1QDsxUC1uRWk+RVotamtMYTZEKSJdVVs8TWRDO1YhUjxmJk1WcDM6Rk9ybU1XSz1TQCFKXElnL0VnX205VVw5ZTJsI145aUo6cCEwK2EjM2wyTFgqRidPbmhHPiw7ZUkzWnUzOEtvcUkuKUpVKiplVyoiVlBQaVFYVWhMMFJTLnNOMUtjQSg7YzhBQW1mKmpdTS1wSzdXLDwuKi1kMTEiYi81cSkmTz0wUiRDJDEpYiMySE8mOj9hQCtCYz1iaEJxIVFHLzFXZkpOOUJPcUZdLGYmRGJlWz4jbyUtc1JvMHBYZFRLI1paSjwiczlYKDcoIlRzK2w7SiNJKiVgYlhRN3NUOkQ8NjAtKDo/SDdGKklrNDs9YkFEYjhKYm5YbF4yZnFAXCpkcS1mQGQ8b2opSVsocEVBMVcrZi49U1dkL2Y/MT5eRFNwb0NXOidhJVRMXlc8Lzc2Ii01PGRya29BXjxGKUVNN18wOTdwSyoqcVcyWjNFLCIwXz1OW3BFdERjJ2t0c3RMRSMqWVlaU1QtLyx1bj5GO1tCM3A2Wix1UiVEN1MtTWBmSUJDY1NXKTNTJFxpK3VVbEBRI15XQUptPS1dK3A0ViNQMGBma2dbO0AzKUVAYXVtR0c4KTtBLCF0K15zXzwiIkA0YUhuOWoqVUYqSCNXKicwYU82RjVwSXRCTzVcM0oxcFFxRlk1ak1PSCwpRkVmLz5rcmo4P3E0T2FTZlptTlo3I2YpXkJiYWMobz9ybFNATyl1cV1DPDM7X2RlbzEwb0MyYXI4NF5kTClRViw6MS9xRT0pajluLnVxXDojZ2laMGxGcl42LVddRkA3JmcvTy1tcmonZ0RlSCZfMmtlOnNtRT5pVU9kSFFMJUVfJipJYCw8PVYtV0ZqOCVeKEY7akxFUVlFVC4pODQ7PyRZMEVPOSFeYDQmWFBgT09yaktqOypdLDJsLkRYaXJgYlQ5R2BSXTwsa25CXD86NmBAQGJHIlFfYDFtVE9ERTZka142WlxwbiM9WXEwXyhYJDZNYmYoTG5rYCwlc1E0QmlUU1JCLScpZC5sLVVhO1NcW2VbTDUpQSliTEo6PiY/am9yK2hnKmI6Xm0pQ05KMlVcaFxhYzdWa0A2bjVOMCpxPF4qJz9UUjVKTlJuYCtaKjN1ZjApbD4wJSFaYkFwIUArUjBZRiE2YDxEYFotJmwqXUwuXC8qYVxpOy4iZzFuS0tmT1VWLyJDY0xlQTQ+W1FNNGBQRzNbOk1Ibj91J2Y1Zmg6aTZnNTZhU1Y0SlhWMURgTUZvWkFIQl01U3Q+cE9VWlZUM1tUdUg1TChvblU0a3AqJVxSMUVbQygvLWwjZ0lEUC4zbE4ybl1eRSwmQjpmX0dmMHBbLD9wRSFPVD1VJE44Q1VaPD1xZ0VCXjBYSktSWTA/a1pOanEhMXU1MzQhLGdEV1Y7TjtHNCF1RTxAQytZX2ZKPlJJMmg6YTA7a1BqTENvLzlIYG5IQWdpKzViVnNLa0ZtWis3ITEiN08pTlBnYSInY2xuJ2hHJVYkLSJkalpWQT5bTSNrLHFtb10/dVBkZSJgUFQ5I1szZXBDY1haUWVfKlEqc0pgUTpbbGQ+aFVyaT4sTEJDRVMqQ1UzTz9bY2dhY2gwW0FJWm0xQlltWVJbMTxnIjJdIWo3XkByJU9MSG1kXUIwK1hhWHBGQClfZTc0O1RnPjFNUj4sJDpZSjZbP2I5ODk1UEVxOTMwKj1LKVdlI0dEcjl0ZFoydTcrIypcWk45UXM5LiVMQTg+TmxYNGpPOTVnTyRqJmlCP3Iiay0nZUorJlhkKDI4J0xkTlQwUzlkYyE1WTA/L2BTXzBbRUgyWmY7blhhXWo6VCZzJjJqcGlHYE9ea3MiaWhrQixWWT8lLyVgXjoyVE48LFIscGM7RXRuOCE0SS1sLFROSFttXHRgIklnZCNnN1Zpc0FDQC50YWopcCJjOGtdXE0lKlJDNVRxRFFOUjpLTEVSODpTUkpKKlg8bWJePGduNDJubzRwOVFLW0ZmY0UydTkoWEowVG1CLSNEQ1cvKWRpUG5tUiwhQ3M9a0pSKWwuWkRAK1wqbiJoYUU8QGUyZVdsXUpgNUgrLVs9SGksSjohNUhWLmQvLUBiKWdBZnJAMUVEMXIvVFgiMWdeQW0nbHJlQzt1J3FLVkpCaU1aIi9ja2U6KlpwX0JtZ0xrLEBrW18oKlw0Ii5vVWtNUUpKL1pyR2xYIkNXMiRgW3JLUGE9XlFWUHE7QEk7SlNaTT5hVmYuYEdtXy5YXF07S2YpQVQ/MUZkakZEXGJGPnViN0AoKiJrP088cWQ3SCxJbGVvLUZaYm1JPTJiJj9lZ09yc2hYLixCQydFOSU2bWY0Mz1obGhcQHBHQz8lL0VnPCpNOVZJKS08ZG1pVG9pVCJTWE4mZ2dDaHRhXVsyIyk8QFEkTz1rTFApLTRnXzxTcStCLS86dS1TLWZDUCEhcV0iZUY3Q2A3UyUnQGkmaU8wTlMlVj11I0FtJm4qJHAybkYjN0Y1aTNaXT8uZShsJjg+bmE2QDgjbDk8ZzdHTG0iNWcoPipwXC1lOycnJU9WPHFkIT1JVzc9XiIqK3JkYVNzJ05vImdKTSRoakg/UDgoN2AjJyRVKU02QmJGJCVkQlhfUFZTQllDMFNJM2ROLV1vZyppTTJPNlxJMDtQOF5JdFhMOHVEKzI7JEJNS0NhUFInJTRCKTVTK05GdVpiMDczQ1hGcEsuWS0iT1dEKm0vLFZdb21YJzg1NDovTChnckZdJV9dOzh0ZHI5TCYvITVkKW4uYitXPWskYTdSNnFPaC0uNkFpVzRfZEVTZSIpXCw/O2dgRFZVMUF1VERwL1AoRGZzLlRwNUhEX3QuW0MvOV9falUrNiRfUCxFcT5FakQyLUpjWitsYzM6ZlBpIj1daiVFbXVLMXBtLz5FZUtCSFEkMTZoL1dsMSg4UG8tXydsJ2koPCg8aldaVzUsSzpQLkMuVmIrRU8vaXAuL0E6NkpvZSlaR0MvXk85KV8iX2RnXFEjR2dsSE8oQWRISEQrO1IjW1RBbmk4SG1oZFNEJG8+IiFZOlJLbCFpcV1LRWI7UTJJXXUnTjBGUTRWZyxtSi9oNS1HIkBYRDFVVm8xJk4rPCIqZlYwV1lsTVUkMUFoZ2JnNDBcajkyIWZJPjliLGhuIkotWTFLSF9HRydTZ0UsQENHKWg0YUtiRSk+Jz1MbFBHQVRnUzNUbzshRW0rS2w/QE4pXCFYL04nTzxGYCtFVCFJaDt0Nmc8UVYvSixUai4xXlVpNzkzQWw4MF0oMFs0XTx0YVpRTkxicDkkZk4kbyQ+LVBuJih0RFpMVjxKcSRuJ0tyWERfbExmalQ7WGJWXiszaXRSWGtZVTpLNWBDOG40LXBASWk+PmA8XChgPEwxNFwlZUcpcUtuPWknYCVnVUhwcz91YFtqK2B1NClYcUk0PSpNVlNrTkByZlVtXyM6PTJJMm9qcDJVWWlXXytbdTgpbDI1ZGdHX15xImBYVmlaMGU+Rycvci1eR2BTIVJmcG1Gb0I0R0xxV1huUj1oIStjbzE7Ol5DVF5IT0c0S2dHUkUnSEUhSmJqMVMhPklYTnU7WVtcZF5vQEcqV0tcJyZzTURYYCo9UmxMYGtENlBNT0FNTU4iYTY7RWRRV0Q4JjYxbHQ1T1kqPyo3JD5WU3RGZipOb2FsLE5ZblY4RjtFQU0haHA9W18wYyFILE9UJD0ub1MpZlRTVkklMjsjVDRDNCxAKEU9Yj5EPiNlSGFRR11gbCFVNENiZ15HSWtkVz1EP0hbVHJVbzhGXVonYCdqKk5nWEJXQG5baEAySSEvJFlRUGQ0MWVscnBsQ0RoN18nUjVcRCE0SE8oPy8kXE5gMlBxPzxJOSJTTC5TIVI+WmNdOTRZND9NVzsubEBgXSpeOz0sM0IiUjcxN19ZJmRJVythMHFmZFdVTWBoUGEtXkI5RCxIcyljS0QybnVXZWBQRkdqXWYlQWFKJSN0OCkqJ0xBPSIjOW0iUSUwYmojUTtoPVNQajkvOUkoQyNJOldTNiI9Vy5lPyMiKz5OLkhoWyIlTDFPN3E+ai1nb2UhT1prPi9gTTZBdCdwKTtVJS5fQGxtQG9PXVdvY18hZU1IY2IxQi1IXEU4YzRfUnJMIXRQS1QoLDVIJXVpYzNFZW5gIkRmdF80XCFePFNcYUw0L3VwYXBsdGAxTG5iQkIibzpIN1tcTmAxVzkiXVklbCxnRikoQVVmOidLUGo1Jkw0VmQvYVRlbUcyJFBRJCdzMitKSlEvcE9eVmMrKzFGc15IcCwxKjZpamJfNi5SaWBJO3JQJzZrbEM9U3NDXF5bJktgNStpT05AJUBqTUA3RkY6KVxQSz5XYD80bFZMMnAqPjhrPzFUSG9AMUg+VVgiZEMmPjIwPzAxNUoxQWRZSkNLJUx1NnU/cz9LcWxlV1BcNi4jMDZLMGM+PiFdQCpFQlFIR3BaSFBaOVFzbz03JSQscFp0TFAycnRuMk1sXVZWUUIjRXFKI1RpYGA2c3Q3bU9oPCcuIThWZFEkSkNDLEJddDtMJVwtKmslTFVXZ3QoT0FWbT1hS20mPFxIWU9EcyJcTjI3c2EoaTpUZVw3ZiRyYVlVTS9jIXUzRW1LVF5qRko1UTgnMScnZlxZR0RBcDZzclUjRmhgUkdBVCE8dF9eS2A2aFpSM2FWLj8vK0lkX0hObjdhZy5Sc2pFcFx1ZDsuMz4sXS9yKWtjQ0B1VE0sR2BtQlgxUXA3JjM0OTwyZztEQD4nRVxnMEAnX0t1aWsnV1smXVthS2dVSW5qazNgZE87Ijg8JXVRYEVPUkMiOEVlNXE4a2hHIlxRaktCP2dhKipiJTNoblNeVihWXCpLaHI5Q3FrYDxSaz1SZGVFTWFMOFQwO288b1tNcmMwQ3JOPW9qVzVuMjJCVT06S0hkY0FCZkYwNGovVDA8JnE8JFthRGlpJT06IWdgc1szdXAlQmc1RjlvK0pvRkxBaUEiUixoVWEjS0k0dUUtPiJeKjIyUjhVW0d0QXBqZGZAW1pJa3BFOzxwcyknSjZGWTZcZCpwO2AiYU1lU1RULzZXblNaLC5sXjhtT0dVVGUwS0NKO0NSZklqPiVgQk5YRFFnUisrSGBaRyJjQjtyWGBPZjsyW3QjO1dbaDxXO143akhhJVw4I2BvIl9HUCxBLiFLSV1NWEA8Vl11YiQiOGRPLyRZWT86SC5oUnNaN1JjdWBEPVonbWEuQCpHVkc+Y0FCXj8wZkg6cipGQ0hTTFFxcUkhRldJIiojPDpzKSdlbUlSXFtqVXQkQCUnQktVPz8pOU9dOSQkMjtkK2xAUUA/S1dqWU0sTjVDLyJbJixydUNUNHIkWDUoKDJAbE9LNlsmRXJrIVdfNiM5JCNmUyJDZDM5VVRdYi5AUWtTQ00pOzR1JzErZ1M4M046YGFxZEtHYWAxYz4rZTstWFQ+VzZVK0JoJ0NZOC9kYVpfYFZcZHRQYkgiZ0QvMW1sJ1peTkxVSjFlNzdFSmtqKyswRWNOXTE5dWxncyg3c1k1ZTMpcnNHLG0+LDlTbUJtKSZeXDZUTnRAS1YnPVVOWy1gJFxYVydNclZPKkwpSVNpUEBFViswXEgmY0R1KFVZXGViQDAlSzg9ciZqJTkpTFo4LTYpWzdJNz9dcUksQl9ZUW8nb0pDOFtSSyVZZjc4XiJPKmdUV00uSzQhTiNEc1NzXEZWUyNpOGZYZ0Y4UTFiTDF0QU9iX1VSVE8sOnFFZCxmN1REQWxdPm41YyRAYVJzMV9ZWjskNVVnPTRzdGhrOzc7WixYSFVFWSJVWDs2JzdpXEZYUCxxbTEsY1tcUmtnPlo8YTtYc1E/ODhqXz01TGZEY3M1dFtbb14rSXNyO0BBdE8+ZldtRE5gTEkkPF1hVypuPT9SdV5WMlN1QlFdMWNNNzRfSVAlLiwyN244aDZgZ3NzKU81TlYsQFc5LDswVjtDcT02MiQ9YTlpcm5fXi41NUd0WDojW0ZDT1E5bUdYLToha15XMUcqJTNFNWU7TUwpNUhbPCpqWWpkcjZMQmJIXGhqMDxWJ3MmPXVcN0RWJHQpZ29zck5fUFRrT1dlZCNnalMuQEcuWSxzP2A7PlorbFNkbUFvcVtpO2o3SyMyUFlccWZhNFJQTDQscElLT2xKZmlHUXQvUC40SF0xOF1qMSI5IkNqKkVLWURqTFQpIVktU1ElL0JwRk9mQWVWXkxMRnFOLyRQT3J0M2deMyhIcjouJWk0KTZSaypdXFU5PVElWiIjYzpANTk2Njw/Mk82JDZuViVsQk9pL0ErcTYkVmtxb0lXbmcxKUdBNi1EI01zU3JvP1Y2P1FqIXNHUltUbTw8WitbP2g1JDJcXz1tKXBabFo3JDQtNmQuOktZRS9NTydxcW9KcFtqLmdQUCE9SkRRQiEzYF9fajFtIV8paC1jTVdVVnFTJEVzPjcrZGZKJ1c7WVFUNmdqRWBJY0dJUEgmXCxgdWZXQTtJNklWVz5QVWdfa0hzQDtiX1BTNlFwNytCSDZacFAuOSRjMEJTb11tb1wqP24hQ0lnVGdqJCRLKWJxWzNzT3NqJGFpV0txa1JfYTxvIUlmUjg6LDQrRyg3L29wbWpbdVEuc0lRalw5YSU3OiYzQjZAWCMrRHA5VDZyIVUhaG0lMnBoTVImblNDMVxwW0U2bVBRYi5AJDNLJ1E9ZylATmhIbz1VSC0sXDlhXVYwa0VMM0w3QlM5ZUtwIl09UmRqVj5jMWQqX0JxJS9iMSs3aUFKNDcuSVJVcjlRbV8lYTI9XHI2X09RNWc6WSZtdWFIJyZUcyZxdG4lJk03NENiJm1AOFo7OztrbWpiKVk4dThqN2gvXW5gUFItKGZhSHFpUStQRV9TSVFrQGVWWl1MN1FxbF9hS1pjVjBmQ0NBcFdQWkg8UUk1JEthc05YcV5iUUwrb3EsVkcrVnJUO2NyREUwITFxZVolN2JUO0ApITYvUipWRkM5KGZKUlYmJHJfbmVgQmBmWFBIUiQvNF4rLCtdZmBwK2lfcVQsYTshaV8yTlBIXGFRTCFKN1lnTkszLDpVW0M3NExNWj5dQDNbWFtPNWxfOy0pPlcpbkMzcCd1NmJdajw9bVIiYzthTkVARSJSS2M7TmhhOCYuTCZuLTlNV1ItbWY8c2VTclg1OWxOU0xoNi1IPCdXVWVfV3UwSlEoc1NpQiRNWTtDcWZLMXJfMV5ONDJDPk8iJlJiMThVIiE4VnQ5Wik1V28iayFRXVU/KCUtS3E9YCpDVmFfJG5lLFRAajBjPUhoZGcvQSw3KEZhMFxMXDVmOF1tNCNGdUlpX0Y+YGxuOUhrakAkK0NpXHFRZSFeOUdnPTtsSV9VWiw7WWIuOXA4KFZVO0AxPEBWSXNqUzN1aylhJjZBSSdXPEclXz8+a19wSiVGWWt1Ry9WajJXTGNJZz5zPjRIW0xKanNoYVFLcWsiRzxbcCoxQU88TSJGI0YtODxPKzU+YmErYmVbck5xYkg/I3A5VEVNIj5GQDI8amckWGMwJyNBdTdkaz5fTSFCbFl1YC9vZUdTWXUmTVdzZ2xzMC1RbypPOHNEcE9YYykoIzVYNSQhTjNUS1kxVC9FaDNoYWImckBvU1wtYWVHLzxyK2FVXmR1TjZZKzI+LTdhajpoRjhWPC4jYFRNU3VOS0lTaXJkaVVEWD81cChfcWBWSi10SE1FUCs+anVhL1ViKV9lN2FJLkVKXFdmdT0tXlJCRyFCRDs6MjRRcT0pMEFLSDZlMDpRS3BMUF9gcjhUblxOOD9hSEo+I3JIXjJxKFIlXlFVZDVlSyxdbGBPXzRLNGBCM19aNGYsKkpCZFpzRnMsTDtARmhgNUlTbC9dbWknVUcxR2RcMlZgWlc1LTpuJzpzSmUsO2srLyVSWkIkJ1gnMyUnTj9pVSwvPkNlVigjbUVAPFN1LmJiX0QlTHA2Tyg7UlZ1UGApREw6KC1ZSTJnb1hHQEAkIW0uT1YlZzxlcSVJLjg8WEBnJDk0RlRccSgqPFg3clQ7bUhzYl5VPi9cP1BacUtyW3RfZkpEOzIwZFo6RWlXKGQhTFlZLCQ9OzhaPCdNQ106aGlIJEUhc0tvQDZXTWopbF1BM04jajhzXmt0Z2tXUys5TSpvLTxMLkktRTNEMCM2NSs+SSVhL1ZdY0RAP1AmcWBQIyhOWUhbXDRmKT01aE1FOWtxK2InUUlwcjc+VVJaNlxSb0RlL0BHX0M/IkM3RVpbYSE6aSNyS0BhOSNQJGAxOC9nWSJMaVFpb2duNE8mcFlSZUt0ZmtIM1VESiI4Li04cTIjSUFuVVA3Wk5mLCtCJkEvUW46czdYXGArXygxKkBiTnEobWNaYThBT3BDPStAMnJXNzpUN1htXihZcERqJENGSiVFUUctWDEpOD5UdCdnbU9uIV1MIW5EIWVCYGphPVQjaFNJKydWSjwpLCY0WV9WMzNiPE10bTo8Pj9ZZW5kaG1WWFwiZXRjdDxEQEAmNk07ZChPTSE3NlZjZSFEP3BORSd1XjleLyNZZ2skLDVSZ0BqPypuXnExXVArXVlmUzFackxPJSNeaVtfIidqOFNPUEhaY3UvOVpmKlpXaS1tX2AxVHFwWmBYLkZLQGw9aixVIy9EJiRgZTthOWcpNTtqLFFnWDRpakFuQXMxZm8kPiclUyVTQEA8NTFHXzEhJ1NjU25qLFEqNyZwV2IoLXRAO0V1SVdhZWVUKUBURTkxT1A6cDlOQkgxamlsMW9sNHFBWCcxSU0jbkVPO1ViXDstcVYmKSYuaTonUkQ4UGxOJkRHdEoyTSsyUSVHRFlAIV46Y2Joa2ZQYj5qayxQSkA3YS86Q0YlPk4oMz5lWFxBaShKYERcOmwzMSE3ajs8NzBzW3MrKXRIMzJzPiRAYS05LG0oNmBKRW9ha1k8UUZgYmgpVFNnMmU6JzBGakxKLGJsR1xaNDxnMENEVUpoJko0KD9eUy5cMm9qZC5QMUAobzNwWlpHZWttJFV1TD8qbytwUTZydGUoZlFWcWpwLSQzWD9gTDBKN0BcLG5RU1khXSdoJylaYzlATFgxKllITGktNGBSYDxZOTRzKlZaZGU7QW8pSXFyVC1xYUpdWSwpLEpXdWk+MjRzZUhsXUYtOGx0SkU0MSwwSWUub2UhQW5sLERgRUEwZ282alRicz5XZFc9ZHRlMFpbRWliVlQ8bF87Nmxjcik4N3R1Q0YqbC1IK1dcSERlWE4rRyduOzNbOWwvXE8iYmUlZiFDJGNoPGhwaD1HK3JjTmhiZldNJUJxLjE2UGVtbSVRXDNzaykjVXRTXTVrMG49L04oSGZkYW9Zcm9fPW5iZ0MkS05uT2IhQHF0UUVIKSYhYDVwYDE6PVBiVSgsbF9ZJy49TT9NLydnUlAnLE5pXUNpSkBgInRGOVJuUGU8QzJWMEtGVlVBIk1iUyRsTCtTaD02amcxRzNkTVMkL2kvcGFkVidMcT1IQWldLWVtOU9CXjcrVG9wNUUvIV4+LGklOTw2MGI8Ly0sVCMjc0NHYEIyRWdpZkAzZzBOW2JiKWhWLDMtS3E1ZnFHKSQjVUEjZUNubjlsaStVN2hGOzNKajw0XClrMykzR2I6SCV1Q2VHNSwpcWk0Xk42S15mW11xcjBDRkYrPUpyP19NTiJhUkZKYz4tQzY0VkVybjleNCdJRyplcSs+TWlIR2tjRjs1KEhHb2NuXVg1Imo1YyZecW90WUJHYCNGdTI+UmRdX1VPSHRaYlE5YyFjYiEjNnJMMD1kM2RAUkM9ZTVYLGolX2AwVVpoQGBwaClwJmZFRDEwZSw1MF0rUiw0TENTKlZgRjxHIl1MTSknT0BjS0M1NFVAUmwyM14oMEBzK0clXi9JZUtDIkZrWk4zKyRATk8rWS9bLVUxODpOam4/N3BeLic3U208cVBebys+VWhaOmBfbygtbnUvJitXSiZGREIiPmZlbzJCSD49PSthJ1AqNVtzb0RnQC8uWGwobz9HaVdQblpBWFJYb2BaJ3FDJlRpYzhFJUJSO3NsTzxgSi0hLGpIUztSMWtFU1pEXWprTlU7R15jNj9ta1orSSdcaEhGPCNYW0VvTWVWQDJMYjEodW1vNXBpJzhAYzQ7KHAvNGhlaFMmXz9wbD49PVorWDhvTjZOblhLKm5fVVg0JWtmXEJcSTQnVVopPjQiPCprVzJmLjUkLWMvZV9pWWlpdVk7a0ZWaWVmV2drKDFEaDE/SEtxajtkQTppK3RgNUYmLW5BLkZxN3REX2hKbypyQklQYTYsY0gqSUZlbnMxVkw7Y0wwJC1GN21FMGhLZT03SSwiXjs8WE1mYVJaV1Y7JypFPE50MmFyMmkjU0pAUlFeJHU5Q1lcUHRcYEpRQ2xHNDtNIUBLakplPXA4RnRkJm42RCsvaVQuUjFaUl1LKzheYGtZQ2FONj4tI25MU1snM14uLzpEKjwhU2FwYmY6SiwmbCY7KGomdClgRDE5MVRRN0NZLSw9RyhpXDlLai1rbyJnXiovajBzcEsicjAnXCJIIjwtIlspJzdcZlI0KE1zUS06LTBSTmRzLGI4QyJdRiM6YzZcLSdtcyFIPy0rbTFBLmJcUT9YaWZNTWBBck9uI1xyRmloZTc7VGthckYnSEFoMVozKXBbZ2dwYUxXV3AkIVZcajVZOm5mUy4oKC1HRXQiQF1IY2ZVPC0yLWIpa09zIWYkbSlhOCpfMyxsJipDSy1FZkhWWXA1VW9vWW88WXEuYVBZQi5CaSwzSGA9alE+KCxcKGMsaD91STQkTEYiVkNYPlNrQG8hRWooaTxwUS1oVjZqZXJIQytBY0coRHFKQSpJUnJZR0Nja0BpOVtFNGBxKCVucnFvM2RQUUAsbFxfQy0yNHNkWy0tKV4nPmM4ODlzUTc0VTtDWDYucDQhKmBIZGdkOFonKSdYWT5gWShGXyQmJT5zODc4L1FxWkQ2J0hQUEE7SXM6JDMrQjtyJCE7IXIrJjQwWFl0dCVSTDZZIWBZQCUyOG5hXUMjLnA0QzJQWTxXbCcuRzFvSy91SyIlZUBnOHJja3UuUEZxdDghcipbaT5xSFVXZlAmJmEyMyNsK2s2W0NMNyRnNmI8dVtySSxJOiJGKT1pWE1OTU1GN1dELzBgMVcwPlFsRjc8PFIvOU1iQlVzIl9baUAiVyolTEo0ODssKFdsZEg6NG1BTEYvPkZMRiRCT1U5XFpsUTpCUz5dNClXLE4zc3BqOz1pSFlgUC0oI0lkU0dBaWJFLyldVj5GNy5AMVUzM24oYm5xKi9nUTYjYFktPjg5LzpAUV46a2VkR0lFRUxVMTEvcSZFT084PUFySEU9QiZDX1xxbjI/akpFKGFKSUJebE4/ZzBhT1JwKS5xNVtsSWIzKl4kYHEsaVhOOD5Zb0tOTUYsOGRTXSdmPDlDPVJsUzRkKms/bGssaVI2WyciZiJ0TXBFT1soLXBzVyNuUnEpbm4kZSwnOWBnb0A2PStUbVwuUWBJVE88bCxVKjhfO15yN1FSLFs5cDI9bi1TWTY3YG1oP3QzPkVJU0ZNaWdTQTBJRzhNPiFOMkklOGRAXkksOGlUR1JWbkwlIzRDTWhXKzVwX08xZlkwcDsoZD5fOWY4Ly9NJEpNJ08zYHF0VUwvLlk6S1FeaTlCR0tsRU4qS3NEZihxUTh1NGY7UTA+PVlLKi1iSDZySU45I0JQRCYiWzgmOygsPlQwTSllYz1AJ3NMQ2dpOS48ZW1FJChjU0JZWDMvWDVfKmojdF9YaiYvWE5fM3ImXFNuXyNnS1RNKDg1RSRkWGhWazM8MGM2O21jZ2JEWyVtPy9iXmlnT21YVF9hX0xLKTZkOEZIPC9AS0tDMFhfYWkrKFxgY0E3YT9QMj8nQiRoSCtvdF5UZkhgcCRGMV1EdFReVmw1P1VEb04vT3Q9Km9fRm03NDBtSTNsPjxFcE11Ny5KY0hIYSFhMSppOXIrOVQ8LlZvPE1TKyJkcERCWS5KIkdqNypodEUsNzdRXlIqKVIoTURbXi85V1NMbSJDKiI3aCxVOFVyRWNKa1FWM0AlQlgyY001KjYycSdhX29wMWkiKjFxPDFPQCgsNkY8TCIvTWtQJ0VeUS51a2VoUS41IyFnTFdVWyRpWz5oU2M5JlwhTEhGMXIxa3RYMlwkPD1sPE5fSm5bLnVRXlJPKkxGQ25UaD82TGMobG0wZy5hXkZYWylBLEEyRzZrXSE+MC4ndWhAQE4tZ1w/ZTFyPlVbUzlnMFpRJjkvJj5QUiwrNzwmLmJYSVZNMyRMSiVNJlNSbStlSy5eNWZmJzZgYCtGXmJoPjpQdGpvX3NDLFYtPD8yb3BNYERoKlZxLltYOkdcUj0yOlJjKmxjOzEwXSpuWmBDbWk+QVddMTVbISYuPFUyYE8zVmNYLG1zJnRJP19uUihcMVRWVVFJdWYxPkZQKzZMUGkwTS0xOT5eQjVhV1NeV2I2IUJDQEtyRyNpcWQuYyYuRj5wbm8jQkJtMiEyISlCVDQ3Z3M2aGwxSmwxQ19HWmViYC5tZm9CLG86QlszLmIzZDZNZ29rTmM0XiR0NC8sL146LTRlV1IrL3FzVFdfTXEzWkw1cGtANSt0UDJmL1ZcQCU8VFI6KGFYZU1nZ0gjPWxTdFtaJEJTVzY9KlI8I2Y+Q0ghNnRcKidKL3JaQ3VCXyptZ1BDSSVibj8mKyxgdU1XJHUyc1gmUShSVkJrOEMwJmVdampVJXVTN2A0Y1RzOEkrJmZ0cWRTOkgtQlpYZj0lZnBEXT9BKysvJVxRJ1Y9PjkkdSxEOjdvOGBsI2wkMktncU1BKi86c0ZZbElUPTAvZ0A3NjdYJmomc1kvdS1pUT50S1pzWTo8dWVecTNmWSRoNGlKL05fI1JHJk1PREBFKmZaUWhrWSNhZScuL1xZWlJMNi4oMHNQLT1XZitzN1MrPiwuLTMrITluMF5pMUs6KWNiPU9nXFE/WUFWZnBuYyZjSU1ZKD1GM24wP1kiJSs/N2hCaWxWOksqTzRQXVAiWyJwb21gbl9eQEZWVWVndXROOGQhQCoxXE5OQnFfazVIOmQ4byFaWzVROGZeTnRDLEFwOFEhRGkjS29YJSssWDpZKUVhaGpUIS4sdW9ZSVRZWiRaJUM2S21hNlFaYWVwMzxXXHJOTidYJGtMYUZoSE1fPSg6R0dkTjJgLlVncjhSVGZuS1FRNj81WEY7UDkqSlZiUmRfPDczPEhqb0VeVChvYFpwYmVbbiphaU9qV0BlNyRQZkVRT187Tj5RbEQjT2YtZSRWTmZYOSo9ZDlJU3EuaGcnKlhua05aTG1SWGIyZHJbTThNK25gREQ6VjQ5M2ZrYzBmVi9mRlJyLDBnVykhT0BxNE1JJ09xISxpW08zJW1RXChqQmdBQiIkJlwlXzxwLG8hS2YpIlZyTWRxJl1iUXAxOnVvWUU+Xy9PZT5VVF44ZShSU2BRNSM8YERfVFtjLkk3QmsiLFM2LjhiZVdlRVowWFo5azg/LEpbZCdPLDAzUWlFcj0vZ0NbKjEvSEE9LmlfLWdzWVJgI0s4TWkwakk7SGtKW0UqNmBuWmNoSypbK0MuNCV1UU1cLSlCcy1SbkZfXkRsSCsxaChOV2k7Zy9ycWc8L2RcPFFZNCRhWlVCXCpAOGd1J3M9dVNGKmtXOE8kQ0E2VGgpSEI5WFwyTz10ZFlLQVBxLDYiYkQvM2tKJU5EXUhiV18rYTxCdVJGM1ZRTDBfTmhKVEI1TSlXL2AtO3BUPlNtQixsZDxQIlklYWJTJiU0XzsnUSZuPmoyaWMmTD1ORV9yZ0U+cl10UmNNXXBvLkhgNTs8QmxoYUJXTjRZP19xYzpAb2MuZlo4IklTZlxuN2NQPj1RYiYvbW1fOkhHajJhNGQtYVNIM1IqSmw4YGAzaUZgWkloLTE3K2JmcUlAKDZbQDAmOXNiK2w2bG87YjxvWytAPXI8dEo9VjpJJ3QpNSY1Oj1xVTZcJWc5OWF0Y1UlU0ZGdWwwMyJmXVZzbkhtPnFKKWNhWXJaYklVLyFtRUkoSmBJX2lZKiM0JV0mWmtVVF03ZT1cbFpHUXFYQSlqM0duMEhYbVooXTBRXGlGKz8yWDUjbjpmMl1WO2tHM3IqUzR1RltJUW8jcmw4SFJSYGpMTDdsOG5xbmQ3bF1LcG1jTExMW3FBYEJrJ2Y3OiJbXUE0aTxMPlYyKCVfcGJmOGwxLXNpQzJRbStIVFpjQmpObltAYlg0WkM9YkRpNDhHJmlKTC8qNGRaUUhWST1cP0JCRzNsKT0+a0Qsaj9dQiJyQSlOY29XREM1WTxVaFBcRktrZDYoTForRCMqSVM3MSQsWDIiIWNXSnE9N0U+QSZjP2tHP0xDKkFCai4jTC8mKUBLImJdIydyJ0JHXDJcL0o7KWFUN2xbOCVRIjo6dEpdVkJbNSxxb0huSHFgOTNLcyVUYnFfRnIrRVs+Ql1CblshZShLQSEsTSoucjlKWmZmOV4zaj8xM05rSzVPbj5uOmYpJ1hoYFNxQD5tLjlxaCY7TjZKMThOLW1CQXI2RzJXajMpV1IpT0lDdTJBLkhxNytJSUFuJ0tgPCFyYUkjcE1OPEZRV1BtNEIiT1Q0Nj8waykhbztqVnBAQUU9RC9EZ2hvaSJyYEY+Oyc+cycvQTk6byY+KDBQJ29oakRFY01lNjttbjcvP2olT2VvK2pBZTZuPiZaKTt0SkRnPDBjbU9zbGpVSmZeZUsjKmptT1lHWlxlTGIuZi9UOmk5XChlR0V0XGM1Q2xXQ0lBUEhcL2I9UDlcb1NNPWRcPVxAODVuKGFNKT5hZG1tUmkoQ2xNLSxKSXAqYGhvbTdvdF48OS5bLU1PbW4mVEoxQEEvXjNcTj1qTCNAUyZTLTxMcXQnU1xIbTZOZ25IQURnRHUwR0AlYEBNS25sY0FDbVBsY19BKTpMOkhLIWtobFBScWBNTFNcJUlZVUkqWzhbXEp0J1wjdGooOWVXKjk0aEcqNTAvdWVOWFU/Li1oY2phIkg5bSwzLUFeY1hXazJqT2lsTnI/NFBnLkNfWTFvRHFWSVZWIWcpbkM+Kls8YF5ILkQnXWZrOUJGcXBkLm1QUGJbST1iRlQ+P1wzRWVLcmBKdSszI0Q4LE1UbVtmbVpBcUBuKmNpV2RPaChaSWxfZUtrRmE4YGBXKjg2bCxTP1NwUzJAYGtJP1I9ITJhTThAXEhqYFFSYExJUHJgLDwqL3Rtb3JrNWddXz1aKDU3KTk5V1V0IVhpSShqXi1mUTQsKSw9aVNqckZdYmpLLFpuR0VFJjdMWio8MTg9bEFiRmZgJShoLDczb25ETS41OiRdcW9jYFhAKm9dRWhAXkspTzE/WEBYJlxhKFdJJS8pbztKcHNKWyghT0M/KWNwJ3RWNl1QTGxpZTU/NjRmLiUvQG1NYTxial4yZW5AMDBcKSlLPWluWGFyLG5UcEEiLmZOWVJUYUwxZy8/NjNjPiZTVTNfXko0cV9Hc3RMQD9OXzJNXkY0MDBUPSJNcz9hLCQoL2hqbjUpUkhlLjQnbkhMaVxNRjpBSFM1UXJBa0ROKlA7bFRhNmBBQjpgMyZyNylFV3FkZDJqLlU7SF1PXT9PR2dGcFlRNV4uVGJOTU1uQlknSllxRztNLT9AOktkTS1dI1lHQzFZJHBjPiw/OzwkUUhXbCclRFJdYVVPXHNAVSlSXTlxJWQ8bzVGR1ppXks7cVo9UWwtUFdbLTd1XD4lUDApNVFJTiNxalRlbEVXVTc/bmw/SkU/blRBPShbZ0Q5XUZGOWtJcmA3U0JRKjAuYmloN1tXYz9dNiJgVkAtKWlhJFdSclFENGRuIU0sa1tLI2swPCZxaD45XnFfIlc+XjUqPU5na0RFIT47UlorLS5sQ1c5PCUtTjdzdWpNT1ZIJ2BLWVUydU4iIUk7c15aK2hkNicrUl4+LGoyLXBuamNYPklZcUE9TFAkTTA4TmteU1tCMGw1IyhAajFVP28kRiVFZTNVTGBFQmwsUmM2OEsqRUwwLV41QGBFcTMjaVgxSD9abnJTTjcoVjE3Z1NAL2dJNj1lUnJcKGI3JEE4QmdlYjBdNCVfbkAoK0cnKidNRCRLSkphMXFtTTpiIj1vQUdRPlMnJjlpbEpcSCldPiExIWxQQjxBOCYqOj9FL19NRi9gI1ZeMTozOSwsI2pcSVBSLzNiLScpNV0rP0U8XmFrIWJbbkk9RD9IbTJhLChvOWlFS2IzOidRSCwpSlw9RDdCLEJBQVQrV2cxNm5wMS5nbSU8O2U+KWNBL0Y2RF9zaT1YOEJWIkZZJ05aKC5wZWtnUlRdZFdpc0IjPnRbL2EqOGUsXjhzdChxUTIjYy9lOydBKkxNbktINT41YigsQigrMl5McDZvbjliL3NjXUs3Lk0mazFdZ1s2TG8rIWlmJU8+WC11Z0prVzxkQnFlIix1SmdbVlBhPFBXb15cSytLQzQrZUVvMWxLaUUwTWUrVFFPb1RBTGVtRFA7XD5dOComWzsuXz9AYkkiUVo4cyFsYks0Q1lEWlshRCplMFUlKjNcKEZuYipKPF5cbCE6XyVvLlNtX1tEXVBOZGNXJHRObzVpUF9uXSxxPHQpK0RpOHVAajVDYmROayY5JC1yME1FZmBkNkdDbWZIX0xiLHBET09tTUUjPmw/WCFhVUJXYCMxSVQkMFZlP3BROzBAQHAoP2dOdWFMJyYwIS9lRzU0RW5tQCRJMVk7X14jJlpNIyNPcmlqM0ImLE4raShcLkFmbGVRLl4+NEdwTjpKI3BZIm4lJkEvNGIyZGwmNDBfQCs+QT8hISlXZU9mT05DUF5TJDlWYCciQG1GXCk0UEYscDduJjhgWypCTUpjaGIvanRcaTQzJ2Zca0VJSWJvLD8jbEExXmdmJEVSMyJaPDRMTjNpPjopMipKLVZXM0tYaysiJ2tfamVjczQoSzl0KzhXO0V1OT9Wb1UqOUBhITNZNG4nYXFsWmdaWS1SKUJdKT4pMldjJi1HLVQnWTxEbmRPUl0+VWlMJ2VhailiKXUoMVxAYFNfUTsqXWBkSjU+LlA6SlhKQi5tLys2Ryw3RWZRcD9CcktWOVkvJ1p1U3JTVypAbWk9ZFE0bGJJS0ZtISUvaHErPWJEXENlSGFwdV5UKVpFMGVIVzNtYio0LlotZ0QjQ107JWZzUlc3YCNdI0lJQFwpXD9xRSRTPCJdVSNhR0QrOShOSmU9PydTaFhgUDQ3YTdOJEgtT0ZTbydqVGIwQC4/Zk05Ikw9XkdWIUMlWmIhaCcmck1AZiJDWlZWKks+Sy9dbzF1YmxqcnRsbC84V0pPImt1SDBxMUREbSQyKjsjXnM/O2YoWVUhbWAqYyozJVliZVlCI0g2Jy5gKHIwK25eJjEjWStaalExaC1NUy4oUTtBQzwhRVRpaDBGVlBqYTwuWmhHPG9iamBrNSc/L1gnbCIocjFQSDQuWD1sV3FPTzQ9ZCZRVU49aE5nUkIzRmpkMlxgM2RyXSFrcmpOUEVnRGtpKDdBLFxWZjF0NiNASllsaV88Sm9INFhYaU9pZHI8OSlbJjJqVS4wM0MvPmxhPU90KmNsUkNVYnVrUkhjW3JrV140KDliQytWcDA8RDI2S2krXyciNk44JkRxUW8lJ1hqW1FGJ1JIXW4+Ly0vMSVELmMoa1AqNy5tRkgwNG4oLj5dJzZMMUI/NXAoQ0cqWSxTblNmaVI3dWJkQUczZCsjW2pIdTwwJFZhT0wzOSFcJHJBYyZkRWs+Pi10KkcrdHRlTlU+Rlk9S1QzXmFoTW5FZ043SXAvNzVwQ1BrUy9CPFBcPjQ5ZTsuRDppPlZSKT1uZyIkMzs9YT1TNz9NVDpGcHJvKFN0UV1KakNINkcqZzlZMCMnSS8oTiItXmdLJUtRbERCP1g/VllgYzhNKENqJ108ZThtP0hRZHFbcE9mLVQxNURUKC9AOyN1LD9AYDUmKEAqJGNnRiNiOyhuUXVDMWNoSWlCK1kmIkozKyFnR0liZDRKT2loLy1aPDg3JldvO2cqOl9XR1pUN2smOEteQEJYNGUjJisqNigtQ3NFSipZUkVtK29EJiZHP2pUKmEhZGdmPEFZc2lWWWtkS15FVjRgOGwhbCZ1MDlMI1lOcWRrZGc4TEQ2YUpgW1E/bEZdcSNmUFp1KydzOVRoK00yOElsS1BNcnIoIiNTKnMmIi4tIkBfa2JGRWpTUDwwcEEjRDtGRFw6aiwnSzNgMDwlQkpiVydrZzZSVTJEOE5KUy50UFRAMGdZIzg9c09nVXQmXDBFNidlPilhNTtDajdjM2UrK1AvYDlBU2I0OWhlLGpVcFVlSylXK0BmXkw0OSFgUC46VmJnYUJLTV9zbG1UPTdQV0FXYWg7J0MuXzE7LEpSQ2ZsSj1KKGJAbTRvTkspOVYiaTloKEJ0VVhKJ1JuW2QyVD8nXWYvRWR0WnQtZj5ta29mSj5UQDo9LWY2bT0xSWFIYDM1QEQiWi81SzBFTzYvV2BCKiljIkcwMEhib2dfMSpTXSUjQ2w0RihIN28/ZDlSbSlXaSJVS3RvMCk5YnI1SCcmN00tXigrVihlLGNKOTF1PVtHQmBFNW5mTW5fJFosNWRfT2dxaEU8Ykc4LDNXSycxbzMqaTBEcEowP0FJMCElWFNFQD89ZStLaWcjOXIlSUVPajIqWD05KjpfV19oOjIrU2dvOXNJPkoqIzhAVUIzU2I1aERkTE5CJDJTZC9AUkQiX3M9YCxLTVRhPCtMJ14wUi9caGA9OSpoTGpiQiRvWkFoLW4yKzgmXXQoOU1dOnBlS1I2c0tNRz44UixAO2pBXkUjOVNITUdCW0JENGYxZ15NOTlyNkUmXl0pUSc/WD42YShjI0prayEtZmIlSGspKDEhIWglSiVcSzUwZ2syZXJdV2EtNy9xWz1XXVI7Wi9tVjYqOUlFTShwaGJdJDVdQGJ0RUBkJ3BKJTktRjZiJ2FAbEJtalFxWSR1JD5eY2JaVTdPZCVpQiglMVRvYGpjcmpuPjlUPkFNJCJcQ2YyLkEvdHFYTmc7YiVlVSNNQF04b3VRXTt0OSMyODVpTmhMVF8lblM2ZmRedHIsVUMrQXJEYWciQUtlaGJYVCVxQiR1Smc9aTtET2BEcFBYTHBLT04xTF9CYms9Y2ktcC5PcCUqLCVrMlEybjhZcFBuRW1zLkBQMlJAQGNGNDhua0VRSG9ZNyVWLzNJaiEsITlySSlsUVcoJTFmaGtqa05yP0giOi1UM2dhYUwwJW1ea0ZlY2AhcT5pK2NUQWZbR00hKCdhSFMuTklHNkw1WCYzIT0yYWRZZms9XltzcVhJX1kkQ1FRdUpdVCI3IWMvRVs2Vj48cVs0OGlANWNCIUcxWz5HLixBVzZmKUJKWyhYP1A4RDVrRFlsN0ZtS1NZc1NPJlxKISdMTS5Ec2VnM2thVEY2VCY2cD4qMGtbVEwqdSFlazpNXzlRJ0tiQlQjcFhZTmxvalk/Qzg6NXIsPiclNzojWktdcDdqU2lhajxKUTNIJjNwbGNoZiRjJE9maik/Y1JYTyJrIjJFbSVZQURtakxaSFpbP145MVo+NVs/aVQ8RWFVI0I7ITJqKXQ8TE9VXmdBJSViLj9jPGRCYDJJIWxhNEpMXF06W0QwPnAzYHRmMjs0ZnNRa3JEZic0XTo8KD8nZmxDM3JPPCpWbSFzIz1IMSZfNDVIImxiMTxYTVMoIUdLVj1bZ2BSZ0xcT0Y1NyhZO3RIUE88JE0mITVNbyFEWk5WcE1VNHBjO1oncVdALHBuJXQlRjJyTi1VYSsqa05CViguZ3NATU8qOjUoJSxJOko9S2IxYT9GNihhKk0nbU5BXzImIVZISyIlUU5NVG8wW0dHQzdZRjlRXDMrRClfLDloaVovS3M8WyIuWi5ILHF0XFM3XSVnUkQ6ci9eISNIXkslcnA1NDk1RlxDaihWJ2JFVSg0PUJWb2wlL2MrUUIoQTBFXlUtL08pZjxccGVJMlxzImdRSGAzIVhFIlhCRUIjYGw+YCIkJEhoU0Yua1ReMXNNM2VvO1x1UiRoI2NfRGMqSGg6cm0kcCleQDhCJT51P183cF1SZzJ1KCUiNFQ9P0ttQGU8JiYhcTIwRW9iQj5sImNtdSI9KVROXF02NTpScFNzKVB0T2EoUGxxT1duLyZZKTRjbTouOU88TDQ+SztRSzI3WkRZWjxyLkFMajZTWVNwMzZAaC1aPCQ+RlhKUWlVIWM8cFM3KEE5NHJzKlckMWg5SUhuKUtqRk4nSGhURj8hUldPZElhKGdnITw0TjRVPl9BbTAnNHBTRlEvNiJuXihbIWIjLkM9dEJNOUFIb2FmVEwqY0srOlhSXlMjXTM4NzUjUFxmRkgnNHVNRjNoJTwwbC5MdCNLOm5UMmdJXlpxV1BDK2JaZGJjIm9vRkNFPiw8c1VZYGttVCMhJ1ZaS1lVTTEiYGFeVURGX2FPIV45SCZSY21zcTNYYzUlcnEnU24wJ3BuUklKO11hSSczOTBGWDVcUkVgOFArQlFxLGFvUS04Uy1dWjpAXkJaSyEnOG9eOUpNRzg6RFJeUT9xZ1haJnNHLGVMLi5NdU5mOzEwYW4+I1hrXF9hSVpabXNESEFTLmlcKVJIaXBeTlI2Ii8qb1dYIk41QCp1bD1ARic+SWlqSnQiRGojW2EwY0AuWUtHVTlgI29kWilPKWkiK0daLVBtbjgmZHFlNnEwOVwoPDJEbVM3IiZmITlQUGhGOmdBcElwMERcbDFuLEJeaTc4WWZydEZjbkM+XEJIUVB1aSxmL2VSTj87aUtNQlBkQj1dNW4vNS9SOEsjb0pLbms6b2hDTyVlSHVQJT8rZmMzLCZQUCtrYitUNE1nakZXVzVZRnA7MmctJyMtK0RiaExQWUpQZDhDWl9uQW9WN21TZEBXb0lPcEM9T2E2UG1kbDtOX20sUyprYnFeVURiOk0pdWVmNkMpLzhhaV1ORENUWkovOSpNQVYpZEplU2FXdCRWOW9uNkNWciZNRC46OzhLVUtYY1BhS1QxPmBkJm1qMjJrLTI5Yy5USDpzI3RIVW1RJkUyITBZYURXXzpcaWAxcllGPEA7OCVYTz9TXCtLaS0kXlE2X0NSTm0kPT4sVz9lRF83ND8+QU0uWEdBR0wpMVVoNiI7SDRyJHM+RCdmbEhxLid1bEpaQzE6YUhdQTkmSSUoN2gmPGhaL0FjX1ROSyZnVF03WkQtLDpISClkOCQna2hRN1wpM2VnU1xAOUVzZiIjQzZlR28sb2VrOmJwLS8wJmheREE1WjdrKlc6QStAZFtoXl0uY1ZyPyhuVGprZUpkI20+ZDNSL2lrbHAnLE1OLG8/PjMmRz4uV2FQO0NBYlZKKzJZKkJRSWZUb2szUUYiOGFXcERmUWdTMC1NPzI+ZDk1XGFzMCdsaCYiKDgqQFNdJGFJMkooND9MRG1pXUlfIyhSLW4+PiduWTwsPkQ1UzwwcGUoXilaLV9sJltLXGVNN01YK21gNGk5O2ZjR0VxdC4uWyNSJWRaLzM6NUh1ZzNHW3BIMGJwZlBMSGQ/TSI1biEqZ15wUnFUYidgIlthYi8sWCIpLW1IcFwwcEs+IltTWFdDQk9UKz5zO21pZUZbWzs7bFBeTD9qdFYmVFIpcU9oVyhAYjdOaEQhKmxAYEFlakgkRHVCJW9xOzt0KlNhSUk7cWRKVSduNkdKQWI0KDIoVUowYGg8NWJWbm1hOWgsImI7I14taSJRPi1bJyJQZ0AxS05XMlRBRFIuMFUkJipWNiwwSkpMVTA6ciI0PUQlQEslUURTKmNgbD1yMkVdNWxMMC4uIWouWG1bJDg/QztmUz1ccW09P0xEOyNbclw5QlNNP2wnJSpyQVE6Vj9mQTxSaiNwJyopMiN0P1tWQ3NeUDVxM2wzZVRVYzYmIzhUQDBIbFdkYEY+XF5YOUFnayk/O0MyXl5xMEBgKnRYRGklUyNxUXJyXyQsOXIsTktIJEgzX2BKc1NCZTZgQHI3ZEs1OF8nM1c0KlVeb2wsYWxjO2oxLUhDJTByPkszLDNfVCJkIm9wXDdgVlxxbjcxTFVjNzMiW05eIlRlTEdKOz8sNVVsUypGRF49NVYmOFlrRT9HdHQmLF5zJHE3RzgzKEknZmU9dUlJMVVbTlxYQ0tcWl9ublxNb1coPE9USzFpXmNLbi5ZXzU/VyNrZzMvLGAhKGUsJCtDNCVmRTQxW1VUIls+NTxHRFtIbGlgTmlEJDBrMSFjZD8zYW8oaCRPai42O2dEIiJcS0Y9L2pcMClBSC9fN2s8bEZeQTpkTG1bcUJRLTouWG1bc2clZUlJa280LVxJSm8pdWE1VTwzIUdwK0M4SnQqaF5mMGFlaXFfP1BlXGtFKGpBLW0oMl0tJzRnNUdeMGxcSE4xR0FdRlE6M3VtO0Y9cVtTTzFPWysqQkBUUDRyRyFpckMxRWUqSVxqPEcvVFVpWVZIbHArPzRsJyRJWTU7aixRSGdyQWBVWWlaKEJdN18kMCpCU3FYIjEqWDtgcnBcIzojR2lYXEEuRTMpKE9AaWlsTSpvUWAzLyE8PG4nITohLVBcYmNKbTlvQzxQYFN0PzpBIyNnWklOQiorJTdlJ2JxQUQycVRbWzl0OVVqXEUuPHFjcjxQNyJxV3RWNiZuVyZmQ2ZDJG9TVSYhMnNiN2gzLGNLJEZUR0NeKFdWPnEuO3IzJDllRUB1YCZNKmI9UlNnZSZXRjwlNU8uR0pSMUIkNWosMz8pTTAsUV8yRTF0L1Q4R2tLZkklL1tCNCNCREAjbzttYD0qR3ApcV9gQEVSKTxQY1JWVjYtNU5fTnFXJ0ZNPm1PXENcUWlNMEJFYCQxRERjNU46L0tMXFByQF4yaHVdTEEzOylbJU5rUzY2YkcsJG1LU2svL2plPVcpI0BSVjZDVXE+SjgsXTNlZipubGdpQV5BTVBdViNBcExWc2knU1QyLkc7WlldK2w6R2crIiRSNm1nJCcybT8/bTZoKVNkVVRvX05RKFldR1Y/L1hSVFwzbWVWMlAxZ0NZWUNcMjpQYV0xSEAkM1ZbVkUuWjF1WmUvN2YpSzI7XlNpR3Vwamc8Yi9KKkVbJ3BCSGsmSTBwLW1BRXUpV1trKTU3Nj5qXi03MkBqRUUtKlFTRlVoJjBsZWpUTl1fS3EwWmNSS05FTDkwMWs6LVNEXz8nK0ZUX0Zpby8tWmInKj5dRzJLOSNma19TYGtDYUgkbmtEJUttSDtDOWIqcW9TQCJLMUFpcWZtKTFGPDtnRkIuQ1ViNSlaWGkwOUY7TD0vcTpWS3FLLWExVjtyRElzKyQoa0w+WnRdaENQLkNKaj9dXmBmWzdxJTcxKz4zP0NkSCFkJEhmI1wpQ1EhIT9aNkAxRVwtSm50YUgsay9jXihfSyU+YlElVmleZ3IoPjNaQ19iYSxpOyRPW0E4RixXY1dKV2F1O04sRGVtaWEzaTQjY29pSE0vbCsvaVVKLWZsPSIzYlpUJkFWYG8nZjtVImIjNmFxZDNdKmMzcUFkUydZNGVqL0clW1IrUycqNSgzPWVHW1xpakZTI3RUPXIlQnI+VTJLV2s1ISo+Qk05Qk1NdVFwXj09a1NATnNSR2NsL1BEJ2ZWQG4hKWdIJzJPLjQqdExdOSVoWilxYDM1Yj8/VUspZGFJIyVmbUIsRGIqLko7Py1TQy83LVZyKGohXW46KT51NEdhZzcmaW1ALmNWQFUzKGRjQ29IXV8hLkBhTEo7X0lYOk1KdF9fXmFcLnUoYlRPMzokTWIlRVxcX2NcVGBiJDRpI0lAaSpmWik2X2tGRkZPLEFAL2UjJUYyaUBEWSNTayptZWFlJWVjUkVSNiNaMXJwW3JcUlFlRmJyTiMtJkI7Pm5KQSIkbC84dCteJiZWKypNKiI3QVpCNF9KaFpHVDBdPVZ0XUU6T3EmYi8jZW4sZjAuKiQoNlVHLmZeVjxXTVxFNkhNSSU+XGFOS2BOay4iJVAuaUUuWUchR0FgYGBQT3U3NFZSV3VTc3IuNGswYipvKm83SUZqQ1cmJW9gITI2YUszKz9fRWphQkM1JFByXDRTOVBqKVkqKUFfWjIhajZicEE5bEZeMmpuN1hDLFRJLyhoWVZUQDAhXjpEVkAwcywvLW5UTGssSVMrPUZITWNgYmxAckgiRCYqK2lFT2l0QCxgS2ArKFU8Nz1AcTJgLU8yLiI8ODlZJ1osK0NDLyJPVGF0SERrRCJDYXU1V1U1PENIcEVMPi8+SzxrO2QuTi9bViZpPkVwSStQPDYuaSFfQS8oOTBxPjc3cUlnKSdXLjhUKEVRQFhrM0M0QDhgNSQwXHBTMFxIT2BXaGJxbVE/PT84a11Mc11tXS4pP1ZmXEBBbGZXckI5a2xUQkArQ1tcPk8kLE49alJzZDRxUiI2cHNMLyhVZzpTTFY7Ik1oVydPVj1kMEpfRVRxXUkxQjQ4O00xVjFzIk9bQGc/KUZub2E1N2UmLys7P19HcmRfSDBNVWxYVVIuPCJmNStiaVMhUlsqNzNbIzNgT3MlSGdyXy5aNTRJITI5JG1sQXErM1dPTnN1OCs8JWpeOCtKKzpIODRXaylTTHQtWSNvUVhJJjNEL2FaKytbJEZYbkRJS203TURwZiFwXj4/b1JiLDEvPjMqYnNaIikhaU9RMXA4XXBwNy9pUkZtSiZWX0RtXTQ4dUBQJWcjSC86TnVWaSpNVC8/OGM6a1ZVTjkrVCkqcmRxI243WnVRQCUnWlpUZWwrZ11GWDRCMEpgS01QXSUvPTs6MllwN1JTJ084MmhcRWw4aU1vTiQrWlA2KVJLa2FRJGFPNElcSyhVLmtST19iZnNPYmJyQEJdbVopVGRYamAvUmpUVHI4LVEzczE4VWBBbiRdXCgyNUckPWpBQD4oZiZySkJHLkRjI0teWmU1Q0NrayZML0coQjdwcVF0UWVlNWQ7YG5RIy5WYTRqRTQjL2w7cSQqKihKMGtbS1kxZSdgbktwXDBKbHAjYEMqNCtJTU51PU5mQk5fSjlzVzExckxDSEVQRkpRQicvdVVpOT5JSmZbKiNpSWRsKFlhbCEoTVsnREdFb1s7MWFbQTJoQFFgaVJpWmIockZjJlUtLFQsTXJhZFtpUW5WZEUxailnZ2k5alJEQihLInRZJW4zQUNOLiRXUU1NNjgpOS0pImo9LihVckJMU1Y0SUpTN2UmPVYocSwiTUQ+UHJ1N1ssSFxwZzE4XSJ0akdEakpSTmVTW11FXFhEKGlWNideZjcjbGdZQkJkJXBENUVpMDdXZmZuOkFKNUJOLUBBN0tRI1JHSjUoZFVfPSc/VzxZWG0xM2dqbj5BI0dPQW4sPDUmRlMtb2lEQ2RaND9XMlJCSmQsLEBrY1BKLCw3ZDtqRWkkRC5cLz90bllcXDYxKSQrUTsuZUpNKi4jK1NdSyRVPW8jK2ItTyZuWkc/XlcjamNxTnM4Sk49bmNPcUJCTWgxK1Vxb3JrVig8UC03P1RANjpqbmpcPTBwJkpWVlonXDAsQis9cShSKjZ1cDFQQ2dZK09cVzoxZFwndVM5VEpXYzYoKSg2Im8mY0owZD4/X0lxTmZZYy1jaWtaQTV0TWkjQE1Ab09dZFxhX0k2cFYnSGJfI2QqcktKMD4sKEkuXW48MitEXEdXc1gtXWF1MkU+dVo0JVUwRC9JXkFOQkRaZlwuLEpkUElQYTBvbihdZlwycm1aaDRQa2ZcQyZrSXBdLztUVG82RitxYC1VUUZWT1smWGFjU00uWDA4ZEFfdTVUbVdnJ104J0REWGlHND1LR2BqKF9NWkE9QTg+dFNxZEtVJE41P2xySlxRVjJ0VGArZWxTVmpydHNKJi9MMiprTE1kVCtdVSwxZyw4OFpxJjpdO1IkdD0yOV5cXV9bcD9zVyFDbjpSU2IxTmxxWl1XWSE5X29BRFxdKlVbJkZoRSxLbClkLzYoSnUyOkw0aFg9JT9jV2pVMS5salJHTFFxIWlQXDk7Tmw6citdMyQxZSM6LE9yPGstam9WLDBkNWBtQDJEYEAtQW1sUExcdDowb10+XFxCRCpyKGcnKT9gVz5RNS1OKV8iUUQhLCwlWStMPmYhTXRNVjw+MygyQS9DInJuMHVbVHFGNVUxTmtuNEZGSC9sQE1ZTUMzV2xiQDg7KydqPVg7bWcrbCU9SEp0R2FIPDo2ZiVUUComXDpeayk4RT9VU0dbYnAhRlY7ImVuKGBBPG9bcSchUGBvMmtVZEJFVnRlVlxiXUpMQm90YE1hSl1yJm9fa2wtMiJBc3FuRCJzXSlgSXQoLig6WGxXdT1LSDUublEnQCg8YWs9Tm1DXnJNLkw2W3Q9RXVAb0UrUiNnVTZUIW1KOW5pUWY/ciJiYUEjSkw3TWU4WlFwJDlGNyMlKlQsVStgZHBURCo9a0Avcm1GOlE6bm5jND4wZEdXTlRYPW9DXmRxJ2lnJkowSTxJPi1JLyI1PTdeYUJVTWlPQCg7Km1uQmJoXUk4bWxtPkJYLk5uPG8wISI+SktQNmc5Sk5LTzc3UD5WMEpWZClfRVgpTkZYbF0tU2NETCRaWTFbSHJKUU1oamJrdGxmXCN1O2pPMHUvM0VFaCdgcC1hIzExcEBbLjZcX14xQEMhMDFIXDZkND1QJldgVFRDckhMa3BzaGc5NT1DSFMuZkxebGBiJT1scyo1clNJIU9Ma2RNPSc5NTlAYTEqbjYiL2NrS28qQSVnUzR0ampVR3VZZ0pUWlxxOiFESF5VamU7TVtdR0Aja0E5LUYiaiFFLCw4WFhqJ2xJTyleOyNLPnAjWWksPjwwT0RbI1Y+IklcQkE2SC1uVyhHRihqPytKRDMxSWleTHJxXyQzWzxKTWhCdSwuRyRKQmpaa2oybFBuLVlTMHE2UG9jOURlTGAyYWIyXTA2cXRFcEUhLCZIdGkvZislKDIqa0BzUUtPYDFkRWJfKmM4I2FsSjlZIyZmXFlQcjsvckp0VGNAXS8oMTU8Ky1VIkU2Z2AiRz07ciNLTl0vKSs/QD9SLEJXSDRuODZkWl5BNldWZyFPZmlAJUpfazRdK3E+U21SUTtmKCM5SytVYElicD1lVG4+KU85cl1RVzU3JW9iZ1UwaV9uQCxoTnRFSi0iU0RJWzQhNCxgXVwtXytlVC1OVkxUYi49PUlkK2pVJ04vU1U0VGhEKiRrcllUWEhhQlxzZGozSDgxOVQjLUdJZFkrPlg9S0MlXl9lcm1RJ2NJNGsnXmQtVEFnPl5MTDpEVDtdTildTmNSVkkpUCRHbjtzXClbKUFVQGViVypdSCNgT104Pj9IRTd1VmROOCRARGpuWU9qVzhiYjwqRUksZyVsVi1MbUpJbzY2MkI6dFJfUDg8TTBiTWYxOzZiZGVfXXJsWE9UVF5GLEZKSzI3TWErcT1YSjMxcXRCOCtGWCVbam4uLiQqXj50XUdZS19JbUxCVDEjIyUpXC9haCRLUilTPmZpYz1APDNwZEpsPmNILlhDNjZEZEA1bVw0OzEwN1klTklcYzlVPE0jOSkjdXMuZmVlT0IpaSNHUG1pQjFCQkg1cTY/WzZHYGYmS1ckR2tBPThUZzQlMUI1bWNVXi91TFVWWGo9R282M00tTSkvXGJiZi5xUkY3ND9nRVVeVCpaJjQ4UiFvXi5RMkc5YEwjSl5RZ2FWVCZiLVBsR003LzJNOGZVMWwpLy1jLGAvPW1hcG9iTj5fJ3VIVEA7UWwwYjtmI2luNmxuKUovZCohMTxTRWtGTj9dbHQxRmp0MztpPi1XTClESF1GWEUiWEVoQ09ZQHJwVWxIRFNhWmY4RmJNMnVYZ0c6TXM4XyVkXlUqZ3NDa3IrVzEzNWExWHFkOktuZltcJVxHXmxiZl1YVytnMXFgMTksYUoqI2MoLT5PZTgxTTNxUDVQZjhwclEnKl1cZ25LT2lKQkxXQmt0VygyUV9pWDJFRVU+bUFAckBVOCEmTWRPLl8tS2RWPipMaEExLz1ZK0dBVmVrQFA/XUNJWW9Db3RlM28jKEFhXVYqKClqcmhhYidPZk45QE5GQll0Sy91VjwsT2cwMjkrWWhCZWs/aW4/YyxQMFcrbS07TTMuT11zcjVVbXU8Q1NFYCpqYEthLUhET3QtOiQiYDEpSE1Rc3VhIigpJ21GWj5BJGdnJjVXVWtlL15VZSQhYl1BJnItUG4uUio0UVVzKCMlUGNuX3FYX24+NUI/NChdYnQpMV0tOSdBTz1ZVlYxVj88I1FjUXJjcG1HJVN0KmFpQHUxdDFKdU8sNFNhJllpJlYtPSI1bjpXXjhaalErQkxCa0I4b0xEXzJBc01NJ3NlJDordEtIbGc+N3NyUUEjX29hSHRlTGtyZVw4OzdbKWY5YFolRTJAQCRXMVFiIXIzOSZkcy9QajhEX146ZGgydDRRXHFSZCMjZVlrMShcLjhcXWxFbm9oMixLZjNrb2Uybyc8Sy04XG4rJ2x1Pic0J0czJys9dHQySWpkSV5bM1dORFRwdHRaSFlIZTFAOV5NQTU7NWk+P0tMYDxKTmk5JT42KS0/QmZpK1IlLyJVXjphLiNMbCxFM0RjKU07QiQtVy1tc21TIltLQSk8VjMnakAyVVp1WTleajNbYm5WUiNjKklXb001XW1JXCpSRC9LOU4lNWAvcTkjJE8/USI0YG1HWz5iZCYuWy1MNGQ+N1hOP11jYWQmLXJmQUBcSWg4Ul9PLyg5bzMnNS0zbT1GKXJUSCUkVi9qU181N2lLPC9RYTJhUDc/TllURiMyUFFoPk5UPSgqXzNmYEwqLHR0JFNeIiFUbyxnY1hPM2skPVVCPGNTajNkSF9mKEBJZWtkNV8+aUFabTEuYypgP1s9WVVBVS9COHE5aiZuJElQaG87WUJmLGBbOlRlMU5QTTtjYikiTChEaWwnLWc/a3ImRnVBa3ApQnR0VDoyMlRKMS9zdDpHKkBaRHVAQi4wPjU/Y3EqanIsbUssZShLPmtBJUpJPWxvS1pQb3BtRVhwYm10PlkiRiFUMDpLK1lKZk5YOTpXSStgKVxkZUhiRDtKN3VtaWdXKCNmKkhSJUpwZW9lb0FMV0lASCxAPV0jV2kmPCwvWDBaXU4vWmBGKXRaWjBzc0k5bllVTSFmJEk8KW8kSy9vXVYvJVVQJENDXzlxInU2OWBeaG8+KXNPXjcuYT5eK3NuTFkuLVVYb1NxMlFcLiQwPmNiKzZAM1RFSGBeaTJhMHE6WmkqJV5xQ2A8X1x0S1UmLictRExYTihJcms4JTJqNF4qVk4uNztcb3I6dFo/MUQyZSxSblJSN0IyWWgwRTkqY15ENikxXydnL11IRCVEUUxzbE46XSJuS1E9U1szL1IuY2lnWHFnT1omUVJiP3IuTEJKXSxvZDtGMmNYQVElNGRQIUhJYT1gQFF1LFJrKDxKOEtSczJmKC9iMyVRTFE6VEpjaCF0UkNjU0AhdFYnQ1AmSXB0NC5acEtiSzBlYU5NKm8pJTY9N2pqJEcxQDRZJ2hMQkxzVyNxMTVOUFdbbVZuOG5jSDtYSE0wVGRsUFZeZiVbXy1mKTwtITU9VmxHRSFAOEJJO1ptaFo3TFNnNmhlbi1EYnVnLSVVTlVBW09bOkIwPkNxPFMiNCJWSmtuSmJNQGREPSMnPURbXi9LN1ZIUCxAPGFNVmBpOysmYGFwYDhLJF1UTSdSWlEwZWJvVG9VaitaayFtbStOUV1VODMobi4yQCN0UXNgMiMjSkMzMixSMWViJF5QaF1HJklzLm9cRU9qOiw9aHM4Ry1tJCNRMyQjNSdmYFtVMHNKUjwnQyhFYGpMXllsYHErL1JMS0IyTSs6UEZMQ1VaJEJyWjEoLnNASnJlIUgkKFNMNlVaVnE/LDBCJUM6JFRpQVNuX0llUTc8cTBqZG1HLyU2KFplPmxGOWBuYyVyZF1maHFGNXJnIThtRSE9Qi8sRVIzZCtQZWM8MmZjNiVsWDBiPT9DM0BtMmBhbUZYI1Vgb10rNiszaz5lQDNraz5SZkFVcWsmJ203KTZfLXBcXW84c0U2ZTkwUHEnOiRBVElxdCFkaExPaDdDM1xANTAnWEdbJjw1NFQpLDlgWzgkOEEsaT40TURtPEYiTSVeWzIsLDM/TC5oKiEzVEhUJFNBQixjZkkrJFd1Mz5CJSdHcElFUUU2aihmTWt0ZGBPK3EsZSdDbyJQKiRSKW5wXFRjcWszKGxuanVSYWxSR0k7WDJyMHImTy1pTC9ZS0pHQlsmZ3RSQSdecGsxcyZJI29OPm5aODpiXj9nPj5EayJWRk8tcGUlcGpWbl9TXDhVO01oPSFlbEphc0xUMFxCMicqRT82QSlWVz5UPlxORyJDTChuc29gSzBBRjk2amFBWUg/SW1OQlVtXGImUCduTUVSIjNoJiYxSWk3QTZcO08wJiUrV2VKWEA5UENNazhsQXMsOmNqaW1hc1BoYz9ocTVTdDFyZGlLaylMKlViKipeOG5IQ1ZZZC1bOloiMWA8T10+OlYlISkvRzxXUzFqOmBLTSU4NFQ3RFhNWG8jLScvLi4oVTRtTFhTJSsmYz1jLT9LRC4pbjJGNFcyJDdFI0JUY09sRDpmO2FmTDU3SyciNUdObGdTclNYQi0hVVJVS1xpITZZIVZyLHFhZkJcNlRTUTZrcG4nZzkyJyU4TkU0QnJEdVBZOFhvaVVPVzYucmUtJU8oZDpEY0BqbGVZQFFwSUxKQjhPIjlhY2dXLVBSOWFwIy40OyRTUmVaXmVsNVJEUUg/cSZMP1pUYExgdEInLDNIS1xuQFtJamNJYUFGNlRtKzh1bTg6YCciNUVMPzhAaGZydUdXTENyXWdGR189aiQwIVR0bzZaRmg5Zl9wKT4rb0tDWUtrU1xBNGw2QFZOPW51anRKaVguPVlaYUZeaytbTmFLZikua2llM1BPVURkLzU1Ryw5YisodW5AZEpRKiQxbEIxSERuIksnNVNMXjJlXyxocXMuSkk5QkNFZyJdIl1dXmdnaENkSko3LDNcP1dpXCpAUWhgOlg4S2RtLTtZSzVlKlVwKiRXLk9KLisoUi9TV09ZZzpdSm09V2pRO2Y8T2Y4JnBeXHRkWic7RGxRRkwpRzo7LD1YR05eOEpJMklKOVlbOjV1OVVAZ2MzPkdPSWMobikuYG5wST5rWXBBYTo9XnU8bl5pXkVyLzNRQ3I6JEg7STU+LUhhZFQ9UUVicy1XYFppRUlCNUVBKl1hR2AhTChTQFo5OThpO0U1PHVMXVU3I2dAaUg0Ul9Gb11ccEFnI24qcWpTXVgxKU8+TmA4L1U+TEM9cmpxOkskNmtPci1UM2lSJVsoVjBoR1FlOCIkdVFRUVBXXTkvYUxiM2dgbz8uZmdMYzdOPE5lbGxgSW0kRDMkK24/b2JxXClGLkBGdWxcXT5naidQTjRUZV4uPXAlbU1KOSIkYWg3LytZQDFiNGBfVVsrdHUjMEtkUkdiJ1dJSXNcTFQ2LlJFZFJiMj8nMUQ0SCFUaVJCUyM6UUhVOixTTzlqVW9oOFpaSSdtIXMxWTU+TDFTLmlIYT9aSS88M2NHPEcpRW83PFkiLV1PPnNAVGg6Ik46TlY7MWFwQVgnUmlNPiEmU1wnNnA+VCdKUipTQHMkQjY6R19ec2VqOjNDbSJLQl4xcDBWb3M1WG08UEUjVU8wNCdDWWlvPzo4WkFScS4xTHBtJiQlMjIjQjU2clpYaCYtKC1LcUVcXjo2Iy9jMy5HUTopLHBnR1YncC1bMzIqJC5WcyE+T0wwY0VATS5hPURsP1JtalRCbHQzW3FeLjFnaTldWHIzI2lfZTRCIk5RW0hIS29SPExTXCRDZS04QlVvU1M/VjZXQ2s6RjwrWTkvXCltbTdVMyg0WEtKZEIlQDJyQnI9QEY9cTVhRG5sJT0+I21jIyY3WGxZSG04JydjOTFgTCQuKlhDXChKOk1SLj4kIVo3JilXNUVfMTlzLmBsWlg7cWJkJStNJmxvbXNQXkE6K2teYC1pQWFzQyZTcDwzUUdkPHBHKSJrWFczWzwlZHM+Im1cYCM6bVgvbispQkUob0RNI1pacnBXTTpWKkNTOUcncXFAZkhqWjcrbjlWKVtnJlZjKjJiQWcqJVJCRT1NWjkpXlddQVFTJUVeM29ZWFUuOkBnWm9JU1NARSNYNGdgOWszZkA1Qz5fKjsycklBMSckajhYRiguP0BMSHAhM15WYlJbRTAsQkFlWz9CVDlmTS9ULUs7XSJfTTUiYDlNMFc7Nkk7QWEtT2ZBOzlbZF5fSi8xOSdUW0w8NmpKc3BCJCsqWmMhb29kOExYc2U7XWhGIjEsIkojbj03JTFrTVlVcl1bVCVbXiFOXWpSYiwtV11tTC5jNVJVSz8rPisuW0RNXXIiY0NKMVtLaCxYKmsiTUpuUmkxPGZQKyFZYSNZRmJEUCFpdTBrWDg1SFY5X1pGUTA3NWxSKzNxcVVWZzZfOS5ZOVZUa19AW2ApZ2c9MWtPM2k2LSI7PFIkaC11NjtNOWg7MW1RMSRSX2hZTiQlL0AxV1ZDPzlzYCZISyZnSyRMci1FYkdwRjBtR1NNTktQKVFDamZZJGdkZm42IW5QKy5yMSJgImRgJGNXXSRaVU9EYiswMFtVKEplQG9MRkckU08jdF0vMCRTaWBhaCldUFQ5Ym43Kk1jPWkwMEwlJjphJT9wamplK1NlRVpba0leajU2WDQ+N2oqP1U6TGVobzxCUTEqQz1NLFRkdSdbSD1HbyxJcVM7PGVkZkxfLkxcOGk5MidySXMqWmNfPGRGXUtIUztrPjdFQ04mTmBAMGo8W0tcNCs0XEstTlRtL1U5KS5LODlJTEYqZnJIZiRUcGA+aGsoLWojREglYEo0YkFSXFppcUcoUUdYOFJlMjhjQ2laSSFdczAoOjlCNiVia2BucUs8cS1vLDhgSS0qYkpdTzQyMihHWDpDVjZBKTEhVm9cVylPPiZCRDBcNCFLMlBONjFFI3EnWElpcEBOWypqOXBnY2hXcTlaQi5ZYDFsV2paTTwrdUVZJ2RxcDQpPSI1U0xCZnI9IzRvNCZoZ2ZLZjsrKUhcYTBzNHE8J2o+SzJaKk1lUnIlWSUpXFo4WCFdJlE7VVs9LlsjUT9bMzNCXF8uMVMnTlVXTi5IXSs1X0BrMEosU0dPcFhuIlNhPWVqTGBLODNcN2hgU0NGcFlPQWwva1RsOGxNMz1NT1FrUi8oZDdGQDs1NCVxPiwoczcxZUZSLEJhVklkKitJIVlaLlYnNFVtaWldY14kcGUhLjJjTEtaci5YdUZWZyE5Z0RlaUEzVlhpYT9DOGg4XW9VdUdMLUkjbWdBdTRcTmlZbjk+UUtTNk1WOks5UjlNOms5QUJPTW5LXF1oNS9JbExnRVdvTEQ6aSIzbi1vYk1GcUhuNEhYJ2Z1RHFHYVAmO2Q8TXRKTzRYSTxLNHUrKURZci5ERixcMmFRNDNlTnJROGErcipNW2hlQzVpaERYTi1nUSo6LTZTcE1QU2QzOiY8bjEwK1ZHPFdSZiVsUjJNQkZQY29HQmtmO1RwUTI5RzVpUEsnJ2lKKDNhM2I+NStBa291cDxpLS5lRSMvMTY9XWk+ZXNmTy1PT19iLSNhTDk4az91Nj45Ry0sdGAjJmNkbC1lT3MrLyEhRlo+IztKWFtabyRZdTAjcGg2UUZrTmRZbGNdJCZPQDotb1c1Jy9mVWtNRkI6c1hELTlXZ2JPLXJRT1Q+Ji1MXmRZYUlJSUcpWFNvTyRBZEZUM2YmO0ppczAmZjRbIz1eIU9MRi1EUSdSXDhOUTpgJC9FPSZeXiJISm5yX2EyYnNoaSknVGojaUFfJkxTI2BQTGhYI0hiTl4hO2snW1pNTjFqMCxlT3JoUjBxc0JeXEZzZDxfKVRXU2lcU1Rwa0hFKFo8YmtsJVtkQj9KKl06U3U6I28rWVRMQjc8T0xVK2lIOycpWEMjcyozJmlsISQjJ1k/KGtMbGZZbCxAPy9MQWNuWD4iOT5xYU9fO28jSj5lOCI4VypncD4lJTdYYCE8Xk1JZGdvV2FBc3I8dUEkYiJMTWFDNVo7R2k0PHM4Ri1QYzM7ZnMpZDFiQjs/ckljcSdlcktedElkcC5RNjAhWFwqUCYjXEhmT1RDWSoqdVRMJyRGKGZxZ244SFoxbVROIjI5OXNgdVEsI25MaEgwbkQsMmQ+ZCQkX09RKSFsciFKSXM4Mj5wSSYkXWwvLikoYyhiNydzIjgoSDUjZT0nUzZEJikvJmcsK2QpXGtqbjdAWk1YaSdKRl1xSGk7MUJJJnQrS1c6VTo6bVxdQXVHVjpkSm86SXFtQiRtYUFkXmtVITVbXTtfUCJjWnBhWWp0M1BTO28+Yk8taDtwQTs0OEhDKDdMVkk0aDdaLjZPTE9zbGg5Rz9KRWE4XyoyKU5xVm4jVjVkazhBT0VEO1RMTldYOlhHak5xJklObz1dU0dYLGRsYVAvcklwRTRdbUpVaENuQV1IWjw+I0hkISldaCZCLjRTS3ElKFk+RlxCbkllPCRKKjRgRkZVYlRrQW1ILyI+S3VVJDhqZl5iXCZHSVZsSSdwWTcjaFUnMElxZU9WSy5hOmxGKDNyKC9tOkoiNHRdJ2V1ISNRUmhIcGxLUzFIVl9rSGkqTEtQVihIXDhzVWtLWzsrMG1jSG42KXMpKkknbkAsTCMubm1wTXViJmc0aWExWVo2Z3BJZHBuL2w2IUJOUlVxUFZPPyZpR01tJGAsaVNyUzMuPFBWaExpIyUkKVBtTSMyaktccnBgUTJvbzhSZklGKktoLVkyNVVXZSFbITlTJVowaV5UbzNbW1U5WDc1X3RWTUNAZyQzLCZfWC0raz5MPV1tQF8uVD5CWEsvQypmdENGO0dHOktiJFQ7O2NYdTIkUjVQSm45aVZRJm9zKyZrM149XTdnOTtnVD05Zz11RCNBb2R0Uk0vXSNLbz4pdS5FNmZWNCRiQThWSWI/LU03Yy0xTXFSKyMoSm0+KnE+cVZAXzZMR0syTC9HcUo8ZkRaOHVrdCw2ZThYYi5YNilBO2w1dF9sMlQrWHBFQC9lOERLS2AmXGQuaWtcOnI8I0UrLnFjTXAmJD5DNWNMSFliWkZPLEc0bFA8Q0d0PDdiMUgjM2hYW184XWU9dE1RazBcc1k8Kz1LbStsJicxSHM+OT5pNDhAQFg3UmY4cTNzL0FNbkoxXiNeOjZfTjtiIVA3ZWswPFt0LlQuWy0uNEhhWUxfSFI3LHIrVEE6ZWlRM15RXSg4YDhfIzQ4anFTSDlEVGo7OEtTSmZyXT4/NyE+IyliIUldRzQpRkYqc11kYzVxSShAWEMxYmdFQStUPVRSQF5kO19SYGBbTzRwYiZXaiJRYGAnMj5tM1lccmhkdTI7UGhMZFw4KHVCMi4nWU85Ulo9ayEiM2JcJjMib2xjLTlWMUpfWFRoQlpcQjxZc21PajQjQHJ1czdFbWMwSmdySXFncWNNZmElcDlhUzQzNy9WdEtjcCVtJ3JOZkxFTlpJdC1LbDtNInElUk01TjlhSHBacT9IPlo1YVw+LCdwb2gmWjs/WT9iRDBDY0leNGtKaFMkRURpKllRITJhOytsJDFZNDM0UHIpJ1FiLmRQZjsxS1ZTZDVWO15NYy4xZWtvYXVxdEJ1U0lzb2RnXFNNLEg3bCg4OCsqYz8raDleU1EzaFczYyk4LCM/Kkk8S2ohUyUyTltmXVM3cHFJJzQlS0hKL3p6enp6enp6enp6enp6bVBrK2FjbjdCPn4+CmVuZHN0cmVhbQplbmRvYmoKMTI3IDAgb2JqCjw8Ci9CaXRzUGVyQ29tcG9uZW50IDgKL0NvbG9yU3BhY2UgL0RldmljZUdyYXkKL0RlY29kZSBbIDAgMSBdCi9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXQovSGVpZ2h0IDIyMwovU3VidHlwZSAvSW1hZ2UKL1R5cGUgL1hPYmplY3QKL1dpZHRoIDIxMAovTGVuZ3RoIDgxNTYKPj4Kc3RyZWFtCkdiIi8sJCUsYWxlTlw4JyQlckdHLHA6OEViMlBrdD05TzldV003Sl4kPFciPltCNjFNLktWMlhpMyQoImoiJjlQI2AqOypHRy8jb0pnKjspWVkibzUoO2M0O2FTLDJtRWtYPk5oZkEyLzktcS4/JyMqaS8lUjliUDBDUjAwSidPSDxCOkhGMzBvQWhlQE1HUlNgQCsyMU1HXT1BJ1ZjTWEtcTVxSzsyZXJ1VURVcnU3UFZKYDhXbVhSIWVsRm9kTkEwSldwVy9RT3IrTmRyMVNoIUUlLmVaSW9sVEkuUnU2OyQiMGEpZF5FQVNCQWVFVzpLK0hjcTk/MzI7UUtMQ2xJcnRPPDZsKy9UK2s7Zj1DYXJCMTFDJVdmJ25CNSNvRC46Ni1PLCtNP1ksJkI0LCc2bikyJSQ6SSE0QWNRaEgkUSx0Uks7Pl9XZ2xmQ1M0IyRnSV8lRUg7Ii9CJlg2JDFXKzhVSEFXN2k5c2QiRG8jLT5pU0YiVz0tRW1jSWlVZ0FYLikpO0tcZEJuLzpiNFZNYj09RSZcXDpMJnFLIVFzKyI1RGszRj1MTFtTUEBPJTcoaG9HLj82Xi1pdSdbR08iKTpcRURlVig2MWUuQGBKQmRSSDAzaiRPTDdoKlFNQmg+KDlsMiRuMHVPW2VeXCpEOmFxPi9aIW4vVSFkZjw5RmtpaEo9Ji9BOEFXTEFFP0RgYE1PSTJWV1ZWUCVtRC8mXUo6TjcoWGY+WmFvZyI8KnVbMzs/XT8zYkZUXHRdIThMKkVNVCwzTV5NPmtibTtZK0JoQ1dSZToxP2wjM15MbEg0N1xBcGRTak5nMSQzYCdiVEtETCpLTiZbZE0nYTdmXVdFSmkmQjZmckZkNm1SLlMxZUJEcFBSXHJPXGRaXDxnQic7MClFO2osIjBbKy8zTE5cQTZsQFkuSiRhL0ptM2xWQmMubyJcQComTjMlKmtgSCNAMVhQJ0E5X1M0Nzt0VGEoWzlJQlpqdWBdJnBtUzJ1NnI8QCIzSzRaM1AsLkpxVXBYa1NWSjBCamorJjcmMFlyVFojXmBTZ011S1hSVEJJMz1Lbm4mW01UYjtgQjZxVTUhQDB0UlM/aURgIl8xKltlcmIpcms/JGs4b0dMakYuUWg/NmArNGVwV1oxPURLMSoqOWFaLFo+UlhzO2xVVFVlPSJdWzQkMThMNV9ZLVJyMG01M2ciVFtKXT1QX1VEUSMrZUw0WCUua2ZTVlM/RztWMS1GbUFvbTg/MHJkRnFRXmhwREQ/SGNwXT1FSTI1LmVvb1dsR0RAVz1JMlclLjtJRDtzZSVdJGJlJVIuIUg4MmdWOGQrMW8qLFEuTTZwOF9uNFZlMExrZkkhbW1BTHE8TTAxISw+Q1RRMXJTIV1KNGNHUl9cWzY/NDlPWi0vSmdjVSksPi5JWW4yT3RFQnM0Xl1qKWVZdSxGPCNwTUEjaGkjIUBEJ3MsXEAoLDBRSFpHJTNMPyZKMmJsYylxS1JMNz5NPGZTT2NGNEY0ViQoXypwSXFDV01GOl9QWHJqR1NxXyZLZmcyWjBNTSM+RzFaLU5zKzchYGMsJ21mK2lnK2MscDE6JllGSUVbQ2BqOVRQMzQzYyFFLzlWciM+SzVRJGpQUVdsV282JV09K0tUNmFBQ3FpYj47I3EhOi9eb08yblkmTChDYCpfOENZOkpLWEUuK0cxPjZ0TmhqImJ0UiE2TmJkLCc3ZmlzVEctJEw6VVpgJyxFUmB1YzhpVU9pJ1hWXmI0I1hOTFhhMjZTRGQ6NXJeQFxtKnBCL1lFJHE4W29EOD4+blxxOnNOZmdXblZKXy5JMHNEKDM3aShIXjwrQF4jaSwuaz5uNEJRImYzTylqXEpMSEZBQzMpUUkuT2gnTERoMVY4LyVHJyNMPUtcQEdhKywidTVFU1EyaiwhT29HM1U3V2tYNiJVPS9NcTt1TGtWYTlGQSpeb0RtUC9uZEY0LjJKJk03QDRKKEhRQl0kT24yXE5pUklzJEIxYCdqPkRZWkNlUTBuYkdibz0mPzZnKVlYTzYmXzY6dDhwIzRDTWY2N1JcNjs+PzI8cyo5REcnXylHa08ucDIoaGc9TWouRzlfMkYxI2A8XDVSI0RVVj5OKWBAY3ExI0kkQD5dPkxvWkZuKy9EUScsTihac2owMlhEXmFRQmkmZkMkJmtqWW9AcnJfaEltVjkjYldLbiMwLG88SjpaMFhuTU46YDM1Sis+MjZ1T1F0JSRcbSQhSEZXYCJQb2QmRFFlN0N1KSNgUl5fIkA/N0I9Ujxla2dwbzdoZSJBLTYnQ2JaQSRHTGV1KiMqT2dHS3FcTiRaIz5tbjtXKmdqT19vLi9RdCpWOWgmcSUnQTgiT1FRcyRuVTJDMDVFPzQ6dFhpdEg1OiZIS25mJzZRN2VRREI4PTErI0ZNTVNiZmBpOyFwW2FCRTZlRUI/UVJkVm9PJVtsJFImNF8lQlMmXWtaLiZBTEhaWUUjWUw5ZmptLSZVPjo9Rzwicj5lPTM8Z1dFJ2AnLXVlJ0daRklOPj8wRmIiZzQ2Zl0kZVVWOTs/aypvW1k/Vy8jazlWMWBAKjJBJC5dbjwiLG1LbF04PkFqPzUmKSVmb2wmbzMyXTNfKSQhNVVFZyo4cSs7RiR0QTlicDBHMUIoOTo9a3VtbWklPUYtMjNwTiRFbzBsITtbcDhOWVtnKG44KEJxJFIrP05hakJPTGQuIixAWi4hXDNYRVZzSkxANSxkN1xlbj0tczxZWjRAI0ktQkU0KVMzXT03TS8mNEtcOVtbbmgkdXQiNTNeKm1qcnVuSChNcyx0ZiI+cXM1UEVMKlQ3cUErMkItN1pnXUA7IU4oOj0wRmwlZ0BUaExUVG4zXispaVxQcUVAU2cqRCMyJVM+b0Rkbi9PJnJQQzVoKkdMWUVnPmUwT2RYbiJfSlEoTSU2UmxDJD0mYDpuSz4uKDZbKyhGW1k6TzlsTkM3L0wvKVMhOXBWQ20sZj1UXjAtI2UmZSVWSyhEZWsnSytVXVplNExRZjQ4SUBTcyFXYVhGIVZFX2VZX1ZMcS8/PGowOWZwaFIyLDAuTTJhYyckMTtGPCdUMSJjWSNVb3VcTzQ5OyIhKDE7VEpYWVNkLGsyIURidV03UmlcQ1JzRlMsUEY0PVcyWjNgN1FKKEI1MXVIISkiKGVoMTtgbXQzVi49Ky5Na0RxNSkhITEqZD8vWEZMdSxeNmBZTFJPZ2MzISI/MkcicElJI1psM1ckdDxLW0djRXI0NUMvbU4vSVRRXWE+LyVtNFJxc11Ybz4iKkRgRzIiSTdtb2dJUmgjaThiU2shRmZyRVxob09ENmMvYGM1V0ouJ2xxPz5jPWhsQU0rNl8xSVA6Z1g3IzZRPDNEPV5OUXEmXDE6STxnXDpFZTJxMyNoNFRtOz9qV3UyWk80IVI2VXFwUTE5OldMZDFxbEFVbzZRclpHT15hJmVzNiNzMEo+MEYhTmVCZlRjI0ZIT3QwcS5YOHNlWjs8U0clJlw+VGBsK0kjPS08VXVxKkg1XCVZZUdsUHNXSGElcEFyaT9WRmVgN1knISlRRC0vaURzYzMmUT5ybiYuUlJXTyEicGYxO1ovV1RYMUQqXDpnYi5dcF8+JXBWNEZPWj9AXiZBQ2NebkQ5W2BFP2ZZSkFpTmFJXT1VLmBsIk4nSTRzUzEvSDxCQ2tVbktYPFwrL21ePEsrI1ZfRlNtVjkuMj0xM1RTOzNkRU9sQEtgb3UrbXRmRWJdQj1CaWpxPVMqMGtAOWlPOVU7XEIoYy90XiQvQTMnaT10N1MuNXNoIThebWVCQjNkcURGMTlDUTRkNUZmN3FOUlhCRiNhdFlVS05nRlw1Ij1nWTtMOkgiVldmcCRgYEs6Vz11XC5BbTEjOVtTWmxHWTJkOGNuam4/WklXcldENlpLTy1FQzwhMjEjWmJYWFxkTExjUE1lWC9SR2FGP2lPQzBxOl8pYUxtRzVIW1BXRWNvKDhiT2UnZipkP0ZYREJdUXMsM2NDJGNnX3FGTC4wUVlzbEdNZWxKamFaLTltMm4uQEhnQE0wcClrQ3VxQTYzMztnaTRgSHQwLmZHKDA9QU47T1V1LkwtLlYmcjticFZWTDw4JSFZImxbYDshTGwuPCV1XVlSbzRPa15FKzM+Ylk4bGBUVWojZEtFUykpMV8/SGxDTSwqcFI9IiUlZFksWFEtS2duVyE2OXJubHVuWWk8OFVETUJnc0FlZCEvQlBYSUUuUjVoKCsiZ2Q/NCMoaWlmYDEpOjUvJVBVNFowVDBYViZTdSQjNCNVKUUpUiQpP05saW1tMSw4bEAnVG1fPFw9MTtYbF9yRTBeSmYsJWxcYU0kRUJKS1dRTlFeWCQmSUQ4a25rbWJxSUNeNWddcyU7bGFpOTZ1IUxEaFFkOGpASHQ/RDY6NlNmOSc3UiYxUipBUnVPMixVYEZpa19mJlw/UDRhQSRbO09TLlMicE43IjVUJjUxYmVwUztATjk4JjAyUiJKMUdTXzpdc0ppRUgyKlVRRyVdWTpfJV0yKlRXZV5qSlI1dEtTMkchNTQkOEpuXEwwZF8obiszJkc8Ok9fUWcjQzgrUUs2Jz1OY3RCQFQ+RiYyP09iNipNKEVRXV9oM3FSOTJhTmYnKDQ+Tz5hdChKY0EvJHAibkc/Oy4mWFtTWyRjSEdXJUM8Y2lgWWtPcjRicUc1YFoubW9NSjdpOldnXUJnJFUkPEAzVkprJ1Albmo5USZnOUI9W2tPOiYmK2pMTFo1ZGpiLUJLMSFzSTRrUURHLnUzJkdYVUVZRWRQXklWVXVlRUUuQzNrOjRdQylxTyNrZWZga0AwUURMYXUnbkU1JW4/PjdLTTE0PTQtUVlrb0JcOyInKktnKWA0XEQ2aUYpYkU7K0F1WEU6IWk3Iy9mYztGMWtLQ1lsNVlYI2xKV1k9K2tlQ0tPVSdVcGI/IXUlMCFsMlRgRUw0Z1R1ZFtrK3ReVlU2Kk8mYFUwQmxgX1NWZTkqWTQrVmgySS5dJmBbajhBaUAoKV4uIytKNjo/PVtObXM1Q3FyN2lgRmhqQSQ1PS90RmVBQT1NJTQ7T0dcaDooMz8mJXRXOiRNR2AyJVVBcUV1bF0qQkVPPUZjTnE2aTw+YiJCKXAnSmJUYkFCUCFhUiQ9LjVjTEBvZCNBcjkhcGBhcjx0PDo4QjRHUlw+LTl1OmheKlNZZ1RbIj5PMEZUQWIncGJwJUR1ZlFPNic2Pj5EV2Jpbl5VV1MuIkMraGVKaSptXmUubUppKFRMSDEsKUVPYiRaOkZCKmwuciktQzs7VylRbVAjWzdZY0ZhMCYlN15MYkJbRU0iO0Fpa3JNLVBrbz1xLHEyQEUiRWtjSzpEQyw3cGNfWmxCY15LKHBMM1U7LmRYYjBHZGMvTiRVPlFXcFRNLU5lRW5vITlxQHAsZ2ZkQnEha0dCInFSJUUyPlhxUEpGTEA5Q1duNmtCdVZlPGJmLilSakNgQEtbYVdXajgpWjM4XzwmYGc9NVVqVkEuYVVWLCcyLypQQFEuQDZYOS1tcTpkKm5mYUo/V0Y6KVNuRGNpUGI6S20/Jz01R1IyRzojUC8zck1LIiMlJ1tCL1JHODpBUGlQSCJJcV8oVTgzXG1XRktRU0hHXThWSW5nUEE/Sk8pR1tGUzcoOVw8R1teOEVeMDxMJGlMUGJiV19XcG8hQURNQCpsc3JYOWstW0cyYGonRjAvOVw2X19aNEpVO2teLFRTXUZQZW1WTCQ4LzskIV8zIlVHVFowW1FQR0o2ZT5mXClPKU9QdExMP2slQ0xgMVVvc0dqQmRsVj9NZU5HInM7KiJ0Qi5JJVM7Qm9mNkZGL2E+N1AzXCVqX14/Ty9yLmloYnJBYGg2PS1IRzFuMzdycjZULkIhZTA2cEJETSw6IW4xSElyaTplMmhac00xPE83PnA9I2FrYD09SiM1Q0JELUAiKHBqV21DbDo3LlVcUChwJD1jQGAkRTF0bThsOHJLLytILjpvPElyPWhHIlp1dGtKJGUhJmBFQFU1JWFwUXJyLlkhWEpcOG9nZC1TRHAqKDwpNVYmQEA0MyMtK0wsV2xlSWlFTDpLPGo8Zk1qPmBRcGdQVHBWZEtcUkJKUWljXlRhTGNaNlpvcF1fMDJrLipXSEY/OlxvRFRBYVArJWNVN3BLcCU4cFdLKjcxclBrKyw3X0dUZjo/bDJPQT4sazJmRyhKOzpaSTVAQGBqbS4+IWMiIjlTXUZSJVY3U0pMaypfPzNDMz1kYGYhQm9HcSwrOkhlVVghJmlwMTdVL0UkYUckRm06ay5aXFtMJVslR1EoLF5NYmtfMjhHKmRiRSg8K1dTPTFtJE8/MDJWTi9falA+ODJGUyZlJiIxRCFmMl5pIXFMc29bLSttJGgmV3Q9aGBjZiVCcUApOEM5WTtCLk5kUU5cTFgvN1tcMy8uMzFnYF03aHMqLVQtbGl0K0xFUkJMKSYwXG1bbStBZjkwQzdyXV1oPGkjbU5kTEomclxday8zVD4uTkVocykpLW07WUI6bEdQK2UpdVtyVnUlbzxEPShtcE8+SW1LcDY8YTFIZzRXcUsrS2Y3PFotRmdARkcqQmAxcWlgWiFqU2hkWWBSXEdPSjRXSSUoYlAjNzRkSTY6OyJYQElwNV9gN2hbcVB0bUlTdEokIjxfRnNucGY6a09pOi5QK2R1aUNxKipSMEpDcHVcXTQ7OShhMyZCaDEyWXREbVhuXlY+XW5hYT09az9aPTNUamJEJjllXmFbLkprNl9yYVAlKy87Q1JzO3BvQUgxRzVXKiJZXV1hZEkrM2tlOlZbQ21AQExpZEJQM0g9VDNQKHE7aCVIOD8hJ2cmIV4ncCpFNEAmXDUpQDkjbTZmSjsxMDBNPTZgMj9zQkFPZTxPQytAMl48IkQ/c1FSR2dqPz9GTyhuM2R0I1pFQUgzMU9dVTVVXGRsXSlfIktCKDRNIUNkXUAkMEMhKy5lcDhqRHMoMkhqN0c9TGJcKGdKTUddaUh0cUVfcFQxQXJfOWklJFBFWTRKOTEuRzJbdVs5WjZgYzReTXNePCZecl8iV0E8c1JIbi9GNktMWEJJblkwLWJVWEIpTDtEZWpyTmVwKSNZcWZRKyg2TERXQjclImRdJ1ApPktsLkxNVlJHNzEjKzpWN0A+NShva21fK21IdWYiXTJAXFIyaU1cUzgiQUxQWzdzK0FMTF0wQzlUMSknMFBaZiYoV24vdDNFZkorIjNrbGJfXSwhRkBGOD9VKik4SCdbSm9JRXFjYjdcTkMzKllSQHJAZmFMWz1lMmU5LC1eYDRVaFpbX2BhXWYvXCRhKVNwXzJRKy8rPjMzOHBvR2xoT3E1Nz9sdE9rc1E3KlJVR2VMUGpYUEE2WCcsRVxiSCVTL1UxMyZrKTF0WCYsZllrcjhoZChWNTlWPlg6PDJsJGltNUdnImMsPWdfZ11HZW1qI2FNY1F0aC8jJkUtXHE4Pk02LCczW2E7NCsmUCNQSGw3UEVlZClyYUtNVGZsV0oqOCRPRkdnSi4sJlREJV4oOjQzRy41RHFUWUhCSmkjQjIrWTUlJDwuV2dYTU05T05kISZGZCVIM0ldKmAkMGosU25LKVZvPiIiMVVZSW9FISlnWlcrX0UyM2dIcUllQV9KbjZocCNXXk9JbWVzWzQ8NVtKVlVFMWtiJjtlOCo6aENdYVc/aD1MNSIvVS1MSlVcZWtXQ2EwPzBkNmM9WCVCaVs3czFjalplKm4sbSNVMz5YVCFialsnS0orRTc4K1AiU0xybTJoOkE+UjNwNiZwNyUlUkFlbiQnRysvXzlIdU8rSF5RWlBILi02cFpYMTktVGpyJEVZUVRsJEZuW1t0PyplKTQnWyk6Nl1tV2EmaCo/NnNuO3AnMVI9Pkg4ZFdeamlkJ0FjMFBJLlxSUk1MVkNZO2NvKFFQXWkxWXVyRDtlblgqXVlyYy9GYmZIZXJvc0VGI10rY1o1Tm03SllhZV8yXz1BUzJuNClBX3FYSyc5byxmWlF1TFQicmtmUjg1ciFnREQsSSJlSi0pRnA4Ljtfb2gnN2FFNkdIPFdRaHA8SmA/TSdCVSFTalc0MnMzUzREWyhzLTtgU2tPUmJ0SVFBc2dwZi0/bCokSUMiMz05dVtmYmxzTk8xVT40O0xJVm9ecjhqb0AkOV1hQjZjQ1AmYGwudG5McU1EMD9FT2wkQGNeaV4hXDhyMjwsc1RiVCt0T2tBVjBaMFlgMlw3aF1RaChiM2clI1UkTktEblYkYyNoOF5XRlAlYmNYcW0lRUhyYDVSZGMiU0BXL0hPakRgKFkjWyI1NT9oVSE+SDVhITk9RkdubWUwLCQsX2hNXG5DWichWihgI3FNK0spZl8xajtbMEY4V0smQG9LOzlUTz8jPnNvMF5xYT1HM0NvM0QrLT0tYDpQMHQ/Jk5HLWpjZC5iND5JPHE1VGBkWUxhIV9qJ182WnBgTG0pUnMjXGBSLXUxKElmXUJMSmczPGhpP1dfSWFmTm1IOys2OFdwOTgvJlBCVHJrPDg0LnJoQnIiNVZqdWpAYztXNEFWb3Mnb25ASzJyRicyKjVTNF03UjkzLVomMl86Nj47Z1stPXRkX0xFY2NSZVluNVojIUguNSxKLylMKkQoaykoU21HJ1trNT1XV1xsOEZdYiVSLkpFXC1MVT02PS1MclpFKDxCOiYmTmxcYkViTzhSJCJ0ZDY0Om9SaGknJEgjR2VyY1hVXUJzakVEKmgwQSZkWFNgTDcva0Q7OmtiJllEPG0jcjFDJk4tbVVfQC45a3BVU1gyNiUxRShES2M3WiZLcy5mMSwzYXNXPGQiO0UkYCs2a3BOaTVTSW88dTMvXFdKYzsnIyFTPih0SG5iamBLbm5SKCJfTi8lbmlAWiNkQWlZIl5BWzAuJW4mT09BakJscilHS2ZKUExicVpMWyxRO0ZxUmdMdGREQmVPK20ycVlbN1opdFptXD9dJ2A0RzdRVU42LSo6aDclUz0oO0xKMT5rSldJYCphRj8+cGppPDApR0kkMzh1XnJvQlorM1E1YS9CSClpW2ReLS1EKSpWVC4tXk49VygiMG4ubGIzaFN0KDJzJTVsZSEnPFw/Olk/aywvLT0lWnQ7KmJ0M1hwWzg1LVBhWCUrdTNmbis1NDVQaE1jMFRrSCpQPlVVUyopLWY3P1xiLmVwWkAhK28pO1JlJXJqXFcyZDZsVTVDK3JCckBMI1k/amBFQEQ3a2lMWUc8Xig2bTdUQWk1PE0zLiwjTl5bc3I3Vmg/Q0xXUnUrcDBvLClKY211LDs2QktbLiFma2E9ZjFfUCM4MzdJZWdgNjlzJUxIbWo9PkNFQzUjNThrTGVzS20hRVw5SERDK0VyTzFyQDhUVDkzRCJyUCM5dF1cJzk8ViFoQTErQzlLV09BNUpBc3BLLUcnKDA4QzZURzpNU1glKGxmZGgrb2ktPzEqI0prTSNMYERQVGBRRV0kdVZVTUI1Pj0ubUosODxFVjk2IyRuYWBFXmQ1THBKI2RYWlllJ0NeU05GVTJKP0ltNCxhKj5ENkdINz1bZWRDSUZCT2wqbj1QRVsvXnM3PThWaG1YOFJgSmVTRzcsOT1ZUW5AXjxhPGFMPnBcV0hxUVpZMGF1akljIzglW05QQHI3PCRGTkUnVTIsbGRncWhESkYxUVpQc1Rub3A7Ukc/Xj85M2AyU0RHKyRONm5JNDs6LGtnZGhbRFJbam0mYD9cPEFUdDNyUDRxTVklSFg8UkVzMkhpSj9dIVk/KDIqPj8iL0hMS14pMnI3P0ohW0lQMGRnY2FvbixHZ0Y9L0lWR15nLFxLWCVhNXRxIW0qT0c7PiNoRURRNlJdOGFaSG07UDt1PCM6J0MtbS5ZWyptck9gUVxvLyllSlNgKkMzV2olN1lRRmJDTGliMGY8OThaKik7TTRiJUZrYGZrRUJFZV1CVi09WihvLkouZCRhLTA9Qko7OSNDZChKZV1HIlsiSnFmXUxxKFEmS2s1MiZMQl8kbDFnTVhybS1QUXFSOCQ8OHFKUyYnczc6N0ZCKj0kSi1WTUUlKz1bUEwvaFYxNm0+M1JOWXFqVW5RVTInSzlXJVNGblxaLUdeRCdsREVKb15GRnE1TDY3OzNNM3EpZj5eamdiRzBoP1lLXkwrOU1MY1M7JGMmXix1RTFIWUwuKyE5QyVfblBJSUI4UCxwZmxlKTEyWTwzRjw9ZlxmPjdFTFNiVzBIMkA0XEE+NG9TLic9X2BLNGkzMkhVL18iJEFbbTtebWRiWTpDZ1hjWElWOjxgTDJSbVVDQGRgcC1iNTpeRlkiN0JTZ0w7NFVHYi0zPipgIUBMZVVzczFwUFBFWixpJD4oUTNdKFI9OGxBaixNYDM/cl9mZURdSVtyVXN1R1pHYkw/IihEOCFjK0BeOzhsSVlzYThbUUxMRFNYXjFENDZxWD1cISQ2Y01jTDc6ImIpNFY/aVFoVzAtZiFRQVx1YF1tL1RWNCcxKWllV1lMVDwuaVVPOTVHSjE1MEBSY2NiWTNdJFxuWypKY0U+Iy1yZjNUMC9wUmVuRz5HN1o+KUdOMGFtWnAyU0s1MEE8QUUpV2lJQ1lvbFQqIm5hJ2NcPk0oOCUkZCo4PzMuK0YpSWRUMk0uX3VrOStIKiRkNl1vb1RMKUlUY1JfciNhVmlTKihlaFpnITw7T19nTzBlVCtLOUM3VGVJOlZdOEFvcF9hcV8zcTcrKWdWQ11KMnQ9OCl0Z1A4X1xpJyljMTMubkllY2RKbEYhMG9BaGVATUdSU2BAKzIxTUddPUEnVmNNYS1xNXFLOzJlcnVVRFV0S0soUWZSQCskTX4+CmVuZHN0cmVhbQplbmRvYmoKMTI4IDAgb2JqCjw8Ci9CaXRzUGVyQ29tcG9uZW50IDgKL0NvbG9yU3BhY2UgL0RldmljZVJHQgovRmlsdGVyIFsgL0FTQ0lJODVEZWNvZGUgL0ZsYXRlRGVjb2RlIF0KL0hlaWdodCAxMjIKL1NNYXNrIDEyOSAwIFIKL1N1YnR5cGUgL0ltYWdlCi9UeXBlIC9YT2JqZWN0Ci9XaWR0aCAyODQKL0xlbmd0aCAxNjI5MAo+PgpzdHJlYW0KR2IiL0xxMCplMEk0cFUrIWVWQjc/bUEyb1smcXRRKjdJUHNiQnJOMVo9UWxAKE1uOiIuaystIio2WVRjZm9EUHRHbmsubkclKnQiKStiTjI/b0JSMzVqYV83Zm9EaVlENEomPE5vTjdwWyY6KzI0WVEhMnBZNVFhcHFHV0kiLEotJU9LcTtJNktgXjBMQmRybyJySSRqY2kjS2pIYldwV2JwJiZzWkgrNUovQCo+QE1fKUZcQlFDckIsKV9uWi81MDJXZEZHJFhrPSwsKF5ZblNVKj1JOEAoVyhTOl1hbkVYSG82WCteaVMuVDAhXyNhS21QRnVuJTc1YHFPZF1zSSxTPC5IZiUyP0okIjQqNzJGLGVPWVVsQC85UityQ0w4XFolS3RfSSpUYlNJXz0vRmwpSi5zImdVRWJYcCM7J181Vl4iST41cmkqLz1IZzxGNSVxKmc+XS0lVyclbzJEUEZYMG9oMk5FbnRnUWczRTZoMDV1YDhxZXM9XDw4XjUsOjc4NkVzRFIzNkcyNkk9ZGoiQCg8ODpMUSo6RUssSjFvRkhfMFArLDFQKTYvOUNKa3JdQVFNaVI3P3IuLjxDZSwiOGgqMTgoOGBXdD4sbCQ9akFdVD9AVlhhWlVAQF1ZNVwsWSguPnNYXi81MDJXZEZHJnNgYC9dIS1FO2JLTWpnJzY0cG5ObE9xVikyclw1XjYlViM1Xi84QUxrQCZiZlAvLSlRIzcraU1YKTlfSl07JWpWNmdSTTVGI1leckxZTyU+N1E3cSdnQXU6OiZQW3MvVz1rKHIjXzo2bTpfYzVFUztcaDVKZENKWEozKSEkaFZQS0IvLj5zWFw5TT8wOyRyX19lYzw/VUBXLzlhT1ZYYk0iL0ArSWhPR1RzIktkaHAyXGlPQTFhcyliSC90JTEnS3U5LzpVVGddPWFpJS9gYywsXTYoMHFaRClPbHRZaTh0XExZM1EiTktkaHFLUWtoSDNwPG9QOUtkaHFLUWchNEovZ1I8Jyg4YFd0Qzh0W2EoS11ldXIwMm1hTXVHNlJbREEoQm1xNU1oO0FFKzpELiwtW05HNnU+Lj5zWF8oKHNRY1I3J25eWEUyKWsyKS1bNlZRQCxxKCxcPC40Sm8yIjAsP0UoL01PJ11KMTJ1YlI3MGhFJGdJRGwwUC9YXSJnVGduT1tXPzxXcHROR1FKWUo5L0tdWzhidExUM0hFPlZmPXBSZnEwNCEjLnJAKlluUkFRTEhFW1QlOEFIJUk0UXV0UT48YyFwZmY4TSVuU0pRLztTW1w5J0Q1ZlwsU1U1O2dHJFZWaihpSGBEbVI6Pi1iZ01HJTZRJzNQQW8rbilnbVBfRmt1PC0yIStJRj9hKmQtbmo0LUluPlJmOF5FNlNjZm8/QCYwNkwpJ0ZRPW8yPHJZRzpvUkkuUEI+Vj1iYD5kLXBcWDwhaCFbLWJBOmdOaFlhL1cyZClLL08laVtjbWQ0PShfRyRHTXJnUlRSPi9cZXAxS28qckpHMl9lWVdAYGxfPW5HUiopXEgqVy1JaTNYbHVyY0ojMDxKSFJtSyNWKFptMzBqODdXNm0nKG4qI21rYVpTREF1IiVwcE1JNlpQJC5ZYGZtImtBMjxHNFhaZyZnSkRWcm4yYj1hZEIsJzxnKCRFUGtQOzc3P0lEc2hIYW5LZFtCK0skSmImMmRlQjRKTHUjVlFzTmRbQ1JvWG0maSNxQytfJ1NXOjcwJVUtNVRuUWQuN1clIy9iPDFzaEdwWSI5VHBVTy8hOD8hVEVIZVkwJysxYCVSbFQrXWBYXzY4QjdSbHVoJzBRaENTPlNBLXQ4IXQ2XjE3bGpDQkJlXGImIjMsQ2VdUnI9XnApRCtkKi8/MjxLJmFXcUhfPSJaYF5cWEVfZF11TDFQI2ErTTc8PjQnSHNvXjBmZVheLFdLP01wZSNFTEovJ0xyZGhpSSRoZ2BhUiclVyNwLFFJM0JBXXUnLStbYTJqKk1Qa0YzYktBL1UtUWhZTSFdUG1XN2FJTXU6RnVrKFM0MTVJWzlASEg7YCozX0ItSjE6JDJhIXE8bS1QXkVIJkVvJlJCPSlUL11eMykmJTdfRTlNUVE1UjUqOmc5MFI7TVUmKXAoKzQ1L185cGNYOUNYbyJNWkBxMjZaPV1wNzJybkYqTF1vP04yWVNjO2otZFFQPF9uK2oocWdCPF9jMSFePWtxTC9NN1tYQHNgVlhGTCQqOHJpa2s/UEYiayRAKm5HNVltLVU7I1sjMG0yLy5PMVRRVmphcjh0aEJCJnI0Z3QpSkI1bEtAOyZIODhsayMnYk9vPmc1OWBIZF9nVydpO2EiJFE8b1xQOzpQXjJBP10zYk1uSGZaZS8oNGkkMDE0PSFucFphM3FOUEJNSHFYOFI8UlFiOUZJck4iYEE5WFZiT3FLMkNtIXVyaSpUYiNFbisldDApUzZGQUgoUCNmUmxuZWJAcjFURjlBQFlwJW1jXFVbKjwhQSIyZjIxUkJZXDBhUDt1a3BiZjdbYkouJmg1SCU5OlNqJ2U8UTxUZyldb3FOO2IscGUyI0psZj1tSUxKVFtgKGB1Iy4sK3RgS2YydDNYLzRVUW0hQytAVTEqM15zRVw5MS1xPDdBdDs2Xz01Z3VdMGonWUQ4XUdEM1hRJitTWjdpKilBLSNnMTknaFs+JWdrVl9MJCNANnJoWl0kY0teXCM7KG9IVTFhKz5xVTlbJSkqaG1xU01QS2QkKT9XXTgvVUtGWD4zQSU6VlNaPStgUldPPWhZR08hWWlySkFlM0k4azc9XWFFalwnZzZFMEgzWU87aFM0T2dENS5gOmxSIyJhNjlibGlNbSkwJCddL0FqTV4pVS8jU3Nfb3RQcyFhXFtbSmEhTnFsLT5qXk5VV1pJU240bW4sOVtoXTdWOCVFclBJTFY5ajtUXXElTlMjV0ZDNFsmNGdSKmxiJic6RV9MUHBGZ248dV5LPzMjL1g9KHI1aV5jIidnQ2c2SXRbIShPLlRVQS4oNy9xXU1bL1wzNmVmcVBuU0lqPlxRdEU0NGpJc0JzOjhVZzEwSzwmIWRpcmhIS3R0Ok09VWxfaWNkT0hcbmtHTFRzTnVbTjoxJl4rPk9mUSY3N0RbKjhiZjFdLkIqVjppWGw3Zl8hRVM4WD1kLnRgMiZOSD86LmZwRzdgOmhhSD1cVV5LZmRqT3FDMypJTSdTO2Y0MnBoN3IjV2xBLElgajMnaS9fbFNWclNnQTsiUzNfTWE8ZyprXmM8c1ArZG4+LEkrLWBIY0InNGg0Mk47KFxQYWcyPk1hUkIzQD42TDArPUg2JywsY2sjVGtdRS1PY1Q2RztkMFEtNiFEbXBMc18pOV0+OU9sLWZcT0YqLkQxM2k0QnErZUxzVlBCJyE7KjtZR0UqZkQrb0lWVTtsTjMzXkJIZGcicyZyTSVSJW8+dVNnSzNnO1w6PjBgak0xTG5IWUQlSmIyTGZNO0hUWFA7N1U6WmRSND8qUE43bV1DInVKSTIpXj1APmBhZkVVQjtCP2JjM2tPJThsOE9AOU4iTltgKWRMIkEkb0NZb3EhKUtnYVZUMzpJTi8jLm5AKVNoOUNhOW9jYmo0YztOU0ZXT1IjRyY4W1kwISNAY2U5UjU/TlJIJEw9R1c1TSpIUSpYS3NzMjhsMT5gU0ppOGo3ckZtcUtzJidGXENOclVlJS1zOV5YQzAzNyFDRjpkP1g4cEpUUU8lMEpVZiVFJmVbXjMyI0JoR0Fyamoqbmc2c1pVciw8P1hqWlUnJzMsVl47TGlyJVUpSi9CLyw0X1svbmUuIVM8JEldKFwoRD4ncDFkRXE1PiMxLmd1XThqVEc9PVZpL2FIYEVOTz5iOV87TTVrMjoiVjJnKm5YIUhfT1AoXmZKWVxeTlg4L0dNUjBnZF49OCpJKzNaOVVOOjApRWJfPl49VDdgZTo6JllDZTpkYEhVI28rNjg6KEw9P3MzclJnJ1BmcE90YUxEPjByWVYzJ1xfVigyWTE5SloscWlnSjFldDZKMnMyR1pMJi06PlNycD4rby5NSHM9bW5FbXEvWSszTl0hSDVBVmxvS1JpIz5xaU4sY1RsYFZyRD9IPzdAWkZEJnA8PmdOQSdJR21QMnFiY09fOCVEP0RhKTFVcVtHdUp0bFVDTiYiY2hxbU9rb3FybyknRjFwJzIkYGVbWV48MUI0Nm9HTy1sLTcrajAubG9lNm5MaGxhXyMqW1VbZj9BVl5lNT44bWcjblY3UihEc0YhM2Nba0AlcWVQbnI8R2IvVTQkTlNBV0AyIy1cWFZBOyM1Jms7aVRwUEokLStXNV8oQWkuPVVTNCdTMzUwPD8rMFAwMUpCXT0rLC5CYGhnOmJTc2wlJzNQb2lnL2k1ak49dVtQQmFoNi5LI0sqWzlMcDNuak1JQ2JsKUZaTCVdRy9zIl5NQ0UoQCFuLmA6SFYsbyNoNTBTb0BGWVFCJDZabkNOT1BCJmEuPTs9JkxTNSgvXzgtOlVQcjkrJWF0TmFRYS0sM3QtSUNxVidAcyhIcDIzMzg6Uy82MW1WZmAzUk9VPmNPJ1lRVDZHLlhWQGkiQU9eVCw5aWxZLSt0T0RhUEImalNhNmowVFJzVHVvIWxuXUdkQVdbTEpQU3E9YiVRUmFGVF9pKjQwTFVuNmxNIjAoMGZwJzEjdVdXTW9BYmBDJi4qVy5MI3FsOHE7bmc0Y19eLkpDMyJLL1FPX1BxLVhVZW4+ZWVfT1FhQDBxaENeJ1hOJzxATD1HYVNcJS1kXyppPDNvKm1BV1QqY3BCQkVQJWI0dFE6O2ciLFshP0JeZGZkS05JU0U4Q1liLC1sIlw8aU9ML1JMTipPWilHJyYsT0cwLSdOPVssV0hLIUokJFdBaFRJMlY3b284P3RSQ0ckZTBTI2BWRltDbTZYZytCLS8pbFZca0A+ODdPIiZIPj4lVjYkbVJKc2xJYWwrMj51OE1uajlcPUlqV2g8OjhIamgqJio9X1Y+Z2JVKDRTSDJYVzIiISk4MClvcCRGWXFMUXE1JWQkN2lwNSFrZ1c9SzlVOWhGY15UVmFlay0yLCRJWHNXKFknY1luVTE5b1hLLCI3cHQyYkg6UVZsYFs/ZktJL0hqbCkzcyQxQjokWDJldTdSQTI9S0hwNSJZaTtHaE5DPFNURnFyNmcoVSpLLiEkRSpVIV9EXkFTQjc+MnA5PDVcRWIza1NeQTwpYz9aYi5BO3JZMTQ+aSdXTT09UDRNMStsNTREQT1KMThQJF1uMyYyZ29uP1pKZClMSk1IaD0lVTVKUChJdGo8bDk7Y1xtKzNsKCdAKTwjPUM0KHFvSmVJJThSRV8+PzBaaS42KUZ0bGZuKD9BKzt1JkZgQzYkYjpTTFdiTXFHXV9HOCgtLSlNQzJga1VBQG1lWSV1O2wwUCxrU01ybWcucWApJlZpQmZPT1NFNDNNS18uaTxAQCJjXiRqcEUyS21VWXVEJGY9N29OPylAXSctKXI/WjU4UkhAZjo0R1NKMVFSLGJjLSRCSzdfOzRoIVItamtnK011KzRQZVA7ODIubjFAOGpjLHBsIjBJX15TXSFyVldcVjdDLnVlbk8sIk9rakdCQFAobTI0MjRkNio+KGYiKlVRSS1eSywpTDRiPlNIR1wzNUJYT2hTayVWOTo6SG5sNVpCQStGN2tPJjZETVYxa1EwVFJAIU0nc2FLPG0hRzNvUDBiX0onb2U+QnErMUxDa3FPVydVLTRTXyRjYzk6anNXb1Q3R1UrOl9RWTxYZkZLKiRyRDRvbChYYjg+XjEoWC4zSEAxYChma01NYTw7a2slKm8vY1VXPGFKWEFPKGszXChiU2s2VGBkOWgnXHNYSzRgb1ZqWyFwWCNuXUFucCEnL3NJXzY5MDhwXU9BaEI2TShaJzEhb1U/Il50bjgxNWknaiEuX01ZNTFJZmEvNmFMXDAubFs0Um9qMzNGaVpCJSZibScpRyZfOWNWWnVCIjtySG5TLUdNcTBcYiQiUXFzPy1XPUhWVCxjQ2RBXyJyM1o3bVopOixubTBgOztoZ2Q3LikxRSFZOG1WQ00ySjtdVVlwPSU7XChNSmQ6RUgvR00kL05laVNQLkFELT9IUURGNVUpQ0s/S0taJz03Lk50cF0jIikyU2szT2JLODhnTEI8VzlKLldgRmpXVmFxbC46ITMjWSg4JCJwQFopRy5WVjVEPlhxLT5vMEpASzJAZmdqPi9XZiU4PjNuR2kwSCZSKW1qVjAnQFFxXltKUyJfUGVJXXJVLEpIJUgqaWlNKkpxRV5GYkdbT2JsRmRLUi1OT19UZDBOKEFTRjwzaldtc0hoZy9eX082NTQoUSVScF8ybFZRLys8ZkZpJiteY29NcnJscGcsRyMib0k1QlpeSDZHXlxLMkdMYFMkbCkiQ1cxX1liV3IoZFwhamEqZDBZZ0xhVF81Xl1gS2pST2BbPSszZkApPVBTN2o5Y08+Oyg/PzA3bGtFKnFUWChqUl9pZCwkYWIqRjVBMSFpWidxVnUkYEgxSG9GUD1rZiUsOm9kJWxDNFRKKmlUbm9kQEtVZHRyYm4rP2hwMiMmXFJfVmBWIzouOGNXTjtiVVtwS2trKkg0aiVcLVxFXyRWOm1TJkFXXG9nQTBlVDdVOk0lcXVoSSwqSUVPPUpQQExCYDk2V2QnaWBxNWJLNzowZV1XbicqZ1g7WUsoRFo7X0NOajQjTTBXU1YvMFZNPmtYSDVqMWRqTWRyTDdXVU4rdEpZJCw8aXQ0RkQnbHQ9Ijg1Z2hCIy1aNUVpWG4mXUc/SCo/ailYO3FYQGImXmhOXCNUSyVxS0wnKU41Y0dlK2tZa2M+a0JvIlQiXGVUJVxcVz88NnNiRF9bVTA0SE5bTWctXWMkK1FmN2YianFCNmZNRSgyW0sxM2BdZGJLLVpDaC5UQl41TjxuOl0jOEIiOmA5W21jdTtXZSdIc2U3Q0UkNWY5WnNENDZPJ0RHbiFhaF1FRFpuUjdHLkkmP1wwVCZtU0pOJiVtUzRuRXRGdE1Bc15WSCZsVDE0cWI7WCwtVE1jcENXZlYkRGxPNjNvOE8zWyMrMzctLF1sdTttc0MrVmIpWkkrJE8kZVQ8ckowYzRgPmlASTNzaUU9UzZkaEcpc3ElOmtJVS9PVzdXQFpLTS5rVChjSWNqTWNPLV5xcmZEZiFiUWBIUVBFUCdMLltzbVJZVkRWMzwxIXFGJixgXVZQIS1RblpdXkgkO1lvZmY3MzEnYGYpVGNzXXVlXihidXVtTzdNSF0tSCEvKWkkUGJeSi5wWDdKN0YlbHJsOXQ4XWoidWBGPCtzJyxXJ1kvPS5ENEwhYlBRTHA3X2QjTzJNSFF1X0osP3R0R2FhK15oXzU+VWJATz1dZyhlU0kkSCkmcVZSTURMWVhqMlpcXUc5YkVUaClFIlY9NVFNJi8kLEo2MmBcLFc/a2lvSzojK0MqQz8yLm88PF40ZW4lOSFSUVlsQ2RIViFUQi1uXlJBXDJLakg2WSJBcnJjayRqIWdDbTtCXmUvaG10X0RlXVtxVkdHaXE8TF1oYjM6MGo2TFtGRCNJRjdwOkBEPUw7ITNBRCYiRkM9dFVaczRNQzhsW0RcJWdyTER0SVM7Lj8mLmlURilpVGc2Oy5rQzAnaXBeInBVPnJHW1JeKDpKZE1TVzA3Tipgby8iU2RMNChxUlRrNVRtXFRtTnBbO082X2M6UjxGUj5BQyhLTU1GNmAyLnVeISMtT2BacHVvP0EuJF9nPj1cLUo9OVBjLlZQNWskPEhhODtjbmUiKmZpaHQzSzA9QWAyYVFIPDFkYSo6J08zXlBjNF1BYyk1Y1FhOT5ATDI4a2xCWEJsMXRELVtHPWdMPUlpQldjaU5eLEYpV200NXVOSSY1cCFVMjZRQmJwOmgyVEFBZ0NBbyheO0hbZF8mWWY5PWBtayFgWVdJKm9YIi86UVFNYlxRVzJEc1I0T3E3OGwlRmQ5UExpM0w8NEleRWVVXks5RGZZPkYsZzZvPUsrPksnVWEhcFo7T0pjP0xeKGYoakxVaWdLJlpKWUpGSDFbS2FKSi9jOzs8UW9mWk9cbCZnXyVbOCtKWltxVklvVk9YLWE3NCRlLkk+XldnX2FXNFBMOy1gTlh1Yi0oND40T3NHbE8lalM5VD5yaUttZGs0S1dARyFsYkpBWCdrVDk+W2lYSDBvN1tWJkI+RiokQG4oQSFMaUNgUDQmV0QmPlBNJW1OTDUqRDljUlQpYGQsTzliNUs1OjU7aCZKK3FoIWwoQExGVjpJZGxnTmEwKXNcbGUsazgzR25jLWxRU2dwaU50Rz08ZGJcbTBQL085XEVjZStvJUwsJF9MTU0hJjNyM11GTSM6YmNOKCcraXJabGppK2JuIVxJR0kpOCxxO2pIZV5hXFljRGVgVVBeTD9HImMzK3JfdW5sRiVcOTpHaUxPL3BfWklVbi0iQzlnaTZwJHAoO2NDVV8nOGgiMFEsTUJbQmckXHNBX1hZX20sLjw7RUR1bVpUP0lsXDonbVVITXMmLUdBcSo6Ti4tUUg9SyIqYGg0NiFZZGUvOGknWnQnWksvaWguNWMpQWVWbGkoaGdHXyQxZ1xcZTs0WThoNF40UnFvRFhcNE9abi9oQFA3NHI+LDYwVF1QK1skPF5ZWldlMGFXYFU8czdMJTt1VnJtYGsxMWA9KGxcImAmZ2pETHU8SVhnK0JIVTcjWSlCTEtHMnF0MXRHQ2VvSkk0bDcqcTwkb01aSU1yZChKdUhwUFZOaitKPlMsJmpRajsiRmslXFpfXk8jY0FuWmZqJi5SXF0hRmNBLFApVWNjcChybFdHR2VvcTVISzBdXTFyJ2dBSy9sV3RdTURGMVdLWFJZZyNHUz1SQmU+Qz85MGUuSDFvaUJVM149YUtYcGE1OSxQc3A0U2dUKmY3KnMzblo4IzMmYCZwP2xBSEMyI0lZTnFbSE9jZTc6MUNRZERMSEpcaXFUOWFKKlRkTV1WX2ZsNDxdak9JO0J0IyhgUURGXGYqdGpJXzoxI2g/IWY+aVUyN0tEXGVmKjkqU1RCPyZxWz9eWmkwY2JQZURhdFtKYjxiQHNnZGI9RzohT11RIWddbldDLF9HPWY6R0NNUicydEZJKkxoKG9FIUJUcDlVVy1VLTsjRF9dSjF0MkdfPGk0T2wkW1Q/QjQ0PzY1VUtPIVorYCNkQSZEZVxfKzFcUGlhI0hgQ0RjIlVpXjAjOU1TPkhvTko1QnJPXWRTXzZJVilkbGs/aXFaczhaXCZaSnM5SishWSJsJjtTSlJpM0tnI0lGR1g/VlVtaWdQOURvZzBMSGQqYzNpLClrWkpXOyMmXHJLbnJAQ1ZKWlBVb0ZxWFF1KTpKOVtUPUMjSXRYNzZZWjRHMTZrZVVvN2EvPElnYlMzWmZhW29IO3FWcStdXz1aLSZxRm1oQlQmR2tDLVE4JCtyMEZeRFtOYm8jLUc6UCp1b19hO1tjVTI+M2pLVlM5WkgjVHEoRko4Nyc3ISkwWjItTlhWITRhO1xsYWFsaGwmKGNWUCtKczBmJSUxTU40JUg1WjolcSU1aVE0JEdbNkc2S2MmIzI/KTg4WHQuLjRKaktJOU8xR1dAIU8lS2U6bjpJSlZsczBgaCoxbG4iajU7VUdoVSQlJEpSJUlfcFlpbVpcNTpIIiJkOTZAPF5VKFVBaUBxSSZaOnV0OXE6JXVqR25hODQwLCY4U1wqLS9bakdXLGloanBeSiJDP2BaV09lWUVfJV9iQ1FPZGNEPUAjTDUzM1xoZDtwWGhISDRUJlc3VEJPaGNDVTchXDEub1cjIyciW0tuXUxKNFFEXyEsb1s9SzYtcDY/XzgoMmZfNjFYRkNmazc4LlxBY1xsclRWIiM4cU1UTGxeSE1wTid1XjlYZTk3UUhdWiorVWpvYSZcMkp0TFU2Pjw/NTkyWCtyQGU/N28+Ki1XWWI0YkxIdWE5QVVnZXM4TWs4aWFKbkNlNENPLUNQSSVjJzohMzFETiQtOGpYRnFiJj9ZMi9sRSFKXFdJSVk1SzU6dEk1ISNJXFZAZVNCYUEmWTpkUzJbPEJCbHRacS8qO0AyR0AvWUpjIzNuLzZWS3EwcV4lZS9UKXFdaytrYl9FJzhZY11OT2pfUFFFVUdaXS1UU0JCRmVRPzNXUjs3ZEZiXC8sIT4vVTQ2VltIOSwlK2RmKVtMbWtHO1dMOzs8PV9MWmFSVjk2Pk4iZ2loUWNZQUI5amJMISVuYyswR3FbdFlDYSJBaidVXnJSNzYqSTg0Q19cTz1zJmlqTFc1Mmxqbzc4PWwzOCtcPU4nWTVhO1pROiFdcFIiJUIja1M2UCVLKV5HQ0dEQUczWF8rcjUtciJZQDxHamEuVmNnLVZiMGowOTZpXkAsSl49QU5yblx0LURKLClVWmhCLmFEQTUiSGdyKCs5YSRXajBROVZpQkEhaCM8cmYqdScjYk5NPlBfblNJRUc+P2psY3FDVz9BYFRITFFtPk0/MXVDVEFwUnFHcWdRSE9KbztmQyMzZ1NNcWJFWGM0bGY2SmM1MEsuJTtxSSU7V2hrSURWUDpoNj9JJiZuaVttTDBbJTxoTVtCKjdHWCksRCZcNk1CbCtuR0FeSV8oTXVpQUZENidXKUteLF5BSS8mTUQxNVheN0JvX1I7W1ZFajZCbDFBPzBQLD4tLzZsKUgoIjwzYzxvTj9gPFhtPiIpTShLLV1Vb1Via2khXyMjOls6RSxxYCY4JkoybiRyQnRnYTgqbiYzKyZyPj9yXmAlTTNMKVluUHVOdUhyTltyTDNlTGdRaUYvLFNhYElFOXBrXD5fcSxKQWgwXl4/PGAjQlRVIUpzK0hmQzghNWJEKmQsLUltXy8xVFhbbGJTLF4oMXBmamVuQUtWUkJCZHAwWmE5QDNDYEk/Uk9yP0ktUkZKbzxeP1YqRjZXbUoqO21uUFFMJmpkIWxdNVBGaUEqT1kiV0FxMFwnPTwxMyJHZEUoNjcnO0s3bkk6UkZbLFlfT2Qxcy5tWV8yRUFzVCwtXVZMMC1ASW1KPEhLTGFHZ0huZFYsIjxNR3A1OC1UaFFTYCZhOlBZRGZpb2hNUDBLX09DOTRLQVlZXldmb09sIy0uKE9TLC5yRUQnaWw/RSYqIk8nVSt1ViUqMkxOOCwwPUJeUm4jMTcpOioxS0xkXE4rJVZBb2RxY0I0ZUNdNkteIyVgYEVDKUstJV5bPDFFLSI0bDo1dVIzUjNmOEgtUmMtWjxJciYvXlRhUS5UVyU9IWojZ1xJPyMicjtEO19YaVdOQStxNWw8QFo7JjNXRTddNVpfbEdxaSo5QVc0bENEOihZKSZbPzZwYG9oR15TKFdPM21lPGFjV3RJJyRJMWRDIUwoW1ZjXnJzLks3W1ByKldsOGFcWkU1Mjw2a3BKKW5taj91XTdZLU5CXDdDQGpCOGdRLU9PTiFePnRBVyo5IVpmK09RSyY1a2lISCxoM0clOE9SLFdXW2U1SC5ZZDk4Zi5TZjVwblA5VzVAalYxXVVZWjhMYm5dI2gpQkYpYy0qdCQjMUtNW0pBRU1jcENDTy8wZDJoSixpcidZYTBqXWlDSmdwLDwzOEJzbi0jU0Mtc2VYaytuRnVlbEhlMiU9LCYvQSlRJT5aOTAkcyFGbTshVEdpWWZFckYmQjEoS0cxNCE/JDw8ZFRISDZhKy1XM044YTF0ZilJJUVpaV5KWkUsRz9JbEdINEQkIj1MbV9ocExsbEMnWnI5NDVtYik/bURAY0BaIk8xUUtOJTBxaWZaVnInNm49Z0lXPmsrKjFQbFVQNDdoZFthVGBqK2UqY0U6ZkphJ1dDIUomVXNWJyhiTXRxanBUTEQjTC9AaHVjTEdTRHVXU1l0XUZpW3BYXkw3RC9CNj9hVGE/JDJhNDEqJ19OUjRTKi9yQTFSSj8oNjBmKTQiR2xmUj5kJ2ppVk8qPkk9SzAuUV4+YSdOKHExXEBMW0xkbjBnR1NjLXJGPEYyNjpqcT5JMjYuPiYlQzc0cVgkSFFEa1xSLT9damZwcUhwXSEqYEtVV2tGQkQpMkFMLkJRZnFOWCcpVWtpSmRcXDUiYW5YVy9gJk1saGg1K2RUbDxANVNpcCksb0BJKk9RSmBCO1pWKCRcKkJmUk47b1JTZ1dlWTZbKl9RT1xYQ3REVD9EWFNMVDNwcnBBP2RrbFRsT0tLZHViW1JpOFUyWVtuMywrYGApXGsuIVpYU11aMCNcPkwjKEtCO1wlWEJAW0RfVCFdTEIlVGhja3BFOSdcZjZzQmRmbG9AaydHPztjQjBGZElRJjktVnU4XG08VF5OJFdHLXQ0PGwzOF8lbS08UStjZSg/VC4/KDNNbjoxJm44Z2tBQ01GQWoiQVA1RGMvL1xibmNYME01ZlpVMjxPdE9tVWM5JidHYGszLyshOW5NSmA1Q0EwXkBNNmhpXVZlOCNrUEFJcVhNLzthP0kjMjJfbSpGb1siNGJkc2VTUjglZDJZYG4kLShsdVc1OzYlNl81SEFvX0koPyFJcXAkKUFLVW9dQz4mRVNxPidVXDZcNDAoYmhqOFpSO0lTO1ZGPz5rN0kmU3E6RUNDUzYmKHUjMzVFRW9ZNnUsKiRmTSw5Mmopb25ccDc5VD07RGk6ND1kOV1mRFdfWnBmUkJjZnJHUlxQRilUUCpcQl8hM25HREZLNC0xblswRTJFV01vKzozOTQzM2VyOnJRJGs/ZFZpLScmamxeKkxcKk5cQ1ZXSmx1PGZRI009UUgpV1xkQz9GOUVsWjtFYERuKTNGbTZzZyRrOyQpQE5YN2tOb1cwMT5mZzlGPl8iNV8+UTVILD5yY1VnOSZqMkwyKVliKUQybVklSm5dNywjNTlrbE8mbid0a29SYWtMXWtwWVwzUlk/LSJvXSdjWyhdMzhoIS0uJSE2JXRFRjNMPy1BJjAiLigjbHRkJ1o+a1FuOW9BQklcVGgoPFk/YFpwNm42JSsuRnBnUi9Ub2VcaGtQb0hBVXBsa01Cakg/P2FJXSlnYWFeTW0tS1ohVC9cV0ludCsnO0oyYGZfQkZRaWJxIlZuJHMlc1dFUU9rTGxcdGtNa0MzdUR1JEU2Ty9YYkwzQDhRK2t0QCVXVTxcbGZiOGhaQ0JQUTVpKVJLLmBtPTRbXl1xdXUpQlIsNCdGZnRvSilYNjokNFwsSHRZLywxUCtSdE5qTlN0WGxPTT50Py40ZmJHQCFvQjxwXScwVHBILS4sakdIalcqdWE1Y0duVy5PMjZEOXEmOWAwKVUqcGtHYiUva2NwciVxX1dBTjMvPWBZc1BcYSpTPUE9Mz41Ui43UjJWUGphUzkxQ244WkBiQUo4ZFlYRT4jcWktNXJpSi4pIyZoREJWcjNSSVViO2AxaDIvbjRdMDBcZjIkPlRMbCpGQl9xRGNnI0JPWCdsUTU3P3A5QEVKNlRROWBZKFw7dURdO1tyXXMkJlhxZCZyYDY8TUA0cHBgN2hcMSshQS0sP3NYa0dpSyYlOSlFWiRLZlkuXV1qR1pWVnJbLkpmLGU7PGIiSD5xak5bMDs9cW5OSlJmZXE6SzAvKlsjQW42Qis2IWVaUCxpL0RuazlBV146J1lhIyJLNiM6XEVaVDQjN1Uva1pvU1lmWyooS3VaQWhuJWY0YFMxJmgyPz5AQ1ZYTVphSS5tYllbKjc1dFo0NWliQT5MQSIvTDlDLFdrJyJIInEwZkVeaUFPNzJSQy4nbmluOExycnBtWyYpLVFTTzNaSEIoaklDS1JgMGcuKWA+UVgqIV9ec1tfN0c2YFE7bEluSktBSlAzWiJdbl5xYj84SSpUP0BPNmoxLnBEMWJIRFUmRDBMTnIqWTJrcF1cVSUlR0ZeLzVYREYvJiglYCxAVWc7IiZfNDYsdFEvXCJsIltgbHRjSDxQIWA4NzpGL0YyVzJIc25cXW9HSlBUU29kXS46LEtvcnEzSkhLNFBiKUhnW0VeayFlZjxQJTZtRXIzaUNjXCpGKj5nNiZSaTNEKzI+VSNYNU1YZj5gS05EIzQyUVxecXJUSEZfJlkoK0tGV1MnbmwvP2QjdVBPc2ZOKmhROXUzcz9fJCFMQ0s3KkRiZzlQWnVrV1w3SmAjImtESnFbOUdMKy91YiJmNGUuQmwrImdEWTFpWz49UmUjQ2gyNSlTbjZnQz1rOzk0Q2oiKFBIVC89Zl1hYmxjXnFcYVY0ajpTWUNxIj1iWnUuRDpfNUBmUUwrdVRUMFZOaVU3J1N1UFZKLU00KjpUJVAlRikjIy5VVi9OXipbJDYqKzQsU1IlPkMxSnJbSW5MWnN0JW5cdU5mMzc1PUsxQEAjJThCJy9qYGNnW1dENztXOj5QO3BwPk0lT2hIWWZgM19pJWBHMFptbCNHQiheVC4nUltcOydXJ29adWxASzprQF1AakNlMS9WYkpoYkZBLHRpcWJySl48VkZDKVgtLkw9VTNLdFpXXExBOVRXQzY8TmI3LDNqM0VKL2dAb1lZaGwnSGxMTHJYRl5sSDJuIWo1bj00aEBOcFgubFBEWG9qXURrXzY2KHBeWU07cytaWmVCRl9NTWleWy1MP25pJnI8YV8/X3E1KDklcDBrQG40SC1sc1c6QyUnXnQ/IzohRkJILWFKZSksZE0vLlRuUVNtOTk2ckY9cUxqYlQ2TURPNl5XYVs+SjA3JVVANT1cL25eX3ErKVUkUFNYLWdQMmMjNFBtKThWQHJHQz1YTTpObEVyJllrTCRFJHJhLT04dF9QJC1DaCNPMTVpLy4qUmlYLnNWO2khZiRAbjRnSzxyOzpdOWBBYU5YUGBaXFs6KV5VVF45YnU3cTQzVmw/QF8wbEZhZnRhNmg3MDU4QyYtOlBxKFFOLzBkM1IuKysyP0Y7Q3UyIytvNTYjZk4pcGc5XFdfM2VKMEZtMkA3ayFlRm9gZis6PjxKMG9uTTpxSSFxRTNhc1MlXWVNMlVMJVNeNSdCTUtaR1k8Pz4mQzFhOWdwWDRsLlM7RWFWS100Qi9HUzZCPTY5dTZFcVBLdEk1czI6RiRZTiFELVQtKlVAPCpQIUBXakhvdT9SSjloNF1tRlddOVlgJz5RbmBcSlhpMDgqOjk8Tks7Q1YrdVNhRS0oJDMyXjgtbi5gTW8xSGslNmpCTTc5ZCU7U0dnYVw3MzBmcS9Bc0FVM19NaTZJVE0qWyRvTDpETElJUW9eKWYqSnJnTEVQXS9vYGNOOGo3Lk8pbTRMIWlJcWxQXnUqKkxhSCptPTVocHEqYEs4LFxoRVE6Qi04aGwuVG1EJF08dCk+Si1PPCtDIWwzMi9xTm1SWVZYcGVydXIxXnRJPDtCbTVTRDAzamlEUm4zTCssWEZUck5yQVwkWDhjYWY3WEdZUHRyQzk9dTFTcGw+U0gqSk8mI1NULGMrPz9GLDA5YlhXQGdjYVJMSTpjczMnXyIvPyFSXFs3WEVkYjUzbXMhZiJXbVkvZEpPRktoSSlJLFE/WG9FaydpVTdAa3MhTDo5WC5LcDRmTyhIbi0/OyZpMkRMMzBPaTJQVD5TJXBUX2hVRChKJXQxbjhNJWg/UHJiRnAxc1w8LjJja3JrajosJ15AJWJbW1JqT2thIlg9LVlyOFQ+a2I2KjIsb3JjcjdZW2gkXCZFS29kLEBcX1JXRUAvQlJmPD9aT1xgaUJSPWNsN3RfcEZla1Qxb1lnQyxgIXRcbSdqcSF1KEteYVszYktzWWUjXjk3VUQsRlEhTlotaVROQEJIQD9mJ0d1XCMpI2lVOzI+OiJPbSxZUV9xKk9XLTNuNWpiaTNWbk0pLS0zUmRHaW0rQVNcYlElalU4TEBwWFEqSzJCbC1sVDUiUUVjIjZePUI3QiFkOiEtbEtMakx1KGxyKlRVZFpuc1VSVz4sJlxePD41WDRKXlJidFdEZz5zU24mYFkqI2paYW9DWDMwNVA+VFsuPFdvIVQuMDtaMmNPSms5WWNbbS5QK0JXaSVHa08la2dsc1NmKko7QylIJF1uIys+WD1xNkJwSihnNzEkZ0NUOyhmUEIwaUBJV0AvSHQrTUBidT9nL2EoTnVQLl9JSDdlVWU6W2hyOVs/dHIsVDg7TjdIVXVWdHJuKlY1JUQ5PkdAX29qOj5vWXNQbFZwP3FoKC1tZG5OVEp1I2NGLz1wWkJedCgpMEBJPTA1S210MEw8bzFaZVZLUk8/VktsLlhBbig1W2wkJyEmRFZFQSZMRzVhb1tsNDtxYi9xZC8/I1dEanJwZFZJOWhtPDtjTEooc2p0MVpuXzshQzBkRWYiV0FOZCFuOF9MWERuXmohKiliVDZxdDNcQ1lmNStOMkpdQ2MrbUlwW0JKZT07dVllUjdeWDc0LioiTTVAQ2ZdV2RTQFUtWjhCLTdcSFdNR2Y1K1JgVEo5bENrb0ZuX3JJaTBqP0RzIWhPT2VNYDtIXVdmZClQNiU8TT9HbCQ4Xy5uRlhQJWJcZCYuOV4qQj9IJyJVL1FQKWdXTzsyKSxBMjZqNCxqMi9TTFlbbS1sMVw3SDxLPk9uaD1DQlNZPT5RTEY+bU1zODldPHJGT0EuPyRPLDtDMlNBP2EkTmUmQVdRM2RCXFFSWkhSZF8iV1U8cSFvXFpUOSRGalglIyxtPjlvWmgnW1ZKMFRoQy0wYERhSFBpZDhmclVyWSxdYTdYJG87TkMuKHJSTmFkPEg9NypJLVFickV1LktYdFVWIlwoRDoiKjp0RXFLK0dwNihZNStNLzFmVms9Sjh0UDVJZFRMQmI6R0dNOWU5UW9WYEAjVXM8XUVfKC5CTClNO0hiKyguKEtWIjshU2IqbnBNNzhGVjdrVSI6VjdZUl5CX283SjM6U085ZVE9SnRlUEw7J0hUOEYvcDwtdTIhKSJrI25nMUNicDFAbkAyP25LTzBJLTVtUkUqYixbUE5FWCI1IUBuZEpTbG9IYztLZGoyJV4zWS9UbylRJ3NIT2NPWF4vMmUlYEkkbT1nOTk4IVE/Q1ViO3MhOmRWOWpcRl81OW5VXyZ1TGwxTihxUDUkcWtHR0RqYF1WaylWYVRNJWleZ0xJOXQra0JxUE1sU2FKX0BFZChNLjU+OCk8ZTZLUGUtYC1nYW8wWlhdSSgiKVctJ2Y0STRYJVkiXSdYcWlHYXRDWGBiJEdDJ01bWykoLVQtLkBcYDdhbDwhNl5JIjZ1REAjO20+S2tVI2slOElMV11KPV47aipEbGVdOSwlKzkiOGhtQWhyK0A5U1QicllmJ3A5YUgmbj4qWiwuK0gjdSFlJjw5UElkTFdJTmQ9Xjs4Mj1JRSRCKE40WShwO0RpaTZrXmNgYSxNTT5rbz9sXEoza2c2VTluKylXKzIzIkl1Xk9Walo0IWddOFIxWTQjckFgR1tOK3Q3MFljaS91LUJwVlRdL10/UyoiUDZrY2VEImhHMHQmLGJPI2Nfa0A8XFFAK2FWKkpaUW01IUROVFleRWYpI0V1P1xqLEQoSW1SWToxSWZGO24jUEtkVGpsRkZddE5kLVwvLFI+bidcYDImVF9oUG1qPk1xVz9RKC5tYmhsWm8sQy9xTGFQcEBiKnQrKCdiQixTLlZKayVnYTIvaT81O2xgMFdIcDpwYSkmWVB0c2ItJU0uSzJbWilxbEM9SmdyW2U1WGBhRlJANVRoXmRAS0dAIy9HcWVzWkdDSnRZMEYzbidaSyc2YGZZJGQhXmU3YCs4KyFnLilAdDxGbzQuWysiJz9mRik2QDVlREIzazlmTCJJW0AsSC5XT2NsLUgkMFJgZlIjXT8yXz9OOD5bbEdObGpASkJfUjw1VW5eK2otQ1tyY1BuUD80LGdfcDVYK01JUlcsSyRKQmlsdCRBayo4OnRXUEFuNSUiPCJUOkQ+JDluVSpaPCdnVUE2M0RdTyI7KkcvNEhTRGxgIW9UUFJdVEEtaSY4L24zXXFpNWAnKyQ0MUZXQ0RwPz5tTkNKcWc1U0NTMFcubXE0TS0jPiExZiw3MkJIRlA0XGZKcF5xLFtQQFJIZ28+YV0vWlx0SEVPVy41IV4/SlQnYjA9SkxmSmxvKlRNYixwLzxzbSJwXytBcG89MkhLQFxtSk9BMjs8L2RFU11OU1B1K2VgXkdGNilddU4tRicrWUUpaSFaJWpmSDs8JiNsayRCRiVCYkwvTVg0QkMqcWIyWmtUY2xvJWVPSiMzZChvQHJXbG1yODU6QishdE8xIXRSdC9OYGc1QzYoIy4nSGhaNEksPGRpRGNIQ2RXX15kNEIqUC9LLiMxNTpXUSs2XnAwVCIjNFhvZ0spcDs7XysuTCVnPUJKLStNO289KSgxQVpNWVVsY2ldInBqdVwxMlIsWFBXJnQ3NT08LCIvJSEuRi0oQkZmUCFKZGoiMyk+Mz8odVMwaG9IUjY1UVhmNDdnZEBhRz4kdEtBWG8yRCZSbDNsZEVPW0teSC4lPC5dJWhmOWVqQUZLLTFEIWtHczU3ZU1cPm4oWGRaV3FvMEg3cCs2azwrJFYlVEpnZmFLX1NaQCglVm81Uik4WjViYERtWVtIPEFXO1QmYTRuIU5vbE44aVF0bG11J2FEbVtiSWwmOiZRSE1KNydTLGxMJzE9SFFWNFM6VShDUUllUUxxRzkpTWEnRSY5RF9CTlJXMkI6bm1zVkwicjA0P0I6VzZyVEkiYEw/IXA0Ti1vO0dmRTIsT0BMQUJkVU5oPzhHWl43dVwwaS4kS1BYO01VTyZhNVByZ15yTzUmXDQ5J2FGTUlsVG4hJF8iOFtZcU0oRjVZYlVZOGRyWCNZcyk2aHVZLSYwTV9YM15mPHEtaSoxaU5zL2xiP3BmLGknUV8sNSMnST5sbFYzaCJoXlFlVXNrLVFBTENCMSJgK0tNbTVnZCRWUEQ6JVVpK2U5LnJVbFljalRgaiVWWDBLTldwT2tYR1opXCMzM2cnNzFfX1FkMnFjJlpoJywpVFEzKWNnU1VNOVdlU3NOKEM6R0hZYmRpUnIkVFxKPEFRKiZjVyRQW2VrSDMvRTRadWlaaylUIlU3MnNkcmFGSixRU1ZLOVBQOEtXZl5fO09gPCtnRGQzaDIyODBATiEyJlxSVjx1QUUpR20nJ2NCQzhvJmMmWyZPK3UvT2UkbCEyXWxHKiZFbWpkW0VHZSRSYE0tOV5aM0hMOiNTQy8tKzthcG9WJW9jXlQoVEhqQk1ORUEmY1VISmM4QXUqQU9NbD1tZG9SQyhyS2tnMS8xTVhENUIoTVxKamdUXFUqJnVEdStAPFxaUUhGa3AsQElUTGJTPXBrTm1NWVxdUXJFYyFxZClCTjwyPWtwRCFuSzw8Qy8yQXFiQThZJCpYLkMzcEkiKChFY14mSis/TXFmYUElLTpxXk5qNCc3OGQ/QDJGPVozV09JXlYrS2kpbGUsV0EiOEljSGFbUkBobVBuLC5KcCZsXiIiVy5HUThtPlAnT1c4S2slUGUjSWttNDVrcDNPXUIvYythU1YxPiI8KTxdLnUvaERPa20ubjVLMFdaM3Usb1F0ZykvRHVpTDxuYD06RCQ7Oy1FZmZxYyVVPyJBZlJNIm1TZUhkI0IuKkFpciVvZz9uNVw9MU81cms/Ik9VJGxWSSxKXnJAXVxXSiUuQGlWMCFfPUFYVzk2M1o/UGFyb3JhaVt0QHNuMkNsZEh0c11cOVlFLmhVbk9mbCtrSnQ4OCtHMTxVKCU2cTguMTR1Q1lqPG0vYHNSQU4sKUtvWXFYXi08IkJRcG89SzRBLzhjcF1XNGxgTDdSTjsnKnQmOzAhc15QPSclQ1ghVzBqT2orcilJMEZmbFgqTFVsVV8yUWEhWk9bVFhfVSlWI05BJ21eUFFbTzE6RlpzZFI+cjZQbDk6bDRiSyIvMEFBUG9jRz51X2xEKiZZJSkzMERvQDA0SyNRKGhbWig7cydnMzQqQFZWPV9MU0g+UVxVbl9WYDRwN0VuPWFuVzhaPWdBcV9QMlslVFdtVDllO0BpZUtjOUJHdSMxUz46N1VoRjJaVTFQV2IxR1YlOEhjWlBcOkBqQW1ZZyprT3EvRWJvViRWY2VJJWtMZWIrXjQubDYxOCxLYElnRWRdVHFjYCJjYignZWYvVVxNXk1zbCcpKzZqcUtDQD1rJU9dMl0lamEldClMOXIqcClPTC1aYGRNNWxYdWlLJWJMYWhqOTJidCM5KmhmOHNuJTJbNidRMUdrLExvJE0+Olk6SixjYS1Oa19OW0pgOCVAZnVrYShcbDJAZS0wQUckSU8/NEgkZmhDRT8uSFVmUW5gcSlzUV9OW0pgOSJucFg+cG9FLztDP1wvPFEoLWlPWWlcdCc7Vzk6ZE1VMCFaRF00L2VvPm0qOVhtPzhiYl8/MT0oLmhDKHNQLy1PYFwoMjNAcXE7Nzg2QUcxcGojckpldXRLcS9FSmRLQykuNycuQSMzO1xoNTpSQHQ+Iz0vcVVEb11lMG5XW2A8QFhFdD9UPjRJJVcyKCZ0XE1mZlZxXVptcVJMRiRFTUk1LWAjPiRcWlMkV0BmdS0oMSxNXDBGSzVPbms4QDY9UmVOZSIlWUFOSVtQKUY/YlxQT2okS1MzTTMrWUMqazE9SEhcZlhHT2NUbC5CZltyVjdib2JZYydSPUw9JiZTNG04NWsqJV5cI25xUkQ3VU4xLG9oXlc/QVs2SjUiO2olYWAtZnMoZTxMUC5HSVJGLDBHYVNyP1hgODJcLmRyNnRSJ05ZLk09Ky9aPywsPVgsP1gpVD81KTEpVzVdWWo8TDBRJ0RWP2poO1pjUGZGQkZwOVc3X0hvUEZPLjE+LiJxIzhJP2dcZ25LLGQ1aj5eaWBwWktZJzJqOnRfTltMNjg1QSV1X1YsWkpLUEkqclA8Y1NrNy4nK2dMIUpsJG1zUlltOVBwaDNiTEllcERITlh1KzRFJF4wMGpiWydKIk89YTV0VFphKTMyamtISkgyYVhyRSVDKEA3cy1iMmdGLi0qTCIkQnJSX05OJ0FyQllKR15udDhEZTImVzdhaSJmPT9mSXRjKGw/WDI1KD48R19YJ1soVmRHb0guQjMxMCJkTlhUZSdeRVQxYF85TS44RDhJNy45YzFNQFZKYS8rRj9wT1Y9Tjc3YSczKiU0QVsrL1Y4K0BgMS1hKyomcmVJbS8tWl40ZEJxc3JZNFtqYmFKKnImKVA0bUVGJDxIbW4qaFM6SmxqNm5rIzcnJVg1QlhZaGRkVHMvW0VHKzpaQHJkPzVEI1E0WmswTk9oKVs1WVdoIXNucydndSgwVC1sNylQM25aLXIzTS1BXzhgNGMwJTZdVFRpTTNRZUhhRGU/NV9hSigiK1xqLDxTY0wxRDVOYEUtYW49aFw3VFxEOyhsW0xgS1ojY1s5cTVFUWdiS2Rnb0kyN19sQyxTRDpWV0hkL1xbRUw/N0BmPldfOys4dFhsYlUnWixmRkg3bCJeWEJzR2FSanMrJVtkJ0kjJGBzYFBZLklLKkhZcTBnYU8vYSFRXjtkKj5rcEVdL2IkL2xNKCxbXGtgOUguSUFRUVFpY0ZeZFY5LD9aVEReRk0xPjgyOVRba01BakYtSCdkSilfWEcoW2g5UEIibXBDa005TGgnNkFCcjYrSGUiJitJOSk/Z0QnOE9bXGs5JFdhRVZbTWxhbj1rIl4tQEVLZFAvQCo+QE1fKTBULClgVTJxWiFGYz5pNX4+CmVuZHN0cmVhbQplbmRvYmoKMTI5IDAgb2JqCjw8Ci9CaXRzUGVyQ29tcG9uZW50IDgKL0NvbG9yU3BhY2UgL0RldmljZUdyYXkKL0RlY29kZSBbIDAgMSBdCi9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXQovSGVpZ2h0IDEyMgovU3VidHlwZSAvSW1hZ2UKL1R5cGUgL1hPYmplY3QKL1dpZHRoIDI4NAovTGVuZ3RoIDU0NjYKPj4Kc3RyZWFtCkdiIi9sI0NJNFNxbz4+Yl1qKTBtJCYhaCItclFlPExgZmdINUo7YT5WaGZHP1c/UW0pNWBkSDI1YC4zK1JYYyo3T3E6Z2wsPihNalciOSg1VGE2NW0tcDlnXitwbEEmRHRlTmlwPWVycm1lNihjcW5eJG9eTzQsaWg5UEI0SSE9X0BrRiVfWCEnXjU+UD5AVlxqK2EuSSkxREFZOEtVbyQ3NyRvS1xyOUVTKiklcnFJSURXKUFTIyMpMTUvTHAxKEIrbnE4Zj0obmJAZj1nISVEWmRBOylYWSRFcThtRGVAImondVJQKnVqQmBNcDJbNFpBRExtMVhqQ2FNMEwqXShNbV5aZl9GKUlqXls9VTR1VV5KQSlnZlgyVTpEb2onNGMrY0svUXI+WCNwVFxfTXV1STtGOklNVE5vWVxVODRgTWg9JVRDYyI1X1Y5MjlGbzZya11jSyNgW2MtRTBfZkpvKDUlRT5yK0NuL1xoYGpuJ3JrQDxPPzFfKlVDOCtGLGpmaz5PLiVFJUVpUThOTWpBL0wlUS9qR184YmZuNFlpJz50WVpMMj9ENHAhcVI9ZD4wPVFYaSxJNmIpRyc6REtmZlBCOGs6cjJFXFQrdSdaWy51NjtAQEd0VG0tZ01rSUdJbEMpKnRmUHU8aS1FaSJVQmhYR3V1Kj9EcChZUF9qJTFcXVpfYlpkb0JtalUhXztVJVpTP3U5XEZfdDdhRztIcnI3LzttYkdPIW8+Xkcwbk8uMEVYXXEtcklYViw0UVdoKEtjMEJFWDo6NU82cSVZIWREWC5RR04rVTZrSUo+WV9MLmkhW2RmcydzZFdGUz4wRStoUmcoPyoqZ0NLYy1DI1smOycuL1lbNUNWdE8uQlEwMiMtKW0pQz5WNDRXLXVeRGVmLURBSlVIJVpaKzlROmtbM1IxQXRrTlZDPj1JUWI/RUE4Y2xFOShaQDVDQGs0OTJSRyk6VC5rLUhdU1AxLl1oJEVhaHMoR2IhWlFKOF83IVRyN1poZUkrMzBFVi5oVGApISVAbz1RIlVyYWR0ZFQ7YSJObGUmPWVCaz0yaFY8KHJjTHVaVFdoaz5GakdvQmtsdGVQNio7aElJN1NLI1VFdEo4YzhWSkgqZEk4XWtmIU0hMShHMkswclUhRyhSUC8uSUcmPyEuPnVaVUk0b1tCUmlOaTVwMWAwNjNdOSUtY2E7PGlKMUUuKkUoN2N0Wj9cU3NJTk1aYT1rOEFBVTFSS19WI01aYSsjYjRCa2FOSUQxJFJAVmJVZ2ZKaWxtUT9XS2BbPCJkQiI+Y2NUKzxaUGlYSjBGKSo1V09PS3BoY0FPSCxMPjNfXCVkaSdEb29jMCE/MVJOajFhNC9eW0JiJm06S0U2SzokVFgzQVlDZSttOFNKQFJLckBkOz9SRCE0I0o8JHFCUU8pU2hbbERvJytpKFRdNHRbKTJnIiojMCZvSTE5JTlRNE1hb2RTZmZ0c1oqcCxzJDkiXjlyJDhcW0RMI29xWzpsUE9MakFdMS80OWFnXzhtUSEzQDEzSGFtYEVqZltxbFMzWlQ7WSljP11FKWE7ZG49N3NJOjxQQiZwU1FDN08vZjk+IllSI2A8OjwtI2ZcKVZeKGAzR3JtQzJkaiopMDMvVjFtY1o4KmdgaDJxMmxgM3AhQiNBPjIpUVQqT0NsIl9CX1szJTZvOV1rVi8iSkNyZjhHXDRfWCdoJyM/QGdDSUI4Ti1sIzVpJlk4b25sbkwlYDZiSkMnYC1oc0JTZj1NN1pWbD9tcCs0IkMsZDIkPjkjOi46Q0xwYVo9T0VEYUNlKFIyKV84UFNNaGksWiNGXF45OVdPOiRdblpOMGNOUVAtTThYYypbO1Y1R0FBcEVnMitWLk9HKS8rYjchZlslc1hELVVZb00rLi9ybUBtOmsyaCMlOExZX1g1X0NjTVxnbUlMVUQ3TDRSXnBqcV1RLE9nPCtEQzI+akhAbGxvckBDKCcuJUN1Iz01KiNgKU49Pys3aiUrXVRHU2lAMDxVNGUrZWJOQnRcWjIic1xoZEZRN1ddTFJaYGtNW15xJWVuMlszZiElVjtoTW45O1smSzc5LTM6NTolLGVeXC5VMlQmaHAuSz5Vb2JrKW9rRm9GQUhmVDltLSplNlJLaVEsa1VLMT9HYk40c3RNYDg2L0FgRjFFLHEtQChERTUhKDJfOC9oZiokP3VZSFM/O09LW3VNaWxNZm5zNUs0KGtnSipqNT00Rlgpb0k9W3VFKnRDNzRMJksuPnNQbU9PQVR1OGkiRXEpZlVFQSttYkJmPGJKQkY4Lls0N2JtRGJoWSFMRFVBWllvJSZTKEk/bUptaTo5VSMiQyhCUS5jS2A7WSRwRjJDQk9tPXRDUShNcks5LE5va108N2wwOmY5NGFBI0QlJFk2K09zaF9NTyslLjMnM0VvI2dmL0huQSQ8Y1RuSFBha1s0Ly0lU1NOQC9ELFBRP0RRYCY9NGciO0tgKWlMcVI1LWlJYFZMJCdzJS4iJV0xO05sTzpAJ01gYUQkL207YmtiMXQlREldWmVlRV5ia09mN01IOypyaTpjcDEnaD5caSJdNDw1QSw1SUFxJTtlJVc6YihePltYNGlsNWNWKXMhZ2dpZTJdSm0tLEU5KGgrTj5tQiFLYCFHPDhoakF1Zl5iKCNFc1JQUEo/KFRLTWk4QnJXQS03MmJnKlVHUyYka1hORSM1bFUsSms3U3I6M3MuJUM8SjkmcClzYTcqXyJPIV9AKFtcRi08UG8qRG5CPTxiYzpxLipDYjJEV05vYT88bGszZTIyQ2tBRXNNanFqcDUwNUlsXD9OTjlnbk1GKkwtQ3RnaigyZE4hPzJnMl5fRy1fKiJGLTc/dGklSmlFanVkIUdkI05tYFtiMzBOKGFoZDN0KmZnbW9rSEQ6TEAna2JAJy4kUFxZSFc0RDk/bV4mVStIQDhgbzM2SEwyNCZZbm1mSDUzb0E6RkpsPSFmPG42P1NHazAoNy1yW01LPiVuKEpMX1YiKWIpaldxVW4yJmQ9LmZoWjNYNFQlX2gqIlVbNWJmNE9tSDROTmYtPFhlNiZBSGxzbldnMSU+WXNdMEpDbjV0U25TYCk6PCdGLUtBOylYWEY8XjhsbitsRkRvaCVYcyFWYi84Qlo/VTI0ZWdpYTNhWCdZTWduX2xsXixBJy9tSUE/L29KXlh0VFZocVZeQWFbaVlnZk0+SjU9QFNcckZUPy9MMWdxY1pCTzJMM2VYJUsjRFRYUUxyUVc1ZCs3MTEpcmZUO1ZhVTFTV1g4J1t1b1B0X1RMOllgMj0+a1dYIT4kKHFoYDBGSlgwPlZfPjglbVUmJFUmaD9IMkBwVUdWb3AtZUNdaWBAIk1wYFBpP1xiR0FQPztzKFhGRzkvcHJNJTwzY2onL2s4STpPWFQsTHBPVV0iMGdzO0gnVC5bP1ZZbUZRQEhuS1A+YThzKGRiIic2aXQodVktLGQhQTo/YXVONSV1biwhTkJYci0/QTxnYnUnVVM5SnI1QHNJZERYLl1PSllwSDQuPFsodTZGPXVrWkNyImNvcm0nRko9OmFbMT5PQyEkYzlnYk09KGknKDtmYkZNZGA4QW0rZHFZdElVSlc/UDhBOy0zT1BjJCNiOmQxL1E+clc7SU1wIjImamxdbUREKTVmSU1WQjFyZWVVLDdvXkQjMl07R3MqV1tbXi0/KlhbdFxtOl5eaz10K0cxRyNZVzlmYV9TP1U9MWlwKSgkITB1RWhsT2UlbXEnLClFJi08UWlfQFRucHIuXCgqPCU3NERGSyhxLnRhTmVFXEkuUE5yWEpIY0loW2g1YS9tWiYlcTwnWEtnai9sNVBjQFNLZUxicSJiPVUqTSdEOGc0cGlJbUA8MyplaEtoNVVGXCtVWXAiPihwJClsOz4pbjJvJGlhOzpGQ2RXKEg1WF46QFROSD9jclFFNCtMYTopZmlVI3EpTFpOMz5DUjFTUkxRZ2hvbkk2RUxTSkJJQG1eJTwnTz08XTBARG0vI0Y6JltHPSlUYS0mSkAhZFBuOixpcEdRNUEmOlVnYzRvU0xkKjQ5NWZvVi1pZDtYYFlFIm0rLjwxTkZhI3VuOEppblxwYmFBMlRQNSY0TUQiMURUOGAiKUtXTUtvSlZkKmBuQE9gaENDIV1IaFdRUSUycSQ6aTNtSzxZOzFCcGBVOy0iaW1rTTdpLilrXDpKTVIvbidRbiklI0QpSmY7ODxlLi9wXFdSSCJSKiVoYGMtJCpYQ3FaWDJOKG5MMUgvKXFLa28kRj1nVlcoWTtcRCFhU2VwXkBsUUk4MCohSEZFOEEmWWsrO0guO1lLZkApZjA4R0czXF5ZbEE7bGwrMj9SbGcyQzNFKUczTkQ3V0NaKnRMQit0YEAnNW4wa0NfJ0tBai4rI1ouTSJgME1qTFFQaF8ocV1IM3QlJ2c1bl9mZVlWMUgsIiknU3BAXHFdW2hIblBeWjYrOWZoZyJDUzA5JSNaMUslQj8ySV5fUmU9TVBwYmFwMl85IylLNE0iNFw8OHVicTNQOWkqOixFUS4zZzEkTVFwbVg6Km5vZSlKMXJpTHJjQmEyQzdOJGhoXkFhNDolLFJtLV8hKkEjbmtJKE8oLS03a25ANVxhW0Y8JmlUcnJJJEFpWSNHJ2xWaC9TcmQ8dEA/WFJwVkRGKzdFOyFxP0RJXXBTdSxES24nKCEwSEZQbStZVzprL204X21eIShbNVlvUF5lZWpVPlRHRiJCYlFFWDIvNTdPP0lmSzdvYkJjXHNqJ18jUmZGWklCNTJXVlRNP0orRUkqO0xMSC5wTy9RJV9tY2ooYEBTZFJQWiltSTwqX1tDZ21RbSthWVpeYEhNQyVoI05yNmwsSykvM1ltZG47IWNGSFxaXSg4YildKXNRW1xnc01nOF4xJDtYQUpsJylwM1tvZCxAZSkkPlkyK3NpLyxIcVxxKTRbPG5xTmxEMDQoKyNEXk4mYk9bcWg6ITRScj1bKmwqb0VSNy8qV2IhakZWPkY3SyQiLlJaYzBNbTVuXycyIUYlYmJndTJCQV5aJFdEVjAmUmRLIyloX2ZGLVkoTm84Wi5IZ2FOJVYzbEw2SSk6Lm1XajNvZCpKK3AtbWJVPFNUSz9XaSs4IT1fN0VyLTZVdFNmSTlmOVctXVRgOHFaMWJmVm5IQClnOkowJVAnJCchTlAyM0VHPUlxZiVMXUE3YChZP1w/TFQ0NWM0MUI0KFNCcVVGQSY9P1tYalxqcyNCNyxhLVkuNicyWC1qPkRhSVZMVi1wZTFYNFNCXXU5KlM8PiE1Zic9JF46YHM0UXBJMG1pQ29nLzlDIVcyRiQpYFQiI0BtSStLK1FiUFk1XTIjXjNBTkBmRkMybUAjPl5DIVJnOSw0dXMpT3BvbyktNi51XSFSUidpOFF1U0Y2Z0xGc1pqMFBaYUs1akgiJ0Ixc3A0bUFXJDI8cSVjbFgoQVUyX20iLCxXMTc0cmk6OGRPVThFR1claXIncy9HbksrJ0tzZyhCKlgvUiQlXyw+V2JaZTtgJ2UyUlRQZkJYJFRwIjlhPkxBLkFAST9bJUMhalBeOWlAbiZSJU4mXXRmIk01OFQ9bFknKklxMTJtOjwpZDhyL2k6bWshc2g8MTpaMnFFdVBvLlQuUEtBOWpAWklcNygwPz1NKnBaUzFqV3AuSDZobjA+T29hVT46SzgrWVVsMzY+QVg7X0hLI1ZwcnNBRy5bcV4zJ1pWRG5vLFB1bTY/dW4rVytdbkRiaDA4a3FONU90Q1xhZlQzKEVgcWddUE4qQzdUOk9gWzwpW0RWRERMVWIrPz1RPj5OQGRDKSRJaFJccSg2aSRnP2hpcDE0SydEPEdoSjc8XnAqPkZMXjBmWGVkbiRGTjMtQW9EQyQiPE1lW3JDJCkkXEgqO3NNOnRLa0NpcG9CWmxQXztWKFIxPXE1aTkhKy5IMURrNW8mTEkyMFpTSkVMJVE3Jj1wdVhJMmBBKzdGTV8wN25gYmRfWDI7XG4hQlxIdUBZbkYtYk0lcUhKUi1fI1s9SzUnISpddCRFcE0pZDVZZEVgbywsTCdCMFQnVys4RWhHM0V1ZSJZNDdeRCtsYUE/Y0JuYiM3Q1JFbU9SXnFzdSZZajAibUZzSklaRjhsUTxsKTFOTzZaPnFtKydrYSptVjk/LWRUSy9fSUg0Mmg3OjtgSWZxZi5eMm9QIz1EODl0aCtESUJMcmhBITcxPj4wNjtRIyc7R3A4UGUtMHNrLGRiIz1tNy9nM1ojIiVQTCZvUzhEXm5gVmxga1Y7RExwMyNXWWs4MFJyLz08NStLJCZqbW4pbnBBVDEzcjA/JTJtVXRdRkhyTzNdMEdHQi5BISpJaFRISEhQKWpjPW1pIk9na2MuVTNpQjtoS0JhdToqamtCMChNYGRPQFBCOiJAKFZ1KzRmNFNta2QqQCUlNEMiQiJZPDREbCpxbkRyTl0ybjtbcCNzbDpCQk4jZToiaVJHR206MDEmTjknNkZlZVp1YXFVR09kUGJyKkY+Omg2TDUzPU1cTigyK24obDEiRm5zUEdQSjpEOEY4K1BJYldENiVZZkZOS1piSjVhcy0+WS44OjpiRks5ZCtpY01DYlNTLFxkNkJPYCpIUGBjSlw3NiNFRjo9Qz0paVcnOTc7JEUkUGBiPXBdS05OS0BUWWVeKS8jK3VFVlJGMjA9ZSphJmhPPUI+RSJXOmNYMDwxVD9XVHNOMlw2KGJmMlVGNkZTXVlMaDQ5RT9uMzxyZEJvQDVMJGRSPEspdSo5QUtpYzRKWSpybGdpK3U+JztxU0VxTllePFBZWW9tXjVpOCZOPiVCdUolb3FiRjczJD5bXixGWic6aHF1ayViZTZbUnIhRExibTU4LkdpRFY8Wj4kQE9EMFl0aG5UJDRlQEd0NG9AKzBvPlZsXEFwUnAsV2ZDYzc3IkFAbDdtbSYiT0VuRGojV2cxOTU1Y3U6RltYdT10SyYjdFpbS0QyYzUtZ0ckYj9sMiNVYzJHSFgvQCJdUFJlJW9kbjBrYikiVE9cSDdhUFBdYWo0XCs5P0ZxI2BMMXNVJ19qWiUhOXNOU1VkJFw2Q0glKj0xY0woXlVoX2BNYyRrX2ZbY1NZVigpai5VJTBCaWFWLDkvJEVgQ1smI0gqRytmZT84IScmPTViNjM/X11CW1loI3AyRWphXzxKJG1eUi1qNllKZE1JUWNfMnJkaj8iNnMsXlYnS2BuPl1gQCVlMHBPQjdAakhFQi5lVUlRZzQmMl5+PgplbmRzdHJlYW0KZW5kb2JqCjEzMCAwIG9iago8PAovQXV0aG9yIChhbm9ueW1vdXMpCi9DcmVhdGlvbkRhdGUgKERcMDcyMjAyNjA4MTgyMDQyMTFcMDUzMDBcMDQ3MDBcMDQ3KQovQ3JlYXRvciAoYW5vbnltb3VzKQovS2V5d29yZHMgKCkKL01vZERhdGUgKERcMDcyMjAyNjA4MTgyMDQyMTFcMDUzMDBcMDQ3MDBcMDQ3KQovUHJvZHVjZXIgKFJlcG9ydExhYiBQREYgTGlicmFyeSBcMDU1IFwwNTBvcGVuc291cmNlXDA1MSkKL1N1YmplY3QgKHVuc3BlY2lmaWVkKQovVGl0bGUgKHVudGl0bGVkKQovVHJhcHBlZCAvRmFsc2UKPj4KZW5kb2JqCnhyZWYKMCAxMzEKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDE1IDAwMDAwIG4gCjAwMDAwMDAxMDEgMDAwMDAgbiAKMDAwMDAwMDUxMyAwMDAwMCBuIAowMDAwMDAxODM5IDAwMDAwIG4gCjAwMDAwMDE5MzcgMDAwMDAgbiAKMDAwMDAwMjMyOSAwMDAwMCBuIAowMDAwMDAyNjYyIDAwMDAwIG4gCjAwMDAwMDMyNzkgMDAwMDAgbiAKMDAwMDAwMzY0NSAwMDAwMCBuIAowMDAwMDA0MDU5IDAwMDAwIG4gCjAwMDAwMDQxNTggMDAwMDAgbiAKMDAwMDAwNDQ3NiAwMDAwMCBuIAowMDAwMDA0ODI4IDAwMDAwIG4gCjAwMDAwMDQ5MjcgMDAwMDAgbiAKMDAwMDAwNTM0MyAwMDAwMCBuIAowMDAwMDA1NzY4IDAwMDAwIG4gCjAwMDAwMDU4NjcgMDAwMDAgbiAKMDAwMDAwNjE4MyAwMDAwMCBuIAowMDAwMDA2NTM5IDAwMDAwIG4gCjAwMDAwMDY2MzggMDAwMDAgbiAKMDAwMDAwNjk2NiAwMDAwMCBuIAowMDAwMDA3MzE4IDAwMDAwIG4gCjAwMDAwMDc0MTcgMDAwMDAgbiAKMDAwMDAwNzc5NyAwMDAwMCBuIAowMDAwMDA4MjEwIDAwMDAwIG4gCjAwMDAwMDgzMDkgMDAwMDAgbiAKMDAwMDAwODY2OSAwMDAwMCBuIAowMDAwMDA5MDY0IDAwMDAwIG4gCjAwMDAwMDkxNjMgMDAwMDAgbiAKMDAwMDAwOTUyOCAwMDAwMCBuIAowMDAwMDA5NzgzIDAwMDAwIG4gCjAwMDAwMTA0MDAgMDAwMDAgbiAKMDAwMDAxMDY1MyAwMDAwMCBuIAowMDAwMDExMjY5IDAwMDAwIG4gCjAwMDAwMTE1MjQgMDAwMDAgbiAKMDAwMDAxMjE0MiAwMDAwMCBuIAowMDAwMDEyNTA1IDAwMDAwIG4gCjAwMDAwMTI4MTMgMDAwMDAgbiAKMDAwMDAxMzE2NCAwMDAwMCBuIAowMDAwMDEzMjYzIDAwMDAwIG4gCjAwMDAwMTM1NzEgMDAwMDAgbiAKMDAwMDAxMzkyNSAwMDAwMCBuIAowMDAwMDE0MDI0IDAwMDAwIG4gCjAwMDAwMTQzNDQgMDAwMDAgbiAKMDAwMDAxNDY5OCAwMDAwMCBuIAowMDAwMDE0Nzk3IDAwMDAwIG4gCjAwMDAwMTUxMjUgMDAwMDAgbiAKMDAwMDAxNTQ3NiAwMDAwMCBuIAowMDAwMDE1NTc1IDAwMDAwIG4gCjAwMDAwMTU4ODkgMDAwMDAgbiAKMDAwMDAxNjI0MiAwMDAwMCBuIAowMDAwMDE2MzQxIDAwMDAwIG4gCjAwMDAwMTY2MzggMDAwMDAgbiAKMDAwMDAxNjk4OSAwMDAwMCBuIAowMDAwMDE3MDg4IDAwMDAwIG4gCjAwMDAwMTc0MjEgMDAwMDAgbiAKMDAwMDAxNzc3MSAwMDAwMCBuIAowMDAwMDE3ODcwIDAwMDAwIG4gCjAwMDAwMTgxNjIgMDAwMDAgbiAKMDAwMDAxODUxNSAwMDAwMCBuIAowMDAwMDE4NjE0IDAwMDAwIG4gCjAwMDAwMTg5MTAgMDAwMDAgbiAKMDAwMDAxOTI2MCAwMDAwMCBuIAowMDAwMDE5MzU5IDAwMDAwIG4gCjAwMDAwMTk2NzcgMDAwMDAgbiAKMDAwMDAyMDAyOSAwMDAwMCBuIAowMDAwMDIwMTI4IDAwMDAwIG4gCjAwMDAwMjA0NjQgMDAwMDAgbiAKMDAwMDAyMDgxOCAwMDAwMCBuIAowMDAwMDIwOTE3IDAwMDAwIG4gCjAwMDAwMjE3MDUgMDAwMDAgbiAKMDAwMDAyMjIzMyAwMDAwMCBuIAowMDAwMDIyMzMyIDAwMDAwIG4gCjAwMDAwMjI3NjcgMDAwMDAgbiAKMDAwMDAyMzE5MCAwMDAwMCBuIAowMDAwMDIzMjg5IDAwMDAwIG4gCjAwMDAwMjM2MDIgMDAwMDAgbiAKMDAwMDAyMzk5NCAwMDAwMCBuIAowMDAwMDI0MDkzIDAwMDAwIG4gCjAwMDAwMjQ0OTMgMDAwMDAgbiAKMDAwMDAyNDkwNyAwMDAwMCBuIAowMDAwMDI1MDA2IDAwMDAwIG4gCjAwMDAwMjU1MTkgMDAwMDAgbiAKMDAwMDAyNTk1NyAwMDAwMCBuIAowMDAwMDI2MDU2IDAwMDAwIG4gCjAwMDAwMjY0MzUgMDAwMDAgbiAKMDAwMDAyNjgzNCAwMDAwMCBuIAowMDAwMDI2OTMzIDAwMDAwIG4gCjAwMDAwMjczMTUgMDAwMDAgbiAKMDAwMDAyNzcyNCAwMDAwMCBuIAowMDAwMDI3ODIzIDAwMDAwIG4gCjAwMDAwMjgxNzUgMDAwMDAgbiAKMDAwMDAyODU2NyAwMDAwMCBuIAowMDAwMDI4NjY2IDAwMDAwIG4gCjAwMDAwMjkwMzAgMDAwMDAgbiAKMDAwMDAyOTQyOSAwMDAwMCBuIAowMDAwMDI5NTI4IDAwMDAwIG4gCjAwMDAwMjk5MDEgMDAwMDAgbiAKMDAwMDAzMDI4OCAwMDAwMCBuIAowMDAwMDMwNjY1IDAwMDAwIG4gCjAwMDAwMzEwMTQgMDAwMDAgbiAKMDAwMDAzMTM3MiAwMDAwMCBuIAowMDAwMDMxNDcyIDAwMDAwIG4gCjAwMDAwMzE3ODIgMDAwMDAgbiAKMDAwMDAzMjEzOCAwMDAwMCBuIAowMDAwMDMyMjM4IDAwMDAwIG4gCjAwMDAwMzI1NzYgMDAwMDAgbiAKMDAwMDAzMjkzMiAwMDAwMCBuIAowMDAwMDMzMDMyIDAwMDAwIG4gCjAwMDAwMzMzNDEgMDAwMDAgbiAKMDAwMDAzMzY5OSAwMDAwMCBuIAowMDAwMDMzNzk5IDAwMDAwIG4gCjAwMDAwMzQxMjUgMDAwMDAgbiAKMDAwMDAzNDQ4MiAwMDAwMCBuIAowMDAwMDM0NTgyIDAwMDAwIG4gCjAwMDAwMzQ5MTcgMDAwMDAgbiAKMDAwMDAzNTI3MyAwMDAwMCBuIAowMDAwMDM1MzczIDAwMDAwIG4gCjAwMDAwMzU3MDIgMDAwMDAgbiAKMDAwMDAzNjA1NSAwMDAwMCBuIAowMDAwMDM2MTU1IDAwMDAwIG4gCjAwMDAwMzg3NzkgMDAwMDAgbiAKMDAwMDAzODg0MCAwMDAwMCBuIAowMDAwMDM4ODg3IDAwMDAwIG4gCjAwMDAwMzg5OTYgMDAwMDAgbiAKMDAwMDAzOTExMCAwMDAwMCBuIAowMDAwMTA3NjU4IDAwMDAwIG4gCjAwMDAxMTYwMjIgMDAwMDAgbiAKMDAwMDEzMjUxOSAwMDAwMCBuIAowMDAwMTM4MTkzIDAwMDAwIG4gCnRyYWlsZXIKPDwKL1NpemUgMTMxCi9Sb290IDEgMCBSCi9JbmZvIDEzMCAwIFIKL0lEIFsgKFwzNDFcMzcyXDA0N3NlXDM0NVwzNTVhXDM1MlwwMjBzQ1wzMzNxXDAxNFwwNzYpIChcMzQxXDM3MlwwNDdzZVwzNDVcMzU1YVwzNTJcMDIwc0NcMzMzcVwwMTRcMDc2KSBdCj4+CnN0YXJ0eHJlZgoxMzg0ODQKJSVFT0YKMSAxIG9iago8PAovQWNyb0Zvcm0gMiAwIFIKL1BhZ2VNb2RlIC9Vc2VOb25lCi9QYWdlcyAxMjIgMCBSCi9UeXBlIC9DYXRhbG9nCiAvQUYgWzEzMiAwIFJdIC9OYW1lcyA8PCAvRW1iZWRkZWRGaWxlcyA8PCAvTmFtZXMgWyhDb250ZW50IENyZWRlbnRpYWxzKSAxMzIgMCBSXSA+PiA+PiA+PgplbmRvYmoKMTMxIDAgb2JqCjw8IC9MZW5ndGggMjAxNjYgL0YgPDwgL1N1YnR5cGUgKGFwcGxpY2F0aW9uL2MycGEpIC9MZW5ndGggMjAxNjYgPj4gPj4Kc3RyZWFtCgAATsZqdW1iAAAAHmp1bWRjMnBhABEAEIAAAKoAOJtxA2MycGEAAABOoGp1bWIAAABHanVtZGMybWEAEQAQgAAAqgA4m3EDdXJuOmMycGE6ZDI4NmUwMjItZDg3Yi00ZDA1LTk0NDUtMDU0NzkwYWQ5NTdjAAAAC5BqdW1iAAAAKWp1bWRjMmFzABEAEIAAAKoAOJtxA2MycGEuYXNzZXJ0aW9ucwAAAAm5anVtYgAAACNqdW1kQMsMMruKSJ2nCyrW9H9DaQNjMnBhLmljb24AAAAAF2JmZGIAaW1hZ2Uvc3ZnK3htbAAAAAl3YmlkYjxzdmcgd2lkdGg9IjcxNiIgaGVpZ2h0PSI3MTYiIHZpZXdCb3g9IjAgMCA3MTYgNzE2IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNNTA4Ljc0OSAzMTcuMzk5QzUxNi43NzcgMjg3LjMxNCA1MDguOTkxIDI1My44ODQgNDg1LjM4OSAyMzAuMjgyQzQ2MS43ODggMjA2LjY4MSA0MjguMzYgMTk4Ljg5NSAzOTguMjczIDIwNi45MjNDMzc2LjIzMSAxODQuOTI4IDM0My4zOSAxNzQuOTU2IDMxMS4xNDggMTgzLjU5NkMyNzguOTA2IDE5Mi4yMzQgMjU1LjQ1IDIxNy4yOTIgMjQ3LjM2IDI0Ny4zNjFDMjE3LjI5MSAyNTUuNDUxIDE5Mi4yMzMgMjc4LjkxIDE4My41OTUgMzExLjE0OUMxNzQuOTU3IDM0My4zOTEgMTg0LjkyNyAzNzYuMjMyIDIwNi45MjQgMzk4LjI3NEMxOTguODk2IDQyOC4zNTkgMjA2LjY4MyA0NjEuNzg5IDIzMC4yODQgNDg1LjM5MUMyNTMuODg1IDUwOC45OTIgMjg3LjMxMyA1MTYuNzc5IDMxNy40MDEgNTA4Ljc1QzMzOS40NDIgNTMwLjc0NSAzNzIuMjg2IDU0MC43MTcgNDA0LjUyNSA1MzIuMDc5QzQzNi43NjcgNTIzLjQ0MSA0NjAuMjIzIDQ5OC4zODQgNDY4LjMxMyA0NjguMzE1QzQ5OC4zODMgNDYwLjIyNCA1MjMuNDQgNDM2Ljc2NiA1MzIuMDc4IDQwNC41MjZDNTQwLjcxNiAzNzIuMjg1IDUzMC43NDcgMzM5LjQ0MyA1MDguNzQ5IDMxNy40MDJWMzE3LjM5OVpNNDcwLjg5OSAyNDQuNzc2QzQ4Ni44OTIgMjYwLjc3IDQ5My40ODggMjgyLjYwMSA0OTAuNjg3IDMwMy40MTJMNDE1LjU3NyAyNjAuMDQ2QzQxMi40MTEgMjU4LjIxOCA0MDguNTA5IDI1OC4yMTggNDA1LjM0NSAyNjAuMDQ2TDMxNy40MDEgMzEwLjgyVjI3Ny41MjZDMzE3LjQwMSAyNzUuMTkxIDMxOC42NTIgMjczLjAwNSAzMjAuNjc2IDI3MS44MzdMMzg3LjY0NCAyMzMuMTc0QzQxNC4xNzggMjE4LjM1MyA0NDguMzQ2IDIyMi4yMjMgNDcwLjkwMSAyNDQuNzc2SDQ3MC44OTlaTTM1Ny44MzcgMzExLjE0NEwzOTguMjc1IDMzNC40OTFWMzgxLjE4NUwzNTcuODM3IDQwNC41MzJMMzE3LjM5OCAzODEuMTg1VjMzNC40OTFMMzU3LjgzNyAzMTEuMTQ0Wk0yNjQuNzc2IDI2OS42OTNDMjY1LjIwNyAyMzkuMzA1IDI4NS42NDQgMjExLjY0OSAzMTYuNDUzIDIwMy4zOTNDMzM4LjMgMTk3LjU0IDM2MC41MDUgMjAyLjc0NCAzNzcuMTI3IDIxNS41NzNMMzAyLjAxNCAyNTguOTM3QzI5OC44NDggMjYwLjc2NCAyOTYuODk4IDI2NC4xNDQgMjk2Ljg5OCAyNjcuNzk4VjM2OS4zNDZMMjY4LjA2NSAzNTIuNjk5QzI2Ni4wNDMgMzUxLjUzMSAyNjQuNzc2IDM0OS4zNTMgMjY0Ljc3NiAzNDcuMDE3VjI2OS42OTFWMjY5LjY5M1pNMjAzLjM5MSAzMTYuNDU0QzIwOS4yNDQgMjk0LjYwOCAyMjQuODU0IDI3Ny45NzggMjQ0LjI3NiAyNjkuOTk5VjM1Ni43M0MyNDQuMjc2IDM2MC4zODQgMjQ2LjIyNiAzNjMuNzYzIDI0OS4zOTIgMzY1LjU5MUwzMzcuMzM3IDQxNi4zNjVMMzA4LjUwMyA0MzMuMDEzQzMwNi40ODEgNDM0LjE4MSAzMDMuOTYxIDQzNC4xODggMzAxLjkzOSA0MzMuMDJMMjM0Ljk3MSAzOTQuMzU3QzIwOC44NjggMzc4Ljc4OSAxOTUuMTM4IDM0Ny4yNjEgMjAzLjM5MSAzMTYuNDU0Wk0yNDQuNzc1IDQ3MC45QzIyOC43ODEgNDU0LjkwNiAyMjIuMTg2IDQzMy4wNzUgMjI0Ljk4NiA0MTIuMjY0TDMwMC4wOTYgNDU1LjYzQzMwMy4yNjMgNDU3LjQ1NyAzMDcuMTY0IDQ1Ny40NTcgMzEwLjMyOCA0NTUuNjNMMzk4LjI3MyA0MDQuODU2VjQzOC4xNDlDMzk4LjI3MyA0NDAuNDg1IDM5Ny4wMjIgNDQyLjY3MSAzOTQuOTk3IDQ0My44MzlMMzI4LjAyOSA0ODIuNTAyQzMwMS40OTUgNDk3LjMyMiAyNjcuMzI3IDQ5My40NTIgMjQ0Ljc3MiA0NzAuOUgyNDQuNzc1Wk00NTAuODk3IDQ0NS45ODJDNDUwLjQ2NiA0NzYuMzcxIDQzMC4wMjkgNTA0LjAyNyAzOTkuMjIgNTEyLjI4M0MzNzcuMzczIDUxOC4xMzYgMzU1LjE2OCA1MTIuOTMyIDMzOC41NDcgNTAwLjEwMkw0MTMuNjU5IDQ1Ni43MzhDNDE2LjgyNiA0NTQuOTExIDQxOC43NzUgNDUxLjUzMiA0MTguNzc1IDQ0Ny44NzdWMzQ2LjMyOUw0NDcuNjA5IDM2Mi45NzdDNDQ5LjYzMSAzNjQuMTQ1IDQ1MC44OTcgMzY2LjMyMyA0NTAuODk3IDM2OC42NTlWNDQ1Ljk4NVY0NDUuOTgyWk01MTIuMjgyIDM5OS4yMjFDNTA2LjQyOSA0MjEuMDY4IDQ5MC44MTkgNDM3LjY5NyA0NzEuMzk3IDQ0NS42NzZWMzU4Ljk0NkM0NzEuMzk3IDM1NS4yOTIgNDY5LjQ0OCAzNTEuOTEyIDQ2Ni4yODEgMzUwLjA4NUwzNzguMzM2IDI5OS4zMTFMNDA3LjE3IDI4Mi42NjNDNDA5LjE5MiAyODEuNDk1IDQxMS43MTIgMjgxLjQ4NyA0MTMuNzM0IDI4Mi42NTVMNDgwLjcwMiAzMjEuMzE4QzUwNi44MDUgMzM2Ljg4NyA1MjAuNTM2IDM2OC40MTUgNTEyLjI4MiAzOTkuMjIxWiIgZmlsbD0iYmxhY2siLz4KPC9zdmc+CgAAAQBqdW1iAAAAKWp1bWRjYm9yABEAEIAAAKoAOJtxA2MycGEuYWN0aW9ucy52MgAAAADPY2JvcqFnYWN0aW9uc4GkZmFjdGlvbmxjMnBhLmNyZWF0ZWRxZGlnaXRhbFNvdXJjZVR5cGV4Rmh0dHA6Ly9jdi5pcHRjLm9yZy9uZXdzY29kZXMvZGlnaXRhbHNvdXJjZXR5cGUvdHJhaW5lZEFsZ29yaXRobWljTWVkaWFtc29mdHdhcmVBZ2VudKJkbmFtZWdncHQtNS02Z3ZlcnNpb25nZ3B0LTUtNmR3aGVueBsyMDI2LTA4LTE4VDIxOjAyOjI1LjUxMTgzMVoAAACmanVtYgAAAChqdW1kY2JvcgARABCAAACqADibcQNjMnBhLmhhc2guZGF0YQAAAAB2Y2JvcqVqZXhjbHVzaW9uc4GiZXN0YXJ0GgACKPRmbGVuZ3RoGU7GZG5hbWVuanVtYmYgbWFuaWZlc3RjYWxnZnNoYTI1NmRoYXNoWCCHHONJ6dt6E8UIzHat3CVaHQY2eAehE/8eOK/G6H7/j2NwYWRAAAACiWp1bWIAAAAnanVtZGMyY2wAEQAQgAAAqgA4m3EDYzJwYS5jbGFpbS52MgAAAAJaY2JvcqZqaW5zdGFuY2VJRHgseG1wOmlpZDplZGIzNjYwMC01ZTQwLTRmZjktOGM5My05NDlhNzNkZTdjN2F0Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVnQ2hhdEdQVGRpY29uomN1cmx4JHNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaWNvbmRoYXNoWCB1PvA9VwUxkrOoTutMHvvBjBh0tyd31tA2AsdlNhHj8WtzcGVjVmVyc2lvbmUyLjIuMGlzaWduYXR1cmV4TXNl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AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2WQEAmfAlX4EpitvRutcKVxRG6W1RmnyILxqoXkgBTM1G05PbJ+yVnSGZZ5W1HXB+VEXEpOoNgRNSvdbaqhs9x3eC6EE0nApkzUbvnMyxLMdG+bVP9TJXklSR01pxcHz3/CUHvA4tOC2uCSAh1XN1N++4CDtfNpCbI1tSsaPyaQAk/nrVDtwHH+cIMvGdpYisnCp4EQlT08/auSxykSBvFF/XvWH6o8E09WKu3IGbILoxHtKcglYa8evMKg8wFj1alWLT/+nDM7SbQF48FfCGrj0KEjot6XuXfV1WS8Do1KjqKXSF/wayovgi1N97NzV1IBt9Rg+SA53UsphIYS6CjQvJCAplbmRzdHJlYW0KZW5kb2JqCjEzMiAwIG9iago8PCAvQUZSZWxhdGlvbnNoaXAgL0MyUEFfTWFuaWZlc3QgL0Rlc2MgKENvbnRlbnQgQ3JlZGVudGlhbHMpIC9GIChDb250ZW50IENyZWRlbnRpYWxzKSAvRUYgPDwgL0YgMTMxIDAgUiA+PiAvU3VidHlwZSAoYXBwbGljYXRpb24vYzJwYSkgL1R5cGUgL0ZpbGVTcGVjIC9VRiAoQ29udGVudCBDcmVkZW50aWFscykgPj4KZW5kb2JqCnhyZWYKMSAxCjAwMDAxNDEyOTQgMDAwMDEgbiAKMTMxIDIKMDAwMDE0MTQ2OCAwMDAwMCBuIAowMDAwMTYxNzQwIDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgMTMzIC9Sb290IDEgMSBSIC9QcmV2IDEzODQ4NCAvSUQgWyAoXDM0MVwzNzJcMDQ3c2VcMzQ1XDM1NWFcMzUyXDAyMHNDXDMzM3FcMDE0XDA3NikgKFwzNDFcMzcyXDA0N3NlXDM0NVwzNTVhXDM1MlwwMjBzQ1wzMzNxXDAxNFwwNzYpIF0gPj4Kc3RhcnR4cmVmCjE2MTkzOAolJUVPRgo=";
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== modules/cmd/index.js (v2.0.0) ===== */
+/* ------------------------------------------------------------------
+ * modules/cmd/index.js
+ * Origem: sodelfino/laudo-cmd-meeds -> CMD_GERADOR.user.js v1.4.0
+ * ------------------------------------------------------------------
+ * O QUE MUDOU NA MIGRACAO (e o que NAO mudou)
+ *  - REMOVIDO daqui: trava de frame, deteccao de login, shadow host
+ *    proprio, CSS de posicionamento do botao (#cmd-fab) e do toast,
+ *    e o loop proprio de recheque de login. Tudo isso e do nucleo.
+ *  - PRESERVADO byte a byte: a funcao gerarPdf() inteira, incluindo o
+ *    ajuste manual do DefaultAppearance da justificativa (o DA original
+ *    do campo nao traz operador Tf, entao o pdf-lib nao consegue
+ *    autoajustar a fonte e o texto saia enorme) e a quebra de linha
+ *    medida na mao, e as tabelas MEDICOS / ORIGENS / CID_DIC /
+ *    CATALOGO_PROCEDIMENTOS. A secao 04 (Junta de Autorizacao) continua
+ *    intocada — e preenchida pela regulacao, nao pelo medico.
+ *  - A leitura da tela passou a usar o dom-reader do nucleo, que ja
+ *    tenta as variantes de rotulo e normaliza acento. A lista de variantes do
+ *    rotulo do nome da mae, que era a inteligencia exclusiva deste
+ *    modulo, virou infraestrutura do nucleo e agora serve a todos.
+ *
+ * PRIVACIDADE: os dados do paciente ficam so no formulario em memoria.
+ * Nada e gravado em disco nem enviado para fora do navegador.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  var d = null;
+  var overlay = null;
+  var timers = [];
+
+  /* PDF base oficial, embutido em base64 pelo asset do modulo. */
+  var BASE_PDF_B64 = raiz.MEEDS_CMD_BASE_PDF_B64;
+
+  /* Nome herdado do original, para gerarPdf() continuar valendo sem
+   * reescrita. */
+  var CMD_BASE_PDF_B64 = BASE_PDF_B64;
+
+  /* SHIM DE COMPATIBILIDADE — ver modules/apac-itauna/index.js.
+   * Reproduz a interface shadow.getElementById() por cima do overlay do
+   * dock, para o codigo migrado continuar valendo sem reescrita. */
+  var shadow = {
+    getElementById: function (id) {
+      return overlay ? overlay.elemento.querySelector("#" + id) : null;
+    },
+    querySelector: function (sel) {
+      return overlay ? overlay.elemento.querySelector(sel) : null;
+    },
+    querySelectorAll: function (sel) {
+      return overlay ? overlay.elemento.querySelectorAll(sel) : [];
+    },
+  };
+
+  function toast(msg, ms) {
+    d.core.toast(msg, ms || 3000);
+  }
+
+  function b64ToBytes(b64) {
+    var bin = atob(b64);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+
+  /* ----------------------------------------------------------------
+   * pdf-lib — resolvido do escopo global (o bootloader carrega via
+   * @require), com o mesmo fallback do original.
+   * ---------------------------------------------------------------- */
+  function resolverPdfLib() {
+    var escopos = [];
+    try { escopos.push(raiz); } catch (e) {}
+    try { if (typeof unsafeWindow !== "undefined") escopos.push(unsafeWindow); } catch (e) {}
+    try { escopos.push(window); } catch (e) {}
+    try { escopos.push(globalThis); } catch (e) {}
+    for (var i = 0; i < escopos.length; i++) {
+      if (escopos[i] && escopos[i].PDFLib) return escopos[i].PDFLib;
+    }
+    return null;
+  }
+
+  var pdfLibCarregandoPromise = null;
+  function garantirPdfLib() {
+    var direto = resolverPdfLib();
+    if (direto) return Promise.resolve(direto);
+    if (pdfLibCarregandoPromise) return pdfLibCarregandoPromise;
+    pdfLibCarregandoPromise = new Promise(function (resolve, reject) {
+      if (typeof GM_xmlhttpRequest !== "function") {
+        reject(new Error("pdf-lib indisponível e GM_xmlhttpRequest não concedido."));
+        return;
+      }
+      GM_xmlhttpRequest({
+        method: "GET",
+        url: "https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js",
+        onload: function (res) {
+          try {
+            (0, eval)(res.responseText);
+            var lib = resolverPdfLib();
+            if (lib) resolve(lib);
+            else reject(new Error("pdf-lib avaliado mas não exposto."));
+          } catch (e) { reject(e); }
+        },
+        onerror: function () { reject(new Error("Falha de rede ao baixar o pdf-lib.")); },
+      });
+    });
+    return pdfLibCarregandoPromise;
+  }
+
+  function formatarCpf(digits) {
+    var dd = (digits || "").replace(/\D/g, "");
+    if (dd.length !== 11) return digits || "";
+    return dd.slice(0,3) + "." + dd.slice(3,6) + "." + dd.slice(6,9) + "-" + dd.slice(9,11);
+  }
+
+  /* Mascara dd/mm/aaaa: insere as barras enquanto digita, aceita colar a
+   * data ja formatada e ignora tudo que nao for digito. */
+  function ativarMascaraData(input) {
+    input.addEventListener("input", function () {
+      var dd = input.value.replace(/\D/g, "").slice(0, 8);
+      var out = dd;
+      if (dd.length > 4) out = dd.slice(0,2) + "/" + dd.slice(2,4) + "/" + dd.slice(4);
+      else if (dd.length > 2) out = dd.slice(0,2) + "/" + dd.slice(2);
+      input.value = out;
+    });
+  }
+
+  function limparErro() {
+    var el = shadow.getElementById("cmd-erro");
+    el.style.display = "none";
+    el.textContent = "";
+  }
+  function mostrarErro(msg) {
+    var el = shadow.getElementById("cmd-erro");
+    el.textContent = msg;
+    el.style.display = "block";
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function baixarPdf(bytes, filename) {
+    var blob = new Blob([bytes], { type: "application/pdf" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+  }
+
+
+  /* ---- dados fixos, preservados do repositorio de origem ---- */
+  // Ja vem fixo no PDF oficial (campo municipio_1) — nao e reescrito.
+  var MUNICIPIO_FIXO = "CONCEIÇÃO DO MATO DENTRO";
+
+  /* Lista de medicos solicitantes [nome, CRM, CPF], mantida exatamente
+   * como estava em sodelfino/laudo-cmd-meeds. Nenhum vem pre-selecionado:
+   * a selecao e obrigatoria a cada laudo, para evitar assinatura errada. */
+  var MEDICOS = [
+    ['JEAN MILLER NERY DE LACERDA', '110540/MG', '061.411.666-01'],
+    ['WARLLON DE SOUZA BARCELLOS', '1359592 RJ', '120.566.827-61'],
+    ['GIZELLE FERNANDES DOS SANTOS', '0127071 RJ', '126.751.407-83'],
+    ['NATÁLIA JARDIM MARTINS DA SILVA', '18372 CE', '733.786.312-87'],
+    ['RAFAELLA LEAO OLIVEIRA SILVA', '91694 MG', '106.149.136-67'],
+    ['GUILHERME HENRIQUE OLIVEIRA BORGES', '30341-GO', '038.851.681-03'],
+  ];
+
+  var ORIGENS = ['CEMO DR SEBASTIAO SOARES DOS SANTOS'];
+
+  var CID_DIC = {
+    // já usados no laudo de exemplo desta unidade
+    'K83.8': 'Outras doenças especificadas das vias biliares',
+    // cardiologia (Itaúna)
+    'I10': 'Hipertensão essencial (primária)',
+    'I11.9': 'Doença cardíaca hipertensiva sem insuficiência cardíaca',
+    'I15.9': 'Hipertensão secundária não especificada',
+    'I20.0': 'Angina instável',
+    'I20.9': 'Angina pectoris, não especificada',
+    'I21.9': 'Infarto agudo do miocárdio não especificado',
+    'I22.9': 'Infarto do miocárdio recorrente não especificado',
+    'I24.9': 'Doença isquêmica aguda do coração, não especificada',
+    'I25.1': 'Doença aterosclerótica do coração',
+    'I25.9': 'Doença isquêmica crônica do coração, não especificada',
+    'I27.9': 'Doença cardiopulmonar não especificada',
+    'I34.0': 'Insuficiência da valva mitral',
+    'I34.9': 'Transtorno não-reumático da valva mitral, não especificado',
+    'I35.0': 'Estenose aórtica',
+    'I35.9': 'Transtorno da valva aórtica não especificado',
+    'I36.1': 'Insuficiência não-reumática da valva tricúspide',
+    'I38': 'Endocardite de valva não especificada',
+    'I42.0': 'Cardiomiopatia dilatada',
+    'I42.9': 'Cardiomiopatia não especificada',
+    'I44.2': 'Bloqueio atrioventricular total',
+    'I45.9': 'Transtorno de condução não especificado',
+    'I47.1': 'Taquicardia supraventricular',
+    'I47.2': 'Taquicardia ventricular',
+    'I48': 'Flutter e fibrilação atrial',
+    'I48.9': 'Flutter e fibrilação atrial',
+    'I49.5': 'Síndrome do nó sinusal',
+    'I49.9': 'Arritmia cardíaca não especificada',
+    'I50': 'Insuficiência cardíaca',
+    'I50.9': 'Insuficiência cardíaca não especificada',
+    'I51.7': 'Cardiomegalia',
+    'I70.0': 'Aterosclerose da aorta',
+    'I70.2': 'Aterosclerose das artérias das extremidades',
+    'I71.4': 'Aneurisma da aorta abdominal, sem menção de ruptura',
+    'I73.9': 'Doença vascular periférica não especificada',
+    'I80.2': 'Flebite e tromboflebite de outros vasos profundos dos membros inferiores',
+    'I82.9': 'Embolia e trombose venosa não especificada',
+    'Q21.1': 'Comunicação interatrial',
+    'Q24.9': 'Malformação congênita do coração não especificada',
+    'E78.5': 'Hiperlipidemia não especificada',
+    'R00.0': 'Taquicardia não especificada',
+    'R00.1': 'Bradicardia não especificada',
+    'R00.2': 'Palpitações',
+    'R07.2': 'Dor precordial',
+    'R42': 'Tontura e instabilidade',
+    'R55': 'Síncope e colapso',
+    'Z95.0': 'Presença de marca-passo cardíaco',
+    'Z95.1': 'Presença de enxerto de ponte aortocoronária',
+    'Z95.5': 'Presença de implante e enxerto de angioplastia coronária',
+    // neurologia / cefaleia (Sete Lagoas)
+    'G43.0': 'Enxaqueca sem aura (enxaqueca comum)',
+    'G43.8': 'Outras formas de enxaqueca',
+    'G43.9': 'Enxaqueca não especificada',
+    'G44.1': 'Cefaleia vascular, não classificada em outra parte',
+    'G40.9': 'Epilepsia não especificada',
+    'G93.4': 'Encefalopatia não especificada',
+    'R51': 'Cefaleia',
+    'G80.9': 'Paralisia cerebral não especificada',
+    'F84.0': 'Autismo infantil',
+    'F70': 'Retardo mental leve',
+    'F71': 'Retardo mental moderado',
+    'F82': 'Transtorno específico do desenvolvimento motor',
+    'F80.9': 'Transtorno de desenvolvimento da fala ou linguagem não especificado',
+    'Q90.9': 'Síndrome de Down não especificada',
+    'P07.3': 'Outros recém-nascidos pré-termo',
+    'P14.3': 'Outras lesões do plexo braquial devidas a traumatismo de parto',
+    'L93': 'Lúpus eritematoso',
+    'G00.9': 'Meningite bacteriana não especificada',
+    'H90.3': 'Perda de audição neurossensorial bilateral',
+    // reumatologia / ortopedia (Sete Lagoas)
+    'M18.0': 'Artrose primária bilateral das primeiras articulações carpometacarpianas',
+    'M19.9': 'Artrose não especificada',
+    'M25.5': 'Dor articular',
+    'M79.1': 'Mialgia',
+    'M54.5': 'Dor lombar baixa',
+    'M54.2': 'Cervicalgia',
+    'M06.9': 'Artrite reumatoide não especificada',
+    'M32.9': 'Lúpus eritematoso sistêmico não especificado',
+    'M81.9': 'Osteoporose não especificada',
+    'M85.8': 'Outros transtornos especificados da densidade e da estrutura ósseas',
+    'M47.9': 'Espondilose não especificada',
+    'M51.1': 'Transtornos de discos lombares e de outros discos intervertebrais com radiculopatia',
+    // endocrinologia (Sete Lagoas)
+    'E10.9': 'Diabetes mellitus tipo 1 sem complicações',
+    'E11.9': 'Diabetes mellitus tipo 2 sem complicações',
+    'E03.9': 'Hipotireoidismo não especificado',
+    'E05.9': 'Tireotoxicose não especificada',
+    'E66.9': 'Obesidade não especificada',
+    'E78.0': 'Hipercolesterolemia pura',
+    // geral (Sete Lagoas)
+    'R73.9': 'Hiperglicemia não especificada',
+    'J44.9': 'Doença pulmonar obstrutiva crônica não especificada',
+    'N18.9': 'Doença renal crônica não especificada',
+    'R07.4': 'Dor torácica, não especificada',
+  };
+
+  var CATALOGO_PROCEDIMENTOS = {
+    RM_CRANIO:            { nome: 'Ressonância nuclear magnética de crânio',                              codigo: '02.07.01.006-4' },
+    RM_BASE_CRANIO:       { nome: 'Ressonância nuclear magnética de base do crânio',                      codigo: '02.07.01.006-4' },
+    RM_SELA_TURCICA:      { nome: 'Ressonância nuclear magnética de sela túrcica',                        codigo: '02.07.01.007-2' },
+    RM_ATM:                { nome: 'Ressonância nuclear magnética de articulação temporomandibular (bilateral)', codigo: '02.07.01.002-1' },
+    ANGIO_RM_CEREBRAL:     { nome: 'Angiorressonância cerebral',                                          codigo: '02.07.01.001-3' },
+    RM_COLUNA_CERVICAL:    { nome: 'Ressonância nuclear magnética de coluna cervical',                    codigo: '02.07.01.003-0' },
+    RM_COLUNA_TORACICA:    { nome: 'Ressonância nuclear magnética de coluna torácica',                    codigo: '02.07.01.005-6' },
+    RM_COLUNA_LOMBOSSACRA: { nome: 'Ressonância nuclear magnética de coluna lombo-sacra',                  codigo: '02.07.01.004-8' },
+    RM_CORACAO_AORTA:      { nome: 'Ressonância nuclear magnética de coração/aorta com cine',              codigo: '02.07.02.001-9' },
+    RM_MEMBRO_SUPERIOR:    { nome: 'Ressonância nuclear magnética de membro superior (unilateral)',        codigo: '02.07.02.002-7' },
+    TC_CRANIO:             { nome: 'Tomografia computadorizada do crânio',                                codigo: '02.06.01.007-9' },
+    TC_SELA_TURCICA:       { nome: 'Tomografia computadorizada de sela túrcica',                           codigo: '02.06.01.006-0' },
+    TC_FACE_ATM:           { nome: 'Tomografia computadorizada de face/seios da face/ATM',                 codigo: '02.06.01.004-4' },
+    TC_PESCOCO:            { nome: 'Tomografia computadorizada do pescoço',                                codigo: '02.06.01.005-2' },
+    TC_COLUNA_CERVICAL:    { nome: 'Tomografia computadorizada de coluna cervical (com ou sem contraste)', codigo: '02.06.01.001-0' },
+    TC_COLUNA_TORACICA:    { nome: 'Tomografia computadorizada de coluna torácica (com ou sem contraste)', codigo: '02.06.01.003-6' },
+    TC_COLUNA_LOMBOSSACRA: { nome: 'Tomografia computadorizada de coluna lombo-sacra (com ou sem contraste)', codigo: '02.06.01.002-8' },
+    TC_TORAX:              { nome: 'Tomografia computadorizada de tórax (sem contraste)',                  codigo: '02.06.02.003-1' },
+    TC_ABDOME_SUPERIOR:    { nome: 'Tomografia computadorizada de abdome superior',                        codigo: '02.06.03.001-0' },
+    TC_PELVE:              { nome: 'Tomografia computadorizada de pelve/bacia/abdome inferior',            codigo: '02.06.03.003-7' },
+    TC_ARTIC_MEMBRO_SUP:   { nome: 'Tomografia computadorizada de articulações de membro superior',        codigo: '02.06.02.001-5' },
+    TC_ARTIC_MEMBRO_INF:   { nome: 'Tomografia computadorizada de articulações de membro inferior',        codigo: '02.06.03.002-9' },
+    TC_SEGMENTOS_APENDIC:  { nome: 'Tomografia computadorizada de segmentos apendiculares (braço, antebraço, mão, coxa, perna, pé)', codigo: '02.06.02.002-3' },
+    DENSITOMETRIA_2SEG:    { nome: 'Densitometria óssea (dois segmentos)',                                 codigo: '02.04.06.002-8' },
+    DENSITOMETRIA_CORPO:   { nome: 'Densitometria óssea (corpo inteiro)',                                  codigo: '02.04.06.002-8' },
+    ENDOSCOPIA_DIGESTIVA_ALTA: { nome: 'Endoscopia digestiva alta (esofagogastroduodenoscopia)',           codigo: '02.09.01.003-7' },
+    COLONOSCOPIA:          { nome: 'Colonoscopia (coloscopia)',                                            codigo: '02.09.01.002-9' },
+    ANGIOCORONARIOGRAFIA:  { nome: 'Angiocoronariografia (cateterismo cardíaco)',                           codigo: '02.11.02.001-0' },
+    CINTILOGRAFIA_MIOCARDIO_ESTRESSE: { nome: 'Cintilografia de perfusão do miocárdio (estresse, mín. 3 projeções)', codigo: '02.08.01.002-5' },
+    CINTILOGRAFIA_MIOCARDIO_REPOUSO:  { nome: 'Cintilografia de perfusão do miocárdio (repouso, mín. 3 projeções)',  codigo: '02.08.01.003-3' },
+    ECOCARDIOGRAMA_TRANSTORACICO: { nome: 'Ecocardiograma transtorácico',                                  codigo: '02.05.01.003-2' },
+    TESTE_ERGOMETRICO:     { nome: 'Teste ergométrico (teste de esforço)',                                 codigo: '02.11.02.006-0' },
+    HOLTER_24H:            { nome: 'Holter 24 horas (eletrocardiograma dinâmico, 3 canais)',                codigo: '02.11.02.004-4' },
+    MAPA_24H:              { nome: 'MAPA 24 horas (monitorização ambulatorial da pressão arterial)',        codigo: '02.11.02.005-2' },
+    RETOSSIGMOIDOSCOPIA:   { nome: 'Retossigmoidoscopia (diagnóstica)',                                     codigo: '02.09.01.005-3' },
+  };
+
+  /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
+  var CSS = "#cmd-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #cmd-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #cmd-modal-head h2{ margin:0; font-size:15px; }\n    #cmd-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #cmd-body{ padding:18px 20px; }\n    .cmd-sec{ margin-bottom:16px; }\n    .cmd-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .cmd-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .cmd-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    .cmd-grid4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:90px; resize:vertical; }\n    #cmd-origem-outro-wrap{ display:none; margin-top:8px; }\n    #cmd-origem-outro-wrap.show{ display:block; }\n    #cmd-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .cmd-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    .cmd-contador{ text-align:right; font-size:10.5px; color:#8a97a4; margin-top:4px; }\n    button.cmd-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.cmd-primary:hover{ background:#123a7a; }\n    button.cmd-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.cmd-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.cmd-secondary:hover{ background:#e8f0f8; }\n    #cmd-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #cmd-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
+
+  var HTML = "<div id=\"cmd-modal\">\n      <div id=\"cmd-modal-head\"><h2>Laudo Médico de Alto Custo — Conceição do Mato Dentro</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"cmd-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"cmd-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"cmd-body\">\n        <div class=\"cmd-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Conceição do Mato Dentro (mesmo PDF da prefeitura, preenchido pelos campos reais do formulário). A seção 04 (Junta de Autorização) não é preenchida — é reservada para a regulação.\n        </div>\n        <div id=\"cmd-auto-aviso\"></div>\n\n        <div class=\"cmd-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"cmd-grid3\">\n            <div><label>Selecionar *</label><select id=\"cmd-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"cmd-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"cmd-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"cmd-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Dados do atendimento</h3>\n          <div>\n            <label>Unidade de origem *</label>\n            <select id=\"cmd-origem-sel\"></select>\n            <div id=\"cmd-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"cmd-origem-outro\"></div>\n          </div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Paciente</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome completo *</label><input id=\"cmd-pac-nome\"></div>\n            <div><label>CPF</label><input id=\"cmd-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"cmd-grid3\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"cmd-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"cmd-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n            <div><label>Telefone</label><input id=\"cmd-pac-telefone\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Nome da mãe</label><input id=\"cmd-pac-mae\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"cmd-proc-nome\" list=\"cmd-proc-list\" placeholder=\"digite o exame\" autocomplete=\"off\"></div>\n            <div><label>Código do procedimento</label><input id=\"cmd-proc-codigo\" placeholder=\"ex: 41101170\"></div>\n          </div>\n          <datalist id=\"cmd-proc-list\"></datalist>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>CID-10</label><input id=\"cmd-cid\" list=\"cmd-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"cmd-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          <datalist id=\"cmd-cid-list\"></datalist>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"cmd-justificativa\" maxlength=\"700\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado (até 700 caracteres)\"></textarea>\n          <div class=\"cmd-contador\" id=\"cmd-justificativa-contador\">0/700</div>\n        </div>\n\n        <div id=\"cmd-erro\"></div>\n      </div>\n      <div id=\"cmd-footer\">\n        <button class=\"cmd-secondary\" id=\"cmd-limpar\">Limpar</button>\n        <button class=\"cmd-primary\" id=\"cmd-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
+
+  /* ---- extraidas do original sem alteracao ---- */
+  function camposFaltando() {
+    const faltam = []; const v = id => shadow.getElementById(id).value.trim();
+    if (!shadow.getElementById('cmd-medico-sel').value) faltam.push('seleção do médico');
+    if (!v('cmd-medico-nome')) faltam.push('nome do médico');
+    if (!v('cmd-medico-crm')) faltam.push('CRM do médico');
+    if (!v('cmd-medico-cpf')) faltam.push('CPF do médico');
+    const origemSel = shadow.getElementById('cmd-origem-sel').value;
+    if (!origemSel) faltam.push('unidade de origem');
+    if (origemSel === 'outro' && !v('cmd-origem-outro')) faltam.push('nome da unidade de origem');
+    if (!v('cmd-pac-nome')) faltam.push('nome do paciente');
+    if (!v('cmd-pac-sexo')) faltam.push('sexo');
+    if (!v('cmd-justificativa')) faltam.push('justificativa clínica');
+    if (!v('cmd-proc-nome')) faltam.push('nome do procedimento solicitado');
+    return faltam;
+  }
+
+  function wrapTexto(font, size, texto, maxWidth) {
+    const palavras = String(texto).split(/\s+/);
+    const linhas = [];
+    let atual = '';
+    palavras.forEach(w => {
+      const tentativa = atual ? atual + ' ' + w : w;
+      if (font.widthOfTextAtSize(tentativa, size) > maxWidth && atual) {
+        linhas.push(atual);
+        atual = w;
+      } else {
+        atual = tentativa;
+      }
+    });
+    if (atual) linhas.push(atual);
+    return linhas.join('\n');
+  }
+
+  /* GERACAO DO PDF — funcao extraida VERBATIM do original.
+   * Usa os campos reais do formulario (AcroForm) do PDF oficial: cada
+   * valor e escrito no campo pelo proprio nome dele, sem coordenada
+   * manual. Depois o formulario e achatado (flatten) para o PDF final
+   * ficar identico em qualquer leitor/impressora. Nada foi reescrito. */
+  async function gerarPdf() {
+    limparErro();
+    const faltam = camposFaltando();
+    if (faltam.length) { mostrarErro('Preencha: ' + faltam.join(', ') + '.'); return; }
+
+    const btn = shadow.getElementById('cmd-gerar');
+    const original = btn.textContent;
+    btn.textContent = 'Gerando…'; btn.disabled = true;
+
+    try {
+      const PDFLibRef = await garantirPdfLib();
+      const { PDFDocument, StandardFonts } = PDFLibRef;
+
+      const origemSel = shadow.getElementById('cmd-origem-sel').value;
+      const origem = (origemSel === 'outro' ? shadow.getElementById('cmd-origem-outro').value : origemSel).trim().toUpperCase();
+
+      const nome = shadow.getElementById('cmd-pac-nome').value.trim().toUpperCase();
+      const cpf = shadow.getElementById('cmd-pac-cpf').value.trim();
+      const nasc = shadow.getElementById('cmd-pac-nasc').value.trim();
+      const sexo = shadow.getElementById('cmd-pac-sexo').value;
+      const mae = shadow.getElementById('cmd-pac-mae').value.trim().toUpperCase();
+      const telefone = shadow.getElementById('cmd-pac-telefone').value.trim();
+
+      const diagnostico = shadow.getElementById('cmd-diagnostico').value.trim();
+      const cid = shadow.getElementById('cmd-cid').value.trim().toUpperCase();
+      const justificativa = shadow.getElementById('cmd-justificativa').value.trim();
+
+      const procNome = shadow.getElementById('cmd-proc-nome').value.trim();
+      const procCodigo = shadow.getElementById('cmd-proc-codigo').value.trim();
+
+      const medicoNome = shadow.getElementById('cmd-medico-nome').value.trim().toUpperCase();
+      const medicoCrm = shadow.getElementById('cmd-medico-crm').value.trim();
+      const medicoCpf = shadow.getElementById('cmd-medico-cpf').value.trim();
+
+      const pdfDoc = await PDFDocument.load(b64ToBytes(CMD_BASE_PDF_B64));
+      const form = pdfDoc.getForm();
+      const fontR = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+      // --- 01 - DADOS DO ATENDIMENTO DA UNIDADE / MUNICÍPIO SOLICITANTE ---
+      setTexto(form, 'origem', origem);
+      // 'municipio_1' já vem fixo no PDF oficial (Conceição do Mato Dentro) — não é reescrito.
+      // 'codigo_sia' e 'n_prontuario' ficam em branco: removidos do formulário a pedido.
+      // 'chefia_imediata' fica em branco: é assinatura/carimbo físico da chefia da unidade, não do médico solicitante.
+
+      // --- 02 - DADOS DO PACIENTE ---
+      setTexto(form, 'nome_paciente', nome);
+      if (nasc) setTexto(form, 'data_nascimento', nasc);
+      setCheckbox(form, 'sexo_masc', sexo === 'MASC');
+      setCheckbox(form, 'sexo_fem', sexo === 'FEM');
+      if (mae) setTexto(form, 'nome_mae', mae);
+      if (telefone) setTexto(form, 'telefone', telefone);
+      // Campos de endereço, nº consulta e carteira de identidade removidos do formulário a pedido.
+
+      // --- 03 - JUSTIFICATIVA ---
+      // O DA (default appearance) original do campo não traz operador Tf, então
+      // o pdf-lib não consegue autoajustar o tamanho da fonte sozinho (texto saía
+      // enorme). Fixamos a fonte manualmente em 9pt, que comporta os 700 caracteres
+      // dentro da caixa sem invadir a seção de diagnóstico. A quebra de linha é
+      // feita à mão (wrapTexto) porque o wrap automático do pdf-lib erra por
+      // poucos pixels no pior caso e deixa a última palavra vazar pela borda.
+      try {
+        const campoJustificativa = form.getTextField('justificativa_clinica');
+        campoJustificativa.acroField.setDefaultAppearance('/Helv 9 Tf 0 g');
+        const larguraCampo = 555.2756; // largura real do campo no PDF oficial (575.28 - 20)
+        const justificativaQuebrada = wrapTexto(fontR, 9, justificativa, larguraCampo - 16);
+        campoJustificativa.setText(justificativaQuebrada);
+      } catch (e) {
+        console.warn('[CMD Laudo] Falha ao preencher justificativa_clinica:', e);
+        setTexto(form, 'justificativa_clinica', justificativa);
+      }
+      if (diagnostico) setTexto(form, 'diagnostico_inicial', diagnostico);
+      if (cid) setTexto(form, 'cid', cid);
+      // Regra de negócio (herdada de Sete Lagoas): Clínica Solicitante sempre repete a Origem.
+      setTexto(form, 'clinica_solicitante', origem);
+      setTexto(form, 'procedimento_solicitado', procNome);
+      if (procCodigo) setTexto(form, 'codigo_procedimento', procCodigo);
+      setTexto(form, 'medico_solicitante', medicoNome);
+      setTexto(form, 'crm_solicitante', medicoCrm);
+      setTexto(form, 'cpf_medico', medicoCpf);
+
+      // Seção 04 (JUNTA DE AUTORIZAÇÃO DE LAUDOS) não é tocada — preenchida pela regulação.
+
+      form.updateFieldAppearances(fontR);
+      form.flatten();
+
+      const bytes = await pdfDoc.save();
+      const slug = nome.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60);
+      const filename = `LAUDO_CMD_${slug || 'PACIENTE'}.pdf`;
+      baixarPdf(bytes, filename);
+      toast('PDF gerado e baixado: ' + filename, 5000);
+    } catch (e) {
+      mostrarErro('Erro ao gerar PDF: ' + e.message);
+    } finally {
+      btn.textContent = original; btn.disabled = false;
+    }
+  }
+
+
+  /* ---- helpers de AcroForm, extraidos do original ----
+   * Escrevem num campo do formulario do PDF pelo NOME do campo. Se o
+   * campo nao existir (PDF trocado pela prefeitura, por exemplo), avisa
+   * no console e segue: um campo a menos e melhor do que um laudo que
+   * nao gera. */
+  function setTexto(form, nomeCampo, valor) {
+    try {
+      form.getTextField(nomeCampo).setText(valor || "");
+    } catch (e) {
+      console.warn("[CMD Laudo] Campo de texto nao encontrado no PDF:", nomeCampo, e);
+    }
+  }
+
+  function setCheckbox(form, nomeCampo, marcado) {
+    try {
+      var campo = form.getCheckBox(nomeCampo);
+      if (marcado) campo.check();
+      else campo.uncheck();
+    } catch (e) {
+      console.warn("[CMD Laudo] Checkbox nao encontrado no PDF:", nomeCampo, e);
+    }
+  }
+
+  /* O campo de justificativa do PDF oficial aceita 700 caracteres. O
+   * contador e o corte vivem aqui para o medico ver o limite antes de
+   * gerar, em vez de descobrir o texto truncado no PDF. */
+  var JUSTIFICATIVA_MAX = 700;
+
+  function atualizarContadorJustificativa() {
+    var campo = shadow.getElementById("cmd-justificativa");
+    if (!campo) return;
+    if (campo.value.length > JUSTIFICATIVA_MAX) campo.value = campo.value.slice(0, JUSTIFICATIVA_MAX);
+    shadow.getElementById("cmd-justificativa-contador").textContent =
+      campo.value.length + "/" + JUSTIFICATIVA_MAX;
+  }
+
+  /* ----------------------------------------------------------------
+   * UI
+   * ---------------------------------------------------------------- */
+  function montarMedicos() {
+    var sel = shadow.getElementById("cmd-medico-sel");
+    var ph = document.createElement("option");
+    ph.value = ""; ph.textContent = "Selecione…"; ph.selected = true; ph.disabled = true;
+    sel.appendChild(ph);
+    MEDICOS.forEach(function (m) {
+      var op = document.createElement("option");
+      op.value = m[0] + "|" + m[1];
+      op.textContent = m[0];
+      sel.appendChild(op);
+    });
+    var outro = document.createElement("option");
+    outro.value = "outro"; outro.textContent = "Outro médico…";
+    sel.appendChild(outro);
+    // Nao ha medico pre-selecionado: obrigatorio escolher a cada laudo.
+  }
+
+  function onMedicoChange() {
+    var sel = shadow.getElementById("cmd-medico-sel");
+    if (sel.value === "" || sel.value === "outro") {
+      shadow.getElementById("cmd-medico-nome").value = "";
+      shadow.getElementById("cmd-medico-crm").value = "";
+      shadow.getElementById("cmd-medico-cpf").value = "";
+      return;
+    }
+    var partes = sel.value.split("|");
+    var cadastro = MEDICOS.find(function (m) { return m[0] === partes[0] && m[1] === partes[1]; });
+    shadow.getElementById("cmd-medico-nome").value = partes[0];
+    shadow.getElementById("cmd-medico-crm").value = partes[1];
+    shadow.getElementById("cmd-medico-cpf").value = cadastro ? cadastro[2] : "";
+  }
+
+  function montarOrigens() {
+    var sel = shadow.getElementById("cmd-origem-sel");
+    ORIGENS.forEach(function (o) {
+      var op = document.createElement("option");
+      op.value = o; op.textContent = o;
+      sel.appendChild(op);
+    });
+    var outro = document.createElement("option");
+    outro.value = "outro"; outro.textContent = "Outra unidade…";
+    sel.appendChild(outro);
+    sel.addEventListener("change", function () {
+      shadow.getElementById("cmd-origem-outro-wrap").classList.toggle("show", sel.value === "outro");
+    });
+  }
+
+  function montarCidList() {
+    var dl = shadow.getElementById("cmd-cid-list");
+    Object.keys(CID_DIC).sort().forEach(function (cod) {
+      var o = document.createElement("option");
+      o.value = cod; o.label = cod + " — " + CID_DIC[cod]; o.textContent = CID_DIC[cod];
+      dl.appendChild(o);
+    });
+  }
+
+  function autoDescricaoCid() {
+    var campo = shadow.getElementById("cmd-cid");
+    var cid = campo.value.trim().toUpperCase();
+    if (campo.value !== cid) campo.value = cid;
+    var desc = shadow.getElementById("cmd-diagnostico");
+    if (CID_DIC[cid] && (!desc.value || desc.dataset.auto === "1")) {
+      desc.value = CID_DIC[cid]; desc.dataset.auto = "1";
+    } else if (desc.dataset.auto === "1" && !CID_DIC[cid]) {
+      desc.value = ""; desc.dataset.auto = "";
+    }
+  }
+
+  function montarProcList() {
+    var dl = shadow.getElementById("cmd-proc-list");
+    Object.keys(CATALOGO_PROCEDIMENTOS).forEach(function (k) {
+      var p = CATALOGO_PROCEDIMENTOS[k];
+      var o = document.createElement("option");
+      o.value = p.nome; o.label = p.nome + " (" + p.codigo + ")";
+      dl.appendChild(o);
+    });
+  }
+
+  /* Campo de procedimento e 100% livre: o medico digita qualquer nome.
+   * Se o texto bater exatamente (sem diferenciar caixa) com um
+   * procedimento conhecido, o codigo preenche sozinho — mas pode ser
+   * sobrescrito a qualquer momento, na mao. */
+  function autoPreencherCodigoProc() {
+    var nomeCampo = shadow.getElementById("cmd-proc-nome");
+    var codigoCampo = shadow.getElementById("cmd-proc-codigo");
+    var alvo = nomeCampo.value.trim().toLowerCase();
+    var achado = Object.keys(CATALOGO_PROCEDIMENTOS)
+      .map(function (k) { return CATALOGO_PROCEDIMENTOS[k]; })
+      .find(function (p) { return p.nome.toLowerCase() === alvo; });
+    if (achado && (!codigoCampo.value || codigoCampo.dataset.auto === "1")) {
+      codigoCampo.value = achado.codigo; codigoCampo.dataset.auto = "1";
+    } else if (!achado && codigoCampo.dataset.auto === "1") {
+      codigoCampo.value = ""; codigoCampo.dataset.auto = "";
+    }
+  }
+
+  function aplicarLeituraDaTela(dadosTela) {
+    if (!overlay || !dadosTela) return 0;
+    var n = 0;
+    if (dadosTela.nome) { shadow.getElementById("cmd-pac-nome").value = dadosTela.nome; n++; }
+    if (dadosTela.cpf) { shadow.getElementById("cmd-pac-cpf").value = formatarCpf(dadosTela.cpf); n++; }
+    if (dadosTela.nascimentoBR) { shadow.getElementById("cmd-pac-nasc").value = dadosTela.nascimentoBR; n++; }
+    if (dadosTela.sexo) { shadow.getElementById("cmd-pac-sexo").value = dadosTela.sexo === "F" ? "FEM" : "MASC"; n++; }
+    if (dadosTela.nomeDaMae) { shadow.getElementById("cmd-pac-mae").value = dadosTela.nomeDaMae; n++; }
+    if (dadosTela.telefone) { shadow.getElementById("cmd-pac-telefone").value = dadosTela.telefone; n++; }
+    return n;
+  }
+
+  /* Evita que dados clinicos (diagnostico, CID, justificativa,
+   * procedimento, medico) de um paciente vazem para o laudo de outro
+   * quando o medico troca de atendimento sem clicar em "Limpar" antes.
+   * Se o CPF lido da tela for diferente do que ja esta no formulario, o
+   * formulario inteiro e resetado antes de aplicar a nova leitura. */
+  function trocouDePaciente(dadosTela) {
+    var cpfTela = (dadosTela.cpf || "").replace(/\D/g, "");
+    var cpfForm = shadow.getElementById("cmd-pac-cpf").value.replace(/\D/g, "");
+    return !!cpfTela && !!cpfForm && cpfTela !== cpfForm;
+  }
+
+  function atualizarPaciente() {
+    var btn = shadow.getElementById("cmd-refresh");
+    var original = btn.textContent;
+    btn.textContent = "Atualizando…";
+    btn.disabled = true;
+    var dadosTela = d.dom.lerPaciente();
+    if (trocouDePaciente(dadosTela)) limparForm();
+    var n = aplicarLeituraDaTela(dadosTela);
+    var aviso = shadow.getElementById("cmd-auto-aviso");
+    aviso.style.display = "block";
+    aviso.textContent = n > 0
+      ? "Dados lidos da tela (" + n + " campo" + (n > 1 ? "s" : "") + "). Confira antes de gerar."
+      : "Não consegui ler os dados do paciente na tela. Preencha manualmente.";
+    toast(n > 0 ? "Paciente atualizado (" + n + " campo" + (n > 1 ? "s" : "") + ")." : "Nada encontrado na tela.", 3000);
+    btn.textContent = original;
+    btn.disabled = false;
+  }
+
+  function abrirModal() {
+    var dadosTela = d.dom.lerPaciente();
+    if (trocouDePaciente(dadosTela) || !shadow.getElementById("cmd-pac-cpf").value.trim()) limparForm();
+    aplicarLeituraDaTela(dadosTela);
+    overlay.abrir();
+  }
+
+  function limparForm() {
+    ["cmd-pac-nome","cmd-pac-cpf","cmd-pac-nasc","cmd-pac-mae","cmd-pac-telefone",
+     "cmd-diagnostico","cmd-cid","cmd-justificativa","cmd-origem-outro",
+     "cmd-proc-nome","cmd-proc-codigo"].forEach(function (id) { shadow.getElementById(id).value = ""; });
+    shadow.getElementById("cmd-pac-sexo").value = "";
+    shadow.getElementById("cmd-origem-sel").value = "";
+    shadow.getElementById("cmd-origem-outro-wrap").classList.remove("show");
+    shadow.getElementById("cmd-auto-aviso").style.display = "none";
+    atualizarContadorJustificativa();
+    // medico sempre volta vazio: selecao obrigatoria a cada laudo
+    shadow.getElementById("cmd-medico-sel").value = "";
+    onMedicoChange();
+    limparErro();
+  }
+
+  function montarUI() {
+    overlay = d.dock.criarOverlay({ estilo: CSS, html: HTML });
+    shadow.getElementById("cmd-refresh").addEventListener("click", atualizarPaciente);
+    shadow.getElementById("cmd-close").addEventListener("click", overlay.fechar);
+    shadow.getElementById("cmd-gerar").addEventListener("click", gerarPdf);
+    shadow.getElementById("cmd-limpar").addEventListener("click", limparForm);
+    shadow.getElementById("cmd-proc-nome").addEventListener("input", autoPreencherCodigoProc);
+    shadow.getElementById("cmd-medico-sel").addEventListener("change", onMedicoChange);
+    shadow.getElementById("cmd-cid").addEventListener("input", autoDescricaoCid);
+    shadow.getElementById("cmd-justificativa").addEventListener("input", atualizarContadorJustificativa);
+    ativarMascaraData(shadow.getElementById("cmd-pac-nasc"));
+    montarOrigens(); montarProcList(); montarMedicos(); montarCidList();
+  }
+
+  /* ----------------------------------------------------------------
+   * CONTRATO DE MODULO
+   * ---------------------------------------------------------------- */
+  raiz.MeedsSuite.registerModule({
+    id: "cmd",
+    nome: "Laudo — Conceição do Mato Dentro",
+    descricao: "Preenche o LAUDO MÉDICO DE ALTO CUSTO oficial de Conceição do Mato Dentro usando os campos reais do formulário PDF (AcroForm).",
+    versao: "2.0.0",
+    configPadrao: {},
+
+    botao: {
+      icone: "📄",
+      rotulo: "Laudo - CMD",
+      titulo: "Laudo — Conceição do Mato Dentro",
+      prioridade: 40,
+    },
+
+    // Este modulo nao precisa ouvir a rede: le tudo da tela do
+    // atendimento. Fica sem assinaturasRede de proposito.
+    assinaturasRede: [],
+
+    start: function (deps) {
+      d = deps;
+      montarUI();
+      deps.aoClicarBotao(abrirModal);
+    },
+
+    stop: function () {
+      timers.forEach(clearInterval);
+      timers = [];
+      if (overlay) { overlay.remover(); overlay = null; }
+      d = null;
+    },
+  });
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== modules/remume/assets/fallback.js ===== */
+/* modules/remume/assets/fallback.js — GERADO AUTOMATICAMENTE
+ * NAO EDITE A MAO. Edite modules/remume/remumes.json e rode:
+ *   node scripts/sync-fallback.js
+ *
+ * Copia embutida das REMUMEs, usada SO quando a busca remota do
+ * remumes.json falha (sem internet, dominio bloqueado, CSP). Em uso
+ * normal o conteudo e substituido pela versao remota assim que a
+ * pagina do Meeds carrega.
+ */
+(function (raiz) {
+  "use strict";
+  raiz.MEEDS_REMUMES_FALLBACK = {
+    "_meta": {
+      "atualizadoEm": "25/08/2026"
+    },
+    "Macaé": [
+      "Abacavir (ABC) 300mg, comprimido revestido (Local de acesso: IST)",
+      "Abacavir (ABC) Solução Oral 20mg/ml (Local de acesso: IST)",
+      "Acetazolamida 250mg comprimido (Local de acesso: HPM, HPMS, EMERG)",
+      "Acetilcisteína 100 mg/ml (10%) solução injetável ampola 3ml (Local de acesso: HPM)",
+      "Acetilcisteína 600mg granulado sachê/envelope 5 (Local de acesso: EMERG, HPM, HPMS)",
+      "Aciclovir 10g 50mg/g (5%) creme dermatológico bisnaga (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Aciclovir 200 mg comprimido (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Aciclovir, sódico 250mg pó liofilizado para solução injetável f/a 20ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Adenosina 3mg/ml solução injetável ampola 2ml (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Albendazol 400mg comprimido mastigável (Local de acesso: HPM, HPMS, UBS, IST, FM, Dispensário)",
+      "Albendazol 40mg/ml suspensão oral frasco 10ml (Local de acesso: HPM, HPMS, UBS, IST, FM, Dispensário)",
+      "Albumina Humana 200mg/ml (20%) solução injetável frasco 50ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Alcachofra (Cynara scolymus L .) 300mg cápsulas (Local de acesso: FM)",
+      "Alendronato De Sódio 70mg comprimido (Local de acesso: FM, Dispensário)",
+      "Alfaepoetina 4.000UI injetável frasco ampola 1ml (Local de acesso: HPM, EMERG)",
+      "Alfapeginterferona 2A 180 mcg (Local de acesso: FMC)",
+      "Alfaporactanto 80MG/ML suspensão injetável frasco ampola 3ml (alfa Poractante/ Surfactante Pulmonar) (Local de acesso: HPM)",
+      "Alfentanila, cloridrato 0,544mg/ml (544mcg/ml) solução injetável ampola 5ml (port.nº 344/98 Lista A1) (Local de acesso: HPM)",
+      "Algestona Acetofenida 150 Mg/ml + Enantato De Estradiol 10 Mg/ml (Local de acesso: IST, FM, Dispensário)",
+      "Alopurinol 100mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Alprazolam 0,5mg comprimido (Portaria nº344/98 - Lista B1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Alprazolam 1mg comprimido (Portaria nº344/98 - Lista B1) (Local de acesso: HPM, EMERG, FM)",
+      "Alprostadil 20mcg pó liofilizado para solução injetável ampola (Local de acesso: HPM)",
+      "Alprostadil 500mcg/ml solução injetável ampola 1ml (Local de acesso: HPM)",
+      "Alteplase 10mg pó liofilizado p/sol.inj f/a + diluente 50ml + canul trans (Local de acesso: HPM, EMERG)",
+      "Alteplase 50mg pó liofilizado p/sol.inj f/a + diluente 50ml + canul trans (Local de acesso: HPM, HPMS, EMERG)",
+      "AMBROXOL,cloridrato 3mg/ml (15mg/5ml) xarope infantil frasco 100/120ml + copo medida (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "AMBROXOL,cloridrato 6mg/ml (30mg/5ml) xarope adulto frasco 100/120ml + copo medida (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Amicacina, 2ml sulfato 250mg/ml solução injetável ampola (Local de acesso: HPM, HPMS, EMERG)",
+      "Aminofilina 24 mg/ml solução injetável ampola 10ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Amiodarona, cloridrato 150mg ou 50mg/ml solução injetável ampola 3ml (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Amiodarona, cloridrato 200mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Amitriptilina, cloridrato 25mg comprimido revestido (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Amoxicilina 1g + Clavulanato 200mg pó para solução injetável f/a 10ml + diluente (Local de acesso: HPM, HPMS, EMERG)",
+      "Amoxicilina 250mg/5ml (50mg/ml) pó susp.oral frasco 60ml + copo medida/ser dos (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Amoxicilina 500mg + Clavulanato 125mg comprimido revestido (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Amoxicilina 500mg cápsula gelatinosa dura (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Amoxicilina 50mg/ml + Clavulanato De Potássio 12,5mg/ml - pó para suspensão oral 75-100ml (250mg + 62,5mg/5ml) + copo medida (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Ampicilina 1g pó liof para solução injetável f/a + ampola diluente 3-5ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Ampicilina, sódica + Sulbactam, sódico 3G (2,0/1,0G), pó para solução injetável Iv f/a (Local de acesso: HPM)",
+      "Anfotericina B 50mg pó liofilizado para solução injetável frasco ampola (Local de acesso: HPM)",
+      "Anlodipino, besilato 5mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Arteméter + Lumefantrina 20 mg + 120 mg comprimido (Local de acesso: HPM)",
+      "Artesunato + Cloridrato De Mefloquina 100 mg + 220mg comprimido (Local de acesso: HPM)",
+      "Artesunato + Cloridrato De Mefloquina 25 mg + 55 mg comprimido (Local de acesso: HPM)",
+      "Artesunato De Sódio 60 mg/mL pó para solução injetável (Local de acesso: HPM)",
+      "Atazanavir (ATV) 300mg, cápsula gelatinosa (Local de acesso: IST)",
+      "Atenolol 25mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Atenolol 50 mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Atracúrio, 5ml besilato 10mg/ml solução injetável ampola (Local de acesso: HPM, HPMS)",
+      "Atropina, 1ml sulfato 0,25mg/ml solução injetável ampola (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Atropina, sulfato 10mg/ml ( 1%) solução oftálmica frasco 5ml (Local de acesso: HPM)",
+      "Azatioprina 50mg comprimido revestido (Local de acesso: HPM)",
+      "Azitromicina 500mg comprimido revestido (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Azitromicina 600mg (40mg/ml ou 200mg/5ml) pó para susp oral frasco 15ml + seringa dosadora (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Babosa (Aloe vera(L.) Burm.f .) 3% creme bisnaga 50g (Local de acesso: FM)",
+      "Baclofeno 10mg comprimido (Local de acesso: HPM)",
+      "Beclometasona, dipropionato 200 mcg/dose sol.aerosol spray + dispositivo oral / frasco 200 doses (Local de acesso: HPM, HPMS, EMERG, UBS, FM, Dispensário)",
+      "Beclometasona, dipropionato 50 mcg/dose sol.aerosol + dispositivo oral / frasco 200 doses (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Benzilpenicilina Benzatina 1.200.000 Ui pó para suspensão injetável f/a + diluente 4ml ou 300.000 UI/ml susp injetável f/a 4ml (Local de acesso: HPM, HPMS, EMERG, IST)",
+      "Benzilpenicilina Benzatina 600.000 Ui pó para suspensão injetável f/a + diluente 4ml ou 150.000 UI/ml susp injetável f/a 4ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Benzilpenicilina Potássica 5.000.000 Ui pó para solução injetável f/a (Local de acesso: HPM, HPMS, EMERG)",
+      "Benzilpenicilina Procaína 300.000UI + Benzilp. Potássica 100.000UI (400.000 Ui) pó para suspensão injetável f/a + diluente (Local de acesso: HPM, HPMS, EMERG)",
+      "Betametasona, acetato 3mg/ml + Betametasona, fosfato dissodico 3mg/ml suspensão injetável ampola 1ml (Local de acesso: HPM)",
+      "Bicarbonato De Sódio 84mg/ml (8,4%) solução injetável ampola 10ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Bicarbonato De Sódio 84mg/ml (8,4%) solução injetável bolsa/ frasco sistema fechado 250ml (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Biperideno, cloridrato 2mg comprimido (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Bisacodil 5mg comprimido revestido (Local de acesso: HPM, HPMS, EMERG, FMC)",
+      "Bromazepam 3mg comprimido (port.nº 344/98 Lista B1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Bromazepam 6mg comprimido (port.nº 344/98 Lista B1) (Local de acesso: HPM, HPMS, FM)",
+      "Bromoprida 4mg/ml solução oral frasco 20ml (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Bromoprida 5mg/ml solução injetável ampola 2ml (Local de acesso: HPM, HPMS, EMERG, CEM)",
+      "Budesonida 200 doses 50mcg/dose sus/aerossol nasal frasco (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Bupivacaína, cloridrato 5mg/ml (0,5% ou 0,50 Pcc) + Glicose 80mg/ml solução injetável ampola 4ml (Local de acesso: HPM, HPMS)",
+      "Bupivacaína, cloridrato 5mg/ml (0,5% ou 0,50 Pcc) solução injetável ampola 4ml (Local de acesso: HPM, HPMS)",
+      "Bupivacaína, cloridrato 5mg/ml (0,5% ou 0,50 Pcc) solução injetável frasco ampola 20ml (Local de acesso: HPM, HPMS)",
+      "Bupivacaína, cloridrato 5mg/ml (0,5% ou 0,50 Pcc) solução injetável frasco ampola 20ml - Com Vasoconstritor/ Hemitartarato de Epinefrina (Local de acesso: HPM, HPMS)",
+      "Bupropiona 150mg comprimido (port.nº 344/98 Lista C1) (Local de acesso: FMC)",
+      "Cabergolina 0,5mg comprimido (Local de acesso: HPM, IST)",
+      "Cafeína, citrato 20 mg/ml solução injetável ampola 1ml (Local de acesso: HPM)",
+      "Cal Sodada em galão de 4,3 Kg (Local de acesso: HPM, HPMS)",
+      "Captopril 25mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário, Maleta)",
+      "Carbamazepina 200mg comprimido (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Carbamazepina 20mg/ml suspensão oral frasco 100ml + copo medida (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Carbonato De Cálcio 500mg comprimido revestido (1.250mg equivalente a 500mg de cálcio) (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Carbonato De Cálcio 600mg + Colecalciferol 400UI comprimido revestido (Local de acesso: FM, Dispensário)",
+      "Carbonato De Lítio 300mg comprimido (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Carvedilol 25mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Carvedilol 3,125 comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Carvedilol 6,25mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Carvão Vegetal Ativado 250mg cápsulas ou comprimido (Local de acesso: HPM, HPMS, EMERG)",
+      "Cefalexina 250mg/5ml (50mg/ml) pó para susp.oral frasco 60ml + copo/ser dosador (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Cefalexina 500mg cápsula ou comprimido revestido (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Cefazolina, ampola sódica 1G pó para solução injetável frasco (Local de acesso: HPM, HPMS)",
+      "Cefepima, cloridrato 1 G pó para solução injetável Iv F/a + diluente (Local de acesso: HPM, HPMS, EMERG)",
+      "Ceftazidima 1 G pó para solução injetável Im/iv f/a \\+ diluente 10ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Ceftriaxona 1 G pó para solução injetável Im f/a + ampola diluente (lidocaína 1%) (Local de acesso: HPM, HPMS, EMERG, UBS)",
+      "Ceftriaxona 1 G pó para solução injetável Iv f/a + diluente 10ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Cefuroxima sódica 750mg pó para solução injetável (Local de acesso: HPM)",
+      "Cetoconazol 2% (20mg/ml) shampoo frasco 100ml (Local de acesso: IST, FM, Dispensário)",
+      "Cetoconazol 200mg comprimido (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Cetoconazol bisnaga 30g 2% (20mg/g) creme dermatológico (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Cetoprofeno 100mg pó para solução injetável Iv f/a (Local de acesso: HPM, HPMS, EMERG)",
+      "Cetoprofeno 2ml 50mg/ml solução injetável Im ampola (Local de acesso: HPM, HPMS, EMERG)",
+      "Ciclopentolato, cloridrato 10mg/ml solução oftálmica frasco 5ml (port.nº 344/98 Lista C1) (Local de acesso: HPM, CEM)",
+      "Cilostazol 100mg comprimido (Local de acesso: HPM, HPMS, EMERG)",
+      "Cinarizina 25mg comprimido (Local de acesso: FM, Dispensário)",
+      "Cinarizina 75mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Ciprofibrato 100mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Ciprofloxacino, cloridrato 2mg/ml (0,2%) solução injetável Iv frasco/bolsa sistema fechado 100ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Ciprofloxacino, cloridrato 500mg comprimido revestido (Local de acesso: HPM, HPMS, EMERG, FM, UBS, Dispensário)",
+      "Cisatracúrio, besilato 2mg/ml solução injetável ampola 5ml (Local de acesso: HPM, HPMS)",
+      "Claritromicina 500mg comprimido revestido (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Claritromicina 50mg/ml gran p/suspensão oral frasco 60ml + seringa dosadora (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Claritromicina pó liof para solução injetável f/a 500mg (Local de acesso: HPM, HPMS, EMERG)",
+      "Clindamicina 150mg/ml solução injetável ampola 4ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Clindamicina, cloridrato 300 mg cápsula gel dura (Local de acesso: HPM, HPMS, EMERG UBS, IST, FM, Dispensário)",
+      "Clobazam 10mg comprimido (port.nº 344/98 Lista B1). (Local de acesso: HPM)",
+      "Clofazimina 100 mg cápsula (Local de acesso: PROG.CESAF)",
+      "Clofazimina 50 mg cápsula (Local de acesso: PROG.CESAF)",
+      "Clomipramina, cloridrato 25mg drágea ou comprimido revestido (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Clonazepam 0,5mg comprimido (port.nº 344/98 Lista B1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Clonazepam 2,5 mg/ml solução oral frasco 20ml (port.nº 344/98 Lista B1) (Local de acesso: FM)",
+      "Clonazepam 2mg comprimido (port.nº 344/98 Lista B1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Clonidina, cloridrato 150mcg/ml (0,15mg/ml) solução injetável ampola 1ml (Local de acesso: HPM)",
+      "Clopidogrel, bissulfato 75mg comprimido revestido (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Cloreto De Potássio 10% solução injetável ampola 10ml (1,3mEq/ml, 100mg/ml, 10g/100ml ou 1g/10ml) (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Cloreto De Potássio 60 mg/ml (6%) xarope frasco/ solução oral frasco 150ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Cloreto De Sódio 0,9% solução injetável ampola plástica 10ml (0,009g/ml, 9mg/ml) (Local de acesso: HPM, HPMS, EMERG)",
+      "Cloreto De Sódio 0,9% solução injetável bolsa plástica sistema fechado 1000ml (0,009g/ml ou 9mg/ml) (Local de acesso: HPM)",
+      "Cloreto De Sódio 0,9% solução injetável bolsa plástica sistema fechado 100ml (0,009g/ml ou 9mg/ml) (Local de acesso: HPM, HPMS, EMERG)",
+      "Cloreto De Sódio 0,9% solução injetável bolsa plástica sistema fechado 250ml (0,009g/ml ou 9mg/ml) (Local de acesso: HPM, HPMS, EMERG, UBS)",
+      "Cloreto De Sódio 0,9%solução injetável bolsa plástica sistema fechado 500ml (0,009g/ml ou 9mg/ml) (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Cloreto De Sódio 20% solução injetável ampola plástica 10ml (200mg/ml) (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Cloreto De Sódio; Hetamido 6% (Amido Hidroxietílico) 60 mg/ml solução injetável Iv bolsa Plástica Sistema Fechado 500ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Cloreto Férrico 50% - gel, bisnaga 10g (Local de acesso: CEM)",
+      "Clorexidina, diclonato/gliconato 0,12% solução bucal frasco 250ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Clorexidina, digliconato/gliconato 0,2% solução aquosa frasco 100ml (Local de acesso: HPM)",
+      "Clorexidina, digliconato/gliconato 0,5% solução alcoólica frasco 100ml (Local de acesso: HPM, HPMS, EMERG, CEM, UBS)",
+      "Clorexidina, digliconato/gliconato degermante frasco 100ml 4% solução (Local de acesso: HPM, HPMS, EMERG, CEM, UBS)",
+      "Cloroquina 150 mg comprimido (Local de acesso: HPM)",
+      "Clorpromazina, cloridrato 100mg comprimido (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Clorpromazina, cloridrato 25mg comprimido (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Clorpromazina, cloridrato 40mg/ml solução oral frasco 20ml (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Clorpromazina, cloridrato 5mg/ml solução injetável ampola 5ml (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG)",
+      "Colagenase 0,6 U/g + Cloranfenicol 0,01 g/g pomada dermatológica bisnaga 30g + espátula plas (Local de acesso: HPM, HPMS, EMERG, CEM, UBS, IST, FM, Dispensário)",
+      "Colagenase 0,6 U/g pomada dermatológica bisnaga 30g + espátula plas (Local de acesso: HPM, HPMS, EMERG, CEM, UBS, IST, FM, Dispensário)",
+      "Colistimetato De Sódio 150 mg pó liofilizado para solução injetável Iv frasco ampola (Local de acesso: HPM)",
+      "Corante Lugol Forte 5% - solução líquida, frasco 1000ml (Local de acesso: CEM)",
+      "Daclatasvir 60 mg comprimido (Local de acesso: FMC)",
+      "Dantroleno Sódico 20mg pó liofilizado para uso intravenoso frasco ampola + diluente frasco ampola 60ml (apresentação única - caixa com 12F/A) (Local de acesso: HPM)",
+      "Darunavir (DRV) 150mg, comprimido revestido (Local de acesso: IST)",
+      "Darunavir (DRV) 600mg, comprimido revestido (Local de acesso: IST)",
+      "Darunavir (DRV) 75mg, comprimido revestido (Local de acesso: IST)",
+      "Deslanosídeo 0,2mg/ml solução injetável ampola 2ml (Local de acesso: HPM, HPMS, EMERG)",
+      "DESMOPRESSINA,acetato 4mcg/ml solução injetável ampola 1ml (Local de acesso: HPM)",
+      "Dexametasona 1 mg/ml (0,1%) suspensão oftálmica frasco 5ml (Local de acesso: HPM, FM)",
+      "Dexametasona 4 mg/ml solução injetável frasco ampola 2,5ml (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Dexametasona 4mg comprimido (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Dexametasona bisnaga 10g 1mg/g (1%) creme dermatológico (Local de acesso: HPM, HPMS, EMERG, USB, IST, FM, Dispensário)",
+      "Dexclorfeniramina, maleato 2mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, UBS, Dispensário)",
+      "Dexclorfeniramina, maleato 2mg/5ml ou 0,4mg/ml solução oral 100ml/120ml + copo medida (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Dexmedetomidina, cloridrato 100mcg/ml solução injetável ampola 2ml (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS)",
+      "Dextrocetamina/escetamina 50 mg/mL solução injetável ampola 2ml (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG)",
+      "Diazepam 10mg comprimido (port.nº 344/98 Lista B1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Diazepam 5mg comprimido (port.nº 344/98 Lista B1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Diazepam 5mg/ml solução injetável ampola 2ml (port.nº 344/98 Lista B1) (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Diclofenaco Potássico 50mg comprimido revestido ou drágea (Local de acesso: HPM, HPMS, EMERG, USB, IST, FM, Dispensário)",
+      "Digoxina 0,25mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Diltiazem, cloridrato 30mg comprimido (Local de acesso: HPM, HPMS, EMERG)",
+      "Diosmina 450 mg + Hesperidina 50mg comprimido revestido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Dipirona sódica 500mg comprimido (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Dipirona sódica 500mg/ml solução injetável ampola 2ml (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Dipirona sódica 500mg/ml solução oral frasco 10ml (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Dispositivo Intrauterino Plástico Com Cobre (DIU) unidade, modelo T 380 mm2 (Local de acesso: CEM)",
+      "DOBUTAMINA,cloridrato injetável 12,5mg/ml (250mg) solução ampola 20ml (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Dolutegravir (DTG) 50mg, comprimido revestido (Local de acesso: HPM, HPMS, EMERG, IST)",
+      "Domperidona + dosador 1mg/ml suspensão oral frasco 100ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Domperidona 10mg comprimido (Local de acesso: HPM, HPMS, EMERG)",
+      "Dopamina, 10ml cloridrato 5mg/ml solução injetável ampola (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Doxiciclina 100mg comprimido revestido ou drágea (Local de acesso: HPM, HPMS, EMERG, USB, IST, FM)",
+      "Efavirenz (EFZ) 200mg, cápsula gelatinosa dura (Local de acesso: IST)",
+      "Efavirenz (EFZ) 600mg, comprimido revestido (Local de acesso: IST)",
+      "Efavirenz (EFZ) Solução Oral 30mg/ml (Local de acesso: IST)",
+      "Efedrina, sulfato 50mg/ml solução injetável ampola 1ml (port.nº 344/98 Lista D1) (Local de acesso: HPM)",
+      "Enalapril, maleato 10mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Enalapril, maleato 20mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Enfuvirtida 90mg/ml (T-20) (Local de acesso: IST)",
+      "Enoxaparina sódica 20mg/0,2ml solução injetável seringa pré-enchida x 0,2ml (SC/IV) (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Enoxaparina sódica 40mg/0,4ml solução injetável seringa pré-enchida x 0,4ml (sc/iv). (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Enoxaparina sódica 60mg/0,6ml solução injetável seringa pré enchida x 0,6ml (SC/IV) (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Entecavir 0,5 mg comprimido (Local de acesso: FMC)",
+      "Epinefrina, cloridrato ou hemitartarato 1mg/ml solução injetável ampola 1ml (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Esmolol, 10ml cloridrato 250mg/ml solução injetável ampola (Local de acesso: HPM)",
+      "Esmolol, cloridrato 10mg/ml solução injetável frasco ampola 10ml (Local de acesso: HPM)",
+      "Espinheira-santa cápsulas (Maytenus officinalis Mabb .) 350mg (Local de acesso: FM)",
+      "Espiramicina revestido 500mg Ou 1,5 Mui comprimido (Local de acesso: HPM, HPMS, EMERG, IST, FMC)",
+      "Espironolactona 100mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Espironolactona 25mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Estriol 1mg/g creme vaginal bisnaga 50g + aplicador (Local de acesso: FM, Dispensário)",
+      "Etambutol 400 mg comprimido (Local de acesso: PROG.CESAF)",
+      "Etilefrina, cloridrato 10mg/ml solução injetável ampola 1ml (Local de acesso: HPM, HPMS, CEM)",
+      "Etomidato 2mg/ml solução injetável ampola 10ml (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG)",
+      "Etravirina (ETR) 100mg, comprimido revestido (Local de acesso: IST)",
+      "Etravirina (ETR) 200mg, comprimido revestido (Local de acesso: IST)",
+      "Fenilefrina, 5ml cloridrato 10% solução oftálmica frasco (Local de acesso: HPM)",
+      "Fenitoína, sódica 100mg comprimido (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Fenitoína, sódica 50mg/ml solução injetável ampola 5ml (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Fenobarbital 100mg comprimido (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Fenobarbital 100mg/ml solução injetável ampola 2ml ou 200mg/ml solução injetável ampola 1ml Im/iv - (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Fenobarbital 40mg/ml (4%) solução oral frasco 20ml (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Fentanila, citrato 0,0785mg/ml + Droperidol 2,50mg/ml solução injetável ampola 2ml (port.nº 344/98 Lista A1) (Local de acesso: HPM, Maleta)",
+      "Fentanila, citrato 50mcg/ml ou 0,050mg/ml solução injetável ampola 10ml (port.nº 344/98 Lista A1) (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Fentanila, Citrato 50mcg/ml ou 0,050mg/ml solução injetável ampola 2ml (port.nº 344/98 Lista A1) (Local de acesso: HPM, HPMS)",
+      "Filgrastim 1ml 300mcg/ml solução injetável frasco ampola (Local de acesso: HPM)",
+      "Fitomenadiona 10mg/ml solução injetável ampola 1ml (Local de acesso: EMERG, HPM, HPMS)",
+      "Fluconazol 150mg cápsula gel dura (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Fluconazol 2 mg/ml solução injetável bolsa plást./sistema fechado 100ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Flumazenil 0,1mg/ml (0,5mg/5ml) solução injetável ampola 5ml (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Fluoresceína Sódica 10mg/ml solução oftálmica frasco 3ml (Local de acesso: HPM, CEM)",
+      "Fluoxetina, cloridrato 20mg cápsula ou comprimido revestido (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Formol 10% frasco 1000ml (Local de acesso: HPM, HPMS)",
+      "Formoterol 6mcg + Budesonida 200mcg / dose aerosol oral 120 doses. Características Adicionais: Com frasco inalador (Local de acesso: HPM)",
+      "Furosemida 10 mg/ml solução injetável ampola 2ml (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Furosemida 40 mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Ganciclovir 1mg/mL sol. bolsa 500ml (Local de acesso: HPM)",
+      "Garra-do-diabo cápsulas (Harpagophytum procumbens ) 200mg (Local de acesso: FM)",
+      "Gentamicina, sulfato 80mg (ou 80mg/2ml ou 40mg/ml) solução injetável ampola 2ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Glecaprevir 100 mg + Pibrentasvir 400 mg comprimido revestido (Local de acesso: FMC)",
+      "Glibenclamida 5 mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Glicerol 120mg/ml ou 12% solução retal/enema frasco 500ml (glicerina Clister) (Local de acesso: HPM, HPMS, EMERG)",
+      "Glicina 15 mg/ml sol irrig urol cx bols pvc x 3000 ml (Local de acesso: HPM)",
+      "Gliclazida Mr 30mg comprimido de liberação controlada (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Gliclazida Mr 60mg comprimido de liberação controlada (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Gliconato De Cálcio 100mg/ml (10%) solução injetável ampola 10ml (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Glicose Hipertônica 25% (250mg/ml) solução injetável ampola plástica 10ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Glicose Hipertônica 50% (500mg/ml) solução injetável ampola plástica 10ml (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Glicose Isotônica 10% (100mg/ml) solução injetável bolsa/frasco sistema fechado 250ml (Local de acesso: HPM)",
+      "Glicose Isotônica 5% (50mg/ml) solução injetável bolsa/frasco sistema fechado 250ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Glicose Isotônica 5% (50mg/ml) solução injetável bolsa/frasco sistema fechado 500ml (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Glicosímetro Capilar Para Medida De Glicemia, unidade (Local de acesso: CEM, EMERG, FM, HPM, HPMS, UBS)",
+      "Guaco (Mikania glomerata) xarope 5% frasco 100ml (Local de acesso: FM)",
+      "Haloperidol 1mg comprimido (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Haloperidol 2mg/ml solução oral frasco 20-30ml (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Haloperidol 5mg comprimido (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Haloperidol 5mg/ml solução injetável ampola 1ml (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Haloperidol, decanoato 50mg/ml solução injetável ampola 1ml (port.nº 344/98 Lista C1) (Local de acesso: FM)",
+      "Heparina 5ml Sódica 5.000 UI/ml solução injetável f/a (Local de acesso: HPM)",
+      "Heparina Sódica 5.000 UI/0,25ml solução injetável ampola 0,25ml subcutânea (Local de acesso: HPM, HPMS, EMERG)",
+      "Hidralazina, cloridrato 20mg/ml solução injetável ampola 1ml (Local de acesso: HPM, Maleta)",
+      "Hidralazina, cloridrato 25mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Hidroclorotiazida 25 mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Hidrocortisona, acetato 10mg/g (1%) creme dermatológico bisnaga 15-25g (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Hidrocortisona, succinato sódico 100 mg pó liofilizado p/solução injetável f/a 2ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Hidrocortisona, succinato sódico 500 mg pó liofilizado p/solução injetável f/a 4ml (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Hidroxiuréia 500mg cápsula gelatinosa dura (Local de acesso: HPM)",
+      "Hidróxido De Alumínio 61,5mg/ml suspensão oral frasco 150-240ml (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Hipromelose 3mg/ml (0,3%) + Dextrana 70 1,0mg/ml (0,1%) solução oftálmica frasco 15ml (Local de acesso: Dispensário, FM, HPM)",
+      "Ibuprofeno 300mg comprimido (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Ibuprofeno 50 mg/ml suspensão oral frasco 30ml (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Imipeném monohidratado 500mg + Cilastatina sódica 500mg monovial pó para sol.injetável (Local de acesso: EMERG, HPM, HPMS)",
+      "Imipramina, cloridrato 25mg drágea ou comprimido revestido (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Imunoglobulina Anti-rho(d) 300mcg solução injetável frasco ampola 2ml ou 150mcg/ml solução injetável seringa de 2ml (Local de acesso: HPM)",
+      "Imunoglobulina Humana 5,0g solução injetável frasco ampola 100ml ou Imunoglobulina Humana Normal 50mg/ml solução injetável f/a 100ml (Local de acesso: HPM)",
+      "Imunoglobulina Humana Anti-hepatite B 1000 Ui/ 5 ml solução injetável (Local de acesso: FMC)",
+      "Insulina Humana injetável Nph 100UI/ml suspensão f/a 10ml (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Insulina Humana injetável Regular 100UI/ml solução f/a 10ml (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Insulina Humana Nph 100 UI/ml suspensão injetável com sistema de aplicação 3ml (Local de acesso: FM)",
+      "Insulina Humana Regular 100UI/ml solução injetável com sistema de aplicação 3ml (Local de acesso: FM)",
+      "Iodo Povidona 2,5% solução oftálmica frasco 5/10mL (Colírio Pvpi) (Local de acesso: HPM)",
+      "Isoflavona-de-soja cápsulas (Glycine max.(L.) Merr. ) 150mg (Local de acesso: FM)",
+      "Isoniazida 100 mg comprimido (Local de acesso: PROG.CESAF)",
+      "Isoniazida 300 mg comprimido (Local de acesso: PROG.CESAF)",
+      "Isossorbida, dinitrato ou mononitrato 20mg comprimido sub- lingual (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Isossorbida, dinitrato ou mononitrato 5mg comprimido sub- lingual (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário, Maleta)",
+      "Isoxsuprina, cloridrato 5mg/ml solução injetável ampola 2ml (Local de acesso: HPM)",
+      "Itraconazol 100mg cápsula gelatinosa dura (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Ivermectina 6mg comprimido (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Lactulose medida 667mg/ml xarope frasco 120ml + copo (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Lamivudina (3TC) 150mg, comprimido revestido (Local de acesso: IST)",
+      "Lamivudina (3TC) Solução Oral 10mg/ml (Local de acesso: IST)",
+      "Lancetas Para Punção Digital, unidade (Local de acesso: CEM, EMERG, FM, HPM, HPMS, UBS)",
+      "Levetiracetam 100mg comprimido (port.nº 344/98 Lista C1) (Local de acesso: HPM)",
+      "Levetiracetam 100mg/ml suspensão oral frasco 100ml (port.nº 344/98 Lista C1) (Local de acesso: HPM)",
+      "Levodopa 100mg + Benserazida, cloridrato 25mg comprimido dispersível (Local de acesso: HPM, FM)",
+      "Levodopa 200mg + Benserazida, cloridrato 50mg comprimido (Local de acesso: HPM, FM)",
+      "Levofloxacino 500mg comprimido (Local de acesso: HPM, HPMS, EMERG, IST)",
+      "Levofloxacino 5mg/ml solução injetável Iv bolsa/frasco sistema fechado 100ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Levomepromazina, maleato 100mg comprimido revestido (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Levomepromazina, maleato 25mg comprimido revestido (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Levonorgestrel 0,15mg + Etinilestradiol 0,03mg comprimido ou drágea (Local de acesso: IST, FM, Dispensário)",
+      "Levonorgestrel 0,75mg comprimido (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Levotiroxina sódica 100mcg comprimido (Local de acesso: HPM, HPMS, FM, Dispensário)",
+      "Levotiroxina sódica 25mcg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Levotiroxina sódica 50mcg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Lidocaína, 30g cloridrato 20mg/g (2%) gel tópico bisnaga (Local de acesso: HPM, HPMS, EMERG, CEM, UBS, IST, FM, Dispensário)",
+      "Lidocaína, cloridrato 100mg/ml (10%) solução tópica spray/aerossol 50ml (Local de acesso: HPM, HPMS, CEM, UBS)",
+      "Lidocaína, cloridrato 20mg/ml (2%) + Epinefrina, hemitartarato solução injetável frasco ampola 20ml (Local de acesso: HPM, CEM)",
+      "Lidocaína, cloridrato 20mg/ml (2%) solução injetável ampola 5ml - Sem Vasoconstritor (Local de acesso: HPM, HPMS, EMERG, CEM, Maleta)",
+      "Lidocaína, cloridrato 20mg/ml (2%) solução injetável frasco ampola 20ml - Sem Vasoconstritor (Local de acesso: HPM, Maleta)",
+      "Linezolida 2mg/ml solução injetável infus. bolsa sistema fechado 300ml (Local de acesso: HPM)",
+      "Loperamida, cloridrato 2MG comprimido (Local de acesso: HPM)",
+      "Lopinavir + Ritonavir (LPV/R) 100mg + 25mg, comprimido revestido (Local de acesso: IST)",
+      "Lopinavir 20mg/ml + Ritonavir (LPV/R) 80mg/ml (Local de acesso: IST)",
+      "Loratadina 10mg comprimido (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Loratadina 1mg/ml xarope 100ml + copo medida (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Lorazepam 2mg comprimido (Portaria nº344/98 - Lista B1) (Local de acesso: HPM)",
+      "Losartana potássica 50mg comprimido revestido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Manitol 200mg/ml (0,2g/ml ou 20%) solução injetável Iv bolsa/frasco sistema fechado 250 ml (Local de acesso: HPM, HPMS, EMERG, FMC)",
+      "Maraviroque (MVQ) 150mg, comprimido revestido (Local de acesso: IST)",
+      "Medicamentos Homeopáticos Conforme Farmacopeia Homeopática Brasileira 3ª Edição (Local de acesso: FM, FMC)",
+      "Medroxiprogesterona, comprimido acetato de 10mg (Local de acesso: FM, IST, Dispensário)",
+      "Medroxiprogesterona, suspensão injetável f/a 1ml acetato 150mg/ml (Local de acesso: FM, UBS, IST, Dispensário)",
+      "Meio De Contraste De Baixa Osmolaridade Não Iônico frasco 500ml (iobitridol 300mg/ml solução injetável frasco 500ml) (Local de acesso: HPM)",
+      "Meropeném pó para solução injetável frasco ampola 500mg (Local de acesso: HPM, HPMS, EMERG)",
+      "Metadona, cloridrato 5mg comprimido (Portaria nº344/98 - Lista A1) (Local de acesso: HPM)",
+      "Metformina, cloridrato 500mg comprimido revestido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Metformina, cloridrato 850mg comprimido revestido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Metildopa 250mg comprimido revestido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Metilergometrina, injetável maleato 0,2mg/ml solução ampola 1ml (Local de acesso: HPM)",
+      "Metilprednisolona, acetato suspensão injetável 40mg/ml frasco ampola 2ml (Local de acesso: HPM)",
+      "Metilprednisolona, succinato sódico 500mg pó liofilizado injetável frasco ampola + ampola diluente 8ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Metoclopramida, cloridrato 10 mg comprimido (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Metoclopramida, cloridrato 5mg/ml solução injetável ampola 2ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Metoclopramida, oral cloridrato 4mg/ml (0,4%) solução frasco 10ml (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Metoprolol, succinato 25mg comprimido lib.prolongada (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Metoprolol, succinato 50mg comprimido lib.prolongada (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Metoprolol, tartarato 1 mg/ml solução injetável ampola 5ml (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Metronidazol 100mg/g gel vaginal aplicador, bisnaga 50g (Local de acesso: HPM, UBS, IST, FM, Dispensário)",
+      "Metronidazol 250 mg comprimido (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Metronidazol 5mg/ml solução injetável bolsa/frasco sistema fechado 100 ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Metronidazol/ Benzoilmetronidazol 40mg/ml suspensão oral frasco 80-100ml + copo medida (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Micafungina 50mg pó liofilizado para solução injetável frasco ampola (Local de acesso: HPM)",
+      "MICONAZOL,nitrato 80g + aplicador 20mg/g (2%) creme vaginal bisnaga (Local de acesso: UBS, IST, FM, Dispensário)",
+      "MICONAZOL,nitrato bisnaga 28/30g 20mg/g (2%) creme dermatológico (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Midazolam / Midazolam, maleato 5mg/ml solução injetável ampola 10ml (port.nº 344/98 Lista B1) (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Midazolam / Midazolam, maleato 5mg/ml solução injetável ampola 3ml (port.nº 344/98 Lista B1) (Local de acesso: HPM, HPMS)",
+      "Milrinona, 10ml lactato 1mg/ml solução injetável ampola (Local de acesso: HPM)",
+      "Misoprostol 200mcg comprimido vaginal (port.nº 344/98 Lista C1) (Local de acesso: HPM)",
+      "Misoprostol 25mcg comprimido vaginal (port.nº 344/98 Lista C1) (Local de acesso: HPM)",
+      "Morfina, sulfato 0,2mg/ml solução injetável ampola 1ml s/conservante (port.nº 344/98 Lista A1) (Local de acesso: HPM)",
+      "Morfina, sulfato 10mg comprimido (port.nº 344/98 Lista A1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Morfina, sulfato 10mg/ml solução injetável ampola 1ml s/conservante (port.nº 344/98 Lista A1) (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Morfina, sulfato 1mg/ml solução injetável ampola 2ml s/conservante (port.nº 344/98 Lista A1) (Local de acesso: HPM, HPMS, EMERG)",
+      "Morfina, sulfato 30mg comprimido (port.nº 344/98 Lista A1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Moxifloxacino, cloridrato 1,6mg/ml solução injetável bolsa sistema fechado 250ml (Local de acesso: HPM)",
+      "N-butilbrometo De Escopolamina 10mg comprimido revestido/drágea (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "N-butilbrometo De Escopolamina 20mg/ml solução injetável ampola 1ml (Local de acesso: HPM, HPMS, EMERG, CEM)",
+      "N-butilbrometo De Escopolamina 4mg/ml + Dipirona sódica 500mg/ml solução injetável ampola 5ml (Local de acesso: HPM, HPMS, EMERG, CEM)",
+      "N-butilbrometo De Escopolamina 6,67mg/ml \\+ Dipirona 333,4mg/ml solução oral frasco 20ml (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Nalbufina, cloridrato 10mg/ml solução injetável ampola 1ml (port.nº 344/98 Adendo da Lista A2) (Local de acesso: HPM)",
+      "Naloxona, cloridrato 0,4mg/ml solução injetável ampola 1ml (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, CEM, Maleta)",
+      "Neomicina, sulfato 5mg/g +bacitracina zíncica 250UI/g pomada dermatológica bisnaga 10-15g (Local de acesso: HPM, HPMS, EMERG, CEM, UBS, IST, FM, Dispensário)",
+      "Neostigmina, metilsulfato 0,5mg/ml ampola 1ml (Local de acesso: HPM, HPMS)",
+      "Nevirapina (NVP) 200mg, comprimido (Local de acesso: IST)",
+      "Nevirapina (NVP) Suspensão Oral 50mg/5ml – Frasco Com 100ml (Local de acesso: IST)",
+      "Nicotina 14mg (Local de acesso: PROG.CESAF)",
+      "Nicotina 21mg (Local de acesso: PROG.CESAF)",
+      "Nicotina 2mg goma de mascar ou pastilha (Local de acesso: PROG.CESAF)",
+      "Nicotina 7mg (Local de acesso: PROG.CESAF)",
+      "Nifedipino 10mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Nifedipino 20 mg comprimido revestido retard (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Nimodipino 30mg comprimido revestido (Local de acesso: HPM)",
+      "Nirmatrelvir + Ritonavir 150mg + 100mg comprimido (Local de acesso: PSM)",
+      "Nistatina 100.000UI/ml suspensão oral frasco 50ml + conta- gotas (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Nistatina 25.000 UI/g creme vaginal bisnaga 60g + aplicador (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Nitrato De Prata 5g - bastão",
+      "Nitrazepam 5mg comprimido (port.nº 344/98 Lista B1) (Local de acesso: FM)",
+      "Nitrofurantoína 100mg cápsula gel dura (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Nitroglicerina 10ml 5mg/ml solução injetável ampola (Local de acesso: HPM, HPMS, EMERG)",
+      "Nitroprusseto De Sódio 50mg pó liof para injetável + diluente ampola 2ml ou 25mg/ml solução injetável ampola 2ml (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Norepinefrina, hemitartarato 2mg/ml solução injetável ampola 4ml (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Noretisterona 0,35 mg comprimido (Local de acesso: IST, FM, Dispensário)",
+      "Noretisterona, enantato 50mg + Estradiol, valerato 5mg/ml solução injetável ampola 1ml + seringa (Local de acesso: IST, FM, Dispensário)",
+      "Nortriptilina, cloridrato 25mg cápsula gel.dura (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Nutrição Parenteral Dupla (sem Lipídeo) - Uso Adulto - bolsa de Np com formulações pré-fabricadas, com concentração fixas de aminoácidos, glicose e eletrólitos, com variedade suficiente para atender pacientes que não podem usar o trato gastrointestinal com alterações metabólicas dos lipídeos, hipometabolismo, insuficiência hepática, insuficiência renal, para administração por via venosa central. Solução de Nutrição Parenteral pré-fabricadas, pronta para o uso em sistema fechado, estéril e apirogência, contendo solução de poliaminoácidos e glicose em bolsa de única ou dupla câmara, relação Kcal/gN entre 80-100, volume final de 1000 – 1300ml, osmolaridade superior a 900 mOsm/litro, para administração central. Devem ser acondicionadas em bolsas de Eva com volume final de 1000 – 1300ml mais volume para preenchimento de equipo de acordo com prescrição médica e Portaria nº272 de 08 de abril de 1998 do Ministério da Saúde. (Local de acesso: HPM)",
+      "Nutrição Parenteral Tripla Hiperproteica - Uso Adulto – bolsa de Np com formulações pré-fabricadas, com concentrações fixas de aminoácidos, glicose, lipídeos e eletrólitos, com variedade suficiente para atender necessidades especiais de proteínas e lipídeos, que não podem usar o trato gastrointestinal com alterações metabólicas dos lipídeos, hipometabolismo, insuficiência hepática, insuficiência renal, para administração por via venosa central. Solução de Nutrição Parenteral pré-fabricadas, pronta para o uso em sistema fechado, estéril e apirogência, contendo solução de poliaminoácidos (55 a 65 g), lipideos (com 75 a 85% de óleo de oliva) e glicose (100 a 120 g) em bolsa de dupla ou tripla câmara, relação Kcal/gN entre 90-120, volume final de 1000 – 1300ml, osmolaridade superior a 900 mOsm/litro, para administração central. Devem ser acondicionadas em bolsas de Eva com volume final de 1000 – 1300ml mais volume para preenchimento de equipo de acordo com prescrição médica e Portaria nº272 de 08 de abril de 1998 do Ministério da Saúde (Local de acesso: HPM)",
+      "Nutrição Parenteral Uso Adulto - bolsa de Np com formulações pré-fabricadas, concentração fixa de aminoácidos, glicose, lipídios e eletrólitos, com variedade suficiente para atender pacientes que não podem usar o trato gastrointestinal com ou sem alterações metabólicas, hipometabolismo, insuficiência hepática, insuficiência renal, para administração por via venosa central. Solução de Nutrição Parenteral pré-fabricadas, pronta para o uso em sistema fechado, estéril e apirogência, contendo solução de poliaminoácidos, glicose e emulsão lipidica em bolsa de tripla câmara, relação Kcal/gN entre 130-160, volume final de 1000 - 1300ml, osmolaridade superior a 900 mOsm/litro, para administração central. Devem ser acondicionadas em bolsas de Eva com volume final de 1000 – 1300 ml mais volume para preenchimento de equipo de acordo com prescrição médica e Portaria nº272 de 08 de abril de 1998 do Ministério da Saúde. (Local de acesso: HPM)",
+      "Ocitocina 5 UI/ml solução injetável ampola 1ml (Local de acesso: HPM)",
+      "Octreotida, acetato 0,1 mg/ml solução injetável ampola 1ml (Local de acesso: HPM)",
+      "Ofloxacino 400 mg comprimido (Local de acesso: PROG.CESAF)",
+      "Oleato De Monoetanolamina solução injetável ampola 2ml 50mg/ml (Local de acesso: HPM)",
+      "Oligoelementos (Cu+Cr+Zn+Mn) solução injetável Iv ampola 2ml (sulfato de zinco heptaidratado + sulfato de manganês monoidratado + sulfato cúprico pentaidratado + cloreto crômico hexaidratado) (Local de acesso: HPM)",
+      "Omeprazol 20mg cápsula gel.dura (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Omeprazol 40mg pó liof.para solução injetável Iv f/a \\+ ampola diluente 10ml (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Ondansetrona, cloridrato 2mg/ml solução injetável ampola 4ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Ondansetrona, cloridrato di-hidratado 4mg comprimido ou comprimido dispersível (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Oseltamivir 30mg cápsula (Local de acesso: HPM, HPMS, EMERG, IST)",
+      "Oseltamivir 45 mg cápsula (Local de acesso: HPM, HPMS, EMERG, IST)",
+      "Oseltamivir 75 mg cápsula (Local de acesso: HPM, HPMS, EMERG, IST)",
+      "Oxacilina f/a sódica 500mg pó liof.para solução injetável (Local de acesso: HPM, HPMS, EMERG)",
+      "Oxibuprocaina 4 mg/ml solução oftálmica frasco 10ml (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, CEM)",
+      "Papaína 10% - creme, bisnaga 60g (Local de acesso: HPM, UBS)",
+      "Paracetamol 200mg/ml solução oral frasco 15ml (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Paracetamol 500mg + Codeína, fosfato 30mg comprimido (Portaria nº344/98 - Adendo Lista A2) (Local de acesso: HPM)",
+      "Paracetamol 500mg comprimido (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Pentoxifilina 400 mg comprimido (Local de acesso: PROG.CESAF)",
+      "Pentoxifilina 400mg comprimido revestido (Local de acesso: HPM)",
+      "Permetrina 10mg/ml (1%) loção tópica frasco 60ml (Local de acesso: HPM, UBS, IST, FM, Dispensário)",
+      "Permetrina 50mg/ml (5%) loção cremosa frasco 60ml (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Petidina, cloridrato 50mg/ml solução injetável ampola 2ml (port.nº 344/98 Lista A1) (Local de acesso: HPM, HPMS)",
+      "Piperacilina 4,0g + Tazobactam sódico 0,5G (4,5G) pó liof para solução injetável (Local de acesso: EMERG, HPM, HPMS)",
+      "Pirazinamida 150 mg comprimido dispersível (Local de acesso: PROG.CESAF)",
+      "Pirazinamida 500 mg comprimido (Local de acesso: PROG.CESAF)",
+      "Piridoxina 50 mg comprimido (Local de acesso: PROG.CESAF)",
+      "Pirimetamina 25mg comprimido (Local de acesso: HPM, HPMS, EMERG, IST, FMC)",
+      "Plantago (Plantago ovata Forssk.) Pó Para Dispersão Oral Envelope (5 A 6 G) (Local de acesso: FM)",
+      "Policresuleno 360 mg/ml - solução tópica ginecológica 12ml (Local de acesso: CEM)",
+      "Poliestirenossulfonato De Cálcio 900 mg/g pó oral envelope 30g (Local de acesso: HPM, HPMS, EMERG)",
+      "Polimixina B, sulfato 500.000 Ui pó liofilizado para solução injetável frasco ampola (Local de acesso: HPM)",
+      "Polivitamínicos Com Sais Minerais comprimido revestido ou cápsula gelatinosa (Local de acesso: HPM, IST, FM, Dispensário)",
+      "Polivitamínicos Com Sais Minerais solução oral frasco 100ml (Local de acesso: HPM, IST, FM, Dispensário)",
+      "Polivitamínicos Sem Minerais solução injetável ampola 10ml (Local de acesso: HPM)",
+      "Prednisolona, fosfato sódico 4,02mg/ml (equivale a 3mg/ml de prednisolona) solução oral frasco 60ml + copo medida (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Prednisona 20mg comprimido (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Prednisona 5mg comprimido (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Primaquina 15 mg comprimido (Local de acesso: HPM)",
+      "Primaquina 5 mg comprimido (Local de acesso: HPM)",
+      "Progesterona Natural Micronizada 100mg cápsula gelatinosa mole (Local de acesso: HPM)",
+      "Prometazina, cloridrato 25 mg comprimido revestido (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Prometazina, cloridrato 25mg/ml solução injetável ampola 2ml (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Propofol 10mg/ml emulsão injetável amp ou frasco ampola 20ml (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, CEM)",
+      "Propranolol, cloridrato 10mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Propranolol, cloridrato 40mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Protamina, cloridrato 10mg/ml solução injetável ampola 5ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Raltegravir (RAL) 100mg, comprimido mastigável (Local de acesso: IST)",
+      "Raltegravir (RAL) 400mg, comprimido revestido (Local de acesso: IST)",
+      "Raltegravir (RAL) Granulado 100mg (Local de acesso: IST)",
+      "Ribavirina 250 mg comprimido (Local de acesso: FMC)",
+      "Rifabutina 150 mg comprimido (Local de acesso: PROG.CESAF)",
+      "Rifampicina + Isoniazida + Pirazinamida + Etambutol 150 mg + 75 mg + 400 + 275 mg comprimido (Local de acesso: HPM, HPMS, EMERG, PROG.CESAF)",
+      "Rifampicina + Isoniazida + Pirazinamida 75 mg + 50 mg +150 mg comprimido dispersível (Local de acesso: PROG.CESAF)",
+      "Rifampicina + Isoniazida 75 mg + 50 mg comprimido dispersível (Local de acesso: PROG.CESAF)",
+      "Rifampicina 20 mg/ml suspensão oral (Local de acesso: HPM, PROG.CESAF)",
+      "Rifampicina 300 mg cápsula (Local de acesso: HPM, PROG.CESAF)",
+      "Rifampicina comprimido + Isoniazida 150 mg + 75 mg (Local de acesso: PROG.CESAF)",
+      "Rifampicina comprimido + Isoniazida 300 mg + 150mg (Local de acesso: PROG.CESAF)",
+      "Rifapentina 150 mg comprimido (Local de acesso: PROG.CESAF)",
+      "Risperidona 1mg comprimido revestido (Portaria nº344/98 - Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Risperidona 1mg/ml solução oral frasco 30ml (port.nº 344/98 Lista C1) (Local de acesso: FM)",
+      "Ritonavir (RTV) 100mg Pó Suspensão Oral (Local de acesso: IST)",
+      "Ritonavir (RTV) 100mg, comprimido revestido (Local de acesso: IST)",
+      "Rivaroxabana 10mg comprimido (Local de acesso: HPM)",
+      "Rivaroxabana 15mg comprimido (Local de acesso: HPM)",
+      "Rivaroxabana 20mg comprimido (Local de acesso: HPM)",
+      "Rocurônio, brometo 10 mg/ml solução injetável frasco ampola 5 ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Ropivacaína , cloridrato 10mg/ml solução injetável ampola 20ml (Local de acesso: HPM, HPMS)",
+      "Sacarato De Hidróxido Férrico 20 mg/ml solução injetável (IV/EV) ampola 5ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Saccharomyces gel.dura Boulardii 17 100mg cápsulas (Local de acesso: HPM, HPMS, EMERG)",
+      "Saccharomyces sachê 1g Boulardii 17 200mg pó oral (Local de acesso: HPM, HPMS, EMERG)",
+      "Sachê oral Polimixina B, sulfato 10.000 UI/ml + Neomicina, sulfato 3,5 mg/ml + Fluocinolona acetonida 0,250 mg/ml + Lidocaína, cloridrato 20 mg/ml solução otológica frasco 10ml (Local de acesso: Dispensário, FM, HPM, HPMS, IST, UBS)",
+      "Sais De Reidratação Oral (Citrato de Sódio; Cloreto de Potássio; Cloreto de Sódio; Glicose) pó para solução oral sachê 27,9g (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)",
+      "Salbutamol, sulfato 0,5mg/ml solução injetável ampola 1ml (Local de acesso: HPM)",
+      "Salbutamol, sulfato 120,5 mcg/dose (equivalente a 100mcg/dose de salbutamol) aerosol oral 200 doses (Local de acesso: HPM, HPMS, EMERG, UBS, FM, Dispensário, Maleta)",
+      "Salicilato De Dietilamônio + Escina 10mg/g+ 50mg/g gel tópico bisnaga 30g (Local de acesso: HPM, HPMS, EMERG)",
+      "Salmeterol, xinafoato 25mcg/dose + Fluticasona, propionato 250mcg/dose suspensão oral 120 doses + valvula dosadora (Local de acesso: HPM)",
+      "Secnidazol 1000mg comprimido revestido (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Sertralina 50mg comprimido (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Sevoflurano 1mg/ml solução inalatória frasco 250ml (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS)",
+      "Sildenafil, citrato 25mg comprimido revestido (Local de acesso: HPM)",
+      "Simeticona 15ml 75mg/ml emulsão/suspensão oral frasco (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Simeticona 40mg comprimido (Local de acesso: HPM, HPMS, EMERG, CEM, IST, FM, Dispensário)",
+      "Sinvastatina 10mg comprimido revestido (Local de acesso: FM, Dispensário)",
+      "Sinvastatina 20mg comprimido revestido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Sinvastatina 40mg comprimido revestido (Local de acesso: HPM, HPMS, FM, Dispensário)",
+      "Sofosbuvir 400 mg + Velpatasvir 100 mg comprimido revestido (Local de acesso: FMC)",
+      "Sofosbuvir 400 mg comprimido revestido (Local de acesso: FMC)",
+      "Solução Fisiológica Nasal 0,9% (cloreto De Sódio 0,9%, 0,009g/ml, 9mg/ml) solução nasal frasco 30ml (Local de acesso: HPM, HPMS, IST, FM, Dispensário)",
+      "Solução Ringer + Lactato (Cloreto de cálcio di-hidratado 6mg/ml; Cloreto de potássio 0,3mg/ml; Cloreto de sódio 0,2mg/ml; Lactato de sódio 3mg/ml) solução injetável frasco plástico sistema fechado 500ml (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Sorbitol 0,027 g/ml + Manitol 0,0054 g/ml solução para irrigação urológica frasco plástico sistema fechado 1000 Ml (ou 27G/1000ml + 5,4G/1000ML) (Local de acesso: HPM)",
+      "Sorbitol 30 mg/ml solução para irrigação urológica frasco plástico sistema fechado 3000 (Local de acesso: HPM)",
+      "Sulfadiazina 500mg comprimido (Local de acesso: HPM, HPMS, EMERG, IST, FMC)",
+      "Sulfadiazina De Prata 10mg/g (1%) creme dermatológico bisnaga 30g (Local de acesso: HPM, HPMS, EMERG, CEM, UBS, IST, FM, Dispensário)",
+      "Sulfadiazina De Prata 10mg/g (1%) creme dermatológico pote 400g (Local de acesso: HPM)",
+      "Sulfametoxazol 40mg/ml + Trimetoprima 8mg/ml suspensão oral frasco 50ml + copo medida (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Sulfametoxazol 80mg/ml + Trimetoprima 16mg/ml solução injetável ampola 5ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Sulfametoxazol comprimido 400mg + Trimetoprima 80mg (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Sulfato De Bário Contraste copo plast.150ml (sulfato De Bário 100% Ou 1G/ML Suspensão Oral copo plástico 150ml) (Local de acesso: HPM)",
+      "Sulfato De Magnesio injetável 500mg/ml (50%) solução ampola 10ml (Local de acesso: HPM, EMERG, Maleta)",
+      "Sulfato De Magnésio injetável 100mg/ml (10%) solução ampola 10ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Sulfato Ferroso 25mg/ml de ferro elementar solução oral frasco 30ml (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Sulfato Ferroso 40 mg comprimido revestido (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Suplemento De Aminoácidos Para Regime Para Crianças (neonatos Pré- Termos E Termos E Bebês) E Crianças Jovens - Frasco de vidro com quantidades adequadas de carboidratos e gorduras como doadores de energia, vitaminas, eletrólitos e oligoelementos. São todos componentes de ocorrência fisiológica natural. Como os aminoácidos derivados da ingestão e assimilação das proteínas dos alimentos, os aminoácidos administrados por via parenteral entram na reserva do organismo de aminoácidos livres e subsequentemente em todas as reações metabólicas. Administrada exclusivamente pela via intravenosa. Pré fabricada em frasco de vidro pronta para uso. Solução de Nutrição Parenteral pré- fabricadas, pronta para o uso em sistema fechado, estéril e apirogência, contendo solução a cada 100ml com isoleucina 0,500-0,670 g; leucina 0,740-1,00 g; lisina 0,660-1,100g; metionina 0,240-0,430 g ; fenilalanina 0,420-0,510g; treonina 0,370-0,440g; triptofano 0,200 g; valina 0,620-0,760g; arginina 0,840-1,200g; histidina 0,300-0,380g ; alanina 0,800-1,40g; glicina 0,400-1,10g; prolina 0,300-1,120g; serina 0,400-0,650 g; tirosina 0,040- 0,045g; taurina 0,060-1,00g; Água para injetáveis; Concentrações variáveis até 100-250ml. A escolha da administração em veia central. O limite aceito para infusão periférica é de aproximadamente 800 mOsm/L; pH 5,5 – 6,0. Volume final 100- 250ml. (Local de acesso: HPM)",
+      "Suxametônio, ampola cloreto 100mg pó liofilizado frasco (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Talidomida 100 mg comprimido (Local de acesso: FMC)",
+      "Teicoplanina 200mg pó liofilizado + diluente para solução injetável (Local de acesso: EMERG, HPM)",
+      "Tenofovir (TDF) 300 mg + Lamivudina (3TC) 300 mg, comprimido (Local de acesso: FMC)",
+      "Tenofovir (TDF) 300mg + Entricitabina (FTC) 200mg, comprimido revestido (Local de acesso: IST)",
+      "Tenofovir (TDF) 300mg + Lamivudina (3TC) 300mg (dfc - 2 Em 1), comprimido revestido (Local de acesso: HPM, HPMS, EMERG, IST)",
+      "Tenofovir (TDF) 300mg + Lamivudina (3TC) 300mg + Efavirenz (EFZ) 600mg (dfc – 3 Em 1), comprimido revestido (Local de acesso: IST)",
+      "Tenofovir (TDF) 300mg, comprimido revestido (Local de acesso: IST)",
+      "Tenofovir 300 mg comprimido (Local de acesso: FMC)",
+      "Tenofovir Alafenamida 25 mg comprimido (Local de acesso: FMC)",
+      "Tenoxicam 20mg pó liofilizado para solução injetável f/a + ampola diluente 2ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Tetraciclina, cloridrato 500mg cápsula gelatinosa dura (Local de acesso: HPM, HPMS, IST, FM, Dispensário)",
+      "Tiamina, cloridrato 300mg comprimido revestido (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "TIAMINA,cloridrato 100mg/ml + Piridoxina, cloridrato 100mg/ml + Cianocobalamina 5000 mcg/ml solução injetável ampola volume total 2ml (Local de acesso: HPM, EMERG)",
+      "Tigeciclina 50mg pó liofilizado frasco ampola (Local de acesso: HPM)",
+      "Timolol, maleato 5mg/ml (0,5%) solução oftálmica frasco 5ml (Local de acesso: IST, FM, Dispensário)",
+      "Tiras Reagentes De Medida De Glicemia Capilar, lata c/50 (Local de acesso: CEM, EMERG, FM, HPM, HPMS, UBS)",
+      "Tobramicina 3mg/ml solução oftálmica frasco 5ml (Local de acesso: HPM)",
+      "Tramadol, cloridrato 50mg cápsula gelatinosa dura (port.nº 344/98 Adendo 3 da Lista A2) (Local de acesso: HPM, FM)",
+      "Tramadol, cloridrato 50mg/ml solução injetável ampola 1ml (port.nº 344/98 Adendo 3 da Lista A2) (Local de acesso: HPM, HPMS, EMERG)",
+      "Tramadol, cloridrato 50mg/ml solução injetável ampola 2ml (port.nº 344/98 Adendo 3 da Lista A2) (Local de acesso: HPM, HPMS, EMERG)",
+      "Tretinoína 10mg cápsula gelatinosa dura (port.nº 344/98 Lista C2) (Local de acesso: HPM)",
+      "Tropicamida 5ml 10mg/ml (1% )solução oftálmica frasco (Local de acesso: HPM, CEM)",
+      "Tuberculina (PPD) 1,5 m (Local de acesso: PROG.CESAF)",
+      "Unha-de-gato (Uncaria tomentosa (Wild. Ex Roem. & Schukt.) Dc . ) 100mg cápsulas (Local de acesso: FM)",
+      "Valproato De Sódio/ Ácido Valpróico 288mg (equivale a 250mg de ácido valpróico) cápsula ou comprimido revestido (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Valproato De Sódio/ Ácido Valpróico 57,624 mg/ml (equivale a 50mg de ácido valpróico/ml) xarope frasco 100ml + copo medida (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Valproato De Sódio/ Ácido Valpróico 576mg (equivale a 500mg de ácido valpróico) cápsula ou comprimido revestido (port.nº 344/98 Lista C1) (Local de acesso: HPM, HPMS, EMERG, FM)",
+      "Vancomicina, cloridrato 500mg pó liofilizado para sol.injetável f/a + ampola diluente 10 ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Varfarina sódica 5mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Vasopressina/ Argipressina 20 U/ml solução injetável ampola 1ml (Local de acesso: HPM, HPMS, EMERG, Maleta)",
+      "Verapamil, cloridrato 80 mg comprimido revestido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário)",
+      "Vitaminas 2ml do Complexo B solução injetável ampola (Local de acesso: HPM, HPMS, EMERG)",
+      "Vitaminas do Complexo B drágea (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Zidovudina (AZT) 100mg, cápsula gelatinosa dura (Local de acesso: IST)",
+      "Zidovudina (AZT) solução injetável 10mg/ml (Local de acesso: IST)",
+      "Zidovudina (AZT) Solução Oral 10mg/ml – Frasco Com 100ml (Local de acesso: IST)",
+      "Zidovudina 300mg + Lamivudina 150mg (AZT+3TC), comprimido revestido (Local de acesso: IST)",
+      "Ácido Acetilsalicílico / Aas 100mg comprimido (Local de acesso: HPM, HPMS, EMERG, FM, Dispensário, Maleta)",
+      "Ácido Acético 5% - solução tópica (Local de acesso: CEM)",
+      "Ácido Ascórbico 100mg/ml solução injetável ampola 5ml (vitamina C 500mg ) (Local de acesso: HPM, HPMS, EMERG)",
+      "Ácido Folínico/ Folinato De Cálcio 15mg comprimido (Local de acesso: HPM, HPMS, EMERG, IST, FMC)",
+      "Ácido Fólico 0,2mg/ml sol oral frasco 30ml (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Ácido Fólico 5mg comprimido (Local de acesso: HPM, HPMS, EMERG, IST, FM, Dispensário)",
+      "Ácido Tranexâmico 50mg/ml solução injetável ampola 5ml (Local de acesso: HPM, HPMS, EMERG)",
+      "Ácido Tricloroacético (TCA) 30% - solução aquosa 15ml (Local de acesso: CEM)",
+      "Ácido Tricloroacético (TCA) 50% - solução aquosa 15ml",
+      "Ácido Tricloroacético (TCA) 70% - solução aquosa 15ml",
+      "Ácido Tricloroacético (TCA) 90% - solução aquosa 15ml",
+      "Água Destilada /água Para Injetáveis solução injetável ampola plástica 10ml (Local de acesso: HPM, HPMS, EMERG, UBS, IST, Maleta)",
+      "Água Destilada /água Para Injetáveis solução injetável frasco 1000ml (Local de acesso: HPM, HPMS)",
+      "Água Destilada /água Para Injetáveis solução injetável frasco 500ml (Local de acesso: HPM, HPMS, EMERG, UBS, CEM)",
+      "Álcool Etílico 70% solução frasco 1000ml Medicamento de Notificação Simplificada Rdc Anvisa Nº199/06 (atual.RDC107/2016) - Uso (Local de acesso: HPM, HPMS, EMERG, CEM, UBS)",
+      "Óleo Mineral Puro (Petrolato líquido) frasco 100ml (Local de acesso: HPM, HPMS, EMERG, IST, FM)",
+      "Óxido De Zinco + Retinol/vitamina A + Colecalciferol/vitamina D pomada dermatológica bisnaga 45g (Local de acesso: HPM, HPMS, EMERG, UBS, IST, FM, Dispensário)"
+    ],
+    "Piraí": [
+      "Acetato de Betametasona + Fosfato Dissódico de Betametasona 3mg/mL + 3mg/mL - Suspensão injetável",
+      "Acetato de Hidrocortisona 10mg/g - Creme",
+      "Aciclovir 200mg - Comprimido",
+      "Aciclovir 50mg/g - Creme",
+      "Albendazol 400mg - Comprimido",
+      "Albendazol 40mg/ml - Suspensão oral",
+      "Alendronato de Sódio 70mg - Comprimido",
+      "Alopurinol 100mg - Comprimido",
+      "Alopurinol 300mg - Comprimido",
+      "Amoxicilina + Clavulanato de Potássio 500mg + 125mg - Comprimido revestido",
+      "Amoxicilina + Clavulanato de Potássio 50mg/ml + 12,5mg/ml - Pó para suspensão oral",
+      "Amoxicilina 500mg - Cápsula gelatinosa dura",
+      "Atenolol 25mg - Comprimido",
+      "Atenolol 50mg - Comprimido",
+      "Azitromicina 40mg/ml - Pó para suspensão oral",
+      "Azitromicina 500mg - Comprimido revestido",
+      "Benzilpenicilina Benzatina 1.200.000UI - Pó para solução injetável",
+      "Benzilpenicilina Potássica 500.000UI - Pó para solução injetável",
+      "Benzoilmetronidazol 40mg/ml - Suspensão oral",
+      "Besilato de Anlodipino 5mg - Comprimido",
+      "Bicarbonato de Sódio 84mg/mL (8,4%) equivalente a 1mEq/mL - Solução injetável",
+      "Bisacodil 5mg - Comprimido revestido de liberação retardada",
+      "Bissulfato de Clopidogrel 75mg - Comprimido revestido",
+      "Brometo de Ipratrópio 0,25mg/ml - Solução para inalação",
+      "Brometo de Ipratrópio 20mcg/dose - Solução aerosol",
+      "Budesonida 32mcg - Solução para inalação oral",
+      "Budesonida 50mcg - Solução para inalação oral",
+      "Budesonida 64mcg - Solução para inalação oral",
+      "Butilbrometo de Escopolamina + Dipirona 10mg + 250mg - Comprimido revestido",
+      "Butilbrometo de Escopolamina 10mg - Comprimido revestido",
+      "Captopril 25mg - Comprimido",
+      "Carbamazepina 200mg - Comprimido",
+      "Carbamazepina 20mg/ml - Suspensão oral",
+      "Carbonato de Lítio 300mg - Comprimido",
+      "Carmelose Sódica 5mg/ml - Solução oftálmica",
+      "Carvedilol 12,5mg - Comprimido",
+      "Carvedilol 25mg - Comprimido",
+      "Carvedilol 3,125mg - Comprimido",
+      "Carvedilol 6,25mg - Comprimido",
+      "Carvão Ativado - Pó para suspensão oral",
+      "Cefalexina 500mg - Comprimido revestido",
+      "Cefalexina 50mg/ml - Pó para suspensão oral",
+      "Ceftriaxona 1g - Pó para solução injetável",
+      "Ceftriaxona 1g - Pó para suspensão injetável",
+      "Cetoconazol 20mg/ml - Xampu",
+      "Cetoprofeno 100mg - Pó para solução injetável",
+      "Cilostazol 100mg - Comprimido",
+      "Claritromicina 500mg - Comprimido revestido",
+      "Clonazepam 2,5mg/ml - Solução oral",
+      "Cloreto de Potássio 191mg/ml (19,1%) - Solução injetável",
+      "Cloreto de Sódio 200mg/ml (20%) - Solução injetável",
+      "Cloreto de Sódio 9mg/ml (0,9%) - Solução injetável",
+      "Cloreto de Sódio 9mg/ml (0,9%) - Solução Nasal",
+      "Cloridrato de Amiodarona 200mg - Comprimido",
+      "Cloridrato de Amitriptilina 25mg - Comprimido",
+      "Cloridrato de Amitriptilina 75mg - Comprimido",
+      "Cloridrato de Biperideno 2mg - Comprimido",
+      "Cloridrato de Ciprofloxacino 500mg - Comprimido revestido",
+      "Cloridrato de Clindamicina 300mg - Cápsula gelatinosa dura",
+      "Cloridrato de Clonidina 0,10mg - Comprimido",
+      "Cloridrato de Clorpromazina 100mg - Comprimido",
+      "Cloridrato de Clorpromazina 40mg/ml - Solução oral",
+      "Cloridrato de Diltiazem 60mg - Comprimido",
+      "Cloridrato de Dobutamina 12,5mg/ml - Solução injetável",
+      "Cloridrato de Dopamina 5mg/ml - Solução injetável",
+      "Cloridrato de Hidralazina 25mg - Comprimido",
+      "Cloridrato de Hidralazina 50mg - Comprimido",
+      "Cloridrato de Lidocaína + Hemitartarato de Epinefrina 2% + 1:200.000 (20mg + 20mcg/mL) - Solução injetável",
+      "Cloridrato de Lidocaína 20mg/ml (2%) - Solução injetável",
+      "Cloridrato de Lidocaína 20mg/ml - Gel/Geleia",
+      "Cloridrato de Naloxona 0,4mg/ml - Solução injetável",
+      "Cloridrato de Ondansetrona 2mg/ml - Solução injetável",
+      "Cloridrato de Prometazina 25mg/ml - Solução injetável",
+      "Cloridrato de Propranolol 10mg - Comprimido",
+      "Cloridrato de Propranolol 40mg - Comprimido",
+      "Cloridrato de Protamina 10mg/ml - Solução injetável",
+      "Cloridrato de Sertralina 50mg - Comprimido revestido",
+      "Cloridrato de Tansulosina 0,4mg - Cápsula dura de liberação prolongada",
+      "Cloridrato de Tiamina + Fosfato Sódico de Riboflavina + Nicotinamida + Dexpantenol + Cloridrato de Piridoxina 4mg + 1mg + 20mg + 3mg + 2mg/ml - Solução injetável",
+      "Cloridrato de Tramadol 50mg - Cápsula gelatinosa dura",
+      "Colagenase 6U/g - Pomada dermatológica",
+      "Dapagliflozina Propanodiol Monoidratado 10mg - Comprimido revestido",
+      "Dexametasona 1mg/g - Creme dermatológico",
+      "Dexametasona 4mg - Comprimido",
+      "Dexametasona 4mg/ml - Solução injetável",
+      "Diazepam 5mg - Comprimido",
+      "Diazepam 5mg/ml - Solução injetável",
+      "Diclofenaco Sódico 25mg/ml - Solução injetável",
+      "Digoxina 0,05mg/ml - Elixir",
+      "Digoxina 0,25mg - Comprimido",
+      "Dinitrato de Isossorbida 5mg - Comprimido sublingual",
+      "Diosmina + Hesperidina 50mg + 450mg - Comprimido revestido",
+      "Dipirona 500mg - Comprimido",
+      "Dipirona 500mg/ml - Solução injetável",
+      "Dipirona 500mg/ml - Solução oral",
+      "Dipropionato de Beclometasona 200mcg/dose - Solução aerosol",
+      "Dipropionato de Beclometasona 25mcg/dose - Solução aerosol",
+      "Divalproato de Sódio 250mg - Comprimido revestido de liberação prolongada",
+      "Divalproato de Sódio 500mg - Comprimido revestido de liberação prolongada",
+      "Epinefrina 1mg/ml - Solução injetável",
+      "Espironolactona 25mg - Comprimido",
+      "Estriol 1mg/g - Creme vaginal",
+      "Estrogênios Conjugados 0,625mg/g - Creme vaginal",
+      "Fenitoína 100mg - Comprimido",
+      "Fenitoína 50mg/ml - Solução injetável",
+      "Fenobarbital 100mg - Comprimido",
+      "Fenobarbital 40mg/ml - Solução injetável",
+      "Fenobarbital 40mg/ml - Suspensão oral",
+      "Ferripolimaltose 100mg - Comprimido mastigável",
+      "Ferripolimaltose 10mg/ml - Xarope",
+      "Ferripolimaltose 50mg/ml - Solução oral",
+      "Finasterida 5mg - Comprimido",
+      "Fluconazol 150mg - Cápsula gelatinosa dura",
+      "Flumazenil 0,1mg/ml - Solução injetável",
+      "Fluoxetina 20mg - Cápsula",
+      "Fosfato de Potássio Monobásico + Fosfato de Potássio Dibásico 0,03g/mL + 0,1567g/mL (equivalente a 2mEq/mL) - Solução injetável",
+      "Fosfato Sódico de Prednisolona 3mg/ml - Solução oral",
+      "Furosemida 10mg/ml - Solução injetável",
+      "Furosemida 40mg - Comprimido",
+      "Glibenclamida 5mg - Comprimido",
+      "Glicerol 120mg/ml - Solução retal",
+      "Glicerol 72mg - Supositório retal",
+      "Gliclazida 30mg - Comprimido de liberação prolongada",
+      "Gliclazida 80mg - Comprimido",
+      "Glicose 500mg/ml (50%) - Solução injetável",
+      "Guaco (Mikania glomerata Spreng.) 0,5 a 5mg de cumarina (dose diária) - Xarope",
+      "Haloperidol 1mg - Comprimido",
+      "Haloperidol 2mg/ml - Suspensão oral",
+      "Haloperidol 50mg/ml - Solução injetável",
+      "Haloperidol 5mg - Comprimido",
+      "Haloperidol 5mg/ml - Solução injetável",
+      "Hemitartarato de Norepinefrina 2mg/ml - Solução injetável",
+      "Heparina Sódica 5.000UI/0,25ml - Solução injetável",
+      "Hidroclorotiazida 25mg - Comprimido",
+      "Hidróxido de Alumínio 60mg/ml - Suspensão oral",
+      "Ibuprofeno 300mg - Comprimido revestido",
+      "Ibuprofeno 50mg/ml - Suspensão oral",
+      "Ibuprofeno 600mg - Cápsula mole",
+      "Imiquimode 50mg/g - Creme",
+      "Insulina Humana NPH 100UI/ml - Suspensão injetável",
+      "Insulina Humana Regular 100UI/ml - Suspensão injetável",
+      "Itraconazol 100mg - Cápsula",
+      "Ivermectina 6mg - Comprimido",
+      "Lactulose 667mg/ml - Xarope",
+      "Levodopa + Benserazida 100mg/25mg - Comprimido",
+      "Levodopa + Benserazida 100mg/25mg - Cápsula",
+      "Levodopa + Benserazida 200mg/50mg - Comprimido",
+      "Levodopa + Carbidopa 25mg/250mg - Comprimido",
+      "Levofloxacino 500mg - Comprimido revestido",
+      "Levotiroxina 100mcg - Comprimido",
+      "Levotiroxina 12,5mcg - Comprimido",
+      "Levotiroxina 25mcg - Comprimido",
+      "Levotiroxina 37,5mcg - Comprimido",
+      "Levotiroxina 50mcg - Comprimido",
+      "Loratadina 10mg - Comprimido",
+      "Loratadina 1mg/ml - Xarope",
+      "Losartana Potássica 25mg - Comprimido",
+      "Losartana Potássica 50mg - Comprimido",
+      "Maleato de Dexclorfeniramina 0,4mg/ml - Xarope",
+      "Maleato de Dexclorfeniramina 2mg - Comprimido",
+      "Maleato de Enalapril 10mg - Comprimido",
+      "Maleato de Timolol 5mg/ml (0,5%) - Solução oftálmica",
+      "Mesilato de Doxazosina 2mg - Comprimido",
+      "Metildopa 250mg - Comprimido",
+      "Metronidazol 100mg/g - Geleia vaginal",
+      "Metronidazol 250mg - Comprimido",
+      "Mononitrato de Isossorbida 20mg - Comprimido",
+      "Nifedipino 20mg - Comprimido de liberação retardada",
+      "Nistatina 25.000UI/g - Creme Vaginal",
+      "Nitrato de Miconazol 2% (20mg/g) - Creme vaginal",
+      "Nitrato de Miconazol 2% (20mg/ml) - Creme",
+      "Nitrato de Miconazol 2% (20mg/ml) - Loção",
+      "Nitrofurantoína 100mg - Cápsula gelatinosa dura",
+      "Omeprazol 20mg - Cápsula",
+      "Pantoprazol 40mg - Solução injetável",
+      "Paracetamol 200mg/ml - Solução oral",
+      "Paracetamol 500mg - Comprimido",
+      "Pentoxifilina 400mg - Comprimido revestido de liberação prolongada",
+      "Permetrina 10mg/ml (1%) - Loção",
+      "Permetrina 50mg/ml (5%) - Loção",
+      "Prednisona 20mg - Comprimido",
+      "Prednisona 5mg - Comprimido",
+      "Pregabalina 75mg - Cápsula dura",
+      "Prometazina 25mg - Comprimido",
+      "Rivaroxabana 10mg - Comprimido revestido",
+      "Rivaroxabana 15mg - Comprimido revestido",
+      "Rivaroxabana 20mg - Comprimido revestido",
+      "Sais para Reidratação Oral (cloreto de sódio, glicose anidra, cloreto de potássio, citrato de sódio diidratado) - Pó para solução oral",
+      "Simeticona 125mg - Cápsula gelatinosa",
+      "Simeticona 75mg/ml - Emulsão oral",
+      "Sinvastatina 20mg - Comprimido",
+      "Solução de Ringer + Lactato (lactato de sódio 3mg/mL + cloreto de sódio 6mg/mL + cloreto de potássio 0,3mg/mL + cloreto de cálcio 0,2mg/mL) - Solução injetável",
+      "Succinato de Metoprolol 50mg - Comprimido de liberação prolongada",
+      "Succinato Sódico de Hidrocortisona 500mg - Pó para solução injetável",
+      "Sulfadiazina de Prata 10mg/g - Creme",
+      "Sulfato de Atropina 0,25mg/ml - Solução injetável",
+      "Sulfato de Magnésio 10% (0,81mEq/ml Mg++) - Solução injetável",
+      "Sulfato de Morfina 10mg/ml - Solução injetável",
+      "Sulfato de Polimixina B + Sulfato de Neomicina + Fluocinolona Acetonida + Cloridrato de Lidocaína 10.000UI/mL + 3,500mg/mL + 0,250mg/mL + 20mg/mL - Solução Otológica",
+      "Sulfato de Salbutamol 100mcg/dose - Suspensão aerosol",
+      "Sulfato Ferroso 25mg/ml - Solução",
+      "Sulfato Ferroso 40mg - Comprimido",
+      "Tenecteplase 50mg - Pó para solução injetável",
+      "Tibolona 2,5mg - Comprimido",
+      "Valproato de Sódio 50mg/ml - Xarope",
+      "Varfarina Sódica 5mg - Comprimido",
+      "Ácido Acetilsalicílico 100mg - Comprimido",
+      "Ácido Fólico 5mg - Comprimido",
+      "Água para Injetáveis - Solução injetável 10ml",
+      "Óleo Mineral - Óleo para uso oral"
+    ],
+    "Sete Lagoas": [
+      "Aciclovir 200mg",
+      "Aciclovir 50mg/g 5%",
+      "Ácido Acetil Salicílico 100mg",
+      "Ácido Fólico 5mg",
+      "Ácido Folínico 15mg",
+      "Ácido Valproico 250mg",
+      "Ácido Valproico 250mg/5mL",
+      "Ácido Valproico 500mg",
+      "Agulha para Caneta de Insulina",
+      "Albendazol 400mg",
+      "Albendazol 40mg/mL - Suspensão",
+      "Alendronato de Sódio 70mg",
+      "Algestona Acetofenida 150mg/mL + Enantato de Estradiol 10mg/mL - Ampola",
+      "Alopurinol 100mg",
+      "Alopurinol 300mg",
+      "Amiodarona 200mg",
+      "Amitriptilina 25mg",
+      "Amox. + Clav. 250mg + 62,5mg/5mL - Suspensão",
+      "Amox. + Clav. 500mg + 125mg",
+      "Amoxicilina 250mg/5mL - Pó Suspensão",
+      "Amoxicilina 500mg",
+      "Anlodipino 5mg",
+      "Atenolol 50mg",
+      "Azatioprina 50mg",
+      "Azitromicina 500mg",
+      "Azitromicina 600mg - Suspensão",
+      "Beclometasona 200mcg - Spray Oral",
+      "Beclometasona 250mcg - Spray Oral",
+      "Beclometasona 50mcg - Spray Oral",
+      "Benzilpenicilina Benzatina 1.200.000 UI",
+      "Biperideno 2mg",
+      "Budesonida 50mcg",
+      "Captopril 25mg",
+      "Carbidopa + Levodopa 25mg/250mg",
+      "Carbon. de Cálcio 500mg + Vit. D 400 UI",
+      "Carbonato de Cálcio 500mg",
+      "Carbonato de Lítio 300mg",
+      "Carmabazepina 200mg",
+      "Carmabazepina 20mg/mL",
+      "Carvedilol 12,5mg",
+      "Carvedilol 3,125mg",
+      "Cefalexina 250mg/5mL",
+      "Cefalexina 500mg",
+      "Cetoconazol 200mg",
+      "Cetoconazol 20mg/g - Creme",
+      "Claritromicina 500mg",
+      "Claritromicina 50mg/mL - Suspensão",
+      "Clomipramina 25mg",
+      "Clonazepam 2,5mg/mL",
+      "Clonazepam 2mg",
+      "Cloreto de Sódio 0,9%",
+      "Clorpromazina 100mg",
+      "Clorpromazina 25mg",
+      "Clorpromazina 4% - Gotas",
+      "Colagenase 1,2 UI",
+      "Complexo B",
+      "Desogestrel 75mcg",
+      "Dexametasona 1% - Suspensão Oftálmica",
+      "Dexametasona 1mg/g - Creme",
+      "Dexclorfeniramina 0,4mg/mL",
+      "Dexclorfeniramina 2mg",
+      "Diazepam 10mg",
+      "Diclofenaco de Sódio 50mg",
+      "Digoxina 0,25mg",
+      "Dipirona 500mg",
+      "Dipirona 500mg/mL",
+      "Doxazosina 2mg",
+      "Enalapril 10mg",
+      "Enalapril 20mg",
+      "Enalapril 5mg",
+      "Espiramicina 1,5 M.U.I",
+      "Espironolactona 25mg",
+      "Fenitoina 100mg",
+      "Fenobarbital 100mg",
+      "Fenobarbital 40mg/mL - Gotas",
+      "Finasterida 5mg",
+      "Fluconazol 150mg",
+      "Fluoxetina 20mg",
+      "Furosemida 40mg",
+      "Gentamicina 5mg/mL - Solução Oftálmica",
+      "Glibenclamida 5mg",
+      "Gliclazida 30mg",
+      "Gliclazida 60mg",
+      "Glicosimetro",
+      "Haloperidol 1mg",
+      "Haloperidol 2mg/mL - Gotas",
+      "Haloperidol 5mg",
+      "Haloperidol Decanoato 50mg/mL",
+      "Hidralazina 25mg",
+      "Hidralazina 50mg",
+      "Hidroclorotiazida 25mg",
+      "Hidrocortisona 10mg/g 1% - Creme",
+      "Hidróx de Al+Mg 60mg+40mg/mL - Suspensão Oral",
+      "Ibuprofeno 50mg/mL - Solução",
+      "Ibuprofeno 600mg",
+      "Imipramina 25mg",
+      "Insulina NPH 100 UI/mL - Caneta 3mL",
+      "Insulina NPH 100 UI/mL - Frasco 10mL",
+      "Insulina Regular 100 UI/mL - Caneta 3mL",
+      "Insulina Regular 100 UI/mL - Frasco 10mL",
+      "Isossorbida 20mg",
+      "Isossorbida 5mg - Sublingual",
+      "Itraconazol 100mg",
+      "Ivermectina 6mg",
+      "Lancetas",
+      "Levodopa + Benserazida 100mg/25mg",
+      "Levodopa + Benserazida 200mg/50mg",
+      "Levomepromazine 100mg",
+      "Levomepromazine 25mg",
+      "Levonorgestrel 0,15mg + Etinilestradiol 0,03mg",
+      "Levonorgestrel 0,75mg",
+      "Levotiroxina 100mcg",
+      "Levotiroxina 25mcg",
+      "Levotiroxina 50mcg",
+      "Levotiroxina 75mcg",
+      "Loratadina 10mg",
+      "Loratadina 1mg/mL - Suspensão",
+      "Losartana 100mg",
+      "Losartana 25mg",
+      "Losartana 50mg",
+      "Mebendazol 100mg",
+      "Mebendazol 20mg/mL - Suspensão",
+      "Medroxiprogesterona 150mcg",
+      "Metformina 850mg",
+      "Metildopa 250mg",
+      "Metildopa 500mg",
+      "Metoclopramida 10mg",
+      "Metoclopramida 4mg/mL - Solução Oral",
+      "Metoprolol 25mg",
+      "Metronidazol 100mg/g - Gel Vaginal",
+      "Metronidazol 250mg",
+      "Metronidazol 40mg/mL - Suspensão",
+      "Miconazol 2% - Loção",
+      "Miconazol 20mg/g - Creme Vaginal",
+      "Montelucaste 10mg",
+      "Neomicina 5mg/g + Bacitracina 250 UI/g - Pomada",
+      "Nicotina 14mg - Adesivo",
+      "Nicotina 21mg - Adesivo",
+      "Nicotina 7mg - Adesivo",
+      "Nistatina 100.000 UI/g - Creme Vaginal",
+      "Nitrofurantoína 100mg",
+      "Noretisterona + Estradiol 50mg+5mg/mL",
+      "Noretisterona 0,35mg",
+      "Nortripitilina 10mg",
+      "Nortripitilina 25mg",
+      "Nortripitilina 50mg",
+      "Omeprazol 20mg",
+      "Paracetamol 200mg/mL",
+      "Paracetamol 500mg",
+      "Periciazina 4%",
+      "Permetrina 5% - Loção",
+      "Pirimetamina 25mg",
+      "Prednisolona 1mg/mL",
+      "Prednisolona 3mg/mL",
+      "Prednisona 20mg",
+      "Prednisona 5mg",
+      "Prometazina 25mg",
+      "Propranolol 40mg",
+      "Risperidona 1mg",
+      "Risperidona 2mg",
+      "Sais de Reidratação Oral",
+      "Salbutamol 100mcg",
+      "Seringa com Agulha 100 UI",
+      "Seringa com Agulha 50 UI",
+      "Simeticona 75mg/mL",
+      "Sinvastatina 20mg",
+      "Sinvastatina 40mg",
+      "Sulfadiazina 500mg",
+      "Sulfametoxazol + Trimetroprima 200mg+40mg/5mL - Suspensão Oral",
+      "Sulfametoxazol + Trimetroprima 400mg+80mg",
+      "Sulfato Ferroso 125mg/mL",
+      "Sulfato Ferroso 40mg",
+      "Timolol 0,5% - Solução Oftálmica",
+      "Tioridazina 50mg",
+      "Tiras de Glicemia",
+      "Varfarina 5mg",
+      "Venlafaxina 75mg",
+      "Verapamil 80mg"
+    ],
+    "Conceição do Mato Dentro": [
+      "Acetato de Betametasona + Fosfato Dissódico de Betametasona 3mg/ml+3mg/ml - Suspensão Injetável",
+      "Acetato de Medroxiprogesterona 150mg/ml - Suspensão Injetável",
+      "Aciclovir Sódico 200mg - Comprimido",
+      "Aciclovir Sódico 50mg/g - Creme",
+      "Ácido Acetilsalicílico 100mg - Comprimido",
+      "Ácido Fólico 0,20mg/ml - Solução Oral",
+      "Ácido Fólico 5mg - Comprimido",
+      "Ácido Valpróico (Valproato Sódio) 250mg - Cápsula",
+      "Ácido Valpróico (Valproato Sódio) 500mg - Comprimido",
+      "Ácido Valpróico (Valproato Sódio) 50mg/ml - Xarope",
+      "Albendazol 400mg - Comprimido Mastigável",
+      "Albendazol 40mg/ml - Suspensão Oral",
+      "Alendronato Sódico 70mg - Comprimido",
+      "Alopurinol 100mg - Comprimido",
+      "Alopurinol 300mg - Comprimido",
+      "Amiodarona Cloridrato 200mg - Comprimido",
+      "Amitriptilina Cloridrato 25mg - Comprimido",
+      "Amitriptilina Cloridrato 75mg - Comprimido",
+      "Amoxicilina + Clavulanato de Potássio 500mg+125mg - Comprimido",
+      "Amoxicilina + Clavulanato de Potássio 50mg/ml+12,5mg/ml - Pó para Suspensão Oral",
+      "Amoxicilina 500mg - Cápsula",
+      "Amoxicilina 50mg/ml - Pó para Suspensão Oral",
+      "Anlodipino 10mg - Comprimido",
+      "Anlodipino 5mg - Comprimido",
+      "Atenolol 25mg - Comprimido",
+      "Atenolol 50mg - Comprimido",
+      "Azitromicina 40mg/ml - Pó para Suspensão Oral",
+      "Azitromicina 500mg - Comprimido",
+      "Beclometasona Dipropionato 200mcg - Solução para Inalação Oral",
+      "Beclometasona Dipropionato 250mcg - Solução para Inalação Oral",
+      "Beclometasona Dipropionato 50mcg - Solução para Inalação Oral",
+      "Benzilpenicilina Benzatina 1.200.000ui - Pó para Suspensão Injetável",
+      "Benzoilmetronidazol 40mg/ml - Suspensão Oral",
+      "Biperideno Cloridrato 2mg - Comprimido",
+      "Budesonida 32mcg - Solução para Inalação Nasal",
+      "Budesonida 50mcg - Solução para Inalação Nasal",
+      "Budesonida 64mcg - Solução para Inalação Nasal",
+      "Cabergolina 0,5mg - Comprimido",
+      "Captopril 25mg - Comprimido",
+      "Carbamazepina 200mg - Comprimido",
+      "Carbamazepina 20mg/ml - Suspensão Oral",
+      "Carbonato de Cálcio + Colecalciferol 1.250mg (500mg de Cálcio)+400ui - Comprimido",
+      "Carbonato de Lítio 300mg - Comprimido",
+      "Carvedilol 12,5mg - Comprimido",
+      "Carvedilol 3,125mg - Comprimido",
+      "Cefalexina 500mg - Comprimido",
+      "Cefalexina 50mg/ml - Pó para Suspensão Oral",
+      "Ciprofloxacino Cloridrato 500mg - Comprimido",
+      "Claritromicina 500mg - Comprimido",
+      "Clomipramina Cloridrato 25mg - Comprimido",
+      "Clonazepam 2,5mg/ml - Solução Oral",
+      "Clonazepam 2mg - Comprimido",
+      "Cloreto de Sódio 0,9% (9mg/ml) - Solução Nasal",
+      "Clorpromazina Cloridrato 100mg - Comprimido",
+      "Clorpromazina Cloridrato 25mg - Comprimido",
+      "Clorpromazina Cloridrato 40mg/ml - Solução Oral",
+      "Desloratadina 0,5mg/ml - Xarope",
+      "Dexametasona 1mg/g - Creme",
+      "Dexclorfeniramina Maleato 0,4mg/ml - Xarope",
+      "Dexclorfeniramina Maleato 2mg - Comprimido",
+      "Diazepam 10mg - Comprimido",
+      "Diazepam 5mg - Comprimido",
+      "Digoxina 0,25mg - Comprimido",
+      "Dipirona Sódica 500mg - Comprimido",
+      "Dipirona Sódica 500mg/ml - Solução Oral",
+      "Dispositivo Intrauterino TCu 380A",
+      "Doxazosina Mesilato 2mg - Comprimido",
+      "Doxazosina Mesilato 4mg - Comprimido",
+      "Enalapril Maleato 10mg - Comprimido",
+      "Enalapril Maleato 20mg - Comprimido",
+      "Enantato de Noretisterona + Valerato de Estradiol 50+5mg/ml - Solução Injetável",
+      "Eritromicina Estolato 50mg/ml - Solução Oral",
+      "Espironolactona 25mg - Comprimido",
+      "Estriol 1mg/g - Creme Vaginal",
+      "Fenitoína Sódica 100mg - Comprimido",
+      "Fenobarbital Sódico 100mg - Comprimido",
+      "Fenobarbital Sódico 40mg/ml - Solução Oral",
+      "Finasterida 5mg - Comprimido",
+      "Fluconazol 150mg - Cápsula",
+      "Fluoxetina Cloridrato 20mg - Cápsula",
+      "Furosemida 40mg - Comprimido",
+      "Glibenclamida 5mg - Comprimido",
+      "Glicazida 30mg - Comprimido de Liberação Prolongada",
+      "Haloperidol 2mg/ml - Solução Oral",
+      "Haloperidol 5mg - Comprimido",
+      "Haloperidol Decanoato 50mg/ml - Solução Injetável",
+      "Heparina Sódica 5.000ui/0,25ml - Solução Injetável Subcutânea",
+      "Hidralazina Cloridrato 50mg - Comprimido",
+      "Hidroclorotiazida 25mg - Comprimido",
+      "Ibuprofeno 50mg/ml - Solução Oral",
+      "Ibuprofeno 600mg - Comprimido",
+      "Insulina NPH 100ui/ml - Suspensão Injetável",
+      "Insulina Regular 100ui/ml - Solução Injetável",
+      "Ipratrópio Brometo 0,25mg/ml - Solução para Inalação",
+      "Isossorbida Dinitrato 5mg - Comprimido Sublingual",
+      "Isossorbida Mononitrato 20mg - Comprimido",
+      "Isossorbida Mononitrato 40mg - Comprimido",
+      "Itraconazol 100mg - Cápsula",
+      "Ivermectina 6mg - Comprimido",
+      "Lactulose 667mg/ml - Xarope",
+      "Levodopa + Benserazida 100+25mg - Comprimido",
+      "Levodopa + Benserazida 200+50mg - Comprimido",
+      "Levodopa + Carbidopa 250+25mg - Comprimido",
+      "Levonorgestrel + Etinilestradiol 0,15+0,03mg - Comprimido",
+      "Levonorgestrel 0,75mg - Comprimido",
+      "Levotiroxina 100mcg - Comprimido",
+      "Levotiroxina 50mcg - Comprimido",
+      "Levotiroxina Sódica 25mcg - Comprimido",
+      "Loratadina 10mg - Comprimido",
+      "Loratadina 1mg/ml - Xarope",
+      "Losartana Potássica 50mg - Comprimido",
+      "Metformina Cloridrato 500mg - Comprimido",
+      "Metformina Cloridrato 850mg - Comprimido",
+      "Metildopa 250mg - Comprimido",
+      "Metoclopramida Cloridrato 10mg - Comprimido",
+      "Metoclopramida Cloridrato 4mg/ml - Solução Oral",
+      "Metoprolol Succinato 50mg - Comprimido de Liberação Prolongada",
+      "Metronidazol 250mg - Comprimido",
+      "Miconazol Nitrato 20mg/g - Creme",
+      "Miconazol Nitrato 20mg/g - Creme Vaginal",
+      "Neomicina Sulfato + Bacitracina 5mg/g+250ui/g - Pomada",
+      "Nifedipino 10mg - Comprimido",
+      "Nimesulida 100mg - Comprimido",
+      "Nistatina 100.000ui/ml - Suspensão Oral",
+      "Nitrofurantoína 100mg - Cápsula",
+      "Noretisterona 0,35mg - Comprimido",
+      "Nortriptilina Cloridrato 25mg - Cápsula",
+      "Nortriptilina Cloridrato 50mg - Cápsula",
+      "Omeprazol 20mg - Cápsula",
+      "Ondasetrona Cloridrato 4mg - Comprimido",
+      "Ondasetrona Cloridrato 8mg - Comprimido",
+      "Paracetamol 200mg/ml - Solução Oral",
+      "Paracetamol 500mg - Comprimido",
+      "Permetrina 50mg/ml (5%) - Loção",
+      "Prednisolona Fosfato Sódico 1mg/ml - Solução Oral",
+      "Prednisolona Fosfato Sódico 3mg/ml - Solução Oral",
+      "Prednisona 20mg - Comprimido",
+      "Prednisona 5mg - Comprimido",
+      "Prometazina 25mg - Comprimido",
+      "Propranolol Cloridrato 40mg - Comprimido",
+      "Ranitidina Cloridrato 150mg - Comprimido",
+      "Risperidona 2mg - Comprimido",
+      "Sais Reidratação 3,5+1,5+2,9+20g - Pó para Solução Oral",
+      "Salbutamol Sulfato 100mcg - Aerossol Oral",
+      "Sertralina 50mg - Comprimido",
+      "Simeticona 75mg/ml - Solução Oral",
+      "Sinvastatina 10mg - Comprimido",
+      "Sinvastatina 20mg - Comprimido",
+      "Sinvastatina 40mg - Comprimido",
+      "Sulfadiazina 500mg - Comprimido",
+      "Sulfadiazina de Prata 10mg/g - Creme",
+      "Sulfametaxol + Trimetoprima 40mg/ml+80mg/ml - Solução Oral",
+      "Sulfametoxazol + Trimetoprima 400mg+80mg - Comprimido",
+      "Sulfato Ferroso 25mg/ml - Solução Oral",
+      "Sulfato Ferroso 40mg - Comprimido",
+      "Tiamina Cloridrato 300mg - Comprimido",
+      "Timolol Maleato 5mg/ml (0,5%) - Solução Oftálmica",
+      "Varfarina Sódica 5mg - Comprimido",
+      "Verapamil Cloridrato 80mg - Comprimido"
+    ],
+    "Betim": [
+      "Acetato de Retinol + Aminoácidos + Metionina + Cloranfenicol 10.000ui/g + 25mg/g + 5mg/g + 5mg/g - Pomada Oftálmica",
+      "Acetazolamida 250mg - Comprimido",
+      "Acetilcisteína 600mg - Granulado Oral (Local de acesso: UPA, HPRB, PID)",
+      "Aciclovir 200mg - Comprimido (Local de acesso: UBS, SEPADI, UPA, HPRB)",
+      "Aciclovir 250mg - Pó para Solução Injetável",
+      "Adenosina 3mg/ml - Solução Injetável (Local de acesso: UPA, HPRB, SAMU, CIMUC)",
+      "Adrenalina (Epinefrina) 1mg/ml - Solução Injetável (Local de acesso: CX EMERGÊNCIA, UPA, HPRB, SEPADI, CIMUC, SAMU)",
+      "Albendazol 400mg - Comprimido Mastigável",
+      "Albendazol 40mg/ml - Suspensão Oral",
+      "Albumina Humana 0.2 - Solução Injetável",
+      "Alendronato de Sódio 70mg - Comprimido",
+      "Alfentanila Cloridrato 0,544mg/ml - Solução Injetável",
+      "Alopurinol 100mg - Comprimido",
+      "Alopurinol 300mg - Comprimido",
+      "Alteplase 50mg - Solução Injetável (Local de acesso: UPA, HPRB)",
+      "Amicacina 250mg/ml - Solução Injetável (Local de acesso: HPRB, PID, UPA)",
+      "Aminofilina 24mg/ml - Solução Injetável",
+      "Amiodarona 200mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Amiodarona 50mg/ml - Solução Injetável (Local de acesso: CX EMERGÊNCIA, UPA, HPRB, SEPADI, CIMUC, SAMU)",
+      "Amitriptilina 25mg - Comprimido",
+      "Amoxicilina + Clavulanato de Potássio 1g + 200mg - Pó para Solução Injetável (Local de acesso: UPA, HPRB)",
+      "Amoxicilina + Clavulanato de Potássio 500mg + 125mg - Comprimido (Local de acesso: UBS, UPA, SEPADI, HPRB)",
+      "Amoxicilina + Clavulanato de Potássio 50mgml + 12,5mg/ml - Suspensão Oral",
+      "Amoxicilina 500mg - Cápsula (Local de acesso: UBS, UPA, SEPADI, HPRB)",
+      "Amoxicilina 50mg/ml (5%) - Suspensão Oral (Local de acesso: UBS, UPA, HPRB)",
+      "Ampicilina + Sulbactam 1000mg + 500mg - Pó para Solução Injetável",
+      "Ampicilina 1g - Pó para Solução Injetável (Local de acesso: UPA, HPRB)",
+      "Ampicilina 500mg - Pó para Solução Injetável (Local de acesso: UPA, HPRB)",
+      "Anfotericina B 50mg - Pó Liofilizado Injetável",
+      "Anlodipino 5mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Antimoniato de Meglumina 300mg/ml - Solução Injetável",
+      "Atenolol 50mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Atropina 0,25mg/ml - Solução Injetável",
+      "Atropina 0,5mg/ml - Solução Injetável (Local de acesso: CX EMERGÊNCIA, UPA, HPRB, SEPADI, CIMUC, SAMU)",
+      "Atropina 10mg/ml (1%) - Solução Oftálmica",
+      "Azitromicina 40mg/ml – 600mg - Pó para Suspensão Oral (Local de acesso: UBS, UPA, HPRB, SEPADI)",
+      "Azitromicina 500mg - Comprimido (Local de acesso: UBS, UPA, SEPADI, HPRB)",
+      "Azul de Metileno 20mg/ml (2%) - Solução Injetável",
+      "Baclofeno 10mg - Comprimido",
+      "Beclometasona Dipropionato 200mcg - Aerossol Oral",
+      "Beclometasona Dipropionato 50mcg - Aerossol Oral",
+      "Benzilpenicilina Benzatina 1.200.000ui - Pó para Suspensão Injetável ou Suspensão Injetável (Local de acesso: UBS, UPA, SEPADI, HPRB, PID)",
+      "Benzilpenicilina Benzatina 600.000ui - Pó para Suspensão Injetável ou Suspensão Injetável (Local de acesso: UPA, PID)",
+      "Benzilpenicilina Potássica + Benzilpenicilina Procaína 100.000ui + 300.000ui - Pó para Suspensão Injetável ou Suspensão Injetável (Local de acesso: UPA, PID)",
+      "Benzilpenicilina Potássica 5.000.000ui - Pó para Suspensão Injetável ou Suspensão Injetável",
+      "Benzoilmetronidazol 40mg/ml (4%) - Suspensão Oral",
+      "Bicarbonato de Sódio 84mg/ml (8,4%) - Solução Injetável",
+      "Biperideno 2mg - Comprimido",
+      "Biperideno 5mg/ml - Solução Injetável (Local de acesso: CERSAM, CAPS-AD, CERSAMI, UPA, HPRB)",
+      "Bisacodil 5mg - Drágea (Local de acesso: UBS, UPA, HPRB)",
+      "Brometo de Ipratrópio 0,25mg/ml - Solução para Inalação (Local de acesso: UPA, HPRB, SAMU)",
+      "Brometo de Ipratrópio 20mcg/dose - Solução Aerossol (Local de acesso: UPA, HPRB)",
+      "Budesonida 32mcg/dose - Spray Nasal",
+      "Bupivacaína com Vasoconstritor 5mg/ml (0,5%) - Solução Injetável",
+      "Bupivacaína Isobárica 5mg/ml (0,5%) - Solução Injetável",
+      "Bupivacaína Pesada + Glicose 5mg/ml (0,5%) + 80mg/ml (8%) - Solução Injetável",
+      "Bupivacaína Sem Vasoconstritor 5mg/ml (0,5%) - Solução Injetável",
+      "Bupropiona 150mg - Comprimido",
+      "Captopril 25mg - Comprimido (Local de acesso: CX EMERGÊNCIA, UPA, HPRB, CIMUC, SAMU)",
+      "Carbamazepina 200mg - Comprimido (Local de acesso: UBS, UPA, CERSAM, CAPS-AD, CERSAMI, HPRB)",
+      "Carbamazepina 20mg/ml (2%) - Suspensão Oral",
+      "Carbonato de Cálcio 1250mg (500mg Cálcio Elementar) - Comprimido",
+      "Carbonato de Lítio 300mg - Comprimido",
+      "Carvedilol 12,5mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Carvedilol 3,125mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Carvão Ativado - Pó para Suspensão Oral (Local de acesso: UPA, HPRB)",
+      "Cefalexina 500mg - Comprimido ou Cápsula (Local de acesso: UBS, UPA, SEPADI, HPRB, PID)",
+      "Cefalexina 50mg/ml (5%) - Pó para Suspensão Oral (Local de acesso: UBS, UPA, HPRB)",
+      "Cefazolina 1g - Pó Liofilizado Injetável (Local de acesso: UPA, HPRB, PID)",
+      "Cefepima 1g - Pó Liofilizado Injetável (Local de acesso: UPA, HPRB, PID)",
+      "Cefotaxima Sódica 1g - Pó para Solução Injetável",
+      "Ceftazidima + Avibactam 2.000mg + 500mg - Pó para Solução Injetável",
+      "Ceftazidima 1g - Pó para Solução Injetável",
+      "Ceftriaxona 1g - Pó para Solução Injetável",
+      "Cetoconazol 20mg/g - Creme Dermatológico",
+      "Cetoprofeno 100mg - Pó para Solução Injetável (Local de acesso: UBS, UPA, HPRB, SAMU)",
+      "Cianocobalamina 2500mcg/ml - Solução Injetável",
+      "Cianocobalamina 500mcg/ml - Solução Injetável",
+      "Ciclobenzaprina 5mg - Comprimido",
+      "Ciclofosfamida 1000mg - Pó para Solução Injetável",
+      "Ciclopentolato 10mg/ml (1%) - Solução Oftálmica",
+      "Ciprofloxacino 2mg/ml - Solução Injetável (Local de acesso: UPA, HPRB, PID)",
+      "Ciprofloxacino 3,5mg/ml - Solução Oftálmica",
+      "Ciprofloxacino 500mg - Comprimido (Local de acesso: UBS, UPA, SEPADI, HPRB)",
+      "Ciproterona Acetato 50mg - Comprimido",
+      "Cisatracúrio Besilato 2mg/ml - Solução Injetável",
+      "Claritromicina 500mg - Comprimido",
+      "Claritromicina 500mg - Pó para Solução Injetável",
+      "Clindamicina 150mg/ml - Solução Injetável (Local de acesso: UPA, HPRB, PID, UPA)",
+      "Clindamicina 300mg - Cápsula (Local de acesso: SEPADI, HPRB, PID, UPA)",
+      "Clobazam 10mg - Comprimido",
+      "Clomipramina 25mg - Comprimido",
+      "Clomipramina 75mg - Comprimido",
+      "Clonazepam 2,5mg/ml - Solução Oral (Local de acesso: UBS, UPA, CERSAM, CAPS-AD, CERSAMI, HPRB)",
+      "Clonazepam 2mg - Comprimido",
+      "Clonidina 0,15mg/ml - Solução Injetável",
+      "Clopidogrel 75mg - Comprimido (Local de acesso: CX EMERGÊNCIA, UPA, HPRB, CIMUC, SAMU)",
+      "Cloreto de Potássio 100mg/ml (10%) - Solução Injetável (Local de acesso: UPA, HPRB, SAMU, CIMUC)",
+      "Cloreto de Potássio 60mg/ml - Solução Oral (Local de acesso: UBS, UPA, HPRB)",
+      "Cloreto de Sódio 100mg/ml (10%) - Solução Injetável (Local de acesso: UPA, HPRB, PID)",
+      "Cloreto de Sódio 200mg/ml (20%) - Solução Injetável",
+      "Cloreto de Sódio 9mg/ml (0,9%) - Solução Injetável",
+      "Clorpromazina 100mg - Comprimido",
+      "Clorpromazina 25mg - Comprimido",
+      "Clorpromazina 40mg/ml - Solução Oral (Local de acesso: UBS, UPA, CERSAM, CAPS-AD, CERSAMI, HPRB)",
+      "Clorpromazina 5mg/ml - Solução Injetável (Local de acesso: UPA, CERSAM, CAPS-AD, CERSAMI, HPRB, SAMU)",
+      "Codeína 30mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Colagenase Sem Cloranfenicol 0,6 U/g - Pomada Dermatológica (Local de acesso: UBS, UPA, PAD, HPRB, PID)",
+      "Colagenase Sem Cloranfenicol 1,2 U/g - Pomada Dermatológica (Local de acesso: UBS, UPA, PAD, HPRB, PID)",
+      "Colchicina 0,5mg - Comprimido",
+      "Colecalciferol (Vitamina D3) 200ui/gota - Solução Oral",
+      "Contraste Iodado Hidrossolúvel, Não Iônico 300 a 350mg/ml de iodo - Solução Injetável",
+      "Dantroleno 20mg - Pó para Solução Injetável",
+      "Dapsona + Rifampicina + Clofazimina 100mg + 300mg + (100 e 50mg) - Comprimido",
+      "Dapsona + Rifampicina + Clofazimina 50mg + 150mg + 50mg - Comprimido",
+      "Daptomicina 500mg - Pó para Solução Injetável",
+      "Deslanosídeo 0,2mg/ml - Solução Injetável (Local de acesso: CX EMERGÊNCIA, UPA, HPRB, SEPADI, CIMUC, SAMU)",
+      "Desmopressina Acetato 4mcg/ml - Solução Injetável",
+      "Dexametasona 1mg/g - Creme",
+      "Dexametasona 1mg/ml - Suspensão Oftálmica",
+      "Dexametasona 4mg - Comprimido",
+      "Dexametasona 4mg/ml - Solução Injetável (Local de acesso: UBS, UPA, CERSAM, CAPS-AD, CERSAMI, HPRB, CREDFB)",
+      "Dexmedetomidina 100mcg/ml - Solução Injetável (Local de acesso: HPRB, UPA)",
+      "Dextrana + Hipromelose 1mg/ml + 3mg/ml - Solução Oftálmica (Local de acesso: UBS, UPA, HPRB)",
+      "Diazepam 10mg - Comprimido (Local de acesso: UBS, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB)",
+      "Diazepam 5mg/ml - Solução Injetável (Local de acesso: UBS, CX EMERGÊNCIA, UPA, CERSAM, CAPS-AD, CERSAMI, SEPADI, HPRB, CIMUC, SAMU)",
+      "Digoxina 0,25mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Diltiazem 30mg - Comprimido",
+      "Dipirona 500mg - Comprimido (Local de acesso: UBS, UPA, CERSAM, CAPS-AD, CERSAMI, HPRB, SAMU)",
+      "Dipirona 500mg/ml - Solução Injetável",
+      "Dipirona 500mg/ml - Solução Oral",
+      "Dobutamina 12,5mg/ml - Solução Injetável (Local de acesso: UPA, HPRB, SAMU)",
+      "Domperidona 1mg/ml - Suspensão Oral",
+      "Dopamina Cloridrato 5mg/ml - Solução Injetável (Local de acesso: UPA, HPRB, SAMU)",
+      "Doxazosina 2mg - Comprimido",
+      "Doxiciclina 100mg - Comprimido ou Drágea",
+      "Doxiciclina 100mg - Comprimido Solúvel",
+      "Efedrina Sulfato 50mg/ml - Solução Injetável",
+      "Enalapril 10mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Enalapril 20mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Enoxaparina Sódica 20mg/0,2ml - Solução Injetável (Local de acesso: HPRB, UPA)",
+      "Enoxaparina Sódica 40mg/0,4ml - Solução Injetável (Local de acesso: HPRB, UPA)",
+      "Enoxaparina Sódica 60mg/0,6ml - Solução Injetável",
+      "Ertapenem Sódico 1g – IV - Pó para Solução Injetável",
+      "Escetamina Cloridrato 50mg/ml - Solução Injetável (Local de acesso: HPRB, SAMU, UPA)",
+      "Escopolamina Butilbrometo 10mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Escopolamina Butilbrometo 20mg/ml - Solução Injetável (Local de acesso: UBS, UPA, HPRB)",
+      "Espiramicina 1,5mui - Comprimido Revestido",
+      "Espironolactona 100mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Espironolactona 25mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Estradiol Hemi Hidratado 0,6mg/g - Gel",
+      "Estradiol Valerato 2mg - Comprimido",
+      "Estreptomicina 1g - Pó para Solução Injetável",
+      "Etambutol 400mg - Comprimido",
+      "Etionamida 250mg - Comprimido",
+      "Etomidato 2mg/ml - Solução Injetável (Local de acesso: UPA, HPRB, SAMU, CIMUC)",
+      "Etonogestrel 68mg - Implante Subdérmico",
+      "Fenitoína 100mg - Comprimido (Local de acesso: UBS, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB)",
+      "Fenitoína 50mg/ml - Solução Injetável (Local de acesso: CX EMERGÊNCIA, UPA, HPRB, CERSAM, CAPS-AD, CERSAMI, SEPADI, CIMUC, SAMU)",
+      "Fenobarbital 100mg - Comprimido (Local de acesso: UBS, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB)",
+      "Fenobarbital 100mg/ml - Solução Injetável (Local de acesso: CX EMERGÊNCIA, UPA, HPRB, CERSAM, CAPS-AD, CERSAMI, SEPADI, CIMUC, SAMU)",
+      "Fenobarbital 40mg/ml - Solução Oral (Local de acesso: UBS, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB)",
+      "Fentanila 0,05mg/ml - Solução Injetável (Local de acesso: UPA, HPRB, SAMU)",
+      "Finasterida 5mg - Comprimido",
+      "Fitomenadiona 10mg/ml - Solução Injetável (Local de acesso: UBS, UPA, HPRB)",
+      "Fluconazol 150mg - Cápsula (Local de acesso: UBS, UPA, HPRB, SEPADI)",
+      "Fluconazol 2mg/ml (0,2%) - Solução Injetável",
+      "Flumazenil 0,1mg/ml - Solução Injetável (Local de acesso: CX EMERGÊNCIA, UPA, HPRB, SEPADI, CIMUC)",
+      "Fluocinolona + Polimixina B + Lidocaína + Neomicina 250mg + 10.000ui + 20mg + 5mg/ml - Solução Otológica",
+      "Fluoresceína 10mg/ml (1%) - Solução Oftálmica",
+      "Fluoxetina 20mg - Cápsula",
+      "Fosfato de Potássio (Fosfato de Potássio Dibásico + Fosfato de Potássio Monobásico) 2meq/ml (156,7mg/ml + 30mg/ml) - Solução Injetável",
+      "Fosfomicina Trometamol 3g - Granulado",
+      "Furosemida 10mg/ml - Solução Injetável (Local de acesso: UBS, CX EMERGÊNCIA, UPA, HPRB, CIMUC, SAMU, SEPADI)",
+      "Furosemida 40mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Gentamicina 40mg/ml - Solução Injetável (Local de acesso: UPA, HPRB, PID, UBS)",
+      "Glibenclamida 5mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Glicerina 120mg/ml (12%) - Solução Retal (Local de acesso: UBS, UPA, PAD, HPRB, PID)",
+      "Glicina 15mg/ml (1,5%) - Solução para Irrigação",
+      "Gliclazida 30mg - Comprimido de Liberação Controlada",
+      "Gliclazida 60mg - Comprimido de Liberação Controlada",
+      "Gliconato de Cálcio 100mg/ml (10%) - Solução Injetável (Local de acesso: UPA, HPRB, SAMU, CIMUC)",
+      "Glicose 500mg/ml (50%) - Solução Injetável (Local de acesso: UBS, CX EMERGÊNCIA, UPA, CERSAM, CAPS-AD, CERSAMI, HPRB, SEPADI, SAMU, CIMUC, PID)",
+      "Glicose 50mg/ml (5%) - Solução Injetável (Local de acesso: UBS, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB, SEPADI, SAMU, PID)",
+      "Haloperidol 1mg - Comprimido",
+      "Haloperidol 2mg/ml (0,2%) - Solução Oral (Local de acesso: UBS, CERSAM, CAPS-AD, CERSAMI, HPRB, UPA)",
+      "Haloperidol 50mg/ml - Solução Injetável",
+      "Haloperidol 5mg - Comprimido (Local de acesso: UBS, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB)",
+      "Haloperidol 5mg/ml - Solução Injetável (Local de acesso: CX EMERGÊNCIA, UPA, HPRB, CERSAM, CAPS-AD, CERSAMI, SEPADI, SAMU)",
+      "Heparina Sódica 5.000ui/0,25ml - Solução Injetável",
+      "Heparina Sódica 5.000ui/ml - Solução Injetável",
+      "Hidralazina 20mg/ml - Solução Injetável (Local de acesso: HPRB, UPA, CIMUC)",
+      "Hidralazina 25mg - Comprimido (Local de acesso: UBS, UPA, HPRB, CIMUC)",
+      "Hidroclorotiazida 25mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Hidrocortisona 100mg - Pó para Solução Injetável (Local de acesso: UPA, HPRB, SAMU, PID)",
+      "Hidrocortisona 500mg - Pó para Solução Injetável (Local de acesso: UBS, CX EMERGÊNCIA, UPA, HPRB, CIMUC, SAMU, PID)",
+      "Hidroxietilamido + Cloreto de Sódio 60mg/ml (6%) + 9mg/ml (0,9%) - Solução para Infusão",
+      "Ibuprofeno 50mg/ml - Suspensão Oral",
+      "Ibuprofeno 600mg - Comprimido (Local de acesso: UBS, UPA, HPRB, CAPS-AD)",
+      "Imatinibe 400mg - Comprimido",
+      "Imunoglobulina Humana 50mg/ml (5g) - Injetável",
+      "Insulina Glargina 100ui/ml - Solução Injetável",
+      "Insulina Humana NPH 100ui/ml - Suspensão Injetável (Local de acesso: UBS, UPA, HPRB)",
+      "Insulina Humana Regular 100ui/ml - Solução Injetável (Local de acesso: UBS, UPA, HPRB)",
+      "Isoniazida 100mg - Comprimido",
+      "Isoniazida 300mg - Comprimido",
+      "Isossorbida Dinitrato 5mg - Comprimido Sublingual (Local de acesso: UBS, CX EMERGÊNCIA, UPA, HPRB, CIMUC, SAMU)",
+      "Isossorbida Mononitrato 20mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Itraconazol 100mg - Cápsula",
+      "Ivermectina 6mg - Comprimido (Local de acesso: UBS, SEPADI, UPA, HPRB)",
+      "Lactulose 667mg/ml (66,7%) - Xarope (Local de acesso: UBS, UPA, HPRB)",
+      "Levetiracetam 100mg/ml - Solução Oral",
+      "Levodopa + Benserazida 100mg + 25mg - Comprimido",
+      "Levodopa + Benserazida 200mg + 50mg - Comprimido",
+      "Levodopa + Carbidopa 250mg + 25mg - Comprimido",
+      "Levonorgestrel + Etinilestradiol 0,15mg + 0,03mg - Comprimido",
+      "Levonorgestrel 0,75mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Levotiroxina Sódica 100mcg - Comprimido",
+      "Levotiroxina Sódica 25mcg - Comprimido",
+      "Levotiroxina Sódica 50mcg - Comprimido",
+      "Levotiroxina Sódica 75mcg - Comprimido",
+      "Lidocaína + Vasoconstritor 20mg/ml (2%) - Solução Injetável",
+      "Lidocaína Cloridrato + Epinefrina 20mg/ml (2%) + 0,005mg - Solução Injetável",
+      "Lidocaína Cloridrato 100mg/ml (10%) - Spray",
+      "Lidocaína Cloridrato 20mg/g (2%) - Geleia (Local de acesso: UBS, UPA, PAD, CREDFB, HPRB, CIMUC, SAMU)",
+      "Lidocaína Cloridrato 20mg/ml (2%) - Solução Injetável (Local de acesso: UPA, HPRB, CIMUC, CREDFB)",
+      "Lidocaína Cloridrato 20mg/ml (2%) Isobárica - Solução Injetável",
+      "Linezolida 2mg/ml - Solução Injetável",
+      "Loperamida Cloridrato 2mg - Comprimido",
+      "Loratadina 10mg - Comprimido (Local de acesso: UBS, UPA, HPRB, SEPADI)",
+      "Loratadina 1mg/ml - Xarope (Local de acesso: UBS, UPA, HPRB)",
+      "Lorazepam 2mg - Comprimido",
+      "Losartana 50mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Manitol 200mg/ml (20%) - Solução Injetável (Local de acesso: UPA, HPRB, SAMU, CIMUC)",
+      "Medroxiprogesterona 10mg - Comprimido",
+      "Medroxiprogesterona 150mg/ml - Suspensão Injetável",
+      "Mepivacaína 30mg/ml (3%) - Solução Injetável",
+      "Meropenem 1g IV - Pó para Solução Injetável (Local de acesso: UPA, HPRB, PID)",
+      "Metadona 10mg - Comprimido",
+      "Metaraminol, Hemitartarato 10mg/ml - Solução Injetável",
+      "Metformina 850mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Metildopa 250mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Metildopa 500mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Metilergometrina 0,2mg/ml - Solução Injetável",
+      "Metilprednisolona Succinato Sódico 125mg - Solução Injetável",
+      "Metilprednisolona Succinato Sódico 500mg - Solução Injetável",
+      "Metoclopramida 10mg - Comprimido (Local de acesso: UBS, UPA, SEPADI, HPRB, CIMUC)",
+      "Metoclopramida 5mg/ml - Solução Injetável (Local de acesso: UBS, UPA, CERSAM, CAPS-AD, CERSAMI, HPRB, SAMU, CIMUC, SEPADI)",
+      "Metoprolol 1mg/ml - Solução Injetável (Local de acesso: UPA, HPRB, SAMU)",
+      "Metronidazol 100mg/g - Geleia Vaginal",
+      "Metronidazol 250mg - Comprimido (Local de acesso: UBS, UPA, SEPADI, HPRB)",
+      "Metronidazol 5mg/ml - Solução Injetável (Local de acesso: UPA, HPRB)",
+      "Micafungina 50mg - Pó para Solução Injetável",
+      "Miconazol Nitrato 20mg/g - Creme Vaginal",
+      "Midazolam 15mg - Comprimido",
+      "Midazolam 5mg/ml - Solução Injetável",
+      "Milrinona Lactato 1mg/ml - Solução Injetável",
+      "Minociclina 100mg - Comprimido",
+      "Monoetanolamina Oleato 50mg/ml - Solução Injetável",
+      "Morfina Sulfato 0,1mg/ml - Solução Injetável",
+      "Morfina Sulfato 10mg/ml - Solução Injetável (Local de acesso: CX EMERGÊNCIA, UPA, HPRB, SEPADI, CIMUC, SAMU, PID)",
+      "Morfina Sulfato 1mg/ml - Solução Injetável",
+      "Moxifloxacino 1,6mg/ml (400mg) - Solução Injetável",
+      "Naloxona 0,4mg/ml - Solução Injetável (Local de acesso: CX EMERGÊNCIA, UPA, HPRB, CIMUC)",
+      "Naltrexona 50mg - Comprimido",
+      "Neostigmina Metilsulfato 0,5mg/ml - Solução Injetável",
+      "Nicotina 14mg - Adesivo Transdérmico",
+      "Nicotina 21mg - Adesivo Transdérmico",
+      "Nicotina 2mg - Goma de Mascar",
+      "Nicotina 2mg - Pastilha",
+      "Nicotina 7mg - Adesivo Transdérmico",
+      "Nifedipina 10mg - Comprimido",
+      "Nifedipina 20mg - Comprimido",
+      "Nimodipino 30mg - Comprimido",
+      "Nirmatrelvir + Ritonavir 150mg + 100mg - Comprimido (Local de acesso: UBS, HPRB, UPA, SEPADI)",
+      "Nistatina 100.000ui/ml - Suspensão Oral (Local de acesso: UBS, HPRB, UPA)",
+      "Nistatina 25.000ui/g - Creme Vaginal (Local de acesso: UBS, HPRB, UPA)",
+      "Nitrazepam 5mg - Comprimido",
+      "Nitrofurantoína 100mg - Cápsula (Local de acesso: UBS, UPA, SEPADI, HPRB)",
+      "Nitroglicerina 5mg/ml - Solução Injetável (Local de acesso: HPRB, UPA, SAMU)",
+      "Nitroprussiato de Sódio 25mg/ml - Solução Injetável (Local de acesso: HPRB, UPA, SAMU)",
+      "Norepinefrina (Hemitartarato de Norepinefrina) 1mg/ml (2mg/ml) - Solução Injetável (Local de acesso: HPRB, UPA, SAMU)",
+      "Noretisterona + Estradiol 50mg/ml + 5mg/ml - Solução Injetável",
+      "Noretisterona 0,35mg - Comprimido",
+      "Nortriptilina 25mg - Cápsula",
+      "Nortriptilina 50mg - Cápsula",
+      "Octreotida Acetato 0,1mg/ml - Solução Injetável (Local de acesso: HPRB, UPA)",
+      "Octreotida Acetato 0,5mg/ml - Solução Injetável",
+      "Ofloxacino 400mg - Comprimido",
+      "Oleo Mineral (Local de acesso: UBS, HPRB, UPA, CAPS-AD)",
+      "Omeprazol 20mg - Cápsula (Local de acesso: UBS, HPRB, UPA)",
+      "Omeprazol 40mg - Pó para Solução Injetável (Local de acesso: HPRB, UPA, SAMU, PID)",
+      "Ondansetrona Cloridrato 2mg/ml - Solução Injetável (Local de acesso: UBS, UPA, HPRB)",
+      "Oseltamivir 30mg - Comprimido (Local de acesso: UBS, HPRB, UPA, SEPADI)",
+      "Oseltamivir 45mg - Comprimido (Local de acesso: UBS, HPRB, UPA, SEPADI)",
+      "Oseltamivir 75mg - Comprimido (Local de acesso: UBS, HPRB, UPA, SEPADI)",
+      "Oxacilina Sódica 500mg - Pó para Solução Injetável (Local de acesso: HPRB, UPA)",
+      "Oxcarbazepina 60mg/ml (6%) - Suspensão Oral",
+      "Oxibutinina Cloridrato 5mg - Comprimido",
+      "Oxido Férrico, Sacarato 20mg/ml - Solução Injetável (Local de acesso: UPA, HPRB, PID)",
+      "Palivizumabe 100mg/ml - Solução Injetável",
+      "Paracetamol 200mg/ml (20%) - Solução Oral (Local de acesso: UBS, HPRB, UPA, SEPADI, CAPS-AD)",
+      "Paracetamol 500mg - Comprimido (Local de acesso: UBS, HPRB, UPA, CAPS-AD)",
+      "Pentoxifilina 400mg - Drágea",
+      "Permetrina 10mg/ml (1%) - Loção",
+      "Permetrina 50mg/ml (5%) - Loção",
+      "Pertuzumabe 30mg/ml (420mg/14ml) - Solução Injetável",
+      "Pilocarpina 20mg/ml (2%) - Solução Oftálmica",
+      "Piperacilina Sódica + Tazobactam Sódico 4000mg + 500mg - Pó para Solução Injetável",
+      "Pirazinamida 30mg/ml (3%) - Solução Oral",
+      "Pirazinamida 500mg - Comprimido",
+      "Piridoxina (Vitamina B6) 50mg - Comprimido",
+      "Pirimetamina 25mg - Comprimido",
+      "Poliestirenossulfonato de Cálcio 900mg/g - Pó para Suspensão Oral",
+      "Polimixina B, Sulfato 500.000ui - Pó Liofilizado Injetável",
+      "Polimixina E – Colistimetato de Sódio 80mg de colistina base - Pó Liofilizado Injetável",
+      "Praziquantel 600mg - Comprimido",
+      "Prednisolona, Fosfato Sódico 3mg/ml - Solução Oral (Local de acesso: UBS, HPRB, UPA)",
+      "Prednisona 20mg - Comprimido (Local de acesso: UBS, HPRB, UPA, SEPADI)",
+      "Prednisona 5mg - Comprimido (Local de acesso: UBS, HPRB, UPA)",
+      "Prometazina 25mg - Comprimido (Local de acesso: UBS, CERSAM, CAPS-AD, CERSAMI, HPRB, UPA, SAMU, SEPADI)",
+      "Prometazina 25mg/ml - Solução Injetável (Local de acesso: UBS, CX EMERGÊNCIA, UPA, CERSAM, CAPS-AD, CERSAMI, HPRB, SEPADI, SAMU, CIMUC)",
+      "Propiltiouracila 100mg - Comprimido",
+      "Propofol 10mg/ml - Emulsão Injetável",
+      "Propranolol 40mg - Comprimido (Local de acesso: UBS, HPRB, UPA, SAMU, CAPS-AD)",
+      "Protamina, Cloridrato 1000ui/ml - Solução Injetável",
+      "Proximetacaína, Cloridrato 5mg/ml (0,5%) - Solução Oftálmica",
+      "Quetiapina 100mg - Comprimido",
+      "Quetiapina 25mg - Comprimido",
+      "Remifentanila, Cloridrato 2mg - Pó para Solução Injetável",
+      "Rifampicina + Isoniazida + Pirazinamida + Etambutol, Cloridrato 150mg + 75mg + 275mg + 400mg - Comprimido (Local de acesso: UBS, HPRB, UPA, SEPADI)",
+      "Rifampicina + Isoniazida + Pirazinamida 75mg + 50mg + 150mg - Comprimido Dispersível",
+      "Rifampicina + Isoniazida 150mg + 75mg - Comprimido",
+      "Rifampicina + Isoniazida 300mg + 150mg - Comprimido",
+      "Rifampicina + Isoniazida 75mg + 50mg - Comprimido Dispersível",
+      "Rifampicina 20mg/ml (2%) - Suspensão Oral",
+      "Rifampicina 300mg - Cápsula",
+      "Rifapentina 150mg - Comprimido",
+      "Risperidona 1mg - Comprimido",
+      "Risperidona 1mg/ml - Solução Oral",
+      "Risperidona 2mg - Comprimido",
+      "Rivaroxabana 10mg - Comprimido",
+      "Rocurônio, Brometo 10mg/ml - Solução Injetável (Local de acesso: HPRB, UPA, CIMUC)",
+      "Ropivacaína, Cloridrato 10mg/ml - Solução Injetável",
+      "Saccharomyces Boulardii – 17 100mg - Cápsula",
+      "Sais para Reidratação Oral Cloreto de sódio 3,5g; Cloreto de potássio 1,5g; Citrato de Sódio diidratado 2,9g; Glicose 20g - Pó para Solução Oral",
+      "Salbutamol, Sulfato 0,5mg/ml - Solução Injetável (Local de acesso: HPRB, UPA)",
+      "Salbutamol, Sulfato 100mcg/dose - Aerossol Oral (Local de acesso: UBS, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB, SEPADI, CIMUC, SAMU, CREDFB)",
+      "Salbutamol, Sulfato 5mg/ml - Solução para Inalação (Local de acesso: UBS, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB, SEPADI, CIMUC, SAMU, CREDFB)",
+      "Salmeterol, Xinafoato + Fluticasona 25mcg + 125mcg/ dose - Spray Oral",
+      "Secnidazol 1000mg - Comprimido",
+      "Sertralina 50mg - Comprimido",
+      "Sevoflurano 1ml/ml (100%) - Solução para Inalação",
+      "Simeticona 75mg/ml - Emulsão Oral (Local de acesso: UBS, HPRB, UPA)",
+      "Sinvastatina 20mg - Comprimido (Local de acesso: UBS, HPRB, UPA)",
+      "Solução Ringer + Lactato Lactato de sódio 3mg/ml + cloreto de sódio 6mg/ml + cloreto de potássio 0,3mg/ml + cloreto de cálcio 0,2mg/ml - Solução Injetável Intravenosa",
+      "Solução Ringer Simples - Solução Injetável Intravenosa (Local de acesso: CX EMERGÊNCIA, UPA, HPRB, CIMUC, SEPADI)",
+      "Sorbitol 30mg/ml (3%) - Solução para Irrigação",
+      "Sulfadiazina 500mg - Comprimido",
+      "Sulfadiazina de Prata 10mg/g (1%) - Creme (Local de acesso: UBS, UPA, PAD, HPRB)",
+      "Sulfametoxazol + Trimetoprina 400mg + 80mg - Comprimido (Local de acesso: UBS, UPA, SEPADI, HPRB)",
+      "Sulfametoxazol + Trimetoprina 40mg/ml (4%) + 8mg/ml (0,8%) - Suspensão Oral (Local de acesso: UBS, UPA, SEPADI, HPRB)",
+      "Sulfametoxazol + Trimetoprina 80mg/ml (8%) + 16mg/ml (1,6%) - Solução Injetável (Local de acesso: HPRB, UPA)",
+      "Sulfato de Magnésio 500mg/ml (50%) - Solução Injetável (Local de acesso: UPA, HPRB, SAMU, CIMUC)",
+      "Sulfato Ferroso 125mg (Ferro elementar 40mg) - Drágea",
+      "Sulfato Ferroso 125mg/ml (Ferro elementar 25mg/ml) - Solução Oral",
+      "Suxametônio Cloreto 100mg - Pó para Solução Injetável (Local de acesso: CX EMERGÊNCIA, UPA, HPRB, CIMUC, SAMU)",
+      "Talidomida 100mg - Comprimido",
+      "Teicoplanina 400mg - Pó Liofilizado para Solução Injetável",
+      "Tenoxicam 20mg - Pó Liofilizado para Solução Injetável (Local de acesso: UBS, UPA, HPRB, SAMU)",
+      "Testosterona Undecilato 250mg/ml - Solução Injetável",
+      "Tiamina Cloridrato 100mg/ml (10%) - Solução Injetável (Local de acesso: UBS, CX EMERGÊNCIA, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB, SEPADI, CIMUC, SAMU)",
+      "Tiamina Cloridrato 300mg - Comprimido (Local de acesso: UBS, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB)",
+      "Timolol Maleato 5mg/ml (0,5%) - Solução Oftálmica",
+      "Tiopental Sódico 1g - Pó para Solução Injetável",
+      "Tobramicina 3mg/ml - Solução Oftálmica (Local de acesso: UBS, UPA, HPRB)",
+      "Topiramato 25mg - Comprimido ou Cápsula",
+      "Tramadol Cloridrato 50mg/ml (5%) - Solução Injetável (Local de acesso: HPRB, UPA)",
+      "Trastuzumabe 150mg - Pó Liofilizado",
+      "Tropicamida 10mg/ml (1%) - Solução Oftálmica",
+      "Vancomicina Cloridrato 500mg - Pó para Solução Injetável",
+      "Varfarina Sódica 5mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Vasopressina 20U/ml - Solução Injetável (Local de acesso: HPRB, UPA)",
+      "Verapamil Cloridrato 80mg - Comprimido (Local de acesso: UBS, UPA, HPRB)",
+      "Vitaminas do Complexo B Vitamina B1 (tiamina) 4mg; Vitamina B2 (riboflavina) 2mg; Vitamina B6 (piridoxina) 1mg; Vitamina B3 (nicotinamida) 10mg e Vitamina B5 (pantotenato de cálcio) 2mg - Comprimido ou Drágea",
+      "Vitaminas do Complexo B Vitamina B1 (tiamina) 8mg, Vitamina B2 (riboflavina) 2mg, Vitamina B3 (nicotinamida) 40mg, Vitamina B6 (piridoxina) 4mg, Vitamina B5 (pantotenato de calcio) 6mg - Solução Injetável",
+      "Ácido Acetilsalicílico 100mg - Comprimido (Local de acesso: UBS, CX EMERGÊNCIA, UPA, HPRB, CIMUC, SAMU)",
+      "Ácido Ascórbico 100mg/ml - Solução Injetável",
+      "Ácido Folínico 15mg - Comprimido",
+      "Ácido Fólico 0,2mg/ml - Solução Oral",
+      "Ácido Fólico 5mg - Comprimido",
+      "Ácido Tranexâmico 50mg/ml - Solução Injetável (Local de acesso: SAMU, HPRB, UPA)",
+      "Ácido Valpróico 250mg - Cápsula",
+      "Ácido Valpróico 500mg - Comprimido",
+      "Ácido Valpróico 50mg/ml (5%) - Xarope",
+      "Água Destilada - Solução Injetável 10ml",
+      "Água Destilada - Solução Injetável 500ml"
+    ],
+    "Congonhas": [
+      "Acetato de Ciproterona 2mg + Etinilestradiol 0,035mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Acetato de Medroxiprogesterona 150mg - Injetável (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Acetilcisteína 20mg/mL - Xarope (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Acetilcisteína 40mg/mL - Xarope (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Acetofenido de Algestona 150mg + Enantato de Estradiol 10mg - Injetável (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Aciclovir 200mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Adenosina 3mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Albendazol 400mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Albendazol 40mg/mL - Suspensão (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Alopurinol 100mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Alopurinol 300mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Alteplase 50mg - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Aminofilina 24mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Amiodarona 200mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Amiodarona 50mg/mL - Injetável (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO))",
+      "Amitriptilina 25mg - Comprimido (Local de acesso: FARMÁCIA CENTRAL, CAPS AD (USO INTERNO))",
+      "Amoxicilina 500mg - Cápsula (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Amoxicilina 50mg/mL - Pó para Suspensão Oral (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Ampicilina 1g - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Atropina 0,25mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Azitromicina 40mg/mL - Pó para Suspensão Oral (Local de acesso: FARMÁCIA CENTRAL)",
+      "Azitromicina 500mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Benzilpenicilina Benzatina 1.200.000ui - Injetável (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO))",
+      "Benzilpenicilina Procaína/Potássica 400.000ui - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Besilato de Anlodipino 5mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Bicarbonato de Sódio 8,4% - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Biperideno 2mg - Comprimido (Local de acesso: FARMÁCIA CENTRAL, CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Biperideno 5mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO), CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Captopril 25mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Carbamazepina 200mg - Comprimido (Local de acesso: FARMÁCIA CENTRAL, CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Carbonato de Lítio 300mg - Comprimido (Local de acesso: FARMÁCIA CENTRAL, CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Carvedilol 12,5mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Carvedilol 3,125mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Carvão Vegetal Ativado - Pó Oral (Local de acesso: EXCLUSIVO DA URGÊNCIA (USO INTERNO))",
+      "Cefalexina 250mg/5mL - Suspensão Oral (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Cefalexina 500mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Ceftriaxona 1g - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Cetoconazol 200mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Cetoconazol 20mg/g - Creme (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Cetoprofeno 50mg/mL - Injetável (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO))",
+      "Ciprofloxacino 200mg - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Ciprofloxacino 500mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Clomipramina 25mg - Comprimido (Local de acesso: FARMÁCIA CENTRAL, CAPS II (USO INTERNO))",
+      "Clonazepam 2,5mg/mL - Gotas (Local de acesso: FARMÁCIA CENTRAL)",
+      "Clonazepam 2mg - Comprimido (Local de acesso: FARMÁCIA CENTRAL, CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Clopidogrel 75mg - Comprimido (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Cloreto de Potássio 10% - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Cloreto de Sódio 0,9% - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Cloreto de Sódio 10% - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Clorexidina 0,5% - Solução Alcoólica Tópica (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Clorexidina 2% - Solução Tópica Degermante (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Clorpromazina 100mg - Comprimido (Local de acesso: FARMÁCIA CENTRAL, CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Clorpromazina 25mg - Comprimido (Local de acesso: FARMÁCIA CENTRAL, CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Clorpromazina 5mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Colagenase 0,6ui/g - Pomada (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO))",
+      "Complexo B - Comprimido (Local de acesso: CAPS AD (USO INTERNO))",
+      "Complexo B - Injetável (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO))",
+      "Decanoato de Haloperidol 50mg/mL - Injetável (Local de acesso: CAPS AD, CAPS II (USO INTERNO))",
+      "Deslanosídeo 0,2mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Dexametasona 0,1% - Creme (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Dexametasona 2mg/mL - Injetável (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO))",
+      "Dexametasona 4mg/mL - Injetável (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO))",
+      "Dexclorferinamina 2mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Dexclorferinamina 2mg/5mL - Xarope (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Diazepam 10mg - Comprimido (Local de acesso: FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO), CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Diazepam 5mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO), CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Diclofenaco Sódico 50mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Digoxina 0,25mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Dimenidrinato 50mg/mL + Piridoxina 50mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Dipirona 500mg/mL - Gotas (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Dipirona 500mg/mL - Injetável (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO))",
+      "Dipropionato de Beclometasona 250mcg - Spray Oral (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Dipropionato de Beclometasona 50mcg - Spray Nasal (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Dipropionato de Beclometasona 50mcg - Spray Oral (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Dobutamina 12,5mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Dopamina 5mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Doxazosina 2mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Enantato de Noretisterona 50mg + Valerato de Estradiol 5mg - Injetável (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Epinefrina 1mg/mL - Injetável (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO))",
+      "Escopolamina 10mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Escopolamina 10mg/mL - Solução Oral (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Escopolamina 20mg/mL - Injetável (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO))",
+      "Escopolamina 4mg/mL + Dipirona 500mg/mL - Injetável (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO))",
+      "Espironolactona 25mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Etomidato 2mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Fenitoína 100mg - Comprimido (Local de acesso: FARMÁCIA CENTRAL, CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Fenitoína 50mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Fenobarbital 100mg - Comprimido (Local de acesso: FARMÁCIA CENTRAL, CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Fenobarbital 100mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO), CAPS II (USO INTERNO))",
+      "Fenobarbital 40mg/mL - Gotas (Local de acesso: FARMÁCIA CENTRAL)",
+      "Fenoterol 5mg/mL - Solução para Inalação (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO))",
+      "Fentanila 0,05mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Fitomenadiona 10mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Fluconazol 150mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Flumazenil 0,1mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Fluoxetina 20mg - Comprimido (Local de acesso: FARMÁCIA CENTRAL, CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Furosemida 10mg/mL - Injetável (Local de acesso: UBS, URGÊNCIA (USO INTERNO))",
+      "Furosemida 40mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Gentamicina 40mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Gestodeno 0,075mg + Etinilestradiol 0,02mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Gestodeno 0,075mg + Etinilestradiol 0,03mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Glibenclamida 5mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Glicerina 12% - Enema (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Gliconato de Cálcio 10% - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Glicose 5% - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Glicose 50% - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Haloperidol 1mg - Comprimido (Local de acesso: FARMÁCIA CENTRAL, CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Haloperidol 2mg/mL - Gotas (Local de acesso: FARMÁCIA CENTRAL, CAPS AD (USO INTERNO))",
+      "Haloperidol 5mg - Comprimido (Local de acesso: FARMÁCIA CENTRAL, CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Haloperidol 5mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO), CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Heparina 5.000ui/0,25mL - Subcutânea (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Heparina 5.000ui/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Hidroclorotiazida 25mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Hidrocortisona 100mg - Injetável (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO))",
+      "Hidrocortisona 500mg - Injetável (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO))",
+      "Ibuprofeno 50mg/mL - Gotas (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Ibuprofeno 600mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Insulina NPH 100ui/mL - Injetável (Local de acesso: FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Insulina Regular 100ui/mL - Injetável (Local de acesso: FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Ipratrópio 0,25mg/mL - Solução para Inalação (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO))",
+      "Isossorbida Dinitrato 5mg - Comprimido Sublingual (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Ivermectina 6mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Levodopa 200mg + Benserazida 50mg - Comprimido (Local de acesso: FARMÁCIA CENTRAL)",
+      "Levodopa 250mg + Carbidopa 25mg - Comprimido (Local de acesso: FARMÁCIA CENTRAL)",
+      "Levomepromazina 100mg - Comprimido (Local de acesso: FARMÁCIA CENTRAL, CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Levomepromazina 25mg - Comprimido (Local de acesso: FARMÁCIA CENTRAL, CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Levonorgestrel 0,15mg + Etinilestradiol 0,03mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Levotiroxina 100mcg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Levotiroxina 25mcg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Levotiroxina 50mcg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Lidocaína 2% - Gel Tópico (Local de acesso: UBS, URGÊNCIA (USO INTERNO))",
+      "Lidocaína 2% - Injetável (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO))",
+      "Loratadina 10mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Losartana Potássica 50mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Manitol 20% - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Metformina 500mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Metformina 850mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Metildopa 500mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Metoclopramida 10mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Metoclopramida 4mg/mL - Gotas (Local de acesso: UBS, URGÊNCIA (USO INTERNO))",
+      "Metoclopramida 5mg/mL - Injetável (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO))",
+      "Metoprolol 1mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Metronidazol 100mg/g - Gel (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Metronidazol 250mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Metronidazol 500mg - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Midazolam 5mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Mononitrato de Isossorbida 20mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Mononitrato de Isossorbida 40mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Morfina 10mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Naloxona 0,4mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Neomicina 5mg/g + Bacitracina 250ui/g - Pomada (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Nifedipino 20mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Nimesulida 50mg/mL - Gotas (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Nistatina 25.000ui/g - Creme Vaginal (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Nitroglicerina 5mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Nitroprussiato de Sódio 25mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Norepinefrina 2mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Noretisterona 0,35mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Omeprazol 20mg - Cápsula (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Omeprazol 40mg - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Ondansetrona 2mg/mL - Injetável (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO))",
+      "Paracetamol 200mg/mL - Gotas (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Paracetamol 500mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Petidina 50mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Prednisolona 3mg/mL - Solução Oral (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Prednisona 20mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Prednisona 5mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Prometazina 25mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Prometazina 25mg/mL - Injetável (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO), CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Propranolol 40mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Protamina 1000ui/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "PVPI 10% - Solução Aquosa Degermante (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "PVPI 10% - Solução Aquosa Tópica (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Ringer com Lactato - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Sais para Reidratação Oral - Pacote (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Salbutamol 100mcg - Aerossol (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Simeticona 40mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Simeticona 75mg/mL - Emulsão Oral (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Sinvastatina 20mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Succinato de Metoprolol 25mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Sulfadiazina de Prata 1% - Creme Tópico (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO))",
+      "Sulfametoxazol 400mg + Trimetoprina 80mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Sulfametoxazol 40mg/mL + Trimetoprina 8mg/mL - Suspensão Oral (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Sulfato de Magnésio 50% - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Sulfato Ferroso 125mg/mL - Gotas (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Sulfato Ferroso 40mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Sulfato Polimixina B 10.000ui + Fluocinolona 0,250mg + Neomicina 3,5mg + Lidocaína 20mg - Gotas (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Suxametônio 100mg - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Tetracaína 1% + Fenilefrina 1% - Solução Oftálmica (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Tiamina 100mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Tiamina 300mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, CAPS AD (USO INTERNO))",
+      "Tiocolchicosídeo 2mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Tramadol 50mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Valproato de Sódio 250mg/5mL - Xarope (Local de acesso: FARMÁCIA CENTRAL)",
+      "Varfarina 5mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Ácido Acetilsalicílico 100mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO))",
+      "Ácido Fólico 0,2mg/mL - Gotas (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Ácido Fólico 5mg - Comprimido (Local de acesso: UBS, FARMÁCIA CENTRAL)",
+      "Ácido Tranexâmico 50mg/mL - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Ácido Valpróico 250mg - Comprimido (Local de acesso: FARMÁCIA CENTRAL, CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Ácido Valpróico 500mg - Comprimido (Local de acesso: FARMÁCIA CENTRAL, CAPS II (USO INTERNO), CAPS AD (USO INTERNO))",
+      "Água para Injetáveis 10ml - Injetável (Local de acesso: UBS (USO INTERNO), URGÊNCIA (USO INTERNO))",
+      "Água para Injetáveis 500ml - Injetável (Local de acesso: URGÊNCIA (USO INTERNO))",
+      "Álcool Etílico 70% - Solução (Local de acesso: URGÊNCIA (USO INTERNO))"
+    ],
+    "Mendes": [
+      "Acebrofilina - Xarope",
+      "Acetato de Medroxiprogesterona 150mg/ml - Suspensão Injetável",
+      "Acetilcisteína 200mg - Envelope",
+      "Acetilcisteína 600mg - Envelope",
+      "Acetofenida de Algestona + Enantato de Estradiol 150mg/ml+10mg/ml - Ampola",
+      "Aciclovir 200mg - Comprimido",
+      "Aciclovir 200mg - Frasco Ampola",
+      "Aciclovir 50mg/g - Creme Dermatológico",
+      "Ácido Acetilsalicílico 100mg - Comprimido",
+      "Ácido Ascórbico 100mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Ácido Fólico 5mg - Comprimido",
+      "Ácido Tranexâmico 250mg/5ml - Solução Injetável",
+      "Adenosina 3mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Água Destilada - Frasco Ampola",
+      "Albendazol 400mg - Comprimido Mastigável (Local de acesso: Farmácia Básica Municipal)",
+      "Albendazol 40mg/ml - Suspensão Oral (Local de acesso: Farmácia Básica Municipal)",
+      "Albumina 20% - Solução Injetável",
+      "Alendronato de Sódio 70mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Alopurinol 100mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Alopurinol 300mg - Comprimido",
+      "Alprazolam 1mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Alteplase 50mg - Frasco Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Ambroxol 15mg/5ml - Xarope (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Aminofilina 100mg - Comprimido",
+      "Aminofilina 24mg/ml - Ampola",
+      "Amiodarona 50mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Amoxicilina + Clavulanato 250mg+62,5mg/5ml - Suspensão Oral (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Amoxicilina + Clavulanato 500mg+100mg - Frasco Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Amoxicilina + Clavulanato 500mg+125mg - Cápsula (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Amoxicilina + Clavulanato 50mg+12,5mg - Suspensão Oral (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Amoxicilina + Clavulanato 875mg+125mg - Cápsula (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Amoxicilina 500mg - Cápsula",
+      "Amoxicilina 50mg/ml - Suspensão Oral",
+      "Ampicilina 500mg - Cápsula (Local de acesso: Farmácia Básica Municipal)",
+      "Ampicilina Sódica 1g - Frasco Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Ampicilina Sódica 500mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Ampicilina Sódica 50mg/ml - Suspensão Oral (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Anestalcon 2% - Colírio",
+      "Aripiprazol 10mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Atenolol 50mg - Comprimido",
+      "Atomoxetina 10mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Atomoxetina 25mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Azitromicina 40mg/ml - Suspensão Oral",
+      "Azitromicina 500mg - Comprimido",
+      "Azitromicina 500mg - Frasco Ampola",
+      "Benzilpenicilina Benzatina 1200000ui - Frasco Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Benzilpenicilina Benzatina 600000ui - Frasco Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Benzoato de Benzila 25% - Solução Tópica",
+      "Besilato de Anlodipino 10mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Besilato de Anlodipino 5mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Bicarbonato de Sódio 10% - Ampola",
+      "Bicarbonato de Sódio 8,4% - Solução Injetável",
+      "Bisacodil 5mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Bromazepam 6mg - Comprimido",
+      "Brometo de Ipratrópio 0,25mg/ml - Solução Oral (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Brometo de Ipratrópio 0,25mg/ml - Solução para Inalação (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Brometo de Rocurônio 10mg/ml - Solução Injetável (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Bromidrato de Fenoterol 5mg/ml - Solução para Nebulização (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Bromoprida 10mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Bromoprida 4mg/ml - Solução Oral (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Bromoprida 5mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Budesonida 32mcg/dose - Spray Nasal (Local de acesso: Farmácia Básica Municipal)",
+      "Budesonida 50mcg/dose - Spray Nasal (Local de acesso: Farmácia Básica Municipal)",
+      "Bupropiona 150mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Butilbrometo de Escopolamina 20mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Butilescopolamina + Dipirona Sódica 10mg+250mg - Comprimido",
+      "Captopril 25mg - Comprimido",
+      "Carbamazepina 200mg - Comprimido",
+      "Carbamazepina 20mg/ml - Suspensão Oral",
+      "Carbonato de Cálcio + Colecalciferol 500mg+400ui - Comprimido",
+      "Carbonato de Cálcio 500mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Carbonato de Lítio 300mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Carvão Ativado - Pó",
+      "Carvedilol 12,5mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Carvedilol 3,125mg - Comprimido",
+      "Carvedilol 6,25mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Cefalexina 250mg/5ml - Suspensão Oral (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Cefalexina 500mg - Comprimido",
+      "Cefalexina 50mg/ml - Suspensão Oral",
+      "Cefazolina 1g - Frasco Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Cefepima 1g - Frasco Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Ceftazidima 1g - Frasco Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Ceftriaxona 1g - Frasco Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Cetoconazol 200mg - Comprimido",
+      "Cetoprofeno 100mg - Frasco Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Cetoprofeno 50mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Cinarizina 75mg - Comprimido",
+      "Ciprofloxacino 200mg/100ml - Bolsa (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Ciprofloxacino 500mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Citrato de Fentanila 0,05mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Clindamicina 150mg/ml - Solução Injetável (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Clindamicina 300mg - Cápsula (Local de acesso: Farmácia Básica Municipal)",
+      "Clobazam 20mg - Comprimido",
+      "Clofazimina + Rifampicina + Dapsona (Esquema MB) - Comprimido",
+      "Clonazepam 0,5mg - Comprimido",
+      "Clonazepam 2,5mg/ml - Solução Oral",
+      "Clonazepam 2mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Clopidogrel 75mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Cloreto de Potássio 10% - Ampola",
+      "Cloreto de Sódio 0,9% - Solução Injetável 100ml",
+      "Cloreto de Sódio 0,9% - Solução Injetável 250ml",
+      "Cloreto de Sódio 0,9% - Solução Injetável 500ml",
+      "Cloreto de Sódio 10% - Ampola",
+      "Cloreto de Sódio 20% - Ampola",
+      "Cloreto de Suxametônio 100mg - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Cloridrato de Ambroxol 15mg/5ml - Xarope Pediátrico",
+      "Cloridrato de Ambroxol 30mg/5ml - Xarope Adulto",
+      "Cloridrato de Amiodarona 200mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Cloridrato de Amitriptilina 25mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Cloridrato de Biperideno 2mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Cloridrato de Ciprofloxacino 500mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Cloridrato de Clomipramina 25mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Cloridrato de Clorpromazina 100mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Cloridrato de Clorpromazina 25mg - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Cloridrato de Clorpromazina 25mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Cloridrato de Clorpromazina 40mg/ml - Solução Oral (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Cloridrato de Diltiazem 30mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Cloridrato de Diltiazem 60mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Cloridrato de Etilefrina 10mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Cloridrato de Hidralazina 25mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Cloridrato de Hidralazina 50mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Cloridrato de Imipramina 25mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Cloridrato de Metformina 500mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Cloridrato de Metformina 850mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Cloridrato de Metoclopramida 10mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Cloridrato de Metoclopramida 10mg/2ml - Ampola (Local de acesso: Farmácia Básica Municipal)",
+      "Cloridrato de Metoclopramida 10ml - Solução Oral (Local de acesso: Farmácia Básica Municipal)",
+      "Cloridrato de Metoclopramida 4mg/ml - Solução Oral (Local de acesso: Farmácia Básica Municipal)",
+      "Cloridrato de Ondansetrona 2mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Cloridrato de Prometazina 25mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Cloridrato de Prometazina 2mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Cloridrato de Propranolol 40mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Cloridrato de Tiamina 300mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Cloridrato de Tioridazina 100mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Cloridrato de Tioridazina 25mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Cloridrato de Tioridazina 50mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Cloridrato de Tramadol 50mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Cloridrato de Verapamil 80mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Clorpromazina 5mg/ml - Solução Injetável",
+      "Codergocrina 0,3mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Colagenase + Cloranfenicol 0,6u/g+0,1g/g - Pomada",
+      "Colagenase 0,6u/g - Pomada (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Dapsona + Rifampicina (Esquema PB) - Comprimido",
+      "Decanoato de Haloperidol 50mg/ml - Solução Injetável",
+      "Deslanosídeo 0,2mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Desvenlafaxina 50mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Dexametasona 0,1% - Creme Dermatológico",
+      "Dexametasona 1mg/g - Creme (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Dexametasona 1mg/ml - Suspensão Oftálmica (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Dexametasona 4mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Dexametasona 4mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Diazepam 10mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Diazepam 5mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Diazepam 5mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Diazepam 5mg/ml - Solução Injetável (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Diclofenaco de Sódio 50mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Diclofenaco de Sódio 75mg/3ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Digoxina 0,25mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Dimeticona 40mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Dinitrato de Isossorbida 10mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Dinitrato de Isossorbida 5mg - Comprimido Sublingual (Local de acesso: Farmácia Básica Municipal)",
+      "Dipirona 500mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Dipirona Sódica 500mg - Comprimido",
+      "Dipirona Sódica 500mg/ml - Solução Oral",
+      "Dipropionato de Beclometasona 250mcg/dose - Spray Inalação Oral (Local de acesso: Farmácia Básica Municipal)",
+      "Dobutamina 12,5mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Dopamina 5mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Enantato de Noretisterona + Valerato de Estradiol 50mg+5mg - Solução Injetável",
+      "Enoxaparina Sódica 20mg - Seringa Preenchida (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Enoxaparina Sódica 40mg - Seringa Preenchida (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Enoxaparina Sódica 60mg - Seringa Preenchida (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Epinefrina 1mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Escitalopram 20mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Escopolamina + Dipirona Sódica 10mg+250mg - Comprimido",
+      "Escopolamina + Dipirona Sódica 2,5g/5ml+25mg/5ml - Ampola",
+      "Escopolamina + Dipirona Sódica 6,7mg/ml+333,4mg/ml - Solução Oral",
+      "Espironolactona 25mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Espironolactona 50mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Espironolactona 50mg - Comprimido Revestido (Local de acesso: Farmácia Básica Municipal)",
+      "Etomidato 2mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Fenitoína 100mg - Comprimido",
+      "Fenitoína Sódica 100mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Fenitoína Sódica 50mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Fenobarbital 100mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Fenobarbital 100mg/ml - Solução Injetável (Local de acesso: Farmácia Básica Municipal)",
+      "Fenobarbital 40mg/ml - Solução Oral (Local de acesso: Farmácia Básica Municipal)",
+      "Fenobarbital Sódico 100mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Fenobarbital Sódico 100mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Finasterida 5mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Fitomenadiona 10mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Fluconazol 150mg - Cápsula",
+      "Fluconazol 200mg - Bolsa (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Flumazenil 0,01mg/ml - Solução Injetável (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Fluoxetina 20mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Fosfato Dissódico de Prednisolona 1,34mg/ml - Solução Oral",
+      "Furosemida 10mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Furosemida 40mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Gentamicina 80mg/2ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Glibenclamida 5mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Gliclazida 30mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Gliconato de Cálcio 10% - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Glicose - Solução Injetável 500ml",
+      "Glicose 25% - Frasco Ampola",
+      "Glicose 50% - Frasco Ampola",
+      "Haloperidol 1mg - Comprimido",
+      "Haloperidol 2mg/ml - Solução Oral (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Haloperidol 5mg - Comprimido",
+      "Haloperidol 5mg/ml - Ampola",
+      "Haloperidol 5mg/ml - Solução Injetável",
+      "Heparina Sódica 5000ui/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Hidralazina 20mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Hidralazina 25mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Hidroclorotiazida 25mg - Comprimido",
+      "Hidroclorotiazida 50mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Hidrocortisona 100mg - Frasco Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Hidrocortisona 500mg - Frasco Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Hidróxido de Alumínio 6% - Suspensão Oral (Local de acesso: Farmácia Básica Municipal)",
+      "Hidróxido de Alumínio 60mg/ml - Suspensão Oral (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Ibuprofeno 300mg - Comprimido",
+      "Ibuprofeno 50mg/ml - Suspensão Oral",
+      "Insulina Humana NPH 100ui/ml - Suspensão Injetável",
+      "Insulina NPH - Frasco Ampola",
+      "Insulina Regular - Frasco Ampola",
+      "Insulina Regular Humana 100ui/ml - Suspensão Injetável",
+      "Isoniazida 100mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Itraconazol 100mg - Cápsula (Local de acesso: Farmácia Básica Municipal)",
+      "Ivermectina 6mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Lactulose 667mg/ml - Solução Oral",
+      "Lamotrigina 25mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Lamotrigina 50mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Levodopa + Benserazida 100mg+25mg - Comprimido",
+      "Levodopa + Benserazida 200mg+50mg - Comprimido",
+      "Levofloxacino 500mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Levofloxacino 5mg/ml - Bolsa",
+      "Levonorgestrel + Etinilestradiol 0,15mg+0,03mg - Comprimido",
+      "Levonorgestrel 0,75mg - Comprimido (Local de acesso: Casa da Mulher)",
+      "Levotiroxina Sódica 100mcg - Comprimido",
+      "Levotiroxina Sódica 25mcg - Comprimido",
+      "Levotiroxina Sódica 50mcg - Comprimido",
+      "Lidocaína + Epinefrina 2% - Frasco Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Lidocaína 10% - Spray",
+      "Lidocaína 2% - Ampola",
+      "Lidocaína 2% - Geleia",
+      "Lidocaína 2% Sem Vasoconstritor - Frasco Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Loperamida 2mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Loratadina 10mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Loratadina 1mg/ml - Solução Oral (Local de acesso: Farmácia Básica Municipal)",
+      "Losartana 50mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Losartana Potássica 50mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Maleato de Dexclorfeniramina 0,4mg/ml - Solução Oral",
+      "Maleato de Dexclorfeniramina 2mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Maleato de Enalapril 10mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Maleato de Enalapril 20mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Maleato de Enalapril 5mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Maleato de Levomepromazina 100mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Maleato de Levomepromazina 25mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Maleato de Timolol 0,5% - Solução Oftálmica",
+      "Maleato de Timolol 5mg/ml - Solução Oftálmica",
+      "Manitol 20% - Solução Injetável 250ml (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Mebendazol 100mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Mebendazol 20mg/ml - Suspensão Oral (Local de acesso: Farmácia Básica Municipal)",
+      "Meropenem 1g - Frasco Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Mesilato de Doxazosina 2mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Metildopa 250mg - Comprimido",
+      "Metildopa 500mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Metronidazol 100mg/g - Creme Vaginal",
+      "Metronidazol 250mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Metronidazol 40mg/ml - Suspensão Oral",
+      "Metronidazol 5mg/ml - Solução Injetável 100ml",
+      "Midazolam 5mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Mikania Glomerata (Guaco) - Xarope",
+      "Mononitrato de Isossorbida 20mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Mononitrato de Isossorbida 40mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Naloxona 0,4mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Neomicina + Bacitracina 5mg/g+250ui/g - Pomada",
+      "Nicotina 14mg - Adesivo Transdérmico (Local de acesso: Farmácia Básica Municipal)",
+      "Nicotina 21mg - Adesivo Transdérmico (Local de acesso: Farmácia Básica Municipal)",
+      "Nicotina 2mg - Goma de Mascar (Local de acesso: Farmácia Básica Municipal)",
+      "Nicotina 2mg - Pastilha (Local de acesso: Farmácia Básica Municipal)",
+      "Nicotina 7mg - Adesivo Transdérmico (Local de acesso: Farmácia Básica Municipal)",
+      "Nifedipino 10mg - Comprimido",
+      "Nifedipino 20mg - Comprimido",
+      "Nifedipino 20mg - Comprimido de Liberação Prolongada",
+      "Nimesulida 100mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Nimodipino 30mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Nistatina 100000ui/ml - Suspensão Oral (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Nistatina 25000ui/g - Creme (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Nitrato de Miconazol 20mg/g - Creme Dermatológico",
+      "Nitrato de Miconazol 20mg/g - Creme Vaginal",
+      "Nitrofurantoína 100mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Nitroglicerina 5mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Nitroprussiato de Sódio 50mg - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Norepinefrina 8mg/4ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Noretisterona 0,35mg - Comprimido (Local de acesso: Casa da Mulher)",
+      "Norfloxacino 400mg - Comprimido Revestido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Ocitocina 5ui/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Óleo Mineral - Solução Oral (Local de acesso: Farmácia Básica Municipal)",
+      "Omeprazol 20mg - Cápsula",
+      "Omeprazol 40mg - Frasco Ampola",
+      "Oxacilina 500mg - Frasco Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Paracetamol 200mg/ml - Solução Oral",
+      "Paracetamol 500mg - Comprimido",
+      "Pentoxifilina 400mg - Comprimido Revestido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Periciazina 10mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Periciazina 40mg/ml - Solução Oral (Local de acesso: Farmácia Básica Municipal)",
+      "Permetrina 50mg/ml - Loção Tópica",
+      "Pirazinamida 3% - Suspensão Oral",
+      "PPD 1,5ml - Solução Injetável (Local de acesso: Farmácia Básica Municipal)",
+      "Prednisona 20mg - Comprimido",
+      "Prednisona 5mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Propatilnitrato 10mg - Comprimido",
+      "Propofol 1% - Solução Injetável (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Propranolol 40mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Quetiapina 25mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Reidratante Oral 27,9g - Envelope (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Rifampicina + Isoniazida + Pirazinamida + Etambutol 150mg+75mg+400mg+275mg - Comprimido",
+      "Rifampicina + Isoniazida 150mg+75mg - Comprimido",
+      "Rifampicina 2% - Suspensão Oral",
+      "Ringer Lactato - Solução Injetável 500ml",
+      "Risperidona 1mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Risperidona 1mg/ml - Solução Oral (Local de acesso: Farmácia Básica Municipal)",
+      "Risperidona 2mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Sais para Reidratação Oral - Envelope",
+      "Salbutamol 2mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Salbutamol 2mg/5ml - Xarope (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Sertralina 50mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Simeticona 75mg/ml - Solução Oral",
+      "Sinvastatina 20mg - Comprimido",
+      "Sinvastatina 20mg - Comprimido Revestido",
+      "Sinvastatina 40mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Sorbitol + Laurilsulfato de Sódio 714mg/g+7,70mg/g - Bisnaga (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Sulfadiazina de Prata 1% - Creme",
+      "Sulfadiazina de Prata 10mg/g - Creme",
+      "Sulfametoxazol + Trimetoprima 400mg+80mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Sulfametoxazol + Trimetoprima 40mg/ml+8mg/ml - Suspensão Oral (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Sulfato de Amicacina 250mg/2ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Sulfato de Atropina 0,25mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Sulfato de Magnésio 10% - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Sulfato de Magnésio 50% - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Sulfato de Morfina 10mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Sulfato de Salbutamol 100mcg/dose - Aerossol Oral (Local de acesso: Farmácia Básica Municipal)",
+      "Sulfato Ferroso 25mg/ml - Solução Oral",
+      "Sulfato Ferroso 40mg - Comprimido Revestido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Talidomida 100mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Tartarato de Metoprolol 5mg/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Tenoxicam 40mg - Frasco Ampola",
+      "Topiramato 50mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Valproato de Sódio 250mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Valproato de Sódio 50mg/ml - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Valproato de Sódio 576mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Vancomicina 500mg - Frasco Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Varfarina 5mg - Comprimido (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Varfarina Sódica 5mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Vasopressina 20ui/ml - Ampola (Local de acesso: Uso Hospitalar (Rede Municipal))",
+      "Verapamil 80mg - Comprimido (Local de acesso: Farmácia Básica Municipal)",
+      "Vitaminas do Complexo B - Ampola",
+      "Vitaminas do Complexo B - Comprimido"
+    ],
+    "Coronel Fabriciano": [
+      "Acetato De Medroxiprogesterona 25mg + Cipionato De Estradiol 5mg - Suspensão Injetável (Local de acesso: FARMÁCIAS UBS)",
+      "Aciclovir 200mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Ácido Acetilsalicílico 100mg - Comprimido (Local de acesso: CENTROS DE SAÚDE)",
+      "Ácido Fólico 0,2mg/ml - Solução Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Ácido Fólico 5mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Ácido Folínico (Folinato De Cálcio) 15mg - Comprimido (Local de acesso: FARMÁCIA NEPS)",
+      "Ácido Valpróico 250mg - Cápsula (Local de acesso: FARMÁCIAS UBS)",
+      "Ácido Valpróico 500mg - Comprimido Revestido (Local de acesso: FARMÁCIAS UBS)",
+      "Adrenalina (Epinefrina) 1mg/ml - Solução Injetável (Local de acesso: USO INTERNO UBS)",
+      "Água Destilada Estéril E Apirogênica - Solução Injetável (Local de acesso: USO INTERNO UBS)",
+      "Agulha 32g 4 X 0,23mm - Descartável (Local de acesso: FARMÁCIAS UBS)",
+      "Albendazol 400mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Albendazol 40mg/ml - Suspensão Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Alendronato Sódico 70mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Algestona Acetofenida 150mg/ml + Enantato De Estradiol 10mg/ml - Solução Injetável (Local de acesso: FARMÁCIAS UBS)",
+      "Alopurinol 100mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Alopurinol 300mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Amitriptilina Cloridrato 25mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Amoxicilina 250mg/5ml + Clavulanato De Potássio 62,5mg/5ml - Pó Para Suspensão Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Amoxicilina 250mg/5ml - Pó Para Suspensão Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Amoxicilina 500mg + Clavulanato De Potássio 125mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Amoxicilina 500mg - Cápsula (Local de acesso: FARMÁCIAS UBS)",
+      "Anlodipino 5mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Atenolol 50mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Azitromicina 500mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Azitromicina Diidratada 600mg/15ml - Pó Para Suspensão Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Beclometasona Dipropionato 250mcg/jato - Spray Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Beclometasona Dipropionato 50mcg/jato - Spray Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Benzilpenicilina Benzatina 1.200.000ui - Injetável (Local de acesso: FARMÁCIAS UBS)",
+      "Benzoilmetronidazol 40mg/ml - Suspensão Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Betametasona Acetato 3mg + Betametasona Fosfato Dissódico 3mg - Suspensão Injetável (Local de acesso: USO INTERNO CEM)",
+      "Bimatoprosta 0,3mg/ml - Solução Oftálmica (Local de acesso: FARMÁCIA SMS)",
+      "Biperideno Cloridrato 2mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Brimonidina Tartarato 2mg/ml - Solução Oftálmica (Local de acesso: FARMÁCIA SMS)",
+      "Brinzolamida 10mg/ml - Suspensão Oftálmica (Local de acesso: FARMÁCIA SMS)",
+      "Budesonida 32mcg/dose - Suspensão Aquosa Nasal (Local de acesso: FARMÁCIAS UBS)",
+      "Budesonida 64mcg/dose - Suspensão Aquosa Nasal (Local de acesso: FARMÁCIAS UBS)",
+      "Bupropiona Cloridrato 150mg - Comprimido Revestido De Liberação Prolongada (Local de acesso: FARMÁCIA SMS PNCT)",
+      "Captopril 25mg - Comprimido (Local de acesso: USO INTERNO UBS)",
+      "Carbamazepina 200mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Carbamazepina 20mg/ml - Suspensão Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Carbonato De Cálcio 1250mg - Comprimido (Local de acesso: FARMÁCIAS UBS - Gestante)",
+      "Carbonato De Lítio 300mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Carvedilol 12,5mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Carvedilol 3,125mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Cefalexina 250mg/5ml - Suspensão Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Cefalexina Monohidratada 500mg - Cápsula Ou Comprimido Revestido (Local de acesso: FARMÁCIAS UBS)",
+      "Ceftriaxona 500mg - Pó Para Solução Injetável",
+      "Cetoconazol 200mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Cetoconazol 20mg/g - Creme (Local de acesso: FARMÁCIAS UBS)",
+      "Ciprofloxacino Cloridrato 500mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Claritromicina 500mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Clomipramina Cloridrato 25mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Clonazepam 2,5mg/ml - Solução Oral (Local de acesso: FARMÁCIAS UBS E USO INTERNO CAPSi)",
+      "Clonazepam 2mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Clopidogrel 75mg - Comprimido (Local de acesso: USO INTERNO UBS)",
+      "Cloreto De Sódio 0,9% - Solução Injetável 100ml (Local de acesso: USO INTERNO UBS)",
+      "Cloreto De Sódio 0,9% - Solução Injetável 250ml (Local de acesso: USO INTERNO UBS)",
+      "Cloreto De Sódio 0,9% - Solução Injetável 500ml",
+      "Cloreto De Sódio 0,9% - Solução Para Lavagem 500ml",
+      "Cloreto De Sódio 0,9% - Spray Nasal (Local de acesso: FARMÁCIAS UBS)",
+      "Clorpromazina 40mg/ml - Solução Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Clorpromazina Cloridrato 100mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Clorpromazina Cloridrato 25mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Dexametasona Acetato 1mg/g - Creme (Local de acesso: FARMÁCIAS UBS)",
+      "Dexametasona Fosfato Dissódico 4mg/ml - Solução Injetável (Local de acesso: USO INTERNO UBS)",
+      "Diazepam 10mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Diazepam 5mg/ml - Solução Injetável (Local de acesso: USO INTERNO UBS, CAPS II E CAPSi)",
+      "Diclofenaco 25mg/ml - Solução Injetável (Local de acesso: USO INTERNO UBS)",
+      "Digoxina 0,25mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Dipirona Sódica 500mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Dipirona Sódica 500mg/ml - Solução Injetável (Local de acesso: USO INTERNO UBS)",
+      "Dipirona Sódica 500mg/ml - Solução Oral (Local de acesso: FARMÁCIAS UBS E USO INTERNO UBS)",
+      "Dispositivo Intrauterino (Diu) Com Cobre T 380 - Insumo Básico (Local de acesso: USO INTERNO CEM)",
+      "Dorzolamida Cloridrato 20mg/ml - Solução Oftálmica (Local de acesso: FARMÁCIA SMS)",
+      "Doxiciclina Cloridrato 100mg - Comprimido Revestido (Local de acesso: FARMÁCIA NEPS)",
+      "Enalapril Maleato 20mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Enantato De Noretisterona 50mg/ml + Valerato De Estradiol 5mg/ml - Solução Injetável (Local de acesso: FARMÁCIAS UBS)",
+      "Escopolamina Butilbrometo 10mg + Dipirona Sódica 250mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Escopolamina Butilbrometo 20mg/ml - Solução Injetável (Local de acesso: USO INTERNO UBS)",
+      "Escopolamina Butilbrometo 4mg/ml + Dipirona 500mg/ml - Solução Injetável (Local de acesso: USO INTERNO UBS)",
+      "Espiramicina 1.500.000ui - Comprimido (Local de acesso: FARMÁCIA NEPS)",
+      "Espironolactona 25mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Estriol 1mg/g - Creme Vaginal (Local de acesso: FARMÁCIAS UBS)",
+      "Fenitoína 100mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Fenitoína 50mg/ml - Solução Injetável (Local de acesso: USO INTERNO UBS, CAPS II E CAPSi)",
+      "Fenobarbital 100mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Fenobarbital Sódico 40mg/ml - Solução Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Fita De Glicemia Reagente - Insumo Básico",
+      "Fluconazol 150mg - Cápsula (Local de acesso: FARMÁCIAS UBS)",
+      "Fluoresceína 10mg/ml - Solução Oftálmica (Local de acesso: USO INTERNO CEM)",
+      "Fluoxetina Cloridrato 20mg - Cápsula (Local de acesso: FARMÁCIAS UBS)",
+      "Furosemida 10mg/ml - Solução Injetável (Local de acesso: USO INTERNO UBS)",
+      "Furosemida 40mg - Comprimido",
+      "Gentamicina Sulfato 5mg/ml - Solução Oftálmica (Local de acesso: FARMÁCIAS UBS)",
+      "Glibenclamida 5mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Gliclazida 30mg - Comprimido De Liberação Controlada (Local de acesso: FARMÁCIAS UBS)",
+      "Glicose 50% - Solução Injetável (Local de acesso: USO INTERNO UBS)",
+      "Haloperidol 1mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Haloperidol 2mg/ml - Solução Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Haloperidol 5mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Haloperidol 5mg/ml - Solução Injetável",
+      "Haloperidol Decanoato 70,52mg/ml - Solução Injetável (Local de acesso: FARMÁCIAS UBS)",
+      "Hidralazina Cloridrato 50mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Hidroclorotiazida 25mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Hidrocortisona Succinato Sódico 100mg - Pó Para Solução Injetável (Local de acesso: USO INTERNO UBS)",
+      "Hidrocortisona Succinato Sódico 500mg - Pó Para Solução Injetável (Local de acesso: USO INTERNO UBS)",
+      "Hidróxido De Alumínio 60mg/ml - Suspensão Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Ibuprofeno 50mg/ml - Suspensão Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Ibuprofeno 600mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Imipramina Cloridrato 25mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Insulina Humana Nph 100ui/ml - Injetável Caneta (Local de acesso: FARMÁCIAS UBS)",
+      "Insulina Humana Nph 100ui/ml - Injetável Frasco Ampola (Local de acesso: FARMÁCIAS UBS)",
+      "Insulina Humana Regular 100ui/ml - Injetável Caneta (Local de acesso: FARMÁCIAS UBS)",
+      "Insulina Humana Regular 100ui/ml - Injetável Frasco Ampola (Local de acesso: FARMÁCIAS UBS E USO INTERNO UBS)",
+      "Ipratrópio Brometo 0,25mg/ml - Solução Para Inalação (Local de acesso: FARMÁCIAS UBS E USO INTERNO UBS)",
+      "Isossorbida Dinitrato 5mg - Comprimido Sublingual (Local de acesso: FARMÁCIAS UBS E USO INTERNO UBS)",
+      "Itraconazol 100mg - Cápsula (Local de acesso: FARMÁCIA NEPS)",
+      "Ivermectina 6mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Lanceta Descartável Para Punção Digital - Insumo Básico (Local de acesso: FARMÁCIAS UBS)",
+      "Latanoprosta 50mcg/ml - Solução Oftálmica (Local de acesso: FARMÁCIA SMS)",
+      "Levodopa 100mg + Benserazida Cloridrato 25mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Levodopa 200mg + Benserazida Cloridrato 50mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Levomepromazina 100mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Levomepromazina 25mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Levonorgestrel 0,15mg + Etinilestradiol 0,03mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Levonorgestrel 0,75mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Levotiroxina Sódica 100mcg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Levotiroxina Sódica 25mcg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Levotiroxina Sódica 50mcg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Lidocaína Cloridrato 20mg/g - Geleia (Local de acesso: FARMÁCIAS UBS)",
+      "Lidocaína Cloridrato 20mg/ml Com Epinefrina - Solução Injetável (Local de acesso: USO INTERNO CEM)",
+      "Lidocaína Cloridrato 20mg/ml Sem Epinefrina - Solução Injetável (Local de acesso: USO INTERNO CEM)",
+      "Loratadina 10mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Loratadina 1mg/ml - Xarope (Local de acesso: FARMÁCIAS UBS)",
+      "Losartana Potássica 50mg - Comprimido",
+      "Mebendazol 100mg/5ml - Suspensão Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Medroxiprogesterona Acetato 150mg/ml - Suspensão Injetável (Local de acesso: FARMÁCIAS UBS)",
+      "Metformina 850mg - Comprimido Revestido (Local de acesso: FARMÁCIAS UBS)",
+      "Metildopa 250mg - Comprimido Revestido (Local de acesso: FARMÁCIAS UBS)",
+      "Metoclopramida 4mg/ml - Solução Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Metoclopramida Cloridrato 10mg - Comprimido",
+      "Metoclopramida Cloridrato 5mg/ml - Solução Injetável (Local de acesso: USO INTERNO UBS)",
+      "Metoprolol Succinato 50mg - Comprimido De Liberação Controlada (Local de acesso: FARMÁCIAS UBS)",
+      "Metronidazol 250mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Metronidazol 500mg/5g - Geleia Vaginal (Local de acesso: FARMÁCIAS UBS)",
+      "Miconazol 20mg/g - Creme Vaginal (Local de acesso: FARMÁCIAS UBS)",
+      "Mononitrato De Isossorbida 20mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Neomicina Sulfato 5mg + Bacitracina 250ui/g - Pomada (Local de acesso: FARMÁCIAS UBS E USO INTERNO UBS)",
+      "Nicotina 14mg/24h - Adesivo Transdérmico (Local de acesso: FARMÁCIA SMS PNCT)",
+      "Nicotina 21mg/24h - Adesivo Transdérmico (Local de acesso: FARMÁCIA SMS PNCT)",
+      "Nicotina 2mg - Goma De Mascar (Local de acesso: FARMÁCIA SMS PNCT)",
+      "Nicotina 7mg/24h - Adesivo Transdérmico (Local de acesso: FARMÁCIA SMS PNCT)",
+      "Nistatina 100.000ui/ml - Suspensão Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Nitrofurantoína 100mg - Cápsula (Local de acesso: FARMÁCIAS UBS)",
+      "Noretisterona 0,35mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Nortriptilina Cloridrato 25mg - Cápsula (Local de acesso: FARMÁCIAS UBS)",
+      "Nortriptilina Cloridrato 50mg - Cápsula (Local de acesso: FARMÁCIAS UBS)",
+      "Omeprazol 20mg - Cápsula (Local de acesso: FARMÁCIAS UBS)",
+      "Oseltamivir Fosfato 30mg - Comprimido (Local de acesso: FARMÁCIA SMS)",
+      "Oseltamivir Fosfato 45mg - Comprimido (Local de acesso: FARMÁCIA SMS)",
+      "Oseltamivir Fosfato 75mg - Cápsula (Local de acesso: FARMÁCIA SMS)",
+      "Paracetamol 200mg/ml - Solução Oral (Local de acesso: FARMÁCIAS UBS E USO INTERNO UBS)",
+      "Paracetamol 500mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Periciazina 4% - Solução Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Permetrina 10mg/ml - Loção Ou Creme Capilar (Local de acesso: FARMÁCIAS UBS)",
+      "Permetrina 50mg/ml - Loção (Local de acesso: FARMÁCIAS UBS)",
+      "Pirimetamina 25mg - Comprimido (Local de acesso: FARMÁCIA NEPS)",
+      "Praziquantel 600mg - Comprimido (Local de acesso: FARMÁCIA SMS)",
+      "Prednisolona 3mg/ml - Solução Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Prednisona 20mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Prednisona 5mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Prometazina Cloridrato 25mg - Comprimido Revestido (Local de acesso: FARMÁCIAS UBS)",
+      "Prometazina Cloridrato 50mg/2ml - Solução Injetável (Local de acesso: USO INTERNO UBS, CAPS II E CAPSi)",
+      "Propranolol 40mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Proximetacaína Cloridrato 5mg/ml - Solução Oftálmica (Local de acesso: USO INTERNO CEM)",
+      "Sais Para Reidratação Oral 27,9g - Envelope (Local de acesso: FARMÁCIAS UBS E USO INTERNO UBS)",
+      "Salbutamol 100mcg/dose - Spray (Local de acesso: FARMÁCIAS UBS E USO INTERNO UBS)",
+      "Salbutamol Sulfato 6mg/ml - Solução Para Nebulização (Local de acesso: USO INTERNO UBS)",
+      "Seringa Descartável 1ml Com Agulha - Insumo Básico (Local de acesso: FARMÁCIAS UBS)",
+      "Sertralina Cloridrato 50mg - Comprimido Revestido (Local de acesso: FARMÁCIAS UBS)",
+      "Simeticona 75mg/ml - Emulsão Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Sinvastatina 20mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Sulfadiazina 500mg - Comprimido (Local de acesso: FARMÁCIA NEPS)",
+      "Sulfadiazina De Prata 10mg/g - Creme Dermatológico (Local de acesso: FARMÁCIAS UBS E USO INTERNO UBS)",
+      "Sulfametoxazol 200mg/5ml + Trimetoprima 40mg/5ml - Suspensão Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Sulfametoxazol 400mg + Trimetoprima 80mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Sulfato Ferroso 125mg/ml - Solução Oral (Local de acesso: FARMÁCIAS UBS)",
+      "Sulfato Ferroso 40mg - Drágea (Local de acesso: FARMÁCIAS UBS)",
+      "Timolol Maleato 5mg/ml - Solução Oftálmica (Local de acesso: FARMÁCIA SMS)",
+      "Travoprosta 0,04mg/ml - Solução Oftálmica (Local de acesso: FARMÁCIA SMS)",
+      "Tropicamida 10mg/ml - Solução Oftálmica (Local de acesso: USO INTERNO CEM)",
+      "Valproato De Sódio 250mg/5ml - Solução Oral Ou Xarope (Local de acesso: FARMÁCIAS UBS)",
+      "Varfarina Sódica 5mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Verapamil Cloridrato 80mg - Comprimido (Local de acesso: FARMÁCIAS UBS)",
+      "Zuclopentixol Decanoato 200mg/ml - Solução Injetável (Local de acesso: USO INTERNO CAPS II)"
+    ],
+    "Itaúna": [
+      "Aciclovir 200mg - Comprimido",
+      "Ácido Acetilsalicílico 100mg - Comprimido",
+      "Ácido Fólico 0,2mg/ml - Solução Oral (Gotas)",
+      "Ácido Fólico 5mg - Comprimido",
+      "Albendazol 400mg - Comprimido",
+      "Albendazol 40mg/ml - Suspensão Oral",
+      "Alendronato de Sódio 70mg - Comprimido",
+      "Algestona Acetofenida + Estradiol Enantato 150mg + 10mg - Injetável (Ampola)",
+      "Alopurinol 100mg - Comprimido",
+      "Amiodarona 200mg - Comprimido",
+      "Amitriptilina 25mg - Comprimido",
+      "Amoxicilina + Clavulanato 500mg + 125mg - Comprimido",
+      "Amoxicilina + Clavulanato 50mg + 12,5mg/ml - Suspensão Oral",
+      "Amoxicilina 250mg/5ml - Suspensão Oral",
+      "Amoxicilina 500mg - Cápsula",
+      "Anlodipino 5mg - Comprimido",
+      "Atenolol 50mg - Comprimido",
+      "Azitromicina 40mg/ml - Suspensão Oral",
+      "Azitromicina 500mg - Comprimido",
+      "Benzerazida + Levodopa 25mg + 100mg - Comprimido",
+      "Benzerazida + Levodopa 50mg + 200mg - Comprimido",
+      "Benzilpenicilina Benzatina 1.200.000ui - Injetável",
+      "Biperideno 2mg - Comprimido",
+      "Captopril 25mg - Comprimido",
+      "Carbamazepina 200mg - Comprimido",
+      "Carbamazepina 20mg/ml - Suspensão Oral",
+      "Carbidopa + Levodopa 25mg + 250mg - Comprimido",
+      "Carbonato de Cálcio 500mg - Comprimido",
+      "Carbonato de Lítio 300mg - Comprimido",
+      "Carvedilol 12,5mg - Comprimido",
+      "Carvedilol 3,125mg - Comprimido",
+      "Cefalexina 250mg/5ml - Suspensão Oral",
+      "Cefalexina 500mg - Cápsula",
+      "Cianocobalamina 1000mcg - Injetável (Ampola 2ml)",
+      "Ciprofloxacino 500mg - Comprimido",
+      "Clomipramina 25mg - Comprimido",
+      "Clonazepam 2,5mg/ml - Solução Oral (Gotas)",
+      "Clonazepam 2mg - Comprimido",
+      "Cloreto de Sódio 0,9% - Solução Nasal",
+      "Clorpromazina 100mg - Comprimido",
+      "Clorpromazina 25mg - Comprimido",
+      "Clorpromazina 40mg/ml - Solução Oral (Gotas)",
+      "Complexo B - Comprimido",
+      "Dexametasona 1mg/g (0,1%) - Creme Dermatológico",
+      "Dexclorfeniramina 2mg/5ml - Xarope",
+      "Diazepam 10mg - Comprimido",
+      "Diazepam 5mg/ml - Injetável (Ampola 2ml)",
+      "Digoxina 0,25mg - Comprimido",
+      "Dipirona 500mg/ml - Solução Oral (Gotas)",
+      "Enalapril 10mg - Comprimido",
+      "Enalapril 20mg - Comprimido",
+      "Espironolactona 25mg - Comprimido",
+      "Etinilestradiol + Levonorgestrel 0,03mg + 0,15mg - Comprimido",
+      "Fenitoína 100mg - Comprimido",
+      "Fenobarbital 100mg - Comprimido",
+      "Fenobarbital 100mg/ml - Injetável (Ampola 2ml)",
+      "Fenobarbital 40mg/ml - Solução Oral (Gotas)",
+      "Fluconazol 150mg - Cápsula",
+      "Fluoxetina 20mg - Cápsula",
+      "Furosemida 40mg - Comprimido",
+      "Gentamicina 5mg/ml - Solução Oftálmica",
+      "Glibenclamida 5mg - Comprimido",
+      "Glicazida 30mg - Comprimido de Ação Prolongada",
+      "Haloperidol 1mg - Comprimido",
+      "Haloperidol 2mg/ml - Solução Oral (Gotas)",
+      "Haloperidol 5mg - Comprimido",
+      "Haloperidol 5mg/ml - Injetável (Ampola 1ml)",
+      "Haloperidol Decanoato 50mg/ml - Injetável (Ampola 1ml)",
+      "Heparina Sódica 5000ui/0,25ml - Injetável",
+      "Hidralazina 25mg - Comprimido",
+      "Hidroclorotiazida 25mg - Comprimido",
+      "Hidróxido de Alumínio 61,5mg/ml - Xarope",
+      "Ibuprofeno 50mg/ml - Solução Oral (Gotas)",
+      "Ibuprofeno 600mg - Comprimido",
+      "Imipramina 25mg - Comprimido",
+      "Insulina Humana NPH 100ui/ml - Caneta Aplicadora Descartável 3ml",
+      "Insulina Humana NPH 100ui/ml - Frasco Injetável 10ml",
+      "Insulina Humana Regular 100ui/ml - Caneta Aplicadora Descartável 3ml",
+      "Insulina Humana Regular 100ui/ml - Frasco Injetável 10ml",
+      "Itraconazol 100mg - Comprimido",
+      "Ivermectina 6mg - Comprimido",
+      "Levomepromazina 100mg - Comprimido",
+      "Levotiroxina 100mcg - Comprimido",
+      "Levotiroxina 25mcg - Comprimido",
+      "Levotiroxina 50mcg - Comprimido",
+      "Loratadina 10mg - Comprimido",
+      "Lorazepam 2mg - Comprimido",
+      "Losartana 50mg - Comprimido",
+      "Maleato de Timolol 0,5% - Solução Oftálmica",
+      "Medroxiprogesterona Acetato + Estradiol Cipionato 25mg + 5mg - Suspensão Injetável",
+      "Medroxiprogesterona Acetato 150mg - Injetável",
+      "Metformina 500mg - Comprimido",
+      "Metformina 850mg - Comprimido",
+      "Metildopa 250mg - Comprimido",
+      "Metoclopramida 10mg - Comprimido",
+      "Metoclopramida 4mg/ml - Solução Oral (Gotas)",
+      "Metoclopramida 5mg/ml - Injetável (Ampola 2ml)",
+      "Metronidazol 100mg/g (10%) - Gel Vaginal",
+      "Metronidazol 200mg/5ml - Suspensão Oral",
+      "Metronidazol 250mg - Comprimido",
+      "Miconazol 20mg/g (2%) - Creme Vaginal",
+      "Miconazol 20mg/g (2%) - Loção Dermatológica",
+      "Mononitrato de Isossorbida 20mg - Comprimido",
+      "Nistatina 100.000ui/ml - Suspensão Oral",
+      "Nitrofurantoína 100mg - Comprimido",
+      "Noretisterona 0,35mg - Comprimido",
+      "Noretisterona Enantato + Estradiol Valerato 50mg + 5mg - Injetável",
+      "Nortriptilina 25mg - Cápsula",
+      "Omeprazol 20mg - Cápsula",
+      "Ondansetrona 4mg - Comprimido Dispersível",
+      "Paracetamol 200mg/ml - Solução Oral (Gotas)",
+      "Paracetamol 500mg - Comprimido",
+      "Prednisolona Fosfato Sódico 3mg/ml - Xarope",
+      "Prednisona 20mg - Comprimido",
+      "Prednisona 5mg - Comprimido",
+      "Prometazina 25mg - Comprimido",
+      "Prometazina 25mg/ml - Injetável (Ampola 2ml)",
+      "Propranolol 40mg - Comprimido",
+      "Risperidona 1mg - Comprimido",
+      "Risperidona 2mg - Comprimido",
+      "Sais para Reidratação Oral",
+      "Salbutamol 100mcg/dose - Inalador Dosimetrado",
+      "Sinvastatina 20mg - Comprimido",
+      "Sinvastatina 40mg - Comprimido",
+      "Sulfadiazina de Prata 10mg/g (1%) - Creme Dermatológico",
+      "Sulfametoxazol + Trimetoprima 200mg + 40mg/5ml - Suspensão Oral",
+      "Sulfametoxazol + Trimetoprima 400mg + 80mg - Comprimido",
+      "Sulfato Ferroso 25mg/ml - Solução Oral (Gotas)",
+      "Sulfato Ferroso 40mg - Comprimido",
+      "Tiamina 100mg/ml - Injetável (Ampola 1ml)",
+      "Tiamina 300mg - Comprimido",
+      "Valproato de Sódio 250mg - Comprimido",
+      "Valproato de Sódio 50mg/ml - Xarope",
+      "Varfarina 5mg - Comprimido",
+      "Verapamil 80mg - Comprimido"
+    ],
+    "Varginha": [
+      "Acetilcisteína 40mg/ml - Xarope",
+      "Aciclovir 400mg - Comprimido",
+      "Albendazol 400mg - Comprimido Mastigável",
+      "Albendazol 40mg/ml - Suspensão Oral",
+      "Alendronato 70mg - Comprimido",
+      "Alopurinol 100mg - Comprimido",
+      "Alopurinol 300mg - Comprimido",
+      "Aminofilina 100mg - Comprimido",
+      "Amiodarona 200mg - Comprimido",
+      "Amitriptilina 25mg - Comprimido",
+      "Amoxicilina + Clavulanato 500mg+125mg - Comprimido",
+      "Amoxicilina + Clavulanato 50mg/ml+12,5mg/ml - Suspensão Oral",
+      "Amoxicilina 500mg - Cápsula",
+      "Amoxicilina 50mg/ml - Suspensão Oral",
+      "Anlodipino 10mg - Comprimido",
+      "Anlodipino 5mg - Comprimido",
+      "Atenolol 25mg - Comprimido",
+      "Atenolol 50mg - Comprimido",
+      "Azitromicina 40mg/ml - Pó para Suspensão Oral",
+      "Azitromicina 500mg - Comprimido",
+      "Beclometasona 250mcg/dose - Aerossol Oral",
+      "Beclometasona 50mcg/dose - Aerossol Oral",
+      "Benzilpenicilina Benzatina 1.200.000UI - Pó para Suspensão Injetável",
+      "Betaistina 24mg - Comprimido",
+      "Biperideno 2mg - Comprimido",
+      "Bromazepam 3mg - Comprimido",
+      "Bromazepam 6mg - Comprimido",
+      "Bromoprida 10mg - Comprimido",
+      "Bromoprida 4mg/ml - Solução Oral (Gotas)",
+      "Budesonida 32mcg - Spray Nasal",
+      "Bupropiona 150mg - Comprimido",
+      "Carbamazepina 200mg - Comprimido",
+      "Carbamazepina 20mg/ml - Suspensão Oral",
+      "Carbamazepina 400mg - Comprimido",
+      "Carbonato de Cálcio 1250mg (500mg Cálcio) - Comprimido",
+      "Carbonato de Lítio 300mg - Comprimido",
+      "Carvedilol 12,5mg - Comprimido",
+      "Carvedilol 3,125mg - Comprimido",
+      "Cefalexina 500mg - Comprimido/Cápsula",
+      "Cefalexina 50mg/ml - Suspensão Oral",
+      "Ceftriaxona 1g - Injetável IM",
+      "Ciprofloxacino 500mg - Comprimido",
+      "Ciproterona + Etinilestradiol 2mg+0,035mg - Comprimido",
+      "Clindamicina 300mg - Cápsula Dura",
+      "Clobetasol 0,5mg/g - Creme",
+      "Clomipramina 25mg - Comprimido",
+      "Clonazepam 2,5mg/ml - Solução Oral",
+      "Clonazepam 2mg - Comprimido",
+      "Clopidogrel 75mg - Comprimido Revestido",
+      "Cloreto de Sódio 0,90% - Solução Nasal",
+      "Clotrimazol 35mg/g - Creme Vaginal",
+      "Colagenase + Cloranfenicol 18UI/30mg - Creme",
+      "Dapaglifozina 10mg - Comprimido",
+      "Desloratadina 0,5mg/ml - Xarope",
+      "Dexametasona 1mg/g (0,1%) - Creme",
+      "Diazepam 10mg - Comprimido",
+      "Diazepam 5mg - Comprimido",
+      "Diclofenaco Potássico 50mg - Comprimido",
+      "Digoxina 0,25mg - Comprimido",
+      "Diltiazem 30mg - Comprimido",
+      "Diosmina + Hesperidina 450mg+50mg - Comprimido",
+      "Dipirona 500mg - Comprimido",
+      "Dipirona 500mg/ml - Solução Oral (Gotas)",
+      "Dipropionato de Betametasona + Fosfato Dissódico de Betametasona 5mg/ml+2mg/ml - Ampola",
+      "Enalapril 10mg - Comprimido",
+      "Enalapril 20mg - Comprimido",
+      "Escopolamina 10mg - Comprimido",
+      "Espiramicina 500mg - Comprimido",
+      "Espironolactona 25mg - Comprimido",
+      "Fenitoína 100mg - Comprimido",
+      "Fenitoína 25mg/ml - Suspensão Oral",
+      "Fenobarbital 100mg - Comprimido",
+      "Fenobarbital 40mg/ml - Solução Oral",
+      "Fexofenadina 180mg - Comprimido",
+      "Fluconazol 150mg - Cápsula",
+      "Fluoxetina 20mg - Cápsula",
+      "Formoterol 5mg/ml - Solução para Inalação",
+      "Furosemida 40mg - Comprimido",
+      "Glicinato Férrico 150mg - Comprimido",
+      "Glicinato Férrico 250mg/ml - Suspensão Oral (Gotas)",
+      "Gliclazida 30mg/60mg - Comprimido de Liberação Prolongada",
+      "Haloperidol 1mg - Comprimido",
+      "Haloperidol 2mg/ml - Solução Oral",
+      "Haloperidol 5mg - Comprimido",
+      "Haloperidol 5mg/ml - Solução Injetável",
+      "Haloperidol Decanoato 50mg/ml - Solução Injetável",
+      "Hidralazina 50mg - Drágea",
+      "Hidroclorotiazida 25mg - Comprimido",
+      "Ibuprofeno 50mg/ml - Suspensão Oral (Gotas)",
+      "Ibuprofeno 600mg - Comprimido",
+      "Imipramina 25mg - Comprimido",
+      "Indapamida 1,5mg - Comprimido",
+      "Insulina NPH 100UI/ml - Caneta/Suspensão Injetável",
+      "Insulina Regular 100UI/ml - Caneta/Suspensão Injetável",
+      "Ipratrópio + Fenoterol 0,002mg+0,05mg - Aerossol",
+      "Ipratrópio 0,25mg/ml - Solução para Inalação",
+      "Isossorbida 20mg - Comprimido",
+      "Itraconazol 100mg - Cápsula",
+      "Ivermectina 6mg - Comprimido",
+      "Levodopa + Benserazida 100mg+25mg - Comprimido",
+      "Levodopa + Benserazida 200mg+50mg - Comprimido",
+      "Levomepromazina 100mg - Comprimido",
+      "Levomepromazina 25mg - Comprimido",
+      "Levonorgestrel + Etinilestradiol 0,15mg+0,03mg - Comprimido",
+      "Levonorgestrel 1,5mg - Comprimido",
+      "Levotiroxina 100mcg - Comprimido",
+      "Levotiroxina 12,5mcg - Comprimido",
+      "Levotiroxina 25mcg - Comprimido",
+      "Levotiroxina 50mcg - Comprimido",
+      "Loratadina 10mg - Comprimido",
+      "Lorazepam 1mg - Comprimido",
+      "Losartana 25mg - Comprimido Revestido",
+      "Losartana 50mg - Comprimido Revestido",
+      "Medroxiprogesterona 150mg/ml - Suspensão Injetável (Ampola)",
+      "Meloxicam 15mg - Comprimido",
+      "Metformina 850mg - Comprimido",
+      "Metildopa 250mg - Drágea",
+      "Metildopa 500mg - Drágea",
+      "Metoprolol 50mg - Comprimido de Liberação Prolongada",
+      "Metronidazol 100mg/g (10%) - Gel Vaginal",
+      "Metronidazol 250mg - Comprimido",
+      "Miconazol 20mg/g - Creme Dermatológico",
+      "Miconazol 20mg/g - Creme Ginecológico",
+      "Montelucaste 10mg - Comprimido",
+      "Neomicina + Bacitracina 50mg - Pomada",
+      "Nifedipino Retard 20mg - Comprimido",
+      "Nistatina 100.000UI/ml - Suspensão Oral",
+      "Nistatina 60mg - Creme Vaginal",
+      "Nitrofurantoína 100mg - Cápsula",
+      "Noretisterona + Estradiol 50mg+5mg/ml - Solução Injetável (Ampola)",
+      "Noretisterona 0,35mg - Comprimido",
+      "Nortriptilina 25mg - Cápsula",
+      "Nortriptilina 50mg - Cápsula",
+      "Omeprazol 20mg - Cápsula",
+      "Oxcarbazepina 300mg - Comprimido",
+      "Paracetamol 200mg/ml - Solução Oral (Gotas)",
+      "Paracetamol 500mg - Comprimido",
+      "Permetrina 50mg/ml - Loção",
+      "Pirimetamina 25mg - Comprimido",
+      "Prednisolona 3mg/ml - Solução Oral",
+      "Prednisona 20mg - Comprimido",
+      "Prednisona 5mg - Comprimido",
+      "Preservativo Masculino - Envelope",
+      "Prometazina 25mg - Comprimido",
+      "Prometazina 25mg/ml - Ampola",
+      "Quetiapina 25mg - Comprimido",
+      "Risperidona 2mg - Comprimido",
+      "Rivaroxabana 10mg/15mg - Comprimido",
+      "Sais de Reidratação Oral - Pó para Solução Oral",
+      "Salbutamol 100mcg - Aerossol",
+      "Sertralina 50mg - Comprimido",
+      "Sinvastatina 20mg/40mg - Comprimido Revestido",
+      "Soro Fisiológico 100ml - Bolsa",
+      "Sulfadiazina 500mg - Comprimido",
+      "Sulfadiazina de Prata 10mg/g - Creme",
+      "Sulfametoxazol + Trimetoprima 400mg+80mg - Comprimido",
+      "Sulfametoxazol + Trimetoprima 40mg+8mg/ml - Suspensão Oral",
+      "Tiamazol (Tapazol) 10mg - Comprimido",
+      "Tiamina 300mg - Comprimido",
+      "Tioridazina 100mg - Comprimido",
+      "Tioridazina 25mg - Comprimido",
+      "Tioridazina 50mg - Comprimido",
+      "Tiras de Glicemia Capilar - Insulino Dependentes",
+      "Varfarina 5mg - Comprimido",
+      "Venlafaxina 75mg - Comprimido",
+      "Verapamil 80mg - Comprimido",
+      "Vitamina Complexo B 500mg - Comprimido",
+      "Vitamina D 1000UI - Comprimido",
+      "Vitaminas e Sais Minerais - Comprimido",
+      "Ácido Acetilsalicílico 100mg - Comprimido",
+      "Ácido Fólico 0,2mg/ml - Solução",
+      "Ácido Valpróico 250mg - Comprimido",
+      "Ácido Valpróico 50mg/ml - Solução Oral"
+    ],
+    "Barbacena": [
+      "Abacavir (ABC) - comprimido 300 mg (Local de acesso: CTA/CEM)",
+      "Abacavir (ABC) - solução oral 20 mg/mL (Local de acesso: CTA/CEM)",
+      "Aciclovir - comprimido 200 mg (Local de acesso: CTA/CEM)",
+      "Ácido acetilsalicílico - comprimido 100 mg (Local de acesso: UBS)",
+      "Ácido fólico - comprimido 5 mg (Local de acesso: UBS)",
+      "Ácido folínico - comprimido 15 mg (Local de acesso: CTA/CEM)",
+      "Ácido valpróico - comprimido 500 mg (Local de acesso: UBS)",
+      "Ácido valpróico - cápsula 250 mg (Local de acesso: UBS)",
+      "Ácido valpróico - solução oral/xarope 50 mg/mL (Local de acesso: UBS)",
+      "Adrenalina (epinefrina), cloridrato ou hemitartarato - solução injetável 1mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Água para injeção - solução injetável ampola 10 mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Albendazol - comprimido mastigável 400 mg (Local de acesso: UBS)",
+      "Albendazol - solução oral 40 mg/mL (Local de acesso: UBS)",
+      "Alendronato de sódio - comprimido 70 mg (Local de acesso: UBS)",
+      "Alopurinol - comprimido 100 mg (Local de acesso: UBS)",
+      "Alopurinol - comprimido 300 mg (Local de acesso: UBS)",
+      "Amiodarona, cloridrato - comprimido 200 mg (Local de acesso: UBS)",
+      "Amiodarona, cloridrato - solução injetável 50mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Amitriptilina, cloridrato - comprimido 25 mg (Local de acesso: UBS)",
+      "Amoxicilina - cápsula 500 mg (Local de acesso: UBS)",
+      "Amoxicilina - pó para suspensão oral 50 mg/mL (Local de acesso: UBS)",
+      "Amoxicilina + clavulanato de potássio - comprimido 500 mg + 125 mg (Local de acesso: UBS)",
+      "Amoxicilina + clavulanato de potássio - pó para suspensão oral amoxicilina 250 mg/5mL + clavulanato de potássio 62,5mg/5mL (Local de acesso: UBS)",
+      "Anfotericina B - pó para solução injetável 50 mg em lipossomas de fosfatidilcolina hidrogenada fr-amp. (Local de acesso: CTA/CEM)",
+      "Anlodipino, besilato - comprimido 5 mg (Local de acesso: UBS)",
+      "Anlodipino, besilato - comprimido 10 mg (Local de acesso: UBS)",
+      "Atazanavir, sulfato (ATV) - cápsula 300 mg (Local de acesso: CTA/CEM)",
+      "Atazanavir, sulfato (ATV) - cápsula 200 mg (Local de acesso: CTA/CEM)",
+      "Atenolol - comprimido 50 mg (Local de acesso: UBS)",
+      "Atropina, sulfato - solução injetável 0,25 mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Azitromicina - comprimido 500 mg (Local de acesso: UBS)",
+      "Azitromicina - suspensão oral 40 mg/mL (Local de acesso: UBS)",
+      "Beclometasona, dipropionato - spray nasal 50 mcg/dose (Local de acesso: UBS)",
+      "Beclometasona, dipropionato - aerossol oral 50 mcg /dose (Local de acesso: UBS)",
+      "Beclometasona, dipropionato - aerossol oral 250mcg/dose (Local de acesso: UBS)",
+      "Bicarbonato de sódio - solução injetável 84 mg/mL (8,4% - 1 mEq/mL) (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Biperideno, cloridrato - comprimido 2 mg (Local de acesso: UBS)",
+      "Biperideno, lactato - solução injetável 5 mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Budesonida - aquoso nasal 50 mcg (Local de acesso: UBS)",
+      "Bupropiona, cloridrato - comprimido 150 mg (Local de acesso: CAF)",
+      "Captopril - comprimido 25 mg (Local de acesso: UBS)",
+      "Carbamazepina - comprimido 200 mg (Local de acesso: UBS)",
+      "Carbamazepina - solução oral 20 mg/mL (Local de acesso: UBS)",
+      "Carbonato de cálcio - comprimido 1.250 mg (equivalente a 500 mg de Ca++) (Local de acesso: UBS)",
+      "Carbonato de cálcio + colecalciferol (vit. D) - comprimido equivalente a 500 mg de Ca++ e 400 UI de vitamina D (Local de acesso: UBS)",
+      "Carbonato de lítio - comprimido 300 mg (Local de acesso: UBS)",
+      "Carvedilol - comprimido 3,125 mg (Local de acesso: UBS)",
+      "Carvedilol - comprimido 6,25 mg (Local de acesso: UBS)",
+      "Carvedilol - comprimido 12,5 mg (Local de acesso: UBS)",
+      "Carvedilol - comprimido 25 mg (Local de acesso: UBS)",
+      "Cefalexina - comprimido 500 mg (Local de acesso: UBS)",
+      "Cefalexina - suspensão oral 50 mg/mL (Local de acesso: UBS)",
+      "Ceftriaxona sódica - pó para solução injetável 500 mg fr-amp. EV (Local de acesso: CTA/CEM/UBS)",
+      "Cetoprofeno - solução injetável 50mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Ciprofloxacino, cloridrato - comprimido 500 mg (Local de acesso: UBS)",
+      "Claritromicina - comprimido 500 mg (Local de acesso: UBS)",
+      "Claritromicina - suspensão oral 50 mg/mL (Local de acesso: UBS)",
+      "Clindamicina, cloridrato - cápsula 300 mg (Local de acesso: CTA/CEM)",
+      "Clomipramina, cloridrato - comprimido 25 mg (Local de acesso: UBS)",
+      "Clonazepam - solução oral gotas 2,5 mg/mL (0,25%) (Local de acesso: UBS)",
+      "Cloreto de potássio - solução injetável 19,1% (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Cloreto de sódio - solução injetável 20% (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Cloreto de sódio - solução nasal 0,9% (Local de acesso: UBS)",
+      "Cloreto de sódio - solução injetável 0,9 % 100 mL sistema fechado (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Cloreto de sódio - solução injetável 0,9 % 500 mL sistema fechado (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Clorpromazina, cloridrato - comprimido 25 mg (Local de acesso: UBS)",
+      "Clorpromazina, cloridrato - comprimido 100 mg (Local de acesso: UBS)",
+      "Clorpromazina, cloridrato - solução oral gotas 40 mg/mL (4%) (Local de acesso: UBS)",
+      "Clorpromazina, cloridrato - solução injetável 5 mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Colagenase - pomada 0,6U/g (Local de acesso: UBS)",
+      "Dapsona - comprimido 100 mg (Local de acesso: CTA/CEM)",
+      "Darunavir (DRV) - comprimido 800 mg (Local de acesso: CTA/CEM)",
+      "Darunavir (DRV) - comprimido 600 mg (Local de acesso: CTA/CEM)",
+      "Darunavir (DRV) - comprimido150 mg (Local de acesso: CTA/CEM)",
+      "Darunavir (DRV) - comprimido 75 mg (Local de acesso: CTA/CEM)",
+      "Dexametasona - comprimido 4mg (Local de acesso: UBS)",
+      "Dexametasona - creme 1 mg/g (0,1%) (Local de acesso: UBS)",
+      "Dexametasona, fosfato dissódico - solução injetável 4 mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Dexclorfeniramina, maleato - solução oral 0,4 mg/mL (Local de acesso: UBS)",
+      "Dexclorfeniramina, maleato - comprimido 2mg (Local de acesso: UBS)",
+      "Diazepam - comprimido 10 mg (Local de acesso: UBS)",
+      "Diazepam - solução injetável 5mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Digoxina - comprimido 0,25 mg (Local de acesso: UBS)",
+      "Dipirona sódica - comprimido 500 mg (Local de acesso: UBS)",
+      "Dipirona sódica - solução oral gotas 500 mg/mL (Local de acesso: UBS)",
+      "Dipirona sódica - solução injetável 500 mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Dispositivo intra uterino (DIU) - DIU com Cobre modelo T 380 mm2 (Local de acesso: CAF)",
+      "Dolutegravir (DTG) - comprimido 50 mg (Local de acesso: CTA/CEM)",
+      "Efavirenz (EFZ) - comprimido 600 mg (Local de acesso: CTA/CEM)",
+      "Efavirenz (EFZ) - cápsula 200 mg (Local de acesso: CTA/CEM)",
+      "Efavirenz (EFZ) - solução oral 30 mg/mL (Local de acesso: CTA/CEM)",
+      "Efavirenz + Lamivudina + Tenofovir desoproxila - Comprimido 600+300+300 mg (Local de acesso: CTA/CEM)",
+      "Enalapril, maleato - comprimido 10 mg (Local de acesso: UBS)",
+      "Enalapril, maleato - comprimido 20 mg (Local de acesso: UBS)",
+      "Enfuvirtida - pó liofílico para injetável 90 mg/mL (Local de acesso: CTA/CEM)",
+      "Entricitabina + Tenofovir desoproxila - Comprimido 200 + 245 (300 mg de fumarato de Tenofovir) (Local de acesso: CTA/CEM)",
+      "Escopolamina, butilbrometo - solução injetável 20 mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Espiramicina - comprimido 500 mg (equivalente a 1.500.000 UI) (Local de acesso: CTA/CEM)",
+      "Espironolactona - comprimido 25 mg (Local de acesso: UBS)",
+      "Estavudina - cápsula 30 mg (Local de acesso: CTA/CEM)",
+      "Estreptomicina, sulfato - pó para solução injetável 1 g + diluente fr-amp. (Local de acesso: CTA/CEM)",
+      "Etambutol, cloridrato - comprimido 400 mg (Local de acesso: CTA/CEM)",
+      "Etravirina (ETR) - comprimido 200 mg (Local de acesso: CTA/CEM)",
+      "Fenitoína - comprimido 100 mg (Local de acesso: UBS)",
+      "Fenitoína - solução injetável 50 mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Fenobarbital - comprimido 100 mg (Local de acesso: UBS)",
+      "Fenobarbital - solução oral gotas 40 mg/mL (4%) (Local de acesso: UBS)",
+      "Fenobarbital - solução injetável 100 mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Fluconazol - cápsula 150 mg (Local de acesso: UBS)",
+      "Flumazenil - Solução injetável 0,5mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Fluoxetina, cloridrato - cápsula 20 mg (Local de acesso: UBS)",
+      "Furosemida - comprimido 40 mg (Local de acesso: UBS)",
+      "Furosemida - solução injetável 10 mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Glibenclamida - comprimido 5 mg (Local de acesso: UBS)",
+      "Gliclazida - comprimido de liberação prolongada 30 mg (Local de acesso: UBS)",
+      "Gliclazida - comprimido de liberação prolongada 60 mg (Local de acesso: UBS)",
+      "Glicose - solução injetável 500 mg/mL (50%) (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Glicose - solução injetável 50 mg/mL (5%) sistema fechado 500 mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Haloperidol - comprimido 1 mg (Local de acesso: UBS)",
+      "Haloperidol - comprimido 5 mg (Local de acesso: UBS)",
+      "Haloperidol - solução oral gotas 2 mg/mL (0,2%) (Local de acesso: UBS)",
+      "Haloperidol - solução injetável 5 mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Haloperidol, decanoato - solução injetável 50 mg/ mL (Local de acesso: UBS/CAPS)",
+      "Heparina sódica - solução injetável 5.000 UI/0,25 mL (subcutâneo) (Local de acesso: CAF)",
+      "Hidroclorotiazida - comprimido 25 mg (Local de acesso: UBS)",
+      "Hidrocortisona, succinato sódico - pó para solução injetável 500 mg fr-amp. (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Ibuprofeno - comprimido 600 mg (Local de acesso: UBS)",
+      "Ibuprofeno - solução oral gotas 50 mg/mL (Local de acesso: UBS)",
+      "Insulina humana NPH - suspensão injetável 100 UI/mL (Local de acesso: CAF)",
+      "Insulina humana NPH - caneta injetável 100 UI/mL (Local de acesso: CAF)",
+      "Insulina humana regular - suspensão injetável 100 UI/mL (Local de acesso: CAF)",
+      "Insulina humana regular - caneta injetável 100 UI/mL (Local de acesso: CAF)",
+      "Ipratrópio, brometo - solução inalante gotas 0,025% (Local de acesso: UBS)",
+      "Isoniazida - comprimido 100 mg (Local de acesso: CTA/CEM)",
+      "Isoniazida - comprimido 300 mg (Local de acesso: CTA/CEM)",
+      "Isoniazida + rifampicina - comprimido 75 mg + 150 mg (meia dose) (Local de acesso: CTA/CEM)",
+      "Isoniazida + rifampicina - comprimido 150 mg + 300 mg (dose plena) (Local de acesso: CTA/CEM)",
+      "Isoniazida + rifampicina - comprimido dispersível 50 mg + 75 mg (Local de acesso: CTA/CEM)",
+      "Isossorbida, dinitrato - comprimido sublingual 5 mg (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Isossorbida, mononitrato - comprimido 20 mg (Local de acesso: UBS)",
+      "Isossorbida, mononitrato - comprimido 40 mg (Local de acesso: UBS)",
+      "Itraconazol - cápsula 100 mg (Local de acesso: CTA/CEM)",
+      "Ivermectina - comprimido 6 mg (Local de acesso: UBS)",
+      "Lamivudina - comprimido 150 mg (Local de acesso: CTA/CEM)",
+      "Lamivudina - solução oral 10 mg/mL (Local de acesso: CTA/CEM)",
+      "Levodopa + benserazida - comprimido 100 mg + 25 mg (Local de acesso: UBS)",
+      "Levodopa + benserazida - comprimido 200 mg + 50 mg (Local de acesso: UBS)",
+      "Levonorgestrel + etinilestradiol - comprimido 0,15 mg + 0,03 mg (Local de acesso: UBS)",
+      "Levotiroxina sódica - comprimido 25 mcg (Local de acesso: UBS)",
+      "Levotiroxina sódica - comprimido 50 mcg (Local de acesso: UBS)",
+      "Levotiroxina sódica - comprimido 100 mcg (Local de acesso: UBS)",
+      "Lidocaína, cloridrato - solução injetável sem vasoconstritor 20 mg/mL (2%) fr amp. 20 mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Lidocaína, cloridrato - gel 20 mg/g (2%) (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Lopinavir + ritonavir(LPV/r) - comprimidos 100 mg + 25 mg (Local de acesso: CTA/CEM)",
+      "Loratadina - comprimido 10 mg (Local de acesso: UBS)",
+      "Loratadina - xarope 1 mg/mL (Local de acesso: UBS)",
+      "Losartana potássica - comprimido 50 mg (Local de acesso: UBS)",
+      "Maraviroque (MVQ) - comprimido 150 mg (Local de acesso: CTA/CEM)",
+      "Medroxiprogesterona, acetato - suspensão injetável 150 mg/mL (Local de acesso: UBS)",
+      "Meglumina, antimoniato - solução injetável 300 mg/mL (Local de acesso: CTA/CEM)",
+      "Metformina, cloridrato - comprimido 500 mg (Local de acesso: UBS)",
+      "Metformina, cloridrato - comprimido 850 mg (Local de acesso: UBS)",
+      "Metildopa - comprimido 250 mg (Local de acesso: UBS)",
+      "Metoclopramida, cloridrato - comprimido 10 mg (Local de acesso: UBS)",
+      "Metoclopramida, cloridrato - solução injetável 5 mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Metoclopramida, cloridrato - solução oral gotas 4 mg/mL (Local de acesso: UBS)",
+      "Metoprolol, succinato - comprimido 25 mg (Local de acesso: UBS)",
+      "Metoprolol, succinato - comprimido 50 mg (Local de acesso: UBS)",
+      "Metoprolol, succinato - comprimido 100 mg (Local de acesso: UBS)",
+      "Metronidazol - comprimido 250 mg (Local de acesso: UBS)",
+      "Metronidazol - comprimido 400 mg (Local de acesso: UBS)",
+      "Metronidazol - suspensão oral 40 mg/mL (benzoilmetronidazol) (Local de acesso: UBS)",
+      "Metronidazol - creme ou gel vaginal 100 mg/g (10%) (Local de acesso: UBS)",
+      "Miconazol, nitrato - creme dermatológico 20 mg/g (2%) (Local de acesso: UBS)",
+      "Miconazol, nitrato - creme vaginal 20 mg/g (Local de acesso: UBS)",
+      "Nevirapina (NVP) - comprimido 200 mg (Local de acesso: CTA/CEM)",
+      "Nevirapina (NVP) - suspensão oral 10 mg/mL (Local de acesso: CTA/CEM)",
+      "Nicotina - adesivo transdérmico 7 mg (Local de acesso: CAF)",
+      "Nicotina - adesivo transdérmico 14 mg (Local de acesso: CAF)",
+      "Nicotina - adesivo transdérmico 21 mg (Local de acesso: CAF)",
+      "Nifedipino - comprimido 10mg (Local de acesso: UBS)",
+      "Nitrofurantoína - cápsula 100 mg (Local de acesso: UBS)",
+      "Noretisterona - comprimido 0,35 mg (Local de acesso: UBS)",
+      "Noretisterona, enantato + estradiol, valerato - solução injetável 50 mg/mL + 5 mg/mL (Local de acesso: UBS)",
+      "Nortriptilina, cloridrato - comprimido 25 mg (Local de acesso: UBS)",
+      "Nortriptilina, cloridrato - comprimido 50 mg (Local de acesso: UBS)",
+      "Omeprazol - cápsula 20 mg (Local de acesso: UBS)",
+      "Ondansetrona, cloridrato - comprimido 4 mg (Local de acesso: UBS)",
+      "Ondansetrona, cloridrato - solução injetável 2mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Oseltamivir - cápsula 30 mg (Local de acesso: CAF)",
+      "Oseltamivir - cápsula 45 mg (Local de acesso: CAF)",
+      "Oseltamivir - cápsula 75 mg (Local de acesso: CAF)",
+      "Paracetamol - comprimido 500 mg (Local de acesso: UBS)",
+      "Paracetamol - solução oral gotas 200 mg/mL (Local de acesso: UBS)",
+      "Penicilina G benzatina - pó para suspensão injetável ou suspensão pronta para uso 600.000 UI fr-amp. (Local de acesso: UBS)",
+      "Penicilina G benzatina - pó para suspensão injetável ou suspensão pronta para uso 1.200.000 UI fr-amp. (Local de acesso: UBS)",
+      "Permetrina - loção 50 mg/mL (5%) (Local de acesso: UBS)",
+      "Pirazinamida - suspensão oral 30 mg/mL (Local de acesso: CTA/CEM)",
+      "Pirazinamida - comprimido 500 mg (Local de acesso: CTA/CEM)",
+      "Pirazinamida - comprimido para suspensão 150mg (Local de acesso: CTA/CEM)",
+      "Piridoxina, cloridrato (vit. B6) - comprimido 40 mg (Local de acesso: CTA/CEM)",
+      "Pirimetamina - comprimido 25 mg (Local de acesso: CTA/CEM)",
+      "Praziquantel - comprimido 600 mg (Local de acesso: CTA/CEM)",
+      "Prednisolona, fosfato sódico - solução oral 3 mg/mL (Local de acesso: UBS)",
+      "Prednisona - comprimido 5 mg (Local de acesso: UBS)",
+      "Prednisona - comprimido 20 mg (Local de acesso: UBS)",
+      "Prometazina, cloridrato - comprimido 25 mg (Local de acesso: UBS)",
+      "Prometazina cloridrato - solução injetável 25 mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Propranolol, cloridrato - comprimido 40 mg (Local de acesso: UBS)",
+      "Raltegravir (RAL) - granulado para suspensão oral 100mg (Local de acesso: CTA/CEM)",
+      "Raltegravir (RAL) - comprimido 100 mg (Local de acesso: CTA/CEM)",
+      "Raltegravir (RAL) - comprimido 400 mg (Local de acesso: CTA/CEM)",
+      "Rifampicina - cápsula 300 mg (Local de acesso: CTA/CEM)",
+      "Rifampicina - suspensão oral 20 mg/mL (2%) (Local de acesso: CTA/CEM)",
+      "Rifampicina + Clofazimina + Dapsona - comprimido (300+150)+50+50 mg (poliquimioterapia única infantil) (Local de acesso: CTA/CEM)",
+      "Rifampicina + Clofazimina + Dapsona - comprimido (300+300)+(100+50)+100 mg (poliquimioterapia única adulto) (Local de acesso: CTA/CEM)",
+      "Rifampicina + Isoniazida + Pirazinamida - comprimido dispersível 75 mg + 50 mg + 150mg (Local de acesso: CTA/CEM)",
+      "Rifampicina + Pirazinamida + Etambutol + Isoniazida - comprimido 150+400+275+75 mg (Local de acesso: CTA/CEM)",
+      "Rifapentina - comprimido 150mg (Local de acesso: CTA/CEM)",
+      "Ritonavir (RTV) - comprimido 100 mg (Local de acesso: CTA/CEM)",
+      "Ritonavir (RTV) - pó para suspensão oral 100 mg (Local de acesso: CTA/CEM)",
+      "Sais para reidratação oral - pó para solução oral (Local de acesso: UBS)",
+      "Salbutamol, sulfato - aerossol oral 100 mcg/dose (Local de acesso: UBS)",
+      "Sinvastatina - comprimido 10 mg (Local de acesso: UBS)",
+      "Sinvastatina - comprimido 20 mg (Local de acesso: UBS)",
+      "Sinvastatina - comprimido 40 mg (Local de acesso: UBS)",
+      "Sulfadiazina - comprimido 500 mg (Local de acesso: CTA/CEM)",
+      "Sulfadiazina de prata - creme 10 mg/g (1%) (Local de acesso: UBS)",
+      "Sulfametoxazol + trimetoprima - comprimido 400 mg + 80 mg (Local de acesso: UBS)",
+      "Sulfametoxazol + trimetoprima - suspensão oral 40 mg/mL + 8 mg/mL (Local de acesso: UBS)",
+      "Sulfato ferroso - 125,545 mg comprimido equivalente a 40 mg de Fe++ (Local de acesso: UBS)",
+      "Sulfato ferroso - solução oral gotas 125 mg/mL (equivalente a 25 mg de Fe++) (Local de acesso: UBS)",
+      "Talidomida - comprimido 100 mg (Local de acesso: CAF/CTA)",
+      "Tenofovir desoproxila (TDF) + Lamivudina fumarato (3TC) - comprimido 300 mg + 300 mg (Local de acesso: CTA/CEM)",
+      "Tenofovir desoproxila - comprimido 300 mg (Local de acesso: CTA/CEM)",
+      "Tiamina, cloridrato - comprimido 300 mg (Local de acesso: UBS)",
+      "Tiamina, cloridrato (vit.B1) - solução injetável 100mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Tipranavir(TPV) - cápsula de 250 mg (Local de acesso: CTA/CEM)",
+      "Tramadol - solução injetável 50 mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Varfarina sódica - comprimido 5 mg (Local de acesso: UBS)",
+      "Verapamil - comprimido 80 mg (Local de acesso: UBS)",
+      "Vitaminas do complexo B (tiamina, riboflavina, piridoxina, nicotinamida, dexpantenol) - solução injetável 4+1+2+20+3 mg/mL (Local de acesso: CTA/CEM/UBS/CAPS)",
+      "Zidovudina (AZT) - cápsula 100 mg (Local de acesso: CTA/CEM)",
+      "Zidovudina (AZT) - solução injetavel 10 mg/mL (Local de acesso: CTA/CEM)",
+      "Zidovudina (AZT) - solução oral 10 mg/mL (Local de acesso: CTA/CEM)",
+      "Zidovudina (AZT) + lamivudina (3TC) - comprimido 300 mg + 150 mg (Local de acesso: CTA/CEM)"
+    ]
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== modules/remume/index.js (v2.0.1) ===== */
+/* ------------------------------------------------------------------
+ * modules/remume/index.js
+ * Origem: sodelfino/meeds-remume-assistant -> meeds-remume-assistant.user.js v1.7.4
+ * ------------------------------------------------------------------
+ * O QUE MUDOU NA MIGRACAO (e o que NAO mudou)
+ *  - REMOVIDO daqui: trava de frame, deteccao de login, patch proprio de
+ *    fetch/XHR, o POSICAO_BOTAO (bottom:224px / right:80px) e o loop
+ *    proprio de recheque de login. Tudo isso e do nucleo agora.
+ *  - PRESERVADO sem alteracao de comportamento: o motor de busca inteiro
+ *    (normalizacao, tokenizacao, equivalencia fonetica, Levenshtein com
+ *    distancia absoluta maxima, sinonimos por FRASE exigindo casamento
+ *    exato, indice por cidade em cache, dica de "termo reconhecido"),
+ *    a deteccao de municipio pela API com os quatro formatos de payload,
+ *    a deteccao por DOM que RECUSA escolher quando acha mais de um
+ *    municipio, o selo de "Local de acesso", a navegacao por teclado, o
+ *    botao de copiar com fallback e a atualizacao remota do remumes.json
+ *    com validacao de formato e fallback embutido.
+ *  - A logica de busca abaixo foi extraida do arquivo original em vez de
+ *    reescrita, justamente para nao perder nenhuma das correcoes finas
+ *    que ela ja carrega (ex: "novalgina" x "valina", "buscopan" x
+ *    "escetamina", a letra "b" de "complexo_b" batendo em tudo).
+ *
+ * PRIVACIDADE: o JSON do atendimento fica so em memoria; nada de
+ * paciente e gravado nem enviado para fora.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  /* Base de dados: comeca no fallback embutido (gerado por
+   * scripts/sync-fallback.js) e e substituida pela versao remota assim
+   * que a pagina carrega, se a busca der certo. */
+  var REMUMES = JSON.parse(JSON.stringify(raiz.MEEDS_REMUMES_FALLBACK || { _meta: {} }));
+
+  var REMUMES_URL =
+    "https://raw.githubusercontent.com/sodelfino/meeds-suite/main/modules/remume/remumes.json";
+
+  var d = null;        // deps do nucleo
+  var refs = null;     // referencias da UI
+  var overlay = null;
+  var timers = [];
+  var atendimentoAtual = null;   // ultimo JSON de /api/v1/Atendimento/{id}
+  var municipioDetectado = null; // chave de REMUMES inferida da API/DOM
+
+  /* ----------------------------------------------------------------
+   * HELPERS DE TEXTO — normalizarTexto e tokenizarTexto agora vem do
+   * dom-reader do nucleo (mesma implementacao), o resto e local.
+   * ---------------------------------------------------------------- */
+  function normalizarTexto(str) {
+    return raiz.MeedsSuiteDom.normalizarTexto(str);
+  }
+
+  function tokenizarTexto(str) {
+    return normalizarTexto(str)
+      .split(/[\s,;.\-()]+/)
+      .filter(function (t) { return t.length > 0; });
+  }
+
+  // "_meta" e chave reservada (nao e municipio): quem itera "os
+  // municipios cadastrados" tem que ignora-la, sempre via esta funcao.
+  function chavesMunicipios(objeto) {
+    return Object.keys(objeto).filter(function (chave) { return chave !== "_meta"; });
+  }
+  /* ---- motor de busca (extraido do original, sem alteracao) ---- */
+
+function normalizarFonetico(tokenNormalizado) {
+    return tokenNormalizado
+      .replace(/^h/, "") // H mudo no inicio: "hemitartarato" ~ "emitartarato"
+      .replace(/ch/g, "x") // mesmo som: "chave" ~ "xarope"
+      .replace(/ss/g, "s") // "massa" ~ "masa"
+      .replace(/c(?=[ei])/g, "s") // C antes de E/I soa como S: "cedo" ~ "sedo"
+      .replace(/g(?=[ei])/g, "j") // G antes de E/I soa como J: "gelo" ~ "jelo"
+      .replace(/z/g, "s"); // "zebra" ~ "sebra"
+  }
+
+function levenshtein(a, b) {
+    const m = a.length;
+    const n = b.length;
+    const dp = Array.from({ length: m + 1 }, (_, i) =>
+      Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+    );
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        dp[i][j] =
+          a[i - 1] === b[j - 1]
+            ? dp[i - 1][j - 1]
+            : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      }
+    }
+    return dp[m][n];
+  }
+
+function fuzzyScore(query, target) {
+    if (query === target) return 1.0;
+    if (target.includes(query)) return 0.9;
+    const maxLen = Math.max(query.length, target.length);
+    if (maxLen === 0) return 1;
+    const distancia = levenshtein(query, target);
+    const distanciaMaxima = query.length <= 6 ? 1 : query.length <= 10 ? 2 : 3;
+    if (distancia > distanciaMaxima) return 0;
+    return 1 - distancia / maxLen;
+  }
+
+const PREFIXOS_INSTITUCIONAIS = [
+    "prefeitura municipal de ",
+    "prefeitura de ",
+    "municipio de ",
+    "fundacao municipal de saude de ",
+    "secretaria municipal de saude de ",
+    "secretaria de saude de ",
+  ];
+
+function extrairNomeCidade(razaoSocialNome) {
+    if (!razaoSocialNome) return null;
+    let nome = normalizarTexto(razaoSocialNome);
+    for (const prefixo of PREFIXOS_INSTITUCIONAIS) {
+      if (nome.startsWith(prefixo)) {
+        nome = nome.slice(prefixo.length);
+        break;
+      }
+    }
+    return nome.trim();
+  }
+
+function detectarMunicipioDoAtendimento(atendimento) {
+    if (!atendimento || typeof atendimento !== "object") return null;
+
+    const candidatos = [];
+
+    // formato mais comum: atendimento.cliente = { razaoSocialNome }
+    if (atendimento.cliente && atendimento.cliente.razaoSocialNome) {
+      candidatos.push(atendimento.cliente.razaoSocialNome);
+    }
+
+    // paciente.cliente = { razaoSocialNome }
+    if (atendimento.paciente && atendimento.paciente.cliente && atendimento.paciente.cliente.razaoSocialNome) {
+      candidatos.push(atendimento.paciente.cliente.razaoSocialNome);
+    }
+
+    // atendimento.clienteId + lista atendimento.clientes[]
+    if (atendimento.clienteId && Array.isArray(atendimento.clientes)) {
+      const match = atendimento.clientes.find((c) => c && c.id === atendimento.clienteId);
+      if (match && match.razaoSocialNome) candidatos.push(match.razaoSocialNome);
+    }
+
+    // fallback: lista de clientes com um unico item
+    if (Array.isArray(atendimento.clientes) && atendimento.clientes.length === 1) {
+      const unico = atendimento.clientes[0];
+      if (unico && unico.razaoSocialNome) candidatos.push(unico.razaoSocialNome);
+    }
+
+    for (const candidato of candidatos) {
+      const nomeCidade = extrairNomeCidade(candidato);
+      const chave = encontrarMunicipioNaBase(nomeCidade);
+      if (chave) return chave;
+    }
+
+    return null;
+  }
+
+function separarLocalAcesso(texto) {
+    const idx = texto.lastIndexOf(MARCADOR_LOCAL);
+    if (idx === -1) return { nome: texto, local: null };
+    const nome = texto.slice(0, idx).trim();
+    let local = texto.slice(idx + MARCADOR_LOCAL.length).trim();
+    if (local.endsWith(")")) local = local.slice(0, -1).trim();
+    if (!nome || !local) return { nome: texto, local: null };
+    return { nome, local };
+  }
+
+function normalizarItemRemume(item) {
+    if (typeof item === "string") return separarLocalAcesso(item);
+    if (item && typeof item === "object") {
+      return { nome: item.nome || "", local: item.local || null };
+    }
+    return { nome: String(item), local: null };
+  }
+
+const FORMAS_FARMACEUTICAS_RX = new RegExp(
+    "\\b(" +
+      [
+        "comprimido", "revestido", "dispersivel", "mastigavel", "sublingual",
+        "capsula", "dragea", "drageia",
+        "solucao", "suspensao", "xarope", "elixir", "emulsao",
+        "pomada", "creme", "gel", "locao",
+        "spray", "aerossol", "po", "granulado", "sache",
+        "adesivo", "transdermico",
+        "ampola", "frasco", "injetavel", "gotas",
+        "supositorio", "ovulo", "colirio",
+        "caneta", "liofilizado", "inalante", "nasal",
+        "oftalmica", "dermatologica", "vaginal", "retal",
+      ].join("|") +
+      ")\\b"
+  );;
+
+function extrairPrincipioAtivo(nome) {
+    const nomeNormalizado = normalizarTexto(nome);
+    const idxDigito = nomeNormalizado.search(/\d/);
+    const matchForma = nomeNormalizado.match(FORMAS_FARMACEUTICAS_RX);
+    const idxForma = matchForma ? matchForma.index : -1;
+    const candidatos = [idxDigito, idxForma].filter((i) => i >= 0);
+    if (candidatos.length === 0) return nome.trim();
+    // remocao de acento via NFD preserva a contagem de caracteres 1:1 com
+    // o original, entao o mesmo indice serve pra cortar a string ORIGINAL
+    // sem perder a acentuacao no texto exibido ao medico.
+    const idx = Math.min(...candidatos);
+    const principio = nome.slice(0, idx).trim().replace(/[\s,;:\-]+$/, "").trim();
+    return normalizarTexto(principio).length >= 3 ? principio : nome.trim();
+  }
+
+const SINONIMOS_BUSCA = {
+    dipirona: ["metamizol", "novalgina"],
+    aas: ["aspirina", "acido acetilsalicilico"],
+    escopolamina: ["buscopan"],
+    butilbrometo: ["buscopan"],
+    salbutamol: ["aerolin"],
+    paracetamol: ["tylenol", "acetaminofeno"],
+    ibuprofeno: ["advil", "alivium"],
+    omeprazol: ["peprazol", "losec"],
+    metoclopramida: ["plasil"],
+    bromoprida: ["digesan"],
+    ondansetrona: ["vonau", "zofran"],
+    simeticona: ["luftal"],
+    loratadina: ["claritine", "loranil"],
+    dexclorfeniramina: ["polaramine"],
+    prometazina: ["fenergan"],
+    diazepam: ["valium"],
+    clonazepam: ["rivotril"],
+    midazolam: ["dormonid"],
+    morfina: ["dimorf"],
+    fentanila: ["fentanil"],
+    tramadol: ["tramal"],
+    lidocaina: ["xylocaina"],
+    bupivacaina: ["neocaina", "marcaina"],
+    ropivacaina: ["naropin"],
+    propofol: ["diprivan", "propovan"],
+    sevoflurano: ["sevorane"],
+    enoxaparina: ["clexane"],
+    heparina: ["liquemine"],
+    varfarina: ["marevan", "coumadin"],
+    rivaroxabana: ["xarelto"],
+    losartana: ["cozaar", "aradois"],
+    enalapril: ["renitec"],
+    captopril: ["capoten"],
+    metformina: ["glifage"],
+    glibenclamida: ["daonil"],
+    gliclazida: ["diamicron"],
+    levotiroxina: ["puran t4", "synthroid", "euthyrox"],
+    fluoxetina: ["prozac", "daforin"],
+    sertralina: ["zoloft", "tolrest"],
+    amitriptilina: ["amytril", "tryptanol"],
+    haloperidol: ["haldol"],
+    risperidona: ["risperdal"],
+    clorpromazina: ["amplictil"],
+    fenobarbital: ["gardenal"],
+    fenitoina: ["hidantal"],
+    carbamazepina: ["tegretol"],
+    valproato: ["depakene", "depakote", "valproico"],
+    levetiracetam: ["keppra"],
+    amoxicilina: ["amoxil", "amox"],
+    azitromicina: ["zitromax", "astromicin"],
+    cefalexina: ["keflex"],
+    ceftriaxona: ["rocefin", "triaxon"],
+    ciprofloxacino: ["cipro", "ciproxin"],
+    sulfametoxazol: ["bactrim"],
+    metronidazol: ["flagyl"],
+    fluconazol: ["zoltec", "fluconal"],
+    nistatina: ["micostatin"],
+    prednisona: ["meticorten"],
+    prednisolona: ["prelone"],
+    dexametasona: ["decadron"],
+    hidrocortisona: ["solucortef"],
+    metilprednisolona: ["solumedrol"],
+    betametasona: ["diprospan"],
+    beclometasona: ["clenil"],
+    nifedipino: ["adalat"],
+    anlodipino: ["norvasc"],
+    carvedilol: ["cardilol", "coreg"],
+    propranolol: ["inderal"],
+    atenolol: ["angipress"],
+    metoprolol: ["selozok", "lopressor"],
+    furosemida: ["lasix"],
+    hidroclorotiazida: ["clorana", "hctz"],
+    espironolactona: ["aldactone"],
+    sinvastatina: ["zocor", "sinvatrox"],
+    apixabana: ["eliquis"],
+    acido_folico: ["folacin", "acfol"],
+    acido_tranexamico: ["transamin"],
+    complexo_b: ["citoneurin"],
+    soro_fisiologico: ["sf 0.9%"],
+    ringer: ["ringer lactato"],
+    glicose: ["soro glicosado", "sg 5%"],
+    manitol: ["manitol 20%"],
+    adrenalina: ["epinefrina"],
+    noradrenalina: ["norepinefrina"],
+    dobutamina: ["dobutrex"],
+    amiodarona: ["ancoron", "atlansil"],
+    adenosina: ["adenocard"],
+    naloxona: ["narcan"],
+    flumazenil: ["lanexat"],
+    neostigmina: ["prostigmine"],
+    ocitocina: ["syntocinon"],
+    misoprostol: ["cytotec", "prostokos"],
+    fitomenadiona: ["vitamina k", "kanakion"],
+
+    /* --------------------------------------------------------------
+     * [SINONIMOS] Ampliacao com nomes comerciais populares no Brasil.
+     * A logica de match ja e bidirecional por construcao (ver
+     * obterFrasesSinonimo): digitar a chave (principio ativo) OU
+     * qualquer sinonimo (nome comercial) da mesma entrada dispara a
+     * busca pelos dois lados. Aqui so ampliamos os dados.
+     * -------------------------------------------------------------- */
+    diclofenaco: ["voltaren", "cataflam"],
+    nimesulida: ["nisulid"],
+    meloxicam: ["movatec"],
+    cetoprofeno: ["profenid"],
+    domperidona: ["motilium"],
+    ranitidina: ["antak", "label"],
+    pantoprazol: ["pantozol", "pantoc"],
+    lansoprazol: ["prazol"],
+    esomeprazol: ["nexium"],
+    clopidogrel: ["plavix"],
+    atorvastatina: ["lipitor", "citalor"],
+    rosuvastatina: ["crestor"],
+    hidralazina: ["apresolina"],
+    diltiazem: ["balcor", "cardizem"],
+    dabigatrana: ["pradaxa"],
+    clortalidona: ["higroton"],
+    indapamida: ["natrilix"],
+    telmisartana: ["micardis"],
+    valsartana: ["diovan"],
+    irbesartana: ["aprovel"],
+    metildopa: ["aldomet"],
+    bromazepam: ["lexotan"],
+    lorazepam: ["lorax"],
+    quetiapina: ["seroquel"],
+    olanzapina: ["zyprexa"],
+    citalopram: ["cipramil"],
+    escitalopram: ["lexapro"],
+    venlafaxina: ["efexor"],
+    duloxetina: ["cymbalta"],
+    topiramato: ["topamax"],
+    gabapentina: ["neurontin"],
+    pregabalina: ["lyrica"],
+    baclofeno: ["lioresal"],
+    levomepromazina: ["neozine"],
+    biperideno: ["akineton"],
+    ciclobenzaprina: ["miosan"],
+    budesonida: ["pulmicort", "busonid"],
+    fluticasona: ["flixotide"],
+    montelucaste: ["singulair"],
+    ipratropio: ["atrovent"],
+    mometasona: ["nasonex", "elocom"],
+    desloratadina: ["desalex"],
+    cetirizina: ["zyrtec"],
+    fexofenadina: ["allegra"],
+    hidroxizina: ["hixizine"],
+    loperamida: ["imosec"],
+    bisacodil: ["dulcolax"],
+    cetoconazol: ["nizoral"],
+    terbinafina: ["lamisil"],
+    aciclovir: ["zovirax"],
+    valaciclovir: ["valtrex"],
+    oseltamivir: ["tamiflu"],
+    insulina: ["humulin", "novolin"],
+    finasterida: ["propecia", "proscar"],
+    tansulosina: ["secotex"],
+    sildenafila: ["viagra"],
+    claritromicina: ["klaricid"],
+    clindamicina: ["dalacin"],
+    nitrofurantoina: ["macrodantina"],
+    norfloxacino: ["uroxacin"],
+    levofloxacino: ["levaquin", "tavanic"],
+    doxiciclina: ["vibramicina"],
+    penicilina: ["benzetacil"],
+    clavulanato: ["clavulin"],
+    miconazol: ["daktarin"],
+    permetrina: ["scabin"],
+    mupirocina: ["bactroban"],
+    sulfadiazina_prata: ["dermazine"],
+    sulfato_ferroso: ["combiron"],
+    colecalciferol: ["addera"],
+    levodopa: ["prolopa"],
+  };
+
+const CONFIG_BUSCA = {
+    LIMITE_RESULTADOS: 80,
+    LIMIAR_FUZZY: 0.6,
+    BONUS_COMECA_COM: 0.2,
+    // tamanho minimo do termo digitado para exibir a dica de "termo
+    // reconhecido" — abaixo disso o fuzzy fica ruidoso demais pra avisar
+    // com confianca que houve correcao.
+    MIN_LEN_DICA_TERMO: 4,
+  };
+
+function palavraElegivelParaGatilho(a, b) {
+    return a.length >= 3 && b.length >= 3 && (a.includes(b) || b.includes(a));
+  }
+
+function obterFrasesSinonimo(tokensDigitados) {
+    const termoDigitadoCompleto = tokensDigitados.join(" ");
+    const frases = new Set();
+    for (const token of tokensDigitados) {
+      for (const [chave, sinonimos] of Object.entries(SINONIMOS_BUSCA)) {
+        const chaveFrase = normalizarFraseSinonimo(chave);
+        const sinonimosFrases = sinonimos.map(normalizarFraseSinonimo);
+        const bate =
+          chaveFrase.split(" ").some((t) => palavraElegivelParaGatilho(token, t)) ||
+          sinonimosFrases.some((f) => f.split(" ").some((t) => palavraElegivelParaGatilho(token, t)));
+        if (bate) {
+          frases.add(chaveFrase);
+          sinonimosFrases.forEach((f) => frases.add(f));
+        }
+      }
+    }
+    frases.delete(termoDigitadoCompleto);
+    return [...frases];
+  }
+
+function pontuarItem(item, tokensDigitados, tokensDigitadosFoneticos, frasesSinonimo) {
+    let pontuacaoExata = 0;
+    let pontuacaoFuzzy = 0;
+
+    for (let i = 0; i < tokensDigitados.length; i++) {
+      const token = tokensDigitados[i];
+      if (item.normalizado.includes(token)) {
+        pontuacaoExata += 1.0;
+        if (item.normalizado.startsWith(token)) pontuacaoExata += CONFIG_BUSCA.BONUS_COMECA_COM;
+        continue;
+      }
+      // [FONETICA] compara tanto a forma bruta quanto a forma foneticamente
+      // dobrada (token digitado x token do item) e fica com a MELHOR das
+      // duas — a dobra fonetica so pode ajudar a reconhecer o termo, nunca
+      // piora um match que ja funcionava sem ela.
+      const tokenFonetico = tokensDigitadosFoneticos[i];
+      let melhorFuzzy = 0;
+      for (let j = 0; j < item.tokens.length; j++) {
+        const scoreBruto = fuzzyScore(token, item.tokens[j]);
+        const scoreFonetico = fuzzyScore(tokenFonetico, item.tokensFoneticos[j]);
+        const score = Math.max(scoreBruto, scoreFonetico);
+        if (score > melhorFuzzy) melhorFuzzy = score;
+      }
+      if (melhorFuzzy >= CONFIG_BUSCA.LIMIAR_FUZZY) {
+        pontuacaoFuzzy += melhorFuzzy * 0.5;
+      }
+    }
+
+    for (const frase of frasesSinonimo) {
+      // compara tambem sem espacos: municipios diferentes escrevem o mesmo
+      // termo composto de jeitos diferentes (ex: "acetilsalicilico" vs
+      // "acetil salicilico") — exige frase com 8+ caracteres pra evitar
+      // colisao de palavras curtas coincidentes.
+      const bateDireto = item.normalizado.includes(frase);
+      const bateSemEspaco =
+        frase.length >= 8 && item.normalizadoSemEspaco.includes(frase.replace(/\s+/g, ""));
+      if (bateDireto || bateSemEspaco) {
+        pontuacaoExata += 0.8; // sinonimo e correspondencia exata de frase, nao fuzzy
+      }
+    }
+
+    return {
+      pontuacao: pontuacaoExata + pontuacaoFuzzy,
+      viaFuzzy: pontuacaoExata === 0 && pontuacaoFuzzy > 0,
+    };
+  }
+
+function buscarMedicamentos(termo, cidade) {
+    const tokensDigitados = tokenizarTexto(termo);
+    if (tokensDigitados.length === 0) return { itens: [], termoReconhecido: null };
+    const tokensDigitadosFoneticos = tokensDigitados.map(normalizarFonetico);
+    const frasesSinonimo = obterFrasesSinonimo(tokensDigitados);
+    const indice = obterIndiceBusca(cidade);
+
+    const pontuados = indice
+      .map((item) => {
+        const { pontuacao, viaFuzzy } = pontuarItem(item, tokensDigitados, tokensDigitadosFoneticos, frasesSinonimo);
+        return { item, pontuacao, viaFuzzy };
+      })
+      .filter((x) => x.pontuacao > 0)
+      .sort((a, b) => b.pontuacao - a.pontuacao)
+      .slice(0, CONFIG_BUSCA.LIMITE_RESULTADOS);
+
+    let termoReconhecido = null;
+    const melhor = pontuados[0];
+    if (melhor && melhor.viaFuzzy && normalizarTexto(termo).length >= CONFIG_BUSCA.MIN_LEN_DICA_TERMO) {
+      const principioAtivo = extrairPrincipioAtivo(melhor.item.nome);
+      if (principioAtivo && normalizarTexto(principioAtivo) !== normalizarTexto(termo)) {
+        termoReconhecido = principioAtivo;
+      }
+    }
+
+    return {
+      itens: pontuados.map((x) => ({ nome: x.item.nome, local: x.item.local })),
+      termoReconhecido,
+    };
+  }
+
+function destacarTrecho(texto, termoOriginal) {
+    if (!termoOriginal) return escapeHtml(texto);
+    const normTexto = normalizarTexto(texto);
+    const normTermo = normalizarTexto(termoOriginal);
+    const idx = normTexto.indexOf(normTermo);
+    if (idx === -1) return escapeHtml(texto);
+    const antes = texto.slice(0, idx);
+    const meio = texto.slice(idx, idx + termoOriginal.length);
+    const depois = texto.slice(idx + termoOriginal.length);
+    return `${escapeHtml(antes)}<mark>${escapeHtml(meio)}</mark>${escapeHtml(depois)}`;
+  }
+
+function copiarParaAreaDeTransferencia(texto, botao) {
+    const marcarSucesso = () => {
+      const original = botao.textContent;
+      botao.textContent = "✅"; // check
+      botao.disabled = true;
+      setTimeout(() => {
+        botao.textContent = original;
+        botao.disabled = false;
+      }, 1200);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(texto).then(marcarSucesso).catch(() => {
+        copiarComFallback(texto, marcarSucesso);
+      });
+    } else {
+      copiarComFallback(texto, marcarSucesso);
+    }
+  }
+
+function copiarComFallback(texto, callback) {
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = texto;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      callback();
+    } catch (e) {
+      /* silencioso */
+    }
+  }
+
+function moverFocoResultado(delta) {
+    if (itensRenderizados.length === 0) return;
+    const anterior = itensRenderizados[indiceFocado];
+    if (anterior) anterior.li.classList.remove("rm-focado");
+
+    indiceFocado = Math.min(Math.max(indiceFocado + delta, 0), itensRenderizados.length - 1);
+
+    const atual = itensRenderizados[indiceFocado];
+    if (atual) {
+      atual.li.classList.add("rm-focado");
+      atual.li.scrollIntoView({ block: "nearest" });
+    }
+  }
+  /* ---- constantes auxiliares usadas pelo motor acima ---- */
+  var MARCADOR_LOCAL = "(Local de acesso:";
+
+  function escapeHtml(str) {
+    return String(str == null ? "" : str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function normalizarFraseSinonimo(str) {
+    return normalizarTexto(str).replace(/_/g, " ");
+  }
+
+  function encontrarMunicipioNaBase(nomeCidadeNormalizado) {
+    if (!nomeCidadeNormalizado) return null;
+    var chaves = chavesMunicipios(REMUMES);
+    for (var i = 0; i < chaves.length; i++) {
+      if (normalizarTexto(chaves[i]) === nomeCidadeNormalizado) return chaves[i];
+    }
+    return null;
+  }
+
+  /* Sinal independente da API: varre o texto da pagina procurando nomes
+   * de municipios conhecidos. O medico atende uma fila multi-tenant, entao
+   * mais de um nome pode aparecer ao mesmo tempo (ex: lista de clientes do
+   * proprio medico). Nesse caso e mais seguro NAO escolher nenhum do que
+   * arriscar o municipio errado — o medico sempre pode selecionar na mao.
+   * A regra "so decide se for unico" agora vem do decision-engine. */
+  function detectarMunicipioNoDOM() {
+    try {
+      var textoPagina = raiz.MeedsSuiteDom.textoDaPaginaNormalizado();
+      if (!textoPagina) return null;
+      var encontrados = chavesMunicipios(REMUMES).filter(function (chave) {
+        return textoPagina.indexOf(normalizarTexto(chave)) !== -1;
+      });
+      return raiz.MeedsSuiteDecisao.unicoOuNada(encontrados);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /* ---- indice de busca por municipio (tokens pre-calculados) ----
+   * Recalculado sozinho sempre que o array daquela cidade muda (ex:
+   * depois da busca remota substituir os dados). A comparacao e por
+   * IDENTIDADE do array, nao por conteudo — barata e suficiente. */
+  var _indiceBuscaPorCidade = new Map();
+
+  function obterIndiceBusca(cidade) {
+    var lista = REMUMES[cidade] || [];
+    var cacheado = _indiceBuscaPorCidade.get(cidade);
+    if (cacheado && cacheado.origem === lista) return cacheado.indice;
+    var indice = lista.map(function (item) {
+      var par = normalizarItemRemume(item);
+      var nome = par.nome;
+      var local = par.local;
+      // o texto de busca inclui o local (quando existe) para o medico
+      // poder digitar "HPM" e achar o que esta disponivel la — mas nome e
+      // local continuam separados para a exibicao.
+      var textoBusca = local ? nome + " " + local : nome;
+      var tokens = tokenizarTexto(textoBusca);
+      var normalizado = normalizarTexto(textoBusca);
+      return {
+        nome: nome,
+        local: local,
+        tokens: tokens,
+        // forma fonetica pre-calculada UMA vez por item (nao a cada
+        // tecla digitada): o indice fica em cache por cidade, entao esse
+        // custo so acontece quando a REMUME daquela cidade muda mesmo.
+        tokensFoneticos: tokens.map(normalizarFonetico),
+        normalizado: normalizado,
+        normalizadoSemEspaco: normalizado.replace(/\s+/g, ""),
+      };
+    });
+    _indiceBuscaPorCidade.set(cidade, { origem: lista, indice: indice });
+    return indice;
+  }
+
+  /* ---- estado da navegacao por teclado ---- */
+  var itensRenderizados = [];
+  var indiceFocado = -1;
+
+  /* ----------------------------------------------------------------
+   * ATUALIZACAO REMOTA DA BASE
+   * Busca a lista mais atual de um JSON hospedado. NAO envolve dado de
+   * paciente — e so a lista publica de medicamentos por municipio, o
+   * mesmo tipo de dado que ja estava embutido. Quem mantem o link
+   * atualiza as REMUMEs sem redistribuir o script. Se falhar por
+   * qualquer razao, segue com a copia embutida.
+   * ---------------------------------------------------------------- */
+  function validarFormatoRemumes(dados) {
+    if (!dados || typeof dados !== "object" || Array.isArray(dados)) return false;
+    var chaves = chavesMunicipios(dados);
+    if (chaves.length === 0) return false;
+    return chaves.every(function (chave) {
+      return Array.isArray(dados[chave]);
+    });
+  }
+
+  function atualizarRemumesRemoto() {
+    return fetch(REMUMES_URL, { cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) return null;
+        return r.json();
+      })
+      .then(function (dadosRemotos) {
+        if (!dadosRemotos) return false;
+        if (!validarFormatoRemumes(dadosRemotos)) {
+          console.warn("[Assistente REMUME] JSON remoto com formato inesperado, mantendo copia local.");
+          return false;
+        }
+        Object.keys(REMUMES).forEach(function (chave) {
+          delete REMUMES[chave];
+        });
+        Object.assign(REMUMES, dadosRemotos);
+        _indiceBuscaPorCidade.clear();
+        reconstruirOpcoesMunicipio();
+        return true;
+      })
+      .catch(function (e) {
+        console.warn("[Assistente REMUME] nao foi possivel buscar a lista remota, usando copia local.", e);
+        return false;
+      });
+  }
+
+  /* ----------------------------------------------------------------
+   * DETECCAO DE MUNICIPIO (rede + DOM)
+   * ---------------------------------------------------------------- */
+  function aplicarNovoMunicipioDetectado(municipio) {
+    if (!municipio || municipio === municipioDetectado) return;
+    municipioDetectado = municipio;
+    atualizarUIComMunicipio(municipio);
+  }
+
+  function processarRespostaAtendimento(dadosJson) {
+    try {
+      atendimentoAtual = dadosJson;
+      var municipio = detectarMunicipioDoAtendimento(dadosJson) || detectarMunicipioNoDOM();
+      aplicarNovoMunicipioDetectado(municipio);
+    } catch (e) {
+      /* silencioso: nunca deve quebrar a pagina do Meeds */
+    }
+  }
+
+  /* O Meeds e uma SPA: ao trocar de paciente nem sempre refaz a chamada
+   * GET /api/v1/Atendimento/{id} (pode atualizar via WebSocket ou
+   * reaproveitar dados carregados). Sem esta varredura periodica, o
+   * municipio detectado travava no primeiro paciente do plantao. */
+  function tentarAtualizarMunicipioViaDOM() {
+    aplicarNovoMunicipioDetectado(detectarMunicipioNoDOM());
+  }
+
+  /* ----------------------------------------------------------------
+   * UI — o overlay vem posicionado do dock; aqui so o conteudo.
+   * ---------------------------------------------------------------- */
+  var CSS = [
+    ".rm-modal { width:100%; max-width:640px; max-height:86vh; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); display:flex; flex-direction:column; overflow:hidden; }",
+    ".rm-modal header { background:linear-gradient(135deg,#0e7a70,#17ab9e); color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
+    ".rm-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
+    ".rm-sub { margin:3px 0 0; font-size:11.5px; opacity:.9; }",
+    ".rm-meta { margin:2px 0 0; font-size:10.5px; opacity:.75; }",
+    ".rm-meta[hidden] { display:none; }",
+    ".rm-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; }",
+    ".rm-fechar:hover { background:rgba(255,255,255,.34); }",
+    ".rm-body { padding:14px 18px 16px; display:flex; flex-direction:column; gap:10px; min-height:0; flex:1; }",
+    ".rm-body label { display:block; font-size:10.5px; font-weight:700; color:#5b6c68; margin-bottom:4px; }",
+    ".rm-body select, .rm-body input { width:100%; padding:8px 10px; border:1px solid #d8e6e3; border-radius:8px; font-size:13px; color:#16221f; }",
+    ".rm-hint { font-size:11.5px; color:#a15c00; background:#fff4e2; padding:7px 10px; border-radius:7px; }",
+    ".rm-hint[hidden] { display:none; }",
+    ".rm-count { font-size:11px; color:#5b6c68; }",
+    ".rm-results { list-style:none; margin:0; padding:0; overflow-y:auto; flex:1; min-height:120px; border-top:1px solid #eef2f6; }",
+    ".rm-results li { display:flex; align-items:center; gap:10px; padding:8px 4px; border-bottom:1px solid #f1f5f9; font-size:12.5px; line-height:1.45; }",
+    ".rm-results li.rm-focado { background:#e3f5f3; }",
+    ".rm-item-main { flex:1; min-width:0; }",
+    ".rm-item-text mark { background:#fde68a; padding:0 1px; border-radius:2px; }",
+    ".rm-local { display:inline-block; margin-left:6px; font-size:10.5px; color:#0e7a70; background:#e3f5f3; padding:1px 6px; border-radius:999px; white-space:nowrap; }",
+    ".rm-copiar { background:none; border:1px solid #d8e6e3; border-radius:7px; cursor:pointer; font-size:13px; padding:4px 8px; flex-shrink:0; }",
+    ".rm-copiar:hover { background:#e3f5f3; }",
+    ".rm-vazio { color:#8a97a4; font-style:italic; padding:14px 4px; }",
+  ].join("\n");
+
+  function montarUI() {
+    overlay = d.dock.criarOverlay({
+      estilo: CSS,
+      html:
+        '<div class="rm-modal" role="dialog" aria-modal="true" aria-labelledby="rm-title">' +
+        "  <header><div>" +
+        '    <h2 id="rm-title">Consulta REMUME</h2>' +
+        '    <p class="rm-sub" id="rm-sub">Municipio nao identificado ainda</p>' +
+        '    <p class="rm-meta" id="rm-meta" hidden></p>' +
+        "  </div>" +
+        '  <button type="button" class="rm-fechar" aria-label="Fechar">&#10005;</button></header>' +
+        '  <div class="rm-body">' +
+        '    <div><label for="rm-select">Municipio</label><select id="rm-select"></select></div>' +
+        '    <div><label for="rm-search">Buscar principio ativo / medicamento</label>' +
+        '      <input id="rm-search" type="text" placeholder="Ex: amoxicilina" autocomplete="off" /></div>' +
+        '    <div class="rm-hint" id="rm-hint" hidden></div>' +
+        '    <div class="rm-count" id="rm-count"></div>' +
+        '    <ul class="rm-results" id="rm-results"></ul>' +
+        "  </div>" +
+        "</div>",
+    });
+
+    refs = {
+      sub: overlay.$("#rm-sub"),
+      meta: overlay.$("#rm-meta"),
+      select: overlay.$("#rm-select"),
+      search: overlay.$("#rm-search"),
+      hint: overlay.$("#rm-hint"),
+      count: overlay.$("#rm-count"),
+      results: overlay.$("#rm-results"),
+    };
+
+    overlay.$(".rm-fechar").addEventListener("click", overlay.fechar);
+
+    var debounceBusca = null;
+    refs.select.addEventListener("change", renderizarResultados);
+    refs.search.addEventListener("input", function () {
+      clearTimeout(debounceBusca);
+      debounceBusca = setTimeout(renderizarResultados, 200);
+    });
+
+    // navegacao por teclado: setas percorrem os resultados, Enter copia
+    // o item focado (ou o primeiro, se nenhum foi percorrido ainda).
+    refs.search.addEventListener("keydown", function (ev) {
+      if (ev.key === "ArrowDown") {
+        ev.preventDefault();
+        moverFocoResultado(1);
+      } else if (ev.key === "ArrowUp") {
+        ev.preventDefault();
+        moverFocoResultado(-1);
+      } else if (ev.key === "Enter") {
+        ev.preventDefault();
+        var alvo = itensRenderizados[indiceFocado] || itensRenderizados[0];
+        if (alvo) alvo.botaoCopiar.click();
+      }
+    });
+
+    reconstruirOpcoesMunicipio();
+  }
+
+  function reconstruirOpcoesMunicipio() {
+    if (!refs || !refs.select) return;
+    var valorAnterior = refs.select.value;
+    refs.select.innerHTML = "";
+    chavesMunicipios(REMUMES)
+      .sort(function (a, b) {
+        return a.localeCompare(b, "pt-BR");
+      })
+      .forEach(function (cidade) {
+        var opt = document.createElement("option");
+        opt.value = cidade;
+        opt.textContent = cidade;
+        refs.select.appendChild(opt);
+      });
+
+    if (valorAnterior && REMUMES[valorAnterior]) refs.select.value = valorAnterior;
+    else if (municipioDetectado && REMUMES[municipioDetectado]) refs.select.value = municipioDetectado;
+
+    atualizarExibicaoMeta();
+    if (overlay.estaAberto()) renderizarResultados();
+  }
+
+  function atualizarExibicaoMeta() {
+    if (!refs || !refs.meta) return;
+    var meta = REMUMES._meta;
+    if (meta && meta.atualizadoEm) {
+      refs.meta.hidden = false;
+      refs.meta.textContent = "Dados atualizados em " + meta.atualizadoEm;
+    } else {
+      refs.meta.hidden = true;
+      refs.meta.textContent = "";
+    }
+  }
+
+  function atualizarUIComMunicipio(municipio) {
+    if (!refs) return;
+    refs.sub.textContent = "Atendimento em: " + municipio;
+    // so muda a selecao automaticamente se o modal ainda nao foi mexido
+    if (!overlay.estaAberto()) refs.select.value = municipio;
+  }
+
+  function abrirModal() {
+    // reconfirma o municipio na hora de abrir; nao confia so no ultimo
+    // valor que a interceptacao de rede capturou (pode estar velho)
+    tentarAtualizarMunicipioViaDOM();
+    if (municipioDetectado && REMUMES[municipioDetectado]) refs.select.value = municipioDetectado;
+    overlay.abrir();
+    renderizarResultados();
+    setTimeout(function () {
+      refs.search.focus();
+    }, 50);
+  }
+
+  function renderizarResultados() {
+    if (!refs) return;
+    var cidade = refs.select.value;
+    var lista = REMUMES[cidade] || [];
+    var termo = refs.search.value.trim();
+    var termoNormalizado = normalizarTexto(termo);
+
+    var resultado = termoNormalizado
+      ? buscarMedicamentos(termo, cidade)
+      : { itens: lista.map(normalizarItemRemume), termoReconhecido: null };
+    var filtrados = resultado.itens;
+
+    refs.count.textContent = termo
+      ? filtrados.length + " de " + lista.length + " medicamento(s)"
+      : lista.length + " medicamento(s) na REMUME de " + cidade;
+
+    // dica de "termo reconhecido": so aparece quando a busca precisou
+    // corrigir o que foi digitado (fuzzy/fonetica), nunca em match direto
+    if (resultado.termoReconhecido) {
+      refs.hint.hidden = false;
+      refs.hint.textContent = 'Mostrando resultados para "' + resultado.termoReconhecido + '"';
+    } else {
+      refs.hint.hidden = true;
+      refs.hint.textContent = "";
+    }
+
+    refs.results.innerHTML = "";
+    itensRenderizados = [];
+    indiceFocado = -1;
+
+    if (filtrados.length === 0) {
+      var vazio = document.createElement("li");
+      vazio.className = "rm-vazio";
+      vazio.textContent = termo
+        ? 'Nenhum medicamento encontrado para "' + termo + '".'
+        : "Nenhum medicamento cadastrado para este municipio.";
+      refs.results.appendChild(vazio);
+      return;
+    }
+
+    var fragment = document.createDocumentFragment();
+    filtrados.slice(0, 300).forEach(function (par) {
+      var li = document.createElement("li");
+
+      var principal = document.createElement("div");
+      principal.className = "rm-item-main";
+
+      var textoSpan = document.createElement("span");
+      textoSpan.className = "rm-item-text";
+      textoSpan.innerHTML = destacarTrecho(par.nome, termo);
+      principal.appendChild(textoSpan);
+
+      // so sinaliza o local de acesso quando o municipio informa esse
+      // dado na fonte; sem o dado nao ha nada a indicar
+      if (par.local) {
+        var localSpan = document.createElement("span");
+        localSpan.className = "rm-local";
+        localSpan.title = "Local de acesso informado pelo municipio";
+        localSpan.textContent = "\u{1F4CD} " + par.local;
+        principal.appendChild(localSpan);
+      }
+      li.appendChild(principal);
+
+      var botaoCopiar = document.createElement("button");
+      botaoCopiar.type = "button";
+      botaoCopiar.className = "rm-copiar";
+      botaoCopiar.title = "Copiar nome do medicamento";
+      botaoCopiar.textContent = "\u{1F4CB}";
+      // copia SO o nome (sem o sufixo de local): o local e sinal visual
+      // pro medico, nao faz parte do que ele cola na prescricao
+      botaoCopiar.addEventListener("click", function () {
+        copiarParaAreaDeTransferencia(par.nome, botaoCopiar);
+      });
+      li.appendChild(botaoCopiar);
+
+      itensRenderizados.push({ li: li, botaoCopiar: botaoCopiar });
+      fragment.appendChild(li);
+    });
+    refs.results.appendChild(fragment);
+  }
+
+  /* ----------------------------------------------------------------
+   * CONTRATO DE MODULO
+   * ---------------------------------------------------------------- */
+  raiz.MeedsSuite.registerModule({
+    id: "remume",
+    nome: "Assistente REMUME",
+    descricao:
+      "Consulta a relacao municipal de medicamentos do municipio do atendimento, com busca tolerante a erro de digitacao e a nome comercial.",
+    versao: "2.0.1",
+    configPadrao: {},
+
+    botao: {
+      icone: "\u{1F48A}",
+      variante: "icone",
+      titulo: "Consultar REMUME",
+      prioridade: 50,
+    },
+
+    assinaturasRede: [{ regex: /\/api\/v1\/Atendimento\/[^/?]+(?:[?#].*)?$/i, metodos: ["GET"] }],
+
+    aoCargaRede: function (evt) {
+      if (evt.status !== 200) return;
+      var json = evt.json();
+      if (json) processarRespostaAtendimento(json);
+    },
+
+    start: function (deps) {
+      d = deps;
+      montarUI();
+      deps.aoClicarBotao(abrirModal);
+      atualizarRemumesRemoto();
+      tentarAtualizarMunicipioViaDOM();
+      timers.push(setInterval(tentarAtualizarMunicipioViaDOM, 1500));
+    },
+
+    stop: function () {
+      timers.forEach(clearInterval);
+      timers = [];
+      if (overlay) {
+        overlay.remover();
+        overlay = null;
+      }
+      refs = null;
+      itensRenderizados = [];
+      indiceFocado = -1;
+      atendimentoAtual = null;
+      municipioDetectado = null;
+      d = null;
+    },
+  });
+
+  void atendimentoAtual; // guardado so em memoria, para depuracao no console
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+  /* 3) A UI so pode ser montada com <body> disponivel. */
+  function subir() {
+    try {
+      raiz.MeedsSuite.iniciar({
+        manifesto: raiz.__MEEDS_SUITE_MANIFESTO__ || null,
+      });
+    } catch (e) {
+      console.error("[Meeds Suite] falha ao iniciar o nucleo:", e);
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", subir);
+  } else {
+    subir();
+  }
+})();
