@@ -1,3 +1,9 @@
 node_modules/
 .DS_Store
 *.log
+
+# arquivos de cadastro reais nunca entram no repositorio (dado pessoal)
+dados/medicos.json
+dados/medicos.*.json
+!dados/medicos.exemplo.json
+assistente-meeds-medicos.json

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Meeds Suite — Novetech (instalacao unica)
 // @namespace    novetech-meeds-suite
-// @version      2.0.1
+// @version      2.1.0
 // @description  Pacote unificado das ferramentas Meeds: alarme de fila, APAC Itauna, LME Sete Lagoas, laudo CMD e assistente REMUME. Uma instalacao so; cada funcao liga/desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
 // @author       Novetech
 // @match        *://*.meeds.com.br/*
@@ -1189,63 +1189,449 @@
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
 
-/* ===== core/manager.js ===== */
+/* ===== core/cadastro.js ===== */
 /* ------------------------------------------------------------------
- * core/manager.js — painel de gerenciamento de modulos (engrenagem)
+ * core/cadastro.js — cadastro de medicos (dado pessoal, fora do codigo)
  * ------------------------------------------------------------------
- * O botao de engrenagem SEMPRE aparece (com prioridade 0, ou seja, no
- * pe da pilha), mesmo que todos os modulos estejam desativados — senao
- * o medico que desligar tudo perde o caminho de volta.
+ * POR QUE ESTE ARQUIVO EXISTE
+ * Ate a v2.0.1, nome/CRM/CPF de 6 medicos ficavam escritos dentro de
+ * modules/lme-sete-lagoas/index.js e modules/cmd/index.js, e nome/CNS de
+ * 3 medicos em modules/apac-itauna/index.js. Com o repositorio publico,
+ * isso e dado pessoal exposto. Agora o cadastro vive SO no navegador do
+ * proprio medico.
  *
- * Ligar/desligar aqui chama definirHabilitado() no nucleo, que faz
- * start()/stop() na hora. NAO existe "recarregue a pagina para valer" —
- * o requisito e explicito no contrato de modulo, e e o que torna
- * plausivel o cenario "plantonista de Itauna liga so o alarme e a APAC".
+ * TRES DECISOES QUE IMPORTAM PARA A MANUTENCAO
+ *
+ * 1. CADASTRO UNICO, NAO UM POR MODULO.
+ *    Antes, APAC tinha a sua lista (nome+CNS) e LME/CMD tinham outra
+ *    (nome+CRM+CPF). O medico teria que se cadastrar duas vezes. Aqui e
+ *    UMA ficha por medico, com todos os campos; cada modulo usa o que
+ *    precisa. Cadastra uma vez, funciona nos tres geradores.
+ *
+ * 2. CHAVE FIXA E IMUTAVEL: "medicos".
+ *    Nunca troque essa string. Se a estrutura do registro mudar, faca
+ *    MIGRACAO (le o formato antigo, grava o novo, apaga o antigo) — e o
+ *    que migrarSeNecessario() faz. Trocar a chave faria o medico perder
+ *    o cadastro numa atualizacao, que e exatamente o que nao pode
+ *    acontecer.
+ *
+ * 3. ATUALIZAR O SCRIPT NAO APAGA O CADASTRO.
+ *    GM_setValue guarda o dado no armazenamento do Tampermonkey, que e
+ *    independente da versao do userscript e sobrevive a atualizacao
+ *    automatica, a limpeza de cache e a limpeza de cookies do site.
+ *    (localStorage NAO daria essa garantia: "limpar dados do site"
+ *    apagaria tudo.) Por isso o cadastro usa GM_setValue e as
+ *    preferencias corriqueiras continuam em localStorage.
  * ------------------------------------------------------------------ */
 (function (raiz) {
   "use strict";
 
+  /* NUNCA TROQUE ESTA CHAVE. Ver decisao 2 acima. */
+  var CHAVE = "medicos";
+
+  /* Chaves de formatos anteriores, lidas uma vez e apagadas depois de
+   * migradas. Nao remova daqui sem ter certeza de que nenhum medico
+   * ficou para tras numa versao antiga. */
+  var CHAVES_ANTIGAS = ["apac_medicos_v1"];
+
+  var VERSAO_ESTRUTURA = 1;
+
+  function temGM() {
+    return typeof GM_getValue === "function" && typeof GM_setValue === "function";
+  }
+
+  function lerBruto(chave, padrao) {
+    try {
+      if (temGM()) {
+        var v = GM_getValue(chave, undefined);
+        return v === undefined ? padrao : v;
+      }
+    } catch (e) {
+      /* cai para o localStorage */
+    }
+    try {
+      var cru = localStorage.getItem("meeds-suite:" + chave);
+      return cru === null ? padrao : JSON.parse(cru);
+    } catch (e) {
+      return padrao;
+    }
+  }
+
+  function gravarBruto(chave, valor) {
+    try {
+      if (temGM()) {
+        GM_setValue(chave, valor);
+        return true;
+      }
+    } catch (e) {
+      /* cai para o localStorage */
+    }
+    try {
+      localStorage.setItem("meeds-suite:" + chave, JSON.stringify(valor));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function apagarBruto(chave) {
+    try {
+      if (typeof GM_deleteValue === "function") GM_deleteValue(chave);
+      else if (temGM()) GM_setValue(chave, undefined);
+    } catch (e) {
+      /* silencioso */
+    }
+    try {
+      localStorage.removeItem("meeds-suite:" + chave);
+    } catch (e) {
+      /* silencioso */
+    }
+  }
+
+  /* --- normalizacao de uma ficha ---
+   * Aceita o formato novo (objeto) e os dois formatos antigos de par
+   * ([nome, cns] do APAC e [nome, crm, cpf] do LME/CMD). */
+  function normalizarFicha(item) {
+    if (!item) return null;
+
+    if (Array.isArray(item)) {
+      // [nome, cns] (APAC) — CNS tem 15 digitos; CRM nao
+      if (item.length === 2) {
+        return { nome: String(item[0] || "").trim(), crm: "", cpf: "", cns: String(item[1] || "").trim() };
+      }
+      // [nome, crm, cpf] (LME/CMD)
+      return {
+        nome: String(item[0] || "").trim(),
+        crm: String(item[1] || "").trim(),
+        cpf: String(item[2] || "").trim(),
+        cns: "",
+      };
+    }
+
+    if (typeof item === "object") {
+      return {
+        nome: String(item.nome || "").trim(),
+        crm: String(item.crm || "").trim(),
+        cpf: String(item.cpf || "").trim(),
+        cns: String(item.cns || "").trim(),
+      };
+    }
+    return null;
+  }
+
+  function chaveDeIdentidade(ficha) {
+    return String(ficha.nome || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+  }
+
+  /* Mescla duas fichas do mesmo medico sem perder campo preenchido: um
+   * cadastro vindo do APAC (so CNS) somado a um vindo do LME (CRM+CPF)
+   * vira uma ficha completa. */
+  function mesclarFichas(a, b) {
+    return {
+      nome: a.nome || b.nome,
+      crm: a.crm || b.crm,
+      cpf: a.cpf || b.cpf,
+      cns: a.cns || b.cns,
+    };
+  }
+
+  function listar() {
+    var guardado = lerBruto(CHAVE, null);
+    if (!guardado) return [];
+    var lista = Array.isArray(guardado) ? guardado : guardado.medicos;
+    if (!Array.isArray(lista)) return [];
+    return lista.map(normalizarFicha).filter(function (f) {
+      return f && f.nome;
+    });
+  }
+
+  function gravar(lista) {
+    return gravarBruto(CHAVE, { versao: VERSAO_ESTRUTURA, medicos: lista });
+  }
+
+  function adicionar(ficha) {
+    var nova = normalizarFicha(ficha);
+    if (!nova || !nova.nome) return { ok: false, erro: "Informe pelo menos o nome do médico." };
+    var lista = listar();
+    var id = chaveDeIdentidade(nova);
+    var existente = -1;
+    for (var i = 0; i < lista.length; i++) {
+      if (chaveDeIdentidade(lista[i]) === id) existente = i;
+    }
+    if (existente >= 0) lista[existente] = mesclarFichas(nova, lista[existente]);
+    else lista.push(nova);
+    gravar(lista);
+    return { ok: true, atualizou: existente >= 0 };
+  }
+
+  function remover(indice) {
+    var lista = listar();
+    if (indice < 0 || indice >= lista.length) return false;
+    lista.splice(indice, 1);
+    gravar(lista);
+    return true;
+  }
+
+  function estaVazio() {
+    return listar().length === 0;
+  }
+
+  /* --- MIGRACAO ---
+   * Roda uma vez, no start do nucleo. Le os formatos antigos, mescla no
+   * formato novo e apaga o antigo. Idempotente: rodar de novo nao
+   * duplica nada, porque adicionar() mescla por nome. */
+  function migrarSeNecessario() {
+    var migrados = 0;
+    CHAVES_ANTIGAS.forEach(function (chaveAntiga) {
+      var antigo = lerBruto(chaveAntiga, undefined);
+      if (!Array.isArray(antigo) || antigo.length === 0) return;
+      antigo.forEach(function (item) {
+        var f = normalizarFicha(item);
+        if (f && f.nome) {
+          adicionar(f);
+          migrados++;
+        }
+      });
+      apagarBruto(chaveAntiga);
+    });
+    if (migrados > 0) {
+      console.debug("[Assistente Meeds] cadastro migrado do formato antigo:", migrados, "medico(s).");
+    }
+    return migrados;
+  }
+
+  /* --- BACKUP / RESTAURACAO ---
+   * Cobre troca de computador ou de navegador, e tambem serve para o
+   * administrador preparar UM arquivo com a equipe inteira e distribuir:
+   * cada medico importa e ja fica com a lista pronta, sem que nenhum CPF
+   * precise entrar no codigo. */
+  function exportar() {
+    return JSON.stringify(
+      {
+        _formato: "assistente-meeds/cadastro-medicos",
+        _versao: VERSAO_ESTRUTURA,
+        _exportadoEm: new Date().toISOString().slice(0, 10),
+        medicos: listar(),
+      },
+      null,
+      2
+    );
+  }
+
+  function importar(textoJson) {
+    var dados;
+    try {
+      dados = JSON.parse(textoJson);
+    } catch (e) {
+      return { ok: false, erro: "O arquivo não é um backup válido: não consegui ler o conteúdo dele." };
+    }
+    var lista = Array.isArray(dados) ? dados : dados && dados.medicos;
+    if (!Array.isArray(lista)) {
+      return {
+        ok: false,
+        erro: 'O arquivo não parece um backup do Assistente Meeds: não encontrei a lista "medicos" dentro dele.',
+      };
+    }
+    var validos = lista.map(normalizarFicha).filter(function (f) {
+      return f && f.nome;
+    });
+    if (validos.length === 0) {
+      return { ok: false, erro: "O backup foi lido, mas não tem nenhum médico com nome preenchido." };
+    }
+    // acrescenta ao que ja existe, mesclando por nome — restaurar um
+    // backup nunca apaga um cadastro que ja estava ali
+    validos.forEach(adicionar);
+    return { ok: true, quantidade: validos.length };
+  }
+
+
+  /* ------------------------------------------------------------------
+   * montarSelect(elemento, opcoes) — o <select> de medico dos laudos
+   * ------------------------------------------------------------------
+   * Fica aqui, e nao em cada modulo, para que um sexto gerador de laudo
+   * ganhe o mesmo comportamento de graca. Os modulos so dizem onde e o
+   * que fazer quando o medico e escolhido.
+   *
+   * MENOS CLIQUES: se houver exatamente UM medico cadastrado neste
+   * navegador, ele ja vem selecionado — o caso comum e o medico usar o
+   * proprio computador. Com dois ou mais, NAO escolhemos nenhum: seria
+   * adivinhar de quem e a assinatura do laudo, e assinatura errada e um
+   * erro caro. E a mesma filosofia do resto do sistema (nao decidir sob
+   * ambiguidade).
+   *
+   * opcoes = {
+   *   aoEscolher(ficha | null),   // ficha escolhida, ou null ao limpar
+   *   aoPedirCadastro(),          // abrir o painel de cadastro
+   * }
+   * ------------------------------------------------------------------ */
+  var VALOR_CADASTRAR = "__cadastrar";
+
+  function montarSelect(elemento, opcoes) {
+    opcoes = opcoes || {};
+
+    function atualizar() {
+      var lista = listar();
+      var anterior = elemento.value;
+      elemento.innerHTML = "";
+
+      var ph = document.createElement("option");
+      ph.value = "";
+      ph.textContent = lista.length ? "Selecione o médico…" : "Nenhum médico cadastrado ainda";
+      ph.disabled = true;
+      ph.selected = true;
+      elemento.appendChild(ph);
+
+      lista.forEach(function (ficha, i) {
+        var op = document.createElement("option");
+        op.value = String(i);
+        op.textContent = ficha.nome;
+        elemento.appendChild(op);
+      });
+
+      var cadastrar = document.createElement("option");
+      cadastrar.value = VALOR_CADASTRAR;
+      cadastrar.textContent = lista.length ? "＋ Cadastrar outro médico…" : "＋ Cadastrar médico…";
+      elemento.appendChild(cadastrar);
+
+      // um so cadastrado: ja seleciona (ver comentario acima)
+      if (lista.length === 1) {
+        elemento.value = "0";
+        if (typeof opcoes.aoEscolher === "function") opcoes.aoEscolher(lista[0]);
+      } else if (anterior && anterior !== VALOR_CADASTRAR && lista[Number(anterior)]) {
+        elemento.value = anterior;
+      }
+    }
+
+    elemento.addEventListener("change", function () {
+      if (elemento.value === VALOR_CADASTRAR) {
+        elemento.value = "";
+        if (typeof opcoes.aoPedirCadastro === "function") opcoes.aoPedirCadastro();
+        if (typeof opcoes.aoEscolher === "function") opcoes.aoEscolher(null);
+        return;
+      }
+      var ficha = listar()[Number(elemento.value)];
+      if (typeof opcoes.aoEscolher === "function") opcoes.aoEscolher(ficha || null);
+    });
+
+    atualizar();
+
+    return {
+      atualizar: atualizar,
+      limpar: function () {
+        elemento.value = "";
+        if (typeof opcoes.aoEscolher === "function") opcoes.aoEscolher(null);
+      },
+      escolhido: function () {
+        return listar()[Number(elemento.value)] || null;
+      },
+    };
+  }
+
+  raiz.MeedsSuiteCadastro = {
+    CHAVE: CHAVE,
+    listar: listar,
+    adicionar: adicionar,
+    remover: remover,
+    estaVazio: estaVazio,
+    migrarSeNecessario: migrarSeNecessario,
+    exportar: exportar,
+    importar: importar,
+    normalizarFicha: normalizarFicha,
+    montarSelect: montarSelect,
+    usandoArmazenamentoDoTampermonkey: temGM,
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== core/manager.js ===== */
+/* ------------------------------------------------------------------
+ * core/manager.js — painel da engrenagem
+ * ------------------------------------------------------------------
+ * Tres secoes, nesta ordem de importancia para o dia a dia:
+ *
+ *   1. FUNCOES   — liga/desliga cada modulo. Vale na hora, sem recarregar.
+ *   2. MEDICOS   — cadastro unico, usado pelos tres geradores de laudo,
+ *                  com backup e restauracao.
+ *   3. SOBRE     — versao e credito.
+ *
+ * O botao da engrenagem tem prioridade 0 (pe da pilha) e aparece SEMPRE,
+ * inclusive com todos os modulos desligados — senao quem desliga tudo
+ * perde o caminho de volta.
+ *
+ * POR QUE O CADASTRO DE MEDICOS MORA AQUI, E NAO DENTRO DE CADA LAUDO
+ * Antes, o APAC tinha o proprio painel "Gerenciar medicos" e LME/CMD nem
+ * tinham (a lista estava escrita no codigo). Se cada modulo tivesse o seu,
+ * o medico se cadastraria tres vezes e um sexto modulo teria que
+ * reimplementar tudo de novo. Aqui e um lugar so: os modulos apenas
+ * mostram a lista num <select> e um atalho para ca.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  var Cadastro = raiz.MeedsSuiteCadastro;
+
   var ESTILO = [
-    ".msm-modal {",
-    "  background: #fff; border-radius: 16px; width: 100%; max-width: 460px;",
-    "  max-height: 86vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.35);",
-    "}",
-    ".msm-head {",
-    "  background: linear-gradient(135deg, #123a7a, #1a56ad); color: #fff;",
-    "  padding: 16px 18px; display: flex; justify-content: space-between;",
-    "  align-items: center; position: sticky; top: 0; z-index: 2;",
-    "}",
-    ".msm-head h2 { margin: 0; font-size: 15px; font-weight: 700; }",
-    ".msm-head .msm-sub { margin: 2px 0 0; font-size: 11px; opacity: .85; font-weight: 400; }",
-    ".msm-fechar { background: rgba(255,255,255,.2); border: none; color: #fff; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 14px; }",
-    ".msm-fechar:hover { background: rgba(255,255,255,.34); }",
-    ".msm-body { padding: 14px 18px 18px; }",
-    ".msm-intro { font-size: 11.5px; color: #5b6672; line-height: 1.5; margin: 0 0 14px; }",
-    ".msm-item {",
-    "  display: flex; align-items: flex-start; gap: 12px; padding: 11px 0;",
-    "  border-bottom: 1px solid #eef2f6;",
-    "}",
-    ".msm-item:last-child { border-bottom: none; }",
-    ".msm-item-txt { flex: 1; min-width: 0; }",
-    ".msm-item-nome { font-size: 13px; font-weight: 700; color: #16221f; }",
-    ".msm-item-desc { font-size: 11.5px; color: #5b6672; line-height: 1.45; margin-top: 2px; }",
-    ".msm-item-ver { font-size: 10px; color: #9aa5b1; font-family: monospace; margin-top: 3px; }",
-    /* interruptor liga/desliga */
-    ".msm-switch { position: relative; width: 44px; height: 25px; flex-shrink: 0; cursor: pointer; }",
-    ".msm-switch input { opacity: 0; width: 0; height: 0; }",
-    ".msm-slider {",
-    "  position: absolute; inset: 0; background: #cbd5e1; border-radius: 999px;",
-    "  transition: background .18s ease;",
-    "}",
-    ".msm-slider::before {",
-    "  content: ''; position: absolute; height: 19px; width: 19px; left: 3px; top: 3px;",
-    "  background: #fff; border-radius: 50%; transition: transform .18s ease;",
-    "  box-shadow: 0 1px 3px rgba(0,0,0,.3);",
-    "}",
-    ".msm-switch input:checked + .msm-slider { background: #12958a; }",
-    ".msm-switch input:checked + .msm-slider::before { transform: translateX(19px); }",
-    ".msm-vazio { font-size: 12px; color: #8a97a4; font-style: italic; padding: 10px 0; }",
-    ".msm-rodape { font-size: 10.5px; color: #9aa5b1; margin-top: 14px; line-height: 1.5; border-top: 1px solid #eef2f6; padding-top: 10px; }",
+    ".msm-modal { background:#fff; border-radius:16px; width:100%; max-width:520px; max-height:86vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.35); }",
+    ".msm-head { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 18px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2; }",
+    ".msm-head h2 { margin:0; font-size:15px; font-weight:700; }",
+    ".msm-head .msm-sub { margin:2px 0 0; font-size:11px; opacity:.85; font-weight:400; }",
+    ".msm-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; }",
+    ".msm-fechar:hover { background:rgba(255,255,255,.34); }",
+    ".msm-body { padding:6px 18px 18px; }",
+
+    ".msm-secao { padding:14px 0; border-bottom:1px solid #eef2f6; }",
+    ".msm-secao:last-child { border-bottom:none; }",
+    ".msm-secao > h3 { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 4px; }",
+    ".msm-secao > .msm-ajuda { font-size:11.5px; color:#5b6672; line-height:1.5; margin:0 0 12px; }",
+
+    ".msm-item { display:flex; align-items:flex-start; gap:12px; padding:11px 0; border-bottom:1px solid #f3f6f9; }",
+    ".msm-item:last-child { border-bottom:none; }",
+    ".msm-item-txt { flex:1; min-width:0; }",
+    ".msm-item-nome { font-size:13px; font-weight:700; color:#16221f; }",
+    ".msm-item-desc { font-size:11.5px; color:#5b6672; line-height:1.45; margin-top:2px; }",
+    ".msm-item-ver { font-size:10px; color:#9aa5b1; font-family:ui-monospace,Menlo,monospace; margin-top:3px; }",
+
+    ".msm-switch { position:relative; width:44px; height:25px; flex-shrink:0; cursor:pointer; }",
+    ".msm-switch input { opacity:0; width:0; height:0; }",
+    ".msm-slider { position:absolute; inset:0; background:#cbd5e1; border-radius:999px; transition:background .18s ease; }",
+    ".msm-slider::before { content:''; position:absolute; height:19px; width:19px; left:3px; top:3px; background:#fff; border-radius:50%; transition:transform .18s ease; box-shadow:0 1px 3px rgba(0,0,0,.3); }",
+    ".msm-switch input:checked + .msm-slider { background:#12958a; }",
+    ".msm-switch input:checked + .msm-slider::before { transform:translateX(19px); }",
+
+    ".msm-aviso { background:#fff4e2; border:1px solid #f5d9ac; color:#8a5200; font-size:11.5px; line-height:1.55; padding:10px 12px; border-radius:9px; margin:10px 0; }",
+    ".msm-aviso strong { display:block; margin-bottom:3px; }",
+    ".msm-ok { background:#e6f6f2; border:1px solid #b6e3d8; color:#0b6a62; font-size:11.5px; padding:9px 12px; border-radius:9px; margin:10px 0; }",
+    ".msm-erro { background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; line-height:1.5; padding:9px 12px; border-radius:9px; margin:10px 0; }",
+
+    ".msm-med { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f3f6f9; font-size:12.5px; }",
+    ".msm-med:last-of-type { border-bottom:none; }",
+    ".msm-med-dados { flex:1; min-width:0; }",
+    ".msm-med-nome { font-weight:700; color:#16221f; }",
+    ".msm-med-doc { font-size:10.5px; color:#8a97a4; font-family:ui-monospace,Menlo,monospace; margin-top:2px; }",
+    ".msm-med-remover { background:none; border:none; color:#a12626; cursor:pointer; font-size:11px; flex-shrink:0; }",
+    ".msm-med-remover:hover { text-decoration:underline; }",
+    ".msm-vazio { font-size:12px; color:#8a97a4; font-style:italic; padding:8px 0; }",
+
+    ".msm-form { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }",
+    ".msm-form label { display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:3px; }",
+    ".msm-form input { width:100%; box-sizing:border-box; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; }",
+    ".msm-form .msm-largo { grid-column:1 / -1; }",
+    ".msm-dica-campo { font-size:10.5px; color:#9aa5b1; margin-top:3px; }",
+
+    ".msm-botoes { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }",
+    ".msm-btn { background:#1a4fa0; color:#fff; border:none; border-radius:8px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }",
+    ".msm-btn:hover { background:#123a7a; }",
+    ".msm-btn-sec { background:#fff; color:#123a7a; border:1.4px solid #1a56ad; }",
+    ".msm-btn-sec:hover { background:#e8f0f8; }",
+
+    ".msm-sobre { font-size:11.5px; color:#5b6672; line-height:1.6; }",
+    ".msm-credito { font-weight:700; color:#123a7a; }",
+    ".msm-rodape { font-size:10.5px; color:#9aa5b1; line-height:1.5; margin-top:6px; }",
   ].join("\n");
 
   var overlay = null;
@@ -1266,17 +1652,51 @@
         '<div class="msm-modal" role="dialog" aria-modal="true" aria-labelledby="msm-title">' +
         '  <div class="msm-head">' +
         "    <div>" +
-        '      <h2 id="msm-title">Meeds Suite</h2>' +
-        '      <p class="msm-sub">Nucleo ' +
-        escapeHtml(ctx.versaoNucleo) +
-        " &middot; ative so o que voce usa</p>" +
+        '      <h2 id="msm-title">Assistente Meeds</h2>' +
+        '      <p class="msm-sub">Ative apenas as funções que você usa</p>' +
         "    </div>" +
         '    <button type="button" class="msm-fechar" aria-label="Fechar">&#10005;</button>' +
         "  </div>" +
         '  <div class="msm-body">' +
-        '    <p class="msm-intro">Cada funcao e um modulo independente. Desligar um modulo tira o botao dele da tela na hora — nao precisa recarregar a pagina nem reinstalar nada.</p>' +
-        '    <div id="msm-lista"></div>' +
-        '    <div class="msm-rodape">As preferencias ficam salvas so neste navegador. Nenhum dado de paciente e gravado em disco nem enviado para fora.</div>' +
+
+        '    <div class="msm-secao">' +
+        "      <h3>Funções</h3>" +
+        '      <p class="msm-ajuda">Desligar uma função tira o botão dela da tela na hora. Você pode ligar de novo quando quiser — nada é desinstalado.</p>' +
+        '      <div id="msm-lista"></div>' +
+        "    </div>" +
+
+        '    <div class="msm-secao" id="msm-secao-medicos">' +
+        "      <h3>Médicos</h3>" +
+        '      <p class="msm-ajuda">Cadastre uma única vez. Seus dados ficam salvos com segurança neste navegador e são usados pelos geradores de laudo (APAC, Sete Lagoas e Conceição do Mato Dentro).</p>' +
+        '      <div id="msm-medicos-mensagem"></div>' +
+        '      <div id="msm-medicos-lista"></div>' +
+        '      <div class="msm-form">' +
+        '        <div class="msm-largo"><label for="msm-med-nome">Nome completo</label>' +
+        '          <input id="msm-med-nome" placeholder="como deve aparecer no laudo" autocomplete="off"></div>' +
+        '        <div><label for="msm-med-crm">CRM</label>' +
+        '          <input id="msm-med-crm" placeholder="ex: 110540/MG" autocomplete="off"></div>' +
+        '        <div><label for="msm-med-cpf">CPF</label>' +
+        '          <input id="msm-med-cpf" placeholder="000.000.000-00" autocomplete="off"></div>' +
+        '        <div class="msm-largo"><label for="msm-med-cns">CNS (Cartão Nacional de Saúde)</label>' +
+        '          <input id="msm-med-cns" placeholder="15 dígitos — usado só pela APAC de Itaúna" autocomplete="off">' +
+        '          <div class="msm-dica-campo">CRM e CPF são usados nos laudos de Sete Lagoas e Conceição do Mato Dentro. O CNS é usado na APAC de Itaúna. Preencha o que você usa — dá para completar depois.</div></div>' +
+        "      </div>" +
+        '      <div class="msm-botoes">' +
+        '        <button type="button" class="msm-btn" id="msm-med-add">Salvar médico</button>' +
+        '        <button type="button" class="msm-btn msm-btn-sec" id="msm-backup">Fazer backup</button>' +
+        '        <button type="button" class="msm-btn msm-btn-sec" id="msm-restaurar">Restaurar backup</button>' +
+        '        <input type="file" id="msm-arquivo" accept="application/json,.json" hidden>' +
+        "      </div>" +
+        '      <p class="msm-rodape">O backup gera um arquivo <code>.json</code> com os médicos cadastrados. Use para trocar de computador ou de navegador — ou peça o arquivo pronto ao administrador e clique em “Restaurar backup”.</p>' +
+        "    </div>" +
+
+        '    <div class="msm-secao">' +
+        "      <h3>Sobre</h3>" +
+        '      <p class="msm-sobre"><span class="msm-credito">Assistente Meeds — Por: Marcelo</span><br>' +
+        '        Versão <span id="msm-versao"></span></p>' +
+        '      <p class="msm-rodape">As preferências ficam salvas apenas neste navegador. Nenhum dado de paciente é gravado em disco nem enviado para fora.</p>' +
+        "    </div>" +
+
         "  </div>" +
         "</div>",
     });
@@ -1284,28 +1704,57 @@
     overlay.$(".msm-fechar").addEventListener("click", function () {
       overlay.fechar();
     });
+    overlay.$("#msm-versao").textContent = ctx.versaoNucleo;
+
+    overlay.$("#msm-med-add").addEventListener("click", salvarMedico);
+    overlay.$("#msm-backup").addEventListener("click", fazerBackup);
+    overlay.$("#msm-restaurar").addEventListener("click", function () {
+      overlay.$("#msm-arquivo").click();
+    });
+    overlay.$("#msm-arquivo").addEventListener("change", restaurarBackup);
+
+    // Enter em qualquer campo do formulario salva — um clique a menos
+    ["#msm-med-nome", "#msm-med-crm", "#msm-med-cpf", "#msm-med-cns"].forEach(function (sel) {
+      overlay.$(sel).addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          salvarMedico();
+        }
+      });
+    });
 
     ctx.dock.registrarBotao({
       id: "_manager",
       icone: "⚙️",
       variante: "engrenagem",
-      titulo: "Gerenciar modulos da Meeds Suite",
-      prioridade: 0, // sempre no pe da pilha
-      aoClicar: abrir,
+      titulo: "Assistente Meeds — funções, médicos e ajustes",
+      prioridade: 0,
+      aoClicar: function () {
+        abrir();
+      },
     });
   }
 
-  function abrir() {
-    renderizar();
+  function abrir(secao) {
+    renderizarModulos();
+    renderizarMedicos();
+    mostrarMensagemMedicos(null);
     overlay.abrir();
+    if (secao === "medicos") {
+      overlay.$("#msm-secao-medicos").scrollIntoView({ behavior: "smooth", block: "start" });
+      setTimeout(function () {
+        overlay.$("#msm-med-nome").focus();
+      }, 250);
+    }
   }
 
-  function renderizar() {
+  /* ---------------- funcoes (modulos) ---------------- */
+  function renderizarModulos() {
     var lista = overlay.$("#msm-lista");
     var modulos = ctx.listarModulos();
 
     if (!modulos.length) {
-      lista.innerHTML = '<div class="msm-vazio">Nenhum modulo carregado neste pacote.</div>';
+      lista.innerHTML = '<div class="msm-vazio">Nenhuma função carregada neste pacote.</div>';
       return;
     }
 
@@ -1314,24 +1763,12 @@
         return (
           '<div class="msm-item">' +
           '  <div class="msm-item-txt">' +
-          '    <div class="msm-item-nome">' +
-          escapeHtml(m.nome) +
-          "</div>" +
-          '    <div class="msm-item-desc">' +
-          escapeHtml(m.descricao) +
-          "</div>" +
-          '    <div class="msm-item-ver">v' +
-          escapeHtml(m.versao) +
-          " &middot; " +
-          escapeHtml(m.id) +
-          "</div>" +
+          '    <div class="msm-item-nome">' + escapeHtml(m.nome) + "</div>" +
+          '    <div class="msm-item-desc">' + escapeHtml(m.descricao) + "</div>" +
+          '    <div class="msm-item-ver">v' + escapeHtml(m.versao) + " · " + escapeHtml(m.id) + "</div>" +
           "  </div>" +
           '  <label class="msm-switch">' +
-          '    <input type="checkbox" data-id="' +
-          escapeHtml(m.id) +
-          '" ' +
-          (m.habilitado ? "checked" : "") +
-          " />" +
+          '    <input type="checkbox" data-id="' + escapeHtml(m.id) + '" ' + (m.habilitado ? "checked" : "") + " />" +
           '    <span class="msm-slider"></span>' +
           "  </label>" +
           "</div>"
@@ -1341,18 +1778,173 @@
 
     overlay.$$('input[type="checkbox"][data-id]').forEach(function (input) {
       input.addEventListener("change", function () {
-        var id = input.getAttribute("data-id");
-        ctx.definirHabilitado(id, input.checked);
-        // reflete o estado real (se o start() falhou, o modulo nao subiu)
-        renderizar();
+        ctx.definirHabilitado(input.getAttribute("data-id"), input.checked);
+        renderizarModulos(); // reflete o estado real (se o start falhou, nao subiu)
       });
     });
   }
 
+  /* ---------------- medicos ---------------- */
+  function mostrarMensagemMedicos(texto, tipo) {
+    var caixa = overlay.$("#msm-medicos-mensagem");
+    if (!texto) {
+      caixa.innerHTML = "";
+      return;
+    }
+    caixa.innerHTML = '<div class="msm-' + (tipo || "ok") + '">' + escapeHtml(texto) + "</div>";
+  }
+
+  function renderizarMedicos() {
+    var lista = Cadastro.listar();
+    var box = overlay.$("#msm-medicos-lista");
+
+    if (!lista.length) {
+      box.innerHTML =
+        '<div class="msm-aviso"><strong>Cadastre seu nome e CRM uma única vez</strong>' +
+        "Por segurança, os dados dos médicos não ficam mais no código do programa. " +
+        "Preencha abaixo — leva menos de um minuto e você não precisa repetir.</div>";
+      return;
+    }
+
+    box.innerHTML = lista
+      .map(function (m, i) {
+        var docs = [];
+        if (m.crm) docs.push("CRM " + m.crm);
+        if (m.cpf) docs.push("CPF " + m.cpf);
+        if (m.cns) docs.push("CNS " + m.cns);
+        return (
+          '<div class="msm-med">' +
+          '  <div class="msm-med-dados">' +
+          '    <div class="msm-med-nome">' + escapeHtml(m.nome) + "</div>" +
+          '    <div class="msm-med-doc">' + escapeHtml(docs.join("  ·  ") || "sem documento cadastrado") + "</div>" +
+          "  </div>" +
+          '  <button type="button" class="msm-med-remover" data-i="' + i + '">remover</button>' +
+          "</div>"
+        );
+      })
+      .join("");
+
+    box.querySelectorAll(".msm-med-remover").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var i = Number(btn.getAttribute("data-i"));
+        var nome = Cadastro.listar()[i];
+        Cadastro.remover(i);
+        renderizarMedicos();
+        mostrarMensagemMedicos((nome ? nome.nome : "Médico") + " foi removido do cadastro.", "ok");
+        avisarModulos();
+      });
+    });
+  }
+
+  function salvarMedico() {
+    var nome = overlay.$("#msm-med-nome").value.trim();
+    if (!nome) {
+      mostrarMensagemMedicos(
+        "Não consegui salvar porque o nome está vazio. Preencha o campo “Nome completo” — é o único obrigatório.",
+        "erro"
+      );
+      overlay.$("#msm-med-nome").focus();
+      return;
+    }
+
+    var cns = overlay.$("#msm-med-cns").value.replace(/\D/g, "");
+    if (cns && cns.length !== 15) {
+      mostrarMensagemMedicos(
+        "Não consegui salvar porque o CNS tem " + cns.length + " dígito(s) e o Cartão Nacional de Saúde tem 15. " +
+          "Confira o número, ou deixe o campo em branco se você não usa a APAC de Itaúna.",
+        "erro"
+      );
+      overlay.$("#msm-med-cns").focus();
+      return;
+    }
+
+    var r = Cadastro.adicionar({
+      nome: nome,
+      crm: overlay.$("#msm-med-crm").value.trim(),
+      cpf: overlay.$("#msm-med-cpf").value.trim(),
+      cns: cns,
+    });
+    if (!r.ok) {
+      mostrarMensagemMedicos(r.erro, "erro");
+      return;
+    }
+
+    ["#msm-med-nome", "#msm-med-crm", "#msm-med-cpf", "#msm-med-cns"].forEach(function (s) {
+      overlay.$(s).value = "";
+    });
+    renderizarMedicos();
+    mostrarMensagemMedicos(
+      r.atualizou ? nome + " já estava cadastrado — atualizei os dados dele." : nome + " foi cadastrado com sucesso.",
+      "ok"
+    );
+    overlay.$("#msm-med-nome").focus();
+    avisarModulos();
+  }
+
+  /* Os modulos de laudo mostram a lista num <select>; quando o cadastro
+   * muda, eles precisam se redesenhar. O nucleo repassa o aviso. */
+  function avisarModulos() {
+    if (typeof ctx.aoMudarCadastro === "function") ctx.aoMudarCadastro();
+  }
+
+  function fazerBackup() {
+    var lista = Cadastro.listar();
+    if (!lista.length) {
+      mostrarMensagemMedicos(
+        "Não há o que salvar: nenhum médico cadastrado ainda. Cadastre pelo menos um e tente de novo.",
+        "erro"
+      );
+      return;
+    }
+    var blob = new Blob([Cadastro.exportar()], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "assistente-meeds-medicos.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () {
+      URL.revokeObjectURL(url);
+    }, 4000);
+    mostrarMensagemMedicos(
+      "Backup salvo como assistente-meeds-medicos.json (" + lista.length + " médico(s)). Guarde o arquivo em lugar seguro.",
+      "ok"
+    );
+  }
+
+  function restaurarBackup(ev) {
+    var arquivo = ev.target.files && ev.target.files[0];
+    ev.target.value = ""; // permite escolher o mesmo arquivo de novo
+    if (!arquivo) return;
+
+    var leitor = new FileReader();
+    leitor.onload = function () {
+      var r = Cadastro.importar(String(leitor.result));
+      if (!r.ok) {
+        mostrarMensagemMedicos(r.erro, "erro");
+        return;
+      }
+      renderizarMedicos();
+      mostrarMensagemMedicos(
+        "Backup restaurado: " + r.quantidade + " médico(s) adicionados. Quem já estava cadastrado foi mantido.",
+        "ok"
+      );
+      avisarModulos();
+    };
+    leitor.onerror = function () {
+      mostrarMensagemMedicos(
+        "Não consegui ler o arquivo “" + arquivo.name + "”. Verifique se ele não está corrompido e tente de novo.",
+        "erro"
+      );
+    };
+    leitor.readAsText(arquivo);
+  }
+
   raiz.MeedsSuiteManager = {
     montar: montar,
-    abrir: function () {
-      if (overlay) abrir();
+    abrir: function (secao) {
+      if (overlay) abrir(secao);
     },
   };
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
@@ -1360,7 +1952,7 @@
 
 /* ===== core/core.user.js ===== */
 /* ------------------------------------------------------------------
- * core/core.user.js — nucleo compartilhado da Meeds Suite
+ * core/core.user.js — nucleo compartilhado do Assistente Meeds
  * ------------------------------------------------------------------
  * Expoe window.MeedsSuite, o unico ponto de contato entre o nucleo e os
  * modulos. Um modulo NAO conhece o Tampermonkey, nao toca em fetch/XHR,
@@ -1389,8 +1981,10 @@
   var Dom = raiz.MeedsSuiteDom;
   var Decisao = raiz.MeedsSuiteDecisao;
   var Storage = raiz.MeedsSuiteStorage;
+  var Cadastro = raiz.MeedsSuiteCadastro;
 
   var registro = [];          // definicoes na ordem de registro
+  var ouvintesCadastro = [];  // modulos que redesenham a lista de medicos
   var porId = {};             // id -> { def, estado }
   var iniciado = false;
   var storageNucleo = null;
@@ -1453,7 +2047,7 @@
         .then(function (dados) {
           if (!dados) return false;
           if (!validarSeletores(dados)) {
-            console.warn("[Meeds Suite] seletores remotos com formato inesperado, mantendo fallback embutido.");
+            console.warn("[Assistente Meeds] seletores remotos com formato inesperado, mantendo fallback embutido.");
             return false;
           }
           // mescla por GRUPO, nao substitui o objeto inteiro: um arquivo
@@ -1466,7 +2060,7 @@
           return true;
         })
         .catch(function (e) {
-          console.warn("[Meeds Suite] nao foi possivel buscar seletores remotos, usando fallback.", e);
+          console.warn("[Assistente Meeds] nao foi possivel buscar seletores remotos, usando fallback.", e);
           return false;
         });
     } catch (e) {
@@ -1486,11 +2080,11 @@
    * ------------------------------------------------------------------ */
   function registerModule(def) {
     if (!def || !def.id) {
-      console.warn("[Meeds Suite] registerModule chamado sem id, ignorando.");
+      console.warn("[Assistente Meeds] registerModule chamado sem id, ignorando.");
       return;
     }
     if (porId[def.id]) {
-      console.warn("[Meeds Suite] modulo duplicado ignorado:", def.id);
+      console.warn("[Assistente Meeds] modulo duplicado ignorado:", def.id);
       return;
     }
     var entrada = {
@@ -1581,7 +2175,7 @@
               try {
                 def.aoCargaRede(evt);
               } catch (e) {
-                console.warn("[Meeds Suite] aoCargaRede falhou em", def.id, e);
+                console.warn("[Assistente Meeds] aoCargaRede falhou em", def.id, e);
               }
             }
           }
@@ -1617,14 +2211,25 @@
         aoClicarBotao: function (fn) {
           entrada.aoClicarBotao = fn;
         },
+        /* Cadastro de medicos: unico e compartilhado. O modulo so LE a
+         * lista e manda abrir o painel; quem edita e o nucleo. */
+        cadastro: Cadastro,
+        abrirCadastro: function () {
+          raiz.MeedsSuiteManager.abrir("medicos");
+        },
+        /* Chamado sempre que o cadastro muda, para o modulo redesenhar o
+         * <select> de medicos sem o usuario precisar reabrir o modal. */
+        aoMudarCadastro: function (fn) {
+          ouvintesCadastro.push({ idModulo: def.id, fn: fn });
+        },
       };
       entrada.deps = deps;
 
       if (typeof def.start === "function") def.start(deps);
       entrada.rodando = true;
-      console.debug("[Meeds Suite] modulo iniciado:", def.id, def.versao);
+      console.debug("[Assistente Meeds] modulo iniciado:", def.id, def.versao);
     } catch (e) {
-      console.error("[Meeds Suite] falha ao iniciar modulo", def.id, e);
+      console.error("[Assistente Meeds] falha ao iniciar modulo", def.id, e);
       // Um modulo que explode no start nao pode derrubar os outros:
       // desfazemos o que ja foi criado e seguimos.
       pararModulo(entrada, true);
@@ -1636,7 +2241,7 @@
     try {
       if (entrada.rodando && typeof def.stop === "function") def.stop();
     } catch (e) {
-      console.warn("[Meeds Suite] stop() falhou em", def.id, e);
+      console.warn("[Assistente Meeds] stop() falhou em", def.id, e);
     }
     entrada.cancelamentosRede.forEach(function (cancelar) {
       try {
@@ -1647,6 +2252,9 @@
     });
     entrada.cancelamentosRede = [];
     Net.cancelarPorModulo(def.id);
+    ouvintesCadastro = ouvintesCadastro.filter(function (o) {
+      return o.idModulo !== def.id;
+    });
     if (entrada.botaoHandle) {
       try {
         entrada.botaoHandle.remover();
@@ -1657,7 +2265,7 @@
     }
     entrada.aoClicarBotao = null;
     entrada.rodando = false;
-    if (!silencioso) console.debug("[Meeds Suite] modulo parado:", def.id);
+    if (!silencioso) console.debug("[Assistente Meeds] modulo parado:", def.id);
   }
 
   /* ------------------------------------------------------------------
@@ -1686,6 +2294,10 @@
     Dock.garantirHost();
 
     // engrenagem: SEMPRE presente, mesmo com todos os modulos desligados
+    /* MIGRACAO DO CADASTRO — roda antes de qualquer modulo subir, para
+     * que o primeiro <select> de medicos ja apareca preenchido. */
+    Cadastro.migrarSeNecessario();
+
     raiz.MeedsSuiteManager.montar({
       dock: Dock,
       listarModulos: listarModulos,
@@ -1693,6 +2305,15 @@
       definirHabilitado: definirHabilitado,
       versaoNucleo: VERSAO_NUCLEO,
       manifesto: manifesto,
+      aoMudarCadastro: function () {
+        ouvintesCadastro.forEach(function (o) {
+          try {
+            o.fn();
+          } catch (e) {
+            console.warn("[Assistente Meeds] ouvinte de cadastro falhou em", o.idModulo, e);
+          }
+        });
+      },
     });
 
     registro.forEach(function (entrada) {
@@ -1705,7 +2326,7 @@
     atualizarSeletoresRemoto(opcoes.urlSeletores);
 
     iniciado = true;
-    console.debug("[Meeds Suite] nucleo " + VERSAO_NUCLEO + " iniciado com " + registro.length + " modulo(s).");
+    console.debug("[Assistente Meeds] nucleo " + VERSAO_NUCLEO + " iniciado com " + registro.length + " modulo(s).");
   }
 
   var API = {
@@ -1720,6 +2341,10 @@
     },
     seletor: obterSeletor,
     atualizarSeletoresRemoto: atualizarSeletoresRemoto,
+    cadastro: Cadastro,
+    abrirCadastro: function () {
+      raiz.MeedsSuiteManager.abrir("medicos");
+    },
     dom: Dom,
     decisao: Decisao,
     auth: Auth,
@@ -1734,7 +2359,7 @@
 
 
   var __inv = {
-  "versao": "2.0.1",
+  "versao": "2.1.0",
   "modulos": [
     {
       "id": "alarme-fila",
@@ -1747,21 +2372,21 @@
       "id": "apac-itauna",
       "nome": "APAC - Itauna",
       "descricao": "Gera o laudo de APAC de Itauna em PDF e encaminha para assinatura gov.br.",
-      "versao": "2.0.0",
+      "versao": "2.1.0",
       "origem": "sodelfino/apac-itauna-meeds"
     },
     {
       "id": "lme-sete-lagoas",
       "nome": "Laudo - Sete Lagoas",
       "descricao": "Preenche o LME oficial de Sete Lagoas por cima do PDF da prefeitura.",
-      "versao": "2.0.0",
+      "versao": "2.1.0",
       "origem": "sodelfino/lme-sete-lagoas-gerador"
     },
     {
       "id": "cmd",
       "nome": "Laudo - Conceicao do Mato Dentro",
       "descricao": "Preenche o laudo de alto custo de CMD pelos campos reais do formulario PDF.",
-      "versao": "2.0.0",
+      "versao": "2.1.0",
       "origem": "sodelfino/laudo-cmd-meeds"
     },
     {
@@ -2455,7 +3080,7 @@
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
 
-/* ===== modules/apac-itauna/index.js (v2.0.0) ===== */
+/* ===== modules/apac-itauna/index.js (v2.1.0) ===== */
 /* ------------------------------------------------------------------
  * modules/apac-itauna/index.js
  * Origem: sodelfino/apac-itauna-meeds -> APAC_GERADOR_FINAL.user.js v1.9.0
@@ -2467,7 +3092,7 @@
  *    do nucleo agora.
  *  - PRESERVADO byte a byte: a funcao gerarPdfInterno() inteira, com
  *    TODAS as coordenadas do formulario da APAC, e as tabelas de dados
- *    (CATALOGO, ECO_VARIANTES, TERRITORIOS, CID_DIC, MEDICOS_PADRAO).
+ *    (CATALOGO, ECO_VARIANTES, TERRITORIOS, CID_DIC).
  *    Essas coordenadas foram calibradas na mao contra o formulario
  *    oficial; reescrever qualquer uma seria arriscar o layout do laudo.
  *  - PRESERVADO em comportamento: captura passiva da API + polling de
@@ -2475,12 +3100,10 @@
  *    local, validacao de campos e as duas saidas (assinar via gov.br /
  *    baixar sem assinar).
  *
- * DADOS DOS MEDICOS: MEDICOS_PADRAO abaixo mantem os mesmos CNS que
- * estavam no repositorio de origem. Continuam sendo apenas o
- * PRE-CADASTRO: na primeira execucao sao copiados para o armazenamento
- * local do Tampermonkey (GM_setValue) e a partir dai o medico edita ou
- * remove pelo painel "Gerenciar medicos" — a escolha dele e respeitada e
- * nunca mais sobrescrita.
+ * DADOS DOS MEDICOS: sairam do codigo na v2.1.0. O cadastro agora vive
+ * so no navegador do medico (core/cadastro.js) e e compartilhado com os
+ * laudos de Sete Lagoas e CMD. Quem ja usava a versao anterior tem os
+ * seus medicos migrados automaticamente da chave "apac_medicos_v1".
  * ------------------------------------------------------------------ */
 (function (raiz) {
   "use strict";
@@ -2572,7 +3195,9 @@
    * original: e por instalacao, nao sai do navegador e nao entra no
    * codigo publicado. Cai para o storage do nucleo se o grant faltar.
    * ---------------------------------------------------------------- */
-  var CHAVE_MEDICOS = "apac_medicos_v1";
+  /* O historico continua no armazenamento do Tampermonkey (por
+   * instalacao, nao sai do navegador). O cadastro de medicos saiu daqui
+   * e virou o cadastro unico do nucleo. */
   var CHAVE_HISTORICO = "apac_historico_v1";
 
   function lerGuardado(chave, padrao) {
@@ -2588,19 +3213,6 @@
     d.storage.gravar(chave, valor);
   }
 
-  function carregarMedicos() {
-    try {
-      var salvo = lerGuardado(CHAVE_MEDICOS, undefined);
-      if (salvo === undefined) {
-        gravarGuardado(CHAVE_MEDICOS, MEDICOS_PADRAO.slice());
-        return MEDICOS_PADRAO.slice();
-      }
-      return salvo;
-    } catch (e) {
-      return MEDICOS_PADRAO.slice();
-    }
-  }
-  function salvarMedicos(lista) { gravarGuardado(CHAVE_MEDICOS, lista); }
   function carregarHistorico() { return lerGuardado(CHAVE_HISTORICO, []) || []; }
   function registrarHistorico(entrada) {
     var lista = carregarHistorico();
@@ -2803,21 +3415,11 @@
     "Z95.5":"Presença de implante e enxerto de angioplastia coronária"
   };
 
-  /* PRE-CADASTRO de medicos (nome, CNS). Copiado para o armazenamento
-   * local do Tampermonkey na primeira execucao; depois disso o medico
-   * gerencia a lista pelo painel e esta escolha NAO e mais sobrescrita.
-   * Mantidos exatamente como estavam em apac-itauna-meeds. */
-
-  const MEDICOS_PADRAO = [
-    ['NEMER MARTINS TARRAF', '702604785248241'],
-    ['KARLA PEREIRA RESENDE', '704604186091724'],
-    ['ANA BEATRIZ JUNQUEIRA DE CASTRO', '709809077179292'],
-  ];
 
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
   var CSS = "#apac-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #apac-modal-head{\n      background:linear-gradient(135deg,#0e7a70,#17ab9e); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #apac-modal-head h2{ margin:0; font-size:15px; }\n    #apac-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #apac-body{ padding:18px 20px; }\n    .apac-sec{ margin-bottom:16px; }\n    .apac-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#0e7a70; margin:0 0 8px; }\n    .apac-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .apac-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6c68; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8e6e3; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:56px; resize:vertical; }\n    .apac-proc-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }\n    .apac-proc-btn{ border:1.4px solid #d8e6e3; border-radius:9px; padding:9px; cursor:pointer; }\n    .apac-proc-btn:hover{ border-color:#17ab9e; }\n    .apac-proc-btn.sel{ border-color:#12958a; background:#e3f5f3; }\n    .apac-proc-btn .t{ font-size:11.5px; font-weight:700; }\n    .apac-proc-btn .c{ font-size:9.5px; color:#0e7a70; font-family:monospace; }\n    #apac-territorio-wrap{ display:none; margin-top:8px; }\n    #apac-territorio-wrap.show{ display:block; }\n    #apac-eco-variante-wrap{ display:none; margin-top:8px; }\n    #apac-eco-variante-wrap.show{ display:block; }\n    #apac-outro-wrap{ display:none; margin-top:8px; }\n    #apac-outro-wrap.show{ display:block; }\n    #apac-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    #apac-sec-assinatura{ border:1.5px dashed #17ab9e; border-radius:12px; padding:14px; background:#f9fdfc; }\n    .apac-opcoes-assinatura{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }\n    button.apac-primary{ background:#12958a; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.apac-primary:hover{ background:#0b6a62; }\n    button.apac-primary:disabled{ background:#a0c9c4; cursor:not-allowed; }\n    button.apac-secondary{ background:#fff; color:#0e7a70; border:1.4px solid #17ab9e; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.apac-secondary:hover{ background:#e3f5f3; }\n    button.apac-tertiary{ background:#f0f4f3; color:#0e7a70; border:1px solid #d8e6e3; border-radius:9px; padding:9px 14px; font-size:12px; font-weight:700; cursor:pointer; }\n    button.apac-tertiary:hover{ background:#e3f5f3; }\n    #apac-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #apac-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }\n    .apac-info-box{ background:#e8f4f8; color:#0e7a70; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:10px; line-height:1.4; }";
 
-  var HTML = "<div id=\"apac-modal\">\n      <div id=\"apac-modal-head\"><h2>Gerador de APAC — Itaúna</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"apac-refresh-modal\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"apac-historico-abrir\" title=\"Últimas APACs geradas nesta máquina\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"apac-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"apac-body\">\n        <div id=\"apac-auto-aviso\"></div>\n\n        <div id=\"apac-historico-painel\" style=\"display:none;border:1px solid #d8e6e3;border-radius:9px;padding:10px;margin-bottom:12px;background:#f7fbfa;\">\n          <div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;\">\n            <strong style=\"font-size:11px;color:#0e7a70;text-transform:uppercase;\">Últimos gerados nesta máquina</strong>\n            <button id=\"apac-historico-limpar\" class=\"apac-tertiary\" style=\"padding:3px 8px;font-size:10.5px;\">Limpar</button>\n          </div>\n          <div id=\"apac-historico-lista\" style=\"font-size:11.5px;line-height:1.6;\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Estabelecimento</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome</label><input id=\"apac-estab-nome\" value=\"CENTRO DE ESPEC MEDICAS E ODONTO DR OVIDIO NOGUEIRA MACHADO\"></div>\n            <div><label>CNES</label><input id=\"apac-estab-cnes\" value=\"2105578\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Médico solicitante\n            <button id=\"apac-medicos-gerenciar\" class=\"apac-tertiary\" style=\"padding:3px 8px;font-size:10.5px;margin-left:6px;text-transform:none;letter-spacing:normal;\">⚙️ Gerenciar médicos</button>\n          </h3>\n          <div class=\"apac-grid3\">\n            <div><label>Selecionar *</label><select id=\"apac-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"apac-medico-nome\"></div>\n            <div><label>CNS *</label><input id=\"apac-medico-cns\"></div>\n          </div>\n          <div id=\"apac-medicos-painel\" style=\"display:none;margin-top:10px;border:1px solid #d8e6e3;border-radius:9px;padding:10px;background:#f7fbfa;\">\n            <div id=\"apac-medicos-lista\" style=\"margin-bottom:8px;font-size:12px;\"></div>\n            <div class=\"apac-grid3\">\n              <input id=\"apac-novo-medico-nome\" placeholder=\"Nome completo\">\n              <input id=\"apac-novo-medico-cns\" placeholder=\"CNS (15 dígitos)\">\n              <button id=\"apac-novo-medico-add\" class=\"apac-secondary\">+ Adicionar</button>\n            </div>\n            <div style=\"font-size:10.5px;color:#5b6c68;margin-top:6px;\">Fica salvo só neste navegador (Tampermonkey) — não é enviado a lugar nenhum nem entra no código do script.</div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Paciente</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome completo *</label><input id=\"apac-pac-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-pac-cpf\"></div>\n          </div>\n          <div class=\"apac-grid3\" style=\"margin-top:8px;\">\n            <div><label>Nascimento *</label><input type=\"date\" id=\"apac-pac-nasc\"></div>\n            <div><label>Sexo *</label><select id=\"apac-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"M\">Masculino</option><option value=\"F\">Feminino</option></select></div>\n            <div><label>Nome da mãe *</label><input id=\"apac-pac-mae\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Procedimento *</h3>\n          <div class=\"apac-proc-grid\" id=\"apac-proc-grid\"></div>\n          <div id=\"apac-territorio-wrap\">\n            <label>Território vascular (obrigatório para Doppler)</label>\n            <select id=\"apac-territorio-sel\"></select>\n          </div>\n          <div id=\"apac-eco-variante-wrap\">\n            <label>Variante do ecocardiograma</label>\n            <select id=\"apac-eco-variante-sel\">\n              <option value=\"REPOUSO\">Transtorácica de repouso (padrão)</option>\n              <option value=\"ESTRESSE\">Com estresse (farmacológico/Dobutamina)</option>\n              <option value=\"TRANSESOFAGICO\">Transesofágico</option>\n            </select>\n          </div>\n          <div id=\"apac-outro-wrap\">\n            <label>Código SIGTAP *</label>\n            <input id=\"apac-outro-codigo\" placeholder=\"ex: 02.11.02.001-0\" style=\"margin-bottom:8px;\">\n            <label>Nome do procedimento *</label>\n            <input id=\"apac-outro-nome\" placeholder=\"como deve aparecer no campo 19\">\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>CID-10 *</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Principal *</label><input id=\"apac-cid1\" list=\"apac-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Secundário</label><input id=\"apac-cid2\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n            <div><label>Associados</label><input id=\"apac-cid3\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Descrição (campo 36) *</label><input id=\"apac-cid-desc\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Texto do pedido (campo 40) *</h3>\n          <textarea id=\"apac-obs\"></textarea>\n        </div>\n\n        <!-- ETAPA 2 — Assinatura -->\n        <div class=\"apac-sec\" id=\"apac-sec-assinatura\" style=\"display:none;\">\n          <h3>Etapa 2 — Assinatura</h3>\n          <div class=\"apac-info-box\">\n            PDF gerado com sucesso. Escolha uma opção abaixo:\n          </div>\n\n          <div class=\"apac-opcoes-assinatura\">\n            <button id=\"apac-assinar-govbr\" class=\"apac-primary\">\n              🏛️ Assinar via gov.br<br><small style=\"font-weight:400;opacity:.9;\">Baixa PDF e abre o portal</small>\n            </button>\n            <button id=\"apac-baixar-sem\" class=\"apac-tertiary\">\n              💾 Baixar sem assinar<br><small style=\"font-weight:400;opacity:.8;\">PDF simples</small>\n            </button>\n          </div>\n        </div>\n\n        <div id=\"apac-erro\"></div>\n        <datalist id=\"apac-cid-list\"></datalist>\n      </div>\n      <div id=\"apac-footer\">\n        <button class=\"apac-secondary\" id=\"apac-limpar\">Limpar</button>\n        <button class=\"apac-primary\" id=\"apac-gerar\">Gerar PDF</button>\n      </div>\n    </div>";
+  var HTML = "<div id=\"apac-modal\">\n      <div id=\"apac-modal-head\"><h2>Gerador de APAC — Itaúna</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"apac-refresh-modal\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"apac-historico-abrir\" title=\"Últimas APACs geradas nesta máquina\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"apac-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"apac-body\">\n        <div id=\"apac-auto-aviso\"></div>\n\n        <div id=\"apac-historico-painel\" style=\"display:none;border:1px solid #d8e6e3;border-radius:9px;padding:10px;margin-bottom:12px;background:#f7fbfa;\">\n          <div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;\">\n            <strong style=\"font-size:11px;color:#0e7a70;text-transform:uppercase;\">Últimos gerados nesta máquina</strong>\n            <button id=\"apac-historico-limpar\" class=\"apac-tertiary\" style=\"padding:3px 8px;font-size:10.5px;\">Limpar</button>\n          </div>\n          <div id=\"apac-historico-lista\" style=\"font-size:11.5px;line-height:1.6;\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Estabelecimento</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome</label><input id=\"apac-estab-nome\" value=\"CENTRO DE ESPEC MEDICAS E ODONTO DR OVIDIO NOGUEIRA MACHADO\"></div>\n            <div><label>CNES</label><input id=\"apac-estab-cnes\" value=\"2105578\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Médico solicitante</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Selecionar *</label><select id=\"apac-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"apac-medico-nome\"></div>\n            <div><label>CNS *</label><input id=\"apac-medico-cns\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Paciente</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome completo *</label><input id=\"apac-pac-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-pac-cpf\"></div>\n          </div>\n          <div class=\"apac-grid3\" style=\"margin-top:8px;\">\n            <div><label>Nascimento *</label><input type=\"date\" id=\"apac-pac-nasc\"></div>\n            <div><label>Sexo *</label><select id=\"apac-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"M\">Masculino</option><option value=\"F\">Feminino</option></select></div>\n            <div><label>Nome da mãe *</label><input id=\"apac-pac-mae\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Procedimento *</h3>\n          <div class=\"apac-proc-grid\" id=\"apac-proc-grid\"></div>\n          <div id=\"apac-territorio-wrap\">\n            <label>Território vascular (obrigatório para Doppler)</label>\n            <select id=\"apac-territorio-sel\"></select>\n          </div>\n          <div id=\"apac-eco-variante-wrap\">\n            <label>Variante do ecocardiograma</label>\n            <select id=\"apac-eco-variante-sel\">\n              <option value=\"REPOUSO\">Transtorácica de repouso (padrão)</option>\n              <option value=\"ESTRESSE\">Com estresse (farmacológico/Dobutamina)</option>\n              <option value=\"TRANSESOFAGICO\">Transesofágico</option>\n            </select>\n          </div>\n          <div id=\"apac-outro-wrap\">\n            <label>Código SIGTAP *</label>\n            <input id=\"apac-outro-codigo\" placeholder=\"ex: 02.11.02.001-0\" style=\"margin-bottom:8px;\">\n            <label>Nome do procedimento *</label>\n            <input id=\"apac-outro-nome\" placeholder=\"como deve aparecer no campo 19\">\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>CID-10 *</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Principal *</label><input id=\"apac-cid1\" list=\"apac-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Secundário</label><input id=\"apac-cid2\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n            <div><label>Associados</label><input id=\"apac-cid3\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Descrição (campo 36) *</label><input id=\"apac-cid-desc\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Texto do pedido (campo 40) *</h3>\n          <textarea id=\"apac-obs\"></textarea>\n        </div>\n\n        <!-- ETAPA 2 — Assinatura -->\n        <div class=\"apac-sec\" id=\"apac-sec-assinatura\" style=\"display:none;\">\n          <h3>Etapa 2 — Assinatura</h3>\n          <div class=\"apac-info-box\">\n            PDF gerado com sucesso. Escolha uma opção abaixo:\n          </div>\n\n          <div class=\"apac-opcoes-assinatura\">\n            <button id=\"apac-assinar-govbr\" class=\"apac-primary\">\n              🏛️ Assinar via gov.br<br><small style=\"font-weight:400;opacity:.9;\">Baixa PDF e abre o portal</small>\n            </button>\n            <button id=\"apac-baixar-sem\" class=\"apac-tertiary\">\n              💾 Baixar sem assinar<br><small style=\"font-weight:400;opacity:.8;\">PDF simples</small>\n            </button>\n          </div>\n        </div>\n\n        <div id=\"apac-erro\"></div>\n        <datalist id=\"apac-cid-list\"></datalist>\n      </div>\n      <div id=\"apac-footer\">\n        <button class=\"apac-secondary\" id=\"apac-limpar\">Limpar</button>\n        <button class=\"apac-primary\" id=\"apac-gerar\">Gerar PDF</button>\n      </div>\n    </div>";
 
   /* ---- extraidas do original sem alteracao ---- */
 
@@ -2841,35 +3443,6 @@
     if(!v('apac-cid-desc')) faltam.push('descrição do diagnóstico');
     if(!v('apac-obs')) faltam.push('texto do pedido');
     return faltam;
-  }
-
-  function renderMedicosPainel() {
-    const lista = carregarMedicos();
-    const box = shadow.getElementById('apac-medicos-lista');
-    if (!lista.length) {
-      box.innerHTML = '<em style="color:#5b6c68;">Nenhum médico cadastrado ainda neste navegador. Adicione abaixo.</em>';
-      return;
-    }
-    box.innerHTML = lista.map(([nome, cns], i) =>
-      `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #e5efed;">
-        <span>${escapeHtml(titleCase(nome))} <span style="color:#5b6c68;font-family:monospace;font-size:10.5px;">(${escapeHtml(cns)})</span></span>
-        <button data-idx="${i}" class="apac-medico-remover" style="background:none;border:none;color:#a12626;cursor:pointer;font-size:11px;">remover</button>
-      </div>`
-    ).join('');
-    box.querySelectorAll('.apac-medico-remover').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const atual = carregarMedicos();
-        atual.splice(Number(btn.dataset.idx), 1);
-        salvarMedicos(atual);
-        renderMedicosPainel();
-        montarMedicos();
-        const sel = shadow.getElementById('apac-medico-sel');
-        if (!sel.value) {
-          shadow.getElementById('apac-medico-nome').value = '';
-          shadow.getElementById('apac-medico-cns').value = '';
-        }
-      });
-    });
   }
 
   function renderHistorico() {
@@ -3056,47 +3629,23 @@
   /* ----------------------------------------------------------------
    * UI — montagem, paineis e validacao
    * ---------------------------------------------------------------- */
+  /* O <select> e montado pelo nucleo (cadastro.montarSelect): ele cuida do
+   * "cadastrar medico" e ja seleciona sozinho quando ha um so medico
+   * cadastrado neste navegador. */
+  var seletorMedico = null;
+
+  function preencherMedico(ficha) {
+    shadow.getElementById("apac-medico-nome").value = ficha ? ficha.nome : "";
+    shadow.getElementById("apac-medico-cns").value = ficha ? ficha.cns : "";
+  }
+
   function montarMedicos() {
-    var sel = shadow.getElementById("apac-medico-sel");
-    var valorAtual = sel.value;
-    sel.innerHTML = "";
-    var ph = document.createElement("option");
-    ph.value = ""; ph.textContent = "Selecione o médico…"; ph.selected = true; ph.disabled = true;
-    sel.appendChild(ph);
-    carregarMedicos().forEach(function (par) {
-      var o = document.createElement("option");
-      o.value = par[0] + "|" + par[1];
-      o.textContent = titleCase(par[0]);
-      sel.appendChild(o);
+    seletorMedico = d.cadastro.montarSelect(shadow.getElementById("apac-medico-sel"), {
+      aoEscolher: preencherMedico,
+      aoPedirCadastro: function () {
+        d.abrirCadastro();
+      },
     });
-    var outro = document.createElement("option");
-    outro.value = "outro"; outro.textContent = "Outro médico…";
-    sel.appendChild(outro);
-    if (valorAtual && Array.prototype.some.call(sel.options, function (o) { return o.value === valorAtual; })) {
-      sel.value = valorAtual;
-    }
-  }
-
-  function alternarPainelMedicos() {
-    var p = shadow.getElementById("apac-medicos-painel");
-    var abrindo = p.style.display === "none";
-    p.style.display = abrindo ? "block" : "none";
-    if (abrindo) renderMedicosPainel();
-  }
-
-  function adicionarMedico() {
-    var nomeEl = shadow.getElementById("apac-novo-medico-nome");
-    var cnsEl = shadow.getElementById("apac-novo-medico-cns");
-    var nome = nomeEl.value.trim().toUpperCase();
-    var cns = cnsEl.value.replace(/\D/g, "");
-    if (!nome || cns.length !== 15) { toast("Informe nome e CNS com 15 dígitos.", 3500); return; }
-    var atual = carregarMedicos();
-    atual.push([nome, cns]);
-    salvarMedicos(atual);
-    nomeEl.value = ""; cnsEl.value = "";
-    renderMedicosPainel();
-    montarMedicos();
-    toast("Médico adicionado.", 2500);
   }
 
   function alternarPainelHistorico() {
@@ -3104,18 +3653,6 @@
     var abrindo = p.style.display === "none";
     p.style.display = abrindo ? "block" : "none";
     if (abrindo) renderHistorico();
-  }
-
-  function onMedicoChange() {
-    var sel = shadow.getElementById("apac-medico-sel");
-    if (sel.value === "" || sel.value === "outro") {
-      shadow.getElementById("apac-medico-nome").value = "";
-      shadow.getElementById("apac-medico-cns").value = "";
-      return;
-    }
-    var partes = sel.value.split("|");
-    shadow.getElementById("apac-medico-nome").value = partes[0];
-    shadow.getElementById("apac-medico-cns").value = partes[1];
   }
 
   function montarProcGrid() {
@@ -3183,11 +3720,11 @@
 
   function limparForm() {
     ["apac-pac-nome","apac-pac-cpf","apac-pac-mae","apac-cid1","apac-cid2","apac-cid3",
-     "apac-cid-desc","apac-obs","apac-medico-nome","apac-medico-cns","apac-outro-codigo","apac-outro-nome"
+     "apac-cid-desc","apac-obs","apac-outro-codigo","apac-outro-nome"
     ].forEach(function (id) { shadow.getElementById(id).value = ""; });
     shadow.getElementById("apac-pac-nasc").value = "";
     shadow.getElementById("apac-pac-sexo").value = "";
-    shadow.getElementById("apac-medico-sel").value = "";
+    if (seletorMedico) seletorMedico.atualizar();
     shadow.getElementById("apac-auto-aviso").style.display = "none";
     limparErro();
     procedimentoAtivo = null;
@@ -3200,6 +3737,9 @@
   }
 
   function abrirModal() {
+    // o cadastro pode ter mudado desde a ultima abertura (outro modal,
+    // outra aba, restauracao de backup)
+    if (seletorMedico) seletorMedico.atualizar();
     preencherDoCache();
     // reforco: ao abrir, tambem le a tela na hora — cobre o caso do cache
     // (API) estar vazio ou desatualizado quando o medico clica.
@@ -3253,11 +3793,8 @@
     shadow.getElementById("apac-gerar").addEventListener("click", gerarPdf);
     shadow.getElementById("apac-limpar").addEventListener("click", limparForm);
     shadow.getElementById("apac-cid1").addEventListener("input", autoDescricaoCid);
-    shadow.getElementById("apac-medico-sel").addEventListener("change", onMedicoChange);
     shadow.getElementById("apac-assinar-govbr").addEventListener("click", assinarGovBr);
     shadow.getElementById("apac-baixar-sem").addEventListener("click", baixarSemAssinar);
-    shadow.getElementById("apac-medicos-gerenciar").addEventListener("click", alternarPainelMedicos);
-    shadow.getElementById("apac-novo-medico-add").addEventListener("click", adicionarMedico);
     shadow.getElementById("apac-historico-abrir").addEventListener("click", alternarPainelHistorico);
     shadow.getElementById("apac-historico-limpar").addEventListener("click", function () {
       limparHistorico();
@@ -3302,6 +3839,14 @@
     start: function (deps) {
       d = deps;
       montarUI();
+
+      /* Quando o medico e cadastrado ou removido no painel da engrenagem,
+       * o <select> se redesenha sozinho — sem precisar fechar e reabrir
+       * este modal. */
+      deps.aoMudarCadastro(function () {
+        if (seletorMedico) seletorMedico.atualizar();
+      });
+
       deps.aoClicarBotao(abrirModal);
 
       // polling de URL: segunda camada, para o caso de a captura passiva
@@ -3348,7 +3893,7 @@
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
 
-/* ===== modules/lme-sete-lagoas/index.js (v2.0.0) ===== */
+/* ===== modules/lme-sete-lagoas/index.js (v2.1.0) ===== */
 /* ------------------------------------------------------------------
  * modules/lme-sete-lagoas/index.js
  * Origem: sodelfino/lme-sete-lagoas-gerador -> LME_SETE_LAGOAS_GERADOR.user.js v1.4.0
@@ -3496,17 +4041,12 @@
   // Municipio fixo: ja vem impresso no PDF oficial.
   var MUNICIPIO_FIXO = "SETE LAGOAS";
 
-  /* Lista de medicos solicitantes [nome, CRM, CPF], mantida exatamente
-   * como estava em sodelfino/lme-sete-lagoas-gerador. Nenhum vem pre-selecionado:
-   * a selecao e obrigatoria a cada laudo, para evitar assinatura errada. */
-  var MEDICOS = [
-    ['JEAN MILLER NERY DE LACERDA', '110540/MG', '061.411.666-01'],
-    ['WARLLON DE SOUZA BARCELLOS', '1359592 RJ', '120.566.827-61'],
-    ['GIZELLE FERNANDES DOS SANTOS', '0127071 RJ', '126.751.407-83'],
-    ['NATÁLIA JARDIM MARTINS DA SILVA', '18372 CE', '733.786.312-87'],
-    ['RAFAELLA LEAO OLIVEIRA SILVA', '91694 MG', '106.149.136-67'],
-    ['GUILHERME HENRIQUE OLIVEIRA BORGES', '30341-GO', '038.851.681-03'],
-  ];
+  /* Os medicos NAO ficam mais no codigo. Desde a v2.1.0 o cadastro vive
+   * so no navegador do proprio medico (core/cadastro.js, armazenamento do
+   * Tampermonkey), e e compartilhado pelos tres geradores de laudo: quem
+   * se cadastra uma vez aparece na APAC, em Sete Lagoas e em CMD.
+   * Motivo: com o repositorio publico, nome/CRM/CPF no fonte e dado
+   * pessoal exposto. Ver docs/ARQUITETURA.md, decisao D11. */
 
   var ORIGENS = ['SAÚDE AUDITIVA', 'UBS CIDADE DE DEUS', 'UBS BELO VALE'];
 
@@ -3773,36 +4313,29 @@
   /* ----------------------------------------------------------------
    * UI
    * ---------------------------------------------------------------- */
+  /* O <select> e montado pelo nucleo (cadastro.montarSelect), que tambem
+   * cuida do "cadastrar medico" e do auto-preenchimento quando ha um so
+   * medico cadastrado neste navegador. Aqui so dizemos o que fazer com a
+   * ficha escolhida. */
+  var seletorMedico = null;
+
+  function preencherMedico(ficha) {
+    shadow.getElementById("lme-medico-nome").value = ficha ? ficha.nome : "";
+    shadow.getElementById("lme-medico-crm").value = ficha ? ficha.crm : "";
+    shadow.getElementById("lme-medico-cpf").value = ficha ? ficha.cpf : "";
+  }
+
   function montarMedicos() {
-    var sel = shadow.getElementById("lme-medico-sel");
-    var ph = document.createElement("option");
-    ph.value = ""; ph.textContent = "Selecione…"; ph.selected = true; ph.disabled = true;
-    sel.appendChild(ph);
-    MEDICOS.forEach(function (m) {
-      var op = document.createElement("option");
-      op.value = m[0] + "|" + m[1];
-      op.textContent = m[0];
-      sel.appendChild(op);
+    seletorMedico = d.cadastro.montarSelect(shadow.getElementById("lme-medico-sel"), {
+      aoEscolher: preencherMedico,
+      aoPedirCadastro: function () {
+        d.abrirCadastro();
+      },
     });
-    var outro = document.createElement("option");
-    outro.value = "outro"; outro.textContent = "Outro médico…";
-    sel.appendChild(outro);
-    // Nao ha medico pre-selecionado: obrigatorio escolher a cada laudo.
   }
 
   function onMedicoChange() {
-    var sel = shadow.getElementById("lme-medico-sel");
-    if (sel.value === "" || sel.value === "outro") {
-      shadow.getElementById("lme-medico-nome").value = "";
-      shadow.getElementById("lme-medico-crm").value = "";
-      shadow.getElementById("lme-medico-cpf").value = "";
-      return;
-    }
-    var partes = sel.value.split("|");
-    var cadastro = MEDICOS.find(function (m) { return m[0] === partes[0] && m[1] === partes[1]; });
-    shadow.getElementById("lme-medico-nome").value = partes[0];
-    shadow.getElementById("lme-medico-crm").value = partes[1];
-    shadow.getElementById("lme-medico-cpf").value = cadastro ? cadastro[2] : "";
+    if (seletorMedico) seletorMedico.limpar();
   }
 
   function montarOrigens() {
@@ -3922,9 +4455,9 @@
     shadow.getElementById("lme-origem-sel").value = "";
     shadow.getElementById("lme-origem-outro-wrap").classList.remove("show");
     shadow.getElementById("lme-auto-aviso").style.display = "none";
-    // medico sempre volta vazio: selecao obrigatoria a cada laudo
-    shadow.getElementById("lme-medico-sel").value = "";
-    onMedicoChange();
+    // O medico volta ao estado inicial. Com um so cadastrado neste
+    // navegador, o helper o reseleciona sozinho — um clique a menos.
+    if (seletorMedico) seletorMedico.atualizar();
     limparErro();
   }
 
@@ -3935,7 +4468,6 @@
     shadow.getElementById("lme-gerar").addEventListener("click", gerarPdf);
     shadow.getElementById("lme-limpar").addEventListener("click", limparForm);
     shadow.getElementById("lme-proc-nome").addEventListener("input", autoPreencherCodigoProc);
-    shadow.getElementById("lme-medico-sel").addEventListener("change", onMedicoChange);
     shadow.getElementById("lme-cid").addEventListener("input", autoDescricaoCid);
     ativarMascaraData(shadow.getElementById("lme-pac-nasc"));
     montarOrigens(); montarProcList(); montarMedicos(); montarCidList();
@@ -3965,6 +4497,14 @@
     start: function (deps) {
       d = deps;
       montarUI();
+
+      /* Quando o medico e cadastrado ou removido no painel da engrenagem,
+       * o <select> se redesenha sozinho — sem precisar fechar e reabrir
+       * este modal. */
+      deps.aoMudarCadastro(function () {
+        if (seletorMedico) seletorMedico.atualizar();
+      });
+
       deps.aoClicarBotao(abrirModal);
     },
 
@@ -3993,7 +4533,7 @@
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
 
-/* ===== modules/cmd/index.js (v2.0.0) ===== */
+/* ===== modules/cmd/index.js (v2.1.0) ===== */
 /* ------------------------------------------------------------------
  * modules/cmd/index.js
  * Origem: sodelfino/laudo-cmd-meeds -> CMD_GERADOR.user.js v1.4.0
@@ -4144,17 +4684,12 @@
   // Ja vem fixo no PDF oficial (campo municipio_1) — nao e reescrito.
   var MUNICIPIO_FIXO = "CONCEIÇÃO DO MATO DENTRO";
 
-  /* Lista de medicos solicitantes [nome, CRM, CPF], mantida exatamente
-   * como estava em sodelfino/laudo-cmd-meeds. Nenhum vem pre-selecionado:
-   * a selecao e obrigatoria a cada laudo, para evitar assinatura errada. */
-  var MEDICOS = [
-    ['JEAN MILLER NERY DE LACERDA', '110540/MG', '061.411.666-01'],
-    ['WARLLON DE SOUZA BARCELLOS', '1359592 RJ', '120.566.827-61'],
-    ['GIZELLE FERNANDES DOS SANTOS', '0127071 RJ', '126.751.407-83'],
-    ['NATÁLIA JARDIM MARTINS DA SILVA', '18372 CE', '733.786.312-87'],
-    ['RAFAELLA LEAO OLIVEIRA SILVA', '91694 MG', '106.149.136-67'],
-    ['GUILHERME HENRIQUE OLIVEIRA BORGES', '30341-GO', '038.851.681-03'],
-  ];
+  /* Os medicos NAO ficam mais no codigo. Desde a v2.1.0 o cadastro vive
+   * so no navegador do proprio medico (core/cadastro.js, armazenamento do
+   * Tampermonkey), e e compartilhado pelos tres geradores de laudo: quem
+   * se cadastra uma vez aparece na APAC, em Sete Lagoas e em CMD.
+   * Motivo: com o repositorio publico, nome/CRM/CPF no fonte e dado
+   * pessoal exposto. Ver docs/ARQUITETURA.md, decisao D11. */
 
   var ORIGENS = ['CEMO DR SEBASTIAO SOARES DOS SANTOS'];
 
@@ -4476,36 +5011,29 @@
   /* ----------------------------------------------------------------
    * UI
    * ---------------------------------------------------------------- */
+  /* O <select> e montado pelo nucleo (cadastro.montarSelect), que tambem
+   * cuida do "cadastrar medico" e do auto-preenchimento quando ha um so
+   * medico cadastrado neste navegador. Aqui so dizemos o que fazer com a
+   * ficha escolhida. */
+  var seletorMedico = null;
+
+  function preencherMedico(ficha) {
+    shadow.getElementById("cmd-medico-nome").value = ficha ? ficha.nome : "";
+    shadow.getElementById("cmd-medico-crm").value = ficha ? ficha.crm : "";
+    shadow.getElementById("cmd-medico-cpf").value = ficha ? ficha.cpf : "";
+  }
+
   function montarMedicos() {
-    var sel = shadow.getElementById("cmd-medico-sel");
-    var ph = document.createElement("option");
-    ph.value = ""; ph.textContent = "Selecione…"; ph.selected = true; ph.disabled = true;
-    sel.appendChild(ph);
-    MEDICOS.forEach(function (m) {
-      var op = document.createElement("option");
-      op.value = m[0] + "|" + m[1];
-      op.textContent = m[0];
-      sel.appendChild(op);
+    seletorMedico = d.cadastro.montarSelect(shadow.getElementById("cmd-medico-sel"), {
+      aoEscolher: preencherMedico,
+      aoPedirCadastro: function () {
+        d.abrirCadastro();
+      },
     });
-    var outro = document.createElement("option");
-    outro.value = "outro"; outro.textContent = "Outro médico…";
-    sel.appendChild(outro);
-    // Nao ha medico pre-selecionado: obrigatorio escolher a cada laudo.
   }
 
   function onMedicoChange() {
-    var sel = shadow.getElementById("cmd-medico-sel");
-    if (sel.value === "" || sel.value === "outro") {
-      shadow.getElementById("cmd-medico-nome").value = "";
-      shadow.getElementById("cmd-medico-crm").value = "";
-      shadow.getElementById("cmd-medico-cpf").value = "";
-      return;
-    }
-    var partes = sel.value.split("|");
-    var cadastro = MEDICOS.find(function (m) { return m[0] === partes[0] && m[1] === partes[1]; });
-    shadow.getElementById("cmd-medico-nome").value = partes[0];
-    shadow.getElementById("cmd-medico-crm").value = partes[1];
-    shadow.getElementById("cmd-medico-cpf").value = cadastro ? cadastro[2] : "";
+    if (seletorMedico) seletorMedico.limpar();
   }
 
   function montarOrigens() {
@@ -4629,9 +5157,9 @@
     shadow.getElementById("cmd-origem-outro-wrap").classList.remove("show");
     shadow.getElementById("cmd-auto-aviso").style.display = "none";
     atualizarContadorJustificativa();
-    // medico sempre volta vazio: selecao obrigatoria a cada laudo
-    shadow.getElementById("cmd-medico-sel").value = "";
-    onMedicoChange();
+    // O medico volta ao estado inicial. Com um so cadastrado neste
+    // navegador, o helper o reseleciona sozinho — um clique a menos.
+    if (seletorMedico) seletorMedico.atualizar();
     limparErro();
   }
 
@@ -4642,7 +5170,6 @@
     shadow.getElementById("cmd-gerar").addEventListener("click", gerarPdf);
     shadow.getElementById("cmd-limpar").addEventListener("click", limparForm);
     shadow.getElementById("cmd-proc-nome").addEventListener("input", autoPreencherCodigoProc);
-    shadow.getElementById("cmd-medico-sel").addEventListener("change", onMedicoChange);
     shadow.getElementById("cmd-cid").addEventListener("input", autoDescricaoCid);
     shadow.getElementById("cmd-justificativa").addEventListener("input", atualizarContadorJustificativa);
     ativarMascaraData(shadow.getElementById("cmd-pac-nasc"));
@@ -4673,6 +5200,14 @@
     start: function (deps) {
       d = deps;
       montarUI();
+
+      /* Quando o medico e cadastrado ou removido no painel da engrenagem,
+       * o <select> se redesenha sozinho — sem precisar fechar e reabrir
+       * este modal. */
+      deps.aoMudarCadastro(function () {
+        if (seletorMedico) seletorMedico.atualizar();
+      });
+
       deps.aoClicarBotao(abrirModal);
     },
 

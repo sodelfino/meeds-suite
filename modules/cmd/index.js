@@ -148,17 +148,12 @@
   // Ja vem fixo no PDF oficial (campo municipio_1) — nao e reescrito.
   var MUNICIPIO_FIXO = "CONCEIÇÃO DO MATO DENTRO";
 
-  /* Lista de medicos solicitantes [nome, CRM, CPF], mantida exatamente
-   * como estava em sodelfino/laudo-cmd-meeds. Nenhum vem pre-selecionado:
-   * a selecao e obrigatoria a cada laudo, para evitar assinatura errada. */
-  var MEDICOS = [
-    ['JEAN MILLER NERY DE LACERDA', '110540/MG', '061.411.666-01'],
-    ['WARLLON DE SOUZA BARCELLOS', '1359592 RJ', '120.566.827-61'],
-    ['GIZELLE FERNANDES DOS SANTOS', '0127071 RJ', '126.751.407-83'],
-    ['NATÁLIA JARDIM MARTINS DA SILVA', '18372 CE', '733.786.312-87'],
-    ['RAFAELLA LEAO OLIVEIRA SILVA', '91694 MG', '106.149.136-67'],
-    ['GUILHERME HENRIQUE OLIVEIRA BORGES', '30341-GO', '038.851.681-03'],
-  ];
+  /* Os medicos NAO ficam mais no codigo. Desde a v2.1.0 o cadastro vive
+   * so no navegador do proprio medico (core/cadastro.js, armazenamento do
+   * Tampermonkey), e e compartilhado pelos tres geradores de laudo: quem
+   * se cadastra uma vez aparece na APAC, em Sete Lagoas e em CMD.
+   * Motivo: com o repositorio publico, nome/CRM/CPF no fonte e dado
+   * pessoal exposto. Ver docs/ARQUITETURA.md, decisao D11. */
 
   var ORIGENS = ['CEMO DR SEBASTIAO SOARES DOS SANTOS'];
 
@@ -480,36 +475,29 @@
   /* ----------------------------------------------------------------
    * UI
    * ---------------------------------------------------------------- */
+  /* O <select> e montado pelo nucleo (cadastro.montarSelect), que tambem
+   * cuida do "cadastrar medico" e do auto-preenchimento quando ha um so
+   * medico cadastrado neste navegador. Aqui so dizemos o que fazer com a
+   * ficha escolhida. */
+  var seletorMedico = null;
+
+  function preencherMedico(ficha) {
+    shadow.getElementById("cmd-medico-nome").value = ficha ? ficha.nome : "";
+    shadow.getElementById("cmd-medico-crm").value = ficha ? ficha.crm : "";
+    shadow.getElementById("cmd-medico-cpf").value = ficha ? ficha.cpf : "";
+  }
+
   function montarMedicos() {
-    var sel = shadow.getElementById("cmd-medico-sel");
-    var ph = document.createElement("option");
-    ph.value = ""; ph.textContent = "Selecione…"; ph.selected = true; ph.disabled = true;
-    sel.appendChild(ph);
-    MEDICOS.forEach(function (m) {
-      var op = document.createElement("option");
-      op.value = m[0] + "|" + m[1];
-      op.textContent = m[0];
-      sel.appendChild(op);
+    seletorMedico = d.cadastro.montarSelect(shadow.getElementById("cmd-medico-sel"), {
+      aoEscolher: preencherMedico,
+      aoPedirCadastro: function () {
+        d.abrirCadastro();
+      },
     });
-    var outro = document.createElement("option");
-    outro.value = "outro"; outro.textContent = "Outro médico…";
-    sel.appendChild(outro);
-    // Nao ha medico pre-selecionado: obrigatorio escolher a cada laudo.
   }
 
   function onMedicoChange() {
-    var sel = shadow.getElementById("cmd-medico-sel");
-    if (sel.value === "" || sel.value === "outro") {
-      shadow.getElementById("cmd-medico-nome").value = "";
-      shadow.getElementById("cmd-medico-crm").value = "";
-      shadow.getElementById("cmd-medico-cpf").value = "";
-      return;
-    }
-    var partes = sel.value.split("|");
-    var cadastro = MEDICOS.find(function (m) { return m[0] === partes[0] && m[1] === partes[1]; });
-    shadow.getElementById("cmd-medico-nome").value = partes[0];
-    shadow.getElementById("cmd-medico-crm").value = partes[1];
-    shadow.getElementById("cmd-medico-cpf").value = cadastro ? cadastro[2] : "";
+    if (seletorMedico) seletorMedico.limpar();
   }
 
   function montarOrigens() {
@@ -633,9 +621,9 @@
     shadow.getElementById("cmd-origem-outro-wrap").classList.remove("show");
     shadow.getElementById("cmd-auto-aviso").style.display = "none";
     atualizarContadorJustificativa();
-    // medico sempre volta vazio: selecao obrigatoria a cada laudo
-    shadow.getElementById("cmd-medico-sel").value = "";
-    onMedicoChange();
+    // O medico volta ao estado inicial. Com um so cadastrado neste
+    // navegador, o helper o reseleciona sozinho — um clique a menos.
+    if (seletorMedico) seletorMedico.atualizar();
     limparErro();
   }
 
@@ -646,7 +634,6 @@
     shadow.getElementById("cmd-gerar").addEventListener("click", gerarPdf);
     shadow.getElementById("cmd-limpar").addEventListener("click", limparForm);
     shadow.getElementById("cmd-proc-nome").addEventListener("input", autoPreencherCodigoProc);
-    shadow.getElementById("cmd-medico-sel").addEventListener("change", onMedicoChange);
     shadow.getElementById("cmd-cid").addEventListener("input", autoDescricaoCid);
     shadow.getElementById("cmd-justificativa").addEventListener("input", atualizarContadorJustificativa);
     ativarMascaraData(shadow.getElementById("cmd-pac-nasc"));
@@ -677,6 +664,14 @@
     start: function (deps) {
       d = deps;
       montarUI();
+
+      /* Quando o medico e cadastrado ou removido no painel da engrenagem,
+       * o <select> se redesenha sozinho — sem precisar fechar e reabrir
+       * este modal. */
+      deps.aoMudarCadastro(function () {
+        if (seletorMedico) seletorMedico.atualizar();
+      });
+
       deps.aoClicarBotao(abrirModal);
     },
 

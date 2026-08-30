@@ -1,0 +1,19 @@
+{
+  "_leia_me": "MODELO de arquivo de cadastro de médicos. Serve para o administrador preparar a equipe UMA vez e distribuir: cada médico abre o painel da engrenagem, clica em 'Restaurar backup' e escolhe este arquivo. Assim ninguém precisa digitar nada, e nenhum CPF entra no código publicado. Preencha com os dados reais e guarde o arquivo em local seguro (ele contém dado pessoal) — NÃO faça commit dele no repositório.",
+  "_formato": "assistente-meeds/cadastro-medicos",
+  "_versao": 1,
+  "medicos": [
+    {
+      "nome": "NOME COMPLETO DO MEDICO",
+      "crm": "000000/UF",
+      "cpf": "000.000.000-00",
+      "cns": "000000000000000"
+    },
+    {
+      "nome": "OUTRO MEDICO (so com CNS, para a APAC de Itauna)",
+      "crm": "",
+      "cpf": "",
+      "cns": "000000000000000"
+    }
+  ]
+}

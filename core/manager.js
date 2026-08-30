@@ -1,59 +1,86 @@
 /* ------------------------------------------------------------------
- * core/manager.js — painel de gerenciamento de modulos (engrenagem)
+ * core/manager.js — painel da engrenagem
  * ------------------------------------------------------------------
- * O botao de engrenagem SEMPRE aparece (com prioridade 0, ou seja, no
- * pe da pilha), mesmo que todos os modulos estejam desativados — senao
- * o medico que desligar tudo perde o caminho de volta.
+ * Tres secoes, nesta ordem de importancia para o dia a dia:
  *
- * Ligar/desligar aqui chama definirHabilitado() no nucleo, que faz
- * start()/stop() na hora. NAO existe "recarregue a pagina para valer" —
- * o requisito e explicito no contrato de modulo, e e o que torna
- * plausivel o cenario "plantonista de Itauna liga so o alarme e a APAC".
+ *   1. FUNCOES   — liga/desliga cada modulo. Vale na hora, sem recarregar.
+ *   2. MEDICOS   — cadastro unico, usado pelos tres geradores de laudo,
+ *                  com backup e restauracao.
+ *   3. SOBRE     — versao e credito.
+ *
+ * O botao da engrenagem tem prioridade 0 (pe da pilha) e aparece SEMPRE,
+ * inclusive com todos os modulos desligados — senao quem desliga tudo
+ * perde o caminho de volta.
+ *
+ * POR QUE O CADASTRO DE MEDICOS MORA AQUI, E NAO DENTRO DE CADA LAUDO
+ * Antes, o APAC tinha o proprio painel "Gerenciar medicos" e LME/CMD nem
+ * tinham (a lista estava escrita no codigo). Se cada modulo tivesse o seu,
+ * o medico se cadastraria tres vezes e um sexto modulo teria que
+ * reimplementar tudo de novo. Aqui e um lugar so: os modulos apenas
+ * mostram a lista num <select> e um atalho para ca.
  * ------------------------------------------------------------------ */
 (function (raiz) {
   "use strict";
 
+  var Cadastro = raiz.MeedsSuiteCadastro;
+
   var ESTILO = [
-    ".msm-modal {",
-    "  background: #fff; border-radius: 16px; width: 100%; max-width: 460px;",
-    "  max-height: 86vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.35);",
-    "}",
-    ".msm-head {",
-    "  background: linear-gradient(135deg, #123a7a, #1a56ad); color: #fff;",
-    "  padding: 16px 18px; display: flex; justify-content: space-between;",
-    "  align-items: center; position: sticky; top: 0; z-index: 2;",
-    "}",
-    ".msm-head h2 { margin: 0; font-size: 15px; font-weight: 700; }",
-    ".msm-head .msm-sub { margin: 2px 0 0; font-size: 11px; opacity: .85; font-weight: 400; }",
-    ".msm-fechar { background: rgba(255,255,255,.2); border: none; color: #fff; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 14px; }",
-    ".msm-fechar:hover { background: rgba(255,255,255,.34); }",
-    ".msm-body { padding: 14px 18px 18px; }",
-    ".msm-intro { font-size: 11.5px; color: #5b6672; line-height: 1.5; margin: 0 0 14px; }",
-    ".msm-item {",
-    "  display: flex; align-items: flex-start; gap: 12px; padding: 11px 0;",
-    "  border-bottom: 1px solid #eef2f6;",
-    "}",
-    ".msm-item:last-child { border-bottom: none; }",
-    ".msm-item-txt { flex: 1; min-width: 0; }",
-    ".msm-item-nome { font-size: 13px; font-weight: 700; color: #16221f; }",
-    ".msm-item-desc { font-size: 11.5px; color: #5b6672; line-height: 1.45; margin-top: 2px; }",
-    ".msm-item-ver { font-size: 10px; color: #9aa5b1; font-family: monospace; margin-top: 3px; }",
-    /* interruptor liga/desliga */
-    ".msm-switch { position: relative; width: 44px; height: 25px; flex-shrink: 0; cursor: pointer; }",
-    ".msm-switch input { opacity: 0; width: 0; height: 0; }",
-    ".msm-slider {",
-    "  position: absolute; inset: 0; background: #cbd5e1; border-radius: 999px;",
-    "  transition: background .18s ease;",
-    "}",
-    ".msm-slider::before {",
-    "  content: ''; position: absolute; height: 19px; width: 19px; left: 3px; top: 3px;",
-    "  background: #fff; border-radius: 50%; transition: transform .18s ease;",
-    "  box-shadow: 0 1px 3px rgba(0,0,0,.3);",
-    "}",
-    ".msm-switch input:checked + .msm-slider { background: #12958a; }",
-    ".msm-switch input:checked + .msm-slider::before { transform: translateX(19px); }",
-    ".msm-vazio { font-size: 12px; color: #8a97a4; font-style: italic; padding: 10px 0; }",
-    ".msm-rodape { font-size: 10.5px; color: #9aa5b1; margin-top: 14px; line-height: 1.5; border-top: 1px solid #eef2f6; padding-top: 10px; }",
+    ".msm-modal { background:#fff; border-radius:16px; width:100%; max-width:520px; max-height:86vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.35); }",
+    ".msm-head { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 18px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2; }",
+    ".msm-head h2 { margin:0; font-size:15px; font-weight:700; }",
+    ".msm-head .msm-sub { margin:2px 0 0; font-size:11px; opacity:.85; font-weight:400; }",
+    ".msm-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; }",
+    ".msm-fechar:hover { background:rgba(255,255,255,.34); }",
+    ".msm-body { padding:6px 18px 18px; }",
+
+    ".msm-secao { padding:14px 0; border-bottom:1px solid #eef2f6; }",
+    ".msm-secao:last-child { border-bottom:none; }",
+    ".msm-secao > h3 { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 4px; }",
+    ".msm-secao > .msm-ajuda { font-size:11.5px; color:#5b6672; line-height:1.5; margin:0 0 12px; }",
+
+    ".msm-item { display:flex; align-items:flex-start; gap:12px; padding:11px 0; border-bottom:1px solid #f3f6f9; }",
+    ".msm-item:last-child { border-bottom:none; }",
+    ".msm-item-txt { flex:1; min-width:0; }",
+    ".msm-item-nome { font-size:13px; font-weight:700; color:#16221f; }",
+    ".msm-item-desc { font-size:11.5px; color:#5b6672; line-height:1.45; margin-top:2px; }",
+    ".msm-item-ver { font-size:10px; color:#9aa5b1; font-family:ui-monospace,Menlo,monospace; margin-top:3px; }",
+
+    ".msm-switch { position:relative; width:44px; height:25px; flex-shrink:0; cursor:pointer; }",
+    ".msm-switch input { opacity:0; width:0; height:0; }",
+    ".msm-slider { position:absolute; inset:0; background:#cbd5e1; border-radius:999px; transition:background .18s ease; }",
+    ".msm-slider::before { content:''; position:absolute; height:19px; width:19px; left:3px; top:3px; background:#fff; border-radius:50%; transition:transform .18s ease; box-shadow:0 1px 3px rgba(0,0,0,.3); }",
+    ".msm-switch input:checked + .msm-slider { background:#12958a; }",
+    ".msm-switch input:checked + .msm-slider::before { transform:translateX(19px); }",
+
+    ".msm-aviso { background:#fff4e2; border:1px solid #f5d9ac; color:#8a5200; font-size:11.5px; line-height:1.55; padding:10px 12px; border-radius:9px; margin:10px 0; }",
+    ".msm-aviso strong { display:block; margin-bottom:3px; }",
+    ".msm-ok { background:#e6f6f2; border:1px solid #b6e3d8; color:#0b6a62; font-size:11.5px; padding:9px 12px; border-radius:9px; margin:10px 0; }",
+    ".msm-erro { background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; line-height:1.5; padding:9px 12px; border-radius:9px; margin:10px 0; }",
+
+    ".msm-med { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f3f6f9; font-size:12.5px; }",
+    ".msm-med:last-of-type { border-bottom:none; }",
+    ".msm-med-dados { flex:1; min-width:0; }",
+    ".msm-med-nome { font-weight:700; color:#16221f; }",
+    ".msm-med-doc { font-size:10.5px; color:#8a97a4; font-family:ui-monospace,Menlo,monospace; margin-top:2px; }",
+    ".msm-med-remover { background:none; border:none; color:#a12626; cursor:pointer; font-size:11px; flex-shrink:0; }",
+    ".msm-med-remover:hover { text-decoration:underline; }",
+    ".msm-vazio { font-size:12px; color:#8a97a4; font-style:italic; padding:8px 0; }",
+
+    ".msm-form { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }",
+    ".msm-form label { display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:3px; }",
+    ".msm-form input { width:100%; box-sizing:border-box; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; }",
+    ".msm-form .msm-largo { grid-column:1 / -1; }",
+    ".msm-dica-campo { font-size:10.5px; color:#9aa5b1; margin-top:3px; }",
+
+    ".msm-botoes { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }",
+    ".msm-btn { background:#1a4fa0; color:#fff; border:none; border-radius:8px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }",
+    ".msm-btn:hover { background:#123a7a; }",
+    ".msm-btn-sec { background:#fff; color:#123a7a; border:1.4px solid #1a56ad; }",
+    ".msm-btn-sec:hover { background:#e8f0f8; }",
+
+    ".msm-sobre { font-size:11.5px; color:#5b6672; line-height:1.6; }",
+    ".msm-credito { font-weight:700; color:#123a7a; }",
+    ".msm-rodape { font-size:10.5px; color:#9aa5b1; line-height:1.5; margin-top:6px; }",
   ].join("\n");
 
   var overlay = null;
@@ -74,17 +101,51 @@
         '<div class="msm-modal" role="dialog" aria-modal="true" aria-labelledby="msm-title">' +
         '  <div class="msm-head">' +
         "    <div>" +
-        '      <h2 id="msm-title">Meeds Suite</h2>' +
-        '      <p class="msm-sub">Nucleo ' +
-        escapeHtml(ctx.versaoNucleo) +
-        " &middot; ative so o que voce usa</p>" +
+        '      <h2 id="msm-title">Assistente Meeds</h2>' +
+        '      <p class="msm-sub">Ative apenas as funções que você usa</p>' +
         "    </div>" +
         '    <button type="button" class="msm-fechar" aria-label="Fechar">&#10005;</button>' +
         "  </div>" +
         '  <div class="msm-body">' +
-        '    <p class="msm-intro">Cada funcao e um modulo independente. Desligar um modulo tira o botao dele da tela na hora — nao precisa recarregar a pagina nem reinstalar nada.</p>' +
-        '    <div id="msm-lista"></div>' +
-        '    <div class="msm-rodape">As preferencias ficam salvas so neste navegador. Nenhum dado de paciente e gravado em disco nem enviado para fora.</div>' +
+
+        '    <div class="msm-secao">' +
+        "      <h3>Funções</h3>" +
+        '      <p class="msm-ajuda">Desligar uma função tira o botão dela da tela na hora. Você pode ligar de novo quando quiser — nada é desinstalado.</p>' +
+        '      <div id="msm-lista"></div>' +
+        "    </div>" +
+
+        '    <div class="msm-secao" id="msm-secao-medicos">' +
+        "      <h3>Médicos</h3>" +
+        '      <p class="msm-ajuda">Cadastre uma única vez. Seus dados ficam salvos com segurança neste navegador e são usados pelos geradores de laudo (APAC, Sete Lagoas e Conceição do Mato Dentro).</p>' +
+        '      <div id="msm-medicos-mensagem"></div>' +
+        '      <div id="msm-medicos-lista"></div>' +
+        '      <div class="msm-form">' +
+        '        <div class="msm-largo"><label for="msm-med-nome">Nome completo</label>' +
+        '          <input id="msm-med-nome" placeholder="como deve aparecer no laudo" autocomplete="off"></div>' +
+        '        <div><label for="msm-med-crm">CRM</label>' +
+        '          <input id="msm-med-crm" placeholder="ex: 110540/MG" autocomplete="off"></div>' +
+        '        <div><label for="msm-med-cpf">CPF</label>' +
+        '          <input id="msm-med-cpf" placeholder="000.000.000-00" autocomplete="off"></div>' +
+        '        <div class="msm-largo"><label for="msm-med-cns">CNS (Cartão Nacional de Saúde)</label>' +
+        '          <input id="msm-med-cns" placeholder="15 dígitos — usado só pela APAC de Itaúna" autocomplete="off">' +
+        '          <div class="msm-dica-campo">CRM e CPF são usados nos laudos de Sete Lagoas e Conceição do Mato Dentro. O CNS é usado na APAC de Itaúna. Preencha o que você usa — dá para completar depois.</div></div>' +
+        "      </div>" +
+        '      <div class="msm-botoes">' +
+        '        <button type="button" class="msm-btn" id="msm-med-add">Salvar médico</button>' +
+        '        <button type="button" class="msm-btn msm-btn-sec" id="msm-backup">Fazer backup</button>' +
+        '        <button type="button" class="msm-btn msm-btn-sec" id="msm-restaurar">Restaurar backup</button>' +
+        '        <input type="file" id="msm-arquivo" accept="application/json,.json" hidden>' +
+        "      </div>" +
+        '      <p class="msm-rodape">O backup gera um arquivo <code>.json</code> com os médicos cadastrados. Use para trocar de computador ou de navegador — ou peça o arquivo pronto ao administrador e clique em “Restaurar backup”.</p>' +
+        "    </div>" +
+
+        '    <div class="msm-secao">' +
+        "      <h3>Sobre</h3>" +
+        '      <p class="msm-sobre"><span class="msm-credito">Assistente Meeds — Por: Marcelo</span><br>' +
+        '        Versão <span id="msm-versao"></span></p>' +
+        '      <p class="msm-rodape">As preferências ficam salvas apenas neste navegador. Nenhum dado de paciente é gravado em disco nem enviado para fora.</p>' +
+        "    </div>" +
+
         "  </div>" +
         "</div>",
     });
@@ -92,28 +153,57 @@
     overlay.$(".msm-fechar").addEventListener("click", function () {
       overlay.fechar();
     });
+    overlay.$("#msm-versao").textContent = ctx.versaoNucleo;
+
+    overlay.$("#msm-med-add").addEventListener("click", salvarMedico);
+    overlay.$("#msm-backup").addEventListener("click", fazerBackup);
+    overlay.$("#msm-restaurar").addEventListener("click", function () {
+      overlay.$("#msm-arquivo").click();
+    });
+    overlay.$("#msm-arquivo").addEventListener("change", restaurarBackup);
+
+    // Enter em qualquer campo do formulario salva — um clique a menos
+    ["#msm-med-nome", "#msm-med-crm", "#msm-med-cpf", "#msm-med-cns"].forEach(function (sel) {
+      overlay.$(sel).addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          salvarMedico();
+        }
+      });
+    });
 
     ctx.dock.registrarBotao({
       id: "_manager",
       icone: "⚙️",
       variante: "engrenagem",
-      titulo: "Gerenciar modulos da Meeds Suite",
-      prioridade: 0, // sempre no pe da pilha
-      aoClicar: abrir,
+      titulo: "Assistente Meeds — funções, médicos e ajustes",
+      prioridade: 0,
+      aoClicar: function () {
+        abrir();
+      },
     });
   }
 
-  function abrir() {
-    renderizar();
+  function abrir(secao) {
+    renderizarModulos();
+    renderizarMedicos();
+    mostrarMensagemMedicos(null);
     overlay.abrir();
+    if (secao === "medicos") {
+      overlay.$("#msm-secao-medicos").scrollIntoView({ behavior: "smooth", block: "start" });
+      setTimeout(function () {
+        overlay.$("#msm-med-nome").focus();
+      }, 250);
+    }
   }
 
-  function renderizar() {
+  /* ---------------- funcoes (modulos) ---------------- */
+  function renderizarModulos() {
     var lista = overlay.$("#msm-lista");
     var modulos = ctx.listarModulos();
 
     if (!modulos.length) {
-      lista.innerHTML = '<div class="msm-vazio">Nenhum modulo carregado neste pacote.</div>';
+      lista.innerHTML = '<div class="msm-vazio">Nenhuma função carregada neste pacote.</div>';
       return;
     }
 
@@ -122,24 +212,12 @@
         return (
           '<div class="msm-item">' +
           '  <div class="msm-item-txt">' +
-          '    <div class="msm-item-nome">' +
-          escapeHtml(m.nome) +
-          "</div>" +
-          '    <div class="msm-item-desc">' +
-          escapeHtml(m.descricao) +
-          "</div>" +
-          '    <div class="msm-item-ver">v' +
-          escapeHtml(m.versao) +
-          " &middot; " +
-          escapeHtml(m.id) +
-          "</div>" +
+          '    <div class="msm-item-nome">' + escapeHtml(m.nome) + "</div>" +
+          '    <div class="msm-item-desc">' + escapeHtml(m.descricao) + "</div>" +
+          '    <div class="msm-item-ver">v' + escapeHtml(m.versao) + " · " + escapeHtml(m.id) + "</div>" +
           "  </div>" +
           '  <label class="msm-switch">' +
-          '    <input type="checkbox" data-id="' +
-          escapeHtml(m.id) +
-          '" ' +
-          (m.habilitado ? "checked" : "") +
-          " />" +
+          '    <input type="checkbox" data-id="' + escapeHtml(m.id) + '" ' + (m.habilitado ? "checked" : "") + " />" +
           '    <span class="msm-slider"></span>' +
           "  </label>" +
           "</div>"
@@ -149,18 +227,173 @@
 
     overlay.$$('input[type="checkbox"][data-id]').forEach(function (input) {
       input.addEventListener("change", function () {
-        var id = input.getAttribute("data-id");
-        ctx.definirHabilitado(id, input.checked);
-        // reflete o estado real (se o start() falhou, o modulo nao subiu)
-        renderizar();
+        ctx.definirHabilitado(input.getAttribute("data-id"), input.checked);
+        renderizarModulos(); // reflete o estado real (se o start falhou, nao subiu)
       });
     });
   }
 
+  /* ---------------- medicos ---------------- */
+  function mostrarMensagemMedicos(texto, tipo) {
+    var caixa = overlay.$("#msm-medicos-mensagem");
+    if (!texto) {
+      caixa.innerHTML = "";
+      return;
+    }
+    caixa.innerHTML = '<div class="msm-' + (tipo || "ok") + '">' + escapeHtml(texto) + "</div>";
+  }
+
+  function renderizarMedicos() {
+    var lista = Cadastro.listar();
+    var box = overlay.$("#msm-medicos-lista");
+
+    if (!lista.length) {
+      box.innerHTML =
+        '<div class="msm-aviso"><strong>Cadastre seu nome e CRM uma única vez</strong>' +
+        "Por segurança, os dados dos médicos não ficam mais no código do programa. " +
+        "Preencha abaixo — leva menos de um minuto e você não precisa repetir.</div>";
+      return;
+    }
+
+    box.innerHTML = lista
+      .map(function (m, i) {
+        var docs = [];
+        if (m.crm) docs.push("CRM " + m.crm);
+        if (m.cpf) docs.push("CPF " + m.cpf);
+        if (m.cns) docs.push("CNS " + m.cns);
+        return (
+          '<div class="msm-med">' +
+          '  <div class="msm-med-dados">' +
+          '    <div class="msm-med-nome">' + escapeHtml(m.nome) + "</div>" +
+          '    <div class="msm-med-doc">' + escapeHtml(docs.join("  ·  ") || "sem documento cadastrado") + "</div>" +
+          "  </div>" +
+          '  <button type="button" class="msm-med-remover" data-i="' + i + '">remover</button>' +
+          "</div>"
+        );
+      })
+      .join("");
+
+    box.querySelectorAll(".msm-med-remover").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var i = Number(btn.getAttribute("data-i"));
+        var nome = Cadastro.listar()[i];
+        Cadastro.remover(i);
+        renderizarMedicos();
+        mostrarMensagemMedicos((nome ? nome.nome : "Médico") + " foi removido do cadastro.", "ok");
+        avisarModulos();
+      });
+    });
+  }
+
+  function salvarMedico() {
+    var nome = overlay.$("#msm-med-nome").value.trim();
+    if (!nome) {
+      mostrarMensagemMedicos(
+        "Não consegui salvar porque o nome está vazio. Preencha o campo “Nome completo” — é o único obrigatório.",
+        "erro"
+      );
+      overlay.$("#msm-med-nome").focus();
+      return;
+    }
+
+    var cns = overlay.$("#msm-med-cns").value.replace(/\D/g, "");
+    if (cns && cns.length !== 15) {
+      mostrarMensagemMedicos(
+        "Não consegui salvar porque o CNS tem " + cns.length + " dígito(s) e o Cartão Nacional de Saúde tem 15. " +
+          "Confira o número, ou deixe o campo em branco se você não usa a APAC de Itaúna.",
+        "erro"
+      );
+      overlay.$("#msm-med-cns").focus();
+      return;
+    }
+
+    var r = Cadastro.adicionar({
+      nome: nome,
+      crm: overlay.$("#msm-med-crm").value.trim(),
+      cpf: overlay.$("#msm-med-cpf").value.trim(),
+      cns: cns,
+    });
+    if (!r.ok) {
+      mostrarMensagemMedicos(r.erro, "erro");
+      return;
+    }
+
+    ["#msm-med-nome", "#msm-med-crm", "#msm-med-cpf", "#msm-med-cns"].forEach(function (s) {
+      overlay.$(s).value = "";
+    });
+    renderizarMedicos();
+    mostrarMensagemMedicos(
+      r.atualizou ? nome + " já estava cadastrado — atualizei os dados dele." : nome + " foi cadastrado com sucesso.",
+      "ok"
+    );
+    overlay.$("#msm-med-nome").focus();
+    avisarModulos();
+  }
+
+  /* Os modulos de laudo mostram a lista num <select>; quando o cadastro
+   * muda, eles precisam se redesenhar. O nucleo repassa o aviso. */
+  function avisarModulos() {
+    if (typeof ctx.aoMudarCadastro === "function") ctx.aoMudarCadastro();
+  }
+
+  function fazerBackup() {
+    var lista = Cadastro.listar();
+    if (!lista.length) {
+      mostrarMensagemMedicos(
+        "Não há o que salvar: nenhum médico cadastrado ainda. Cadastre pelo menos um e tente de novo.",
+        "erro"
+      );
+      return;
+    }
+    var blob = new Blob([Cadastro.exportar()], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "assistente-meeds-medicos.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () {
+      URL.revokeObjectURL(url);
+    }, 4000);
+    mostrarMensagemMedicos(
+      "Backup salvo como assistente-meeds-medicos.json (" + lista.length + " médico(s)). Guarde o arquivo em lugar seguro.",
+      "ok"
+    );
+  }
+
+  function restaurarBackup(ev) {
+    var arquivo = ev.target.files && ev.target.files[0];
+    ev.target.value = ""; // permite escolher o mesmo arquivo de novo
+    if (!arquivo) return;
+
+    var leitor = new FileReader();
+    leitor.onload = function () {
+      var r = Cadastro.importar(String(leitor.result));
+      if (!r.ok) {
+        mostrarMensagemMedicos(r.erro, "erro");
+        return;
+      }
+      renderizarMedicos();
+      mostrarMensagemMedicos(
+        "Backup restaurado: " + r.quantidade + " médico(s) adicionados. Quem já estava cadastrado foi mantido.",
+        "ok"
+      );
+      avisarModulos();
+    };
+    leitor.onerror = function () {
+      mostrarMensagemMedicos(
+        "Não consegui ler o arquivo “" + arquivo.name + "”. Verifique se ele não está corrompido e tente de novo.",
+        "erro"
+      );
+    };
+    leitor.readAsText(arquivo);
+  }
+
   raiz.MeedsSuiteManager = {
     montar: montar,
-    abrir: function () {
-      if (overlay) abrir();
+    abrir: function (secao) {
+      if (overlay) abrir(secao);
     },
   };
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);

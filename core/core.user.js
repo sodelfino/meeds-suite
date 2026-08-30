@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
- * core/core.user.js — nucleo compartilhado da Meeds Suite
+ * core/core.user.js — nucleo compartilhado do Assistente Meeds
  * ------------------------------------------------------------------
  * Expoe window.MeedsSuite, o unico ponto de contato entre o nucleo e os
  * modulos. Um modulo NAO conhece o Tampermonkey, nao toca em fetch/XHR,
@@ -28,8 +28,10 @@
   var Dom = raiz.MeedsSuiteDom;
   var Decisao = raiz.MeedsSuiteDecisao;
   var Storage = raiz.MeedsSuiteStorage;
+  var Cadastro = raiz.MeedsSuiteCadastro;
 
   var registro = [];          // definicoes na ordem de registro
+  var ouvintesCadastro = [];  // modulos que redesenham a lista de medicos
   var porId = {};             // id -> { def, estado }
   var iniciado = false;
   var storageNucleo = null;
@@ -92,7 +94,7 @@
         .then(function (dados) {
           if (!dados) return false;
           if (!validarSeletores(dados)) {
-            console.warn("[Meeds Suite] seletores remotos com formato inesperado, mantendo fallback embutido.");
+            console.warn("[Assistente Meeds] seletores remotos com formato inesperado, mantendo fallback embutido.");
             return false;
           }
           // mescla por GRUPO, nao substitui o objeto inteiro: um arquivo
@@ -105,7 +107,7 @@
           return true;
         })
         .catch(function (e) {
-          console.warn("[Meeds Suite] nao foi possivel buscar seletores remotos, usando fallback.", e);
+          console.warn("[Assistente Meeds] nao foi possivel buscar seletores remotos, usando fallback.", e);
           return false;
         });
     } catch (e) {
@@ -125,11 +127,11 @@
    * ------------------------------------------------------------------ */
   function registerModule(def) {
     if (!def || !def.id) {
-      console.warn("[Meeds Suite] registerModule chamado sem id, ignorando.");
+      console.warn("[Assistente Meeds] registerModule chamado sem id, ignorando.");
       return;
     }
     if (porId[def.id]) {
-      console.warn("[Meeds Suite] modulo duplicado ignorado:", def.id);
+      console.warn("[Assistente Meeds] modulo duplicado ignorado:", def.id);
       return;
     }
     var entrada = {
@@ -220,7 +222,7 @@
               try {
                 def.aoCargaRede(evt);
               } catch (e) {
-                console.warn("[Meeds Suite] aoCargaRede falhou em", def.id, e);
+                console.warn("[Assistente Meeds] aoCargaRede falhou em", def.id, e);
               }
             }
           }
@@ -256,14 +258,25 @@
         aoClicarBotao: function (fn) {
           entrada.aoClicarBotao = fn;
         },
+        /* Cadastro de medicos: unico e compartilhado. O modulo so LE a
+         * lista e manda abrir o painel; quem edita e o nucleo. */
+        cadastro: Cadastro,
+        abrirCadastro: function () {
+          raiz.MeedsSuiteManager.abrir("medicos");
+        },
+        /* Chamado sempre que o cadastro muda, para o modulo redesenhar o
+         * <select> de medicos sem o usuario precisar reabrir o modal. */
+        aoMudarCadastro: function (fn) {
+          ouvintesCadastro.push({ idModulo: def.id, fn: fn });
+        },
       };
       entrada.deps = deps;
 
       if (typeof def.start === "function") def.start(deps);
       entrada.rodando = true;
-      console.debug("[Meeds Suite] modulo iniciado:", def.id, def.versao);
+      console.debug("[Assistente Meeds] modulo iniciado:", def.id, def.versao);
     } catch (e) {
-      console.error("[Meeds Suite] falha ao iniciar modulo", def.id, e);
+      console.error("[Assistente Meeds] falha ao iniciar modulo", def.id, e);
       // Um modulo que explode no start nao pode derrubar os outros:
       // desfazemos o que ja foi criado e seguimos.
       pararModulo(entrada, true);
@@ -275,7 +288,7 @@
     try {
       if (entrada.rodando && typeof def.stop === "function") def.stop();
     } catch (e) {
-      console.warn("[Meeds Suite] stop() falhou em", def.id, e);
+      console.warn("[Assistente Meeds] stop() falhou em", def.id, e);
     }
     entrada.cancelamentosRede.forEach(function (cancelar) {
       try {
@@ -286,6 +299,9 @@
     });
     entrada.cancelamentosRede = [];
     Net.cancelarPorModulo(def.id);
+    ouvintesCadastro = ouvintesCadastro.filter(function (o) {
+      return o.idModulo !== def.id;
+    });
     if (entrada.botaoHandle) {
       try {
         entrada.botaoHandle.remover();
@@ -296,7 +312,7 @@
     }
     entrada.aoClicarBotao = null;
     entrada.rodando = false;
-    if (!silencioso) console.debug("[Meeds Suite] modulo parado:", def.id);
+    if (!silencioso) console.debug("[Assistente Meeds] modulo parado:", def.id);
   }
 
   /* ------------------------------------------------------------------
@@ -325,6 +341,10 @@
     Dock.garantirHost();
 
     // engrenagem: SEMPRE presente, mesmo com todos os modulos desligados
+    /* MIGRACAO DO CADASTRO — roda antes de qualquer modulo subir, para
+     * que o primeiro <select> de medicos ja apareca preenchido. */
+    Cadastro.migrarSeNecessario();
+
     raiz.MeedsSuiteManager.montar({
       dock: Dock,
       listarModulos: listarModulos,
@@ -332,6 +352,15 @@
       definirHabilitado: definirHabilitado,
       versaoNucleo: VERSAO_NUCLEO,
       manifesto: manifesto,
+      aoMudarCadastro: function () {
+        ouvintesCadastro.forEach(function (o) {
+          try {
+            o.fn();
+          } catch (e) {
+            console.warn("[Assistente Meeds] ouvinte de cadastro falhou em", o.idModulo, e);
+          }
+        });
+      },
     });
 
     registro.forEach(function (entrada) {
@@ -344,7 +373,7 @@
     atualizarSeletoresRemoto(opcoes.urlSeletores);
 
     iniciado = true;
-    console.debug("[Meeds Suite] nucleo " + VERSAO_NUCLEO + " iniciado com " + registro.length + " modulo(s).");
+    console.debug("[Assistente Meeds] nucleo " + VERSAO_NUCLEO + " iniciado com " + registro.length + " modulo(s).");
   }
 
   var API = {
@@ -359,6 +388,10 @@
     },
     seletor: obterSeletor,
     atualizarSeletoresRemoto: atualizarSeletoresRemoto,
+    cadastro: Cadastro,
+    abrirCadastro: function () {
+      raiz.MeedsSuiteManager.abrir("medicos");
+    },
     dom: Dom,
     decisao: Decisao,
     auth: Auth,

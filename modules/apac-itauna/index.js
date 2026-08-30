@@ -9,7 +9,7 @@
  *    do nucleo agora.
  *  - PRESERVADO byte a byte: a funcao gerarPdfInterno() inteira, com
  *    TODAS as coordenadas do formulario da APAC, e as tabelas de dados
- *    (CATALOGO, ECO_VARIANTES, TERRITORIOS, CID_DIC, MEDICOS_PADRAO).
+ *    (CATALOGO, ECO_VARIANTES, TERRITORIOS, CID_DIC).
  *    Essas coordenadas foram calibradas na mao contra o formulario
  *    oficial; reescrever qualquer uma seria arriscar o layout do laudo.
  *  - PRESERVADO em comportamento: captura passiva da API + polling de
@@ -17,12 +17,10 @@
  *    local, validacao de campos e as duas saidas (assinar via gov.br /
  *    baixar sem assinar).
  *
- * DADOS DOS MEDICOS: MEDICOS_PADRAO abaixo mantem os mesmos CNS que
- * estavam no repositorio de origem. Continuam sendo apenas o
- * PRE-CADASTRO: na primeira execucao sao copiados para o armazenamento
- * local do Tampermonkey (GM_setValue) e a partir dai o medico edita ou
- * remove pelo painel "Gerenciar medicos" — a escolha dele e respeitada e
- * nunca mais sobrescrita.
+ * DADOS DOS MEDICOS: sairam do codigo na v2.1.0. O cadastro agora vive
+ * so no navegador do medico (core/cadastro.js) e e compartilhado com os
+ * laudos de Sete Lagoas e CMD. Quem ja usava a versao anterior tem os
+ * seus medicos migrados automaticamente da chave "apac_medicos_v1".
  * ------------------------------------------------------------------ */
 (function (raiz) {
   "use strict";
@@ -114,7 +112,9 @@
    * original: e por instalacao, nao sai do navegador e nao entra no
    * codigo publicado. Cai para o storage do nucleo se o grant faltar.
    * ---------------------------------------------------------------- */
-  var CHAVE_MEDICOS = "apac_medicos_v1";
+  /* O historico continua no armazenamento do Tampermonkey (por
+   * instalacao, nao sai do navegador). O cadastro de medicos saiu daqui
+   * e virou o cadastro unico do nucleo. */
   var CHAVE_HISTORICO = "apac_historico_v1";
 
   function lerGuardado(chave, padrao) {
@@ -130,19 +130,6 @@
     d.storage.gravar(chave, valor);
   }
 
-  function carregarMedicos() {
-    try {
-      var salvo = lerGuardado(CHAVE_MEDICOS, undefined);
-      if (salvo === undefined) {
-        gravarGuardado(CHAVE_MEDICOS, MEDICOS_PADRAO.slice());
-        return MEDICOS_PADRAO.slice();
-      }
-      return salvo;
-    } catch (e) {
-      return MEDICOS_PADRAO.slice();
-    }
-  }
-  function salvarMedicos(lista) { gravarGuardado(CHAVE_MEDICOS, lista); }
   function carregarHistorico() { return lerGuardado(CHAVE_HISTORICO, []) || []; }
   function registrarHistorico(entrada) {
     var lista = carregarHistorico();
@@ -345,21 +332,11 @@
     "Z95.5":"Presença de implante e enxerto de angioplastia coronária"
   };
 
-  /* PRE-CADASTRO de medicos (nome, CNS). Copiado para o armazenamento
-   * local do Tampermonkey na primeira execucao; depois disso o medico
-   * gerencia a lista pelo painel e esta escolha NAO e mais sobrescrita.
-   * Mantidos exatamente como estavam em apac-itauna-meeds. */
-
-  const MEDICOS_PADRAO = [
-    ['NEMER MARTINS TARRAF', '702604785248241'],
-    ['KARLA PEREIRA RESENDE', '704604186091724'],
-    ['ANA BEATRIZ JUNQUEIRA DE CASTRO', '709809077179292'],
-  ];
 
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
   var CSS = "#apac-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #apac-modal-head{\n      background:linear-gradient(135deg,#0e7a70,#17ab9e); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #apac-modal-head h2{ margin:0; font-size:15px; }\n    #apac-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #apac-body{ padding:18px 20px; }\n    .apac-sec{ margin-bottom:16px; }\n    .apac-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#0e7a70; margin:0 0 8px; }\n    .apac-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .apac-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6c68; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8e6e3; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:56px; resize:vertical; }\n    .apac-proc-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }\n    .apac-proc-btn{ border:1.4px solid #d8e6e3; border-radius:9px; padding:9px; cursor:pointer; }\n    .apac-proc-btn:hover{ border-color:#17ab9e; }\n    .apac-proc-btn.sel{ border-color:#12958a; background:#e3f5f3; }\n    .apac-proc-btn .t{ font-size:11.5px; font-weight:700; }\n    .apac-proc-btn .c{ font-size:9.5px; color:#0e7a70; font-family:monospace; }\n    #apac-territorio-wrap{ display:none; margin-top:8px; }\n    #apac-territorio-wrap.show{ display:block; }\n    #apac-eco-variante-wrap{ display:none; margin-top:8px; }\n    #apac-eco-variante-wrap.show{ display:block; }\n    #apac-outro-wrap{ display:none; margin-top:8px; }\n    #apac-outro-wrap.show{ display:block; }\n    #apac-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    #apac-sec-assinatura{ border:1.5px dashed #17ab9e; border-radius:12px; padding:14px; background:#f9fdfc; }\n    .apac-opcoes-assinatura{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }\n    button.apac-primary{ background:#12958a; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.apac-primary:hover{ background:#0b6a62; }\n    button.apac-primary:disabled{ background:#a0c9c4; cursor:not-allowed; }\n    button.apac-secondary{ background:#fff; color:#0e7a70; border:1.4px solid #17ab9e; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.apac-secondary:hover{ background:#e3f5f3; }\n    button.apac-tertiary{ background:#f0f4f3; color:#0e7a70; border:1px solid #d8e6e3; border-radius:9px; padding:9px 14px; font-size:12px; font-weight:700; cursor:pointer; }\n    button.apac-tertiary:hover{ background:#e3f5f3; }\n    #apac-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #apac-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }\n    .apac-info-box{ background:#e8f4f8; color:#0e7a70; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:10px; line-height:1.4; }";
 
-  var HTML = "<div id=\"apac-modal\">\n      <div id=\"apac-modal-head\"><h2>Gerador de APAC — Itaúna</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"apac-refresh-modal\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"apac-historico-abrir\" title=\"Últimas APACs geradas nesta máquina\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"apac-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"apac-body\">\n        <div id=\"apac-auto-aviso\"></div>\n\n        <div id=\"apac-historico-painel\" style=\"display:none;border:1px solid #d8e6e3;border-radius:9px;padding:10px;margin-bottom:12px;background:#f7fbfa;\">\n          <div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;\">\n            <strong style=\"font-size:11px;color:#0e7a70;text-transform:uppercase;\">Últimos gerados nesta máquina</strong>\n            <button id=\"apac-historico-limpar\" class=\"apac-tertiary\" style=\"padding:3px 8px;font-size:10.5px;\">Limpar</button>\n          </div>\n          <div id=\"apac-historico-lista\" style=\"font-size:11.5px;line-height:1.6;\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Estabelecimento</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome</label><input id=\"apac-estab-nome\" value=\"CENTRO DE ESPEC MEDICAS E ODONTO DR OVIDIO NOGUEIRA MACHADO\"></div>\n            <div><label>CNES</label><input id=\"apac-estab-cnes\" value=\"2105578\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Médico solicitante\n            <button id=\"apac-medicos-gerenciar\" class=\"apac-tertiary\" style=\"padding:3px 8px;font-size:10.5px;margin-left:6px;text-transform:none;letter-spacing:normal;\">⚙️ Gerenciar médicos</button>\n          </h3>\n          <div class=\"apac-grid3\">\n            <div><label>Selecionar *</label><select id=\"apac-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"apac-medico-nome\"></div>\n            <div><label>CNS *</label><input id=\"apac-medico-cns\"></div>\n          </div>\n          <div id=\"apac-medicos-painel\" style=\"display:none;margin-top:10px;border:1px solid #d8e6e3;border-radius:9px;padding:10px;background:#f7fbfa;\">\n            <div id=\"apac-medicos-lista\" style=\"margin-bottom:8px;font-size:12px;\"></div>\n            <div class=\"apac-grid3\">\n              <input id=\"apac-novo-medico-nome\" placeholder=\"Nome completo\">\n              <input id=\"apac-novo-medico-cns\" placeholder=\"CNS (15 dígitos)\">\n              <button id=\"apac-novo-medico-add\" class=\"apac-secondary\">+ Adicionar</button>\n            </div>\n            <div style=\"font-size:10.5px;color:#5b6c68;margin-top:6px;\">Fica salvo só neste navegador (Tampermonkey) — não é enviado a lugar nenhum nem entra no código do script.</div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Paciente</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome completo *</label><input id=\"apac-pac-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-pac-cpf\"></div>\n          </div>\n          <div class=\"apac-grid3\" style=\"margin-top:8px;\">\n            <div><label>Nascimento *</label><input type=\"date\" id=\"apac-pac-nasc\"></div>\n            <div><label>Sexo *</label><select id=\"apac-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"M\">Masculino</option><option value=\"F\">Feminino</option></select></div>\n            <div><label>Nome da mãe *</label><input id=\"apac-pac-mae\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Procedimento *</h3>\n          <div class=\"apac-proc-grid\" id=\"apac-proc-grid\"></div>\n          <div id=\"apac-territorio-wrap\">\n            <label>Território vascular (obrigatório para Doppler)</label>\n            <select id=\"apac-territorio-sel\"></select>\n          </div>\n          <div id=\"apac-eco-variante-wrap\">\n            <label>Variante do ecocardiograma</label>\n            <select id=\"apac-eco-variante-sel\">\n              <option value=\"REPOUSO\">Transtorácica de repouso (padrão)</option>\n              <option value=\"ESTRESSE\">Com estresse (farmacológico/Dobutamina)</option>\n              <option value=\"TRANSESOFAGICO\">Transesofágico</option>\n            </select>\n          </div>\n          <div id=\"apac-outro-wrap\">\n            <label>Código SIGTAP *</label>\n            <input id=\"apac-outro-codigo\" placeholder=\"ex: 02.11.02.001-0\" style=\"margin-bottom:8px;\">\n            <label>Nome do procedimento *</label>\n            <input id=\"apac-outro-nome\" placeholder=\"como deve aparecer no campo 19\">\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>CID-10 *</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Principal *</label><input id=\"apac-cid1\" list=\"apac-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Secundário</label><input id=\"apac-cid2\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n            <div><label>Associados</label><input id=\"apac-cid3\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Descrição (campo 36) *</label><input id=\"apac-cid-desc\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Texto do pedido (campo 40) *</h3>\n          <textarea id=\"apac-obs\"></textarea>\n        </div>\n\n        <!-- ETAPA 2 — Assinatura -->\n        <div class=\"apac-sec\" id=\"apac-sec-assinatura\" style=\"display:none;\">\n          <h3>Etapa 2 — Assinatura</h3>\n          <div class=\"apac-info-box\">\n            PDF gerado com sucesso. Escolha uma opção abaixo:\n          </div>\n\n          <div class=\"apac-opcoes-assinatura\">\n            <button id=\"apac-assinar-govbr\" class=\"apac-primary\">\n              🏛️ Assinar via gov.br<br><small style=\"font-weight:400;opacity:.9;\">Baixa PDF e abre o portal</small>\n            </button>\n            <button id=\"apac-baixar-sem\" class=\"apac-tertiary\">\n              💾 Baixar sem assinar<br><small style=\"font-weight:400;opacity:.8;\">PDF simples</small>\n            </button>\n          </div>\n        </div>\n\n        <div id=\"apac-erro\"></div>\n        <datalist id=\"apac-cid-list\"></datalist>\n      </div>\n      <div id=\"apac-footer\">\n        <button class=\"apac-secondary\" id=\"apac-limpar\">Limpar</button>\n        <button class=\"apac-primary\" id=\"apac-gerar\">Gerar PDF</button>\n      </div>\n    </div>";
+  var HTML = "<div id=\"apac-modal\">\n      <div id=\"apac-modal-head\"><h2>Gerador de APAC — Itaúna</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"apac-refresh-modal\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"apac-historico-abrir\" title=\"Últimas APACs geradas nesta máquina\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"apac-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"apac-body\">\n        <div id=\"apac-auto-aviso\"></div>\n\n        <div id=\"apac-historico-painel\" style=\"display:none;border:1px solid #d8e6e3;border-radius:9px;padding:10px;margin-bottom:12px;background:#f7fbfa;\">\n          <div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;\">\n            <strong style=\"font-size:11px;color:#0e7a70;text-transform:uppercase;\">Últimos gerados nesta máquina</strong>\n            <button id=\"apac-historico-limpar\" class=\"apac-tertiary\" style=\"padding:3px 8px;font-size:10.5px;\">Limpar</button>\n          </div>\n          <div id=\"apac-historico-lista\" style=\"font-size:11.5px;line-height:1.6;\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Estabelecimento</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome</label><input id=\"apac-estab-nome\" value=\"CENTRO DE ESPEC MEDICAS E ODONTO DR OVIDIO NOGUEIRA MACHADO\"></div>\n            <div><label>CNES</label><input id=\"apac-estab-cnes\" value=\"2105578\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Médico solicitante</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Selecionar *</label><select id=\"apac-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"apac-medico-nome\"></div>\n            <div><label>CNS *</label><input id=\"apac-medico-cns\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Paciente</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome completo *</label><input id=\"apac-pac-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-pac-cpf\"></div>\n          </div>\n          <div class=\"apac-grid3\" style=\"margin-top:8px;\">\n            <div><label>Nascimento *</label><input type=\"date\" id=\"apac-pac-nasc\"></div>\n            <div><label>Sexo *</label><select id=\"apac-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"M\">Masculino</option><option value=\"F\">Feminino</option></select></div>\n            <div><label>Nome da mãe *</label><input id=\"apac-pac-mae\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Procedimento *</h3>\n          <div class=\"apac-proc-grid\" id=\"apac-proc-grid\"></div>\n          <div id=\"apac-territorio-wrap\">\n            <label>Território vascular (obrigatório para Doppler)</label>\n            <select id=\"apac-territorio-sel\"></select>\n          </div>\n          <div id=\"apac-eco-variante-wrap\">\n            <label>Variante do ecocardiograma</label>\n            <select id=\"apac-eco-variante-sel\">\n              <option value=\"REPOUSO\">Transtorácica de repouso (padrão)</option>\n              <option value=\"ESTRESSE\">Com estresse (farmacológico/Dobutamina)</option>\n              <option value=\"TRANSESOFAGICO\">Transesofágico</option>\n            </select>\n          </div>\n          <div id=\"apac-outro-wrap\">\n            <label>Código SIGTAP *</label>\n            <input id=\"apac-outro-codigo\" placeholder=\"ex: 02.11.02.001-0\" style=\"margin-bottom:8px;\">\n            <label>Nome do procedimento *</label>\n            <input id=\"apac-outro-nome\" placeholder=\"como deve aparecer no campo 19\">\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>CID-10 *</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Principal *</label><input id=\"apac-cid1\" list=\"apac-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Secundário</label><input id=\"apac-cid2\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n            <div><label>Associados</label><input id=\"apac-cid3\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Descrição (campo 36) *</label><input id=\"apac-cid-desc\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Texto do pedido (campo 40) *</h3>\n          <textarea id=\"apac-obs\"></textarea>\n        </div>\n\n        <!-- ETAPA 2 — Assinatura -->\n        <div class=\"apac-sec\" id=\"apac-sec-assinatura\" style=\"display:none;\">\n          <h3>Etapa 2 — Assinatura</h3>\n          <div class=\"apac-info-box\">\n            PDF gerado com sucesso. Escolha uma opção abaixo:\n          </div>\n\n          <div class=\"apac-opcoes-assinatura\">\n            <button id=\"apac-assinar-govbr\" class=\"apac-primary\">\n              🏛️ Assinar via gov.br<br><small style=\"font-weight:400;opacity:.9;\">Baixa PDF e abre o portal</small>\n            </button>\n            <button id=\"apac-baixar-sem\" class=\"apac-tertiary\">\n              💾 Baixar sem assinar<br><small style=\"font-weight:400;opacity:.8;\">PDF simples</small>\n            </button>\n          </div>\n        </div>\n\n        <div id=\"apac-erro\"></div>\n        <datalist id=\"apac-cid-list\"></datalist>\n      </div>\n      <div id=\"apac-footer\">\n        <button class=\"apac-secondary\" id=\"apac-limpar\">Limpar</button>\n        <button class=\"apac-primary\" id=\"apac-gerar\">Gerar PDF</button>\n      </div>\n    </div>";
 
   /* ---- extraidas do original sem alteracao ---- */
 
@@ -383,35 +360,6 @@
     if(!v('apac-cid-desc')) faltam.push('descrição do diagnóstico');
     if(!v('apac-obs')) faltam.push('texto do pedido');
     return faltam;
-  }
-
-  function renderMedicosPainel() {
-    const lista = carregarMedicos();
-    const box = shadow.getElementById('apac-medicos-lista');
-    if (!lista.length) {
-      box.innerHTML = '<em style="color:#5b6c68;">Nenhum médico cadastrado ainda neste navegador. Adicione abaixo.</em>';
-      return;
-    }
-    box.innerHTML = lista.map(([nome, cns], i) =>
-      `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #e5efed;">
-        <span>${escapeHtml(titleCase(nome))} <span style="color:#5b6c68;font-family:monospace;font-size:10.5px;">(${escapeHtml(cns)})</span></span>
-        <button data-idx="${i}" class="apac-medico-remover" style="background:none;border:none;color:#a12626;cursor:pointer;font-size:11px;">remover</button>
-      </div>`
-    ).join('');
-    box.querySelectorAll('.apac-medico-remover').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const atual = carregarMedicos();
-        atual.splice(Number(btn.dataset.idx), 1);
-        salvarMedicos(atual);
-        renderMedicosPainel();
-        montarMedicos();
-        const sel = shadow.getElementById('apac-medico-sel');
-        if (!sel.value) {
-          shadow.getElementById('apac-medico-nome').value = '';
-          shadow.getElementById('apac-medico-cns').value = '';
-        }
-      });
-    });
   }
 
   function renderHistorico() {
@@ -598,47 +546,23 @@
   /* ----------------------------------------------------------------
    * UI — montagem, paineis e validacao
    * ---------------------------------------------------------------- */
+  /* O <select> e montado pelo nucleo (cadastro.montarSelect): ele cuida do
+   * "cadastrar medico" e ja seleciona sozinho quando ha um so medico
+   * cadastrado neste navegador. */
+  var seletorMedico = null;
+
+  function preencherMedico(ficha) {
+    shadow.getElementById("apac-medico-nome").value = ficha ? ficha.nome : "";
+    shadow.getElementById("apac-medico-cns").value = ficha ? ficha.cns : "";
+  }
+
   function montarMedicos() {
-    var sel = shadow.getElementById("apac-medico-sel");
-    var valorAtual = sel.value;
-    sel.innerHTML = "";
-    var ph = document.createElement("option");
-    ph.value = ""; ph.textContent = "Selecione o médico…"; ph.selected = true; ph.disabled = true;
-    sel.appendChild(ph);
-    carregarMedicos().forEach(function (par) {
-      var o = document.createElement("option");
-      o.value = par[0] + "|" + par[1];
-      o.textContent = titleCase(par[0]);
-      sel.appendChild(o);
+    seletorMedico = d.cadastro.montarSelect(shadow.getElementById("apac-medico-sel"), {
+      aoEscolher: preencherMedico,
+      aoPedirCadastro: function () {
+        d.abrirCadastro();
+      },
     });
-    var outro = document.createElement("option");
-    outro.value = "outro"; outro.textContent = "Outro médico…";
-    sel.appendChild(outro);
-    if (valorAtual && Array.prototype.some.call(sel.options, function (o) { return o.value === valorAtual; })) {
-      sel.value = valorAtual;
-    }
-  }
-
-  function alternarPainelMedicos() {
-    var p = shadow.getElementById("apac-medicos-painel");
-    var abrindo = p.style.display === "none";
-    p.style.display = abrindo ? "block" : "none";
-    if (abrindo) renderMedicosPainel();
-  }
-
-  function adicionarMedico() {
-    var nomeEl = shadow.getElementById("apac-novo-medico-nome");
-    var cnsEl = shadow.getElementById("apac-novo-medico-cns");
-    var nome = nomeEl.value.trim().toUpperCase();
-    var cns = cnsEl.value.replace(/\D/g, "");
-    if (!nome || cns.length !== 15) { toast("Informe nome e CNS com 15 dígitos.", 3500); return; }
-    var atual = carregarMedicos();
-    atual.push([nome, cns]);
-    salvarMedicos(atual);
-    nomeEl.value = ""; cnsEl.value = "";
-    renderMedicosPainel();
-    montarMedicos();
-    toast("Médico adicionado.", 2500);
   }
 
   function alternarPainelHistorico() {
@@ -646,18 +570,6 @@
     var abrindo = p.style.display === "none";
     p.style.display = abrindo ? "block" : "none";
     if (abrindo) renderHistorico();
-  }
-
-  function onMedicoChange() {
-    var sel = shadow.getElementById("apac-medico-sel");
-    if (sel.value === "" || sel.value === "outro") {
-      shadow.getElementById("apac-medico-nome").value = "";
-      shadow.getElementById("apac-medico-cns").value = "";
-      return;
-    }
-    var partes = sel.value.split("|");
-    shadow.getElementById("apac-medico-nome").value = partes[0];
-    shadow.getElementById("apac-medico-cns").value = partes[1];
   }
 
   function montarProcGrid() {
@@ -725,11 +637,11 @@
 
   function limparForm() {
     ["apac-pac-nome","apac-pac-cpf","apac-pac-mae","apac-cid1","apac-cid2","apac-cid3",
-     "apac-cid-desc","apac-obs","apac-medico-nome","apac-medico-cns","apac-outro-codigo","apac-outro-nome"
+     "apac-cid-desc","apac-obs","apac-outro-codigo","apac-outro-nome"
     ].forEach(function (id) { shadow.getElementById(id).value = ""; });
     shadow.getElementById("apac-pac-nasc").value = "";
     shadow.getElementById("apac-pac-sexo").value = "";
-    shadow.getElementById("apac-medico-sel").value = "";
+    if (seletorMedico) seletorMedico.atualizar();
     shadow.getElementById("apac-auto-aviso").style.display = "none";
     limparErro();
     procedimentoAtivo = null;
@@ -742,6 +654,9 @@
   }
 
   function abrirModal() {
+    // o cadastro pode ter mudado desde a ultima abertura (outro modal,
+    // outra aba, restauracao de backup)
+    if (seletorMedico) seletorMedico.atualizar();
     preencherDoCache();
     // reforco: ao abrir, tambem le a tela na hora — cobre o caso do cache
     // (API) estar vazio ou desatualizado quando o medico clica.
@@ -795,11 +710,8 @@
     shadow.getElementById("apac-gerar").addEventListener("click", gerarPdf);
     shadow.getElementById("apac-limpar").addEventListener("click", limparForm);
     shadow.getElementById("apac-cid1").addEventListener("input", autoDescricaoCid);
-    shadow.getElementById("apac-medico-sel").addEventListener("change", onMedicoChange);
     shadow.getElementById("apac-assinar-govbr").addEventListener("click", assinarGovBr);
     shadow.getElementById("apac-baixar-sem").addEventListener("click", baixarSemAssinar);
-    shadow.getElementById("apac-medicos-gerenciar").addEventListener("click", alternarPainelMedicos);
-    shadow.getElementById("apac-novo-medico-add").addEventListener("click", adicionarMedico);
     shadow.getElementById("apac-historico-abrir").addEventListener("click", alternarPainelHistorico);
     shadow.getElementById("apac-historico-limpar").addEventListener("click", function () {
       limparHistorico();
@@ -844,6 +756,14 @@
     start: function (deps) {
       d = deps;
       montarUI();
+
+      /* Quando o medico e cadastrado ou removido no painel da engrenagem,
+       * o <select> se redesenha sozinho — sem precisar fechar e reabrir
+       * este modal. */
+      deps.aoMudarCadastro(function () {
+        if (seletorMedico) seletorMedico.atualizar();
+      });
+
       deps.aoClicarBotao(abrirModal);
 
       // polling de URL: segunda camada, para o caso de a captura passiva
