@@ -1,0 +1,89 @@
+{
+  "nome": "Meeds Suite",
+  "versao": "2.0.1",
+  "descricao": "Pacote unificado das ferramentas Meeds da Novetech: uma instalacao so, modulos ligaveis individualmente.",
+  "repositorio": "https://github.com/sodelfino/meeds-suite",
+  "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
+  "saida": "dist/meeds-suite.user.js",
+  "_comentario_carregamento": "O pacote distribuido e AUTOCONTIDO: o build embute nucleo e modulos no .user.js final. Este manifesto e a fonte de verdade do build (ordem de concatenacao e versoes) e tambem o inventario que o painel de gerenciamento exibe. Carregamento REMOTO DE CODIGO esta desligado por padrao (ver docs/ARQUITETURA.md, decisao D1): buscar e executar JS remoto num sistema com dado de paciente seria uma superficie de execucao remota de codigo que nao se justifica. O que e atualizavel sem redeploy sao DADOS: seletores.json e modules/remume/remumes.json.",
+  "carregamentoRemotoDeCodigo": false,
+  "nucleo": [
+    "core/storage.js",
+    "core/auth.js",
+    "core/dock.js",
+    "core/network-hub.js",
+    "core/dom-reader.js",
+    "core/decision-engine.js",
+    "core/manager.js",
+    "core/core.user.js"
+  ],
+  "dadosRemotos": {
+    "seletores": "seletores.json",
+    "remumes": "modules/remume/remumes.json"
+  },
+  "modulos": [
+    {
+      "id": "alarme-fila",
+      "nome": "Alarme de Fila",
+      "descricao": "Alarme sonoro/visual para a fila de espera do Pronto Atendimento.",
+      "versao": "2.0.0",
+      "arquivo": "modules/alarme-fila/index.js",
+      "origem": "sodelfino/meeds-alarme-fila",
+      "prioridadeBotao": 10
+    },
+    {
+      "id": "apac-itauna",
+      "nome": "APAC - Itauna",
+      "descricao": "Gera o laudo de APAC de Itauna em PDF e encaminha para assinatura gov.br.",
+      "versao": "2.0.0",
+      "arquivo": "modules/apac-itauna/index.js",
+      "origem": "sodelfino/apac-itauna-meeds",
+      "prioridadeBotao": 20,
+      "requer": [
+        "jspdf"
+      ]
+    },
+    {
+      "id": "lme-sete-lagoas",
+      "nome": "Laudo - Sete Lagoas",
+      "descricao": "Preenche o LME oficial de Sete Lagoas por cima do PDF da prefeitura.",
+      "versao": "2.0.0",
+      "arquivo": "modules/lme-sete-lagoas/index.js",
+      "origem": "sodelfino/lme-sete-lagoas-gerador",
+      "prioridadeBotao": 30,
+      "requer": [
+        "pdf-lib"
+      ],
+      "assets": [
+        "modules/lme-sete-lagoas/assets/base-pdf.js"
+      ]
+    },
+    {
+      "id": "cmd",
+      "nome": "Laudo - Conceicao do Mato Dentro",
+      "descricao": "Preenche o laudo de alto custo de CMD pelos campos reais do formulario PDF.",
+      "versao": "2.0.0",
+      "arquivo": "modules/cmd/index.js",
+      "origem": "sodelfino/laudo-cmd-meeds",
+      "prioridadeBotao": 40,
+      "requer": [
+        "pdf-lib"
+      ],
+      "assets": [
+        "modules/cmd/assets/base-pdf.js"
+      ]
+    },
+    {
+      "id": "remume",
+      "nome": "Assistente REMUME",
+      "descricao": "Consulta a relacao municipal de medicamentos do municipio do atendimento.",
+      "versao": "2.0.1",
+      "arquivo": "modules/remume/index.js",
+      "origem": "sodelfino/meeds-remume-assistant",
+      "prioridadeBotao": 50,
+      "assets": [
+        "modules/remume/assets/fallback.js"
+      ]
+    }
+  ]
+}
