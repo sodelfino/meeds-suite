@@ -82,7 +82,7 @@
     if (jsPDFCarregandoPromise) return jsPDFCarregandoPromise;
     jsPDFCarregandoPromise = new Promise(function (resolve, reject) {
       if (typeof GM_xmlhttpRequest !== "function") {
-        reject(new Error("jsPDF indisponível e GM_xmlhttpRequest não concedido."));
+        reject(new Error("o componente jsPDF não está disponível e o Tampermonkey não concedeu permissão para baixá-lo"));
         return;
       }
       GM_xmlhttpRequest({
@@ -99,7 +99,7 @@
           }
         },
         onerror: function () {
-          reject(new Error("Falha de rede ao baixar o jsPDF."));
+          reject(new Error("a rede bloqueou o download do jsPDF"));
         },
       });
     });
@@ -243,7 +243,7 @@
       toast(
         camposDaTela > 0
           ? "Dados lidos da tela (" + camposDaTela + " campo" + (camposDaTela > 1 ? "s" : "") + ")."
-          : "Não encontrei o identificador do atendimento na URL nem consegui ler a tela. Abra o paciente na tela de Atendimento e tente de novo.",
+          : "Não consegui preencher nada porque não encontrei os dados do paciente nem na tela nem no endereço da página. Abra o paciente na tela de Atendimento e clique de novo em “Atualizar paciente”.",
         4500
       );
       btn.textContent = original;
@@ -259,8 +259,8 @@
         // nunca deixa o medico sem nada so porque a rede falhou.
         toast(
           camposDaTela > 0
-            ? "A busca pela API falhou (" + e.message + "), mas preenchi " + camposDaTela + " campo(s) lendo a tela."
-            : "Erro: " + e.message,
+            ? "Preenchi " + camposDaTela + " campo(s) lendo a tela do atendimento. A consulta ao sistema falhou, então confira os dados antes de gerar."
+            : "Não consegui buscar os dados do paciente: a consulta ao sistema falhou e não encontrei nada na tela. Abra o paciente na tela de Atendimento e clique de novo em “Atualizar paciente”.",
           4500
         );
       })
@@ -293,26 +293,53 @@
 
   /* ---- extraidas do original sem alteracao ---- */
 
-  function camposFaltando(){
-    const faltam = []; const v = id => shadow.getElementById(id).value.trim();
-    if(!shadow.getElementById('apac-medico-sel').value) faltam.push('seleção do médico');
-    if(!v('apac-medico-nome')) faltam.push('nome do médico');
-    if(!v('apac-medico-cns')) faltam.push('CNS do médico');
-    if(!v('apac-pac-nome')) faltam.push('nome do paciente');
-    if(!v('apac-pac-cpf')) faltam.push('CPF do paciente');
-    if(!v('apac-pac-nasc')) faltam.push('data de nascimento');
-    if(!v('apac-pac-sexo')) faltam.push('sexo');
-    if(!v('apac-pac-mae')) faltam.push('nome da mãe');
-    if(!procedimentoAtivo) faltam.push('procedimento');
-    if(procedimentoAtivo === 'DOPPLER' && !v('apac-territorio-sel')) faltam.push('território vascular');
-    if(procedimentoAtivo === 'OUTRO'){
-      if(!v('apac-outro-codigo')) faltam.push('código SIGTAP do procedimento');
-      if(!v('apac-outro-nome')) faltam.push('nome do procedimento');
-    }
-    if(!v('apac-cid1')) faltam.push('CID-10 principal');
-    if(!v('apac-cid-desc')) faltam.push('descrição do diagnóstico');
-    if(!v('apac-obs')) faltam.push('texto do pedido');
-    return faltam;
+  /* ---- validacao dos campos obrigatorios ----
+   * Cada campo declara o ROTULO como ele aparece na tela e, quando existe
+   * um jeito mais rapido de preencher, a dica. E o que permite a mensagem
+   * dizer "falta o nome da mae, preencha o campo Nome da mae, e se ele
+   * nao veio sozinho clique em Atualizar paciente" em vez de "campo
+   * obrigatorio". O texto final e montado pelo nucleo
+   * (core/mensagens.js), para o tom ser o mesmo em todos os modulos. */
+  var CAMPOS_OBRIGATORIOS = [
+      { id: "apac-medico-sel", descricao: "escolher o médico solicitante", rotulo: "Selecionar",
+        comoResolver: "se a lista estiver vazia, cadastre-se no painel da engrenagem (⚙️)" },
+      { id: "apac-medico-nome", descricao: "o nome do médico", rotulo: "Nome" },
+      { id: "apac-medico-cns", descricao: "o CNS do médico", rotulo: "CNS",
+        comoResolver: "complete o cadastro dele no painel da engrenagem (⚙️)" },
+      { id: "apac-pac-nome", descricao: "o nome do paciente", rotulo: "Nome completo",
+        comoResolver: "clique em “Atualizar paciente” para ler da tela do atendimento" },
+      { id: "apac-pac-cpf", descricao: "o CPF do paciente", rotulo: "CPF",
+        comoResolver: "clique em “Atualizar paciente” para ler da tela do atendimento" },
+      { id: "apac-pac-nasc", descricao: "a data de nascimento", rotulo: "Nascimento" },
+      { id: "apac-pac-sexo", descricao: "o sexo do paciente", rotulo: "Sexo" },
+      { id: "apac-pac-mae", descricao: "o nome da mãe do paciente", rotulo: "Nome da mãe",
+        comoResolver: "clique em “Atualizar paciente”; se ainda assim não vier, o Meeds não está mostrando esse dado na tela e você precisa digitá-lo" },
+      { id: "__procedimento", descricao: "escolher o procedimento", rotulo: "Procedimento",
+        comoResolver: "clique em um dos quadros de procedimento",
+        vazio: function () { return !procedimentoAtivo; } },
+      { id: "apac-territorio-sel", descricao: "o território vascular", rotulo: "Território vascular",
+        so: function () { return procedimentoAtivo === "DOPPLER"; } },
+      { id: "apac-outro-codigo", descricao: "o código SIGTAP do procedimento", rotulo: "Código SIGTAP",
+        so: function () { return procedimentoAtivo === "OUTRO"; } },
+      { id: "apac-outro-nome", descricao: "o nome do procedimento", rotulo: "Nome do procedimento",
+        so: function () { return procedimentoAtivo === "OUTRO"; } },
+      { id: "apac-cid1", descricao: "o CID-10 principal", rotulo: "Principal" },
+      { id: "apac-cid-desc", descricao: "a descrição do diagnóstico", rotulo: "Descrição (campo 36)",
+        comoResolver: "ela preenche sozinha quando o CID digitado é conhecido" },
+      { id: "apac-obs", descricao: "o texto do pedido", rotulo: "Texto do pedido (campo 40)" }
+    ];
+
+  function camposFaltando() {
+    return CAMPOS_OBRIGATORIOS.filter(function (campo) {
+      if (typeof campo.so === "function" && !campo.so()) return false;
+      if (typeof campo.vazio === "function") return campo.vazio();
+      var el = shadow.getElementById(campo.id);
+      return !el || !String(el.value || "").trim();
+    });
+  }
+
+  function mensagemDeCamposFaltando(faltas) {
+    return raiz.MeedsSuiteMensagens.camposFaltando(faltas, { acao: "gerar a APAC" });
   }
 
   function renderHistorico() {
@@ -620,7 +647,7 @@
   function gerarPdf() {
     limparErro();
     var faltam = camposFaltando();
-    if (faltam.length) { mostrarErro("Preencha: " + faltam.join(", ") + "."); return; }
+    if (faltam.length) { mostrarErro(mensagemDeCamposFaltando(faltam)); return; }
     var btn = shadow.getElementById("apac-gerar");
     var original = btn.textContent;
     btn.textContent = "Gerando…";
@@ -630,7 +657,11 @@
         try { gerarPdfInterno(jsPDFCtor); }
         catch (e) { mostrarErro("Erro ao gerar PDF: " + e.message); }
       })
-      .catch(function (e) { mostrarErro("jsPDF não carregou: " + e.message); })
+      .catch(function (e) {
+        // biblioteca que nao carrega tem causa e solucao proprias (quase
+        // sempre a rede da unidade bloqueando o CDN)
+        mostrarErro(raiz.MeedsSuiteMensagens.BIBLIOTECA_NAO_CARREGOU("jsPDF", e.message));
+      })
       .then(function () { btn.textContent = original; btn.disabled = false; });
   }
 

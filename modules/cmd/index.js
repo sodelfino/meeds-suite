@@ -84,7 +84,7 @@
     if (pdfLibCarregandoPromise) return pdfLibCarregandoPromise;
     pdfLibCarregandoPromise = new Promise(function (resolve, reject) {
       if (typeof GM_xmlhttpRequest !== "function") {
-        reject(new Error("pdf-lib indisponível e GM_xmlhttpRequest não concedido."));
+        reject(new Error("o componente pdf-lib não está disponível e o Tampermonkey não concedeu permissão para baixá-lo"));
         return;
       }
       GM_xmlhttpRequest({
@@ -98,7 +98,7 @@
             else reject(new Error("pdf-lib avaliado mas não exposto."));
           } catch (e) { reject(e); }
         },
-        onerror: function () { reject(new Error("Falha de rede ao baixar o pdf-lib.")); },
+        onerror: function () { reject(new Error("a rede bloqueou o download do pdf-lib")); },
       });
     });
     return pdfLibCarregandoPromise;
@@ -165,20 +165,43 @@
   var HTML = "<div id=\"cmd-modal\">\n      <div id=\"cmd-modal-head\"><h2>Laudo Médico de Alto Custo — Conceição do Mato Dentro</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"cmd-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"cmd-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"cmd-body\">\n        <div class=\"cmd-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Conceição do Mato Dentro (mesmo PDF da prefeitura, preenchido pelos campos reais do formulário). A seção 04 (Junta de Autorização) não é preenchida — é reservada para a regulação.\n        </div>\n        <div id=\"cmd-auto-aviso\"></div>\n\n        <div class=\"cmd-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"cmd-grid3\">\n            <div><label>Selecionar *</label><select id=\"cmd-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"cmd-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"cmd-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"cmd-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Dados do atendimento</h3>\n          <div>\n            <label>Unidade de origem *</label>\n            <select id=\"cmd-origem-sel\"></select>\n            <div id=\"cmd-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"cmd-origem-outro\"></div>\n          </div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Paciente</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome completo *</label><input id=\"cmd-pac-nome\"></div>\n            <div><label>CPF</label><input id=\"cmd-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"cmd-grid3\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"cmd-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"cmd-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n            <div><label>Telefone</label><input id=\"cmd-pac-telefone\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Nome da mãe</label><input id=\"cmd-pac-mae\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"cmd-proc-nome\" list=\"cmd-proc-list\" placeholder=\"digite o exame\" autocomplete=\"off\"></div>\n            <div><label>Código do procedimento</label><input id=\"cmd-proc-codigo\" placeholder=\"ex: 41101170\"></div>\n          </div>\n          <datalist id=\"cmd-proc-list\"></datalist>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>CID-10</label><input id=\"cmd-cid\" list=\"cmd-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"cmd-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          <datalist id=\"cmd-cid-list\"></datalist>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"cmd-justificativa\" maxlength=\"700\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado (até 700 caracteres)\"></textarea>\n          <div class=\"cmd-contador\" id=\"cmd-justificativa-contador\">0/700</div>\n        </div>\n\n        <div id=\"cmd-erro\"></div>\n      </div>\n      <div id=\"cmd-footer\">\n        <button class=\"cmd-secondary\" id=\"cmd-limpar\">Limpar</button>\n        <button class=\"cmd-primary\" id=\"cmd-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
 
   /* ---- extraidas do original sem alteracao ---- */
+  /* ---- validacao dos campos obrigatorios ----
+   * Cada campo declara o ROTULO como ele aparece na tela e, quando existe
+   * um jeito mais rapido de preencher, a dica. E o que permite a mensagem
+   * dizer "falta o nome da mae, preencha o campo Nome da mae, e se ele
+   * nao veio sozinho clique em Atualizar paciente" em vez de "campo
+   * obrigatorio". O texto final e montado pelo nucleo
+   * (core/mensagens.js), para o tom ser o mesmo em todos os modulos. */
+  var CAMPOS_OBRIGATORIOS = [
+      { id: "cmd-medico-sel", descricao: "escolher o médico solicitante", rotulo: "Médico solicitante",
+        comoResolver: "se a lista estiver vazia, cadastre-se no painel da engrenagem (⚙️)" },
+      { id: "cmd-medico-nome", descricao: "o nome do médico", rotulo: "Nome" },
+      { id: "cmd-medico-crm", descricao: "o CRM do médico", rotulo: "CRM",
+        comoResolver: "complete o cadastro dele no painel da engrenagem (⚙️)" },
+      { id: "cmd-medico-cpf", descricao: "o CPF do médico", rotulo: "CPF",
+        comoResolver: "complete o cadastro dele no painel da engrenagem (⚙️)" },
+      { id: "cmd-origem-sel", descricao: "a unidade de origem", rotulo: "Unidade de origem" },
+      { id: "cmd-origem-outro", descricao: "o nome da unidade de origem", rotulo: "Nome da unidade",
+        so: function () { return shadow.getElementById("cmd-origem-sel").value === "outro"; } },
+      { id: "cmd-pac-nome", descricao: "o nome do paciente", rotulo: "Nome completo",
+        comoResolver: "clique em “Atualizar paciente” para ler da tela do atendimento" },
+      { id: "cmd-pac-sexo", descricao: "o sexo do paciente", rotulo: "Sexo" },
+      { id: "cmd-justificativa", descricao: "a justificativa clínica", rotulo: "Justificativa clínica",
+        comoResolver: "descreva a história, os exames prévios e o objetivo do exame (até 700 caracteres)" },
+      { id: "cmd-proc-nome", descricao: "o procedimento solicitado", rotulo: "Nome do procedimento" }
+    ];
+
   function camposFaltando() {
-    const faltam = []; const v = id => shadow.getElementById(id).value.trim();
-    if (!shadow.getElementById('cmd-medico-sel').value) faltam.push('seleção do médico');
-    if (!v('cmd-medico-nome')) faltam.push('nome do médico');
-    if (!v('cmd-medico-crm')) faltam.push('CRM do médico');
-    if (!v('cmd-medico-cpf')) faltam.push('CPF do médico');
-    const origemSel = shadow.getElementById('cmd-origem-sel').value;
-    if (!origemSel) faltam.push('unidade de origem');
-    if (origemSel === 'outro' && !v('cmd-origem-outro')) faltam.push('nome da unidade de origem');
-    if (!v('cmd-pac-nome')) faltam.push('nome do paciente');
-    if (!v('cmd-pac-sexo')) faltam.push('sexo');
-    if (!v('cmd-justificativa')) faltam.push('justificativa clínica');
-    if (!v('cmd-proc-nome')) faltam.push('nome do procedimento solicitado');
-    return faltam;
+    return CAMPOS_OBRIGATORIOS.filter(function (campo) {
+      if (typeof campo.so === "function" && !campo.so()) return false;
+      if (typeof campo.vazio === "function") return campo.vazio();
+      var el = shadow.getElementById(campo.id);
+      return !el || !String(el.value || "").trim();
+    });
+  }
+
+  function mensagemDeCamposFaltando(faltas) {
+    return raiz.MeedsSuiteMensagens.camposFaltando(faltas, { acao: "gerar o laudo de Conceição do Mato Dentro" });
   }
 
   function wrapTexto(font, size, texto, maxWidth) {
@@ -206,14 +229,25 @@
   async function gerarPdf() {
     limparErro();
     const faltam = camposFaltando();
-    if (faltam.length) { mostrarErro('Preencha: ' + faltam.join(', ') + '.'); return; }
+    if (faltam.length) { mostrarErro(mensagemDeCamposFaltando(faltam)); return; }
 
     const btn = shadow.getElementById('cmd-gerar');
     const original = btn.textContent;
     btn.textContent = 'Gerando…'; btn.disabled = true;
 
     try {
-      const PDFLibRef = await garantirPdfLib();
+      let PDFLibRef;
+      try {
+        PDFLibRef = await garantirPdfLib();
+      } catch (e) {
+        // biblioteca que nao carrega tem causa e solucao proprias (quase
+        // sempre rede da unidade bloqueando o CDN), diferentes de um erro
+        // ao montar o PDF — por isso a mensagem e outra.
+        mostrarErro(raiz.MeedsSuiteMensagens.BIBLIOTECA_NAO_CARREGOU("pdf-lib", e.message));
+        btn.textContent = original;
+        btn.disabled = false;
+        return;
+      }
       const { PDFDocument, StandardFonts } = PDFLibRef;
 
       const origemSel = shadow.getElementById('cmd-origem-sel').value;
@@ -294,7 +328,14 @@
       baixarPdf(bytes, filename);
       toast('PDF gerado e baixado: ' + filename, 5000);
     } catch (e) {
-      mostrarErro('Erro ao gerar PDF: ' + e.message);
+      mostrarErro(
+        raiz.MeedsSuiteMensagens.erroTecnico(
+          "gerar o PDF",
+          "o programa encontrou um problema ao montar o arquivo",
+          "Confira se os campos estão preenchidos como esperado e tente de novo. Se repetir, avise o administrador com a mensagem entre parênteses.",
+          e.message
+        )
+      );
     } finally {
       btn.textContent = original; btn.disabled = false;
     }

@@ -81,7 +81,7 @@
     if (pdfLibCarregandoPromise) return pdfLibCarregandoPromise;
     pdfLibCarregandoPromise = new Promise(function (resolve, reject) {
       if (typeof GM_xmlhttpRequest !== "function") {
-        reject(new Error("pdf-lib indisponível e GM_xmlhttpRequest não concedido."));
+        reject(new Error("o componente pdf-lib não está disponível e o Tampermonkey não concedeu permissão para baixá-lo"));
         return;
       }
       GM_xmlhttpRequest({
@@ -95,7 +95,7 @@
             else reject(new Error("pdf-lib avaliado mas não exposto."));
           } catch (e) { reject(e); }
         },
-        onerror: function () { reject(new Error("Falha de rede ao baixar o pdf-lib.")); },
+        onerror: function () { reject(new Error("a rede bloqueou o download do pdf-lib")); },
       });
     });
     return pdfLibCarregandoPromise;
@@ -162,22 +162,47 @@
   var HTML = "<div id=\"lme-modal\">\n      <div id=\"lme-modal-head\"><h2>Laudo Procedimento Médico — Sete Lagoas</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"lme-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"lme-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"lme-body\">\n        <div class=\"lme-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Sete Lagoas (mesmo PDF da prefeitura, logo e layout intactos). Município fixo: <b>SETE LAGOAS</b>. O Cartão Nacional do SUS é preenchido com o CPF do paciente.\n        </div>\n        <div id=\"lme-auto-aviso\"></div>\n\n        <div class=\"lme-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"lme-grid3\">\n            <div><label>Selecionar *</label><select id=\"lme-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"lme-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"lme-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"lme-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Unidade de origem</h3>\n          <select id=\"lme-origem-sel\"></select>\n          <div id=\"lme-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"lme-origem-outro\" placeholder=\"ex: UBS ITAPOÃ\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Paciente</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome completo *</label><input id=\"lme-pac-nome\"></div>\n            <div><label>CPF (usado como Cartão do SUS) *</label><input id=\"lme-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"lme-grid2\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"lme-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"lme-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n          </div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"lme-proc-nome\" list=\"lme-proc-list\" placeholder=\"digite e busque, ou digite algo novo\" autocomplete=\"off\"></div>\n            <div><label>Código SIGTAP *</label><input id=\"lme-proc-codigo\" placeholder=\"preenche sozinho se reconhecido\"></div>\n          </div>\n          <datalist id=\"lme-proc-list\"></datalist>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"lme-grid2\">\n            <div><label>CID-10</label><input id=\"lme-cid\" list=\"lme-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"lme-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          <datalist id=\"lme-cid-list\"></datalist>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"lme-justificativa\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado\"></textarea>\n        </div>\n\n        <div id=\"lme-erro\"></div>\n      </div>\n      <div id=\"lme-footer\">\n        <button class=\"lme-secondary\" id=\"lme-limpar\">Limpar</button>\n        <button class=\"lme-primary\" id=\"lme-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
 
   /* ---- extraidas do original sem alteracao ---- */
+  /* ---- validacao dos campos obrigatorios ----
+   * Cada campo declara o ROTULO como ele aparece na tela e, quando existe
+   * um jeito mais rapido de preencher, a dica. E o que permite a mensagem
+   * dizer "falta o nome da mae, preencha o campo Nome da mae, e se ele
+   * nao veio sozinho clique em Atualizar paciente" em vez de "campo
+   * obrigatorio". O texto final e montado pelo nucleo
+   * (core/mensagens.js), para o tom ser o mesmo em todos os modulos. */
+  var CAMPOS_OBRIGATORIOS = [
+      { id: "lme-medico-sel", descricao: "escolher o médico solicitante", rotulo: "Médico solicitante",
+        comoResolver: "se a lista estiver vazia, cadastre-se no painel da engrenagem (⚙️)" },
+      { id: "lme-medico-nome", descricao: "o nome do médico", rotulo: "Nome" },
+      { id: "lme-medico-crm", descricao: "o CRM do médico", rotulo: "CRM",
+        comoResolver: "complete o cadastro dele no painel da engrenagem (⚙️)" },
+      { id: "lme-medico-cpf", descricao: "o CPF do médico", rotulo: "CPF",
+        comoResolver: "complete o cadastro dele no painel da engrenagem (⚙️)" },
+      { id: "lme-origem-sel", descricao: "a unidade de origem", rotulo: "Unidade de origem" },
+      { id: "lme-origem-outro", descricao: "o nome da unidade de origem", rotulo: "Nome da unidade",
+        so: function () { return shadow.getElementById("lme-origem-sel").value === "outro"; } },
+      { id: "lme-pac-nome", descricao: "o nome do paciente", rotulo: "Nome completo",
+        comoResolver: "clique em “Atualizar paciente” para ler da tela do atendimento" },
+      { id: "lme-pac-cpf", descricao: "o CPF do paciente", rotulo: "CPF (usado como Cartão do SUS)",
+        comoResolver: "clique em “Atualizar paciente” para ler da tela do atendimento" },
+      { id: "lme-pac-sexo", descricao: "o sexo do paciente", rotulo: "Sexo" },
+      { id: "lme-justificativa", descricao: "a justificativa clínica", rotulo: "Justificativa clínica",
+        comoResolver: "descreva a história, os exames prévios e o objetivo do exame" },
+      { id: "lme-proc-nome", descricao: "o procedimento solicitado", rotulo: "Nome do procedimento" },
+      { id: "lme-proc-codigo", descricao: "o código SIGTAP do procedimento", rotulo: "Código SIGTAP",
+        comoResolver: "ele preenche sozinho se o nome do procedimento for escolhido da lista" }
+    ];
+
   function camposFaltando() {
-    const faltam = []; const v = id => shadow.getElementById(id).value.trim();
-    if (!shadow.getElementById('lme-medico-sel').value) faltam.push('seleção do médico');
-    if (!v('lme-medico-nome')) faltam.push('nome do médico');
-    if (!v('lme-medico-crm')) faltam.push('CRM do médico');
-    if (!v('lme-medico-cpf')) faltam.push('CPF do médico');
-    const origemSel = shadow.getElementById('lme-origem-sel').value;
-    if (!origemSel) faltam.push('unidade de origem');
-    if (origemSel === 'outro' && !v('lme-origem-outro')) faltam.push('nome da unidade de origem');
-    if (!v('lme-pac-nome')) faltam.push('nome do paciente');
-    if (!v('lme-pac-cpf')) faltam.push('CPF do paciente');
-    if (!v('lme-pac-sexo')) faltam.push('sexo');
-    if (!v('lme-justificativa')) faltam.push('justificativa clínica');
-    if (!v('lme-proc-nome')) faltam.push('nome do procedimento');
-    if (!v('lme-proc-codigo')) faltam.push('código SIGTAP do procedimento');
-    return faltam;
+    return CAMPOS_OBRIGATORIOS.filter(function (campo) {
+      if (typeof campo.so === "function" && !campo.so()) return false;
+      if (typeof campo.vazio === "function") return campo.vazio();
+      var el = shadow.getElementById(campo.id);
+      return !el || !String(el.value || "").trim();
+    });
+  }
+
+  function mensagemDeCamposFaltando(faltas) {
+    return raiz.MeedsSuiteMensagens.camposFaltando(faltas, { acao: "gerar o laudo de Sete Lagoas" });
   }
 
   function wrapTexto(font, size, texto, maxWidth) {
@@ -204,14 +229,25 @@
   async function gerarPdf() {
     limparErro();
     const faltam = camposFaltando();
-    if (faltam.length) { mostrarErro('Preencha: ' + faltam.join(', ') + '.'); return; }
+    if (faltam.length) { mostrarErro(mensagemDeCamposFaltando(faltam)); return; }
 
     const btn = shadow.getElementById('lme-gerar');
     const original = btn.textContent;
     btn.textContent = 'Gerando…'; btn.disabled = true;
 
     try {
-      const PDFLibRef = await garantirPdfLib();
+      let PDFLibRef;
+      try {
+        PDFLibRef = await garantirPdfLib();
+      } catch (e) {
+        // biblioteca que nao carrega tem causa e solucao proprias (quase
+        // sempre rede da unidade bloqueando o CDN), diferentes de um erro
+        // ao montar o PDF — por isso a mensagem e outra.
+        mostrarErro(raiz.MeedsSuiteMensagens.BIBLIOTECA_NAO_CARREGOU("pdf-lib", e.message));
+        btn.textContent = original;
+        btn.disabled = false;
+        return;
+      }
       const { PDFDocument, StandardFonts, rgb } = PDFLibRef;
 
       const origemSel = shadow.getElementById('lme-origem-sel').value;
@@ -321,7 +357,14 @@
       baixarPdf(bytes, filename);
       toast('PDF gerado e baixado: ' + filename, 5000);
     } catch (e) {
-      mostrarErro('Erro ao gerar PDF: ' + e.message);
+      mostrarErro(
+        raiz.MeedsSuiteMensagens.erroTecnico(
+          "gerar o PDF",
+          "o programa encontrou um problema ao montar o arquivo",
+          "Confira se os campos estão preenchidos como esperado e tente de novo. Se repetir, avise o administrador com a mensagem entre parênteses.",
+          e.message
+        )
+      );
     } finally {
       btn.textContent = original; btn.disabled = false;
     }
