@@ -150,13 +150,32 @@
     return entrada;
   }
 
+  /* O manifest.json e a FONTE DE VERDADE de nome, descricao e versao.
+   * O que estiver no registerModule() do modulo vale so como reserva,
+   * para o caso de o modulo nao estar listado no manifest (ex: durante o
+   * desenvolvimento, antes do passo 3 do guia).
+   *
+   * Por que assim: nome e descricao sao texto que o administrador pode
+   * querer ajustar sem abrir codigo. Se vivessem em dois lugares, um dia
+   * divergiriam — foi o que aconteceu com os comentarios de posicao dos
+   * botoes nos scripts antigos. Com o manifest mandando, editar o texto
+   * do painel e editar um arquivo de dados. */
+  function fichaDoManifesto(id) {
+    if (!manifesto || !Array.isArray(manifesto.modulos)) return null;
+    for (var i = 0; i < manifesto.modulos.length; i++) {
+      if (manifesto.modulos[i].id === id) return manifesto.modulos[i];
+    }
+    return null;
+  }
+
   function listarModulos() {
     return registro.map(function (e) {
+      var m = fichaDoManifesto(e.def.id) || {};
       return {
         id: e.def.id,
-        nome: e.def.nome || e.def.id,
-        descricao: e.def.descricao || "",
-        versao: e.def.versao || "?",
+        nome: m.nome || e.def.nome || e.def.id,
+        descricao: m.descricao || e.def.descricao || "",
+        versao: m.versao || e.def.versao || "?",
         habilitado: estaHabilitado(e.def.id),
         rodando: e.rodando,
       };

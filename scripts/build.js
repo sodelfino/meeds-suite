@@ -107,6 +107,14 @@ function main() {
     pecasModulos.push(`/* ===== ${mod.arquivo} (v${mod.versao}) ===== */\n${conteudo}`);
   }
 
+  /* O modelo nao entra no pacote (nao esta no manifest), mas e verificado
+   * do mesmo jeito: um template com posicao hardcoded ensinaria o erro
+   * para todo modulo criado a partir dele. */
+  const CAMINHO_TEMPLATE = "modules/_template/index.js";
+  if (fs.existsSync(path.join(RAIZ, CAMINHO_TEMPLATE))) {
+    problemas.push(...verificarRegras(CAMINHO_TEMPLATE, ler(CAMINHO_TEMPLATE)));
+  }
+
   if (problemas.length) {
     console.error("\nBUILD REPROVADO — regras de arquitetura violadas:\n");
     problemas.forEach((p) => console.error("  " + p));

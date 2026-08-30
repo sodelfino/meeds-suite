@@ -2103,13 +2103,32 @@
     return entrada;
   }
 
+  /* O manifest.json e a FONTE DE VERDADE de nome, descricao e versao.
+   * O que estiver no registerModule() do modulo vale so como reserva,
+   * para o caso de o modulo nao estar listado no manifest (ex: durante o
+   * desenvolvimento, antes do passo 3 do guia).
+   *
+   * Por que assim: nome e descricao sao texto que o administrador pode
+   * querer ajustar sem abrir codigo. Se vivessem em dois lugares, um dia
+   * divergiriam — foi o que aconteceu com os comentarios de posicao dos
+   * botoes nos scripts antigos. Com o manifest mandando, editar o texto
+   * do painel e editar um arquivo de dados. */
+  function fichaDoManifesto(id) {
+    if (!manifesto || !Array.isArray(manifesto.modulos)) return null;
+    for (var i = 0; i < manifesto.modulos.length; i++) {
+      if (manifesto.modulos[i].id === id) return manifesto.modulos[i];
+    }
+    return null;
+  }
+
   function listarModulos() {
     return registro.map(function (e) {
+      var m = fichaDoManifesto(e.def.id) || {};
       return {
         id: e.def.id,
-        nome: e.def.nome || e.def.id,
-        descricao: e.def.descricao || "",
-        versao: e.def.versao || "?",
+        nome: m.nome || e.def.nome || e.def.id,
+        descricao: m.descricao || e.def.descricao || "",
+        versao: m.versao || e.def.versao || "?",
         habilitado: estaHabilitado(e.def.id),
         rodando: e.rodando,
       };
@@ -2364,35 +2383,35 @@
     {
       "id": "alarme-fila",
       "nome": "Alarme de Fila",
-      "descricao": "Alarme sonoro/visual para a fila de espera do Pronto Atendimento.",
+      "descricao": "Avisa com som e aviso na tela quando um paciente entra na fila do Pronto Atendimento, ou quando alguém espera além do tempo que você definir. Para sozinho quando a fila esvazia.",
       "versao": "2.0.0",
       "origem": "sodelfino/meeds-alarme-fila"
     },
     {
       "id": "apac-itauna",
-      "nome": "APAC - Itauna",
-      "descricao": "Gera o laudo de APAC de Itauna em PDF e encaminha para assinatura gov.br.",
+      "nome": "APAC — Itaúna",
+      "descricao": "Gera a APAC de Itaúna já preenchida com os dados do paciente que estão na tela e leva você direto para a assinatura no gov.br.",
       "versao": "2.1.0",
       "origem": "sodelfino/apac-itauna-meeds"
     },
     {
       "id": "lme-sete-lagoas",
-      "nome": "Laudo - Sete Lagoas",
-      "descricao": "Preenche o LME oficial de Sete Lagoas por cima do PDF da prefeitura.",
+      "nome": "Laudo — Sete Lagoas",
+      "descricao": "Preenche o Laudo Médico de Alto Custo de Sete Lagoas no formulário oficial da prefeitura, com os dados lidos da tela do atendimento.",
       "versao": "2.1.0",
       "origem": "sodelfino/lme-sete-lagoas-gerador"
     },
     {
       "id": "cmd",
-      "nome": "Laudo - Conceicao do Mato Dentro",
-      "descricao": "Preenche o laudo de alto custo de CMD pelos campos reais do formulario PDF.",
+      "nome": "Laudo — Conceição do Mato Dentro",
+      "descricao": "Preenche o Laudo Médico de Alto Custo de Conceição do Mato Dentro no formulário oficial da prefeitura, com os dados lidos da tela do atendimento.",
       "versao": "2.1.0",
       "origem": "sodelfino/laudo-cmd-meeds"
     },
     {
       "id": "remume",
       "nome": "Assistente REMUME",
-      "descricao": "Consulta a relacao municipal de medicamentos do municipio do atendimento.",
+      "descricao": "Consulta a lista de medicamentos do município do atendimento. Aceita erro de digitação e nome comercial: “buscopan” encontra escopolamina.",
       "versao": "2.0.1",
       "origem": "sodelfino/meeds-remume-assistant"
     }
