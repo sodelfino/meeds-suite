@@ -1,9 +1,9 @@
 // ==UserScript==
-// @name         Meeds Suite — Novetech (instalacao unica)
+// @name         Assistente Meeds - Por: Marcelo
 // @namespace    novetech-meeds-suite
 // @version      2.0.0
-// @description  Pacote unificado das ferramentas Meeds: alarme de fila, APAC Itauna, LME Sete Lagoas, laudo CMD e assistente REMUME. Uma instalacao so; cada funcao liga/desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
-// @author       Novetech
+// @description  Assistente Meeds - Por: Marcelo. Alarme de fila, APAC de Itauna, laudos de Sete Lagoas e Conceicao do Mato Dentro e consulta a REMUME, numa instalacao unica. Cada funcao liga e desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
+// @author       Marcelo
 // @match        *://*.meeds.com.br/*
 // @match        *://doctor-calltech.meeds.com.br/*
 // @exclude      *://*web-calltech-*.meeds.com.br/*
@@ -23,6 +23,7 @@
 
 /* ------------------------------------------------------------------
  * BOOTLOADER — o UNICO arquivo que o medico instala
+ * Assistente Meeds — Por: Marcelo
  * ------------------------------------------------------------------
  * Este arquivo e o ESQUELETO. O artefato que o medico instala e
  * dist/meeds-suite.user.js, gerado por `node scripts/build.js`, que
@@ -67,7 +68,7 @@
         manifesto: raiz.__MEEDS_SUITE_MANIFESTO__ || null,
       });
     } catch (e) {
-      console.error("[Meeds Suite] falha ao iniciar o nucleo:", e);
+      console.error("[Assistente Meeds] falha ao iniciar o nucleo:", e);
     }
   }
 

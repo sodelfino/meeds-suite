@@ -125,6 +125,23 @@ function main() {
     process.exit(1);
   }
 
+  /* --- dados dos formularios ---
+   * dados/formularios.json e injetado no pacote, nao buscado em runtime:
+   * ele precisa estar disponivel no instante em que o modulo monta o
+   * formulario, e uma busca de rede ali deixaria a tela meio pronta.
+   * Editar o JSON + npm run build e o fluxo documentado no manual do
+   * administrador. */
+  const CAMINHO_DADOS = "dados/formularios.json";
+  let injecaoDados = "";
+  if (fs.existsSync(path.join(RAIZ, CAMINHO_DADOS))) {
+    const dados = JSON.parse(ler(CAMINHO_DADOS)); // falha o build se o JSON estiver quebrado
+    injecaoDados =
+      "\n  /* ===== " + CAMINHO_DADOS + " ===== */\n  raiz.MEEDS_DADOS_FORMULARIOS = " +
+      JSON.stringify(dados) + ";\n";
+  } else {
+    console.warn("AVISO: " + CAMINHO_DADOS + " nao encontrado — os formularios vao subir sem catalogo.");
+  }
+
   /* --- inventario embutido, para o painel exibir mesmo offline --- */
   const inventario =
     "var __inv = " +
@@ -154,7 +171,7 @@ function main() {
   const injetar = (texto) => () => texto;
 
   const saida = bootloader
-    .replace(MARCADOR_NUCLEO, injetar(pecasNucleo.join("\n\n") + "\n\n  " + inventario))
+    .replace(MARCADOR_NUCLEO, injetar(pecasNucleo.join("\n\n") + "\n" + injecaoDados + "\n  " + inventario))
     .replace(MARCADOR_MODULOS, injetar(pecasModulos.join("\n\n")))
     .replace(/@version\s+[\d.]+/, injetar(`@version      ${manifest.versao}`));
 
@@ -174,6 +191,21 @@ function main() {
   console.log(`  nucleo:  ${manifest.nucleo.length} arquivo(s)`);
   console.log(`  modulos: ${manifest.modulos.length} (${manifest.modulos.map((m) => m.id).join(", ")})`);
   console.log(`  versao:  ${manifest.versao}`);
+  if (injecaoDados) {
+    const d = JSON.parse(ler(CAMINHO_DADOS));
+    const resumo = Object.keys(d)
+      .filter((k) => !k.startsWith("_"))
+      .map((k) => {
+        const f = d[k];
+        const partes = [];
+        if (f.origens) partes.push(f.origens.length + " unidade(s)");
+        if (f.procedimentos) partes.push(Object.keys(f.procedimentos).length + " procedimento(s)");
+        if (f.cids) partes.push(Object.keys(f.cids).length + " CID(s)");
+        return `           ${k}: ${partes.join(", ")}`;
+      });
+    console.log(`  dados:   ${CAMINHO_DADOS}`);
+    resumo.forEach((l) => console.log(l));
+  }
   console.log("\nInstale/atualize dist/meeds-suite.user.js no Tampermonkey.");
 }
 

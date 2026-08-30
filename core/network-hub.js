@@ -93,7 +93,7 @@
         alvos[i].callback(evento);
       } catch (e) {
         // um assinante quebrado nunca pode derrubar os outros nem a pagina
-        console.warn("[Meeds Suite] assinante de rede falhou:", alvos[i].idModulo, e);
+        console.warn("[Assistente Meeds] assinante de rede falhou:", alvos[i].idModulo, e);
       }
     }
   }

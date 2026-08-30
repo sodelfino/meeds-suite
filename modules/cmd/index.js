@@ -144,155 +144,20 @@
   }
 
 
-  /* ---- dados fixos, preservados do repositorio de origem ---- */
-  // Ja vem fixo no PDF oficial (campo municipio_1) — nao e reescrito.
-  var MUNICIPIO_FIXO = "CONCEIÇÃO DO MATO DENTRO";
+  /* ---- dados do formulario ----
+   * Unidades de origem, catalogo de procedimentos e lista de CID-10 vem
+   * de dados/formularios.json, injetado no pacote pelo build. Ficam fora
+   * do codigo de proposito: sao a parte que o administrador precisa
+   * editar de vez em quando (uma unidade nova, um exame novo, um CID que
+   * faltava) e ninguem deveria abrir um .js para isso.
+   * Se o arquivo faltar, os padroes abaixo seguram — o modulo nunca
+   * quebra por causa de dado ausente. */
+  var DADOS = (raiz.MEEDS_DADOS_FORMULARIOS || {})["cmd"] || {};
 
-  /* Os medicos NAO ficam mais no codigo. Desde a v2.1.0 o cadastro vive
-   * so no navegador do proprio medico (core/cadastro.js, armazenamento do
-   * Tampermonkey), e e compartilhado pelos tres geradores de laudo: quem
-   * se cadastra uma vez aparece na APAC, em Sete Lagoas e em CMD.
-   * Motivo: com o repositorio publico, nome/CRM/CPF no fonte e dado
-   * pessoal exposto. Ver docs/ARQUITETURA.md, decisao D11. */
-
-  var ORIGENS = ['CEMO DR SEBASTIAO SOARES DOS SANTOS'];
-
-  var CID_DIC = {
-    // já usados no laudo de exemplo desta unidade
-    'K83.8': 'Outras doenças especificadas das vias biliares',
-    // cardiologia (Itaúna)
-    'I10': 'Hipertensão essencial (primária)',
-    'I11.9': 'Doença cardíaca hipertensiva sem insuficiência cardíaca',
-    'I15.9': 'Hipertensão secundária não especificada',
-    'I20.0': 'Angina instável',
-    'I20.9': 'Angina pectoris, não especificada',
-    'I21.9': 'Infarto agudo do miocárdio não especificado',
-    'I22.9': 'Infarto do miocárdio recorrente não especificado',
-    'I24.9': 'Doença isquêmica aguda do coração, não especificada',
-    'I25.1': 'Doença aterosclerótica do coração',
-    'I25.9': 'Doença isquêmica crônica do coração, não especificada',
-    'I27.9': 'Doença cardiopulmonar não especificada',
-    'I34.0': 'Insuficiência da valva mitral',
-    'I34.9': 'Transtorno não-reumático da valva mitral, não especificado',
-    'I35.0': 'Estenose aórtica',
-    'I35.9': 'Transtorno da valva aórtica não especificado',
-    'I36.1': 'Insuficiência não-reumática da valva tricúspide',
-    'I38': 'Endocardite de valva não especificada',
-    'I42.0': 'Cardiomiopatia dilatada',
-    'I42.9': 'Cardiomiopatia não especificada',
-    'I44.2': 'Bloqueio atrioventricular total',
-    'I45.9': 'Transtorno de condução não especificado',
-    'I47.1': 'Taquicardia supraventricular',
-    'I47.2': 'Taquicardia ventricular',
-    'I48': 'Flutter e fibrilação atrial',
-    'I48.9': 'Flutter e fibrilação atrial',
-    'I49.5': 'Síndrome do nó sinusal',
-    'I49.9': 'Arritmia cardíaca não especificada',
-    'I50': 'Insuficiência cardíaca',
-    'I50.9': 'Insuficiência cardíaca não especificada',
-    'I51.7': 'Cardiomegalia',
-    'I70.0': 'Aterosclerose da aorta',
-    'I70.2': 'Aterosclerose das artérias das extremidades',
-    'I71.4': 'Aneurisma da aorta abdominal, sem menção de ruptura',
-    'I73.9': 'Doença vascular periférica não especificada',
-    'I80.2': 'Flebite e tromboflebite de outros vasos profundos dos membros inferiores',
-    'I82.9': 'Embolia e trombose venosa não especificada',
-    'Q21.1': 'Comunicação interatrial',
-    'Q24.9': 'Malformação congênita do coração não especificada',
-    'E78.5': 'Hiperlipidemia não especificada',
-    'R00.0': 'Taquicardia não especificada',
-    'R00.1': 'Bradicardia não especificada',
-    'R00.2': 'Palpitações',
-    'R07.2': 'Dor precordial',
-    'R42': 'Tontura e instabilidade',
-    'R55': 'Síncope e colapso',
-    'Z95.0': 'Presença de marca-passo cardíaco',
-    'Z95.1': 'Presença de enxerto de ponte aortocoronária',
-    'Z95.5': 'Presença de implante e enxerto de angioplastia coronária',
-    // neurologia / cefaleia (Sete Lagoas)
-    'G43.0': 'Enxaqueca sem aura (enxaqueca comum)',
-    'G43.8': 'Outras formas de enxaqueca',
-    'G43.9': 'Enxaqueca não especificada',
-    'G44.1': 'Cefaleia vascular, não classificada em outra parte',
-    'G40.9': 'Epilepsia não especificada',
-    'G93.4': 'Encefalopatia não especificada',
-    'R51': 'Cefaleia',
-    'G80.9': 'Paralisia cerebral não especificada',
-    'F84.0': 'Autismo infantil',
-    'F70': 'Retardo mental leve',
-    'F71': 'Retardo mental moderado',
-    'F82': 'Transtorno específico do desenvolvimento motor',
-    'F80.9': 'Transtorno de desenvolvimento da fala ou linguagem não especificado',
-    'Q90.9': 'Síndrome de Down não especificada',
-    'P07.3': 'Outros recém-nascidos pré-termo',
-    'P14.3': 'Outras lesões do plexo braquial devidas a traumatismo de parto',
-    'L93': 'Lúpus eritematoso',
-    'G00.9': 'Meningite bacteriana não especificada',
-    'H90.3': 'Perda de audição neurossensorial bilateral',
-    // reumatologia / ortopedia (Sete Lagoas)
-    'M18.0': 'Artrose primária bilateral das primeiras articulações carpometacarpianas',
-    'M19.9': 'Artrose não especificada',
-    'M25.5': 'Dor articular',
-    'M79.1': 'Mialgia',
-    'M54.5': 'Dor lombar baixa',
-    'M54.2': 'Cervicalgia',
-    'M06.9': 'Artrite reumatoide não especificada',
-    'M32.9': 'Lúpus eritematoso sistêmico não especificado',
-    'M81.9': 'Osteoporose não especificada',
-    'M85.8': 'Outros transtornos especificados da densidade e da estrutura ósseas',
-    'M47.9': 'Espondilose não especificada',
-    'M51.1': 'Transtornos de discos lombares e de outros discos intervertebrais com radiculopatia',
-    // endocrinologia (Sete Lagoas)
-    'E10.9': 'Diabetes mellitus tipo 1 sem complicações',
-    'E11.9': 'Diabetes mellitus tipo 2 sem complicações',
-    'E03.9': 'Hipotireoidismo não especificado',
-    'E05.9': 'Tireotoxicose não especificada',
-    'E66.9': 'Obesidade não especificada',
-    'E78.0': 'Hipercolesterolemia pura',
-    // geral (Sete Lagoas)
-    'R73.9': 'Hiperglicemia não especificada',
-    'J44.9': 'Doença pulmonar obstrutiva crônica não especificada',
-    'N18.9': 'Doença renal crônica não especificada',
-    'R07.4': 'Dor torácica, não especificada',
-  };
-
-  var CATALOGO_PROCEDIMENTOS = {
-    RM_CRANIO:            { nome: 'Ressonância nuclear magnética de crânio',                              codigo: '02.07.01.006-4' },
-    RM_BASE_CRANIO:       { nome: 'Ressonância nuclear magnética de base do crânio',                      codigo: '02.07.01.006-4' },
-    RM_SELA_TURCICA:      { nome: 'Ressonância nuclear magnética de sela túrcica',                        codigo: '02.07.01.007-2' },
-    RM_ATM:                { nome: 'Ressonância nuclear magnética de articulação temporomandibular (bilateral)', codigo: '02.07.01.002-1' },
-    ANGIO_RM_CEREBRAL:     { nome: 'Angiorressonância cerebral',                                          codigo: '02.07.01.001-3' },
-    RM_COLUNA_CERVICAL:    { nome: 'Ressonância nuclear magnética de coluna cervical',                    codigo: '02.07.01.003-0' },
-    RM_COLUNA_TORACICA:    { nome: 'Ressonância nuclear magnética de coluna torácica',                    codigo: '02.07.01.005-6' },
-    RM_COLUNA_LOMBOSSACRA: { nome: 'Ressonância nuclear magnética de coluna lombo-sacra',                  codigo: '02.07.01.004-8' },
-    RM_CORACAO_AORTA:      { nome: 'Ressonância nuclear magnética de coração/aorta com cine',              codigo: '02.07.02.001-9' },
-    RM_MEMBRO_SUPERIOR:    { nome: 'Ressonância nuclear magnética de membro superior (unilateral)',        codigo: '02.07.02.002-7' },
-    TC_CRANIO:             { nome: 'Tomografia computadorizada do crânio',                                codigo: '02.06.01.007-9' },
-    TC_SELA_TURCICA:       { nome: 'Tomografia computadorizada de sela túrcica',                           codigo: '02.06.01.006-0' },
-    TC_FACE_ATM:           { nome: 'Tomografia computadorizada de face/seios da face/ATM',                 codigo: '02.06.01.004-4' },
-    TC_PESCOCO:            { nome: 'Tomografia computadorizada do pescoço',                                codigo: '02.06.01.005-2' },
-    TC_COLUNA_CERVICAL:    { nome: 'Tomografia computadorizada de coluna cervical (com ou sem contraste)', codigo: '02.06.01.001-0' },
-    TC_COLUNA_TORACICA:    { nome: 'Tomografia computadorizada de coluna torácica (com ou sem contraste)', codigo: '02.06.01.003-6' },
-    TC_COLUNA_LOMBOSSACRA: { nome: 'Tomografia computadorizada de coluna lombo-sacra (com ou sem contraste)', codigo: '02.06.01.002-8' },
-    TC_TORAX:              { nome: 'Tomografia computadorizada de tórax (sem contraste)',                  codigo: '02.06.02.003-1' },
-    TC_ABDOME_SUPERIOR:    { nome: 'Tomografia computadorizada de abdome superior',                        codigo: '02.06.03.001-0' },
-    TC_PELVE:              { nome: 'Tomografia computadorizada de pelve/bacia/abdome inferior',            codigo: '02.06.03.003-7' },
-    TC_ARTIC_MEMBRO_SUP:   { nome: 'Tomografia computadorizada de articulações de membro superior',        codigo: '02.06.02.001-5' },
-    TC_ARTIC_MEMBRO_INF:   { nome: 'Tomografia computadorizada de articulações de membro inferior',        codigo: '02.06.03.002-9' },
-    TC_SEGMENTOS_APENDIC:  { nome: 'Tomografia computadorizada de segmentos apendiculares (braço, antebraço, mão, coxa, perna, pé)', codigo: '02.06.02.002-3' },
-    DENSITOMETRIA_2SEG:    { nome: 'Densitometria óssea (dois segmentos)',                                 codigo: '02.04.06.002-8' },
-    DENSITOMETRIA_CORPO:   { nome: 'Densitometria óssea (corpo inteiro)',                                  codigo: '02.04.06.002-8' },
-    ENDOSCOPIA_DIGESTIVA_ALTA: { nome: 'Endoscopia digestiva alta (esofagogastroduodenoscopia)',           codigo: '02.09.01.003-7' },
-    COLONOSCOPIA:          { nome: 'Colonoscopia (coloscopia)',                                            codigo: '02.09.01.002-9' },
-    ANGIOCORONARIOGRAFIA:  { nome: 'Angiocoronariografia (cateterismo cardíaco)',                           codigo: '02.11.02.001-0' },
-    CINTILOGRAFIA_MIOCARDIO_ESTRESSE: { nome: 'Cintilografia de perfusão do miocárdio (estresse, mín. 3 projeções)', codigo: '02.08.01.002-5' },
-    CINTILOGRAFIA_MIOCARDIO_REPOUSO:  { nome: 'Cintilografia de perfusão do miocárdio (repouso, mín. 3 projeções)',  codigo: '02.08.01.003-3' },
-    ECOCARDIOGRAMA_TRANSTORACICO: { nome: 'Ecocardiograma transtorácico',                                  codigo: '02.05.01.003-2' },
-    TESTE_ERGOMETRICO:     { nome: 'Teste ergométrico (teste de esforço)',                                 codigo: '02.11.02.006-0' },
-    HOLTER_24H:            { nome: 'Holter 24 horas (eletrocardiograma dinâmico, 3 canais)',                codigo: '02.11.02.004-4' },
-    MAPA_24H:              { nome: 'MAPA 24 horas (monitorização ambulatorial da pressão arterial)',        codigo: '02.11.02.005-2' },
-    RETOSSIGMOIDOSCOPIA:   { nome: 'Retossigmoidoscopia (diagnóstica)',                                     codigo: '02.09.01.005-3' },
-  };
+  var MUNICIPIO_FIXO = DADOS.municipio || "CONCEIÇÃO DO MATO DENTRO";
+  var ORIGENS = DADOS.origens || [];
+  var CID_DIC = DADOS.cids || {};
+  var CATALOGO_PROCEDIMENTOS = DADOS.procedimentos || {};
 
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
   var CSS = "#cmd-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #cmd-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #cmd-modal-head h2{ margin:0; font-size:15px; }\n    #cmd-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #cmd-body{ padding:18px 20px; }\n    .cmd-sec{ margin-bottom:16px; }\n    .cmd-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .cmd-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .cmd-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    .cmd-grid4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:90px; resize:vertical; }\n    #cmd-origem-outro-wrap{ display:none; margin-top:8px; }\n    #cmd-origem-outro-wrap.show{ display:block; }\n    #cmd-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .cmd-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    .cmd-contador{ text-align:right; font-size:10.5px; color:#8a97a4; margin-top:4px; }\n    button.cmd-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.cmd-primary:hover{ background:#123a7a; }\n    button.cmd-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.cmd-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.cmd-secondary:hover{ background:#e8f0f8; }\n    #cmd-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #cmd-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";

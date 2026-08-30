@@ -1,0 +1,566 @@
+{
+  "_leia_me": "Dados dos formularios: unidades de origem, catalogos de procedimento e listas de CID-10. Edite este arquivo e rode \"npm run build\" — as mudancas aparecem para os medicos sem precisar mexer em codigo. Ver docs/MANUAL-ADMIN.md.",
+  "lme-sete-lagoas": {
+    "_leia_me": "Laudo Medico de Alto Custo de Sete Lagoas.",
+    "municipio": "SETE LAGOAS",
+    "origens": [
+      "SAÚDE AUDITIVA",
+      "UBS CIDADE DE DEUS",
+      "UBS BELO VALE"
+    ],
+    "procedimentos": {
+      "RM_CRANIO": {
+        "nome": "Ressonância nuclear magnética de crânio",
+        "codigo": "02.07.01.006-4"
+      },
+      "RM_BASE_CRANIO": {
+        "nome": "Ressonância nuclear magnética de base do crânio",
+        "codigo": "02.07.01.006-4"
+      },
+      "RM_SELA_TURCICA": {
+        "nome": "Ressonância nuclear magnética de sela túrcica",
+        "codigo": "02.07.01.007-2"
+      },
+      "RM_ATM": {
+        "nome": "Ressonância nuclear magnética de articulação temporomandibular (bilateral)",
+        "codigo": "02.07.01.002-1"
+      },
+      "ANGIO_RM_CEREBRAL": {
+        "nome": "Angiorressonância cerebral",
+        "codigo": "02.07.01.001-3"
+      },
+      "RM_COLUNA_CERVICAL": {
+        "nome": "Ressonância nuclear magnética de coluna cervical",
+        "codigo": "02.07.01.003-0"
+      },
+      "RM_COLUNA_TORACICA": {
+        "nome": "Ressonância nuclear magnética de coluna torácica",
+        "codigo": "02.07.01.005-6"
+      },
+      "RM_COLUNA_LOMBOSSACRA": {
+        "nome": "Ressonância nuclear magnética de coluna lombo-sacra",
+        "codigo": "02.07.01.004-8"
+      },
+      "RM_CORACAO_AORTA": {
+        "nome": "Ressonância nuclear magnética de coração/aorta com cine",
+        "codigo": "02.07.02.001-9"
+      },
+      "RM_MEMBRO_SUPERIOR": {
+        "nome": "Ressonância nuclear magnética de membro superior (unilateral)",
+        "codigo": "02.07.02.002-7"
+      },
+      "TC_CRANIO": {
+        "nome": "Tomografia computadorizada do crânio",
+        "codigo": "02.06.01.007-9"
+      },
+      "TC_SELA_TURCICA": {
+        "nome": "Tomografia computadorizada de sela túrcica",
+        "codigo": "02.06.01.006-0"
+      },
+      "TC_FACE_ATM": {
+        "nome": "Tomografia computadorizada de face/seios da face/ATM",
+        "codigo": "02.06.01.004-4"
+      },
+      "TC_PESCOCO": {
+        "nome": "Tomografia computadorizada do pescoço",
+        "codigo": "02.06.01.005-2"
+      },
+      "TC_COLUNA_CERVICAL": {
+        "nome": "Tomografia computadorizada de coluna cervical (com ou sem contraste)",
+        "codigo": "02.06.01.001-0"
+      },
+      "TC_COLUNA_TORACICA": {
+        "nome": "Tomografia computadorizada de coluna torácica (com ou sem contraste)",
+        "codigo": "02.06.01.003-6"
+      },
+      "TC_COLUNA_LOMBOSSACRA": {
+        "nome": "Tomografia computadorizada de coluna lombo-sacra (com ou sem contraste)",
+        "codigo": "02.06.01.002-8"
+      },
+      "TC_TORAX": {
+        "nome": "Tomografia computadorizada de tórax (sem contraste)",
+        "codigo": "02.06.02.003-1"
+      },
+      "TC_ABDOME_SUPERIOR": {
+        "nome": "Tomografia computadorizada de abdome superior",
+        "codigo": "02.06.03.001-0"
+      },
+      "TC_PELVE": {
+        "nome": "Tomografia computadorizada de pelve/bacia/abdome inferior",
+        "codigo": "02.06.03.003-7"
+      },
+      "TC_ARTIC_MEMBRO_SUP": {
+        "nome": "Tomografia computadorizada de articulações de membro superior",
+        "codigo": "02.06.02.001-5"
+      },
+      "TC_ARTIC_MEMBRO_INF": {
+        "nome": "Tomografia computadorizada de articulações de membro inferior",
+        "codigo": "02.06.03.002-9"
+      },
+      "TC_SEGMENTOS_APENDIC": {
+        "nome": "Tomografia computadorizada de segmentos apendiculares (braço, antebraço, mão, coxa, perna, pé)",
+        "codigo": "02.06.02.002-3"
+      },
+      "DENSITOMETRIA_2SEG": {
+        "nome": "Densitometria óssea (dois segmentos)",
+        "codigo": "02.04.06.002-8"
+      },
+      "DENSITOMETRIA_CORPO": {
+        "nome": "Densitometria óssea (corpo inteiro)",
+        "codigo": "02.04.06.002-8"
+      },
+      "ENDOSCOPIA_DIGESTIVA_ALTA": {
+        "nome": "Endoscopia digestiva alta (esofagogastroduodenoscopia)",
+        "codigo": "02.09.01.003-7"
+      },
+      "COLONOSCOPIA": {
+        "nome": "Colonoscopia (coloscopia)",
+        "codigo": "02.09.01.002-9"
+      },
+      "ANGIOCORONARIOGRAFIA": {
+        "nome": "Angiocoronariografia (cateterismo cardíaco)",
+        "codigo": "02.11.02.001-0"
+      },
+      "CINTILOGRAFIA_MIOCARDIO_ESTRESSE": {
+        "nome": "Cintilografia de perfusão do miocárdio (estresse, mín. 3 projeções)",
+        "codigo": "02.08.01.002-5"
+      },
+      "CINTILOGRAFIA_MIOCARDIO_REPOUSO": {
+        "nome": "Cintilografia de perfusão do miocárdio (repouso, mín. 3 projeções)",
+        "codigo": "02.08.01.003-3"
+      },
+      "ECOCARDIOGRAMA_TRANSTORACICO": {
+        "nome": "Ecocardiograma transtorácico",
+        "codigo": "02.05.01.003-2"
+      },
+      "TESTE_ERGOMETRICO": {
+        "nome": "Teste ergométrico (teste de esforço)",
+        "codigo": "02.11.02.006-0"
+      },
+      "HOLTER_24H": {
+        "nome": "Holter 24 horas (eletrocardiograma dinâmico, 3 canais)",
+        "codigo": "02.11.02.004-4"
+      },
+      "MAPA_24H": {
+        "nome": "MAPA 24 horas (monitorização ambulatorial da pressão arterial)",
+        "codigo": "02.11.02.005-2"
+      },
+      "RETOSSIGMOIDOSCOPIA": {
+        "nome": "Retossigmoidoscopia (diagnóstica)",
+        "codigo": "02.09.01.005-3"
+      }
+    },
+    "cids": {
+      "G43.0": "Enxaqueca sem aura (enxaqueca comum)",
+      "G43.8": "Outras formas de enxaqueca",
+      "P14.3": "Outras lesões do plexo braquial devidas a traumatismo de parto",
+      "L93": "Lúpus eritematoso",
+      "M18.0": "Artrose primária bilateral das primeiras articulações carpometacarpianas",
+      "M25.5": "Dor articular",
+      "R73.9": "Hiperglicemia não especificada",
+      "G00.9": "Meningite bacteriana não especificada",
+      "H90.3": "Perda de audição neurossensorial bilateral",
+      "F82": "Transtorno específico do desenvolvimento motor",
+      "F80.9": "Transtorno de desenvolvimento da fala ou linguagem não especificado",
+      "G43.9": "Enxaqueca não especificada",
+      "G44.1": "Cefaleia vascular, não classificada em outra parte",
+      "G40.9": "Epilepsia não especificada",
+      "G93.4": "Encefalopatia não especificada",
+      "R51": "Cefaleia",
+      "G80.9": "Paralisia cerebral não especificada",
+      "F84.0": "Autismo infantil",
+      "F70": "Retardo mental leve",
+      "F71": "Retardo mental moderado",
+      "Q90.9": "Síndrome de Down não especificada",
+      "P07.3": "Outros recém-nascidos pré-termo",
+      "M19.9": "Artrose não especificada",
+      "M79.1": "Mialgia",
+      "M54.5": "Dor lombar baixa",
+      "M54.2": "Cervicalgia",
+      "M06.9": "Artrite reumatoide não especificada",
+      "M32.9": "Lúpus eritematoso sistêmico não especificado",
+      "M81.9": "Osteoporose não especificada",
+      "M85.8": "Outros transtornos especificados da densidade e da estrutura ósseas",
+      "M47.9": "Espondilose não especificada",
+      "M51.1": "Transtornos de discos lombares e de outros discos intervertebrais com radiculopatia",
+      "E10.9": "Diabetes mellitus tipo 1 sem complicações",
+      "E11.9": "Diabetes mellitus tipo 2 sem complicações",
+      "E03.9": "Hipotireoidismo não especificado",
+      "E05.9": "Tireotoxicose não especificada",
+      "E66.9": "Obesidade não especificada",
+      "E78.0": "Hipercolesterolemia pura",
+      "I10": "Hipertensão essencial (primária)",
+      "J44.9": "Doença pulmonar obstrutiva crônica não especificada",
+      "N18.9": "Doença renal crônica não especificada",
+      "R07.4": "Dor torácica, não especificada"
+    }
+  },
+  "cmd": {
+    "_leia_me": "Laudo Medico de Alto Custo de Conceicao do Mato Dentro.",
+    "municipio": "CONCEIÇÃO DO MATO DENTRO",
+    "origens": [
+      "CEMO DR SEBASTIAO SOARES DOS SANTOS"
+    ],
+    "procedimentos": {
+      "RM_CRANIO": {
+        "nome": "Ressonância nuclear magnética de crânio",
+        "codigo": "02.07.01.006-4"
+      },
+      "RM_BASE_CRANIO": {
+        "nome": "Ressonância nuclear magnética de base do crânio",
+        "codigo": "02.07.01.006-4"
+      },
+      "RM_SELA_TURCICA": {
+        "nome": "Ressonância nuclear magnética de sela túrcica",
+        "codigo": "02.07.01.007-2"
+      },
+      "RM_ATM": {
+        "nome": "Ressonância nuclear magnética de articulação temporomandibular (bilateral)",
+        "codigo": "02.07.01.002-1"
+      },
+      "ANGIO_RM_CEREBRAL": {
+        "nome": "Angiorressonância cerebral",
+        "codigo": "02.07.01.001-3"
+      },
+      "RM_COLUNA_CERVICAL": {
+        "nome": "Ressonância nuclear magnética de coluna cervical",
+        "codigo": "02.07.01.003-0"
+      },
+      "RM_COLUNA_TORACICA": {
+        "nome": "Ressonância nuclear magnética de coluna torácica",
+        "codigo": "02.07.01.005-6"
+      },
+      "RM_COLUNA_LOMBOSSACRA": {
+        "nome": "Ressonância nuclear magnética de coluna lombo-sacra",
+        "codigo": "02.07.01.004-8"
+      },
+      "RM_CORACAO_AORTA": {
+        "nome": "Ressonância nuclear magnética de coração/aorta com cine",
+        "codigo": "02.07.02.001-9"
+      },
+      "RM_MEMBRO_SUPERIOR": {
+        "nome": "Ressonância nuclear magnética de membro superior (unilateral)",
+        "codigo": "02.07.02.002-7"
+      },
+      "TC_CRANIO": {
+        "nome": "Tomografia computadorizada do crânio",
+        "codigo": "02.06.01.007-9"
+      },
+      "TC_SELA_TURCICA": {
+        "nome": "Tomografia computadorizada de sela túrcica",
+        "codigo": "02.06.01.006-0"
+      },
+      "TC_FACE_ATM": {
+        "nome": "Tomografia computadorizada de face/seios da face/ATM",
+        "codigo": "02.06.01.004-4"
+      },
+      "TC_PESCOCO": {
+        "nome": "Tomografia computadorizada do pescoço",
+        "codigo": "02.06.01.005-2"
+      },
+      "TC_COLUNA_CERVICAL": {
+        "nome": "Tomografia computadorizada de coluna cervical (com ou sem contraste)",
+        "codigo": "02.06.01.001-0"
+      },
+      "TC_COLUNA_TORACICA": {
+        "nome": "Tomografia computadorizada de coluna torácica (com ou sem contraste)",
+        "codigo": "02.06.01.003-6"
+      },
+      "TC_COLUNA_LOMBOSSACRA": {
+        "nome": "Tomografia computadorizada de coluna lombo-sacra (com ou sem contraste)",
+        "codigo": "02.06.01.002-8"
+      },
+      "TC_TORAX": {
+        "nome": "Tomografia computadorizada de tórax (sem contraste)",
+        "codigo": "02.06.02.003-1"
+      },
+      "TC_ABDOME_SUPERIOR": {
+        "nome": "Tomografia computadorizada de abdome superior",
+        "codigo": "02.06.03.001-0"
+      },
+      "TC_PELVE": {
+        "nome": "Tomografia computadorizada de pelve/bacia/abdome inferior",
+        "codigo": "02.06.03.003-7"
+      },
+      "TC_ARTIC_MEMBRO_SUP": {
+        "nome": "Tomografia computadorizada de articulações de membro superior",
+        "codigo": "02.06.02.001-5"
+      },
+      "TC_ARTIC_MEMBRO_INF": {
+        "nome": "Tomografia computadorizada de articulações de membro inferior",
+        "codigo": "02.06.03.002-9"
+      },
+      "TC_SEGMENTOS_APENDIC": {
+        "nome": "Tomografia computadorizada de segmentos apendiculares (braço, antebraço, mão, coxa, perna, pé)",
+        "codigo": "02.06.02.002-3"
+      },
+      "DENSITOMETRIA_2SEG": {
+        "nome": "Densitometria óssea (dois segmentos)",
+        "codigo": "02.04.06.002-8"
+      },
+      "DENSITOMETRIA_CORPO": {
+        "nome": "Densitometria óssea (corpo inteiro)",
+        "codigo": "02.04.06.002-8"
+      },
+      "ENDOSCOPIA_DIGESTIVA_ALTA": {
+        "nome": "Endoscopia digestiva alta (esofagogastroduodenoscopia)",
+        "codigo": "02.09.01.003-7"
+      },
+      "COLONOSCOPIA": {
+        "nome": "Colonoscopia (coloscopia)",
+        "codigo": "02.09.01.002-9"
+      },
+      "ANGIOCORONARIOGRAFIA": {
+        "nome": "Angiocoronariografia (cateterismo cardíaco)",
+        "codigo": "02.11.02.001-0"
+      },
+      "CINTILOGRAFIA_MIOCARDIO_ESTRESSE": {
+        "nome": "Cintilografia de perfusão do miocárdio (estresse, mín. 3 projeções)",
+        "codigo": "02.08.01.002-5"
+      },
+      "CINTILOGRAFIA_MIOCARDIO_REPOUSO": {
+        "nome": "Cintilografia de perfusão do miocárdio (repouso, mín. 3 projeções)",
+        "codigo": "02.08.01.003-3"
+      },
+      "ECOCARDIOGRAMA_TRANSTORACICO": {
+        "nome": "Ecocardiograma transtorácico",
+        "codigo": "02.05.01.003-2"
+      },
+      "TESTE_ERGOMETRICO": {
+        "nome": "Teste ergométrico (teste de esforço)",
+        "codigo": "02.11.02.006-0"
+      },
+      "HOLTER_24H": {
+        "nome": "Holter 24 horas (eletrocardiograma dinâmico, 3 canais)",
+        "codigo": "02.11.02.004-4"
+      },
+      "MAPA_24H": {
+        "nome": "MAPA 24 horas (monitorização ambulatorial da pressão arterial)",
+        "codigo": "02.11.02.005-2"
+      },
+      "RETOSSIGMOIDOSCOPIA": {
+        "nome": "Retossigmoidoscopia (diagnóstica)",
+        "codigo": "02.09.01.005-3"
+      }
+    },
+    "cids": {
+      "K83.8": "Outras doenças especificadas das vias biliares",
+      "I10": "Hipertensão essencial (primária)",
+      "I11.9": "Doença cardíaca hipertensiva sem insuficiência cardíaca",
+      "I15.9": "Hipertensão secundária não especificada",
+      "I20.0": "Angina instável",
+      "I20.9": "Angina pectoris, não especificada",
+      "I21.9": "Infarto agudo do miocárdio não especificado",
+      "I22.9": "Infarto do miocárdio recorrente não especificado",
+      "I24.9": "Doença isquêmica aguda do coração, não especificada",
+      "I25.1": "Doença aterosclerótica do coração",
+      "I25.9": "Doença isquêmica crônica do coração, não especificada",
+      "I27.9": "Doença cardiopulmonar não especificada",
+      "I34.0": "Insuficiência da valva mitral",
+      "I34.9": "Transtorno não-reumático da valva mitral, não especificado",
+      "I35.0": "Estenose aórtica",
+      "I35.9": "Transtorno da valva aórtica não especificado",
+      "I36.1": "Insuficiência não-reumática da valva tricúspide",
+      "I38": "Endocardite de valva não especificada",
+      "I42.0": "Cardiomiopatia dilatada",
+      "I42.9": "Cardiomiopatia não especificada",
+      "I44.2": "Bloqueio atrioventricular total",
+      "I45.9": "Transtorno de condução não especificado",
+      "I47.1": "Taquicardia supraventricular",
+      "I47.2": "Taquicardia ventricular",
+      "I48": "Flutter e fibrilação atrial",
+      "I48.9": "Flutter e fibrilação atrial",
+      "I49.5": "Síndrome do nó sinusal",
+      "I49.9": "Arritmia cardíaca não especificada",
+      "I50": "Insuficiência cardíaca",
+      "I50.9": "Insuficiência cardíaca não especificada",
+      "I51.7": "Cardiomegalia",
+      "I70.0": "Aterosclerose da aorta",
+      "I70.2": "Aterosclerose das artérias das extremidades",
+      "I71.4": "Aneurisma da aorta abdominal, sem menção de ruptura",
+      "I73.9": "Doença vascular periférica não especificada",
+      "I80.2": "Flebite e tromboflebite de outros vasos profundos dos membros inferiores",
+      "I82.9": "Embolia e trombose venosa não especificada",
+      "Q21.1": "Comunicação interatrial",
+      "Q24.9": "Malformação congênita do coração não especificada",
+      "E78.5": "Hiperlipidemia não especificada",
+      "R00.0": "Taquicardia não especificada",
+      "R00.1": "Bradicardia não especificada",
+      "R00.2": "Palpitações",
+      "R07.2": "Dor precordial",
+      "R42": "Tontura e instabilidade",
+      "R55": "Síncope e colapso",
+      "Z95.0": "Presença de marca-passo cardíaco",
+      "Z95.1": "Presença de enxerto de ponte aortocoronária",
+      "Z95.5": "Presença de implante e enxerto de angioplastia coronária",
+      "G43.0": "Enxaqueca sem aura (enxaqueca comum)",
+      "G43.8": "Outras formas de enxaqueca",
+      "G43.9": "Enxaqueca não especificada",
+      "G44.1": "Cefaleia vascular, não classificada em outra parte",
+      "G40.9": "Epilepsia não especificada",
+      "G93.4": "Encefalopatia não especificada",
+      "R51": "Cefaleia",
+      "G80.9": "Paralisia cerebral não especificada",
+      "F84.0": "Autismo infantil",
+      "F70": "Retardo mental leve",
+      "F71": "Retardo mental moderado",
+      "F82": "Transtorno específico do desenvolvimento motor",
+      "F80.9": "Transtorno de desenvolvimento da fala ou linguagem não especificado",
+      "Q90.9": "Síndrome de Down não especificada",
+      "P07.3": "Outros recém-nascidos pré-termo",
+      "P14.3": "Outras lesões do plexo braquial devidas a traumatismo de parto",
+      "L93": "Lúpus eritematoso",
+      "G00.9": "Meningite bacteriana não especificada",
+      "H90.3": "Perda de audição neurossensorial bilateral",
+      "M18.0": "Artrose primária bilateral das primeiras articulações carpometacarpianas",
+      "M19.9": "Artrose não especificada",
+      "M25.5": "Dor articular",
+      "M79.1": "Mialgia",
+      "M54.5": "Dor lombar baixa",
+      "M54.2": "Cervicalgia",
+      "M06.9": "Artrite reumatoide não especificada",
+      "M32.9": "Lúpus eritematoso sistêmico não especificado",
+      "M81.9": "Osteoporose não especificada",
+      "M85.8": "Outros transtornos especificados da densidade e da estrutura ósseas",
+      "M47.9": "Espondilose não especificada",
+      "M51.1": "Transtornos de discos lombares e de outros discos intervertebrais com radiculopatia",
+      "E10.9": "Diabetes mellitus tipo 1 sem complicações",
+      "E11.9": "Diabetes mellitus tipo 2 sem complicações",
+      "E03.9": "Hipotireoidismo não especificado",
+      "E05.9": "Tireotoxicose não especificada",
+      "E66.9": "Obesidade não especificada",
+      "E78.0": "Hipercolesterolemia pura",
+      "R73.9": "Hiperglicemia não especificada",
+      "J44.9": "Doença pulmonar obstrutiva crônica não especificada",
+      "N18.9": "Doença renal crônica não especificada",
+      "R07.4": "Dor torácica, não especificada"
+    }
+  },
+  "apac-itauna": {
+    "_leia_me": "APAC de Itauna. O estabelecimento ja aparece preenchido no formulario.",
+    "estabelecimento": {
+      "nome": "CENTRO DE ESPEC MEDICAS E ODONTO DR OVIDIO NOGUEIRA MACHADO",
+      "cnes": "2105578"
+    },
+    "procedimentos": {
+      "HOLTER": {
+        "nome": "Holter 24h",
+        "codigo": "02.11.02.004-4",
+        "label": "MONITORAMENTO PELO SISTEMA HOLTER 24 HS (3 CANAIS)"
+      },
+      "MAPA": {
+        "nome": "MAPA 24h",
+        "codigo": "02.11.02.005-2",
+        "label": "MONITORIZAÇÃO AMBULATORIAL DE PRESSÃO ARTERIAL (MAPA)"
+      },
+      "TE": {
+        "nome": "Teste Ergométrico",
+        "codigo": "02.11.02.006-0",
+        "label": "TESTE DE ESFORÇO / TESTE ERGOMÉTRICO"
+      },
+      "DOPPLER": {
+        "nome": "Doppler vascular",
+        "codigo": "02.05.01.004-0",
+        "label": null
+      },
+      "CINTILO": {
+        "nome": "Cintilografia miocárdio",
+        "codigo": "02.08.01.002-5",
+        "label": "CINTILOGRAFIA DE MIOCÁRDIO P/ AVALIAÇÃO DA PERFUSÃO EM SITUAÇÃO DE ESTRESSE (MÍNIMO 3 PROJEÇÕES)"
+      },
+      "ECO": {
+        "nome": "Ecocardiograma",
+        "codigo": "02.05.01.003-2",
+        "label": null
+      },
+      "CATETER": {
+        "nome": "Cateterismo cardíaco",
+        "codigo": "02.11.02.001-0",
+        "label": "CATETERISMO CARDÍACO (CINECORONARIOGRAFIA)"
+      },
+      "OUTRO": {
+        "nome": "Outro procedimento…",
+        "codigo": "",
+        "label": null
+      }
+    },
+    "ecoVariantes": {
+      "REPOUSO": {
+        "codigo": "02.05.01.003-2",
+        "nome": "ECOCARDIOGRAFIA TRANSTORACICA"
+      },
+      "ESTRESSE": {
+        "codigo": "02.05.01.001-6",
+        "nome": "ECOCARDIOGRAFIA COM ESTRESSE"
+      },
+      "TRANSESOFAGICO": {
+        "codigo": "02.05.01.002-4",
+        "nome": "ECOCARDIOGRAFIA BI-DIMENSIONAL TRANSESOFAGICO"
+      }
+    },
+    "territorios": [
+      "DOPPLER DE ARTÉRIAS CARÓTIDAS E VERTEBRAIS",
+      "DOPPLER DE VEIAS CERVICAIS",
+      "DOPPLER AORTA ABDOMINAL",
+      "DOPPLER DE ARTÉRIAS RENAIS",
+      "DOPPLER ARTERIAL DE MEMBROS SUPERIORES",
+      "DOPPLER ARTERIAL DE MEMBROS INFERIORES",
+      "DOPPLER VENOSO DE MEMBROS SUPERIORES",
+      "DOPPLER VENOSO DE MEMBROS INFERIORES"
+    ],
+    "cids": {
+      "I10": "Hipertensão essencial (primária)",
+      "I11.9": "Doença cardíaca hipertensiva sem insuficiência cardíaca",
+      "I15.9": "Hipertensão secundária não especificada",
+      "I20.0": "Angina instável",
+      "I20.9": "Angina pectoris, não especificada",
+      "I21.9": "Infarto agudo do miocárdio não especificado",
+      "I22.9": "Infarto do miocárdio recorrente não especificado",
+      "I24.9": "Doença isquêmica aguda do coração, não especificada",
+      "I25.1": "Doença aterosclerótica do coração",
+      "I25.9": "Doença isquêmica crônica do coração, não especificada",
+      "I27.9": "Doença cardiopulmonar não especificada",
+      "I34.0": "Insuficiência da valva mitral",
+      "I34.9": "Transtorno não-reumático da valva mitral, não especificado",
+      "I35.0": "Estenose aórtica",
+      "I35.9": "Transtorno da valva aórtica não especificado",
+      "I36.1": "Insuficiência não-reumática da valva tricúspide",
+      "I38": "Endocardite de valva não especificada",
+      "I42.0": "Cardiomiopatia dilatada",
+      "I42.9": "Cardiomiopatia não especificada",
+      "I44.2": "Bloqueio atrioventricular total",
+      "I45.9": "Transtorno de condução não especificado",
+      "I47.1": "Taquicardia supraventricular",
+      "I47.2": "Taquicardia ventricular",
+      "I48": "Flutter e fibrilação atrial",
+      "I48.9": "Flutter e fibrilação atrial",
+      "I49.5": "Síndrome do nó sinusal",
+      "I49.9": "Arritmia cardíaca não especificada",
+      "I50": "Insuficiência cardíaca",
+      "I50.9": "Insuficiência cardíaca não especificada",
+      "I51.7": "Cardiomegalia",
+      "I70.0": "Aterosclerose da aorta",
+      "I70.2": "Aterosclerose das artérias das extremidades",
+      "I71.4": "Aneurisma da aorta abdominal, sem menção de ruptura",
+      "I73.9": "Doença vascular periférica não especificada",
+      "I80.2": "Flebite e tromboflebite de outros vasos profundos dos membros inferiores",
+      "I82.9": "Embolia e trombose venosa não especificada",
+      "Q21.1": "Comunicação interatrial",
+      "Q24.9": "Malformação congênita do coração não especificada",
+      "E11": "Diabetes mellitus não-insulino-dependente",
+      "E11.9": "Diabetes mellitus não-insulino-dependente - sem complicações",
+      "E78.0": "Hipercolesterolemia pura",
+      "E78.5": "Hiperlipidemia não especificada",
+      "R00.0": "Taquicardia não especificada",
+      "R00.1": "Bradicardia não especificada",
+      "R00.2": "Palpitações",
+      "R07.2": "Dor precordial",
+      "R07.4": "Dor torácica, não especificada",
+      "R42": "Tontura e instabilidade",
+      "R55": "Síncope e colapso",
+      "Z95.0": "Presença de marca-passo cardíaco",
+      "Z95.1": "Presença de enxerto de ponte aortocoronária",
+      "Z95.5": "Presença de implante e enxerto de angioplastia coronária"
+    }
+  }
+}
