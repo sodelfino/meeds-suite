@@ -1661,6 +1661,283 @@
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
 
+/* ===== core/historico.js ===== */
+/* ------------------------------------------------------------------
+ * core/historico.js — historico dos documentos gerados
+ * ------------------------------------------------------------------
+ * PARA QUE SERVE
+ * Depois de um plantao, o medico quer conferir o que ja emitiu ("ja pedi
+ * o Holter dessa paciente?") e, principalmente, NAO redigitar a parte
+ * clinica quando precisa emitir um segundo laudo parecido. O botao
+ * "Reabrir" devolve procedimento, codigo, CID, diagnostico,
+ * justificativa e unidade — que e o que da trabalho.
+ *
+ * O QUE E GRAVADO, E O QUE NAO E  (leia antes de mexer aqui)
+ * A regra herdada dos cinco scripts originais e clara: NENHUM dado de
+ * paciente vai para o disco. O historico que existia no APAC gravava o
+ * NOME COMPLETO do paciente no armazenamento do Tampermonkey — ou seja,
+ * ja contrariava a propria descricao do script.
+ *
+ * Aqui isso foi corrigido. E gravado:
+ *   - data e hora, medico, e a parte CLINICA/administrativa do documento;
+ *   - uma referencia NAO identificavel do paciente: iniciais e os tres
+ *     ultimos digitos do CPF ("M.A.S. •••456"), o suficiente para o
+ *     medico reconhecer qual foi, insuficiente para identificar alguem a
+ *     partir do arquivo.
+ * NAO e gravado: nome completo, CPF completo, data de nascimento, nome da
+ * mae, telefone, nem o PDF.
+ *
+ * Por consequencia, "Reabrir" repoe a parte clinica e NAO repoe a
+ * identificacao do paciente — que continua vindo fresca da tela do
+ * atendimento. Isso tem um efeito colateral desejado: elimina a chance
+ * de o dado de um paciente vazar para o laudo de outro, que e a mesma
+ * preocupacao que ja levou LME e CMD a limpar o formulario quando o CPF
+ * da tela muda.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  var PREFIXO = "historico:";
+  var LIMITE = 30; // igual ao do APAC original
+
+  function temGM() {
+    return typeof GM_getValue === "function" && typeof GM_setValue === "function";
+  }
+
+  function ler(chave, padrao) {
+    try {
+      if (temGM()) {
+        var v = GM_getValue(chave, undefined);
+        return v === undefined ? padrao : v;
+      }
+    } catch (e) {}
+    try {
+      var cru = localStorage.getItem("meeds-suite:" + chave);
+      return cru === null ? padrao : JSON.parse(cru);
+    } catch (e) {
+      return padrao;
+    }
+  }
+
+  function gravar(chave, valor) {
+    try {
+      if (temGM()) {
+        GM_setValue(chave, valor);
+        return true;
+      }
+    } catch (e) {}
+    try {
+      localStorage.setItem("meeds-suite:" + chave, JSON.stringify(valor));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /* ------------------------------------------------------------------
+   * REFERENCIA NAO IDENTIFICAVEL DO PACIENTE
+   * "MARIA APARECIDA DE SOUZA" + "12345678909" -> "M.A.S. · •••890"
+   * Preposicoes ficam de fora das iniciais para o resultado ser legivel.
+   * ------------------------------------------------------------------ */
+  var PARTICULAS = ["de", "da", "do", "das", "dos", "e"];
+
+  function referenciaDoPaciente(nome, cpf) {
+    var partes = [];
+    String(nome || "")
+      .trim()
+      .split(/\s+/)
+      .forEach(function (palavra) {
+        if (!palavra) return;
+        if (PARTICULAS.indexOf(palavra.toLowerCase()) !== -1) return;
+        partes.push(palavra.charAt(0).toUpperCase() + ".");
+      });
+
+    var digitos = String(cpf || "").replace(/\D/g, "");
+    var finalCpf = digitos.length >= 3 ? "•••" + digitos.slice(-3) : "";
+
+    var iniciais = partes.slice(0, 4).join("");
+    if (!iniciais && !finalCpf) return "Paciente";
+    return [iniciais, finalCpf].filter(Boolean).join(" · ");
+  }
+
+  function agoraLegivel() {
+    var d = new Date();
+    return d.toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  /* ------------------------------------------------------------------
+   * API
+   * ------------------------------------------------------------------
+   * registrar(idModulo, {
+   *   nomePaciente, cpfPaciente,   // usados SO para montar a referencia,
+   *                                // nunca gravados
+   *   titulo,                      // ex: "Holter 24h"
+   *   medico,                      // nome do medico solicitante
+   *   clinico: { ... }             // o que "Reabrir" repoe
+   * })
+   * ------------------------------------------------------------------ */
+  function registrar(idModulo, entrada) {
+    entrada = entrada || {};
+    var lista = listar(idModulo);
+    lista.unshift({
+      quando: agoraLegivel(),
+      paciente: referenciaDoPaciente(entrada.nomePaciente, entrada.cpfPaciente),
+      titulo: entrada.titulo || "Documento",
+      medico: entrada.medico || "",
+      clinico: entrada.clinico || {},
+    });
+    gravar(PREFIXO + idModulo, lista.slice(0, LIMITE));
+  }
+
+  function listar(idModulo) {
+    var lista = ler(PREFIXO + idModulo, []);
+    return Array.isArray(lista) ? lista : [];
+  }
+
+  function limpar(idModulo) {
+    gravar(PREFIXO + idModulo, []);
+  }
+
+  /* MIGRACAO do historico antigo do APAC, que gravava o nome completo.
+   * As entradas existentes sao convertidas para a referencia curta — o
+   * nome completo e descartado do disco na primeira execucao desta
+   * versao. Roda uma vez; depois a chave antiga fica vazia. */
+  function migrarHistoricoApac() {
+    var antigo = ler("apac_historico_v1", undefined);
+    if (!Array.isArray(antigo) || antigo.length === 0) return 0;
+
+    var convertidas = antigo.map(function (e) {
+      return {
+        quando: e.quando || "",
+        paciente: referenciaDoPaciente(e.paciente, ""),
+        titulo: e.procedimento || "APAC",
+        medico: "",
+        clinico: {},
+      };
+    });
+
+    var atual = listar("apac-itauna");
+    gravar(PREFIXO + "apac-itauna", convertidas.concat(atual).slice(0, LIMITE));
+    gravar("apac_historico_v1", []); // o nome completo sai do disco
+    console.debug("[Assistente Meeds] historico do APAC migrado:", convertidas.length, "registro(s) sem nome completo.");
+    return convertidas.length;
+  }
+
+  /* ------------------------------------------------------------------
+   * PAINEL — o mesmo em todos os modulos, para um sexto ganhar pronto
+   * ------------------------------------------------------------------ */
+  var CSS = [
+    ".msh-painel { border:1px solid #d8e6e3; border-radius:9px; padding:10px; margin-bottom:12px; background:#f7fbfa; }",
+    ".msh-painel[hidden] { display:none; }",
+    ".msh-topo { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:8px; }",
+    ".msh-topo strong { font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:#0e7a70; }",
+    ".msh-limpar { background:none; border:1px solid #d8e6e3; border-radius:7px; color:#5b6c68; cursor:pointer; font-size:10.5px; padding:3px 8px; }",
+    ".msh-limpar:hover { background:#e3f5f3; }",
+    ".msh-item { display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid #e5efed; font-size:11.5px; }",
+    ".msh-item:last-child { border-bottom:none; }",
+    ".msh-item-txt { flex:1; min-width:0; line-height:1.45; }",
+    ".msh-item-titulo { font-weight:700; color:#16221f; }",
+    ".msh-item-meta { color:#5b6c68; font-size:10.5px; }",
+    ".msh-reabrir { background:#fff; border:1.3px solid #17ab9e; color:#0e7a70; border-radius:7px; cursor:pointer; font-size:10.5px; font-weight:700; padding:4px 9px; flex-shrink:0; }",
+    ".msh-reabrir:hover { background:#e3f5f3; }",
+    ".msh-vazio { font-size:11.5px; color:#8a97a4; font-style:italic; }",
+    ".msh-nota { font-size:10px; color:#9aa5b1; margin-top:8px; line-height:1.45; }",
+  ].join("\n");
+
+  function escapeHtml(str) {
+    return String(str == null ? "" : str).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  /* montarPainel(elemento, idModulo, { aoReabrir(entrada) })
+   * `elemento` e um contentor vazio dentro do modal do modulo. */
+  function montarPainel(elemento, idModulo, opcoes) {
+    opcoes = opcoes || {};
+    elemento.className = "msh-painel";
+    elemento.hidden = true;
+
+    function render() {
+      var lista = listar(idModulo);
+      var corpo = lista.length
+        ? lista
+            .map(function (e, i) {
+              var meta = [e.quando, e.paciente, e.medico].filter(Boolean).join("  ·  ");
+              var temClinico = e.clinico && Object.keys(e.clinico).length > 0;
+              return (
+                '<div class="msh-item">' +
+                '  <div class="msh-item-txt">' +
+                '    <div class="msh-item-titulo">' + escapeHtml(e.titulo) + "</div>" +
+                '    <div class="msh-item-meta">' + escapeHtml(meta) + "</div>" +
+                "  </div>" +
+                (temClinico
+                  ? '  <button type="button" class="msh-reabrir" data-i="' + i +
+                    '" title="Repõe procedimento, CID e justificativa deste documento. Os dados do paciente continuam vindo da tela.">Reabrir</button>'
+                  : "") +
+                "</div>"
+              );
+            })
+            .join("")
+        : '<div class="msh-vazio">Nenhum documento gerado ainda neste computador.</div>';
+
+      elemento.innerHTML =
+        '<div class="msh-topo"><strong>Gerados neste computador</strong>' +
+        (lista.length ? '<button type="button" class="msh-limpar">Limpar histórico</button>' : "") +
+        "</div>" +
+        corpo +
+        '<div class="msh-nota">Guardamos apenas as iniciais e os três últimos dígitos do CPF — o suficiente para você reconhecer o atendimento, sem gravar dado de paciente no computador. “Reabrir” repõe a parte clínica; os dados do paciente vêm da tela.</div>';
+
+      var limpar = elemento.querySelector(".msh-limpar");
+      if (limpar) {
+        limpar.addEventListener("click", function () {
+          limparHistorico(idModulo);
+          render();
+        });
+      }
+      elemento.querySelectorAll(".msh-reabrir").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var e = listar(idModulo)[Number(btn.getAttribute("data-i"))];
+          if (e && typeof opcoes.aoReabrir === "function") opcoes.aoReabrir(e);
+        });
+      });
+    }
+
+    function limparHistorico(id) {
+      limpar(id);
+    }
+
+    return {
+      render: render,
+      alternar: function () {
+        var abrindo = elemento.hidden;
+        elemento.hidden = !abrindo;
+        if (abrindo) render();
+        return abrindo;
+      },
+      esconder: function () {
+        elemento.hidden = true;
+      },
+    };
+  }
+
+  raiz.MeedsSuiteHistorico = {
+    registrar: registrar,
+    listar: listar,
+    limpar: limpar,
+    montarPainel: montarPainel,
+    migrarHistoricoApac: migrarHistoricoApac,
+    referenciaDoPaciente: referenciaDoPaciente,
+    CSS: CSS,
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
 /* ===== core/manager.js ===== */
 /* ------------------------------------------------------------------
  * core/manager.js — painel da engrenagem
@@ -2429,6 +2706,9 @@
     /* MIGRACAO DO CADASTRO — roda antes de qualquer modulo subir, para
      * que o primeiro <select> de medicos ja apareca preenchido. */
     Cadastro.migrarSeNecessario();
+    /* Tira do disco o nome completo de paciente que o historico do APAC
+     * gravava na versao anterior, convertendo para a referencia curta. */
+    raiz.MeedsSuiteHistorico.migrarHistoricoApac();
 
     raiz.MeedsSuiteManager.montar({
       dock: Dock,
@@ -3330,31 +3610,10 @@
    * original: e por instalacao, nao sai do navegador e nao entra no
    * codigo publicado. Cai para o storage do nucleo se o grant faltar.
    * ---------------------------------------------------------------- */
-  /* O historico continua no armazenamento do Tampermonkey (por
-   * instalacao, nao sai do navegador). O cadastro de medicos saiu daqui
-   * e virou o cadastro unico do nucleo. */
-  var CHAVE_HISTORICO = "apac_historico_v1";
-
-  function lerGuardado(chave, padrao) {
-    try {
-      if (typeof GM_getValue === "function") return GM_getValue(chave, padrao);
-    } catch (e) {}
-    return d.storage.ler(chave, padrao);
-  }
-  function gravarGuardado(chave, valor) {
-    try {
-      if (typeof GM_setValue === "function") { GM_setValue(chave, valor); return; }
-    } catch (e) {}
-    d.storage.gravar(chave, valor);
-  }
-
-  function carregarHistorico() { return lerGuardado(CHAVE_HISTORICO, []) || []; }
-  function registrarHistorico(entrada) {
-    var lista = carregarHistorico();
-    lista.unshift(entrada);
-    gravarGuardado(CHAVE_HISTORICO, lista.slice(0, 30));
-  }
-  function limparHistorico() { gravarGuardado(CHAVE_HISTORICO, []); }
+  /* O historico agora e o do nucleo (core/historico.js), compartilhado
+   * com os laudos de Sete Lagoas e CMD. Ele grava apenas a referencia
+   * curta do paciente (iniciais + 3 ultimos digitos do CPF) — o nome
+   * completo, que a versao anterior gravava, sai do disco na migracao. */
 
   function titleCase(s) {
     return String(s).split(" ").map(function (w) {
@@ -3505,9 +3764,9 @@
 
 
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
-  var CSS = "#apac-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #apac-modal-head{\n      background:linear-gradient(135deg,#0e7a70,#17ab9e); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #apac-modal-head h2{ margin:0; font-size:15px; }\n    #apac-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #apac-body{ padding:18px 20px; }\n    .apac-sec{ margin-bottom:16px; }\n    .apac-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#0e7a70; margin:0 0 8px; }\n    .apac-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .apac-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6c68; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8e6e3; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:56px; resize:vertical; }\n    .apac-proc-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }\n    .apac-proc-btn{ border:1.4px solid #d8e6e3; border-radius:9px; padding:9px; cursor:pointer; }\n    .apac-proc-btn:hover{ border-color:#17ab9e; }\n    .apac-proc-btn.sel{ border-color:#12958a; background:#e3f5f3; }\n    .apac-proc-btn .t{ font-size:11.5px; font-weight:700; }\n    .apac-proc-btn .c{ font-size:9.5px; color:#0e7a70; font-family:monospace; }\n    #apac-territorio-wrap{ display:none; margin-top:8px; }\n    #apac-territorio-wrap.show{ display:block; }\n    #apac-eco-variante-wrap{ display:none; margin-top:8px; }\n    #apac-eco-variante-wrap.show{ display:block; }\n    #apac-outro-wrap{ display:none; margin-top:8px; }\n    #apac-outro-wrap.show{ display:block; }\n    #apac-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    #apac-sec-assinatura{ border:1.5px dashed #17ab9e; border-radius:12px; padding:14px; background:#f9fdfc; }\n    .apac-opcoes-assinatura{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }\n    button.apac-primary{ background:#12958a; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.apac-primary:hover{ background:#0b6a62; }\n    button.apac-primary:disabled{ background:#a0c9c4; cursor:not-allowed; }\n    button.apac-secondary{ background:#fff; color:#0e7a70; border:1.4px solid #17ab9e; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.apac-secondary:hover{ background:#e3f5f3; }\n    button.apac-tertiary{ background:#f0f4f3; color:#0e7a70; border:1px solid #d8e6e3; border-radius:9px; padding:9px 14px; font-size:12px; font-weight:700; cursor:pointer; }\n    button.apac-tertiary:hover{ background:#e3f5f3; }\n    #apac-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #apac-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }\n    .apac-info-box{ background:#e8f4f8; color:#0e7a70; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:10px; line-height:1.4; }";
+  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#apac-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #apac-modal-head{\n      background:linear-gradient(135deg,#0e7a70,#17ab9e); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #apac-modal-head h2{ margin:0; font-size:15px; }\n    #apac-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #apac-body{ padding:18px 20px; }\n    .apac-sec{ margin-bottom:16px; }\n    .apac-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#0e7a70; margin:0 0 8px; }\n    .apac-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .apac-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6c68; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8e6e3; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:56px; resize:vertical; }\n    .apac-proc-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }\n    .apac-proc-btn{ border:1.4px solid #d8e6e3; border-radius:9px; padding:9px; cursor:pointer; }\n    .apac-proc-btn:hover{ border-color:#17ab9e; }\n    .apac-proc-btn.sel{ border-color:#12958a; background:#e3f5f3; }\n    .apac-proc-btn .t{ font-size:11.5px; font-weight:700; }\n    .apac-proc-btn .c{ font-size:9.5px; color:#0e7a70; font-family:monospace; }\n    #apac-territorio-wrap{ display:none; margin-top:8px; }\n    #apac-territorio-wrap.show{ display:block; }\n    #apac-eco-variante-wrap{ display:none; margin-top:8px; }\n    #apac-eco-variante-wrap.show{ display:block; }\n    #apac-outro-wrap{ display:none; margin-top:8px; }\n    #apac-outro-wrap.show{ display:block; }\n    #apac-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    #apac-sec-assinatura{ border:1.5px dashed #17ab9e; border-radius:12px; padding:14px; background:#f9fdfc; }\n    .apac-opcoes-assinatura{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }\n    button.apac-primary{ background:#12958a; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.apac-primary:hover{ background:#0b6a62; }\n    button.apac-primary:disabled{ background:#a0c9c4; cursor:not-allowed; }\n    button.apac-secondary{ background:#fff; color:#0e7a70; border:1.4px solid #17ab9e; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.apac-secondary:hover{ background:#e3f5f3; }\n    button.apac-tertiary{ background:#f0f4f3; color:#0e7a70; border:1px solid #d8e6e3; border-radius:9px; padding:9px 14px; font-size:12px; font-weight:700; cursor:pointer; }\n    button.apac-tertiary:hover{ background:#e3f5f3; }\n    #apac-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #apac-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }\n    .apac-info-box{ background:#e8f4f8; color:#0e7a70; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:10px; line-height:1.4; }";
 
-  var HTML = "<div id=\"apac-modal\">\n      <div id=\"apac-modal-head\"><h2>Gerador de APAC — Itaúna</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"apac-refresh-modal\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"apac-historico-abrir\" title=\"Últimas APACs geradas nesta máquina\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"apac-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"apac-body\">\n        <div id=\"apac-auto-aviso\"></div>\n\n        <div id=\"apac-historico-painel\" style=\"display:none;border:1px solid #d8e6e3;border-radius:9px;padding:10px;margin-bottom:12px;background:#f7fbfa;\">\n          <div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;\">\n            <strong style=\"font-size:11px;color:#0e7a70;text-transform:uppercase;\">Últimos gerados nesta máquina</strong>\n            <button id=\"apac-historico-limpar\" class=\"apac-tertiary\" style=\"padding:3px 8px;font-size:10.5px;\">Limpar</button>\n          </div>\n          <div id=\"apac-historico-lista\" style=\"font-size:11.5px;line-height:1.6;\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Estabelecimento</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome</label><input id=\"apac-estab-nome\" ></div>\n            <div><label>CNES</label><input id=\"apac-estab-cnes\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Médico solicitante</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Selecionar *</label><select id=\"apac-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"apac-medico-nome\"></div>\n            <div><label>CNS *</label><input id=\"apac-medico-cns\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Paciente</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome completo *</label><input id=\"apac-pac-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-pac-cpf\"></div>\n          </div>\n          <div class=\"apac-grid3\" style=\"margin-top:8px;\">\n            <div><label>Nascimento *</label><input type=\"date\" id=\"apac-pac-nasc\"></div>\n            <div><label>Sexo *</label><select id=\"apac-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"M\">Masculino</option><option value=\"F\">Feminino</option></select></div>\n            <div><label>Nome da mãe *</label><input id=\"apac-pac-mae\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Procedimento *</h3>\n          <div class=\"apac-proc-grid\" id=\"apac-proc-grid\"></div>\n          <div id=\"apac-territorio-wrap\">\n            <label>Território vascular (obrigatório para Doppler)</label>\n            <select id=\"apac-territorio-sel\"></select>\n          </div>\n          <div id=\"apac-eco-variante-wrap\">\n            <label>Variante do ecocardiograma</label>\n            <select id=\"apac-eco-variante-sel\">\n              <option value=\"REPOUSO\">Transtorácica de repouso (padrão)</option>\n              <option value=\"ESTRESSE\">Com estresse (farmacológico/Dobutamina)</option>\n              <option value=\"TRANSESOFAGICO\">Transesofágico</option>\n            </select>\n          </div>\n          <div id=\"apac-outro-wrap\">\n            <label>Código SIGTAP *</label>\n            <input id=\"apac-outro-codigo\" placeholder=\"ex: 02.11.02.001-0\" style=\"margin-bottom:8px;\">\n            <label>Nome do procedimento *</label>\n            <input id=\"apac-outro-nome\" placeholder=\"como deve aparecer no campo 19\">\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>CID-10 *</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Principal *</label><input id=\"apac-cid1\" list=\"apac-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Secundário</label><input id=\"apac-cid2\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n            <div><label>Associados</label><input id=\"apac-cid3\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Descrição (campo 36) *</label><input id=\"apac-cid-desc\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Texto do pedido (campo 40) *</h3>\n          <textarea id=\"apac-obs\"></textarea>\n        </div>\n\n        <!-- ETAPA 2 — Assinatura -->\n        <div class=\"apac-sec\" id=\"apac-sec-assinatura\" style=\"display:none;\">\n          <h3>Etapa 2 — Assinatura</h3>\n          <div class=\"apac-info-box\">\n            PDF gerado com sucesso. Escolha uma opção abaixo:\n          </div>\n\n          <div class=\"apac-opcoes-assinatura\">\n            <button id=\"apac-assinar-govbr\" class=\"apac-primary\">\n              🏛️ Assinar via gov.br<br><small style=\"font-weight:400;opacity:.9;\">Baixa PDF e abre o portal</small>\n            </button>\n            <button id=\"apac-baixar-sem\" class=\"apac-tertiary\">\n              💾 Baixar sem assinar<br><small style=\"font-weight:400;opacity:.8;\">PDF simples</small>\n            </button>\n          </div>\n        </div>\n\n        <div id=\"apac-erro\"></div>\n        <datalist id=\"apac-cid-list\"></datalist>\n      </div>\n      <div id=\"apac-footer\">\n        <button class=\"apac-secondary\" id=\"apac-limpar\">Limpar</button>\n        <button class=\"apac-primary\" id=\"apac-gerar\">Gerar PDF</button>\n      </div>\n    </div>";
+  var HTML = "<div id=\"apac-modal\">\n      <div id=\"apac-modal-head\"><h2>Gerador de APAC — Itaúna</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"apac-refresh-modal\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"apac-historico-abrir\" title=\"Últimas APACs geradas nesta máquina\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"apac-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"apac-body\">\n        <div id=\"apac-auto-aviso\"></div>\n\n        <div id=\"apac-historico-painel\"></div>\n\n        <div class=\"apac-sec\">\n          <h3>Estabelecimento</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome</label><input id=\"apac-estab-nome\" ></div>\n            <div><label>CNES</label><input id=\"apac-estab-cnes\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Médico solicitante</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Selecionar *</label><select id=\"apac-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"apac-medico-nome\"></div>\n            <div><label>CNS *</label><input id=\"apac-medico-cns\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Paciente</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome completo *</label><input id=\"apac-pac-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-pac-cpf\"></div>\n          </div>\n          <div class=\"apac-grid3\" style=\"margin-top:8px;\">\n            <div><label>Nascimento *</label><input type=\"date\" id=\"apac-pac-nasc\"></div>\n            <div><label>Sexo *</label><select id=\"apac-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"M\">Masculino</option><option value=\"F\">Feminino</option></select></div>\n            <div><label>Nome da mãe *</label><input id=\"apac-pac-mae\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Procedimento *</h3>\n          <div class=\"apac-proc-grid\" id=\"apac-proc-grid\"></div>\n          <div id=\"apac-territorio-wrap\">\n            <label>Território vascular (obrigatório para Doppler)</label>\n            <select id=\"apac-territorio-sel\"></select>\n          </div>\n          <div id=\"apac-eco-variante-wrap\">\n            <label>Variante do ecocardiograma</label>\n            <select id=\"apac-eco-variante-sel\">\n              <option value=\"REPOUSO\">Transtorácica de repouso (padrão)</option>\n              <option value=\"ESTRESSE\">Com estresse (farmacológico/Dobutamina)</option>\n              <option value=\"TRANSESOFAGICO\">Transesofágico</option>\n            </select>\n          </div>\n          <div id=\"apac-outro-wrap\">\n            <label>Código SIGTAP *</label>\n            <input id=\"apac-outro-codigo\" placeholder=\"ex: 02.11.02.001-0\" style=\"margin-bottom:8px;\">\n            <label>Nome do procedimento *</label>\n            <input id=\"apac-outro-nome\" placeholder=\"como deve aparecer no campo 19\">\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>CID-10 *</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Principal *</label><input id=\"apac-cid1\" list=\"apac-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Secundário</label><input id=\"apac-cid2\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n            <div><label>Associados</label><input id=\"apac-cid3\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Descrição (campo 36) *</label><input id=\"apac-cid-desc\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Texto do pedido (campo 40) *</h3>\n          <textarea id=\"apac-obs\"></textarea>\n        </div>\n\n        <!-- ETAPA 2 — Assinatura -->\n        <div class=\"apac-sec\" id=\"apac-sec-assinatura\" style=\"display:none;\">\n          <h3>Etapa 2 — Assinatura</h3>\n          <div class=\"apac-info-box\">\n            PDF gerado com sucesso. Escolha uma opção abaixo:\n          </div>\n\n          <div class=\"apac-opcoes-assinatura\">\n            <button id=\"apac-assinar-govbr\" class=\"apac-primary\">\n              🏛️ Assinar via gov.br<br><small style=\"font-weight:400;opacity:.9;\">Baixa PDF e abre o portal</small>\n            </button>\n            <button id=\"apac-baixar-sem\" class=\"apac-tertiary\">\n              💾 Baixar sem assinar<br><small style=\"font-weight:400;opacity:.8;\">PDF simples</small>\n            </button>\n          </div>\n        </div>\n\n        <div id=\"apac-erro\"></div>\n        <datalist id=\"apac-cid-list\"></datalist>\n      </div>\n      <div id=\"apac-footer\">\n        <button class=\"apac-secondary\" id=\"apac-limpar\">Limpar</button>\n        <button class=\"apac-primary\" id=\"apac-gerar\">Gerar PDF</button>\n      </div>\n    </div>";
 
   /* ---- extraidas do original sem alteracao ---- */
 
@@ -3558,20 +3817,6 @@
 
   function mensagemDeCamposFaltando(faltas) {
     return raiz.MeedsSuiteMensagens.camposFaltando(faltas, { acao: "gerar a APAC" });
-  }
-
-  function renderHistorico() {
-    const lista = carregarHistorico();
-    const box = shadow.getElementById('apac-historico-lista');
-    if (!lista.length) {
-      box.innerHTML = '<em style="color:#5b6c68;">Nenhuma APAC gerada ainda nesta máquina.</em>';
-      return;
-    }
-    box.innerHTML = lista.map(item =>
-      `<div style="padding:3px 0;border-bottom:1px solid #e5efed;">
-        <strong>${escapeHtml(item.paciente)}</strong> — ${escapeHtml(item.procedimento)} <span style="color:#5b6c68;">(${escapeHtml(item.quando)})</span>
-      </div>`
-    ).join('');
   }
 
 
@@ -3730,10 +3975,23 @@
     const slug = nome.replace(/[^A-Za-z0-9]+/g,'_').toUpperCase().slice(0,40);
     const filename = `APAC_${slug || 'PACIENTE'}.pdf`;
     pdfGerado = { bytes: new Uint8Array(doc.output('arraybuffer')), filename };
-    registrarHistorico({
-      paciente: nome || 'Paciente',
-      procedimento: principal.nome || procedimentoAtivo,
-      quando: new Date().toLocaleString('pt-BR'),
+    raiz.MeedsSuiteHistorico.registrar("apac-itauna", {
+      nomePaciente: nome,
+      cpfPaciente: cpf,
+      titulo: principal.nome || procedimentoAtivo,
+      medico: medicoNome,
+      clinico: {
+        procedimento: procedimentoAtivo,
+        "apac-territorio-sel": shadow.getElementById("apac-territorio-sel").value,
+        "apac-eco-variante-sel": shadow.getElementById("apac-eco-variante-sel").value,
+        "apac-outro-codigo": shadow.getElementById("apac-outro-codigo").value,
+        "apac-outro-nome": shadow.getElementById("apac-outro-nome").value,
+        "apac-cid1": cid1v,
+        "apac-cid2": cid2v,
+        "apac-cid3": cid3v,
+        "apac-cid-desc": shadow.getElementById("apac-cid-desc").value,
+        "apac-obs": shadow.getElementById("apac-obs").value,
+      },
     });
     shadow.getElementById('apac-sec-assinatura').style.display = 'block';
     shadow.getElementById('apac-sec-assinatura').scrollIntoView({ behavior:'smooth', block:'center' });
@@ -3761,13 +4019,6 @@
         d.abrirCadastro();
       },
     });
-  }
-
-  function alternarPainelHistorico() {
-    var p = shadow.getElementById("apac-historico-painel");
-    var abrindo = p.style.display === "none";
-    p.style.display = abrindo ? "block" : "none";
-    if (abrindo) renderHistorico();
   }
 
   function montarProcGrid() {
@@ -3904,8 +4155,35 @@
     toast("PDF baixado. Acesse assinador.iti.br, faça login com gov.br e assine o arquivo.", 7000);
   }
 
+  var historico = null;
+
+  /* Repoe a parte CLINICA de uma APAC anterior. A identificacao do
+   * paciente NAO e reposta: continua vindo da tela do atendimento. */
+  function reabrirDoHistorico(entrada) {
+    var c = entrada.clinico || {};
+    if (c.procedimento) selecionarProc(c.procedimento);
+    Object.keys(c).forEach(function (id) {
+      if (id === "procedimento") return;
+      var el = shadow.getElementById(id);
+      if (el) el.value = c[id];
+    });
+    historico.esconder();
+    var aviso = shadow.getElementById("apac-auto-aviso");
+    aviso.style.display = "block";
+    aviso.textContent =
+      "Repus procedimento, CID e texto do pedido de “" + entrada.titulo + "”. " +
+      "Os dados do paciente continuam sendo os da tela — confira antes de gerar.";
+    toast("Dados clínicos repostos do histórico.", 3500);
+  }
+
   function montarUI() {
     overlay = d.dock.criarOverlay({ estilo: CSS, html: HTML });
+
+    historico = raiz.MeedsSuiteHistorico.montarPainel(
+      shadow.getElementById("apac-historico-painel"),
+      "apac-itauna",
+      { aoReabrir: reabrirDoHistorico }
+    );
 
     shadow.getElementById("apac-refresh-modal").addEventListener("click", forcarAtualizacao);
     shadow.getElementById("apac-close").addEventListener("click", overlay.fechar);
@@ -3914,11 +4192,7 @@
     shadow.getElementById("apac-cid1").addEventListener("input", autoDescricaoCid);
     shadow.getElementById("apac-assinar-govbr").addEventListener("click", assinarGovBr);
     shadow.getElementById("apac-baixar-sem").addEventListener("click", baixarSemAssinar);
-    shadow.getElementById("apac-historico-abrir").addEventListener("click", alternarPainelHistorico);
-    shadow.getElementById("apac-historico-limpar").addEventListener("click", function () {
-      limparHistorico();
-      renderHistorico();
-    });
+    shadow.getElementById("apac-historico-abrir").addEventListener("click", historico.alternar);
 
     // estabelecimento vem dos dados, nao do HTML
     shadow.getElementById("apac-estab-nome").value = ESTABELECIMENTO.nome || "";
@@ -4176,9 +4450,9 @@
   var CATALOGO_PROCEDIMENTOS = DADOS.procedimentos || {};
 
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
-  var CSS = "#lme-modal{\n      background:#fff; border-radius:16px; max-width:680px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #lme-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #lme-modal-head h2{ margin:0; font-size:15px; }\n    #lme-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #lme-body{ padding:18px 20px; }\n    .lme-sec{ margin-bottom:16px; }\n    .lme-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .lme-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .lme-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:70px; resize:vertical; }\n    #lme-origem-outro-wrap{ display:none; margin-top:8px; }\n    #lme-origem-outro-wrap.show{ display:block; }\n    #lme-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .lme-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    button.lme-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.lme-primary:hover{ background:#123a7a; }\n    button.lme-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.lme-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.lme-secondary:hover{ background:#e8f0f8; }\n    #lme-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #lme-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
+  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#lme-modal{\n      background:#fff; border-radius:16px; max-width:680px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #lme-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #lme-modal-head h2{ margin:0; font-size:15px; }\n    #lme-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #lme-body{ padding:18px 20px; }\n    .lme-sec{ margin-bottom:16px; }\n    .lme-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .lme-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .lme-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:70px; resize:vertical; }\n    #lme-origem-outro-wrap{ display:none; margin-top:8px; }\n    #lme-origem-outro-wrap.show{ display:block; }\n    #lme-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .lme-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    button.lme-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.lme-primary:hover{ background:#123a7a; }\n    button.lme-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.lme-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.lme-secondary:hover{ background:#e8f0f8; }\n    #lme-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #lme-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
 
-  var HTML = "<div id=\"lme-modal\">\n      <div id=\"lme-modal-head\"><h2>Laudo Procedimento Médico — Sete Lagoas</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"lme-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"lme-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"lme-body\">\n        <div class=\"lme-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Sete Lagoas (mesmo PDF da prefeitura, logo e layout intactos). Município fixo: <b>SETE LAGOAS</b>. O Cartão Nacional do SUS é preenchido com o CPF do paciente.\n        </div>\n        <div id=\"lme-auto-aviso\"></div>\n\n        <div class=\"lme-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"lme-grid3\">\n            <div><label>Selecionar *</label><select id=\"lme-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"lme-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"lme-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"lme-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Unidade de origem</h3>\n          <select id=\"lme-origem-sel\"></select>\n          <div id=\"lme-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"lme-origem-outro\" placeholder=\"ex: UBS ITAPOÃ\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Paciente</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome completo *</label><input id=\"lme-pac-nome\"></div>\n            <div><label>CPF (usado como Cartão do SUS) *</label><input id=\"lme-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"lme-grid2\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"lme-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"lme-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n          </div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"lme-proc-nome\" list=\"lme-proc-list\" placeholder=\"digite e busque, ou digite algo novo\" autocomplete=\"off\"></div>\n            <div><label>Código SIGTAP *</label><input id=\"lme-proc-codigo\" placeholder=\"preenche sozinho se reconhecido\"></div>\n          </div>\n          <datalist id=\"lme-proc-list\"></datalist>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"lme-grid2\">\n            <div><label>CID-10</label><input id=\"lme-cid\" list=\"lme-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"lme-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          <datalist id=\"lme-cid-list\"></datalist>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"lme-justificativa\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado\"></textarea>\n        </div>\n\n        <div id=\"lme-erro\"></div>\n      </div>\n      <div id=\"lme-footer\">\n        <button class=\"lme-secondary\" id=\"lme-limpar\">Limpar</button>\n        <button class=\"lme-primary\" id=\"lme-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
+  var HTML = "<div id=\"lme-modal\">\n      <div id=\"lme-modal-head\"><h2>Laudo Procedimento Médico — Sete Lagoas</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"lme-historico-abrir\" title=\"Documentos gerados neste computador\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"lme-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"lme-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"lme-body\">\n        <div class=\"lme-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Sete Lagoas (mesmo PDF da prefeitura, logo e layout intactos). Município fixo: <b>SETE LAGOAS</b>. O Cartão Nacional do SUS é preenchido com o CPF do paciente.\n        </div>\n        <div id=\"lme-historico-painel\"></div>\n        <div id=\"lme-auto-aviso\"></div>\n\n        <div class=\"lme-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"lme-grid3\">\n            <div><label>Selecionar *</label><select id=\"lme-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"lme-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"lme-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"lme-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Unidade de origem</h3>\n          <select id=\"lme-origem-sel\"></select>\n          <div id=\"lme-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"lme-origem-outro\" placeholder=\"ex: UBS ITAPOÃ\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Paciente</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome completo *</label><input id=\"lme-pac-nome\"></div>\n            <div><label>CPF (usado como Cartão do SUS) *</label><input id=\"lme-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"lme-grid2\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"lme-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"lme-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n          </div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"lme-proc-nome\" list=\"lme-proc-list\" placeholder=\"digite e busque, ou digite algo novo\" autocomplete=\"off\"></div>\n            <div><label>Código SIGTAP *</label><input id=\"lme-proc-codigo\" placeholder=\"preenche sozinho se reconhecido\"></div>\n          </div>\n          <datalist id=\"lme-proc-list\"></datalist>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"lme-grid2\">\n            <div><label>CID-10</label><input id=\"lme-cid\" list=\"lme-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"lme-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          <datalist id=\"lme-cid-list\"></datalist>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"lme-justificativa\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado\"></textarea>\n        </div>\n\n        <div id=\"lme-erro\"></div>\n      </div>\n      <div id=\"lme-footer\">\n        <button class=\"lme-secondary\" id=\"lme-limpar\">Limpar</button>\n        <button class=\"lme-primary\" id=\"lme-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
 
   /* ---- extraidas do original sem alteracao ---- */
   /* ---- validacao dos campos obrigatorios ----
@@ -4373,6 +4647,22 @@
       const bytes = await pdfDoc.save();
       const slug = nome.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60);
       const filename = `LME_${slug || 'PACIENTE'}.pdf`;
+      raiz.MeedsSuiteHistorico.registrar("lme-sete-lagoas", {
+        nomePaciente: nome,
+        cpfPaciente: shadow.getElementById("lme-pac-cpf").value,
+        titulo: procNome || "Laudo",
+        medico: medicoNome,
+        clinico: {
+          "lme-proc-nome": shadow.getElementById("lme-proc-nome").value,
+          "lme-proc-codigo": shadow.getElementById("lme-proc-codigo").value,
+          "lme-cid": shadow.getElementById("lme-cid").value,
+          "lme-diagnostico": shadow.getElementById("lme-diagnostico").value,
+          "lme-justificativa": shadow.getElementById("lme-justificativa").value,
+          "lme-origem-outro": shadow.getElementById("lme-origem-outro").value,
+          "lme-origem-sel": shadow.getElementById("lme-origem-sel").value
+        },
+      });
+
       baixarPdf(bytes, filename);
       toast('PDF gerado e baixado: ' + filename, 5000);
     } catch (e) {
@@ -4541,8 +4831,40 @@
     limparErro();
   }
 
+  var historico = null;
+
+  /* Repoe a parte CLINICA de um documento anterior. Os dados do paciente
+   * NAO sao repostos de proposito: continuam vindo da tela do atendimento,
+   * o que evita que o dado de um paciente entre no laudo de outro. */
+  function reabrirDoHistorico(entrada) {
+    var c = entrada.clinico || {};
+    Object.keys(c).forEach(function (id) {
+      var el = shadow.getElementById(id);
+      if (el) el.value = c[id];
+    });
+    // a unidade "outra" tem um campo que so aparece quando selecionada
+    shadow.getElementById("lme-origem-outro-wrap").classList.toggle(
+      "show",
+      shadow.getElementById("lme-origem-sel").value === "outro"
+    );
+    historico.esconder();
+    var aviso = shadow.getElementById("lme-auto-aviso");
+    aviso.style.display = "block";
+    aviso.textContent =
+      "Repus procedimento, CID e justificativa de “" + entrada.titulo + "”. " +
+      "Os dados do paciente continuam sendo os da tela — confira antes de gerar.";
+    d.core.toast("Dados clínicos repostos do histórico.", 3500);
+  }
+
   function montarUI() {
     overlay = d.dock.criarOverlay({ estilo: CSS, html: HTML });
+
+    historico = raiz.MeedsSuiteHistorico.montarPainel(
+      shadow.getElementById("lme-historico-painel"),
+      "lme-sete-lagoas",
+      { aoReabrir: reabrirDoHistorico }
+    );
+    shadow.getElementById("lme-historico-abrir").addEventListener("click", historico.alternar);
     shadow.getElementById("lme-refresh").addEventListener("click", atualizarPaciente);
     shadow.getElementById("lme-close").addEventListener("click", overlay.fechar);
     shadow.getElementById("lme-gerar").addEventListener("click", gerarPdf);
@@ -4776,9 +5098,9 @@
   var CATALOGO_PROCEDIMENTOS = DADOS.procedimentos || {};
 
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
-  var CSS = "#cmd-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #cmd-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #cmd-modal-head h2{ margin:0; font-size:15px; }\n    #cmd-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #cmd-body{ padding:18px 20px; }\n    .cmd-sec{ margin-bottom:16px; }\n    .cmd-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .cmd-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .cmd-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    .cmd-grid4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:90px; resize:vertical; }\n    #cmd-origem-outro-wrap{ display:none; margin-top:8px; }\n    #cmd-origem-outro-wrap.show{ display:block; }\n    #cmd-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .cmd-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    .cmd-contador{ text-align:right; font-size:10.5px; color:#8a97a4; margin-top:4px; }\n    button.cmd-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.cmd-primary:hover{ background:#123a7a; }\n    button.cmd-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.cmd-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.cmd-secondary:hover{ background:#e8f0f8; }\n    #cmd-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #cmd-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
+  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#cmd-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #cmd-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #cmd-modal-head h2{ margin:0; font-size:15px; }\n    #cmd-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #cmd-body{ padding:18px 20px; }\n    .cmd-sec{ margin-bottom:16px; }\n    .cmd-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .cmd-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .cmd-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    .cmd-grid4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:90px; resize:vertical; }\n    #cmd-origem-outro-wrap{ display:none; margin-top:8px; }\n    #cmd-origem-outro-wrap.show{ display:block; }\n    #cmd-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .cmd-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    .cmd-contador{ text-align:right; font-size:10.5px; color:#8a97a4; margin-top:4px; }\n    button.cmd-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.cmd-primary:hover{ background:#123a7a; }\n    button.cmd-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.cmd-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.cmd-secondary:hover{ background:#e8f0f8; }\n    #cmd-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #cmd-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
 
-  var HTML = "<div id=\"cmd-modal\">\n      <div id=\"cmd-modal-head\"><h2>Laudo Médico de Alto Custo — Conceição do Mato Dentro</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"cmd-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"cmd-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"cmd-body\">\n        <div class=\"cmd-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Conceição do Mato Dentro (mesmo PDF da prefeitura, preenchido pelos campos reais do formulário). A seção 04 (Junta de Autorização) não é preenchida — é reservada para a regulação.\n        </div>\n        <div id=\"cmd-auto-aviso\"></div>\n\n        <div class=\"cmd-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"cmd-grid3\">\n            <div><label>Selecionar *</label><select id=\"cmd-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"cmd-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"cmd-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"cmd-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Dados do atendimento</h3>\n          <div>\n            <label>Unidade de origem *</label>\n            <select id=\"cmd-origem-sel\"></select>\n            <div id=\"cmd-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"cmd-origem-outro\"></div>\n          </div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Paciente</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome completo *</label><input id=\"cmd-pac-nome\"></div>\n            <div><label>CPF</label><input id=\"cmd-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"cmd-grid3\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"cmd-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"cmd-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n            <div><label>Telefone</label><input id=\"cmd-pac-telefone\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Nome da mãe</label><input id=\"cmd-pac-mae\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"cmd-proc-nome\" list=\"cmd-proc-list\" placeholder=\"digite o exame\" autocomplete=\"off\"></div>\n            <div><label>Código do procedimento</label><input id=\"cmd-proc-codigo\" placeholder=\"ex: 41101170\"></div>\n          </div>\n          <datalist id=\"cmd-proc-list\"></datalist>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>CID-10</label><input id=\"cmd-cid\" list=\"cmd-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"cmd-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          <datalist id=\"cmd-cid-list\"></datalist>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"cmd-justificativa\" maxlength=\"700\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado (até 700 caracteres)\"></textarea>\n          <div class=\"cmd-contador\" id=\"cmd-justificativa-contador\">0/700</div>\n        </div>\n\n        <div id=\"cmd-erro\"></div>\n      </div>\n      <div id=\"cmd-footer\">\n        <button class=\"cmd-secondary\" id=\"cmd-limpar\">Limpar</button>\n        <button class=\"cmd-primary\" id=\"cmd-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
+  var HTML = "<div id=\"cmd-modal\">\n      <div id=\"cmd-modal-head\"><h2>Laudo Médico de Alto Custo — Conceição do Mato Dentro</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"cmd-historico-abrir\" title=\"Documentos gerados neste computador\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"cmd-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"cmd-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"cmd-body\">\n        <div class=\"cmd-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Conceição do Mato Dentro (mesmo PDF da prefeitura, preenchido pelos campos reais do formulário). A seção 04 (Junta de Autorização) não é preenchida — é reservada para a regulação.\n        </div>\n        <div id=\"cmd-historico-painel\"></div>\n        <div id=\"cmd-auto-aviso\"></div>\n\n        <div class=\"cmd-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"cmd-grid3\">\n            <div><label>Selecionar *</label><select id=\"cmd-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"cmd-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"cmd-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"cmd-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Dados do atendimento</h3>\n          <div>\n            <label>Unidade de origem *</label>\n            <select id=\"cmd-origem-sel\"></select>\n            <div id=\"cmd-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"cmd-origem-outro\"></div>\n          </div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Paciente</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome completo *</label><input id=\"cmd-pac-nome\"></div>\n            <div><label>CPF</label><input id=\"cmd-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"cmd-grid3\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"cmd-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"cmd-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n            <div><label>Telefone</label><input id=\"cmd-pac-telefone\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Nome da mãe</label><input id=\"cmd-pac-mae\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"cmd-proc-nome\" list=\"cmd-proc-list\" placeholder=\"digite o exame\" autocomplete=\"off\"></div>\n            <div><label>Código do procedimento</label><input id=\"cmd-proc-codigo\" placeholder=\"ex: 41101170\"></div>\n          </div>\n          <datalist id=\"cmd-proc-list\"></datalist>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>CID-10</label><input id=\"cmd-cid\" list=\"cmd-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"cmd-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          <datalist id=\"cmd-cid-list\"></datalist>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"cmd-justificativa\" maxlength=\"700\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado (até 700 caracteres)\"></textarea>\n          <div class=\"cmd-contador\" id=\"cmd-justificativa-contador\">0/700</div>\n        </div>\n\n        <div id=\"cmd-erro\"></div>\n      </div>\n      <div id=\"cmd-footer\">\n        <button class=\"cmd-secondary\" id=\"cmd-limpar\">Limpar</button>\n        <button class=\"cmd-primary\" id=\"cmd-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
 
   /* ---- extraidas do original sem alteracao ---- */
   /* ---- validacao dos campos obrigatorios ----
@@ -4941,6 +5263,22 @@
       const bytes = await pdfDoc.save();
       const slug = nome.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60);
       const filename = `LAUDO_CMD_${slug || 'PACIENTE'}.pdf`;
+      raiz.MeedsSuiteHistorico.registrar("cmd", {
+        nomePaciente: nome,
+        cpfPaciente: shadow.getElementById("cmd-pac-cpf").value,
+        titulo: procNome || "Laudo",
+        medico: medicoNome,
+        clinico: {
+          "cmd-proc-nome": shadow.getElementById("cmd-proc-nome").value,
+          "cmd-proc-codigo": shadow.getElementById("cmd-proc-codigo").value,
+          "cmd-cid": shadow.getElementById("cmd-cid").value,
+          "cmd-diagnostico": shadow.getElementById("cmd-diagnostico").value,
+          "cmd-justificativa": shadow.getElementById("cmd-justificativa").value,
+          "cmd-origem-outro": shadow.getElementById("cmd-origem-outro").value,
+          "cmd-origem-sel": shadow.getElementById("cmd-origem-sel").value
+        },
+      });
+
       baixarPdf(bytes, filename);
       toast('PDF gerado e baixado: ' + filename, 5000);
     } catch (e) {
@@ -5149,8 +5487,40 @@
     limparErro();
   }
 
+  var historico = null;
+
+  /* Repoe a parte CLINICA de um documento anterior. Os dados do paciente
+   * NAO sao repostos de proposito: continuam vindo da tela do atendimento,
+   * o que evita que o dado de um paciente entre no laudo de outro. */
+  function reabrirDoHistorico(entrada) {
+    var c = entrada.clinico || {};
+    Object.keys(c).forEach(function (id) {
+      var el = shadow.getElementById(id);
+      if (el) el.value = c[id];
+    });
+    // a unidade "outra" tem um campo que so aparece quando selecionada
+    shadow.getElementById("cmd-origem-outro-wrap").classList.toggle(
+      "show",
+      shadow.getElementById("cmd-origem-sel").value === "outro"
+    );
+    historico.esconder();
+    var aviso = shadow.getElementById("cmd-auto-aviso");
+    aviso.style.display = "block";
+    aviso.textContent =
+      "Repus procedimento, CID e justificativa de “" + entrada.titulo + "”. " +
+      "Os dados do paciente continuam sendo os da tela — confira antes de gerar.";
+    d.core.toast("Dados clínicos repostos do histórico.", 3500);
+  }
+
   function montarUI() {
     overlay = d.dock.criarOverlay({ estilo: CSS, html: HTML });
+
+    historico = raiz.MeedsSuiteHistorico.montarPainel(
+      shadow.getElementById("cmd-historico-painel"),
+      "cmd",
+      { aoReabrir: reabrirDoHistorico }
+    );
+    shadow.getElementById("cmd-historico-abrir").addEventListener("click", historico.alternar);
     shadow.getElementById("cmd-refresh").addEventListener("click", atualizarPaciente);
     shadow.getElementById("cmd-close").addEventListener("click", overlay.fechar);
     shadow.getElementById("cmd-gerar").addEventListener("click", gerarPdf);

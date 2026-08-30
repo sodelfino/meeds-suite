@@ -363,6 +363,9 @@
     /* MIGRACAO DO CADASTRO — roda antes de qualquer modulo subir, para
      * que o primeiro <select> de medicos ja apareca preenchido. */
     Cadastro.migrarSeNecessario();
+    /* Tira do disco o nome completo de paciente que o historico do APAC
+     * gravava na versao anterior, convertendo para a referencia curta. */
+    raiz.MeedsSuiteHistorico.migrarHistoricoApac();
 
     raiz.MeedsSuiteManager.montar({
       dock: Dock,

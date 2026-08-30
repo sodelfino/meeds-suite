@@ -16,6 +16,7 @@
     "core/decision-engine.js",
     "core/mensagens.js",
     "core/cadastro.js",
+    "core/historico.js",
     "core/manager.js",
     "core/core.user.js"
   ],
