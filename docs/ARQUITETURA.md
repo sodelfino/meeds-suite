@@ -60,6 +60,10 @@ E o custo prático: **5 instalações e 5 atualizações separadas por médico**
   │                                                              │
   │  auth.js            trava de frame + detecção de login       │
   │  storage.js         config por módulo, namespaced            │
+  │  cadastro.js        médicos: cadastro único + backup         │
+  │  historico.js       documentos gerados, sem dado de paciente │
+  │  mensagens.js       como o sistema fala com o médico         │
+  │  diagnostico.js     instância única, scripts antigos, 1ª vez │
   │  network-hub.js     hook ÚNICO de fetch/XHR → barramento     │
   │  dom-reader.js      leitura de rótulo com variantes          │
   │  decision-engine.js fusão de sinais com confiança            │
@@ -345,6 +349,68 @@ ou tirar os dados do fonte antes de publicar), você optou por **publicar**.
 O repositório está público desde 30/08/2026. A ressalva da seção 7 continua
 valendo e o caminho de solução segue disponível.
 
+
+**D11 — Dados dos médicos fora do código, num cadastro único.**
+Com o repositório público, nome/CRM/CPF de 6 médicos (LME e CMD) e nome/CNS de
+3 (APAC) eram dado pessoal exposto. O cadastro passou para o navegador do
+próprio médico, em `GM_setValue` — e **não** em `localStorage`, porque o
+armazenamento do Tampermonkey é independente da versão do userscript e
+sobrevive tanto à atualização automática quanto a "limpar dados do site".
+A chave é fixa (`medicos`) e imutável: mudança de estrutura se resolve por
+migração, nunca trocando a chave, senão o médico perde o cadastro numa
+atualização. É **um** cadastro para os três geradores — antes o APAC tinha a
+sua lista e LME/CMD outra, e o médico teria que se cadastrar duas vezes.
+Quem usava a v2.0.x tem os médicos migrados automaticamente da chave antiga
+`apac_medicos_v1`.
+
+**D12 — O histórico deixou de gravar o nome do paciente.**
+O histórico do APAC gravava o **nome completo** do paciente em disco, enquanto
+a descrição do próprio script promete que nenhum dado de paciente é salvo.
+Copiar isso para LME e CMD triplicaria o problema. Agora é gravada uma
+referência não identificável — iniciais e os três últimos dígitos do CPF
+(`M.A.S. · •••909`) — suficiente para o médico reconhecer o atendimento,
+insuficiente para identificar alguém a partir do arquivo. As entradas antigas
+são convertidas na primeira execução e o nome completo sai do disco.
+Consequência desejada: "Reabrir" repõe só a parte clínica, então o dado de um
+paciente não tem como entrar no laudo de outro.
+
+**D13 — Auto-seleção do médico só quando há exatamente um cadastrado.**
+Menos cliques é premissa, e o caso comum é o médico usar o próprio computador.
+Com dois ou mais cadastrados o sistema **não escolhe**: adivinhar de quem é a
+assinatura do laudo seria um erro caro. É a mesma regra de não decidir sob
+ambiguidade que o alarme e o REMUME já seguiam.
+
+**D14 — `manifest.json` é a fonte de verdade dos textos dos módulos.**
+Nome, descrição e versão vinham tanto do `registerModule()` quanto do manifest.
+Dois lugares para o mesmo texto divergem com o tempo — foi exatamente o que
+aconteceu com os comentários de posição dos botões nos scripts antigos. Agora
+o manifest manda e o `registerModule()` vale como reserva, o que também torna
+"mudar o texto que o médico lê" uma edição de arquivo de dados.
+
+**D15 — Instância única por marca no objeto global.**
+A trava de frame cobre o iframe da videochamada, mas não duas cópias instaladas
+no Tampermonkey nem uma reexecução do script numa navegação da SPA. Uma marca
+em `window.__ASSISTENTE_MEEDS_ATIVO__` faz a segunda execução desistir antes de
+instalar hook ou criar UI. Há ainda uma segunda camada que remove host de dock
+órfão do DOM.
+
+**D16 — Ajustes do módulo passaram a viver no painel da engrenagem.**
+A configuração do alarme só abria com clique **direito** no botão — ninguém
+descobre isso sozinho. Qualquer módulo pode registrar uma tela de ajustes
+(`deps.aoAbrirAjustes`) e ela aparece como link na linha dele no painel. O
+clique direito continua valendo como atalho para quem já conhece.
+
+**D17 — Detecção dos scripts antigos é repetida, não única.**
+Eles rodam em `document-idle` e alguns só montam o botão depois que o médico
+navega para o atendimento. Uma checagem única perderia esses casos e o médico
+ficaria com botão duplicado sem saber por quê. São quatro tentativas (4s, 10s,
+20s, 45s), parando na primeira que encontrar algo.
+
+**D18 — Paleta unificada no azul.**
+APAC e REMUME tinham cabeçalho verde-água; LME, CMD e o painel, azul. Sem um
+padrão, cada módulo novo escolheria o seu. O azul virou a cor de identidade e o
+verde ficou só como cor de ação nos botões primários, papel que já tinha.
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público
@@ -353,9 +419,15 @@ Os repositórios de origem `lme-sete-lagoas-gerador` e `laudo-cmd-meeds` são
 **públicos** e contêm, no código-fonte, **nome completo, CRM e CPF de 6
 médicos**. O `apac-itauna-meeds` contém nome e CNS de 3 médicos.
 
-Conforme combinado, esses dados **foram preservados** no monorepo — eles são
-necessários para o fluxo de trabalho atual e para você conseguir atualizar os
-scripts existentes.
+**Situação resolvida no código, mas não no histórico.** Desde a v2.1.0 esses
+dados **não estão mais no código-fonte** (ver decisão D11): o cadastro vive no
+navegador de cada médico. O que permanece é o **histórico do Git**: os commits
+anteriores a essa mudança, neste repositório e nos dois repositórios de origem
+que continuam públicos, ainda contêm os CPFs.
+
+Para remover de vez seria preciso reescrever o histórico (`git filter-repo` ou
+equivalente) nos três repositórios e forçar o push — o que invalida clones
+existentes. É uma decisão sua; o código atual já não expõe nada novo.
 
 > **Estado atual:** o monorepo é **público** desde 30/08/2026, por decisão
 > tomada para destravar a instalação (ver D10). Os mesmos CPFs já estavam

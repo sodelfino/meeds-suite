@@ -2177,9 +2177,16 @@
     return overlay;
   }
 
-  /* Roda os dois diagnosticos no start do nucleo. Os scripts antigos
-   * levam alguns segundos para injetar os proprios botoes (rodam em
-   * document-idle), entao a checagem espera antes de olhar. */
+  /* Roda os dois diagnosticos no start do nucleo.
+   *
+   * A checagem dos scripts antigos e REPETIDA, nao unica. Eles rodam em
+   * document-idle e alguns so montam o botao depois que o medico navega
+   * para a tela de atendimento — uma checagem unica aos 4s perderia
+   * esses casos e o medico ficaria com botao duplicado sem saber por que.
+   * Tentamos algumas vezes, com intervalo crescente, e paramos assim que
+   * encontrarmos algo (ou depois da ultima tentativa). */
+  var TENTATIVAS_MS = [4000, 10000, 20000, 45000];
+
   function verificar(dock, storage) {
     if (storage.ler("boasVindas", null) !== "vista") {
       setTimeout(function () {
@@ -2189,10 +2196,18 @@
 
     if (storage.ler("avisoScriptsAntigos", null) === "silenciado") return;
 
-    setTimeout(function () {
-      var achados = detectarAntigos();
-      if (achados.length) avisarScriptsAntigos(dock, achados, storage);
-    }, 4000);
+    var jaAvisou = false;
+    TENTATIVAS_MS.forEach(function (atraso) {
+      setTimeout(function () {
+        if (jaAvisou) return;
+        if (storage.ler("avisoScriptsAntigos", null) === "silenciado") return;
+        var achados = detectarAntigos();
+        if (achados.length) {
+          jaAvisou = true;
+          avisarScriptsAntigos(dock, achados, storage);
+        }
+      }, atraso);
+    });
   }
 
   raiz.MeedsSuiteDiagnostico = {

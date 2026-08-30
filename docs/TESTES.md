@@ -1,14 +1,13 @@
 # Testes
 
-O que existe hoje é um **teste de fumaça manual** com página estática e mock da
-API. Não é suíte automatizada — é o mínimo para confirmar, sem tocar em
-produção, que o núcleo sobe, que o dock empilha, que o hook único de rede
-entrega os eventos e que a leitura de tela responde.
+O que existe é um **teste de fumaça manual** com página estática e mock da API.
+Não é suíte automatizada — é o mínimo para confirmar, sem tocar em produção,
+que tudo continua funcionando depois de uma mudança.
 
 ## Como rodar
 
 ```bash
-node scripts/build.js
+npm run build
 python3 -m http.server 8731
 ```
 
@@ -19,55 +18,143 @@ Abra <http://localhost:8731/tests/smoke.html>.
 
 A página imita a tela do Meeds: cartão de paciente com os rótulos reais
 ("Nome da Mãe", "CPF", "Data de Nascimento", "Feminino", "47 anos e 2 meses"),
-card de métrica "Aguardando" e um mock de `GET /api/v1/Atendimento` que
-responde `{ data: [{ id }] }`, o mesmo formato que o alarme espera.
+card de métrica "Aguardando" e um mock de `GET /api/v1/Atendimento`.
 
-## Roteiro e resultados obtidos
+Para os testes que geram PDF, carregue jsPDF e pdf-lib pelo CDN antes — no uso
+real quem faz isso é o `@require` do Tampermonkey.
 
-Executado em 30/08/2026 contra `dist/meeds-suite.user.js` v2.0.1.
+## Resultado da última execução
 
-| # | Passo | Esperado | Resultado |
-|---|---|---|---|
-| 1 | Carregar a página | núcleo sobe, hook de rede instalado 1x | ✅ núcleo 2.0.0, `estaInstalado() === true` |
-| 2 | Campo de senha visível | nada da suite aparece | ✅ dock oculto |
-| 3 | Esconder o campo de senha | dock aparece | ✅ 6 botões: ⚙️, 🔔, APAC, Sete Lagoas, CMD, 💊 |
-| 4 | Conferir a pilha | ordem por prioridade, ⚙️ embaixo | ✅ nenhum módulo declara posição |
-| 5 | "Ler paciente da tela" | 7 campos lidos | ✅ nome, CPF, nascimento (BR e ISO), mãe, telefone, sexo |
-| 6 | Trocar o rótulo "Nome da Mãe" por "Filiação" | continua lendo | ✅ variantes do núcleo funcionando |
-| 7 | Dois contadores "Aguardando" divergentes | **recusa** decidir | ✅ `lerContadorPorRotulo()` devolve `null` |
-| 8 | Ligar o alarme e chamar a API 1x | só define a base, não toca | ✅ banner permanece oculto |
-| 9 | Chamar a API com um id novo | dispara | ✅ banner aparece |
-| 10 | Esvaziar a fila | silencia sozinho | ✅ banner some |
-| 11 | Desligar um módulo no ⚙️ | botão some na hora, sem reload | ✅ e assinaturas de rede vão a 0 |
-| 12 | Religar | volta a funcionar | ✅ assinaturas voltam a 1 |
-| 13 | REMUME sem internet no repo | fallback embutido segura | ✅ 11 municípios, 538 itens em Macaé |
-| 14 | Buscar "lozartna" | corrige e avisa | ✅ "Mostrando resultados para Losartana potássica" |
-| 15 | Buscar "buscopan" | acha pelo princípio ativo | ✅ 4 resultados de escopolamina, com selo 📍 |
-| 16 | Gerar LME de Sete Lagoas | PDF baixa | ✅ `LME_PACIENTE_DE_TESTE.pdf`, 117 KB |
-| 17 | Gerar laudo CMD | PDF baixa, contador funciona | ✅ `LAUDO_CMD_….pdf`, 144 KB, "94/700" |
-| 18 | Gerar APAC | PDF + fluxo gov.br | ✅ `APAC_….pdf`, 22 KB, abriu `assinador.iti.br` |
-| 19 | Médicos pré-cadastrados | CNS/CRM/CPF preservados | ✅ 3 no APAC, 6 no LME e no CMD |
+**48 casos, 48 passaram, 0 falharam.** Executado em 30/08/2026 contra
+`dist/meeds-suite.user.js` v2.2.0.
 
-Para os passos 16–18 é preciso ter jsPDF e pdf-lib na página — no uso real o
-`@require` do Tampermonkey cuida disso; no teste, carregue os dois pelo CDN
-antes de gerar.
+### Núcleo, dock e login
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 1 | Núcleo sobe | ✅ |
+| 2 | Hook de rede instalado uma única vez | ✅ |
+| 3 | **Instância única**: a segunda execução desiste | ✅ |
+| 4 | Um único dock no DOM | ✅ |
+| 5 | Dock empilha os 6 botões sozinho | ✅ |
+| 6 | Engrenagem no pé da pilha | ✅ |
+| 7 | Tudo some na tela de login | ✅ |
+| 8 | Volta a aparecer depois do login | ✅ |
+
+### Leitura de tela
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 9 | Lê os 7 campos do cartão do paciente | ✅ |
+| 10 | Variantes de rótulo: "Filiação" no lugar de "Nome da Mãe" | ✅ |
+| 11 | **Recusa decidir** com dois contadores divergentes | ✅ |
+
+### Cadastro de médicos *(novo)*
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 12 | Começa vazio — os dados saíram do código | ✅ |
+| 13 | Cadastro grava e sobrevive ao recarregar | ✅ |
+| 14 | Backup e restauração (troca de computador) | ✅ |
+| 15 | Backup rejeita arquivo inválido, com mensagem que explica | ✅ |
+
+### Alarme de fila
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 16 | Primeira leitura só define a base, não dispara | ✅ |
+| 17 | Paciente novo dispara o alarme | ✅ |
+| 18 | **Moldura noturna** aparece junto com o banner | ✅ |
+| 19 | Silencia sozinho quando a fila esvazia | ✅ |
+| 20 | Moldura some junto | ✅ |
+
+### Assistente REMUME
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 21 | Fallback embutido: 11 municípios sem internet | ✅ |
+| 22 | "lozartna" → "Losartana potássica" | ✅ |
+| 23 | "buscopan" → escopolamina | ✅ |
+
+### Geradores de laudo
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 24 | **Erro nomeia o campo que falta**, com o rótulo da tela | ✅ |
+| 25 | **Médico auto-selecionado** quando há um só cadastrado | ✅ |
+| 26 | Gera o PDF do CMD (`LAUDO_CMD_….pdf`) | ✅ |
+| 27 | Caixa verde de sucesso no modal | ✅ |
+| 32 | Gera o PDF de Sete Lagoas (`LME_….pdf`) | ✅ |
+| 33 | Caixa verde de sucesso | ✅ |
+| 35 | Estabelecimento/CNES vem de `dados/formularios.json` | ✅ |
+| 36 | Gera e baixa o PDF da APAC (22 KB) | ✅ |
+| 37 | Seção de assinatura aparece após gerar | ✅ |
+| 38 | Fluxo gov.br abre o portal | ✅ |
+
+> **Atenção ao escrever teste para a APAC:** ela gera o PDF e só baixa quando o
+> médico escolhe "Assinar via gov.br" ou "Baixar sem assinar". Verificar o
+> download logo após "Gerar PDF" dá falso negativo — foi o que aconteceu na
+> primeira execução deste roteiro.
+
+### Histórico *(novo)*
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 28 | Registra o documento gerado (CMD) | ✅ |
+| 29 | **Não grava nome completo**: só "J.C.S. · •••909" | ✅ |
+| 30 | "Reabrir" repõe a parte clínica | ✅ |
+| 31 | "Reabrir" **não** repõe os dados do paciente | ✅ |
+| 34 | Histórico do LME | ✅ |
+| 39 | Histórico da APAC, também sem nome completo | ✅ |
+
+### Painel da engrenagem
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 40 | Lista as 5 funções | ✅ |
+| 41 | Link "Ajustes" aparece no alarme | ✅ |
+| 42 | Crédito "Assistente Meeds — Por: Marcelo" | ✅ |
+| 43 | Desligar tira o botão na hora, sem recarregar | ✅ |
+| 44 | Religar traz de volta | ✅ |
+| 45 | "Ajustes" abre a configuração do alarme | ✅ |
+
+### Primeira instalação e scripts antigos *(novo)*
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 46 | Boas-vindas na primeira execução, apontando o ⚙️ | ✅ |
+| 47 | **Detecta script antigo ativo** e explica como desativar | ✅ |
+| 48 | "Não avisar de novo" fica salvo | ✅ |
+
+> O teste 47 simula o script antigo montando o botão **6 segundos** depois do
+> carregamento, porque é assim no mundo real (eles rodam em `document-idle`).
+> A checagem é repetida em 4s, 10s, 20s e 45s — uma checagem única perderia
+> esse caso.
+
+### Extensibilidade
+
+Verificado à parte: criei um sexto módulo a partir de `modules/_template`,
+acrescentei uma linha ao `manifest.json` e rodei `npm run build`. Ele apareceu
+na pilha, na posição declarada, com a janela funcionando — **sem uma linha
+alterada** nos cinco módulos existentes nem no núcleo. Depois removi.
 
 ## Verificações que rodam sem navegador
 
 ```bash
-node scripts/build.js --check       # manifest coerente + regras de arquitetura
-node scripts/sync-fallback.js --check   # fallback do REMUME em dia
+npm run verificar   # manifest coerente, regras de arquitetura, fallback em dia
 ```
 
-O `build.js` **reprova** (código de saída 1) se algum módulo tiver posição
-hardcoded em pixel ou hook próprio de fetch/XHR. Isso foi verificado
-introduzindo as duas violações de propósito e confirmando a reprovação.
+O build **reprova** (código de saída 1) se algum módulo — ou o próprio
+`modules/_template` — tiver posição hardcoded em pixel ou hook próprio de
+fetch/XHR. Verificado introduzindo as duas violações de propósito.
 
 ## O que ainda não é coberto
 
 - Não há teste automatizado em CI. O roteiro acima é manual.
-- O layout dos PDFs gerados não é comparado pixel a pixel com o original — a
-  garantia aqui é que as funções de geração foram extraídas **verbatim** e que
-  os PDFs base são byte a byte idênticos aos dos repositórios de origem.
-- O comportamento contra a API real do Meeds (formatos de payload que o mock
-  não reproduz) só será exercido na validação em produção.
+- O layout dos PDFs não é comparado pixel a pixel com o original. A garantia é
+  que as funções de geração foram extraídas **verbatim** e que os PDFs base são
+  byte a byte idênticos aos dos repositórios de origem.
+- O comportamento contra a API real do Meeds (formatos de payload que o mock não
+  reproduz) só será exercido na validação em produção.
+- A detecção dos scripts antigos depende de eles manterem os mesmos ids no DOM.
+  Se algum dia mudarem, atualize a lista em `core/diagnostico.js`.

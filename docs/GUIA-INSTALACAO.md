@@ -83,18 +83,66 @@ Nada disso aparece na tela de login — só depois que você entra.
 
 ---
 
+## 4.1 Na primeira vez que você abrir
+
+Duas telas aparecem sozinhas, uma vez só:
+
+- **Boas-vindas**, mostrando onde ficam os botões e para que serve o ⚙️.
+  Tem um atalho "Cadastrar agora" que leva direto ao cadastro do médico.
+- **Aviso de botões duplicados**, se algum dos cinco scripts antigos ainda
+  estiver ativo. Ele diz quais são e como desativar. Se você já resolveu,
+  clique em "Não avisar de novo".
+
+## 4.2 Cadastre-se uma vez
+
+Por segurança, os dados dos médicos **não ficam mais no código do programa** —
+eles são dados pessoais e o repositório é público. No ⚙️, seção **Médicos**,
+preencha:
+
+| Campo | Usado por |
+|---|---|
+| Nome completo | todos os laudos (é o único obrigatório) |
+| CRM e CPF | Sete Lagoas e Conceição do Mato Dentro |
+| CNS | APAC de Itaúna |
+
+Leva menos de um minuto e **não se repete**: atualizar o Assistente não apaga
+o cadastro.
+
+Se você tiver **um só médico cadastrado**, ele já vem selecionado nos laudos —
+um clique a menos por documento. Com dois ou mais, o sistema não escolhe
+sozinho, de propósito: assinatura errada num laudo é um problema sério.
+
+**Trocando de computador?** No ⚙️ → **Fazer backup** gera um arquivo. No outro
+computador, **Restaurar backup**. O administrador também pode te enviar um
+arquivo pronto com a equipe inteira.
+
 ## 5. Primeira vez em cada ferramenta
 
 **Alarme de fila.** Clique no 🔕 para ligar (vira 🔔). O navegador só libera
 som depois de um clique seu, então esse primeiro clique é obrigatório — não dá
-para deixar "ligado sozinho" ao abrir a página. Configure com o botão direito.
+para deixar "ligado sozinho" ao abrir a página.
 
-**APAC — Itaúna.** Os médicos vêm pré-cadastrados. Para adicionar ou remover,
-use **⚙️ Gerenciar médicos** dentro do modal. A lista fica salva só neste
-navegador.
+Para escolher o som, o volume e quando alertar: ⚙️ → na linha "Alarme de Fila",
+clique em **Ajustes**. (Clique com o botão direito no 🔔 é um atalho para a
+mesma tela.)
 
-**Sete Lagoas e CMD.** A seleção do médico é obrigatória a cada laudo, de
-propósito — evita gerar um laudo com a assinatura errada.
+Quando dispara, além do som você vê uma faixa vermelha no topo **e uma moldura
+pulsante na borda da tela** — feita para ser percebida de canto de olho em sala
+com pouca luz.
+
+**Os três geradores de laudo.** Todos leem os dados do paciente da tela do
+atendimento sozinhos; confira antes de gerar. Se algo não vier, use
+**🔄 Atualizar paciente**.
+
+Depois de gerar, aparece uma confirmação verde com o nome do arquivo, e o
+documento fica no **📜 Histórico**. Ali, o botão **Reabrir** repõe
+procedimento, CID e justificativa de um laudo anterior — útil quando você
+precisa emitir outro parecido. Os dados do paciente **não** são repostos: eles
+vêm sempre da tela, para não misturar pacientes.
+
+O histórico guarda apenas as iniciais e os três últimos dígitos do CPF
+(`M.A.S. · •••909`) — o suficiente para você reconhecer o atendimento, sem
+gravar dado de paciente no computador.
 
 **REMUME.** O município do atendimento é detectado sozinho. Se aparecer mais
 de um município na tela, a ferramenta prefere **não escolher** — selecione na
@@ -110,7 +158,10 @@ Confirme que você está logado (na tela de login eles ficam escondidos de
 propósito) e que o script está ativo no painel do Tampermonkey.
 
 **Botão duplicado ou alarme tocando duas vezes.**
-Algum script antigo continua ativo. Volte à seção 2.
+Quase sempre é um script antigo ainda ativo — o próprio Assistente detecta e
+avisa. Volte à seção 2. Se o aviso não aparecer e o problema persistir,
+confira no painel do Tampermonkey se você não tem o Assistente instalado duas
+vezes.
 
 **"jsPDF não carregou" ou "pdf-lib indisponível".**
 A rede da unidade está bloqueando `cdnjs.cloudflare.com`. Peça liberação do
@@ -133,5 +184,7 @@ toca na chegada, só quando alguém ultrapassa o limite configurado.
 - Nenhum dado de paciente é gravado em disco: nome, CPF e identificador de
   atendimento vivem só na memória da aba e somem quando você fecha ou recarrega.
 - Nada de paciente é enviado para fora do navegador.
-- O que fica salvo neste navegador é só preferência de uso: quais funções estão
-  ligadas, som e volume do alarme, e a lista de médicos que você cadastrou.
+- O que fica salvo neste navegador: quais funções estão ligadas, som e volume
+  do alarme, a lista de médicos que você cadastrou, e o histórico dos
+  documentos gerados — este último **sem** nome, CPF completo, nascimento,
+  nome da mãe ou telefone do paciente.
