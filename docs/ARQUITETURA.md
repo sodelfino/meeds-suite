@@ -336,8 +336,14 @@ semente copiada para o `GM_setValue` na primeira execução. Esse desenho foi
 mantido: os dados estão lá (como você pediu), mas a edição do médico continua
 sendo respeitada e nunca sobrescrita.
 
-**D10 — Repositório criado como privado.**
-Ver a seção 7. É reversível com um comando.
+**D10 — Repositório criado privado, depois tornado público por decisão sua.**
+Foi criado privado para não ampliar a exposição de CPF/CNS antes de você
+decidir. Como `raw.githubusercontent.com` não serve arquivo de repositório
+privado sem autenticação, o Tampermonkey recebia 404 e a instalação não
+funcionava. Apresentadas as três saídas (instalar do arquivo local, publicar,
+ou tirar os dados do fonte antes de publicar), você optou por **publicar**.
+O repositório está público desde 30/08/2026. A ressalva da seção 7 continua
+valendo e o caminho de solução segue disponível.
 
 ---
 
@@ -351,7 +357,12 @@ Conforme combinado, esses dados **foram preservados** no monorepo — eles são
 necessários para o fluxo de trabalho atual e para você conseguir atualizar os
 scripts existentes.
 
-Duas observações, para decisão sua:
+> **Estado atual:** o monorepo é **público** desde 30/08/2026, por decisão
+> tomada para destravar a instalação (ver D10). Os mesmos CPFs já estavam
+> públicos em `lme-sete-lagoas-gerador` e `laudo-cmd-meeds`, então isso não
+> criou uma exposição nova — mas duplicou a existente.
+
+Duas observações, que continuam de pé:
 
 1. **CPF é dado pessoal sob a LGPD.** Publicá-lo em repositório aberto expõe
    os médicos a uso indevido, e o histórico do Git preserva o dado mesmo depois
@@ -363,9 +374,14 @@ Duas observações, para decisão sua:
    receber o mesmo tratamento — a infraestrutura já está no monorepo, é o
    mesmo padrão do painel "Gerenciar médicos".
 
-Para tornar o repositório público (necessário para o `@updateURL` funcionar
-para os médicos):
+Se um dia quiser fechar o repositório de novo (lembrando que isso quebra o
+`@updateURL` dos médicos, que passariam a receber 404):
 
 ```bash
-gh repo edit sodelfino/meeds-suite --visibility public --accept-visibility-change-consequences
+gh repo edit sodelfino/meeds-suite --visibility private
 ```
+
+E, para remover os dados do código-fonte aplicando em LME e CMD o mesmo padrão
+que o APAC já usa, basta pedir — a infraestrutura do painel "Gerenciar médicos"
+já está no monorepo. Note que remover do código **não** remove do histórico do
+Git: para isso seria preciso reescrever o histórico dos repositórios afetados.
