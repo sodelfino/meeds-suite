@@ -1,0 +1,13 @@
+{
+  "name": "meeds-suite",
+  "version": "2.0.1",
+  "private": true,
+  "description": "Pacote unificado das ferramentas Meeds da Novetech: bootloader unico, nucleo compartilhado e modulos independentes.",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "verificar": "node scripts/build.js --check && node scripts/sync-fallback.js --check",
+    "sync-fallback": "node scripts/sync-fallback.js",
+    "teste": "node scripts/build.js && node -e \"console.log('Agora sirva a pasta e abra tests/smoke.html — ver docs/TESTES.md')\""
+  },
+  "engines": { "node": ">=14" }
+}
