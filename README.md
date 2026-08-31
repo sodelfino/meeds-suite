@@ -44,6 +44,12 @@ Passo a passo: **[docs/GUIA-INSTALACAO.md](docs/GUIA-INSTALACAO.md)**
 
 <https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.safari.user.js>
 
+> No iPad, **ligar a extensão em Ajustes → Safari → Extensões é um passo
+> separado** de instalar o app — é onde quase todo mundo trava. Se o link
+> acima só mostrar código e não oferecer instalação, baixe o arquivo pelo
+> [release](https://github.com/sodelfino/meeds-suite/releases/latest) e mova
+> para a pasta do Userscripts pelo app Arquivos.
+
 Passo a passo e o que muda no iPad: **[docs/GUIA-IPAD.md](docs/GUIA-IPAD.md)**
 
 > As duas versões têm o **mesmo código**, byte a byte — só o cabeçalho difere.

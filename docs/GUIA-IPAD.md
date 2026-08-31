@@ -11,36 +11,70 @@ direito ali, pelo motivo explicado no fim desta página.
 
 ## 1. Instalar o app
 
-1. Na App Store, procure por **Userscripts** (ícone laranja, do desenvolvedor
-   *Justin Wasack*). É gratuito e sem anúncios.
-2. Abra o app uma vez. Ele pede para escolher uma pasta onde vai guardar os
-   scripts — pode aceitar a que ele sugere.
+Na App Store, procure por **Userscripts** (ícone `</>` laranja). É gratuito.
+Abra o app uma vez; ele já vem com uma pasta escolhida.
 
-## 2. Ligar a extensão no Safari
+## 2. LIGAR A EXTENSÃO — é aqui que quase todo mundo trava
 
-1. **Ajustes** → **Safari** → **Extensões**.
-2. Ligue **Userscripts**.
-3. Toque em **Userscripts** → **Todos os sites** → **Permitir**.
+**Instalar o app não liga a extensão.** Enquanto ela estiver desligada, nada
+acontece no Safari e nenhum script instala. A própria tela inicial do app
+avisa isso: *"You can turn on the Userscripts iOS Safari extension in
+Settings"*.
 
-> Se preferir liberar só o Meeds, escolha "Perguntar" e autorize quando
-> aparecer. Mas aí não esqueça: se um dia o Assistente "sumir", é porque a
-> permissão não foi dada naquele site.
+1. **Ajustes** (o app cinza de engrenagem) → **Aplicativos** → **Safari**
+   → **Extensões**.
+   *(Em iPadOS mais antigo: Ajustes → Safari → Extensões.)*
+2. Toque em **Userscripts** e ligue a chave.
+3. Ainda nessa tela, toque em **Todos os sites** e escolha **Permitir**.
+
+> Sem o passo 3 a extensão fica ligada mas sem permissão, e o resultado é o
+> mesmo: nada acontece.
+
+Para conferir se funcionou: abra qualquer site no Safari e toque no ícone de
+extensões, na barra de endereço. O Userscripts tem que aparecer na lista.
 
 ## 3. Instalar o Assistente
 
-No Safari do iPad, abra este endereço:
+Há dois caminhos. Tente o primeiro; se não der, o segundo funciona sempre.
 
-<https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.safari.user.js>
+### Caminho A — direto pelo Safari
 
-Toque no ícone da extensão (na barra de endereço) e escolha **instalar**.
+1. No Safari do iPad, abra:
 
-> Repare no `.safari.` no meio do endereço. É essa versão que funciona no iPad.
+   <https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.safari.user.js>
+
+2. A tela vai encher de código. **É isso mesmo** — não é erro.
+3. Com essa página aberta, toque no **ícone de extensões** na barra de
+   endereço → **Userscripts**.
+4. Deve aparecer a oferta de instalar. Confirme.
+
+### Caminho B — pelo app Arquivos (se o A não oferecer nada)
+
+O caminho A depende de a extensão reconhecer a página como script. Se não
+aparecer nada, use este, que não depende disso:
+
+1. No Safari, abra:
+
+   <https://github.com/sodelfino/meeds-suite/releases/latest/download/meeds-suite.safari.user.js>
+
+   Este endereço **baixa o arquivo** em vez de mostrar o código. Confirme o
+   download.
+2. Abra o app **Arquivos** → **Transferências** (ou Downloads).
+3. Mantenha o dedo sobre `meeds-suite.safari.user.js` → **Mover**.
+4. Escolha **No meu iPad** → pasta **Userscripts** → **Mover**.
+5. Volte ao app Userscripts. O script tem que aparecer na lista.
+
+> Se a pasta **Userscripts** não aparecer em "No meu iPad", abra o app
+> Userscripts, toque em **Change Userscripts Directory** e escolha uma pasta
+> que você consiga achar no Arquivos — a de dentro do próprio app serve.
 
 ## 4. Usar
 
-Abra o Meeds, faça login, e os botões aparecem no canto inferior direito, como
-no computador. O painel da engrenagem (⚙️) funciona igual: ligar e desligar
-funções, cadastrar médico, ver o que mudou.
+Abra o Meeds no Safari, faça login, e os botões aparecem no canto inferior
+direito. O painel da engrenagem (⚙️) funciona igual ao do computador.
+
+Se os botões não aparecerem, toque no ícone de extensões com o Meeds aberto e
+confirme que o Userscripts está **permitido nesse site**.
 
 ---
 
@@ -112,10 +146,20 @@ pelo mesmo `npm run build`. Corrigir algo corrige nos dois.
 
 ## Se algo não funcionar
 
-**Os botões não aparecem.**
-Confira, nesta ordem: (1) a extensão está ligada em Ajustes → Safari →
-Extensões; (2) o Userscripts tem permissão para o site do Meeds; (3) o script
-aparece na lista quando você toca no ícone da extensão com o Meeds aberto.
+**Abri o link e só apareceu um monte de código.**
+É o esperado: o Safari mostra o arquivo como texto. A instalação acontece
+tocando no ícone de extensões → Userscripts, **com essa página aberta**. Se
+mesmo assim não aparecer a oferta, use o Caminho B.
+
+**Toquei no ícone de extensões e o Userscripts não está lá.**
+A extensão não foi ligada, ou foi ligada sem permissão. Volte ao passo 2 —
+os dois sub-passos, o de ligar e o de "Todos os sites".
+
+**Os botões não aparecem no Meeds.**
+Confira, nesta ordem: (1) a extensão está ligada; (2) o Userscripts tem
+permissão **para o site do Meeds**; (3) o script aparece na lista quando você
+toca no ícone da extensão com o Meeds aberto; (4) o script não está
+desativado ali (há uma chavinha por script).
 
 **Instalei e o ícone da extensão não mostra nada.**
 Verifique se o endereço que você abriu termina exatamente em `.user.js`. Se o
