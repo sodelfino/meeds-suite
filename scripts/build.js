@@ -271,7 +271,13 @@ function main() {
     const resto = texto.slice(fim);
 
     meta = meta
-      .replace(/\/\/ @name\s+.*\n/, `// @name         ${manifest.nome} (Safari/iPad) - Por: ${manifest.autor}\n`)
+      /* O @name vira o NOME DO ARQUIVO no app Userscripts — a documentacao
+       * dele diz isso com todas as letras. Entao aqui nao pode haver "/"
+       * nem ":": os dois sao proibidos em nome de arquivo no iOS, e o
+       * script simplesmente nao e salvo. O credito com dois-pontos
+       * continua aparecendo na tela, no painel "Sobre"; so o nome do
+       * arquivo e que precisa ser sobrio. */
+      .replace(/\/\/ @name\s+.*\n/, `// @name         ${manifest.nome} para iPad - por ${manifest.autor}\n`)
       .replace(/\/\/ @namespace\s+.*\n/, "// @namespace    novetech-meeds-suite-safari\n")
       /* Sai todo @grant e entra `none`: e o que mantem o script no escopo
        * da pagina, onde o hub de rede funciona. */
@@ -281,9 +287,13 @@ function main() {
         /(\/\/ @run-at\s+.*\n)/,
         "// @grant        none\n// @inject-into page\n$1"
       )
+      /* A documentacao do Userscripts e explicita: o @updateURL deve
+       * terminar em .meta.js, e o @downloadURL em .user.js. Apontar os
+       * dois para o mesmo arquivo faz o app baixar 1 MB so para conferir
+       * a versao — e, pior, a checagem pode nem funcionar. */
       .replace(
         /\/\/ @updateURL\s+.*\n/,
-        `// @updateURL    ${manifest.baseRaw}/${VARIANTE_SAFARI}\n`
+        `// @updateURL    ${manifest.baseRaw}/${VARIANTE_SAFARI.replace(".user.js", ".meta.js")}\n`
       )
       .replace(
         /\/\/ @downloadURL\s+.*\n/,
@@ -293,9 +303,27 @@ function main() {
     return meta + resto;
   }
 
+  const conteudoSafari = cabecalhoSafari(saidaComVersao);
   const destinoSafari = path.join(RAIZ, VARIANTE_SAFARI);
   fs.mkdirSync(path.dirname(destinoSafari), { recursive: true });
-  fs.writeFileSync(destinoSafari, cabecalhoSafari(saidaComVersao), "utf8");
+  fs.writeFileSync(destinoSafari, conteudoSafari, "utf8");
+
+  /* O .meta.js e so o bloco de metadados: e o que o gerenciador baixa
+   * para saber se ha versao nova, sem puxar o pacote inteiro. */
+  function soMetadados(texto) {
+    const fim = texto.indexOf("// ==/UserScript==");
+    return texto.slice(0, fim) + "// ==/UserScript==\n";
+  }
+  fs.writeFileSync(
+    path.join(RAIZ, VARIANTE_SAFARI.replace(".user.js", ".meta.js")),
+    soMetadados(conteudoSafari),
+    "utf8"
+  );
+  fs.writeFileSync(
+    path.join(RAIZ, manifest.saida.replace(".user.js", ".meta.js")),
+    soMetadados(saidaComVersao),
+    "utf8"
+  );
 
   const destino = path.join(RAIZ, manifest.saida);
   fs.mkdirSync(path.dirname(destino), { recursive: true });

@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Assistente Meeds (Safari/iPad) - Por: Marcelo
+// @name         Assistente Meeds para iPad - por Marcelo
 // @namespace    novetech-meeds-suite-safari
 // @version      2.13.0
 // @description  Assistente Meeds - Por: Marcelo. Alarme de fila, APAC de Itauna, laudos de Sete Lagoas e Conceicao do Mato Dentro e consulta a REMUME, numa instalacao unica. Cada funcao liga e desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
@@ -13,7 +13,7 @@
 // @grant        none
 // @inject-into page
 // @run-at       document-start
-// @updateURL    https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.safari.user.js
+// @updateURL    https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.safari.meta.js
 // @downloadURL  https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.safari.user.js
 // ==/UserScript==
 
