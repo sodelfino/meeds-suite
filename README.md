@@ -23,7 +23,6 @@ desliga num painel, sem reinstalar nada.
 | 📋 **APAC — Itaúna** | Gera a APAC já preenchida com os dados da tela e leva direto para a assinatura no gov.br. |
 | 📄 **Laudo — Sete Lagoas** | Preenche o Laudo Médico de Alto Custo no formulário oficial da prefeitura. |
 | 📄 **Laudo — Conceição do Mato Dentro** | Idem, no formulário oficial de CMD. |
-| 🪑 **Sala de Espera** | Avisa, sem som, quando um paciente de consulta agendada chega — com nome, hora marcada e tempo de espera. |
 | 🔎 **Buscar CID-10** | Procura o código pelo nome da doença, na tabela completa (14.233 códigos), e preenche no laudo aberto. |
 | 💊 **Assistente REMUME** | Consulta os medicamentos do município do atendimento. Aceita erro de digitação e nome comercial. |
 
@@ -126,10 +125,10 @@ técnicas: **[docs/ARQUITETURA.md](docs/ARQUITETURA.md)**
 Nenhum dado de paciente é gravado em disco nem enviado para fora do navegador.
 Nome, CPF e identificador de atendimento vivem só na memória da aba.
 
-A **Sala de Espera** roda inteiramente no navegador: a única chamada que ela faz
-é para o próprio Meeds (mesma origem, com os cookies da sua sessão). Ela não
-armazena nem transmite dado de paciente, e o console de depuração registra
-apenas mensagens fixas — nunca nome, CPF ou CNS.
+> **Em desenvolvimento:** a função **Sala de Espera** (aviso de paciente
+> agendado que chegou) está pronta, mas fora desta versão. Ela precisa de
+> validação num plantão real antes de ir para os médicos. O código está em
+> `modules/sala-espera/`, e o `manifest.json` explica como reativá-la.
 
 Os dados dos médicos (nome, CRM, CPF, CNS) **não ficam no código**: cada médico
 se cadastra uma vez no próprio navegador, com backup e restauração no painel.

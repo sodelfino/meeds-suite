@@ -1,6 +1,26 @@
 /* ------------------------------------------------------------------
  * modules/sala-espera/index.js — pacientes agendados que chegaram
  * ------------------------------------------------------------------
+ * *** EM STANDBY — NAO ENTRA NA DISTRIBUICAO ***
+ * Desde a v2.11.0 este modulo esta fora do pacote: ele saiu da lista
+ * "modulos" do manifest.json e foi para "_modulosEmStandby". O codigo
+ * continua aqui, inteiro e testado, e o build simplesmente nao o
+ * empacota.
+ *
+ * POR QUE FOI SUSPENSO
+ * Ele funciona contra o mock, mas nunca rodou num plantao de verdade.
+ * Dois pontos pedem observacao antes de chegar ao medico:
+ *   - o ProfissionalId e descoberto ouvindo a rede; falta confirmar que
+ *     a tela sempre faz essa chamada, em toda rota por onde o medico
+ *     passa;
+ *   - o intervalo de 30s foi escolhido por simetria com o app, nao por
+ *     medicao — pode ser frequente demais ou de menos na pratica.
+ *
+ * COMO REATIVAR
+ * Mova o bloco de "_modulosEmStandby.modulos" de volta para "modulos",
+ * no manifest.json, e rode `npm run build`. Nada mais: nenhum outro
+ * modulo depende deste, e o nucleo nao sabe que ele existe.
+ * ------------------------------------------------------------------
  * O QUE FAZ
  * Avisa quando um paciente de CONSULTA AGENDADA entra na sala de espera.
  * E irmao do Alarme de Fila, mas para outro publico: o alarme cuida da

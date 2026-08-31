@@ -43,18 +43,6 @@
       "prioridadeBotao": 10
     },
     {
-      "id": "sala-espera",
-      "nome": "Sala de Espera",
-      "descricao": "Avisa quando um paciente de consulta agendada chega na sala de espera, sem som, e mostra quem está aguardando.",
-      "versao": "1.1.0",
-      "arquivo": "modules/sala-espera/index.js",
-      "origem": "novo — endpoint /api/v1/Atendimento com Agendado=true",
-      "prioridadeBotao": 15,
-      "assets": [
-        "modules/sala-espera/diagnostico.js"
-      ]
-    },
-    {
       "id": "apac-itauna",
       "nome": "APAC — Itaúna",
       "descricao": "Gera a APAC de Itaúna já preenchida com os dados do paciente que estão na tela e leva você direto para a assinatura no gov.br.",
@@ -121,5 +109,23 @@
     }
   ],
   "autor": "Marcelo",
-  "_comentario_textos": "Os campos nome e descricao de cada modulo sao o que o medico LE no painel da engrenagem. Editar aqui e rodar 'npm run build' muda o texto na tela sem tocar em codigo. Ver docs/MANUAL-ADMIN.md."
+  "_comentario_textos": "Os campos nome e descricao de cada modulo sao o que o medico LE no painel da engrenagem. Editar aqui e rodar 'npm run build' muda o texto na tela sem tocar em codigo. Ver docs/MANUAL-ADMIN.md.",
+  "_modulosEmStandby": {
+    "_leia_me": "Modulos prontos, porem FORA da distribuicao. O codigo continua no repositorio e o build NAO os empacota — o build so olha a lista 'modulos'. Para reativar: mova o bloco de volta para 'modulos' e rode 'npm run build'. Nada mais precisa ser feito; nenhum outro modulo depende deles.",
+    "modulos": [
+      {
+        "id": "sala-espera",
+        "nome": "Sala de Espera",
+        "descricao": "Avisa quando um paciente de consulta agendada chega na sala de espera, sem som, e mostra quem está aguardando.",
+        "versao": "1.1.0",
+        "arquivo": "modules/sala-espera/index.js",
+        "origem": "novo — endpoint /api/v1/Atendimento com Agendado=true",
+        "prioridadeBotao": 15,
+        "assets": [
+          "modules/sala-espera/diagnostico.js"
+        ],
+        "motivoStandby": "Suspenso na v2.11.0 a pedido, para amadurecer antes de chegar ao medico. Precisa de validacao em plantao real: o ProfissionalId e descoberto ouvindo a rede, e o intervalo de 30s ainda nao foi medido em uso."
+      }
+    ]
+  }
 }

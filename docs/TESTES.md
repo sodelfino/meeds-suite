@@ -190,7 +190,12 @@ Array.from(host.querySelectorAll("#rm-results li .rm-item-text"))
 ```
 
 
-### Sala de Espera *(novo)*
+### Sala de Espera *(EM STANDBY — fora da distribuição desde a v2.11.0)*
+
+> Os casos abaixo passaram quando o módulo foi escrito e continuam válidos como
+> registro. Eles **não rodam** no teste de fumaça atual, porque o módulo saiu do
+> pacote: `manifest.json` o move para `_modulosEmStandby`. Ao reativá-lo, rode
+> esta seção de novo antes de publicar.
 
 | # | O que verifica | Resultado |
 |---|---|---|
