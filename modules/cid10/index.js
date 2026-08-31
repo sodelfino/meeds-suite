@@ -124,7 +124,12 @@
           return { codigo: cod, descricao: cids[cod] };
         }),
         function (item) {
-          return item.codigo + " " + item.descricao;
+          /* O codigo entra DUAS vezes: como esta ("J06.9") e sem
+           * pontuacao ("J069"). O medico digita das duas formas, e sem a
+           * segunda o "J069" so casava por aproximacao — funcionava, mas
+           * com nota baixa e disputando com vizinhos. Assim e casamento
+           * exato. */
+          return item.codigo + " " + item.codigo.replace(/[^A-Za-z0-9]/g, "") + " " + item.descricao;
         }
       );
     } finally {
@@ -199,7 +204,8 @@
     sug.hidden = true;
     wrap.appendChild(sug);
 
-    if (!input.getAttribute("placeholder") || /digite ou escolha/i.test(input.getAttribute("placeholder"))) {
+    var placeholderOriginal = input.getAttribute("placeholder");
+    if (!placeholderOriginal || /digite ou escolha/i.test(placeholderOriginal)) {
       input.setAttribute("placeholder", "código ou nome da doença");
     }
     input.setAttribute("autocomplete", "off");
@@ -207,6 +213,12 @@
     var itens = [];
     var foco = -1;
     var debounce = null;
+    /* Depois de escolher, o campo dispara "input" para o gerador reagir
+     * (preencher a descricao, marcar o formulario como alterado). Esse
+     * mesmo evento reabria a lista 180ms depois, agora com o codigo
+     * recem-escolhido como termo — a lista "voltava" sozinha logo apos o
+     * medico clicar. Esta marca ignora exatamente esse disparo. */
+    var ignorarProximoInput = false;
 
     function fechar() {
       sug.hidden = true;
@@ -215,6 +227,7 @@
 
     function escolher(item) {
       input.value = item.codigo;
+      ignorarProximoInput = true;
       input.dispatchEvent(new Event("input", { bubbles: true }));
       if (typeof pedido.aoEscolher === "function") pedido.aoEscolher(item.codigo, item.descricao);
       fechar();
@@ -276,19 +289,29 @@
       sug.hidden = false;
     }
 
-    input.addEventListener("input", function () {
+    /* Os handlers ficam guardados para o stop() poder remove-los. Sem
+     * isso, desligar o modulo desfazia o HTML mas deixava os ouvintes
+     * presos no input — e religar empilharia um segundo conjunto. */
+    var handlers = {};
+
+    handlers.input = function () {
+      if (ignorarProximoInput) {
+        ignorarProximoInput = false;
+        clearTimeout(debounce);
+        return;
+      }
       clearTimeout(debounce);
       debounce = setTimeout(function () {
         abrirCom(input.value);
       }, 180);
-    });
-    input.addEventListener("focus", function () {
+    };
+    handlers.focus = function () {
       if (input.value.trim().length >= 2) abrirCom(input.value);
-    });
-    input.addEventListener("blur", function () {
+    };
+    handlers.blur = function () {
       setTimeout(fechar, 120);
-    });
-    input.addEventListener("keydown", function (ev) {
+    };
+    handlers.keydown = function (ev) {
       if (sug.hidden) return;
       if (ev.key === "ArrowDown") {
         ev.preventDefault();
@@ -304,9 +327,22 @@
       } else if (ev.key === "Escape") {
         fechar();
       }
+    };
+
+    Object.keys(handlers).forEach(function (evento) {
+      input.addEventListener(evento, handlers[evento]);
     });
 
-    camposConectados.push({ input: input, wrap: wrap, sug: sug });
+    camposConectados.push({
+      input: input,
+      wrap: wrap,
+      sug: sug,
+      handlers: handlers,
+      placeholderOriginal: placeholderOriginal,
+      cancelarDebounce: function () {
+        clearTimeout(debounce);
+      },
+    });
     return true;
   }
 
@@ -353,8 +389,14 @@
        * ser texto livre. */
       camposConectados.forEach(function (c) {
         try {
+          c.cancelarDebounce();
+          Object.keys(c.handlers).forEach(function (evento) {
+            c.input.removeEventListener(evento, c.handlers[evento]);
+          });
           c.wrap.parentNode.insertBefore(c.input, c.wrap);
           c.wrap.parentNode.removeChild(c.wrap);
+          if (c.placeholderOriginal === null) c.input.removeAttribute("placeholder");
+          else c.input.setAttribute("placeholder", c.placeholderOriginal);
           delete c.input.__cidConectado;
         } catch (e) {}
       });

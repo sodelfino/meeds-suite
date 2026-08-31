@@ -5993,7 +5993,7 @@
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
   var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#apac-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #apac-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #apac-modal-head h2{ margin:0; font-size:15px; }\n    #apac-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #apac-body{ padding:18px 20px; }\n    .apac-sec{ margin-bottom:16px; }\n    .apac-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .apac-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .apac-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6c68; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8e6e3; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:56px; resize:vertical; }\n    .apac-proc-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }\n    .apac-proc-btn{ border:1.4px solid #d8e6e3; border-radius:9px; padding:9px; cursor:pointer; }\n    .apac-proc-btn:hover{ border-color:#17ab9e; }\n    .apac-proc-btn.sel{ border-color:#12958a; background:#e3f5f3; }\n    .apac-proc-btn .t{ font-size:11.5px; font-weight:700; }\n    .apac-proc-btn .c{ font-size:9.5px; color:#0e7a70; font-family:monospace; }\n    #apac-territorio-wrap{ display:none; margin-top:8px; }\n    #apac-territorio-wrap.show{ display:block; }\n    #apac-eco-variante-wrap{ display:none; margin-top:8px; }\n    #apac-eco-variante-wrap.show{ display:block; }\n    #apac-outro-wrap{ display:none; margin-top:8px; }\n    #apac-outro-wrap.show{ display:block; }\n    #apac-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    #apac-sec-assinatura{ border:1.5px dashed #17ab9e; border-radius:12px; padding:14px; background:#f9fdfc; }\n    .apac-opcoes-assinatura{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }\n    button.apac-primary{ background:#12958a; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.apac-primary:hover{ background:#0b6a62; }\n    button.apac-primary:disabled{ background:#a0c9c4; cursor:not-allowed; }\n    button.apac-secondary{ background:#fff; color:#0e7a70; border:1.4px solid #17ab9e; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.apac-secondary:hover{ background:#e3f5f3; }\n    button.apac-tertiary{ background:#f0f4f3; color:#0e7a70; border:1px solid #d8e6e3; border-radius:9px; padding:9px 14px; font-size:12px; font-weight:700; cursor:pointer; }\n    button.apac-tertiary:hover{ background:#e3f5f3; }\n    #apac-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #apac-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }\n    .apac-info-box{ background:#e8f4f8; color:#0e7a70; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:10px; line-height:1.4; }";
 
-  var HTML = "<div id=\"apac-modal\">\n      <div id=\"apac-modal-head\"><h2>Gerador de APAC — Itaúna</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"apac-refresh-modal\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"apac-historico-abrir\" title=\"Últimas APACs geradas nesta máquina\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"apac-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"apac-body\">\n        <div id=\"apac-auto-aviso\"></div>\n\n        <div id=\"apac-historico-painel\"></div>\n\n        <div class=\"apac-sec\">\n          <h3>Estabelecimento</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome *</label><select id=\"apac-estab-sel\"></select></div>\n            <div><label>CNES *</label><input id=\"apac-estab-cnes\" readonly style=\"background:#f1f5f9;\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Médico solicitante</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Selecionar *</label><select id=\"apac-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"apac-medico-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-medico-cpf\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Paciente</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome completo *</label><input id=\"apac-pac-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-pac-cpf\"></div>\n          </div>\n          <div class=\"apac-grid3\" style=\"margin-top:8px;\">\n            <div><label>Nascimento *</label><input type=\"date\" id=\"apac-pac-nasc\"></div>\n            <div><label>Sexo *</label><select id=\"apac-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"M\">Masculino</option><option value=\"F\">Feminino</option></select></div>\n            <div><label>Nome da mãe *</label><input id=\"apac-pac-mae\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Procedimento *</h3>\n          <div class=\"apac-proc-grid\" id=\"apac-proc-grid\"></div>\n          <div id=\"apac-territorio-wrap\">\n            <label>Território vascular (obrigatório para Doppler)</label>\n            <select id=\"apac-territorio-sel\"></select>\n          </div>\n          <div id=\"apac-eco-variante-wrap\">\n            <label>Variante do ecocardiograma</label>\n            <select id=\"apac-eco-variante-sel\">\n              <option value=\"REPOUSO\">Transtorácica de repouso (padrão)</option>\n              <option value=\"ESTRESSE\">Com estresse (farmacológico/Dobutamina)</option>\n              <option value=\"TRANSESOFAGICO\">Transesofágico</option>\n            </select>\n          </div>\n          <div id=\"apac-outro-wrap\">\n            <label>Código SIGTAP *</label>\n            <input id=\"apac-outro-codigo\" placeholder=\"ex: 02.11.02.001-0\" style=\"margin-bottom:8px;\">\n            <label>Nome do procedimento *</label>\n            <input id=\"apac-outro-nome\" placeholder=\"como deve aparecer no campo 19\">\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>CID-10 *</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Principal *</label><input id=\"apac-cid1\" list=\"apac-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Secundário</label><input id=\"apac-cid2\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n            <div><label>Associados</label><input id=\"apac-cid3\" list=\"apac-cid-list\" autocomplete=\"off\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Descrição (campo 36) *</label><input id=\"apac-cid-desc\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Texto do pedido (campo 40) *</h3>\n          <textarea id=\"apac-obs\"></textarea>\n        </div>\n\n        <!-- ETAPA 2 — Assinatura -->\n        <div class=\"apac-sec\" id=\"apac-sec-assinatura\" style=\"display:none;\">\n          <h3>Etapa 2 — Assinatura</h3>\n          <div class=\"apac-info-box\">\n            ✅ <b>APAC gerada.</b> Ela já ficou registrada no 📜 Histórico. Escolha como quer finalizar:\n          </div>\n\n          <div class=\"apac-opcoes-assinatura\">\n            <button id=\"apac-assinar-govbr\" class=\"apac-primary\">\n              🏛️ Assinar via gov.br<br><small style=\"font-weight:400;opacity:.9;\">Baixa PDF e abre o portal</small>\n            </button>\n            <button id=\"apac-baixar-sem\" class=\"apac-tertiary\">\n              💾 Baixar sem assinar<br><small style=\"font-weight:400;opacity:.8;\">PDF simples</small>\n            </button>\n          </div>\n        </div>\n\n        <div id=\"apac-erro\"></div>\n        <datalist id=\"apac-cid-list\"></datalist>\n      </div>\n      <div id=\"apac-footer\">\n        <button class=\"apac-secondary\" id=\"apac-limpar\">Limpar</button>\n        <button class=\"apac-primary\" id=\"apac-gerar\">Gerar PDF</button>\n      </div>\n    </div>";
+  var HTML = "<div id=\"apac-modal\">\n      <div id=\"apac-modal-head\"><h2>Gerador de APAC — Itaúna</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"apac-refresh-modal\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"apac-historico-abrir\" title=\"Últimas APACs geradas nesta máquina\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"apac-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"apac-body\">\n        <div id=\"apac-auto-aviso\"></div>\n\n        <div id=\"apac-historico-painel\"></div>\n\n        <div class=\"apac-sec\">\n          <h3>Estabelecimento</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome *</label><select id=\"apac-estab-sel\"></select></div>\n            <div><label>CNES *</label><input id=\"apac-estab-cnes\" readonly style=\"background:#f1f5f9;\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Médico solicitante</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Selecionar *</label><select id=\"apac-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"apac-medico-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-medico-cpf\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Paciente</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome completo *</label><input id=\"apac-pac-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-pac-cpf\"></div>\n          </div>\n          <div class=\"apac-grid3\" style=\"margin-top:8px;\">\n            <div><label>Nascimento *</label><input type=\"date\" id=\"apac-pac-nasc\"></div>\n            <div><label>Sexo *</label><select id=\"apac-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"M\">Masculino</option><option value=\"F\">Feminino</option></select></div>\n            <div><label>Nome da mãe *</label><input id=\"apac-pac-mae\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Procedimento *</h3>\n          <div class=\"apac-proc-grid\" id=\"apac-proc-grid\"></div>\n          <div id=\"apac-territorio-wrap\">\n            <label>Território vascular (obrigatório para Doppler)</label>\n            <select id=\"apac-territorio-sel\"></select>\n          </div>\n          <div id=\"apac-eco-variante-wrap\">\n            <label>Variante do ecocardiograma</label>\n            <select id=\"apac-eco-variante-sel\">\n              <option value=\"REPOUSO\">Transtorácica de repouso (padrão)</option>\n              <option value=\"ESTRESSE\">Com estresse (farmacológico/Dobutamina)</option>\n              <option value=\"TRANSESOFAGICO\">Transesofágico</option>\n            </select>\n          </div>\n          <div id=\"apac-outro-wrap\">\n            <label>Código SIGTAP *</label>\n            <input id=\"apac-outro-codigo\" placeholder=\"ex: 02.11.02.001-0\" style=\"margin-bottom:8px;\">\n            <label>Nome do procedimento *</label>\n            <input id=\"apac-outro-nome\" placeholder=\"como deve aparecer no campo 19\">\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>CID-10 *</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Principal *</label><input id=\"apac-cid1\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Secundário</label><input id=\"apac-cid2\" autocomplete=\"off\"></div>\n            <div><label>Associados</label><input id=\"apac-cid3\" autocomplete=\"off\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Descrição (campo 36) *</label><input id=\"apac-cid-desc\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Texto do pedido (campo 40) *</h3>\n          <textarea id=\"apac-obs\"></textarea>\n        </div>\n\n        <!-- ETAPA 2 — Assinatura -->\n        <div class=\"apac-sec\" id=\"apac-sec-assinatura\" style=\"display:none;\">\n          <h3>Etapa 2 — Assinatura</h3>\n          <div class=\"apac-info-box\">\n            ✅ <b>APAC gerada.</b> Ela já ficou registrada no 📜 Histórico. Escolha como quer finalizar:\n          </div>\n\n          <div class=\"apac-opcoes-assinatura\">\n            <button id=\"apac-assinar-govbr\" class=\"apac-primary\">\n              🏛️ Assinar via gov.br<br><small style=\"font-weight:400;opacity:.9;\">Baixa PDF e abre o portal</small>\n            </button>\n            <button id=\"apac-baixar-sem\" class=\"apac-tertiary\">\n              💾 Baixar sem assinar<br><small style=\"font-weight:400;opacity:.8;\">PDF simples</small>\n            </button>\n          </div>\n        </div>\n\n        <div id=\"apac-erro\"></div>\n        \n      </div>\n      <div id=\"apac-footer\">\n        <button class=\"apac-secondary\" id=\"apac-limpar\">Limpar</button>\n        <button class=\"apac-primary\" id=\"apac-gerar\">Gerar PDF</button>\n      </div>\n    </div>";
 
   /* ---- extraidas do original sem alteracao ---- */
 
@@ -6339,15 +6339,6 @@
     }
   }
 
-  function montarCidList() {
-    var dl = shadow.getElementById("apac-cid-list");
-    Object.keys(CID_DIC).sort().forEach(function (cod) {
-      var o = document.createElement("option");
-      o.value = cod; o.label = cod + " — " + CID_DIC[cod]; o.textContent = CID_DIC[cod];
-      dl.appendChild(o);
-    });
-  }
-
   function autoDescricaoCid() {
     var campo = shadow.getElementById("apac-cid1");
     var cid = campo.value.trim().toUpperCase();
@@ -6513,8 +6504,7 @@
     raiz.MeedsSuiteFormatos.aplicarMascaraCpf(shadow.getElementById("apac-medico-cpf"));
     montarMedicos();
     montarProcGrid();
-    montarCidList();
-  }
+    }
 
   /* ----------------------------------------------------------------
    * CONTRATO DE MODULO
@@ -6553,15 +6543,14 @@
       /* Quando o medico e cadastrado ou removido no painel da engrenagem,
        * o <select> se redesenha sozinho — sem precisar fechar e reabrir
        * este modal. */
-      /* Busca de CID-10: o modulo de busca nao sabe qual laudo esta
-       * aberto — ele publica e quem estiver aberto atende. Devolver true
-       * e o que diz "eu peguei"; se ninguem devolver, a busca copia o
-       * codigo para a area de transferencia. */
+
+
+
       /* O campo de CID deste laudo e anunciado para quem souber buscar
        * CID-10. O modulo de busca se acopla a ele: o medico clica no
-       * campo, digita o nome da doenca e escolhe — codigo e descricao
-       * entram sozinhos. Se aquele modulo estiver desligado, ninguem
-       * atende e o campo continua sendo texto livre. */
+       * campo, digita o codigo ou o nome da doenca e escolhe — codigo e
+       * descricao entram sozinhos. Se aquele modulo estiver desligado,
+       * ninguem atende e o campo continua sendo texto livre. */
       function anunciarCampoCid() {
         var campo = shadow.getElementById("apac-cid1");
         if (!campo) return;
@@ -6571,15 +6560,12 @@
         });
       }
       anunciarCampoCid();
-      // o modulo de busca pode ter subido depois deste laudo
+
+      /* O modulo de busca pode ter subido DEPOIS deste laudo; nesse caso
+       * o anuncio acima nao encontrou ninguem. Ele avisa quando fica
+       * pronto, e o laudo anuncia de novo. */
       deps.assinarEvento("cid:pronto", function () {
         anunciarCampoCid();
-        return true;
-      });
-
-      deps.assinarEvento("cid:escolhido", function (evt) {
-        if (!overlay || !overlay.estaAberto()) return false;
-        preencherCidEscolhido(evt.codigo, evt.descricao);
         return true;
       });
 
@@ -6851,7 +6837,12 @@
           return { codigo: cod, descricao: cids[cod] };
         }),
         function (item) {
-          return item.codigo + " " + item.descricao;
+          /* O codigo entra DUAS vezes: como esta ("J06.9") e sem
+           * pontuacao ("J069"). O medico digita das duas formas, e sem a
+           * segunda o "J069" so casava por aproximacao — funcionava, mas
+           * com nota baixa e disputando com vizinhos. Assim e casamento
+           * exato. */
+          return item.codigo + " " + item.codigo.replace(/[^A-Za-z0-9]/g, "") + " " + item.descricao;
         }
       );
     } finally {
@@ -6926,7 +6917,8 @@
     sug.hidden = true;
     wrap.appendChild(sug);
 
-    if (!input.getAttribute("placeholder") || /digite ou escolha/i.test(input.getAttribute("placeholder"))) {
+    var placeholderOriginal = input.getAttribute("placeholder");
+    if (!placeholderOriginal || /digite ou escolha/i.test(placeholderOriginal)) {
       input.setAttribute("placeholder", "código ou nome da doença");
     }
     input.setAttribute("autocomplete", "off");
@@ -6934,6 +6926,12 @@
     var itens = [];
     var foco = -1;
     var debounce = null;
+    /* Depois de escolher, o campo dispara "input" para o gerador reagir
+     * (preencher a descricao, marcar o formulario como alterado). Esse
+     * mesmo evento reabria a lista 180ms depois, agora com o codigo
+     * recem-escolhido como termo — a lista "voltava" sozinha logo apos o
+     * medico clicar. Esta marca ignora exatamente esse disparo. */
+    var ignorarProximoInput = false;
 
     function fechar() {
       sug.hidden = true;
@@ -6942,6 +6940,7 @@
 
     function escolher(item) {
       input.value = item.codigo;
+      ignorarProximoInput = true;
       input.dispatchEvent(new Event("input", { bubbles: true }));
       if (typeof pedido.aoEscolher === "function") pedido.aoEscolher(item.codigo, item.descricao);
       fechar();
@@ -7003,19 +7002,29 @@
       sug.hidden = false;
     }
 
-    input.addEventListener("input", function () {
+    /* Os handlers ficam guardados para o stop() poder remove-los. Sem
+     * isso, desligar o modulo desfazia o HTML mas deixava os ouvintes
+     * presos no input — e religar empilharia um segundo conjunto. */
+    var handlers = {};
+
+    handlers.input = function () {
+      if (ignorarProximoInput) {
+        ignorarProximoInput = false;
+        clearTimeout(debounce);
+        return;
+      }
       clearTimeout(debounce);
       debounce = setTimeout(function () {
         abrirCom(input.value);
       }, 180);
-    });
-    input.addEventListener("focus", function () {
+    };
+    handlers.focus = function () {
       if (input.value.trim().length >= 2) abrirCom(input.value);
-    });
-    input.addEventListener("blur", function () {
+    };
+    handlers.blur = function () {
       setTimeout(fechar, 120);
-    });
-    input.addEventListener("keydown", function (ev) {
+    };
+    handlers.keydown = function (ev) {
       if (sug.hidden) return;
       if (ev.key === "ArrowDown") {
         ev.preventDefault();
@@ -7031,9 +7040,22 @@
       } else if (ev.key === "Escape") {
         fechar();
       }
+    };
+
+    Object.keys(handlers).forEach(function (evento) {
+      input.addEventListener(evento, handlers[evento]);
     });
 
-    camposConectados.push({ input: input, wrap: wrap, sug: sug });
+    camposConectados.push({
+      input: input,
+      wrap: wrap,
+      sug: sug,
+      handlers: handlers,
+      placeholderOriginal: placeholderOriginal,
+      cancelarDebounce: function () {
+        clearTimeout(debounce);
+      },
+    });
     return true;
   }
 
@@ -7080,8 +7102,14 @@
        * ser texto livre. */
       camposConectados.forEach(function (c) {
         try {
+          c.cancelarDebounce();
+          Object.keys(c.handlers).forEach(function (evento) {
+            c.input.removeEventListener(evento, c.handlers[evento]);
+          });
           c.wrap.parentNode.insertBefore(c.input, c.wrap);
           c.wrap.parentNode.removeChild(c.wrap);
+          if (c.placeholderOriginal === null) c.input.removeAttribute("placeholder");
+          else c.input.setAttribute("placeholder", c.placeholderOriginal);
           delete c.input.__cidConectado;
         } catch (e) {}
       });
@@ -7288,7 +7316,7 @@
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
   var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#lme-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #lme-sucesso b{ color:#08574f; }\n" + "#lme-modal{\n      background:#fff; border-radius:16px; max-width:680px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #lme-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #lme-modal-head h2{ margin:0; font-size:15px; }\n    #lme-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #lme-body{ padding:18px 20px; }\n    .lme-sec{ margin-bottom:16px; }\n    .lme-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .lme-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .lme-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:70px; resize:vertical; }\n    #lme-origem-outro-wrap{ display:none; margin-top:8px; }\n    #lme-origem-outro-wrap.show{ display:block; }\n    #lme-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .lme-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    button.lme-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.lme-primary:hover{ background:#123a7a; }\n    button.lme-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.lme-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.lme-secondary:hover{ background:#e8f0f8; }\n    #lme-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #lme-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
 
-  var HTML = "<div id=\"lme-modal\">\n      <div id=\"lme-modal-head\"><h2>Laudo Procedimento Médico — Sete Lagoas</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"lme-historico-abrir\" title=\"Documentos gerados neste computador\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"lme-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"lme-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"lme-body\">\n        <div class=\"lme-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Sete Lagoas (mesmo PDF da prefeitura, logo e layout intactos). Município fixo: <b>SETE LAGOAS</b>. O Cartão Nacional do SUS é preenchido com o CPF do paciente.\n        </div>\n        <div id=\"lme-historico-painel\"></div>\n        <div id=\"lme-auto-aviso\"></div>\n\n        <div class=\"lme-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"lme-grid3\">\n            <div><label>Selecionar *</label><select id=\"lme-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"lme-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"lme-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"lme-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Unidade de origem</h3>\n          <select id=\"lme-origem-sel\"></select>\n          <div id=\"lme-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"lme-origem-outro\" placeholder=\"ex: UBS ITAPOÃ\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Paciente</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome completo *</label><input id=\"lme-pac-nome\"></div>\n            <div><label>CPF (usado como Cartão do SUS) *</label><input id=\"lme-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"lme-grid2\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"lme-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"lme-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n          </div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"lme-proc-nome\" list=\"lme-proc-list\" placeholder=\"digite e busque, ou digite algo novo\" autocomplete=\"off\"></div>\n            <div><label>Código SIGTAP *</label><input id=\"lme-proc-codigo\" placeholder=\"preenche sozinho se reconhecido\"></div>\n          </div>\n          <datalist id=\"lme-proc-list\"></datalist>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"lme-grid2\">\n            <div><label>CID-10</label><input id=\"lme-cid\" list=\"lme-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"lme-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          <datalist id=\"lme-cid-list\"></datalist>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"lme-justificativa\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado\"></textarea>\n        </div>\n\n        <div id=\"lme-sucesso\" style=\"display:none;\"></div>\n        <div id=\"lme-erro\"></div>\n      </div>\n      <div id=\"lme-footer\">\n        <button class=\"lme-secondary\" id=\"lme-limpar\">Limpar</button>\n        <button class=\"lme-primary\" id=\"lme-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
+  var HTML = "<div id=\"lme-modal\">\n      <div id=\"lme-modal-head\"><h2>Laudo Procedimento Médico — Sete Lagoas</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"lme-historico-abrir\" title=\"Documentos gerados neste computador\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"lme-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"lme-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"lme-body\">\n        <div class=\"lme-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Sete Lagoas (mesmo PDF da prefeitura, logo e layout intactos). Município fixo: <b>SETE LAGOAS</b>. O Cartão Nacional do SUS é preenchido com o CPF do paciente.\n        </div>\n        <div id=\"lme-historico-painel\"></div>\n        <div id=\"lme-auto-aviso\"></div>\n\n        <div class=\"lme-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"lme-grid3\">\n            <div><label>Selecionar *</label><select id=\"lme-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"lme-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"lme-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"lme-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Unidade de origem</h3>\n          <select id=\"lme-origem-sel\"></select>\n          <div id=\"lme-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"lme-origem-outro\" placeholder=\"ex: UBS ITAPOÃ\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Paciente</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome completo *</label><input id=\"lme-pac-nome\"></div>\n            <div><label>CPF (usado como Cartão do SUS) *</label><input id=\"lme-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"lme-grid2\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"lme-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"lme-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n          </div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"lme-proc-nome\" list=\"lme-proc-list\" placeholder=\"digite e busque, ou digite algo novo\" autocomplete=\"off\"></div>\n            <div><label>Código SIGTAP *</label><input id=\"lme-proc-codigo\" placeholder=\"preenche sozinho se reconhecido\"></div>\n          </div>\n          <datalist id=\"lme-proc-list\"></datalist>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"lme-grid2\">\n            <div><label>CID-10</label><input id=\"lme-cid\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"lme-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          \n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"lme-justificativa\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado\"></textarea>\n        </div>\n\n        <div id=\"lme-sucesso\" style=\"display:none;\"></div>\n        <div id=\"lme-erro\"></div>\n      </div>\n      <div id=\"lme-footer\">\n        <button class=\"lme-secondary\" id=\"lme-limpar\">Limpar</button>\n        <button class=\"lme-primary\" id=\"lme-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
 
   /* ---- extraidas do original sem alteracao ---- */
   /* ---- validacao dos campos obrigatorios ----
@@ -7560,15 +7588,6 @@
     });
   }
 
-  function montarCidList() {
-    var dl = shadow.getElementById("lme-cid-list");
-    Object.keys(CID_DIC).sort().forEach(function (cod) {
-      var o = document.createElement("option");
-      o.value = cod; o.label = cod + " — " + CID_DIC[cod]; o.textContent = CID_DIC[cod];
-      dl.appendChild(o);
-    });
-  }
-
   function autoDescricaoCid() {
     var campo = shadow.getElementById("lme-cid");
     var cid = campo.value.trim().toUpperCase();
@@ -7725,8 +7744,7 @@
     raiz.MeedsSuiteFormatos.aplicarMascaraCpf(shadow.getElementById("lme-pac-cpf"));
     raiz.MeedsSuiteFormatos.aplicarMascaraCpf(shadow.getElementById("lme-medico-cpf"));
     ativarMascaraData(shadow.getElementById("lme-pac-nasc"));
-    montarOrigens(); montarProcList(); montarMedicos(); montarCidList();
-  }
+    montarOrigens(); montarProcList(); montarMedicos(); }
 
   /* ----------------------------------------------------------------
    * CONTRATO DE MODULO
@@ -7756,15 +7774,14 @@
       /* Quando o medico e cadastrado ou removido no painel da engrenagem,
        * o <select> se redesenha sozinho — sem precisar fechar e reabrir
        * este modal. */
-      /* Busca de CID-10: o modulo de busca nao sabe qual laudo esta
-       * aberto — ele publica e quem estiver aberto atende. Devolver true
-       * e o que diz "eu peguei"; se ninguem devolver, a busca copia o
-       * codigo para a area de transferencia. */
+
+
+
       /* O campo de CID deste laudo e anunciado para quem souber buscar
        * CID-10. O modulo de busca se acopla a ele: o medico clica no
-       * campo, digita o nome da doenca e escolhe — codigo e descricao
-       * entram sozinhos. Se aquele modulo estiver desligado, ninguem
-       * atende e o campo continua sendo texto livre. */
+       * campo, digita o codigo ou o nome da doenca e escolhe — codigo e
+       * descricao entram sozinhos. Se aquele modulo estiver desligado,
+       * ninguem atende e o campo continua sendo texto livre. */
       function anunciarCampoCid() {
         var campo = shadow.getElementById("lme-cid");
         if (!campo) return;
@@ -7774,15 +7791,12 @@
         });
       }
       anunciarCampoCid();
-      // o modulo de busca pode ter subido depois deste laudo
+
+      /* O modulo de busca pode ter subido DEPOIS deste laudo; nesse caso
+       * o anuncio acima nao encontrou ninguem. Ele avisa quando fica
+       * pronto, e o laudo anuncia de novo. */
       deps.assinarEvento("cid:pronto", function () {
         anunciarCampoCid();
-        return true;
-      });
-
-      deps.assinarEvento("cid:escolhido", function (evt) {
-        if (!overlay || !overlay.estaAberto()) return false;
-        preencherCidEscolhido(evt.codigo, evt.descricao);
         return true;
       });
 
@@ -7997,7 +8011,7 @@
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
   var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#cmd-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #cmd-sucesso b{ color:#08574f; }\n" + "#cmd-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #cmd-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #cmd-modal-head h2{ margin:0; font-size:15px; }\n    #cmd-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #cmd-body{ padding:18px 20px; }\n    .cmd-sec{ margin-bottom:16px; }\n    .cmd-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .cmd-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .cmd-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    .cmd-grid4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:90px; resize:vertical; }\n    #cmd-origem-outro-wrap{ display:none; margin-top:8px; }\n    #cmd-origem-outro-wrap.show{ display:block; }\n    #cmd-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .cmd-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    .cmd-contador{ text-align:right; font-size:10.5px; color:#8a97a4; margin-top:4px; }\n    button.cmd-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.cmd-primary:hover{ background:#123a7a; }\n    button.cmd-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.cmd-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.cmd-secondary:hover{ background:#e8f0f8; }\n    #cmd-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #cmd-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
 
-  var HTML = "<div id=\"cmd-modal\">\n      <div id=\"cmd-modal-head\"><h2>Laudo Médico de Alto Custo — Conceição do Mato Dentro</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"cmd-historico-abrir\" title=\"Documentos gerados neste computador\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"cmd-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"cmd-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"cmd-body\">\n        <div class=\"cmd-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Conceição do Mato Dentro (mesmo PDF da prefeitura, preenchido pelos campos reais do formulário). A seção 04 (Junta de Autorização) não é preenchida — é reservada para a regulação.\n        </div>\n        <div id=\"cmd-historico-painel\"></div>\n        <div id=\"cmd-auto-aviso\"></div>\n\n        <div class=\"cmd-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"cmd-grid3\">\n            <div><label>Selecionar *</label><select id=\"cmd-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"cmd-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"cmd-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"cmd-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Dados do atendimento</h3>\n          <div>\n            <label>Unidade de origem *</label>\n            <select id=\"cmd-origem-sel\"></select>\n            <div id=\"cmd-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"cmd-origem-outro\"></div>\n          </div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Paciente</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome completo *</label><input id=\"cmd-pac-nome\"></div>\n            <div><label>CPF</label><input id=\"cmd-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"cmd-grid3\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"cmd-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"cmd-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n            <div><label>Telefone</label><input id=\"cmd-pac-telefone\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Nome da mãe</label><input id=\"cmd-pac-mae\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"cmd-proc-nome\" list=\"cmd-proc-list\" placeholder=\"digite o exame\" autocomplete=\"off\"></div>\n            <div><label>Código do procedimento</label><input id=\"cmd-proc-codigo\" placeholder=\"ex: 41101170\"></div>\n          </div>\n          <datalist id=\"cmd-proc-list\"></datalist>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>CID-10</label><input id=\"cmd-cid\" list=\"cmd-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"cmd-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          <datalist id=\"cmd-cid-list\"></datalist>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"cmd-justificativa\" maxlength=\"700\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado (até 700 caracteres)\"></textarea>\n          <div class=\"cmd-contador\" id=\"cmd-justificativa-contador\">0/700</div>\n        </div>\n\n        <div id=\"cmd-sucesso\" style=\"display:none;\"></div>\n        <div id=\"cmd-erro\"></div>\n      </div>\n      <div id=\"cmd-footer\">\n        <button class=\"cmd-secondary\" id=\"cmd-limpar\">Limpar</button>\n        <button class=\"cmd-primary\" id=\"cmd-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
+  var HTML = "<div id=\"cmd-modal\">\n      <div id=\"cmd-modal-head\"><h2>Laudo Médico de Alto Custo — Conceição do Mato Dentro</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"cmd-historico-abrir\" title=\"Documentos gerados neste computador\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"cmd-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"cmd-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"cmd-body\">\n        <div class=\"cmd-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Conceição do Mato Dentro (mesmo PDF da prefeitura, preenchido pelos campos reais do formulário). A seção 04 (Junta de Autorização) não é preenchida — é reservada para a regulação.\n        </div>\n        <div id=\"cmd-historico-painel\"></div>\n        <div id=\"cmd-auto-aviso\"></div>\n\n        <div class=\"cmd-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"cmd-grid3\">\n            <div><label>Selecionar *</label><select id=\"cmd-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"cmd-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"cmd-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"cmd-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Dados do atendimento</h3>\n          <div>\n            <label>Unidade de origem *</label>\n            <select id=\"cmd-origem-sel\"></select>\n            <div id=\"cmd-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"cmd-origem-outro\"></div>\n          </div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Paciente</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome completo *</label><input id=\"cmd-pac-nome\"></div>\n            <div><label>CPF</label><input id=\"cmd-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"cmd-grid3\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"cmd-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"cmd-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n            <div><label>Telefone</label><input id=\"cmd-pac-telefone\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Nome da mãe</label><input id=\"cmd-pac-mae\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"cmd-proc-nome\" list=\"cmd-proc-list\" placeholder=\"digite o exame\" autocomplete=\"off\"></div>\n            <div><label>Código do procedimento</label><input id=\"cmd-proc-codigo\" placeholder=\"ex: 41101170\"></div>\n          </div>\n          <datalist id=\"cmd-proc-list\"></datalist>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>CID-10</label><input id=\"cmd-cid\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"cmd-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          \n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"cmd-justificativa\" maxlength=\"700\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado (até 700 caracteres)\"></textarea>\n          <div class=\"cmd-contador\" id=\"cmd-justificativa-contador\">0/700</div>\n        </div>\n\n        <div id=\"cmd-sucesso\" style=\"display:none;\"></div>\n        <div id=\"cmd-erro\"></div>\n      </div>\n      <div id=\"cmd-footer\">\n        <button class=\"cmd-secondary\" id=\"cmd-limpar\">Limpar</button>\n        <button class=\"cmd-primary\" id=\"cmd-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
 
   /* ---- extraidas do original sem alteracao ---- */
   /* ---- validacao dos campos obrigatorios ----
@@ -8273,15 +8287,6 @@
     });
   }
 
-  function montarCidList() {
-    var dl = shadow.getElementById("cmd-cid-list");
-    Object.keys(CID_DIC).sort().forEach(function (cod) {
-      var o = document.createElement("option");
-      o.value = cod; o.label = cod + " — " + CID_DIC[cod]; o.textContent = CID_DIC[cod];
-      dl.appendChild(o);
-    });
-  }
-
   function autoDescricaoCid() {
     var campo = shadow.getElementById("cmd-cid");
     var cid = campo.value.trim().toUpperCase();
@@ -8443,8 +8448,7 @@
     raiz.MeedsSuiteFormatos.aplicarMascaraCpf(shadow.getElementById("cmd-pac-cpf"));
     raiz.MeedsSuiteFormatos.aplicarMascaraCpf(shadow.getElementById("cmd-medico-cpf"));
     ativarMascaraData(shadow.getElementById("cmd-pac-nasc"));
-    montarOrigens(); montarProcList(); montarMedicos(); montarCidList();
-  }
+    montarOrigens(); montarProcList(); montarMedicos(); }
 
   /* ----------------------------------------------------------------
    * CONTRATO DE MODULO
@@ -8474,15 +8478,14 @@
       /* Quando o medico e cadastrado ou removido no painel da engrenagem,
        * o <select> se redesenha sozinho — sem precisar fechar e reabrir
        * este modal. */
-      /* Busca de CID-10: o modulo de busca nao sabe qual laudo esta
-       * aberto — ele publica e quem estiver aberto atende. Devolver true
-       * e o que diz "eu peguei"; se ninguem devolver, a busca copia o
-       * codigo para a area de transferencia. */
+
+
+
       /* O campo de CID deste laudo e anunciado para quem souber buscar
        * CID-10. O modulo de busca se acopla a ele: o medico clica no
-       * campo, digita o nome da doenca e escolhe — codigo e descricao
-       * entram sozinhos. Se aquele modulo estiver desligado, ninguem
-       * atende e o campo continua sendo texto livre. */
+       * campo, digita o codigo ou o nome da doenca e escolhe — codigo e
+       * descricao entram sozinhos. Se aquele modulo estiver desligado,
+       * ninguem atende e o campo continua sendo texto livre. */
       function anunciarCampoCid() {
         var campo = shadow.getElementById("cmd-cid");
         if (!campo) return;
@@ -8492,15 +8495,12 @@
         });
       }
       anunciarCampoCid();
-      // o modulo de busca pode ter subido depois deste laudo
+
+      /* O modulo de busca pode ter subido DEPOIS deste laudo; nesse caso
+       * o anuncio acima nao encontrou ninguem. Ele avisa quando fica
+       * pronto, e o laudo anuncia de novo. */
       deps.assinarEvento("cid:pronto", function () {
         anunciarCampoCid();
-        return true;
-      });
-
-      deps.assinarEvento("cid:escolhido", function (evt) {
-        if (!overlay || !overlay.estaAberto()) return false;
-        preencherCidEscolhido(evt.codigo, evt.descricao);
         return true;
       });
 

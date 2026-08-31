@@ -173,7 +173,7 @@
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
   var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#lme-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #lme-sucesso b{ color:#08574f; }\n" + "#lme-modal{\n      background:#fff; border-radius:16px; max-width:680px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #lme-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #lme-modal-head h2{ margin:0; font-size:15px; }\n    #lme-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #lme-body{ padding:18px 20px; }\n    .lme-sec{ margin-bottom:16px; }\n    .lme-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .lme-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .lme-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:70px; resize:vertical; }\n    #lme-origem-outro-wrap{ display:none; margin-top:8px; }\n    #lme-origem-outro-wrap.show{ display:block; }\n    #lme-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .lme-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    button.lme-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.lme-primary:hover{ background:#123a7a; }\n    button.lme-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.lme-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.lme-secondary:hover{ background:#e8f0f8; }\n    #lme-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #lme-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
 
-  var HTML = "<div id=\"lme-modal\">\n      <div id=\"lme-modal-head\"><h2>Laudo Procedimento Médico — Sete Lagoas</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"lme-historico-abrir\" title=\"Documentos gerados neste computador\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"lme-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"lme-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"lme-body\">\n        <div class=\"lme-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Sete Lagoas (mesmo PDF da prefeitura, logo e layout intactos). Município fixo: <b>SETE LAGOAS</b>. O Cartão Nacional do SUS é preenchido com o CPF do paciente.\n        </div>\n        <div id=\"lme-historico-painel\"></div>\n        <div id=\"lme-auto-aviso\"></div>\n\n        <div class=\"lme-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"lme-grid3\">\n            <div><label>Selecionar *</label><select id=\"lme-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"lme-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"lme-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"lme-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Unidade de origem</h3>\n          <select id=\"lme-origem-sel\"></select>\n          <div id=\"lme-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"lme-origem-outro\" placeholder=\"ex: UBS ITAPOÃ\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Paciente</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome completo *</label><input id=\"lme-pac-nome\"></div>\n            <div><label>CPF (usado como Cartão do SUS) *</label><input id=\"lme-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"lme-grid2\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"lme-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"lme-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n          </div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"lme-proc-nome\" list=\"lme-proc-list\" placeholder=\"digite e busque, ou digite algo novo\" autocomplete=\"off\"></div>\n            <div><label>Código SIGTAP *</label><input id=\"lme-proc-codigo\" placeholder=\"preenche sozinho se reconhecido\"></div>\n          </div>\n          <datalist id=\"lme-proc-list\"></datalist>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"lme-grid2\">\n            <div><label>CID-10</label><input id=\"lme-cid\" list=\"lme-cid-list\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"lme-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          <datalist id=\"lme-cid-list\"></datalist>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"lme-justificativa\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado\"></textarea>\n        </div>\n\n        <div id=\"lme-sucesso\" style=\"display:none;\"></div>\n        <div id=\"lme-erro\"></div>\n      </div>\n      <div id=\"lme-footer\">\n        <button class=\"lme-secondary\" id=\"lme-limpar\">Limpar</button>\n        <button class=\"lme-primary\" id=\"lme-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
+  var HTML = "<div id=\"lme-modal\">\n      <div id=\"lme-modal-head\"><h2>Laudo Procedimento Médico — Sete Lagoas</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"lme-historico-abrir\" title=\"Documentos gerados neste computador\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"lme-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"lme-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"lme-body\">\n        <div class=\"lme-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Sete Lagoas (mesmo PDF da prefeitura, logo e layout intactos). Município fixo: <b>SETE LAGOAS</b>. O Cartão Nacional do SUS é preenchido com o CPF do paciente.\n        </div>\n        <div id=\"lme-historico-painel\"></div>\n        <div id=\"lme-auto-aviso\"></div>\n\n        <div class=\"lme-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"lme-grid3\">\n            <div><label>Selecionar *</label><select id=\"lme-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"lme-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"lme-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"lme-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Unidade de origem</h3>\n          <select id=\"lme-origem-sel\"></select>\n          <div id=\"lme-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"lme-origem-outro\" placeholder=\"ex: UBS ITAPOÃ\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Paciente</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome completo *</label><input id=\"lme-pac-nome\"></div>\n            <div><label>CPF (usado como Cartão do SUS) *</label><input id=\"lme-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"lme-grid2\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"lme-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"lme-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n          </div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"lme-proc-nome\" list=\"lme-proc-list\" placeholder=\"digite e busque, ou digite algo novo\" autocomplete=\"off\"></div>\n            <div><label>Código SIGTAP *</label><input id=\"lme-proc-codigo\" placeholder=\"preenche sozinho se reconhecido\"></div>\n          </div>\n          <datalist id=\"lme-proc-list\"></datalist>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"lme-grid2\">\n            <div><label>CID-10</label><input id=\"lme-cid\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"lme-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          \n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"lme-justificativa\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado\"></textarea>\n        </div>\n\n        <div id=\"lme-sucesso\" style=\"display:none;\"></div>\n        <div id=\"lme-erro\"></div>\n      </div>\n      <div id=\"lme-footer\">\n        <button class=\"lme-secondary\" id=\"lme-limpar\">Limpar</button>\n        <button class=\"lme-primary\" id=\"lme-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
 
   /* ---- extraidas do original sem alteracao ---- */
   /* ---- validacao dos campos obrigatorios ----
@@ -445,15 +445,6 @@
     });
   }
 
-  function montarCidList() {
-    var dl = shadow.getElementById("lme-cid-list");
-    Object.keys(CID_DIC).sort().forEach(function (cod) {
-      var o = document.createElement("option");
-      o.value = cod; o.label = cod + " — " + CID_DIC[cod]; o.textContent = CID_DIC[cod];
-      dl.appendChild(o);
-    });
-  }
-
   function autoDescricaoCid() {
     var campo = shadow.getElementById("lme-cid");
     var cid = campo.value.trim().toUpperCase();
@@ -610,8 +601,7 @@
     raiz.MeedsSuiteFormatos.aplicarMascaraCpf(shadow.getElementById("lme-pac-cpf"));
     raiz.MeedsSuiteFormatos.aplicarMascaraCpf(shadow.getElementById("lme-medico-cpf"));
     ativarMascaraData(shadow.getElementById("lme-pac-nasc"));
-    montarOrigens(); montarProcList(); montarMedicos(); montarCidList();
-  }
+    montarOrigens(); montarProcList(); montarMedicos(); }
 
   /* ----------------------------------------------------------------
    * CONTRATO DE MODULO
@@ -641,15 +631,14 @@
       /* Quando o medico e cadastrado ou removido no painel da engrenagem,
        * o <select> se redesenha sozinho — sem precisar fechar e reabrir
        * este modal. */
-      /* Busca de CID-10: o modulo de busca nao sabe qual laudo esta
-       * aberto — ele publica e quem estiver aberto atende. Devolver true
-       * e o que diz "eu peguei"; se ninguem devolver, a busca copia o
-       * codigo para a area de transferencia. */
+
+
+
       /* O campo de CID deste laudo e anunciado para quem souber buscar
        * CID-10. O modulo de busca se acopla a ele: o medico clica no
-       * campo, digita o nome da doenca e escolhe — codigo e descricao
-       * entram sozinhos. Se aquele modulo estiver desligado, ninguem
-       * atende e o campo continua sendo texto livre. */
+       * campo, digita o codigo ou o nome da doenca e escolhe — codigo e
+       * descricao entram sozinhos. Se aquele modulo estiver desligado,
+       * ninguem atende e o campo continua sendo texto livre. */
       function anunciarCampoCid() {
         var campo = shadow.getElementById("lme-cid");
         if (!campo) return;
@@ -659,15 +648,12 @@
         });
       }
       anunciarCampoCid();
-      // o modulo de busca pode ter subido depois deste laudo
+
+      /* O modulo de busca pode ter subido DEPOIS deste laudo; nesse caso
+       * o anuncio acima nao encontrou ninguem. Ele avisa quando fica
+       * pronto, e o laudo anuncia de novo. */
       deps.assinarEvento("cid:pronto", function () {
         anunciarCampoCid();
-        return true;
-      });
-
-      deps.assinarEvento("cid:escolhido", function (evt) {
-        if (!overlay || !overlay.estaAberto()) return false;
-        preencherCidEscolhido(evt.codigo, evt.descricao);
         return true;
       });
 
