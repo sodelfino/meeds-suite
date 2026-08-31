@@ -43,7 +43,10 @@
 
   var profissionalId = null;
   var primeiraLeitura = true;
-  var vistos = new Set();     // ids ja notificados (ver PROTECOES)
+  /* Estado anterior de cada atendimento. Ver o bloco DETECCAO DE
+   * CHEGADA: um Set de ids nao consegue representar transicao, e era
+   * essa a causa do defeito. */
+  var estado = new Map();
   var aguardando = [];        // ultima leitura, so em memoria
   var aviso = null;           // aviso unico; novos pacientes ATUALIZAM ele
   var chegadasNoAviso = [];
@@ -87,152 +90,193 @@
     return null;
   }
 
+  /* ----------------------------------------------------------------
+   * NORMALIZACAO DA CHEGADA
+   * ----------------------------------------------------------------
+   * Nao presumimos que a chegada seja um booleano chamado
+   * checkinStatus. Duas razoes: a API nunca foi verificada nesse ponto,
+   * e APIs desse tipo costumam devolver o mesmo dado em formatos
+   * diferentes conforme o endpoint (true, "true", 1, ou uma data de
+   * check-in preenchida).
+   *
+   * Devolve TRES estados, e a diferenca importa:
+   *   true  — chegou;
+   *   false — nao chegou (o campo existe e diz que nao);
+   *   null  — NAO SEI (nenhum campo de chegada veio na resposta).
+   * "Nao sei" nao pode virar "nao chegou": isso faria o modulo avisar
+   * uma chegada que nunca aconteceu, ou nunca avisar nenhuma.
+   * ---------------------------------------------------------------- */
+  var CAMPOS_DE_CHEGADA = [
+    ["agendamento", "checkinStatus"],
+    ["agendamento", "checkIn"],
+    ["agendamento", "checkin"],
+    ["agendamento", "chegou"],
+    ["agendamento", "presente"],
+    ["agendamento", "dataCheckin"],
+    ["agendamento", "dataChegada"],
+    ["agendamento", "horarioChegada"],
+    [null, "checkinStatus"],
+    [null, "checkIn"],
+    [null, "chegou"],
+    [null, "presente"],
+    [null, "dataCheckin"],
+    [null, "dataChegada"],
+  ];
+
+  /* Qual campo a API realmente usou. Guardado so para o console de
+   * depuracao e para a documentacao — e nome de campo, nao dado de
+   * paciente. */
+  var campoDeChegadaUsado = null;
+
+  function interpretarChegada(valor) {
+    if (valor === true) return true;
+    if (valor === false) return false;
+    if (valor === null || valor === undefined) return null;
+
+    if (typeof valor === "number") return valor !== 0;
+
+    if (typeof valor === "string") {
+      var v = valor.trim().toLowerCase();
+      if (v === "") return null;
+      if (v === "true" || v === "1" || v === "sim") return true;
+      if (v === "false" || v === "0" || v === "nao" || v === "não") return false;
+      // data preenchida = houve check-in em algum momento
+      if (/^\d{4}-\d{2}-\d{2}/.test(v)) return true;
+      return null;
+    }
+    return null;
+  }
+
+  function lerChegada(item) {
+    for (var i = 0; i < CAMPOS_DE_CHEGADA.length; i++) {
+      var par = CAMPOS_DE_CHEGADA[i];
+      var recipiente = par[0] ? item[par[0]] : item;
+      if (!recipiente || typeof recipiente !== "object") continue;
+      if (!(par[1] in recipiente)) continue;
+
+      var interpretado = interpretarChegada(recipiente[par[1]]);
+      if (interpretado === null) continue; // campo existe mas nao diz nada
+
+      var nome = (par[0] ? par[0] + "." : "") + par[1];
+      if (campoDeChegadaUsado !== nome) {
+        campoDeChegadaUsado = nome;
+        console.debug("[Sala de espera] chegada lida do campo:", nome);
+      }
+      return interpretado;
+    }
+    return null; // nenhum campo de chegada na resposta
+  }
+
   function normalizarItem(item) {
-    var agendamento = item.agendamento || {};
     var gestao = item.gestaoHorario || {};
     var cliente = item.cliente || {};
     return {
       id: String(item.id || item.agendamentoId || ""),
-      agendamentoId: item.agendamentoId || null,
       status: item.statusAtendimentoId,
-      chegou: agendamento.checkinStatus === true,
+      chegou: lerChegada(item), // true | false | null (nao sei)
       horario: gestao.horarioInicial || null,
       nome: cliente.razaoSocialNome || item.pacienteNome || "Paciente",
     };
   }
 
-  function consultar() {
-    if (!profissionalId) return Promise.resolve();
-    if (!d || !d.auth.estaLogado()) return Promise.resolve(); // nao consulta na tela de login
-
-    return fetch(montarUrl(), { credentials: "include" })
-      .then(function (r) {
-        if (!r.ok) throw new Error("HTTP " + r.status);
-        return r.json();
-      })
-      .then(function (json) {
-        var itens = extrairItens(json);
-        if (!itens) return;
-        ultimaRespostaCrua = itens; // so em memoria, para o diagnostico
-        processar(itens.map(normalizarItem));
-      })
-      .catch(function (e) {
-        // rede instavel no plantao e comum; a proxima rodada tenta de novo
-        console.debug("[Sala de espera] consulta falhou, tentando na proxima rodada.", e.message);
-      });
-  }
-
   /* ----------------------------------------------------------------
-   * DIAGNOSTICO — descobrir, na API real, qual campo marca a chegada
+   * DETECCAO DE CHEGADA
    * ----------------------------------------------------------------
-   * Uso, no console do navegador do proprio medico:
+   * O estado anterior deixou de ser um Set de ids e passou a ser um Map
+   * com o que aconteceu com cada atendimento. Um Set so consegue dizer
+   * "ja vi este id" — e era exatamente esse o defeito: o id ja estava
+   * visto ANTES de o paciente chegar, entao a chegada nunca contava
+   * como novidade.
    *
-   *     MeedsSuite.salaEspera.diagnosticar()
+   *   Map<id, {
+   *     chegouAntes,            true | false | null
+   *     statusAntes,            numero
+   *     presenteNoUltimoPoll,   booleano
+   *     notificadoNestaChegada  booleano — trava o aviso repetido
+   *   }>
    *
-   * Ele tira uma foto agora e outra depois de 45 segundos. Entre as
-   * duas, o medico (ou a recepcao) marca a chegada de um paciente na
-   * tela nativa. O relatorio mostra QUAL campo mudou.
-   *
-   * O relatorio nao imprime nome, CPF nem nenhum outro dado de paciente:
-   * ids viram apelidos curtos nao reversiveis e texto vira so o tamanho.
-   * Nada e enviado para fora — e console local.
+   * Regras, nesta ordem:
+   *   - primeira leitura: fotografa, atualiza o contador, NAO avisa;
+   *   - false -> true: avisa UMA vez;
+   *   - true  -> true: nao avisa de novo;
+   *   - true  -> false: nao avisa (desistiu, foi chamado);
+   *   - item novo que ja chega com chegada=true: avisa (nao e retroativo,
+   *     e uma chegada que aconteceu enquanto o medico estava aqui);
+   *   - item que sai da resposta: perde o estado ativo. Se voltar
+   *     aguardando, e uma chegada nova e pode avisar de novo.
    * ---------------------------------------------------------------- */
-  function diagnosticar(segundosEntreFotos) {
-    var Diag = raiz.MeedsSuiteSalaEsperaDiag;
-    var espera = (segundosEntreFotos || 45) * 1000;
-
-    if (!profissionalId) {
-      console.warn(
-        "[Sala de espera] Ainda nao sei o seu ProfissionalId. Abra a tela de Consultas Agendadas uma vez e repita."
-      );
-      return Promise.resolve(null);
-    }
-
-    console.log("%c[Sala de espera] Diagnostico iniciado", "font-weight:bold");
-    console.log("Consulta:", montarUrl().replace(/ProfissionalId=[^&]+/, "ProfissionalId=<voce>"));
-    console.log("Intervalo entre as fotos:", espera / 1000, "segundos.");
-    console.log("AGORA: peca para marcarem a chegada de um paciente na tela nativa.");
-
-    return consultar()
-      .then(function () {
-        var antes = Diag.fotografar(ultimaRespostaCrua || []);
-        console.log("Foto 1 —", antes.length, "item(ns) na resposta:");
-        console.table(antes.map(function (x) {
-          return { item: x.apelido, status: x.statusAtendimentoId };
-        }));
-        if (ultimaRespostaCrua && ultimaRespostaCrua[0]) {
-          console.log("Formato de um item (nomes e tipos, sem conteudo):");
-          console.table(Diag.formato(ultimaRespostaCrua[0]));
-        }
-        return new Promise(function (ok) {
-          setTimeout(function () {
-            ok(antes);
-          }, espera);
-        });
-      })
-      .then(function (antes) {
-        return consultar().then(function () {
-          var depois = Diag.fotografar(ultimaRespostaCrua || []);
-          console.log("Foto 2 —", depois.length, "item(ns) na resposta.");
-          var mudancas = Diag.comparar(antes, depois);
-          if (!mudancas.length) {
-            console.warn(
-              "Nada mudou entre as duas fotos. Se a chegada foi marcada neste intervalo, " +
-                "o atendimento provavelmente SAIU deste filtro — veja se algum item consta como SUMIU DA RESPOSTA."
-            );
-          } else {
-            console.log("%cO que mudou entre as duas fotos:", "font-weight:bold");
-            console.table(mudancas);
-          }
-          return { antes: antes, depois: depois, mudancas: mudancas };
-        });
-      });
+  function chegouDeVerdade(p) {
+    /* Quando a API nao traz campo de chegada, caimos no status: com
+     * StatusAtendimentoId=2 o atendimento esta aguardando atendimento.
+     * E menos preciso, mas e melhor do que nunca avisar nada. O
+     * diagnostico existe justamente para trocar isto por certeza. */
+    if (p.chegou === null) return p.status === STATUS_AGUARDANDO;
+    return p.chegou === true;
   }
 
-  /* ----------------------------------------------------------------
-   * DETECCAO DE "ENTROU NA FILA"
-   * ---------------------------------------------------------------- */
   function processar(itens) {
-    var naFilaAgora = itens.filter(function (p) {
-      return p.status === STATUS_AGUARDANDO || p.chegou;
+    var agora = itens.filter(function (p) {
+      return !!p.id;
     });
-    aguardando = naFilaAgora;
 
-    var idsAgora = new Set(
-      naFilaAgora.map(function (p) {
-        return p.id;
-      })
-    );
+    var chegadasNovas = [];
+    var idsNestePoll = Object.create(null);
 
-    /* PROTECAO: quem saiu da fila (foi atendido, cancelou) sai do
-     * conjunto. Se voltar a aguardar depois, e uma chegada nova de
-     * verdade e merece aviso. */
-    Array.from(vistos).forEach(function (id) {
-      if (!idsAgora.has(id)) vistos.delete(id);
+    agora.forEach(function (p) {
+      idsNestePoll[p.id] = true;
+      var anterior = estado.get(p.id);
+      var chegouAgora = chegouDeVerdade(p);
+
+      if (!anterior) {
+        /* Item que nao estava no estado. Na primeira leitura isso vale
+         * para todos e nao avisa nada. Depois dela, um item novo que ja
+         * aparece chegado e uma chegada de verdade. */
+        estado.set(p.id, {
+          chegouAntes: chegouAgora,
+          statusAntes: p.status,
+          presenteNoUltimoPoll: true,
+          notificadoNestaChegada: primeiraLeitura ? chegouAgora : false,
+        });
+        if (!primeiraLeitura && chegouAgora) {
+          chegadasNovas.push(p);
+          estado.get(p.id).notificadoNestaChegada = true;
+        }
+        return;
+      }
+
+      /* A transicao que interessa: nao chegou -> chegou. */
+      if (chegouAgora && !anterior.chegouAntes && !anterior.notificadoNestaChegada) {
+        chegadasNovas.push(p);
+        anterior.notificadoNestaChegada = true;
+      }
+
+      /* Deixou de estar chegado: a proxima chegada volta a valer. */
+      if (!chegouAgora) anterior.notificadoNestaChegada = false;
+
+      anterior.chegouAntes = chegouAgora;
+      anterior.statusAntes = p.status;
+      anterior.presenteNoUltimoPoll = true;
     });
+
+    /* Quem nao veio nesta resposta perde o estado ativo: foi atendido,
+     * cancelado, ou mudou para um status fora do filtro. Se voltar
+     * depois aguardando, sera tratado como chegada nova. */
+    estado.forEach(function (registro, id) {
+      if (!idsNestePoll[id]) estado.delete(id);
+    });
+
+    aguardando = agora.filter(chegouDeVerdade);
 
     if (primeiraLeitura) {
-      /* Primeira leitura so fotografa o estado atual: quem ja estava
-       * esperando quando o medico abriu a tela NAO "acabou de chegar". */
-      naFilaAgora.forEach(function (p) {
-        vistos.add(p.id);
-      });
       primeiraLeitura = false;
       atualizarContador();
       renderizarLista();
-      return;
+      return; // sem aviso retroativo
     }
-
-    var novos = naFilaAgora.filter(function (p) {
-      return !vistos.has(p.id);
-    });
-    novos.forEach(function (p) {
-      vistos.add(p.id);
-    });
 
     atualizarContador();
     renderizarLista();
-    if (novos.length) anunciar(novos);
+    if (chegadasNovas.length) anunciar(chegadasNovas);
   }
 
   /* ----------------------------------------------------------------
@@ -435,7 +479,7 @@
     start: function (deps) {
       d = deps;
       primeiraLeitura = true;
-      vistos = new Set();
+      estado.clear();
       aguardando = [];
       chegadasNoAviso = [];
 
@@ -487,7 +531,7 @@
       try {
         delete raiz.MeedsSuite.salaEspera;
       } catch (e) {}
-      vistos = new Set();
+      estado.clear();
       aguardando = [];
       chegadasNoAviso = [];
       primeiraLeitura = true;
@@ -503,7 +547,14 @@
         profissionalId = id;
       },
       estado: function () {
-        return { vistos: Array.from(vistos), aguardando: aguardando.length, primeiraLeitura: primeiraLeitura };
+        return {
+          estado: Array.from(estado.entries()).map(function (e) {
+            return { id: e[0], chegouAntes: e[1].chegouAntes, notificado: e[1].notificadoNestaChegada };
+          }),
+          aguardando: aguardando.length,
+          primeiraLeitura: primeiraLeitura,
+          campoDeChegadaUsado: campoDeChegadaUsado,
+        };
       },
     },
   });
