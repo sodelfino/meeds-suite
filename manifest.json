@@ -46,7 +46,7 @@
       "id": "sala-espera",
       "nome": "Sala de Espera",
       "descricao": "Avisa quando um paciente de consulta agendada chega na sala de espera, sem som, e mostra quem está aguardando.",
-      "versao": "1.0.0",
+      "versao": "1.1.0",
       "arquivo": "modules/sala-espera/index.js",
       "origem": "novo — endpoint /api/v1/Atendimento com Agendado=true",
       "prioridadeBotao": 15,

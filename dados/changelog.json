@@ -6,6 +6,18 @@
       "data": "2026-08-31",
       "novidades": [],
       "melhorias": [
+        "O contador da Sala de Espera passou a mostrar só quem realmente chegou — antes contava também quem tinha consulta marcada e ainda não tinha aparecido."
+      ],
+      "correcoes": [
+        "A Sala de Espera não avisava quando o paciente agendado chegava. O aviso agora sai na hora em que a chegada é marcada na tela nativa.",
+        "Se a internet oscilasse, a fila podia parecer vazia por um instante. Agora a última leitura válida é mantida até a próxima tentativa."
+      ]
+    },
+    {
+      "versao": "2.10.0",
+      "data": "2026-08-31",
+      "novidades": [],
+      "melhorias": [
         "A busca de CID passou a funcionar também nos campos de CID secundário e associados da APAC — antes só o principal tinha."
       ],
       "correcoes": []

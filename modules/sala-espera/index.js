@@ -528,19 +528,39 @@
     return partes.join(" · ");
   }
 
+  /* ----------------------------------------------------------------
+   * AVISO DE CHEGADA
+   * ----------------------------------------------------------------
+   * UM aviso, nunca uma pilha. Se tres pacientes chegarem em rodadas
+   * seguidas com o aviso ainda na tela, o MESMO aviso passa a dizer
+   * "3 pacientes na sala de espera" — o medico esta atendendo alguem e
+   * nao pode ter tres caixas empilhadas sobre a tela.
+   *
+   * SEM SOM, de proposito. Isto e informacao, nao urgencia: o alarme de
+   * fila (Pronto Atendimento) toca porque ninguem esta olhando; aqui o
+   * paciente tem hora marcada e o medico esta em consulta.
+   *
+   * O nome do paciente aparece SO na interface, escrito com textContent
+   * (ver criarAviso, no dock) — nunca no console, nunca em disco.
+   * ---------------------------------------------------------------- */
+  function titulo(quantidade) {
+    return quantidade === 1 ? "Paciente na sala de espera" : quantidade + " pacientes na sala de espera";
+  }
+
   function anunciar(novos) {
-    /* INSTANCIA UNICA: um aviso so. Se chegarem tres pacientes seguidos,
-     * o mesmo aviso passa a dizer "3 pacientes" — nao viram tres avisos
-     * empilhados sobre a tela do medico. */
-    chegadasNoAviso = chegadasNoAviso.concat(novos);
-    if (chegadasNoAviso.length > 6) chegadasNoAviso = chegadasNoAviso.slice(-6);
+    if (!novos || !novos.length) return;
+
+    /* Se o aviso anterior ainda esta na tela, esta chegada se soma a
+     * ele. Se nao esta, comeca uma contagem nova — senao um aviso de
+     * meia hora atras inflaria o numero de agora. */
+    var visivel = aviso && aviso.estaVisivel();
+    chegadasNoAviso = visivel ? chegadasNoAviso.concat(novos) : novos.slice();
 
     var conteudo = {
-      titulo:
-        chegadasNoAviso.length === 1
-          ? "Paciente na sala de espera"
-          : chegadasNoAviso.length + " pacientes na sala de espera",
-      corpo: chegadasNoAviso.map(linhaDoPaciente),
+      titulo: titulo(chegadasNoAviso.length),
+      /* O corpo lista no maximo seis linhas para nao virar uma parede de
+       * texto, mas o TITULO continua contando todo mundo. */
+      corpo: chegadasNoAviso.slice(-6).map(linhaDoPaciente),
       acoes: [
         { rotulo: "Ver fila", aoClicar: abrirFilaNativa },
         { rotulo: "Fechar", primario: false },
@@ -548,15 +568,10 @@
       autoFecharMs: AUTO_FECHAR_MS,
     };
 
-    if (aviso && aviso.estaVisivel()) {
+    if (visivel) {
       aviso.atualizar(conteudo);
       return;
     }
-
-    chegadasNoAviso = novos.slice();
-    conteudo.titulo =
-      novos.length === 1 ? "Paciente na sala de espera" : novos.length + " pacientes na sala de espera";
-    conteudo.corpo = novos.map(linhaDoPaciente);
     aviso = d.dock.criarAviso(conteudo);
   }
 
@@ -668,6 +683,12 @@
     });
   }
 
+  /* O contador mostra quem esta AGUARDANDO NA SALA DE ESPERA agora, e e
+   * recalculado do zero a cada rodada a partir da resposta — nunca
+   * incrementado. Antes ele somava tudo que a consulta devolvia, ou
+   * seja, contava tambem quem tinha consulta marcada mas ainda nao
+   * tinha chegado. Quem foi atendido, cancelou ou saiu do filtro deixa
+   * de aparecer na rodada seguinte, sem precisar de remocao manual. */
   function atualizarContador() {
     if (d && d.botao) d.botao.definirContador(aguardando.length);
   }

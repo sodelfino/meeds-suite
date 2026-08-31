@@ -139,3 +139,85 @@ escrito para **funcionar nas duas**, em vez de apostar numa:
 O que a evidência real vai fazer é *simplificar* este código — não corrigi-lo.
 Quando você rodar o diagnóstico e me disser o resultado, eu removo o caminho
 que não se aplica e deixo só o confirmado, com a evidência anotada aqui.
+
+---
+
+## 5. O que foi corrigido
+
+| Defeito | Correção |
+|---|---|
+| Detecção pela presença do id | `Map` de estado anterior; a chegada é uma **transição** `false → true` |
+| `checkinStatus === true` estrito | `lerChegada()` aceita `true`/`"true"`/`1`/`"1"`/`"sim"`/data preenchida, e os negativos |
+| Contador somava tudo da query | conta só quem realmente chegou, recalculado do zero a cada rodada |
+| `setInterval` sem trava | `setTimeout` encadeado + trava `consultaEmAndamento` |
+| Falha de rede podia esvaziar a fila | estado anterior preservado; a rodada seguinte tenta de novo |
+| Item some do filtro após check-in | consulta de confirmação, só quando um item **não chegado** desaparece |
+
+### Campo usado para detectar a chegada
+
+`lerChegada()` procura, **nesta ordem**, o primeiro campo presente que dê uma
+resposta conclusiva:
+
+```
+agendamento.checkinStatus     agendamento.checkIn       agendamento.checkin
+agendamento.chegou            agendamento.presente      agendamento.dataCheckin
+agendamento.dataChegada       agendamento.horarioChegada
+checkinStatus  checkIn  chegou  presente  dataCheckin  dataChegada
+```
+
+O campo efetivamente usado fica em `campoDeChegadaUsado` e sai uma vez no
+console (`[Sala de espera] chegada lida do campo: …`). É **nome de campo**,
+não dado de paciente.
+
+Se **nenhum** desses campos vier na resposta, o módulo cai no
+`statusAtendimentoId === 2`. Isso está documentado como aproximação, não como
+acerto: é melhor do que nunca avisar, e o diagnóstico existe para substituir
+por certeza.
+
+### Query final
+
+**Principal**, a cada 30 s:
+
+```
+GET /api/v1/Atendimento
+    ?ProfissionalId={do médico, capturado do próprio tráfego}
+    &StatusAtendimentoId=2
+    &Agendado=true
+    &sort=GestaoHorario.HorarioInicial
+```
+
+**De confirmação**, apenas quando um atendimento que ainda não havia chegado
+desaparece da resposta:
+
+```
+GET /api/v1/Atendimento
+    ?ProfissionalId={o mesmo}
+    &Agendado=true
+    &DataInicial={hoje}
+    &DataFinal={hoje}
+    &sort=GestaoHorario.HorarioInicial
+```
+
+Não existe caminho no módulo que consulte sem `ProfissionalId`, e o id vem
+exclusivamente do tráfego autenticado da própria aplicação — nunca digitado,
+inferido ou lido de outro profissional.
+
+### Comportamento da primeira leitura
+
+Fotografa o estado, **atualiza o contador** e **não avisa**. Quem já estava
+esperando quando o médico abriu a tela não "acabou de chegar". A partir da
+segunda leitura, uma chegada nova avisa — inclusive um atendimento que apareça
+já com chegada marcada, porque isso aconteceu com o médico presente.
+
+---
+
+## 6. Testes
+
+`node tests/sala-espera.test.js` — 27 verificações, todas passando. Cobrem os
+12 cenários pedidos, com respostas simuladas da API.
+
+Esses testes existem por dois motivos. O primeiro é cobrir as regras de
+transição. O segundo apareceu durante esta própria correção: uma edição apagou
+sem querer duas funções do módulo, `node --check` passou (ele só valida
+sintaxe) e o defeito só apareceria no plantão. Um teste que **executa** o
+módulo pega isso na hora — e agora roda junto com `npm run verificar`.
