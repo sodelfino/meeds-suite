@@ -32,6 +32,7 @@
 
   var registro = [];          // definicoes na ordem de registro
   var ouvintesCadastro = [];  // modulos que redesenham a lista de medicos
+  var ouvintesEvento = {};    // barramento entre modulos (ver abaixo)
   var porId = {};             // id -> { def, estado }
   var iniciado = false;
   var storageNucleo = null;
@@ -120,6 +121,54 @@
     if (g[chave]) return g[chave].slice();
     var f = (SELETORES_FALLBACK[grupo] || {})[chave];
     return f ? f.slice() : [];
+  }
+
+  /* ------------------------------------------------------------------
+   * BARRAMENTO ENTRE MODULOS
+   * ------------------------------------------------------------------
+   * Modulos nao se enxergam nem se importam: se um chamasse o outro pelo
+   * nome, desligar um quebraria o outro, e o "adicionar o sexto sem tocar
+   * nos cinco" deixaria de valer. Eles conversam por evento.
+   *
+   * Caso concreto que motivou isto: a busca de CID-10 precisa inserir o
+   * codigo escolhido no laudo que estiver aberto — sem saber QUAL laudo e,
+   * nem se algum esta aberto. Ela publica "cid:escolhido"; quem estiver
+   * com o modal aberto atende. Se ninguem atender, quem publicou decide o
+   * que fazer (no caso, copia para a area de transferencia).
+   *
+   * publicar() devolve quantos ouvintes ATENDERAM de fato — um ouvinte
+   * que devolve true. E o que permite esse "se ninguem atendeu, faca
+   * outra coisa".
+   * ------------------------------------------------------------------ */
+  function assinarEvento(nome, fn, idModulo) {
+    if (!ouvintesEvento[nome]) ouvintesEvento[nome] = [];
+    var registro = { fn: fn, idModulo: idModulo || null };
+    ouvintesEvento[nome].push(registro);
+    return function cancelar() {
+      ouvintesEvento[nome] = (ouvintesEvento[nome] || []).filter(function (o) {
+        return o !== registro;
+      });
+    };
+  }
+
+  function publicarEvento(nome, dados) {
+    var atenderam = 0;
+    (ouvintesEvento[nome] || []).slice().forEach(function (o) {
+      try {
+        if (o.fn(dados) === true) atenderam++;
+      } catch (e) {
+        console.warn("[Assistente Meeds] ouvinte do evento", nome, "falhou em", o.idModulo, e);
+      }
+    });
+    return atenderam;
+  }
+
+  function cancelarEventosDoModulo(idModulo) {
+    Object.keys(ouvintesEvento).forEach(function (nome) {
+      ouvintesEvento[nome] = ouvintesEvento[nome].filter(function (o) {
+        return o.idModulo !== idModulo;
+      });
+    });
   }
 
   /* ------------------------------------------------------------------
@@ -300,6 +349,12 @@
         aoMudarCadastro: function (fn) {
           ouvintesCadastro.push({ idModulo: def.id, fn: fn });
         },
+        /* Barramento entre modulos. assinar devolve o cancelamento; o
+         * nucleo tambem limpa tudo do modulo no stop(). */
+        assinarEvento: function (nome, fn) {
+          return assinarEvento(nome, fn, def.id);
+        },
+        publicarEvento: publicarEvento,
       };
       entrada.deps = deps;
 
@@ -333,6 +388,7 @@
     ouvintesCadastro = ouvintesCadastro.filter(function (o) {
       return o.idModulo !== def.id;
     });
+    cancelarEventosDoModulo(def.id);
     if (entrada.botaoHandle) {
       try {
         entrada.botaoHandle.remover();
@@ -435,6 +491,8 @@
     seletor: obterSeletor,
     atualizarSeletoresRemoto: atualizarSeletoresRemoto,
     cadastro: Cadastro,
+    assinarEvento: assinarEvento,
+    publicarEvento: publicarEvento,
     abrirCadastro: function () {
       raiz.MeedsSuiteManager.abrir("medicos");
     },

@@ -815,6 +815,24 @@
       /* Quando o medico e cadastrado ou removido no painel da engrenagem,
        * o <select> se redesenha sozinho — sem precisar fechar e reabrir
        * este modal. */
+      /* Busca de CID-10: o modulo de busca nao sabe qual laudo esta
+       * aberto — ele publica e quem estiver aberto atende. Devolver true
+       * e o que diz "eu peguei"; se ninguem devolver, a busca copia o
+       * codigo para a area de transferencia. */
+      deps.assinarEvento("cid:escolhido", function (evt) {
+        if (!overlay || !overlay.estaAberto()) return false;
+        var campo = shadow.getElementById("apac-cid1");
+        if (!campo) return false;
+        campo.value = evt.codigo;
+        campo.dispatchEvent(new Event("input"));
+        var desc = shadow.getElementById("apac-cid-desc");
+        if (desc && !desc.value) {
+          desc.value = evt.descricao;
+          desc.dataset.auto = "1";
+        }
+        return true;
+      });
+
       deps.aoMudarCadastro(function () {
         if (seletorMedico) seletorMedico.atualizar();
         montarEstabelecimentos();

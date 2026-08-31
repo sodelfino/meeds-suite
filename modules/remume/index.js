@@ -62,43 +62,8 @@
   }
   /* ---- motor de busca (extraido do original, sem alteracao) ---- */
 
-function normalizarFonetico(tokenNormalizado) {
-    return tokenNormalizado
-      .replace(/^h/, "") // H mudo no inicio: "hemitartarato" ~ "emitartarato"
-      .replace(/ch/g, "x") // mesmo som: "chave" ~ "xarope"
-      .replace(/ss/g, "s") // "massa" ~ "masa"
-      .replace(/c(?=[ei])/g, "s") // C antes de E/I soa como S: "cedo" ~ "sedo"
-      .replace(/g(?=[ei])/g, "j") // G antes de E/I soa como J: "gelo" ~ "jelo"
-      .replace(/z/g, "s"); // "zebra" ~ "sebra"
-  }
 
-function levenshtein(a, b) {
-    const m = a.length;
-    const n = b.length;
-    const dp = Array.from({ length: m + 1 }, (_, i) =>
-      Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
-    );
-    for (let i = 1; i <= m; i++) {
-      for (let j = 1; j <= n; j++) {
-        dp[i][j] =
-          a[i - 1] === b[j - 1]
-            ? dp[i - 1][j - 1]
-            : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-      }
-    }
-    return dp[m][n];
-  }
 
-function fuzzyScore(query, target) {
-    if (query === target) return 1.0;
-    if (target.includes(query)) return 0.9;
-    const maxLen = Math.max(query.length, target.length);
-    if (maxLen === 0) return 1;
-    const distancia = levenshtein(query, target);
-    const distanciaMaxima = query.length <= 6 ? 1 : query.length <= 10 ? 2 : 3;
-    if (distancia > distanciaMaxima) return 0;
-    return 1 - distancia / maxLen;
-  }
 
 const PREFIXOS_INSTITUCIONAIS = [
     "prefeitura municipal de ",
@@ -305,7 +270,7 @@ const SINONIMOS_BUSCA = {
     /* --------------------------------------------------------------
      * [SINONIMOS] Ampliacao com nomes comerciais populares no Brasil.
      * A logica de match ja e bidirecional por construcao (ver
-     * obterFrasesSinonimo): digitar a chave (principio ativo) OU
+     * obterFrasesSinonimo, hoje em core/busca.js): digitar a chave OU
      * qualquer sinonimo (nome comercial) da mesma entrada dispara a
      * busca pelos dois lados. Aqui so ampliamos os dados.
      * -------------------------------------------------------------- */
@@ -392,105 +357,37 @@ const CONFIG_BUSCA = {
     MIN_LEN_DICA_TERMO: 4,
   };
 
-function palavraElegivelParaGatilho(a, b) {
-    return a.length >= 3 && b.length >= 3 && (a.includes(b) || b.includes(a));
-  }
 
-function obterFrasesSinonimo(tokensDigitados) {
-    const termoDigitadoCompleto = tokensDigitados.join(" ");
-    const frases = new Set();
-    for (const token of tokensDigitados) {
-      for (const [chave, sinonimos] of Object.entries(SINONIMOS_BUSCA)) {
-        const chaveFrase = normalizarFraseSinonimo(chave);
-        const sinonimosFrases = sinonimos.map(normalizarFraseSinonimo);
-        const bate =
-          chaveFrase.split(" ").some((t) => palavraElegivelParaGatilho(token, t)) ||
-          sinonimosFrases.some((f) => f.split(" ").some((t) => palavraElegivelParaGatilho(token, t)));
-        if (bate) {
-          frases.add(chaveFrase);
-          sinonimosFrases.forEach((f) => frases.add(f));
-        }
-      }
-    }
-    frases.delete(termoDigitadoCompleto);
-    return [...frases];
-  }
 
-function pontuarItem(item, tokensDigitados, tokensDigitadosFoneticos, frasesSinonimo) {
-    let pontuacaoExata = 0;
-    let pontuacaoFuzzy = 0;
-
-    for (let i = 0; i < tokensDigitados.length; i++) {
-      const token = tokensDigitados[i];
-      if (item.normalizado.includes(token)) {
-        pontuacaoExata += 1.0;
-        if (item.normalizado.startsWith(token)) pontuacaoExata += CONFIG_BUSCA.BONUS_COMECA_COM;
-        continue;
-      }
-      // [FONETICA] compara tanto a forma bruta quanto a forma foneticamente
-      // dobrada (token digitado x token do item) e fica com a MELHOR das
-      // duas — a dobra fonetica so pode ajudar a reconhecer o termo, nunca
-      // piora um match que ja funcionava sem ela.
-      const tokenFonetico = tokensDigitadosFoneticos[i];
-      let melhorFuzzy = 0;
-      for (let j = 0; j < item.tokens.length; j++) {
-        const scoreBruto = fuzzyScore(token, item.tokens[j]);
-        const scoreFonetico = fuzzyScore(tokenFonetico, item.tokensFoneticos[j]);
-        const score = Math.max(scoreBruto, scoreFonetico);
-        if (score > melhorFuzzy) melhorFuzzy = score;
-      }
-      if (melhorFuzzy >= CONFIG_BUSCA.LIMIAR_FUZZY) {
-        pontuacaoFuzzy += melhorFuzzy * 0.5;
-      }
-    }
-
-    for (const frase of frasesSinonimo) {
-      // compara tambem sem espacos: municipios diferentes escrevem o mesmo
-      // termo composto de jeitos diferentes (ex: "acetilsalicilico" vs
-      // "acetil salicilico") — exige frase com 8+ caracteres pra evitar
-      // colisao de palavras curtas coincidentes.
-      const bateDireto = item.normalizado.includes(frase);
-      const bateSemEspaco =
-        frase.length >= 8 && item.normalizadoSemEspaco.includes(frase.replace(/\s+/g, ""));
-      if (bateDireto || bateSemEspaco) {
-        pontuacaoExata += 0.8; // sinonimo e correspondencia exata de frase, nao fuzzy
-      }
-    }
-
-    return {
-      pontuacao: pontuacaoExata + pontuacaoFuzzy,
-      viaFuzzy: pontuacaoExata === 0 && pontuacaoFuzzy > 0,
-    };
-  }
 
 function buscarMedicamentos(termo, cidade) {
-    const tokensDigitados = tokenizarTexto(termo);
-    if (tokensDigitados.length === 0) return { itens: [], termoReconhecido: null };
-    const tokensDigitadosFoneticos = tokensDigitados.map(normalizarFonetico);
-    const frasesSinonimo = obterFrasesSinonimo(tokensDigitados);
-    const indice = obterIndiceBusca(cidade);
+    /* O motor de busca (fuzzy + fonetica + sinonimos) mudou de lugar: era
+     * daqui e virou core/busca.js, para a busca de CID-10 usar o mesmo.
+     * As funcoes foram MOVIDAS, nao reescritas — o comportamento e o
+     * mesmo, e os casos que ele ja tratava (novalgina x valina, buscopan
+     * x escetamina, o "b" de complexo_b) continuam cobertos pelo teste de
+     * fumaca. O dicionario de sinonimos continua aqui, porque e de
+     * medicamento; o motor e generico. */
+    var indice = obterIndiceBusca(cidade);
+    var r = raiz.MeedsSuiteBusca.buscar(termo, indice, {
+      sinonimos: SINONIMOS_BUSCA,
+      limite: CONFIG_BUSCA.LIMITE_RESULTADOS,
+      config: CONFIG_BUSCA,
+    });
 
-    const pontuados = indice
-      .map((item) => {
-        const { pontuacao, viaFuzzy } = pontuarItem(item, tokensDigitados, tokensDigitadosFoneticos, frasesSinonimo);
-        return { item, pontuacao, viaFuzzy };
-      })
-      .filter((x) => x.pontuacao > 0)
-      .sort((a, b) => b.pontuacao - a.pontuacao)
-      .slice(0, CONFIG_BUSCA.LIMITE_RESULTADOS);
-
-    let termoReconhecido = null;
-    const melhor = pontuados[0];
-    if (melhor && melhor.viaFuzzy && normalizarTexto(termo).length >= CONFIG_BUSCA.MIN_LEN_DICA_TERMO) {
-      const principioAtivo = extrairPrincipioAtivo(melhor.item.nome);
+    var termoReconhecido = null;
+    if (r.melhor && r.viaFuzzy && normalizarTexto(termo).length >= CONFIG_BUSCA.MIN_LEN_DICA_TERMO) {
+      var principioAtivo = extrairPrincipioAtivo(r.melhor.nome);
       if (principioAtivo && normalizarTexto(principioAtivo) !== normalizarTexto(termo)) {
         termoReconhecido = principioAtivo;
       }
     }
 
     return {
-      itens: pontuados.map((x) => ({ nome: x.item.nome, local: x.item.local })),
-      termoReconhecido,
+      itens: r.itens.map(function (x) {
+        return { nome: x.nome, local: x.local };
+      }),
+      termoReconhecido: termoReconhecido,
     };
   }
 
@@ -565,10 +462,6 @@ function moverFocoResultado(delta) {
       .replace(/>/g, "&gt;");
   }
 
-  function normalizarFraseSinonimo(str) {
-    return normalizarTexto(str).replace(/_/g, " ");
-  }
-
   function encontrarMunicipioNaBase(nomeCidadeNormalizado) {
     if (!nomeCidadeNormalizado) return null;
     var chaves = chavesMunicipios(REMUMES);
@@ -607,28 +500,14 @@ function moverFocoResultado(delta) {
     var lista = REMUMES[cidade] || [];
     var cacheado = _indiceBuscaPorCidade.get(cidade);
     if (cacheado && cacheado.origem === lista) return cacheado.indice;
-    var indice = lista.map(function (item) {
-      var par = normalizarItemRemume(item);
-      var nome = par.nome;
-      var local = par.local;
-      // o texto de busca inclui o local (quando existe) para o medico
-      // poder digitar "HPM" e achar o que esta disponivel la — mas nome e
-      // local continuam separados para a exibicao.
-      var textoBusca = local ? nome + " " + local : nome;
-      var tokens = tokenizarTexto(textoBusca);
-      var normalizado = normalizarTexto(textoBusca);
-      return {
-        nome: nome,
-        local: local,
-        tokens: tokens,
-        // forma fonetica pre-calculada UMA vez por item (nao a cada
-        // tecla digitada): o indice fica em cache por cidade, entao esse
-        // custo so acontece quando a REMUME daquela cidade muda mesmo.
-        tokensFoneticos: tokens.map(normalizarFonetico),
-        normalizado: normalizado,
-        normalizadoSemEspaco: normalizado.replace(/\s+/g, ""),
-      };
+
+    // normaliza os itens; o texto pesquisavel inclui o local de acesso,
+    // para o medico poder digitar "HPM" e achar o que esta disponivel la
+    var itens = lista.map(normalizarItemRemume);
+    var indice = raiz.MeedsSuiteBusca.criarIndice(itens, function (item) {
+      return item.local ? item.nome + " " + item.local : item.nome;
     });
+
     _indiceBuscaPorCidade.set(cidade, { origem: lista, indice: indice });
     return indice;
   }

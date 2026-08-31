@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Assistente Meeds - Por: Marcelo
 // @namespace    novetech-meeds-suite
-// @version      2.3.0
+// @version      2.4.0
 // @description  Assistente Meeds - Por: Marcelo. Alarme de fila, APAC de Itauna, laudos de Sete Lagoas e Conceicao do Mato Dentro e consulta a REMUME, numa instalacao unica. Cada funcao liga e desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
 // @author       Marcelo
 // @match        *://*.meeds.com.br/*
@@ -1304,6 +1304,235 @@
     formatarCpf: formatarCpf,
     cpfCompleto: cpfCompleto,
     aplicarMascaraCpf: aplicarMascaraCpf,
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== core/busca.js ===== */
+/* ------------------------------------------------------------------
+ * core/busca.js — motor de busca tolerante (fuzzy + fonetica + sinonimos)
+ * ------------------------------------------------------------------
+ * DE ONDE VEIO
+ * Este motor nasceu dentro do Assistente REMUME e amadureceu la, com
+ * correcoes que so aparecem no uso real. Ele estava preso num modulo.
+ * Aqui vira infraestrutura, sem reescrita: as funcoes abaixo foram
+ * MOVIDAS do modulo, nao redigitadas — justamente para nao perder
+ * nenhuma dessas correcoes:
+ *
+ *   - distancia de edicao ABSOLUTA maxima, alem da razao de
+ *     similaridade: sem ela, "novalgina" casava com "valina" (ambas
+ *     terminam em -ina) e sao coisas diferentes;
+ *   - sinonimos exigem casamento EXATO da frase inteira: combinar
+ *     sinonimo com fuzzy fazia "buscopan" -> "escopolamina" -> por
+ *     aproximacao -> "escetamina", farmacos sem relacao;
+ *   - guarda de 3 caracteres no gatilho de sinonimo: sem ela, o "b" de
+ *     "complexo_b" casava com quase qualquer busca;
+ *   - forma fonetica pre-calculada por item, uma vez, e nao a cada tecla.
+ *
+ * O QUE MUDOU AO GENERALIZAR
+ * O dicionario de sinonimos deixou de ser fixo (era so de medicamentos)
+ * e passou a ser um parametro. Assim o mesmo motor serve a REMUME
+ * (medicamentos) e a busca de CID-10 (doencas), e serve a qualquer
+ * modulo futuro que precise procurar numa lista grande.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  var Dom = raiz.MeedsSuiteDom;
+
+  function normalizarTexto(str) {
+    return Dom.normalizarTexto(str);
+  }
+
+  function tokenizarTexto(str) {
+    return normalizarTexto(str)
+      .split(/[\s,;.\-()]+/)
+      .filter(function (t) { return t.length > 0; });
+  }
+
+  function normalizarFonetico(tokenNormalizado) {
+    return tokenNormalizado
+      .replace(/^h/, "") // H mudo no inicio: "hemitartarato" ~ "emitartarato"
+      .replace(/ch/g, "x") // mesmo som: "chave" ~ "xarope"
+      .replace(/ss/g, "s") // "massa" ~ "masa"
+      .replace(/c(?=[ei])/g, "s") // C antes de E/I soa como S: "cedo" ~ "sedo"
+      .replace(/g(?=[ei])/g, "j") // G antes de E/I soa como J: "gelo" ~ "jelo"
+      .replace(/z/g, "s"); // "zebra" ~ "sebra"
+  }
+
+  function levenshtein(a, b) {
+    const m = a.length;
+    const n = b.length;
+    const dp = Array.from({ length: m + 1 }, (_, i) =>
+      Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+    );
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        dp[i][j] =
+          a[i - 1] === b[j - 1]
+            ? dp[i - 1][j - 1]
+            : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      }
+    }
+    return dp[m][n];
+  }
+
+  function fuzzyScore(query, target) {
+    if (query === target) return 1.0;
+    if (target.includes(query)) return 0.9;
+    const maxLen = Math.max(query.length, target.length);
+    if (maxLen === 0) return 1;
+    const distancia = levenshtein(query, target);
+    const distanciaMaxima = query.length <= 6 ? 1 : query.length <= 10 ? 2 : 3;
+    if (distancia > distanciaMaxima) return 0;
+    return 1 - distancia / maxLen;
+  }
+
+  function palavraElegivelParaGatilho(a, b) {
+    return a.length >= 3 && b.length >= 3 && (a.includes(b) || b.includes(a));
+  }
+
+  var CONFIG_PADRAO = {
+    LIMITE_RESULTADOS: 80,
+    LIMIAR_FUZZY: 0.6,
+    BONUS_COMECA_COM: 0.2,
+    MIN_LEN_DICA_TERMO: 4,
+  };
+
+  function normalizarFraseSinonimo(str) {
+    return normalizarTexto(str).replace(/_/g, " ");
+  }
+
+  /* Frases de sinonimo relacionadas ao que foi digitado. Devolve FRASES,
+   * nao palavras soltas: um sinonimo composto como "acido acetilsalicilico"
+   * so conta se aparecer INTEIRO no texto do item — se explodisse em
+   * palavras, "acido" sozinho bateria em qualquer "Acido X". */
+  function obterFrasesSinonimo(tokensDigitados, sinonimos) {
+    var termoDigitadoCompleto = tokensDigitados.join(" ");
+    var frases = new Set();
+    if (!sinonimos) return [];
+    for (var i = 0; i < tokensDigitados.length; i++) {
+      var token = tokensDigitados[i];
+      var chaves = Object.keys(sinonimos);
+      for (var j = 0; j < chaves.length; j++) {
+        var chaveFrase = normalizarFraseSinonimo(chaves[j]);
+        var sinonimosFrases = sinonimos[chaves[j]].map(normalizarFraseSinonimo);
+        var bate =
+          chaveFrase.split(" ").some(function (t) { return palavraElegivelParaGatilho(token, t); }) ||
+          sinonimosFrases.some(function (f) {
+            return f.split(" ").some(function (t) { return palavraElegivelParaGatilho(token, t); });
+          });
+        if (bate) {
+          frases.add(chaveFrase);
+          sinonimosFrases.forEach(function (f) { frases.add(f); });
+        }
+      }
+    }
+    frases.delete(termoDigitadoCompleto);
+    /* Array.from, nao Array.prototype.slice.call: slice le .length, que um
+     * Set nao tem, e devolveria [] — os sinonimos morreriam em silencio.
+     * Foi exatamente o que aconteceu ao mover este codigo para ca:
+     * "buscopan" parou de achar escopolamina e o teste pegou. */
+    return Array.from(frases);
+  }
+
+  /* IMPORTANTE: fuzzy vale SO para o que a pessoa digitou (tolera erro de
+   * digitacao). Frases vindas de sinonimo exigem correspondencia EXATA —
+   * combinar duas aproximacoes sugere um resultado parecido mas ERRADO. */
+  function pontuarItem(item, tokensDigitados, tokensDigitadosFoneticos, frasesSinonimo, cfg) {
+    var pontuacaoExata = 0;
+    var pontuacaoFuzzy = 0;
+
+    for (var i = 0; i < tokensDigitados.length; i++) {
+      var token = tokensDigitados[i];
+      if (item.normalizado.indexOf(token) !== -1) {
+        pontuacaoExata += 1.0;
+        if (item.normalizado.indexOf(token) === 0) pontuacaoExata += cfg.BONUS_COMECA_COM;
+        continue;
+      }
+      var tokenFonetico = tokensDigitadosFoneticos[i];
+      var melhorFuzzy = 0;
+      for (var j = 0; j < item.tokens.length; j++) {
+        var score = Math.max(
+          fuzzyScore(token, item.tokens[j]),
+          fuzzyScore(tokenFonetico, item.tokensFoneticos[j])
+        );
+        if (score > melhorFuzzy) melhorFuzzy = score;
+      }
+      if (melhorFuzzy >= cfg.LIMIAR_FUZZY) pontuacaoFuzzy += melhorFuzzy * 0.5;
+    }
+
+    for (var k = 0; k < frasesSinonimo.length; k++) {
+      var frase = frasesSinonimo[k];
+      var bateDireto = item.normalizado.indexOf(frase) !== -1;
+      var bateSemEspaco =
+        frase.length >= 8 && item.normalizadoSemEspaco.indexOf(frase.replace(/\s+/g, "")) !== -1;
+      if (bateDireto || bateSemEspaco) pontuacaoExata += 0.8;
+    }
+
+    return {
+      pontuacao: pontuacaoExata + pontuacaoFuzzy,
+      viaFuzzy: pontuacaoExata === 0 && pontuacaoFuzzy > 0,
+    };
+  }
+
+  /* ------------------------------------------------------------------
+   * criarIndice(itens, textoDe)
+   * ------------------------------------------------------------------
+   * itens: array qualquer. textoDe(item) devolve o texto pesquisavel.
+   * O indice pre-calcula tokens e forma fonetica UMA vez — esse custo
+   * nao pode acontecer a cada tecla digitada.
+   * ------------------------------------------------------------------ */
+  function criarIndice(itens, textoDe) {
+    return (itens || []).map(function (item) {
+      var texto = textoDe ? textoDe(item) : String(item);
+      var tokens = tokenizarTexto(texto);
+      var normalizado = normalizarTexto(texto);
+      return {
+        original: item,
+        tokens: tokens,
+        tokensFoneticos: tokens.map(normalizarFonetico),
+        normalizado: normalizado,
+        normalizadoSemEspaco: normalizado.replace(/\s+/g, ""),
+      };
+    });
+  }
+
+  /* buscar(termo, indice, opcoes) -> { itens, viaFuzzy }
+   * opcoes: { sinonimos, limite, config } */
+  function buscar(termo, indice, opcoes) {
+    opcoes = opcoes || {};
+    var cfg = Object.assign({}, CONFIG_PADRAO, opcoes.config || {});
+    var tokens = tokenizarTexto(termo);
+    if (tokens.length === 0) return { itens: [], viaFuzzy: false };
+
+    var foneticos = tokens.map(normalizarFonetico);
+    var frases = obterFrasesSinonimo(tokens, opcoes.sinonimos);
+
+    var pontuados = indice
+      .map(function (item) {
+        var r = pontuarItem(item, tokens, foneticos, frases, cfg);
+        return { item: item, pontuacao: r.pontuacao, viaFuzzy: r.viaFuzzy };
+      })
+      .filter(function (x) { return x.pontuacao > 0; })
+      .sort(function (a, b) { return b.pontuacao - a.pontuacao; })
+      .slice(0, opcoes.limite || cfg.LIMITE_RESULTADOS);
+
+    return {
+      itens: pontuados.map(function (x) { return x.item.original; }),
+      viaFuzzy: !!(pontuados[0] && pontuados[0].viaFuzzy),
+      melhor: pontuados[0] ? pontuados[0].item.original : null,
+    };
+  }
+
+  raiz.MeedsSuiteBusca = {
+    criarIndice: criarIndice,
+    buscar: buscar,
+    normalizarFonetico: normalizarFonetico,
+    fuzzyScore: fuzzyScore,
+    levenshtein: levenshtein,
+    tokenizarTexto: tokenizarTexto,
+    CONFIG_PADRAO: CONFIG_PADRAO,
   };
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
@@ -2944,6 +3173,7 @@
 
   var registro = [];          // definicoes na ordem de registro
   var ouvintesCadastro = [];  // modulos que redesenham a lista de medicos
+  var ouvintesEvento = {};    // barramento entre modulos (ver abaixo)
   var porId = {};             // id -> { def, estado }
   var iniciado = false;
   var storageNucleo = null;
@@ -3032,6 +3262,54 @@
     if (g[chave]) return g[chave].slice();
     var f = (SELETORES_FALLBACK[grupo] || {})[chave];
     return f ? f.slice() : [];
+  }
+
+  /* ------------------------------------------------------------------
+   * BARRAMENTO ENTRE MODULOS
+   * ------------------------------------------------------------------
+   * Modulos nao se enxergam nem se importam: se um chamasse o outro pelo
+   * nome, desligar um quebraria o outro, e o "adicionar o sexto sem tocar
+   * nos cinco" deixaria de valer. Eles conversam por evento.
+   *
+   * Caso concreto que motivou isto: a busca de CID-10 precisa inserir o
+   * codigo escolhido no laudo que estiver aberto — sem saber QUAL laudo e,
+   * nem se algum esta aberto. Ela publica "cid:escolhido"; quem estiver
+   * com o modal aberto atende. Se ninguem atender, quem publicou decide o
+   * que fazer (no caso, copia para a area de transferencia).
+   *
+   * publicar() devolve quantos ouvintes ATENDERAM de fato — um ouvinte
+   * que devolve true. E o que permite esse "se ninguem atendeu, faca
+   * outra coisa".
+   * ------------------------------------------------------------------ */
+  function assinarEvento(nome, fn, idModulo) {
+    if (!ouvintesEvento[nome]) ouvintesEvento[nome] = [];
+    var registro = { fn: fn, idModulo: idModulo || null };
+    ouvintesEvento[nome].push(registro);
+    return function cancelar() {
+      ouvintesEvento[nome] = (ouvintesEvento[nome] || []).filter(function (o) {
+        return o !== registro;
+      });
+    };
+  }
+
+  function publicarEvento(nome, dados) {
+    var atenderam = 0;
+    (ouvintesEvento[nome] || []).slice().forEach(function (o) {
+      try {
+        if (o.fn(dados) === true) atenderam++;
+      } catch (e) {
+        console.warn("[Assistente Meeds] ouvinte do evento", nome, "falhou em", o.idModulo, e);
+      }
+    });
+    return atenderam;
+  }
+
+  function cancelarEventosDoModulo(idModulo) {
+    Object.keys(ouvintesEvento).forEach(function (nome) {
+      ouvintesEvento[nome] = ouvintesEvento[nome].filter(function (o) {
+        return o.idModulo !== idModulo;
+      });
+    });
   }
 
   /* ------------------------------------------------------------------
@@ -3212,6 +3490,12 @@
         aoMudarCadastro: function (fn) {
           ouvintesCadastro.push({ idModulo: def.id, fn: fn });
         },
+        /* Barramento entre modulos. assinar devolve o cancelamento; o
+         * nucleo tambem limpa tudo do modulo no stop(). */
+        assinarEvento: function (nome, fn) {
+          return assinarEvento(nome, fn, def.id);
+        },
+        publicarEvento: publicarEvento,
       };
       entrada.deps = deps;
 
@@ -3245,6 +3529,7 @@
     ouvintesCadastro = ouvintesCadastro.filter(function (o) {
       return o.idModulo !== def.id;
     });
+    cancelarEventosDoModulo(def.id);
     if (entrada.botaoHandle) {
       try {
         entrada.botaoHandle.remover();
@@ -3347,6 +3632,8 @@
     seletor: obterSeletor,
     atualizarSeletoresRemoto: atualizarSeletoresRemoto,
     cadastro: Cadastro,
+    assinarEvento: assinarEvento,
+    publicarEvento: publicarEvento,
     abrirCadastro: function () {
       raiz.MeedsSuiteManager.abrir("medicos");
     },
@@ -3371,7 +3658,7 @@
   raiz.MEEDS_DADOS_FORMULARIOS = {"_leia_me":"Dados dos formularios: unidades de origem, catalogos de procedimento e listas de CID-10. Edite este arquivo e rode \"npm run build\" — as mudancas aparecem para os medicos sem precisar mexer em codigo. Ver docs/MANUAL-ADMIN.md.","lme-sete-lagoas":{"_leia_me":"Laudo Medico de Alto Custo de Sete Lagoas.","municipio":"SETE LAGOAS","origens":["SAÚDE AUDITIVA","UBS CIDADE DE DEUS","UBS BELO VALE"],"procedimentos":{"RM_CRANIO":{"nome":"Ressonância nuclear magnética de crânio","codigo":"02.07.01.006-4"},"RM_BASE_CRANIO":{"nome":"Ressonância nuclear magnética de base do crânio","codigo":"02.07.01.006-4"},"RM_SELA_TURCICA":{"nome":"Ressonância nuclear magnética de sela túrcica","codigo":"02.07.01.007-2"},"RM_ATM":{"nome":"Ressonância nuclear magnética de articulação temporomandibular (bilateral)","codigo":"02.07.01.002-1"},"ANGIO_RM_CEREBRAL":{"nome":"Angiorressonância cerebral","codigo":"02.07.01.001-3"},"RM_COLUNA_CERVICAL":{"nome":"Ressonância nuclear magnética de coluna cervical","codigo":"02.07.01.003-0"},"RM_COLUNA_TORACICA":{"nome":"Ressonância nuclear magnética de coluna torácica","codigo":"02.07.01.005-6"},"RM_COLUNA_LOMBOSSACRA":{"nome":"Ressonância nuclear magnética de coluna lombo-sacra","codigo":"02.07.01.004-8"},"RM_CORACAO_AORTA":{"nome":"Ressonância nuclear magnética de coração/aorta com cine","codigo":"02.07.02.001-9"},"RM_MEMBRO_SUPERIOR":{"nome":"Ressonância nuclear magnética de membro superior (unilateral)","codigo":"02.07.02.002-7"},"TC_CRANIO":{"nome":"Tomografia computadorizada do crânio","codigo":"02.06.01.007-9"},"TC_SELA_TURCICA":{"nome":"Tomografia computadorizada de sela túrcica","codigo":"02.06.01.006-0"},"TC_FACE_ATM":{"nome":"Tomografia computadorizada de face/seios da face/ATM","codigo":"02.06.01.004-4"},"TC_PESCOCO":{"nome":"Tomografia computadorizada do pescoço","codigo":"02.06.01.005-2"},"TC_COLUNA_CERVICAL":{"nome":"Tomografia computadorizada de coluna cervical (com ou sem contraste)","codigo":"02.06.01.001-0"},"TC_COLUNA_TORACICA":{"nome":"Tomografia computadorizada de coluna torácica (com ou sem contraste)","codigo":"02.06.01.003-6"},"TC_COLUNA_LOMBOSSACRA":{"nome":"Tomografia computadorizada de coluna lombo-sacra (com ou sem contraste)","codigo":"02.06.01.002-8"},"TC_TORAX":{"nome":"Tomografia computadorizada de tórax (sem contraste)","codigo":"02.06.02.003-1"},"TC_ABDOME_SUPERIOR":{"nome":"Tomografia computadorizada de abdome superior","codigo":"02.06.03.001-0"},"TC_PELVE":{"nome":"Tomografia computadorizada de pelve/bacia/abdome inferior","codigo":"02.06.03.003-7"},"TC_ARTIC_MEMBRO_SUP":{"nome":"Tomografia computadorizada de articulações de membro superior","codigo":"02.06.02.001-5"},"TC_ARTIC_MEMBRO_INF":{"nome":"Tomografia computadorizada de articulações de membro inferior","codigo":"02.06.03.002-9"},"TC_SEGMENTOS_APENDIC":{"nome":"Tomografia computadorizada de segmentos apendiculares (braço, antebraço, mão, coxa, perna, pé)","codigo":"02.06.02.002-3"},"DENSITOMETRIA_2SEG":{"nome":"Densitometria óssea (dois segmentos)","codigo":"02.04.06.002-8"},"DENSITOMETRIA_CORPO":{"nome":"Densitometria óssea (corpo inteiro)","codigo":"02.04.06.002-8"},"ENDOSCOPIA_DIGESTIVA_ALTA":{"nome":"Endoscopia digestiva alta (esofagogastroduodenoscopia)","codigo":"02.09.01.003-7"},"COLONOSCOPIA":{"nome":"Colonoscopia (coloscopia)","codigo":"02.09.01.002-9"},"ANGIOCORONARIOGRAFIA":{"nome":"Angiocoronariografia (cateterismo cardíaco)","codigo":"02.11.02.001-0"},"CINTILOGRAFIA_MIOCARDIO_ESTRESSE":{"nome":"Cintilografia de perfusão do miocárdio (estresse, mín. 3 projeções)","codigo":"02.08.01.002-5"},"CINTILOGRAFIA_MIOCARDIO_REPOUSO":{"nome":"Cintilografia de perfusão do miocárdio (repouso, mín. 3 projeções)","codigo":"02.08.01.003-3"},"ECOCARDIOGRAMA_TRANSTORACICO":{"nome":"Ecocardiograma transtorácico","codigo":"02.05.01.003-2"},"TESTE_ERGOMETRICO":{"nome":"Teste ergométrico (teste de esforço)","codigo":"02.11.02.006-0"},"HOLTER_24H":{"nome":"Holter 24 horas (eletrocardiograma dinâmico, 3 canais)","codigo":"02.11.02.004-4"},"MAPA_24H":{"nome":"MAPA 24 horas (monitorização ambulatorial da pressão arterial)","codigo":"02.11.02.005-2"},"RETOSSIGMOIDOSCOPIA":{"nome":"Retossigmoidoscopia (diagnóstica)","codigo":"02.09.01.005-3"}},"cids":{"G43.0":"Enxaqueca sem aura (enxaqueca comum)","G43.8":"Outras formas de enxaqueca","P14.3":"Outras lesões do plexo braquial devidas a traumatismo de parto","L93":"Lúpus eritematoso","M18.0":"Artrose primária bilateral das primeiras articulações carpometacarpianas","M25.5":"Dor articular","R73.9":"Hiperglicemia não especificada","G00.9":"Meningite bacteriana não especificada","H90.3":"Perda de audição neurossensorial bilateral","F82":"Transtorno específico do desenvolvimento motor","F80.9":"Transtorno de desenvolvimento da fala ou linguagem não especificado","G43.9":"Enxaqueca não especificada","G44.1":"Cefaleia vascular, não classificada em outra parte","G40.9":"Epilepsia não especificada","G93.4":"Encefalopatia não especificada","R51":"Cefaleia","G80.9":"Paralisia cerebral não especificada","F84.0":"Autismo infantil","F70":"Retardo mental leve","F71":"Retardo mental moderado","Q90.9":"Síndrome de Down não especificada","P07.3":"Outros recém-nascidos pré-termo","M19.9":"Artrose não especificada","M79.1":"Mialgia","M54.5":"Dor lombar baixa","M54.2":"Cervicalgia","M06.9":"Artrite reumatoide não especificada","M32.9":"Lúpus eritematoso sistêmico não especificado","M81.9":"Osteoporose não especificada","M85.8":"Outros transtornos especificados da densidade e da estrutura ósseas","M47.9":"Espondilose não especificada","M51.1":"Transtornos de discos lombares e de outros discos intervertebrais com radiculopatia","E10.9":"Diabetes mellitus tipo 1 sem complicações","E11.9":"Diabetes mellitus tipo 2 sem complicações","E03.9":"Hipotireoidismo não especificado","E05.9":"Tireotoxicose não especificada","E66.9":"Obesidade não especificada","E78.0":"Hipercolesterolemia pura","I10":"Hipertensão essencial (primária)","J44.9":"Doença pulmonar obstrutiva crônica não especificada","N18.9":"Doença renal crônica não especificada","R07.4":"Dor torácica, não especificada"}},"cmd":{"_leia_me":"Laudo Medico de Alto Custo de Conceicao do Mato Dentro.","municipio":"CONCEIÇÃO DO MATO DENTRO","origens":["CEMO DR SEBASTIAO SOARES DOS SANTOS"],"procedimentos":{"RM_CRANIO":{"nome":"Ressonância nuclear magnética de crânio","codigo":"02.07.01.006-4"},"RM_BASE_CRANIO":{"nome":"Ressonância nuclear magnética de base do crânio","codigo":"02.07.01.006-4"},"RM_SELA_TURCICA":{"nome":"Ressonância nuclear magnética de sela túrcica","codigo":"02.07.01.007-2"},"RM_ATM":{"nome":"Ressonância nuclear magnética de articulação temporomandibular (bilateral)","codigo":"02.07.01.002-1"},"ANGIO_RM_CEREBRAL":{"nome":"Angiorressonância cerebral","codigo":"02.07.01.001-3"},"RM_COLUNA_CERVICAL":{"nome":"Ressonância nuclear magnética de coluna cervical","codigo":"02.07.01.003-0"},"RM_COLUNA_TORACICA":{"nome":"Ressonância nuclear magnética de coluna torácica","codigo":"02.07.01.005-6"},"RM_COLUNA_LOMBOSSACRA":{"nome":"Ressonância nuclear magnética de coluna lombo-sacra","codigo":"02.07.01.004-8"},"RM_CORACAO_AORTA":{"nome":"Ressonância nuclear magnética de coração/aorta com cine","codigo":"02.07.02.001-9"},"RM_MEMBRO_SUPERIOR":{"nome":"Ressonância nuclear magnética de membro superior (unilateral)","codigo":"02.07.02.002-7"},"TC_CRANIO":{"nome":"Tomografia computadorizada do crânio","codigo":"02.06.01.007-9"},"TC_SELA_TURCICA":{"nome":"Tomografia computadorizada de sela túrcica","codigo":"02.06.01.006-0"},"TC_FACE_ATM":{"nome":"Tomografia computadorizada de face/seios da face/ATM","codigo":"02.06.01.004-4"},"TC_PESCOCO":{"nome":"Tomografia computadorizada do pescoço","codigo":"02.06.01.005-2"},"TC_COLUNA_CERVICAL":{"nome":"Tomografia computadorizada de coluna cervical (com ou sem contraste)","codigo":"02.06.01.001-0"},"TC_COLUNA_TORACICA":{"nome":"Tomografia computadorizada de coluna torácica (com ou sem contraste)","codigo":"02.06.01.003-6"},"TC_COLUNA_LOMBOSSACRA":{"nome":"Tomografia computadorizada de coluna lombo-sacra (com ou sem contraste)","codigo":"02.06.01.002-8"},"TC_TORAX":{"nome":"Tomografia computadorizada de tórax (sem contraste)","codigo":"02.06.02.003-1"},"TC_ABDOME_SUPERIOR":{"nome":"Tomografia computadorizada de abdome superior","codigo":"02.06.03.001-0"},"TC_PELVE":{"nome":"Tomografia computadorizada de pelve/bacia/abdome inferior","codigo":"02.06.03.003-7"},"TC_ARTIC_MEMBRO_SUP":{"nome":"Tomografia computadorizada de articulações de membro superior","codigo":"02.06.02.001-5"},"TC_ARTIC_MEMBRO_INF":{"nome":"Tomografia computadorizada de articulações de membro inferior","codigo":"02.06.03.002-9"},"TC_SEGMENTOS_APENDIC":{"nome":"Tomografia computadorizada de segmentos apendiculares (braço, antebraço, mão, coxa, perna, pé)","codigo":"02.06.02.002-3"},"DENSITOMETRIA_2SEG":{"nome":"Densitometria óssea (dois segmentos)","codigo":"02.04.06.002-8"},"DENSITOMETRIA_CORPO":{"nome":"Densitometria óssea (corpo inteiro)","codigo":"02.04.06.002-8"},"ENDOSCOPIA_DIGESTIVA_ALTA":{"nome":"Endoscopia digestiva alta (esofagogastroduodenoscopia)","codigo":"02.09.01.003-7"},"COLONOSCOPIA":{"nome":"Colonoscopia (coloscopia)","codigo":"02.09.01.002-9"},"ANGIOCORONARIOGRAFIA":{"nome":"Angiocoronariografia (cateterismo cardíaco)","codigo":"02.11.02.001-0"},"CINTILOGRAFIA_MIOCARDIO_ESTRESSE":{"nome":"Cintilografia de perfusão do miocárdio (estresse, mín. 3 projeções)","codigo":"02.08.01.002-5"},"CINTILOGRAFIA_MIOCARDIO_REPOUSO":{"nome":"Cintilografia de perfusão do miocárdio (repouso, mín. 3 projeções)","codigo":"02.08.01.003-3"},"ECOCARDIOGRAMA_TRANSTORACICO":{"nome":"Ecocardiograma transtorácico","codigo":"02.05.01.003-2"},"TESTE_ERGOMETRICO":{"nome":"Teste ergométrico (teste de esforço)","codigo":"02.11.02.006-0"},"HOLTER_24H":{"nome":"Holter 24 horas (eletrocardiograma dinâmico, 3 canais)","codigo":"02.11.02.004-4"},"MAPA_24H":{"nome":"MAPA 24 horas (monitorização ambulatorial da pressão arterial)","codigo":"02.11.02.005-2"},"RETOSSIGMOIDOSCOPIA":{"nome":"Retossigmoidoscopia (diagnóstica)","codigo":"02.09.01.005-3"}},"cids":{"K83.8":"Outras doenças especificadas das vias biliares","I10":"Hipertensão essencial (primária)","I11.9":"Doença cardíaca hipertensiva sem insuficiência cardíaca","I15.9":"Hipertensão secundária não especificada","I20.0":"Angina instável","I20.9":"Angina pectoris, não especificada","I21.9":"Infarto agudo do miocárdio não especificado","I22.9":"Infarto do miocárdio recorrente não especificado","I24.9":"Doença isquêmica aguda do coração, não especificada","I25.1":"Doença aterosclerótica do coração","I25.9":"Doença isquêmica crônica do coração, não especificada","I27.9":"Doença cardiopulmonar não especificada","I34.0":"Insuficiência da valva mitral","I34.9":"Transtorno não-reumático da valva mitral, não especificado","I35.0":"Estenose aórtica","I35.9":"Transtorno da valva aórtica não especificado","I36.1":"Insuficiência não-reumática da valva tricúspide","I38":"Endocardite de valva não especificada","I42.0":"Cardiomiopatia dilatada","I42.9":"Cardiomiopatia não especificada","I44.2":"Bloqueio atrioventricular total","I45.9":"Transtorno de condução não especificado","I47.1":"Taquicardia supraventricular","I47.2":"Taquicardia ventricular","I48":"Flutter e fibrilação atrial","I48.9":"Flutter e fibrilação atrial","I49.5":"Síndrome do nó sinusal","I49.9":"Arritmia cardíaca não especificada","I50":"Insuficiência cardíaca","I50.9":"Insuficiência cardíaca não especificada","I51.7":"Cardiomegalia","I70.0":"Aterosclerose da aorta","I70.2":"Aterosclerose das artérias das extremidades","I71.4":"Aneurisma da aorta abdominal, sem menção de ruptura","I73.9":"Doença vascular periférica não especificada","I80.2":"Flebite e tromboflebite de outros vasos profundos dos membros inferiores","I82.9":"Embolia e trombose venosa não especificada","Q21.1":"Comunicação interatrial","Q24.9":"Malformação congênita do coração não especificada","E78.5":"Hiperlipidemia não especificada","R00.0":"Taquicardia não especificada","R00.1":"Bradicardia não especificada","R00.2":"Palpitações","R07.2":"Dor precordial","R42":"Tontura e instabilidade","R55":"Síncope e colapso","Z95.0":"Presença de marca-passo cardíaco","Z95.1":"Presença de enxerto de ponte aortocoronária","Z95.5":"Presença de implante e enxerto de angioplastia coronária","G43.0":"Enxaqueca sem aura (enxaqueca comum)","G43.8":"Outras formas de enxaqueca","G43.9":"Enxaqueca não especificada","G44.1":"Cefaleia vascular, não classificada em outra parte","G40.9":"Epilepsia não especificada","G93.4":"Encefalopatia não especificada","R51":"Cefaleia","G80.9":"Paralisia cerebral não especificada","F84.0":"Autismo infantil","F70":"Retardo mental leve","F71":"Retardo mental moderado","F82":"Transtorno específico do desenvolvimento motor","F80.9":"Transtorno de desenvolvimento da fala ou linguagem não especificado","Q90.9":"Síndrome de Down não especificada","P07.3":"Outros recém-nascidos pré-termo","P14.3":"Outras lesões do plexo braquial devidas a traumatismo de parto","L93":"Lúpus eritematoso","G00.9":"Meningite bacteriana não especificada","H90.3":"Perda de audição neurossensorial bilateral","M18.0":"Artrose primária bilateral das primeiras articulações carpometacarpianas","M19.9":"Artrose não especificada","M25.5":"Dor articular","M79.1":"Mialgia","M54.5":"Dor lombar baixa","M54.2":"Cervicalgia","M06.9":"Artrite reumatoide não especificada","M32.9":"Lúpus eritematoso sistêmico não especificado","M81.9":"Osteoporose não especificada","M85.8":"Outros transtornos especificados da densidade e da estrutura ósseas","M47.9":"Espondilose não especificada","M51.1":"Transtornos de discos lombares e de outros discos intervertebrais com radiculopatia","E10.9":"Diabetes mellitus tipo 1 sem complicações","E11.9":"Diabetes mellitus tipo 2 sem complicações","E03.9":"Hipotireoidismo não especificado","E05.9":"Tireotoxicose não especificada","E66.9":"Obesidade não especificada","E78.0":"Hipercolesterolemia pura","R73.9":"Hiperglicemia não especificada","J44.9":"Doença pulmonar obstrutiva crônica não especificada","N18.9":"Doença renal crônica não especificada","R07.4":"Dor torácica, não especificada"}},"apac-itauna":{"_leia_me":"APAC de Itauna. O estabelecimento ja aparece preenchido no formulario.","estabelecimento":{"nome":"CENTRO DE ESPEC MEDICAS E ODONTO DR OVIDIO NOGUEIRA MACHADO","cnes":"2105578"},"procedimentos":{"HOLTER":{"nome":"Holter 24h","codigo":"02.11.02.004-4","label":"MONITORAMENTO PELO SISTEMA HOLTER 24 HS (3 CANAIS)"},"MAPA":{"nome":"MAPA 24h","codigo":"02.11.02.005-2","label":"MONITORIZAÇÃO AMBULATORIAL DE PRESSÃO ARTERIAL (MAPA)"},"TE":{"nome":"Teste Ergométrico","codigo":"02.11.02.006-0","label":"TESTE DE ESFORÇO / TESTE ERGOMÉTRICO"},"DOPPLER":{"nome":"Doppler vascular","codigo":"02.05.01.004-0","label":null},"CINTILO":{"nome":"Cintilografia miocárdio","codigo":"02.08.01.002-5","label":"CINTILOGRAFIA DE MIOCÁRDIO P/ AVALIAÇÃO DA PERFUSÃO EM SITUAÇÃO DE ESTRESSE (MÍNIMO 3 PROJEÇÕES)"},"ECO":{"nome":"Ecocardiograma","codigo":"02.05.01.003-2","label":null},"CATETER":{"nome":"Cateterismo cardíaco","codigo":"02.11.02.001-0","label":"CATETERISMO CARDÍACO (CINECORONARIOGRAFIA)"},"OUTRO":{"nome":"Outro procedimento…","codigo":"","label":null}},"ecoVariantes":{"REPOUSO":{"codigo":"02.05.01.003-2","nome":"ECOCARDIOGRAFIA TRANSTORACICA"},"ESTRESSE":{"codigo":"02.05.01.001-6","nome":"ECOCARDIOGRAFIA COM ESTRESSE"},"TRANSESOFAGICO":{"codigo":"02.05.01.002-4","nome":"ECOCARDIOGRAFIA BI-DIMENSIONAL TRANSESOFAGICO"}},"territorios":["DOPPLER DE ARTÉRIAS CARÓTIDAS E VERTEBRAIS","DOPPLER DE VEIAS CERVICAIS","DOPPLER AORTA ABDOMINAL","DOPPLER DE ARTÉRIAS RENAIS","DOPPLER ARTERIAL DE MEMBROS SUPERIORES","DOPPLER ARTERIAL DE MEMBROS INFERIORES","DOPPLER VENOSO DE MEMBROS SUPERIORES","DOPPLER VENOSO DE MEMBROS INFERIORES"],"cids":{"I10":"Hipertensão essencial (primária)","I11.9":"Doença cardíaca hipertensiva sem insuficiência cardíaca","I15.9":"Hipertensão secundária não especificada","I20.0":"Angina instável","I20.9":"Angina pectoris, não especificada","I21.9":"Infarto agudo do miocárdio não especificado","I22.9":"Infarto do miocárdio recorrente não especificado","I24.9":"Doença isquêmica aguda do coração, não especificada","I25.1":"Doença aterosclerótica do coração","I25.9":"Doença isquêmica crônica do coração, não especificada","I27.9":"Doença cardiopulmonar não especificada","I34.0":"Insuficiência da valva mitral","I34.9":"Transtorno não-reumático da valva mitral, não especificado","I35.0":"Estenose aórtica","I35.9":"Transtorno da valva aórtica não especificado","I36.1":"Insuficiência não-reumática da valva tricúspide","I38":"Endocardite de valva não especificada","I42.0":"Cardiomiopatia dilatada","I42.9":"Cardiomiopatia não especificada","I44.2":"Bloqueio atrioventricular total","I45.9":"Transtorno de condução não especificado","I47.1":"Taquicardia supraventricular","I47.2":"Taquicardia ventricular","I48":"Flutter e fibrilação atrial","I48.9":"Flutter e fibrilação atrial","I49.5":"Síndrome do nó sinusal","I49.9":"Arritmia cardíaca não especificada","I50":"Insuficiência cardíaca","I50.9":"Insuficiência cardíaca não especificada","I51.7":"Cardiomegalia","I70.0":"Aterosclerose da aorta","I70.2":"Aterosclerose das artérias das extremidades","I71.4":"Aneurisma da aorta abdominal, sem menção de ruptura","I73.9":"Doença vascular periférica não especificada","I80.2":"Flebite e tromboflebite de outros vasos profundos dos membros inferiores","I82.9":"Embolia e trombose venosa não especificada","Q21.1":"Comunicação interatrial","Q24.9":"Malformação congênita do coração não especificada","E11":"Diabetes mellitus não-insulino-dependente","E11.9":"Diabetes mellitus não-insulino-dependente - sem complicações","E78.0":"Hipercolesterolemia pura","E78.5":"Hiperlipidemia não especificada","R00.0":"Taquicardia não especificada","R00.1":"Bradicardia não especificada","R00.2":"Palpitações","R07.2":"Dor precordial","R07.4":"Dor torácica, não especificada","R42":"Tontura e instabilidade","R55":"Síncope e colapso","Z95.0":"Presença de marca-passo cardíaco","Z95.1":"Presença de enxerto de ponte aortocoronária","Z95.5":"Presença de implante e enxerto de angioplastia coronária"}}};
 
   var __inv = {
-  "versao": "2.3.0",
+  "versao": "2.4.0",
   "modulos": [
     {
       "id": "alarme-fila",
@@ -3386,6 +3673,12 @@
       "descricao": "Gera a APAC de Itaúna já preenchida com os dados do paciente que estão na tela e leva você direto para a assinatura no gov.br.",
       "versao": "2.3.0",
       "origem": "sodelfino/apac-itauna-meeds"
+    },
+    {
+      "id": "cid10",
+      "nome": "Buscar CID-10",
+      "descricao": "Procura o código CID-10 pelo nome da doença, na tabela completa, e preenche no laudo que estiver aberto.",
+      "versao": "1.0.0"
     },
     {
       "id": "lme-sete-lagoas",
@@ -3417,7 +3710,7 @@
    * cobre o resto: duas copias instaladas no Tampermonkey, ou uma
    * reexecucao do script numa navegacao da SPA. Sem ela, apareciam dois
    * docks sobrepostos e o alarme tocava duas vezes. */
-  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.3.0")) return;
+  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.4.0")) return;
 
   /* 2) O hook de rede precisa existir ANTES de qualquer chamada da
    * aplicacao — por isso e instalado aqui, em document-start, e nao
@@ -4932,6 +5225,24 @@
       /* Quando o medico e cadastrado ou removido no painel da engrenagem,
        * o <select> se redesenha sozinho — sem precisar fechar e reabrir
        * este modal. */
+      /* Busca de CID-10: o modulo de busca nao sabe qual laudo esta
+       * aberto — ele publica e quem estiver aberto atende. Devolver true
+       * e o que diz "eu peguei"; se ninguem devolver, a busca copia o
+       * codigo para a area de transferencia. */
+      deps.assinarEvento("cid:escolhido", function (evt) {
+        if (!overlay || !overlay.estaAberto()) return false;
+        var campo = shadow.getElementById("apac-cid1");
+        if (!campo) return false;
+        campo.value = evt.codigo;
+        campo.dispatchEvent(new Event("input"));
+        var desc = shadow.getElementById("apac-cid-desc");
+        if (desc && !desc.value) {
+          desc.value = evt.descricao;
+          desc.dataset.auto = "1";
+        }
+        return true;
+      });
+
       deps.aoMudarCadastro(function () {
         if (seletorMedico) seletorMedico.atualizar();
         montarEstabelecimentos();
@@ -4960,6 +5271,496 @@
       cacheId = null;
       pdfGerado = null;
       procedimentoAtivo = null;
+      d = null;
+    },
+  });
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== modules/cid10/assets/fallback.js ===== */
+/* modules/cid10/assets/fallback.js — GERADO AUTOMATICAMENTE
+ * NAO EDITE A MAO. Rode: node scripts/sync-cid10.js
+ *
+ * Copia REDUZIDA da CID-10, usada so quando a busca do dados/cid10.json
+ * falha (sem internet, dominio bloqueado, CSP). Sao os codigos que os
+ * tres geradores de laudo ja traziam pre-cadastrados — o suficiente para
+ * o medico nao ficar sem nada. Com internet, a base completa
+ * (14233 codigos) substitui esta assim que a pagina carrega.
+ */
+(function (raiz) {
+  "use strict";
+  raiz.MEEDS_CID10_FALLBACK = {
+    "E03.9": "Hipotireoidismo Não Especificado",
+    "E05.9": "Tireotoxicose Não Especificada",
+    "E10.9": "Diabetes Mellitus Insulino-dependente - Sem Complicações",
+    "E11": "Diabetes Mellitus Não-insulino-dependente",
+    "E11.9": "Diabetes Mellitus Não-insulino-dependente - Sem Complicações",
+    "E66.9": "Obesidade Não Especificada",
+    "E78.0": "Hipercolesterolemia Pura",
+    "E78.5": "Hiperlipidemia Não Especificada",
+    "F70": "Retardo Mental Leve",
+    "F71": "Retardo Mental Moderado",
+    "F80.9": "Transtorno Não Especificado do Desenvolvimento da Fala ou da Linguagem",
+    "F82": "Transtorno Específico do Desenvolvimento Motor",
+    "F84.0": "Autismo Infantil",
+    "G00.9": "Meningite Bacteriana Não Especificada",
+    "G40.9": "Epilepsia, Não Especificada",
+    "G43.0": "Enxaqueca Sem Aura (enxaqueca Comum)",
+    "G43.8": "Outras Formas de Enxaqueca",
+    "G43.9": "Enxaqueca, Sem Especificação",
+    "G44.1": "Cefaléia Vascular, Não Classificada em Outra Parte",
+    "G80.9": "Paralisia Cerebral Não Especificada",
+    "G93.4": "Encefalopatia Não Especificada",
+    "H90.3": "Perda de Audição Bilateral Neuro-sensorial",
+    "I10": "Hipertensão Essencial (primária)",
+    "I11.9": "Doença Cardíaca Hipertensiva Sem Insuficiência Cardíaca (congestiva)",
+    "I15.9": "Hipertensão Secundária, Não Especificada",
+    "I20.0": "Angina Instável",
+    "I20.9": "Angina Pectoris, Não Especificada",
+    "I21.9": "Infarto Agudo do Miocárdio Não Especificado",
+    "I22.9": "Infarto do Miocárdio Recorrente de Localização Não Especificada",
+    "I24.9": "Doença Isquêmica Aguda do Coração Não Especificada",
+    "I25.1": "Doença Aterosclerótica do Coração",
+    "I25.9": "Doença Isquêmica Crônica do Coração Não Especificada",
+    "I27.9": "Cardiopatia Pulmonar Não Especificada",
+    "I34.0": "Insuficiência (da Valva) Mitral",
+    "I34.9": "Transtornos Não-reumáticos da Valva Mitral, Não Especificados",
+    "I35.0": "Estenose (da Valva) Aórtica",
+    "I35.9": "Transtornos Não Especificados da Valva Aórtica",
+    "I36.1": "Insuficiência (da Valva) Tricúspide Não-reumática",
+    "I38": "Endocardite de Valva Não Especificada",
+    "I42.0": "Cardiomiopatia Dilatada",
+    "I42.9": "Cardiomiopatia Não Especificada",
+    "I44.2": "Bloqueio Atrioventricular Total",
+    "I45.9": "Transtorno de Condução Não Especificado",
+    "I47.1": "Taquicardia Supraventricular",
+    "I47.2": "Taquicardia Ventricular",
+    "I48": "Flutter e Fibrilação Atrial",
+    "I49.5": "Síndrome do nó Sinusal",
+    "I49.9": "Arritmia Cardíaca Não Especificada",
+    "I50": "Insuficiência Cardíaca",
+    "I50.9": "Insuficiência Cardíaca Não Especificada",
+    "I51.7": "Cardiomegalia",
+    "I70.0": "Aterosclerose da Aorta",
+    "I70.2": "Aterosclerose Das Artérias Das Extremidades",
+    "I71.4": "Aneurisma da Aorta Abdominal, Sem Menção de Ruptura",
+    "I73.9": "Doenças Vasculares Periféricas Não Especificada",
+    "I80.2": "Flebite e Tromboflebite de Outros Vasos Profundos Dos Membros Inferiores",
+    "I82.9": "Embolia e Trombose Venosas de Veia Não Especificada",
+    "J44.9": "Doença Pulmonar Obstrutiva Crônica Não Especificada",
+    "K83.8": "Outras Doenças Especificadas Das Vias Biliares",
+    "L93": "Lúpus Eritematoso",
+    "M06.9": "Artrite Reumatóide Não Especificada",
+    "M18.0": "Artrose Primária Bilateral Das Primeiras Articulações Carpometacarpianas",
+    "M19.9": "Artrose Não Especificada",
+    "M25.5": "Dor Articular",
+    "M32.9": "Lúpus Eritematoso Disseminado (sistêmico) Não Especificado",
+    "M47.9": "Espondilose Não Especificada",
+    "M51.1": "Transtornos de Discos Lombares e de Outros Discos Intervertebrais Com Radiculopatia",
+    "M54.2": "Cervicalgia",
+    "M54.5": "Dor Lombar Baixa",
+    "M79.1": "Mialgia",
+    "M81.9": "Osteoporose Não Especificada",
+    "M85.8": "Outros Transtornos Especificados da Densidade e da Estrutura Ósseas",
+    "N18.9": "Insuficiência Renal Crônica Não Especificada",
+    "P07.3": "Outros Recém-nascidos de Pré-termo",
+    "P14.3": "Outras Lesões do Plexo Braquial Devidas a Traumatismo de Parto",
+    "Q21.1": "Comunicação Interatrial",
+    "Q24.9": "Malformação Não Especificada do Coração",
+    "Q90.9": "Síndrome de Down Não Especificada",
+    "R00.0": "Taquicardia Não Especificada",
+    "R00.1": "Bradicardia Não Especificada",
+    "R00.2": "Palpitações",
+    "R07.2": "Dor Precordial",
+    "R07.4": "Dor Torácica, Não Especificada",
+    "R42": "Tontura e Instabilidade",
+    "R51": "Cefaléia",
+    "R55": "Síncope e Colapso",
+    "R73.9": "Hiperglicemia Não Especificada",
+    "Z95.0": "Presença de Marca-passo Cardíaco",
+    "Z95.1": "\"Presença de Enxerto de Ponte (\"\"bypass\"\") Aortocoronária\"",
+    "Z95.5": "Presença de Implante e Enxerto de Angioplastia Coronária"
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== modules/cid10/index.js (v1.0.0) ===== */
+/* ------------------------------------------------------------------
+ * modules/cid10/index.js — busca de CID-10 pelo nome da doenca
+ * ------------------------------------------------------------------
+ * O PROBLEMA QUE RESOLVE
+ * Os tres geradores de laudo traziam, cada um, uma listinha curada de
+ * CID: 42 codigos em Sete Lagoas, 90 em CMD, 52 na APAC — 91 distintos
+ * somando os tres. A CID-10 tem 14.233. E o autocomplete exigia saber o
+ * CODIGO: quem digitava "enxaqueca" nao achava nada, porque a busca era
+ * pela chave, nao pela descricao.
+ *
+ * Aqui a busca e pelo NOME da doenca (ou pelo codigo, tanto faz), na
+ * base completa, com a mesma tolerancia a erro de digitacao que o
+ * REMUME ja tinha — o motor agora e do nucleo (core/busca.js).
+ *
+ * COMO ELE CONVERSA COM OS LAUDOS
+ * Este modulo nao conhece nenhum laudo. Ao escolher um codigo, ele
+ * PUBLICA o evento "cid:escolhido"; o laudo que estiver com o modal
+ * aberto atende e preenche o proprio campo. Se nenhum atender, o codigo
+ * vai para a area de transferencia. Assim, um sexto gerador de laudo
+ * passa a receber CID sem que este arquivo mude uma linha.
+ *
+ * DADOS
+ * A base completa vive em dados/cid10.json e e buscada pela internet
+ * (1 MB — embutir no pacote faria toda atualizacao baixar isso de novo).
+ * O fallback embutido tem os 90 codigos que os laudos ja traziam, para o
+ * modulo continuar util sem internet. Mesma estrategia do REMUME.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  var URL_BASE =
+    "https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dados/cid10.json";
+
+  var d = null;
+  var overlay = null;
+  var refs = null;
+  var indice = null;
+  var cids = null;      // { codigo: descricao }
+  var totalBase = 0;
+  var usandoFallback = true;
+  var itensNaTela = [];
+  var focado = -1;
+
+  /* Apelidos que o medico usa na boca do dia a dia. So AMPLIAM o que da
+   * para digitar; nao alteram nenhuma descricao oficial. Mesmo mecanismo
+   * dos sinonimos do REMUME (frase inteira, casamento exato). */
+  var SINONIMOS = {
+    infarto: ["iam", "ataque cardiaco"],
+    "acidente vascular cerebral": ["avc", "derrame"],
+    hipertensao: ["pressao alta", "has"],
+    diabetes: ["dm"],
+    "insuficiencia cardiaca": ["icc"],
+    "doenca pulmonar obstrutiva cronica": ["dpoc"],
+    "infeccao do trato urinario": ["itu"],
+    "doenca renal cronica": ["drc"],
+    cefaleia: ["dor de cabeca"],
+    lombalgia: ["dor lombar", "dor nas costas"],
+    "transtorno depressivo": ["depressao"],
+    "transtorno de ansiedade": ["ansiedade"],
+    obesidade: ["sobrepeso"],
+    "sindrome de down": ["trissomia do 21"],
+    epilepsia: ["convulsao"],
+  };
+
+  var CSS = [
+    ".cid-modal { width:100%; max-width:640px; max-height:86vh; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); display:flex; flex-direction:column; overflow:hidden; }",
+    ".cid-modal header { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
+    ".cid-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
+    ".cid-sub { margin:3px 0 0; font-size:11.5px; opacity:.9; }",
+    ".cid-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; }",
+    ".cid-fechar:hover { background:rgba(255,255,255,.34); }",
+    ".cid-body { padding:14px 18px 16px; display:flex; flex-direction:column; gap:10px; min-height:0; flex:1; }",
+    ".cid-body label { display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }",
+    ".cid-body input { width:100%; padding:9px 11px; border:1px solid #d8dfe6; border-radius:8px; font-size:13.5px; color:#16221f; }",
+    ".cid-hint { font-size:11.5px; color:#a15c00; background:#fff4e2; padding:7px 10px; border-radius:7px; }",
+    ".cid-hint[hidden] { display:none; }",
+    ".cid-count { font-size:11px; color:#5b6672; }",
+    ".cid-lista { list-style:none; margin:0; padding:0; overflow-y:auto; flex:1; min-height:140px; border-top:1px solid #eef2f6; }",
+    ".cid-lista li { display:flex; align-items:center; gap:10px; padding:8px 4px; border-bottom:1px solid #f1f5f9; font-size:12.5px; line-height:1.45; }",
+    ".cid-lista li.cid-focado { background:#e8f0f8; }",
+    ".cid-item { flex:1; min-width:0; }",
+    ".cid-codigo { font-family:ui-monospace,Menlo,monospace; font-weight:700; color:#123a7a; margin-right:8px; }",
+    ".cid-item mark { background:#fde68a; padding:0 1px; border-radius:2px; }",
+    ".cid-usar { background:#1a4fa0; border:none; color:#fff; border-radius:7px; cursor:pointer; font-size:11px; font-weight:700; padding:6px 11px; flex-shrink:0; }",
+    ".cid-usar:hover { background:#123a7a; }",
+    ".cid-vazio { color:#8a97a4; font-style:italic; padding:16px 4px; font-size:12.5px; }",
+    ".cid-rodape { font-size:10.5px; color:#9aa5b1; line-height:1.5; }",
+  ].join("\n");
+
+  function escapeHtml(str) {
+    return String(str == null ? "" : str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function destacar(texto, termo) {
+    if (!termo) return escapeHtml(texto);
+    var normT = d.dom.normalizarTexto(texto);
+    var normTermo = d.dom.normalizarTexto(termo);
+    var i = normT.indexOf(normTermo);
+    if (i === -1) return escapeHtml(texto);
+    return (
+      escapeHtml(texto.slice(0, i)) +
+      "<mark>" + escapeHtml(texto.slice(i, i + termo.length)) + "</mark>" +
+      escapeHtml(texto.slice(i + termo.length))
+    );
+  }
+
+  /* ---- base de dados ---- */
+  function aplicarBase(mapa, completa) {
+    cids = mapa;
+    totalBase = Object.keys(mapa).length;
+    usandoFallback = !completa;
+    // o indice pesquisa codigo E descricao: "I48" e "fibrilacao" acham o mesmo
+    indice = raiz.MeedsSuiteBusca.criarIndice(
+      Object.keys(mapa).map(function (cod) {
+        return { codigo: cod, descricao: mapa[cod] };
+      }),
+      function (item) {
+        return item.codigo + " " + item.descricao;
+      }
+    );
+    atualizarSubtitulo();
+  }
+
+  function atualizarSubtitulo() {
+    if (!refs) return;
+    refs.sub.textContent = usandoFallback
+      ? totalBase + " códigos disponíveis offline — a lista completa não pôde ser baixada agora"
+      : totalBase.toLocaleString("pt-BR") + " códigos da CID-10";
+  }
+
+  function buscarBaseCompleta() {
+    return fetch(URL_BASE, { cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) return null;
+        return r.json();
+      })
+      .then(function (dados) {
+        if (!dados || !dados.cids || typeof dados.cids !== "object") {
+          console.warn("[CID-10] arquivo remoto com formato inesperado, mantendo a copia embutida.");
+          return false;
+        }
+        aplicarBase(dados.cids, true);
+        if (overlay && overlay.estaAberto()) renderizar();
+        return true;
+      })
+      .catch(function (e) {
+        console.warn("[CID-10] nao foi possivel baixar a base completa, usando a copia embutida.", e);
+        return false;
+      });
+  }
+
+  /* ---- escolha de um codigo ---- */
+  function usarCodigo(item) {
+    /* Nao sabemos qual laudo esta aberto — nem se ha algum. Publicamos e
+     * quem estiver aberto atende. Se ninguem atender, copiamos. */
+    var atenderam = d.publicarEvento("cid:escolhido", {
+      codigo: item.codigo,
+      descricao: item.descricao,
+    });
+
+    if (atenderam > 0) {
+      overlay.fechar();
+      d.core.toast("CID " + item.codigo + " preenchido no laudo.", 3000);
+      return;
+    }
+
+    copiar(item.codigo, function () {
+      d.core.toast(
+        "CID " + item.codigo + " copiado. Nenhum laudo estava aberto — cole no campo CID.",
+        4500
+      );
+    });
+  }
+
+  function copiar(texto, aoCopiar) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(texto).then(aoCopiar).catch(function () {
+        copiarFallback(texto, aoCopiar);
+      });
+    } else {
+      copiarFallback(texto, aoCopiar);
+    }
+  }
+
+  function copiarFallback(texto, aoCopiar) {
+    try {
+      var ta = document.createElement("textarea");
+      ta.value = texto;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      aoCopiar();
+    } catch (e) {
+      /* silencioso */
+    }
+  }
+
+  /* ---- UI ---- */
+  function moverFoco(delta) {
+    if (!itensNaTela.length) return;
+    if (itensNaTela[focado]) itensNaTela[focado].li.classList.remove("cid-focado");
+    focado = Math.min(Math.max(focado + delta, 0), itensNaTela.length - 1);
+    var atual = itensNaTela[focado];
+    if (atual) {
+      atual.li.classList.add("cid-focado");
+      atual.li.scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  function renderizar() {
+    if (!refs) return;
+    var termo = refs.busca.value.trim();
+
+    var achados;
+    var viaFuzzy = false;
+    if (!termo) {
+      achados = Object.keys(cids)
+        .slice(0, 60)
+        .map(function (c) {
+          return { codigo: c, descricao: cids[c] };
+        });
+    } else {
+      var r = raiz.MeedsSuiteBusca.buscar(termo, indice, { sinonimos: SINONIMOS, limite: 120 });
+      achados = r.itens;
+      viaFuzzy = r.viaFuzzy;
+    }
+
+    refs.count.textContent = termo
+      ? achados.length + " resultado(s)"
+      : "digite o nome da doença ou o código";
+
+    refs.hint.hidden = !(viaFuzzy && achados.length);
+    if (!refs.hint.hidden) {
+      refs.hint.textContent = 'Não achei exatamente "' + termo + '" — mostrando o mais parecido.';
+    }
+
+    refs.lista.innerHTML = "";
+    itensNaTela = [];
+    focado = -1;
+
+    if (!achados.length) {
+      var vazio = document.createElement("li");
+      vazio.className = "cid-vazio";
+      vazio.textContent =
+        'Nenhum código encontrado para "' + termo + '". Tente outra palavra da doença, ou o código (ex: I10).';
+      refs.lista.appendChild(vazio);
+      return;
+    }
+
+    var frag = document.createDocumentFragment();
+    achados.forEach(function (item) {
+      var li = document.createElement("li");
+      var txt = document.createElement("div");
+      txt.className = "cid-item";
+      txt.innerHTML =
+        '<span class="cid-codigo">' + escapeHtml(item.codigo) + "</span>" + destacar(item.descricao, termo);
+      li.appendChild(txt);
+
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "cid-usar";
+      btn.textContent = "Usar";
+      btn.title = "Preenche este CID no laudo que estiver aberto";
+      btn.addEventListener("click", function () {
+        usarCodigo(item);
+      });
+      li.appendChild(btn);
+
+      itensNaTela.push({ li: li, botao: btn });
+      frag.appendChild(li);
+    });
+    refs.lista.appendChild(frag);
+  }
+
+  function montarUI() {
+    overlay = d.dock.criarOverlay({
+      estilo: CSS,
+      html:
+        '<div class="cid-modal" role="dialog" aria-modal="true" aria-labelledby="cid-title">' +
+        "  <header><div>" +
+        '    <h2 id="cid-title">Buscar CID-10</h2>' +
+        '    <p class="cid-sub" id="cid-sub">carregando…</p>' +
+        "  </div>" +
+        '  <button type="button" class="cid-fechar" aria-label="Fechar">&#10005;</button></header>' +
+        '  <div class="cid-body">' +
+        '    <div><label for="cid-busca">Nome da doença ou código</label>' +
+        '      <input id="cid-busca" type="text" placeholder="Ex: enxaqueca, fibrilação atrial, I10…" autocomplete="off" /></div>' +
+        '    <div class="cid-hint" id="cid-hint" hidden></div>' +
+        '    <div class="cid-count" id="cid-count"></div>' +
+        '    <ul class="cid-lista" id="cid-lista"></ul>' +
+        '    <p class="cid-rodape">“Usar” preenche o CID no laudo que estiver aberto. Se nenhum estiver, o código é copiado. Setas ↑ ↓ percorrem a lista; Enter usa o primeiro.</p>' +
+        "  </div>" +
+        "</div>",
+    });
+
+    refs = {
+      sub: overlay.$("#cid-sub"),
+      busca: overlay.$("#cid-busca"),
+      hint: overlay.$("#cid-hint"),
+      count: overlay.$("#cid-count"),
+      lista: overlay.$("#cid-lista"),
+    };
+
+    overlay.$(".cid-fechar").addEventListener("click", overlay.fechar);
+
+    var debounce = null;
+    refs.busca.addEventListener("input", function () {
+      clearTimeout(debounce);
+      debounce = setTimeout(renderizar, 180);
+    });
+    refs.busca.addEventListener("keydown", function (ev) {
+      if (ev.key === "ArrowDown") {
+        ev.preventDefault();
+        moverFoco(1);
+      } else if (ev.key === "ArrowUp") {
+        ev.preventDefault();
+        moverFoco(-1);
+      } else if (ev.key === "Enter") {
+        ev.preventDefault();
+        var alvo = itensNaTela[focado] || itensNaTela[0];
+        if (alvo) alvo.botao.click();
+      }
+    });
+
+    atualizarSubtitulo();
+  }
+
+  function abrir() {
+    overlay.abrir();
+    renderizar();
+    setTimeout(function () {
+      refs.busca.select();
+      refs.busca.focus();
+    }, 50);
+  }
+
+  raiz.MeedsSuite.registerModule({
+    id: "cid10",
+    nome: "Buscar CID-10",
+    descricao:
+      "Procura o código CID-10 pelo nome da doença, na tabela completa, e preenche no laudo que estiver aberto.",
+    versao: "1.0.0",
+    configPadrao: {},
+
+    botao: {
+      icone: "🔎",
+      rotulo: "CID-10",
+      titulo: "Buscar CID-10 pelo nome da doença",
+      prioridade: 25, // entre a APAC (20) e o laudo de Sete Lagoas (30)
+    },
+
+    assinaturasRede: [],
+
+    start: function (deps) {
+      d = deps;
+      aplicarBase(raiz.MEEDS_CID10_FALLBACK || {}, false);
+      montarUI();
+      deps.aoClicarBotao(abrir);
+      buscarBaseCompleta();
+    },
+
+    stop: function () {
+      if (overlay) {
+        overlay.remover();
+        overlay = null;
+      }
+      refs = null;
+      indice = null;
+      itensNaTela = [];
+      focado = -1;
       d = null;
     },
   });
@@ -5614,6 +6415,24 @@
       /* Quando o medico e cadastrado ou removido no painel da engrenagem,
        * o <select> se redesenha sozinho — sem precisar fechar e reabrir
        * este modal. */
+      /* Busca de CID-10: o modulo de busca nao sabe qual laudo esta
+       * aberto — ele publica e quem estiver aberto atende. Devolver true
+       * e o que diz "eu peguei"; se ninguem devolver, a busca copia o
+       * codigo para a area de transferencia. */
+      deps.assinarEvento("cid:escolhido", function (evt) {
+        if (!overlay || !overlay.estaAberto()) return false;
+        var campo = shadow.getElementById("lme-cid");
+        if (!campo) return false;
+        campo.value = evt.codigo;
+        campo.dispatchEvent(new Event("input"));
+        var desc = shadow.getElementById("lme-diagnostico");
+        if (desc && !desc.value) {
+          desc.value = evt.descricao;
+          desc.dataset.auto = "1";
+        }
+        return true;
+      });
+
       deps.aoMudarCadastro(function () {
         if (seletorMedico) seletorMedico.atualizar();
       });
@@ -6289,6 +7108,24 @@
       /* Quando o medico e cadastrado ou removido no painel da engrenagem,
        * o <select> se redesenha sozinho — sem precisar fechar e reabrir
        * este modal. */
+      /* Busca de CID-10: o modulo de busca nao sabe qual laudo esta
+       * aberto — ele publica e quem estiver aberto atende. Devolver true
+       * e o que diz "eu peguei"; se ninguem devolver, a busca copia o
+       * codigo para a area de transferencia. */
+      deps.assinarEvento("cid:escolhido", function (evt) {
+        if (!overlay || !overlay.estaAberto()) return false;
+        var campo = shadow.getElementById("cmd-cid");
+        if (!campo) return false;
+        campo.value = evt.codigo;
+        campo.dispatchEvent(new Event("input"));
+        var desc = shadow.getElementById("cmd-diagnostico");
+        if (desc && !desc.value) {
+          desc.value = evt.descricao;
+          desc.dataset.auto = "1";
+        }
+        return true;
+      });
+
       deps.aoMudarCadastro(function () {
         if (seletorMedico) seletorMedico.atualizar();
       });
@@ -9206,43 +10043,8 @@
   }
   /* ---- motor de busca (extraido do original, sem alteracao) ---- */
 
-function normalizarFonetico(tokenNormalizado) {
-    return tokenNormalizado
-      .replace(/^h/, "") // H mudo no inicio: "hemitartarato" ~ "emitartarato"
-      .replace(/ch/g, "x") // mesmo som: "chave" ~ "xarope"
-      .replace(/ss/g, "s") // "massa" ~ "masa"
-      .replace(/c(?=[ei])/g, "s") // C antes de E/I soa como S: "cedo" ~ "sedo"
-      .replace(/g(?=[ei])/g, "j") // G antes de E/I soa como J: "gelo" ~ "jelo"
-      .replace(/z/g, "s"); // "zebra" ~ "sebra"
-  }
 
-function levenshtein(a, b) {
-    const m = a.length;
-    const n = b.length;
-    const dp = Array.from({ length: m + 1 }, (_, i) =>
-      Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
-    );
-    for (let i = 1; i <= m; i++) {
-      for (let j = 1; j <= n; j++) {
-        dp[i][j] =
-          a[i - 1] === b[j - 1]
-            ? dp[i - 1][j - 1]
-            : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-      }
-    }
-    return dp[m][n];
-  }
 
-function fuzzyScore(query, target) {
-    if (query === target) return 1.0;
-    if (target.includes(query)) return 0.9;
-    const maxLen = Math.max(query.length, target.length);
-    if (maxLen === 0) return 1;
-    const distancia = levenshtein(query, target);
-    const distanciaMaxima = query.length <= 6 ? 1 : query.length <= 10 ? 2 : 3;
-    if (distancia > distanciaMaxima) return 0;
-    return 1 - distancia / maxLen;
-  }
 
 const PREFIXOS_INSTITUCIONAIS = [
     "prefeitura municipal de ",
@@ -9449,7 +10251,7 @@ const SINONIMOS_BUSCA = {
     /* --------------------------------------------------------------
      * [SINONIMOS] Ampliacao com nomes comerciais populares no Brasil.
      * A logica de match ja e bidirecional por construcao (ver
-     * obterFrasesSinonimo): digitar a chave (principio ativo) OU
+     * obterFrasesSinonimo, hoje em core/busca.js): digitar a chave OU
      * qualquer sinonimo (nome comercial) da mesma entrada dispara a
      * busca pelos dois lados. Aqui so ampliamos os dados.
      * -------------------------------------------------------------- */
@@ -9536,105 +10338,37 @@ const CONFIG_BUSCA = {
     MIN_LEN_DICA_TERMO: 4,
   };
 
-function palavraElegivelParaGatilho(a, b) {
-    return a.length >= 3 && b.length >= 3 && (a.includes(b) || b.includes(a));
-  }
 
-function obterFrasesSinonimo(tokensDigitados) {
-    const termoDigitadoCompleto = tokensDigitados.join(" ");
-    const frases = new Set();
-    for (const token of tokensDigitados) {
-      for (const [chave, sinonimos] of Object.entries(SINONIMOS_BUSCA)) {
-        const chaveFrase = normalizarFraseSinonimo(chave);
-        const sinonimosFrases = sinonimos.map(normalizarFraseSinonimo);
-        const bate =
-          chaveFrase.split(" ").some((t) => palavraElegivelParaGatilho(token, t)) ||
-          sinonimosFrases.some((f) => f.split(" ").some((t) => palavraElegivelParaGatilho(token, t)));
-        if (bate) {
-          frases.add(chaveFrase);
-          sinonimosFrases.forEach((f) => frases.add(f));
-        }
-      }
-    }
-    frases.delete(termoDigitadoCompleto);
-    return [...frases];
-  }
 
-function pontuarItem(item, tokensDigitados, tokensDigitadosFoneticos, frasesSinonimo) {
-    let pontuacaoExata = 0;
-    let pontuacaoFuzzy = 0;
-
-    for (let i = 0; i < tokensDigitados.length; i++) {
-      const token = tokensDigitados[i];
-      if (item.normalizado.includes(token)) {
-        pontuacaoExata += 1.0;
-        if (item.normalizado.startsWith(token)) pontuacaoExata += CONFIG_BUSCA.BONUS_COMECA_COM;
-        continue;
-      }
-      // [FONETICA] compara tanto a forma bruta quanto a forma foneticamente
-      // dobrada (token digitado x token do item) e fica com a MELHOR das
-      // duas — a dobra fonetica so pode ajudar a reconhecer o termo, nunca
-      // piora um match que ja funcionava sem ela.
-      const tokenFonetico = tokensDigitadosFoneticos[i];
-      let melhorFuzzy = 0;
-      for (let j = 0; j < item.tokens.length; j++) {
-        const scoreBruto = fuzzyScore(token, item.tokens[j]);
-        const scoreFonetico = fuzzyScore(tokenFonetico, item.tokensFoneticos[j]);
-        const score = Math.max(scoreBruto, scoreFonetico);
-        if (score > melhorFuzzy) melhorFuzzy = score;
-      }
-      if (melhorFuzzy >= CONFIG_BUSCA.LIMIAR_FUZZY) {
-        pontuacaoFuzzy += melhorFuzzy * 0.5;
-      }
-    }
-
-    for (const frase of frasesSinonimo) {
-      // compara tambem sem espacos: municipios diferentes escrevem o mesmo
-      // termo composto de jeitos diferentes (ex: "acetilsalicilico" vs
-      // "acetil salicilico") — exige frase com 8+ caracteres pra evitar
-      // colisao de palavras curtas coincidentes.
-      const bateDireto = item.normalizado.includes(frase);
-      const bateSemEspaco =
-        frase.length >= 8 && item.normalizadoSemEspaco.includes(frase.replace(/\s+/g, ""));
-      if (bateDireto || bateSemEspaco) {
-        pontuacaoExata += 0.8; // sinonimo e correspondencia exata de frase, nao fuzzy
-      }
-    }
-
-    return {
-      pontuacao: pontuacaoExata + pontuacaoFuzzy,
-      viaFuzzy: pontuacaoExata === 0 && pontuacaoFuzzy > 0,
-    };
-  }
 
 function buscarMedicamentos(termo, cidade) {
-    const tokensDigitados = tokenizarTexto(termo);
-    if (tokensDigitados.length === 0) return { itens: [], termoReconhecido: null };
-    const tokensDigitadosFoneticos = tokensDigitados.map(normalizarFonetico);
-    const frasesSinonimo = obterFrasesSinonimo(tokensDigitados);
-    const indice = obterIndiceBusca(cidade);
+    /* O motor de busca (fuzzy + fonetica + sinonimos) mudou de lugar: era
+     * daqui e virou core/busca.js, para a busca de CID-10 usar o mesmo.
+     * As funcoes foram MOVIDAS, nao reescritas — o comportamento e o
+     * mesmo, e os casos que ele ja tratava (novalgina x valina, buscopan
+     * x escetamina, o "b" de complexo_b) continuam cobertos pelo teste de
+     * fumaca. O dicionario de sinonimos continua aqui, porque e de
+     * medicamento; o motor e generico. */
+    var indice = obterIndiceBusca(cidade);
+    var r = raiz.MeedsSuiteBusca.buscar(termo, indice, {
+      sinonimos: SINONIMOS_BUSCA,
+      limite: CONFIG_BUSCA.LIMITE_RESULTADOS,
+      config: CONFIG_BUSCA,
+    });
 
-    const pontuados = indice
-      .map((item) => {
-        const { pontuacao, viaFuzzy } = pontuarItem(item, tokensDigitados, tokensDigitadosFoneticos, frasesSinonimo);
-        return { item, pontuacao, viaFuzzy };
-      })
-      .filter((x) => x.pontuacao > 0)
-      .sort((a, b) => b.pontuacao - a.pontuacao)
-      .slice(0, CONFIG_BUSCA.LIMITE_RESULTADOS);
-
-    let termoReconhecido = null;
-    const melhor = pontuados[0];
-    if (melhor && melhor.viaFuzzy && normalizarTexto(termo).length >= CONFIG_BUSCA.MIN_LEN_DICA_TERMO) {
-      const principioAtivo = extrairPrincipioAtivo(melhor.item.nome);
+    var termoReconhecido = null;
+    if (r.melhor && r.viaFuzzy && normalizarTexto(termo).length >= CONFIG_BUSCA.MIN_LEN_DICA_TERMO) {
+      var principioAtivo = extrairPrincipioAtivo(r.melhor.nome);
       if (principioAtivo && normalizarTexto(principioAtivo) !== normalizarTexto(termo)) {
         termoReconhecido = principioAtivo;
       }
     }
 
     return {
-      itens: pontuados.map((x) => ({ nome: x.item.nome, local: x.item.local })),
-      termoReconhecido,
+      itens: r.itens.map(function (x) {
+        return { nome: x.nome, local: x.local };
+      }),
+      termoReconhecido: termoReconhecido,
     };
   }
 
@@ -9709,10 +10443,6 @@ function moverFocoResultado(delta) {
       .replace(/>/g, "&gt;");
   }
 
-  function normalizarFraseSinonimo(str) {
-    return normalizarTexto(str).replace(/_/g, " ");
-  }
-
   function encontrarMunicipioNaBase(nomeCidadeNormalizado) {
     if (!nomeCidadeNormalizado) return null;
     var chaves = chavesMunicipios(REMUMES);
@@ -9751,28 +10481,14 @@ function moverFocoResultado(delta) {
     var lista = REMUMES[cidade] || [];
     var cacheado = _indiceBuscaPorCidade.get(cidade);
     if (cacheado && cacheado.origem === lista) return cacheado.indice;
-    var indice = lista.map(function (item) {
-      var par = normalizarItemRemume(item);
-      var nome = par.nome;
-      var local = par.local;
-      // o texto de busca inclui o local (quando existe) para o medico
-      // poder digitar "HPM" e achar o que esta disponivel la — mas nome e
-      // local continuam separados para a exibicao.
-      var textoBusca = local ? nome + " " + local : nome;
-      var tokens = tokenizarTexto(textoBusca);
-      var normalizado = normalizarTexto(textoBusca);
-      return {
-        nome: nome,
-        local: local,
-        tokens: tokens,
-        // forma fonetica pre-calculada UMA vez por item (nao a cada
-        // tecla digitada): o indice fica em cache por cidade, entao esse
-        // custo so acontece quando a REMUME daquela cidade muda mesmo.
-        tokensFoneticos: tokens.map(normalizarFonetico),
-        normalizado: normalizado,
-        normalizadoSemEspaco: normalizado.replace(/\s+/g, ""),
-      };
+
+    // normaliza os itens; o texto pesquisavel inclui o local de acesso,
+    // para o medico poder digitar "HPM" e achar o que esta disponivel la
+    var itens = lista.map(normalizarItemRemume);
+    var indice = raiz.MeedsSuiteBusca.criarIndice(itens, function (item) {
+      return item.local ? item.nome + " " + item.local : item.nome;
     });
+
     _indiceBuscaPorCidade.set(cidade, { origem: lista, indice: indice });
     return indice;
   }
