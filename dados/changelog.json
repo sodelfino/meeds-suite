@@ -2,6 +2,20 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.8.0",
+      "data": "2026-08-31",
+      "novidades": [
+        "O CID-10 agora fica dentro do próprio laudo: clique no campo CID, digite o nome da doença ou o código, escolha — o código e a descrição entram sozinhos. Vale nos três geradores."
+      ],
+      "melhorias": [
+        "A busca de CID-10 ficou muito mais rápida e não trava mais a tela: buscas comuns que levavam mais de um segundo agora respondem quase na hora.",
+        "A lista de resultados mostra os 50 mais relevantes e diz quantos ficaram de fora, em vez de tentar desenhar milhares de linhas."
+      ],
+      "correcoes": [
+        "A apresentação “Bem-vindo ao Assistente Meeds” aparecia toda vez que você abria o Meeds. Agora aparece uma vez só."
+      ]
+    },
+    {
       "versao": "2.7.0",
       "data": "2026-08-31",
       "novidades": [

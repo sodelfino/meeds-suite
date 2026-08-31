@@ -499,6 +499,38 @@ quando o próximo chega — um susto ali atrapalha o atendimento em curso.
 Vários pacientes chegando viram **um** aviso que conta quantos são, nunca uma
 pilha de cartões sobre a tela.
 
+
+**D22 — O índice de busca é invertido, e preguiçoso.**
+Guardar tokens por item funcionava com a REMUME (centenas de itens) e travou
+com a CID-10 (14.233): 910 ms para montar, 600–1500 ms por busca. O índice
+passou a guardar cada **palavra distinta** uma vez, com a lista dos itens em
+que ela aparece — 8.391 palavras para 14.233 itens. E não é montado na carga
+da página: é montado na primeira busca, adiantado em tempo ocioso quando o
+navegador oferece. A pontuação final não mudou; mudou quantas vezes a conta é
+feita. Por isso a REMUME não muda de comportamento.
+
+**D23 — A aproximação é dispensada quando a palavra já casa exato.**
+Uma palavra que aparece em 3 ou mais itens existe na base; adivinhar o que ela
+"queria ser" só acrescenta ruído e é a parte cara. Não altera a ordem: um
+casamento exato vale 1.0 e um aproximado no máximo 0.45 por palavra.
+
+**D24 — Módulos se acoplam por anúncio, nunca por nome.**
+O CID-10 precisava aparecer dentro do campo dos laudos. Se o módulo de busca
+conhecesse os laudos (ou vice-versa), desligar um quebraria o outro e a
+promessa de "adicionar um módulo sem tocar nos existentes" cairia. Cada laudo
+**anuncia** o próprio campo (`cid:conectar-campo`) e diz o que fazer com a
+escolha; quem souber atender, atende. Como a ordem de subida importa, o módulo
+de CID publica `cid:pronto` ao iniciar e cada laudo anuncia de novo. Sem o
+módulo de CID, o campo é texto livre — exatamente como antes.
+
+**D25 — A marca de "já viu" é gravada ao exibir, não ao fechar.**
+O aviso de boas-vindas voltava a cada visita porque só gravava quando o médico
+usava um dos botões; fechar clicando fora — o caminho mais natural — não
+gravava nada. Agora grava assim que aparece, e vai para o armazenamento do
+Tampermonkey, que sobrevive a "limpar dados do site". A chave é
+`meeds_assistente_boas_vindas_v1`: o sufixo permite reapresentar de propósito
+numa mudança futura, subindo para `_v2`.
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público

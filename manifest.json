@@ -1,6 +1,6 @@
 {
   "nome": "Assistente Meeds",
-  "versao": "2.7.0",
+  "versao": "2.8.0",
   "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
   "repositorio": "https://github.com/sodelfino/meeds-suite",
   "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -67,7 +67,7 @@
       "id": "cid10",
       "nome": "Buscar CID-10",
       "descricao": "Procura o código CID-10 pelo nome da doença, na tabela completa, e preenche no laudo que estiver aberto.",
-      "versao": "1.0.0",
+      "versao": "1.1.0",
       "arquivo": "modules/cid10/index.js",
       "prioridadeBotao": 25,
       "assets": [

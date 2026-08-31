@@ -25,8 +25,8 @@ real quem faz isso é o `@require` do Tampermonkey.
 
 ## Resultado da última execução
 
-**86 casos, 86 passaram, 0 falharam.** Executado em 31/08/2026 contra
-`dist/meeds-suite.user.js` v2.7.0.
+**82 casos, 82 passaram, 0 falharam.** Executado em 31/08/2026 contra
+`dist/meeds-suite.user.js` v2.8.0.
 
 ### Núcleo, dock e login
 
@@ -236,6 +236,72 @@ O mock de agendados na página de teste (`window.__agendados`) reproduz a forma
 real da resposta — `items`, `statusAtendimentoId`, `agendamento.checkinStatus`,
 `gestaoHorario.horarioInicial`, `cliente.razaoSocialNome` — para os testes
 exercitarem o mesmo caminho que roda em produção.
+
+
+### Desempenho da busca de CID-10 *(novo)*
+
+Medido com a base completa publicada (14.233 códigos), no mesmo computador,
+antes e depois da otimização:
+
+| O que | Antes | Depois |
+|---|---|---|
+| Montar o índice | 910 ms, **na carga da página** | 348 ms, fora do caminho crítico |
+| Busca "enxaqueca" | 1424 ms | 6 ms |
+| Busca "diabetes" | ~600 ms | 9 ms |
+| Busca "dor lombar" | 1492 ms | 9 ms |
+| Busca com erro de digitação | ~1000 ms | ~88 ms |
+| Pior caso medido | 1500 ms | 127 ms |
+| Linhas desenhadas de uma vez | todas | no máximo 50 |
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 65 | O índice **não** é montado na carga da página | ✅ |
+| 66 | Busca larga ("dor") não desenha milhares de linhas | ✅ 50 linhas |
+| 67 | O contador diz quantos ficaram de fora | ✅ |
+| 68 | Erro de digitação continua achando ("enxaqeca" → G43) | ✅ |
+| 69 | REMUME sem regressão depois da otimização | ✅ 6 termos |
+
+> Para repetir a medição, com o pacote carregado:
+> ```js
+> const B = window.MeedsSuiteBusca;
+> const cids = (await (await fetch("/dados/cid10.json")).json()).cids;
+> let t = performance.now();
+> const idx = B.criarIndice(Object.keys(cids).map(c => ({codigo:c, descricao:cids[c]})),
+>                           i => i.codigo + " " + i.descricao);
+> console.log("índice", Math.round(performance.now()-t), "ms");
+> t = performance.now(); B.buscar("enxaqueca", idx, {}); 
+> console.log("busca", Math.round(performance.now()-t), "ms");
+> ```
+
+### CID-10 dentro do laudo *(novo)*
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 70 | O campo de CID dos três laudos é conectado | ✅ |
+| 71 | Digitar o nome da doença mostra sugestões (máx. 8) | ✅ |
+| 72 | Digitar o código também funciona ("I10") | ✅ |
+| 73 | Escolher preenche **código e descrição** nos campos certos | ✅ |
+| 74 | Setas + Enter selecionam sem o mouse | ✅ |
+| 75 | Desligar o módulo devolve o campo a texto livre | ✅ |
+| 76 | Religar reconecta o campo | ✅ |
+
+> O teste 75 existe porque o autocomplete envolve o campo num contêiner: se o
+> `stop()` não desfizesse isso, desligar o módulo deixaria lixo no formulário
+> de **outro** módulo.
+
+### Boas-vindas uma vez só *(corrigido)*
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 77 | Primeira visita mostra a apresentação | ✅ |
+| 78 | A marca é gravada ao **exibir**, não ao fechar | ✅ |
+| 79 | Dispensar clicando **fora** mantém gravado | ✅ |
+| 80 | F5 não traz de volta | ✅ |
+| 81 | Navegar entre telas (SPA) não traz de volta | ✅ |
+| 82 | Guarda só `meeds_assistente_boas_vindas_v1=concluido` | ✅ |
+
+> O teste 79 é a regressão que motivou a correção: fechar clicando fora era o
+> único caminho que não gravava nada, e era o mais natural de todos.
 
 
 ### Extensibilidade
