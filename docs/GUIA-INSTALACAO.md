@@ -45,8 +45,13 @@ duplicado e alarme tocando duas vezes**.
    - Meeds - Assistente REMUME
 
 **Desative, não desinstale.** Assim, se algo não sair como esperado, você
-volta ao estado anterior com um clique — e os repositórios antigos continuam
-publicados e válidos até nova comunicação.
+volta ao estado anterior com um clique.
+
+> Desde 31/08/2026 os cinco scripts antigos não recebem mais atualização: os
+> repositórios deles foram recolhidos. A cópia que está no seu navegador
+> continua funcionando, mas parada no tempo — inclusive a lista de
+> medicamentos do REMUME antigo. Todo o cuidado daqui em diante vai para o
+> Assistente.
 
 ---
 

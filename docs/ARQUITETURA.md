@@ -273,9 +273,17 @@ ou por inspeção direta do código migrado.
 ## 5. Estratégia de migração
 
 - O monorepo é um repositório **novo e separado**. Os 5 repositórios de origem
-  **não foram modificados** — nenhum commit, nenhum push, nada.
-- Os scripts antigos continuam publicados e funcionando normalmente. Os
-  `@updateURL` deles continuam apontando para os repositórios originais.
+  nunca receberam commit nosso — nenhuma linha foi alterada neles.
+- **Migração concluída em 31/08/2026:** os cinco repositórios passaram a
+  privados. Consequências, todas conhecidas e aceitas:
+  - os links antigos de instalação devolvem 404;
+  - quem tem um script antigo instalado continua com ele funcionando, mas sem
+    atualização automática;
+  - o Assistente REMUME **antigo** deixa de baixar o `remumes.json` daquele
+    repositório e cai para a cópia embutida — que é a mesma lista, congelada
+    na data em que o script foi instalado. O Assistente novo busca a lista
+    daqui, e segue atualizando normalmente.
+  - nenhum dos cinco tinha GitHub Pages, fork ou estrela; nada externo quebrou.
 - A coexistência é segura, mas **rodar os dois ao mesmo tempo duplica botão e
   duplica alarme**. Ver `docs/GUIA-INSTALACAO.md`: o médico instala a suite e
   **desativa** os 5 antigos no Tampermonkey (desativar, não desinstalar —

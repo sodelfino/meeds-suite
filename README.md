@@ -3,15 +3,19 @@
 Todas as ferramentas do Meeds numa **instalação única**. Cada função liga e
 desliga num painel, sem reinstalar nada.
 
-> ### Os repositórios antigos continuam válidos
+> ### Os cinco scripts antigos foram recolhidos
 >
-> Este é o pacote unificado que substitui os cinco scripts separados. Eles
-> seguem publicados e funcionando, e **continuam válidos até nova
-> comunicação** — nada foi modificado neles.
+> Este é o pacote unificado que substitui os cinco scripts separados. Desde
+> **31/08/2026** os repositórios deles são privados: não dá mais para instalar
+> a partir dos links antigos, e quem os tem instalados **não recebe mais
+> atualização automática** — a cópia que está na máquina continua funcionando.
 >
-> Se você instalar o Assistente, **desative os cinco scripts antigos** no
-> Tampermonkey (desativar, não desinstalar). O próprio Assistente avisa na
-> tela se detectar algum deles ainda ativo.
+> Se você ainda tem algum deles ativo, **desative-o** no Tampermonkey
+> (desativar, não desinstalar) e use só o Assistente. O próprio Assistente
+> avisa na tela se detectar algum ainda ativo.
+>
+> O código dos cinco continua guardado, e a lista de medicamentos que o
+> Assistente usa agora mora aqui — nada se perdeu.
 
 ---
 
