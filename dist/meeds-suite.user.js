@@ -1350,6 +1350,25 @@
       .filter(function (t) { return t.length > 0; });
   }
 
+  /* Palavras sem valor de busca. Elas nao podem pontuar: como o
+   * casamento e por substring, o "de" digitado em "dor de cabeca" casava
+   * dentro de "DEformidades" e colocava "Deformidades Osteomusculares"
+   * na frente das cefaleias. Sao removidas SO do que a pessoa digitou, e
+   * so quando sobra alguma palavra util — quem procurar literalmente por
+   * "de" ainda encontra. */
+  var PALAVRAS_VAZIAS = [
+    "de", "da", "do", "das", "dos", "e", "em", "no", "na", "nos", "nas",
+    "a", "o", "as", "os", "ao", "aos", "com", "sem", "por", "para", "um", "uma",
+  ];
+
+  function tokensUteis(str) {
+    var todos = tokenizarTexto(str);
+    var uteis = todos.filter(function (t) {
+      return PALAVRAS_VAZIAS.indexOf(t) === -1;
+    });
+    return uteis.length ? uteis : todos;
+  }
+
   function normalizarFonetico(tokenNormalizado) {
     return tokenNormalizado
       .replace(/^h/, "") // H mudo no inicio: "hemitartarato" ~ "emitartarato"
@@ -1389,7 +1408,18 @@
   }
 
   function palavraElegivelParaGatilho(a, b) {
-    return a.length >= 3 && b.length >= 3 && (a.includes(b) || b.includes(a));
+    /* O gatilho decide se uma palavra digitada ATIVA um grupo de
+     * sinonimos. Antes era substring em qualquer posicao — o que ligava
+     * grupos sem relacao: digitar "pressao" ativava o grupo de
+     * "depressao" (porque "de-PRESSAO" contem "pressao"), e a busca por
+     * "pressao alta" devolvia Depressao Pos-esquizofrenica na frente de
+     * Hipertensao Essencial.
+     *
+     * Agora e por PREFIXO: uma das duas tem que COMECAR com a outra.
+     * Continua tolerando o que interessa — digitar "dipiron" ainda ativa
+     * "dipirona" — sem ligar palavras que so coincidem no meio. */
+    if (a.length < 3 || b.length < 3) return false;
+    return a.indexOf(b) === 0 || b.indexOf(a) === 0;
   }
 
   var CONFIG_PADRAO = {
@@ -1397,6 +1427,12 @@
     LIMIAR_FUZZY: 0.6,
     BONUS_COMECA_COM: 0.2,
     MIN_LEN_DICA_TERMO: 4,
+    /* Quanto vale um sinonimo que casou por frase INTEIRA e EXATA.
+     * 0.8 e o valor com que o REMUME amadureceu: la, sinonimo forte
+     * demais faria um nome comercial dominar a lista sobre o principio
+     * ativo digitado. Quem tem sinonimos inequivocos — "pressao alta"
+     * so pode ser hipertensao — pode subir isso na chamada. */
+    PESO_SINONIMO: 0.8,
   };
 
   function normalizarFraseSinonimo(str) {
@@ -1407,38 +1443,90 @@
    * nao palavras soltas: um sinonimo composto como "acido acetilsalicilico"
    * so conta se aparecer INTEIRO no texto do item — se explodisse em
    * palavras, "acido" sozinho bateria em qualquer "Acido X". */
+  /* Uma FRASE de sinonimo dispara o grupo quando:
+   *   - tem UMA palavra: alguma palavra digitada casa por prefixo com
+   *     ela ("aas" -> aas, "dipiron" -> dipirona);
+   *   - tem VARIAS palavras: TODAS as palavras dela foram digitadas.
+   *
+   * Essa segunda regra existe por causa de um caso concreto: com o
+   * gatilho antigo, a palavra "dor" — que aparece em "dor de cabeca",
+   * "dor lombar" e "dor nas costas" — disparava o grupo da cefaleia, e
+   * buscar "dor lombar" devolvia oito cefaleias antes de qualquer
+   * lombalgia. Exigir a frase inteira resolve sem tirar nada: "dor
+   * lombar" digitado continua disparando a lombalgia.
+   */
+  function frasePodeDisparar(frase, tokensDigitados) {
+    /* As palavras vazias saem dos DOIS lados. Se saissem so do que foi
+     * digitado, a frase "dor de cabeca" nunca dispararia: ela exige
+     * todas as suas palavras, e o "de" ja tinha sido descartado da
+     * digitacao. */
+    var palavras = frase.split(" ").filter(function (p) {
+      return p.length > 0 && PALAVRAS_VAZIAS.indexOf(p) === -1;
+    });
+    if (palavras.length === 0) return false;
+
+    if (palavras.length === 1) {
+      return tokensDigitados.some(function (t) {
+        return palavraElegivelParaGatilho(t, palavras[0]);
+      });
+    }
+
+    return palavras.every(function (palavra) {
+      return tokensDigitados.some(function (t) {
+        return palavraElegivelParaGatilho(t, palavra);
+      });
+    });
+  }
+
   function obterFrasesSinonimo(tokensDigitados, sinonimos) {
     var termoDigitadoCompleto = tokensDigitados.join(" ");
     var frases = new Set();
     if (!sinonimos) return [];
-    for (var i = 0; i < tokensDigitados.length; i++) {
-      var token = tokensDigitados[i];
-      var chaves = Object.keys(sinonimos);
-      for (var j = 0; j < chaves.length; j++) {
-        var chaveFrase = normalizarFraseSinonimo(chaves[j]);
-        var sinonimosFrases = sinonimos[chaves[j]].map(normalizarFraseSinonimo);
-        var bate =
-          chaveFrase.split(" ").some(function (t) { return palavraElegivelParaGatilho(token, t); }) ||
-          sinonimosFrases.some(function (f) {
-            return f.split(" ").some(function (t) { return palavraElegivelParaGatilho(token, t); });
-          });
-        if (bate) {
-          frases.add(chaveFrase);
-          sinonimosFrases.forEach(function (f) { frases.add(f); });
-        }
+
+    Object.keys(sinonimos).forEach(function (chave) {
+      var chaveFrase = normalizarFraseSinonimo(chave);
+      var sinonimosFrases = sinonimos[chave].map(normalizarFraseSinonimo);
+
+      var disparou =
+        frasePodeDisparar(chaveFrase, tokensDigitados) ||
+        sinonimosFrases.some(function (f) {
+          return frasePodeDisparar(f, tokensDigitados);
+        });
+
+      if (disparou) {
+        frases.add(chaveFrase);
+        sinonimosFrases.forEach(function (f) {
+          frases.add(f);
+        });
       }
-    }
+    });
+
     frases.delete(termoDigitadoCompleto);
     /* Array.from, nao Array.prototype.slice.call: slice le .length, que um
-     * Set nao tem, e devolveria [] — os sinonimos morreriam em silencio.
-     * Foi exatamente o que aconteceu ao mover este codigo para ca:
-     * "buscopan" parou de achar escopolamina e o teste pegou. */
+     * Set nao tem, e devolveria [] — os sinonimos morreriam em silencio. */
     return Array.from(frases);
   }
 
   /* IMPORTANTE: fuzzy vale SO para o que a pessoa digitou (tolera erro de
    * digitacao). Frases vindas de sinonimo exigem correspondencia EXATA —
    * combinar duas aproximacoes sugere um resultado parecido mas ERRADO. */
+  /* Procura `frase` em `texto` exigindo que ela comece e termine em
+   * limite de palavra. Os dois ja vem normalizados (sem acento, caixa
+   * baixa), entao "letra ou digito" basta como definicao de limite. */
+  function casaComoPalavra(texto, frase) {
+    if (!frase) return false;
+    var i = texto.indexOf(frase);
+    while (i !== -1) {
+      var antes = i === 0 ? "" : texto.charAt(i - 1);
+      var depois = texto.charAt(i + frase.length);
+      var limiteAntes = !antes || !/[a-z0-9]/.test(antes);
+      var limiteDepois = !depois || !/[a-z0-9]/.test(depois);
+      if (limiteAntes && limiteDepois) return true;
+      i = texto.indexOf(frase, i + 1);
+    }
+    return false;
+  }
+
   function pontuarItem(item, tokensDigitados, tokensDigitadosFoneticos, frasesSinonimo, cfg) {
     var pontuacaoExata = 0;
     var pontuacaoFuzzy = 0;
@@ -1464,10 +1552,22 @@
 
     for (var k = 0; k < frasesSinonimo.length; k++) {
       var frase = frasesSinonimo[k];
-      var bateDireto = item.normalizado.indexOf(frase) !== -1;
+      /* Casamento de sinonimo respeita LIMITE DE PALAVRA. Substring cru
+       * funcionava enquanto os sinonimos eram nomes longos de farmaco
+       * (o caso do REMUME), mas quebra feio com abreviacao medica:
+       * "iam" casava dentro de "t-iam-ina", "dm" dentro de
+       * "a-dm-inistrada", "has" dentro de "c-has". Resultado: buscar
+       * "infarto" trazia Deficiencia de Tiamina em primeiro lugar. */
+      var bateDireto = casaComoPalavra(item.normalizado, frase);
+      /* Na variante SEM espacos o limite de palavra nao se aplica: o
+       * texto inteiro virou uma palavra so. Aqui vale substring, como
+       * antes — e o que faz "acido acetilsalicilico" achar quem escreveu
+       * "AcidoAcetilSalicilico100mg". O piso de 8 caracteres evita
+       * colisao de termo curto. */
       var bateSemEspaco =
-        frase.length >= 8 && item.normalizadoSemEspaco.indexOf(frase.replace(/\s+/g, "")) !== -1;
-      if (bateDireto || bateSemEspaco) pontuacaoExata += 0.8;
+        frase.length >= 8 &&
+        item.normalizadoSemEspaco.indexOf(frase.replace(/\s+/g, "")) !== -1;
+      if (bateDireto || bateSemEspaco) pontuacaoExata += cfg.PESO_SINONIMO;
     }
 
     return {
@@ -1503,7 +1603,7 @@
   function buscar(termo, indice, opcoes) {
     opcoes = opcoes || {};
     var cfg = Object.assign({}, CONFIG_PADRAO, opcoes.config || {});
-    var tokens = tokenizarTexto(termo);
+    var tokens = tokensUteis(termo);
     if (tokens.length === 0) return { itens: [], viaFuzzy: false };
 
     var foneticos = tokens.map(normalizarFonetico);
@@ -1532,6 +1632,7 @@
     fuzzyScore: fuzzyScore,
     levenshtein: levenshtein,
     tokenizarTexto: tokenizarTexto,
+    tokensUteis: tokensUteis,
     CONFIG_PADRAO: CONFIG_PADRAO,
   };
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
@@ -5433,7 +5534,10 @@
    * dos sinonimos do REMUME (frase inteira, casamento exato). */
   var SINONIMOS = {
     infarto: ["iam", "ataque cardiaco"],
-    "acidente vascular cerebral": ["avc", "derrame"],
+    /* "derrame" ficou de fora de proposito: em CID-10 ele tambem e
+     * derrame pericardico (I31.3) e derrame pleural (J90), entao trazia
+     * o resultado errado na frente do AVC. */
+    "acidente vascular cerebral": ["avc"],
     hipertensao: ["pressao alta", "has"],
     diabetes: ["dm"],
     "insuficiencia cardiaca": ["icc"],
@@ -5613,7 +5717,15 @@
           return { codigo: c, descricao: cids[c] };
         });
     } else {
-      var r = raiz.MeedsSuiteBusca.buscar(termo, indice, { sinonimos: SINONIMOS, limite: 120 });
+      var r = raiz.MeedsSuiteBusca.buscar(termo, indice, {
+        sinonimos: SINONIMOS,
+        limite: 120,
+        /* Aqui os sinonimos sao inequivocos ("pressao alta" so pode ser
+         * hipertensao), entao valem mais que no REMUME. Sem isto, o
+         * casamento literal de "alta" + "pressao" colocava "Efeito dos
+         * fluidos em alta pressao" na frente de "Hipertensao essencial". */
+        config: { PESO_SINONIMO: 2.2 },
+      });
       achados = r.itens;
       viaFuzzy = r.viaFuzzy;
     }

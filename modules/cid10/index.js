@@ -46,7 +46,10 @@
    * dos sinonimos do REMUME (frase inteira, casamento exato). */
   var SINONIMOS = {
     infarto: ["iam", "ataque cardiaco"],
-    "acidente vascular cerebral": ["avc", "derrame"],
+    /* "derrame" ficou de fora de proposito: em CID-10 ele tambem e
+     * derrame pericardico (I31.3) e derrame pleural (J90), entao trazia
+     * o resultado errado na frente do AVC. */
+    "acidente vascular cerebral": ["avc"],
     hipertensao: ["pressao alta", "has"],
     diabetes: ["dm"],
     "insuficiencia cardiaca": ["icc"],
@@ -226,7 +229,15 @@
           return { codigo: c, descricao: cids[c] };
         });
     } else {
-      var r = raiz.MeedsSuiteBusca.buscar(termo, indice, { sinonimos: SINONIMOS, limite: 120 });
+      var r = raiz.MeedsSuiteBusca.buscar(termo, indice, {
+        sinonimos: SINONIMOS,
+        limite: 120,
+        /* Aqui os sinonimos sao inequivocos ("pressao alta" so pode ser
+         * hipertensao), entao valem mais que no REMUME. Sem isto, o
+         * casamento literal de "alta" + "pressao" colocava "Efeito dos
+         * fluidos em alta pressao" na frente de "Hipertensao essencial". */
+        config: { PESO_SINONIMO: 2.2 },
+      });
       achados = r.itens;
       viaFuzzy = r.viaFuzzy;
     }
