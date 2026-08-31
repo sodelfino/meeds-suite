@@ -1,6 +1,6 @@
 {
   "nome": "Assistente Meeds",
-  "versao": "2.10.0",
+  "versao": "2.11.0",
   "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
   "repositorio": "https://github.com/sodelfino/meeds-suite",
   "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -22,6 +22,7 @@
     "core/historico.js",
     "core/diagnostico.js",
     "core/novidades.js",
+    "core/feedback.js",
     "core/manager.js",
     "core/core.user.js"
   ],
@@ -127,5 +128,9 @@
         "motivoStandby": "Suspenso na v2.11.0 a pedido, para amadurecer antes de chegar ao medico. Precisa de validacao em plantao real: o ProfissionalId e descoberto ouvindo a rede, e o intervalo de 30s ainda nao foi medido em uso."
       }
     ]
+  },
+  "contato": {
+    "_leia_me": "Para onde vai o feedback do medico. O botao 'Enviar feedback' abre o programa de e-mail dele com esta mensagem ja escrita — nao ha servidor nem servico de terceiro no caminho. Troque o e-mail aqui se quem cuida do Assistente mudar.",
+    "email": "marcelonovetech@gmail.com"
   }
 }

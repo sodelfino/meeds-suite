@@ -62,6 +62,7 @@ E o custo prático: **5 instalações e 5 atualizações separadas por médico**
   │  storage.js         config por módulo, namespaced            │
   │  cadastro.js        médicos e estabelecimentos + backup      │
   │  formatos.js        máscara de CPF e formatação de campos    │
+  │  feedback.js        o médico conta o que achou (mailto)      │
   │  busca.js           motor de busca em duas camadas            │
   │  fonetica-ptbr.js   código fonético do português              │
   │  historico.js       documentos gerados, sem dado de paciente │
@@ -565,6 +566,37 @@ Sem essa distinção, escolher um CID associado sobrescreveria a descrição do
 principal e o médico perderia o que já tinha, sem perceber.
 Sete Lagoas e CMD têm um campo de CID cada, e nele o comportamento é o do
 principal.
+
+
+**D30 — O painel virou abas; formulário fechado por padrão.**
+Tudo vivia numa rolagem só: lista de módulos, lista de médicos, formulário
+sempre aberto, três botões lado a lado, lista de unidades, outro formulário
+aberto e o rodapé. O sintoma mais claro era o cabeçalho contradizendo a tela —
+quem rolava até o cadastro lia "ative apenas as funções que você usa".
+Agora são quatro abas, uma coisa por vez, com o subtítulo acompanhando. Duas
+regras vieram junto: **formulário fechado até ser pedido** (a lista é o que se
+consulta; o formulário se usa uma vez) e **ação secundária não compete** —
+backup e restauração saíram da fileira de botões e viraram uma linha no rodapé
+da aba.
+
+**D31 — Feedback por `mailto:`, nunca por serviço externo.**
+O botão abre o programa de e-mail do próprio médico com a mensagem pronta, ou
+copia para a área de transferência. Não há servidor, formulário na nuvem nem
+serviço de terceiro. Num sistema que exibe dado de paciente, um "enviar
+feedback" que posta texto livre para fora é um vazamento esperando acontecer —
+basta um médico colar o nome do paciente para descrever o problema.
+Vão junto, automaticamente: versão, funções ligadas e navegador — as três
+perguntas que sempre se faz ao receber um relato. E a tela **mostra ao médico**
+o que está sendo anexado, antes de enviar: nada segue às escondidas.
+O destino fica em `manifest.json` → `contato.email`, editável pelo
+administrador.
+
+**D32 — Módulo suspenso sai do manifest, não do repositório.**
+A Sala de Espera foi para `_modulosEmStandby`. O build só empacota o que está
+em `modulos`, então ela deixa de chegar ao médico sem que uma linha de código
+seja removida — e volta movendo o bloco de lugar. Apagar o módulo perderia os
+testes e as decisões junto; comentar o registro deixaria código morto no
+bundle. Mover no manifest é reversível e não custa bytes ao médico.
 
 ---
 

@@ -25,8 +25,8 @@ real quem faz isso é o `@require` do Tampermonkey.
 
 ## Resultado da última execução
 
-**116 casos, 116 passaram, 0 falharam.** Executado em 31/08/2026 contra
-`dist/meeds-suite.user.js` v2.10.0.
+**135 casos, 135 passaram, 0 falharam.** Executado em 31/08/2026 contra
+`dist/meeds-suite.user.js` v2.11.0.
 
 ### Núcleo, dock e login
 
@@ -391,6 +391,40 @@ console.log("índice:", Math.round(performance.now() - t0), "ms");
   console.log(t, Math.round(performance.now() - a), "ms");
 });
 ```
+
+
+### Painel em abas e feedback *(v2.11.0)*
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 117 | Sala de Espera fora da distribuição (6 módulos, 6 botões) | ✅ |
+| 118 | Painel tem 4 abas e abre em "Funções" | ✅ |
+| 119 | Só um painel visível por vez | ✅ |
+| 120 | O subtítulo do cabeçalho acompanha a aba | ✅ |
+| 121 | Formulário de médico começa fechado; o botão abre | ✅ |
+| 122 | Máscara de CPF segue ativa dentro da aba | ✅ |
+| 123 | Salvar fecha o formulário e mostra confirmação | ✅ |
+| 124 | Backup/restauração no rodapé discreto da aba | ✅ |
+| 125 | Aba Unidades cadastra normalmente | ✅ |
+| 126 | Aba Sobre: crédito, versão, "ver o que mudou" e feedback | ✅ |
+| 127 | Feedback: 3 tipos de assunto | ✅ |
+| 128 | Feedback avisa para não escrever dado de paciente | ✅ |
+| 129 | Feedback mostra o que vai junto, antes de enviar | ✅ |
+| 130 | Enviar vazio é recusado, com explicação | ✅ |
+| 131 | `mailto:` com destino, assunto e corpo corretos | ✅ |
+| 132 | Corpo leva versão, funções ligadas e navegador | ✅ |
+| 133 | **A assinatura técnica não carrega dado de paciente** | ✅ |
+| 134 | "Copiar" monta assunto + corpo | ✅ |
+| 135 | Regressão: REMUME e CID inline intactos | ✅ |
+
+> O teste **133** compara a assinatura técnica contra uma lista de termos que
+> nunca podem aparecer (nomes usados no mock, CPF, a palavra "paciente"). É a
+> garantia mecânica de que o feedback não vira um canal de vazamento — o risco
+> real de qualquer botão que envie texto livre a partir de uma tela clínica.
+
+O subtítulo do cabeçalho (teste **120**) existe por causa de um defeito
+concreto da versão anterior: quem rolava até o formulário de cadastro via o
+título ainda dizendo *"ative apenas as funções que você usa"*.
 
 
 ### Extensibilidade

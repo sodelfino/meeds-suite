@@ -40,6 +40,8 @@ Os médicos recebem a mudança sozinhos, sem reinstalar nada.
 | Mudar o **nome ou a descrição** de uma função no painel ⚙️ | `manifest.json` | bloco `"modulos"`, campos `nome` e `descricao` |
 | Mudar a **ordem dos botões** na tela | `manifest.json` | campo `prioridadeBotao` (menor = mais embaixo) |
 | Subir a **versão** | `manifest.json` | campo `versao` — é o único lugar |
+| Mudar para onde vai o **feedback** | `manifest.json` | `contato.email` |
+| **Suspender** uma função sem apagá-la | `manifest.json` | mova o bloco de `modulos` para `_modulosEmStandby` |
 | Descrever **o que mudou** numa versão | `dados/changelog.json` | bloco novo no topo de `versoes` |
 | Acrescentar um **CID** que faltou | `dados/cid10.json` | bloco `cids`; depois rode `npm run sync-cid10` |
 | Atualizar a **lista de medicamentos** (REMUME) | `modules/remume/remumes.json` | depois rode `npm run sync-fallback` |

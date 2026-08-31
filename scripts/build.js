@@ -189,6 +189,7 @@ function main() {
     JSON.stringify(
       {
         versao: manifest.versao,
+        contato: manifest.contato || null,
         modulos: manifest.modulos.map((m) => ({
           id: m.id,
           nome: m.nome,

@@ -2,6 +2,18 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.11.0",
+      "data": "2026-08-31",
+      "novidades": [
+        "Agora dá para enviar feedback direto do painel: conte um problema ou uma ideia, e a mensagem vai pronta para quem cuida do Assistente."
+      ],
+      "melhorias": [
+        "O painel da engrenagem foi reorganizado em abas — Funções, Médicos, Unidades e Sobre. Antes era tudo numa rolagem só.",
+        "Os formulários de cadastro começam fechados: a lista fica limpa, e o formulário abre quando você pede."
+      ],
+      "correcoes": []
+    },
+    {
       "versao": "2.10.0",
       "data": "2026-08-31",
       "novidades": [],

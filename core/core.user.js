@@ -457,6 +457,7 @@
       definirHabilitado: definirHabilitado,
       versaoNucleo: VERSAO_NUCLEO,
       manifesto: manifesto,
+      contato: (manifesto && manifesto.contato) || null,
       abrirAjustesDe: function (id) {
         if (porId[id] && typeof porId[id].abrirAjustes === "function") porId[id].abrirAjustes();
       },

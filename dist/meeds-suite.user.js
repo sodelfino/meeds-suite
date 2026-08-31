@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Assistente Meeds - Por: Marcelo
 // @namespace    novetech-meeds-suite
-// @version      2.10.0
+// @version      2.11.0
 // @description  Assistente Meeds - Por: Marcelo. Alarme de fila, APAC de Itauna, laudos de Sete Lagoas e Conceicao do Mato Dentro e consulta a REMUME, numa instalacao unica. Cada funcao liga e desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
 // @author       Marcelo
 // @match        *://*.meeds.com.br/*
@@ -3465,27 +3465,309 @@
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
 
+/* ===== core/feedback.js ===== */
+/* ------------------------------------------------------------------
+ * core/feedback.js — o médico conta o que achou
+ * ------------------------------------------------------------------
+ * COMO O RECADO SAI DAQUI
+ * Por e-mail, abrindo o programa de e-mail do próprio médico com tudo
+ * já escrito (link `mailto:`), ou pela área de transferência, para quem
+ * prefere mandar por WhatsApp.
+ *
+ * Não existe servidor, não existe formulário na nuvem, não existe
+ * serviço de terceiro. O texto sai do navegador do médico direto para o
+ * programa de e-mail dele — nada trafega por lugar nenhum antes disso.
+ * Num sistema que exibe dado de paciente, um "enviar feedback" que posta
+ * texto livre para um serviço externo seria um vazamento esperando
+ * acontecer.
+ *
+ * O QUE VAI JUNTO, AUTOMATICAMENTE
+ * Versão do Assistente, funções ligadas e o navegador. São as três
+ * perguntas que sempre se faz ao receber um relato — e que o médico
+ * não deveria precisar responder.
+ *
+ * O QUE NÃO VAI
+ * Nada de paciente. Nem nome, nem CPF, nem identificador de
+ * atendimento, nem o conteúdo dos formulários. O aviso na tela pede
+ * explicitamente que o médico também não escreva esses dados.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  var CSS = [
+    ".msf-modal { width:100%; max-width:520px; max-height:86vh; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); display:flex; flex-direction:column; overflow:hidden; }",
+    ".msf-modal header { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
+    ".msf-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
+    ".msf-sub { margin:3px 0 0; font-size:11.5px; opacity:.9; }",
+    ".msf-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; }",
+    ".msf-corpo { padding:15px 18px; overflow-y:auto; }",
+    ".msf-tipos { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }",
+    ".msf-tipo { background:#fff; border:1.4px solid #d8dfe6; color:#5b6672; border-radius:999px; padding:7px 14px; font-size:12px; font-weight:700; font-family:inherit; cursor:pointer; }",
+    ".msf-tipo:hover { border-color:#1a56ad; color:#123a7a; }",
+    ".msf-tipo[aria-pressed='true'] { background:#123a7a; border-color:#123a7a; color:#fff; }",
+    ".msf-corpo label { display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }",
+    ".msf-corpo textarea { width:100%; box-sizing:border-box; min-height:120px; padding:10px; border:1px solid #d8dfe6; border-radius:8px; font-size:13px; font-family:inherit; line-height:1.5; resize:vertical; }",
+    ".msf-aviso { background:#fff4e2; border:1px solid #f5d9ac; color:#8a5200; font-size:11.5px; line-height:1.55; padding:9px 11px; border-radius:8px; margin-top:10px; }",
+    ".msf-anexo { font-size:11px; color:#8a97a4; line-height:1.6; margin-top:10px; }",
+    ".msf-anexo code { font-family:ui-monospace,Menlo,monospace; font-size:10.5px; }",
+    ".msf-erro { background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:9px 11px; border-radius:8px; margin-top:10px; }",
+    ".msf-ok { background:#e6f6f2; border:1px solid #b6e3d8; color:#0b6a62; font-size:11.5px; padding:9px 11px; border-radius:8px; margin-top:10px; }",
+    ".msf-rodape { display:flex; gap:8px; justify-content:flex-end; padding:12px 18px; border-top:1px solid #eef2f6; flex-wrap:wrap; }",
+    ".msf-btn { background:#1a4fa0; color:#fff; border:none; border-radius:8px; padding:10px 16px; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer; }",
+    ".msf-btn:hover { background:#123a7a; }",
+    ".msf-btn-sec { background:#fff; color:#123a7a; border:1.3px solid #cbd5e1; }",
+    ".msf-btn-sec:hover { background:#eef4fb; }",
+  ].join("\n");
+
+  var TIPOS = [
+    { id: "problema", rotulo: "Algo não funcionou", prefixo: "[problema]" },
+    { id: "ideia", rotulo: "Tenho uma ideia", prefixo: "[ideia]" },
+    { id: "outro", rotulo: "Outro assunto", prefixo: "[feedback]" },
+  ];
+
+  var overlay = null;
+  var ctx = null;
+  var tipoAtual = "problema";
+
+  /* Navegador em uma linha, sem o user-agent inteiro — que é longo,
+   * ilegível e ainda funciona como impressão digital. */
+  function navegadorCurto() {
+    var ua = navigator.userAgent || "";
+    var nome = /Edg\//.test(ua)
+      ? "Edge"
+      : /Chrome\//.test(ua)
+      ? "Chrome"
+      : /Firefox\//.test(ua)
+      ? "Firefox"
+      : /Safari\//.test(ua)
+      ? "Safari"
+      : "navegador desconhecido";
+    var sistema = /Windows/.test(ua) ? "Windows" : /Mac OS/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : "";
+    return [nome, sistema].filter(Boolean).join(" · ");
+  }
+
+  function funcoesLigadas() {
+    return (ctx.modulos || [])
+      .filter(function (m) {
+        return m.habilitado;
+      })
+      .map(function (m) {
+        return m.nome;
+      });
+  }
+
+  /* O rodapé técnico. Só isto — nenhum dado de paciente. */
+  function assinaturaTecnica() {
+    return [
+      "---",
+      "Assistente Meeds " + ctx.versao,
+      "Funções ligadas: " + (funcoesLigadas().join(", ") || "nenhuma"),
+      "Navegador: " + navegadorCurto(),
+    ].join("\n");
+  }
+
+  function montarTexto() {
+    var escrito = overlay.$("#msf-texto").value.trim();
+    return escrito + "\n\n" + assinaturaTecnica();
+  }
+
+  function assuntoAtual() {
+    var t = TIPOS.filter(function (x) {
+      return x.id === tipoAtual;
+    })[0];
+    return "Assistente Meeds " + ctx.versao + " " + (t ? t.prefixo : "[feedback]");
+  }
+
+  function mostrarMensagem(texto, tipo) {
+    var caixa = overlay.$("#msf-mensagem");
+    caixa.innerHTML = texto
+      ? '<div class="msf-' + (tipo || "ok") + '"></div>'
+      : "";
+    if (texto) caixa.firstChild.textContent = texto;
+  }
+
+  function enviarPorEmail() {
+    var texto = overlay.$("#msf-texto").value.trim();
+    if (!texto) {
+      mostrarMensagem("Escreva o que aconteceu antes de enviar — nem que seja uma linha.", "erro");
+      overlay.$("#msf-texto").focus();
+      return;
+    }
+    var destino = (ctx.contato && ctx.contato.email) || "";
+    if (!destino) {
+      mostrarMensagem(
+        "Não há endereço de contato configurado nesta instalação. Use “Copiar” e mande o texto pelo canal que preferir.",
+        "erro"
+      );
+      return;
+    }
+    var url =
+      "mailto:" + encodeURIComponent(destino) +
+      "?subject=" + encodeURIComponent(assuntoAtual()) +
+      "&body=" + encodeURIComponent(montarTexto());
+    try {
+      raiz.open(url, "_blank");
+      mostrarMensagem("Abri o seu programa de e-mail com a mensagem pronta. Confira e envie.", "ok");
+    } catch (e) {
+      mostrarMensagem(
+        "Não consegui abrir o programa de e-mail deste computador. Use “Copiar” e mande pelo canal que preferir.",
+        "erro"
+      );
+    }
+  }
+
+  function copiar() {
+    var texto = overlay.$("#msf-texto").value.trim();
+    if (!texto) {
+      mostrarMensagem("Escreva o que aconteceu antes de copiar.", "erro");
+      overlay.$("#msf-texto").focus();
+      return;
+    }
+    var completo = assuntoAtual() + "\n\n" + montarTexto();
+
+    function ok() {
+      mostrarMensagem("Copiado. Cole no WhatsApp, no e-mail ou onde preferir.", "ok");
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(completo).then(ok).catch(function () {
+        copiarFallback(completo, ok);
+      });
+    } else {
+      copiarFallback(completo, ok);
+    }
+  }
+
+  function copiarFallback(texto, aoCopiar) {
+    try {
+      var ta = document.createElement("textarea");
+      ta.value = texto;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      aoCopiar();
+    } catch (e) {
+      mostrarMensagem("Não consegui copiar automaticamente. Selecione o texto acima e copie com Ctrl+C.", "erro");
+    }
+  }
+
+  function selecionarTipo(id) {
+    tipoAtual = id;
+    overlay.$$(".msf-tipo").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-tipo") === id));
+    });
+    var campo = overlay.$("#msf-texto");
+    campo.setAttribute(
+      "placeholder",
+      id === "problema"
+        ? "O que você estava fazendo, o que esperava que acontecesse e o que aconteceu."
+        : id === "ideia"
+        ? "O que facilitaria a sua rotina? Pode ser uma frase."
+        : "Escreva à vontade."
+    );
+  }
+
+  function abrir(contexto) {
+    ctx = contexto;
+
+    if (!overlay) {
+      overlay = ctx.dock.criarOverlay({
+        estilo: CSS,
+        html:
+          '<div class="msf-modal" role="dialog" aria-modal="true">' +
+          "  <header><div>" +
+          "    <h2>Enviar feedback</h2>" +
+          '    <p class="msf-sub">Vai direto para quem cuida do Assistente</p>' +
+          "  </div>" +
+          '  <button type="button" class="msf-fechar" aria-label="Fechar">&#10005;</button></header>' +
+          '  <div class="msf-corpo">' +
+          '    <div class="msf-tipos">' +
+          TIPOS.map(function (t) {
+            return (
+              '<button type="button" class="msf-tipo" data-tipo="' + t.id +
+              '" aria-pressed="false">' + t.rotulo + "</button>"
+            );
+          }).join("") +
+          "    </div>" +
+          '    <label for="msf-texto">Conte o que aconteceu</label>' +
+          '    <textarea id="msf-texto"></textarea>' +
+          '    <div class="msf-aviso">Por favor, <b>não escreva dados de paciente</b> — nome, CPF ou número de atendimento. Para relatar um problema, descrever a tela e o que você fez já basta.</div>' +
+          '    <div class="msf-anexo" id="msf-anexo"></div>' +
+          '    <div id="msf-mensagem"></div>' +
+          "  </div>" +
+          '  <div class="msf-rodape">' +
+          '    <button type="button" class="msf-btn msf-btn-sec" id="msf-copiar">Copiar</button>' +
+          '    <button type="button" class="msf-btn" id="msf-email">Enviar por e-mail</button>' +
+          "  </div>" +
+          "</div>",
+      });
+
+      overlay.$(".msf-fechar").addEventListener("click", overlay.fechar);
+      overlay.$("#msf-email").addEventListener("click", enviarPorEmail);
+      overlay.$("#msf-copiar").addEventListener("click", copiar);
+      overlay.$$(".msf-tipo").forEach(function (b) {
+        b.addEventListener("click", function () {
+          selecionarTipo(b.getAttribute("data-tipo"));
+        });
+      });
+    }
+
+    overlay.$("#msf-texto").value = "";
+    mostrarMensagem(null);
+    selecionarTipo("problema");
+
+    /* O médico vê exatamente o que segue junto — nada é anexado às
+     * escondidas. */
+    overlay.$("#msf-anexo").textContent =
+      "Vai junto, automaticamente: versão " + ctx.versao +
+      ", funções ligadas (" + (funcoesLigadas().length || 0) + ") e o navegador. " +
+      "Nenhum dado de paciente é incluído.";
+
+    overlay.abrir();
+    setTimeout(function () {
+      overlay.$("#msf-texto").focus();
+    }, 60);
+  }
+
+  raiz.MeedsSuiteFeedback = {
+    abrir: abrir,
+    _assinaturaTecnica: function () {
+      return assinaturaTecnica();
+    },
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
 /* ===== core/manager.js ===== */
 /* ------------------------------------------------------------------
  * core/manager.js — painel da engrenagem
  * ------------------------------------------------------------------
- * Tres secoes, nesta ordem de importancia para o dia a dia:
+ * QUATRO ABAS, uma coisa por vez:
  *
- *   1. FUNCOES   — liga/desliga cada modulo. Vale na hora, sem recarregar.
- *   2. MEDICOS   — cadastro unico, usado pelos tres geradores de laudo,
- *                  com backup e restauracao.
- *   3. SOBRE     — versao e credito.
+ *   Funções  — liga/desliga cada módulo. Vale na hora, sem recarregar.
+ *   Médicos  — cadastro único, usado pelos geradores de laudo.
+ *   Unidades — estabelecimentos e CNES, usados pela APAC.
+ *   Sobre    — versão, o que mudou, feedback e privacidade.
  *
- * O botao da engrenagem tem prioridade 0 (pe da pilha) e aparece SEMPRE,
- * inclusive com todos os modulos desligados — senao quem desliga tudo
+ * POR QUE ABAS, E NAO UMA ROLAGEM SO
+ * A versão anterior empilhava tudo numa página só: a lista de módulos,
+ * a lista de médicos, o formulário de médico sempre aberto, três botões
+ * lado a lado, a lista de unidades, outro formulário sempre aberto e o
+ * rodapé. Quem rolava até o meio via o formulário de cadastro com o
+ * cabeçalho ainda dizendo "ative apenas as funções que você usa" — o
+ * título contradizia o que estava na tela.
+ *
+ * Duas regras que vieram junto:
+ *   1. FORMULÁRIO FECHADO POR PADRÃO. A lista é o que se consulta; o
+ *      formulário é o que se usa uma vez. Abrir só quando pedido.
+ *   2. AÇÃO SECUNDÁRIA NÃO COMPETE. Backup e restauração saíram da
+ *      fileira de botões e viraram uma linha discreta no rodapé da aba.
+ *
+ * O botão da engrenagem tem prioridade 0 (pé da pilha) e aparece SEMPRE,
+ * inclusive com todos os módulos desligados — senão quem desliga tudo
  * perde o caminho de volta.
- *
- * POR QUE O CADASTRO DE MEDICOS MORA AQUI, E NAO DENTRO DE CADA LAUDO
- * Antes, o APAC tinha o proprio painel "Gerenciar medicos" e LME/CMD nem
- * tinham (a lista estava escrita no codigo). Se cada modulo tivesse o seu,
- * o medico se cadastraria tres vezes e um sexto modulo teria que
- * reimplementar tudo de novo. Aqui e um lugar so: os modulos apenas
- * mostram a lista num <select> e um atalho para ca.
  * ------------------------------------------------------------------ */
 (function (raiz) {
   "use strict";
@@ -3493,25 +3775,33 @@
   var Cadastro = raiz.MeedsSuiteCadastro;
 
   var ESTILO = [
-    ".msm-modal { background:#fff; border-radius:16px; width:100%; max-width:520px; max-height:86vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.35); }",
-    ".msm-head { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 18px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2; }",
+    ".msm-modal { background:#fff; border-radius:16px; width:100%; max-width:540px; max-height:86vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,.35); }",
+
+    /* cabecalho */
+    ".msm-head { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:15px 18px 0; flex-shrink:0; }",
+    ".msm-head-topo { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
     ".msm-head h2 { margin:0; font-size:15px; font-weight:700; }",
-    ".msm-head .msm-sub { margin:2px 0 0; font-size:11px; opacity:.85; font-weight:400; }",
-    ".msm-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; }",
+    ".msm-head .msm-sub { margin:2px 0 0; font-size:11.5px; opacity:.85; }",
+    ".msm-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; }",
     ".msm-fechar:hover { background:rgba(255,255,255,.34); }",
-    ".msm-body { padding:6px 18px 18px; }",
 
-    ".msm-secao { padding:14px 0; border-bottom:1px solid #eef2f6; }",
-    ".msm-secao:last-child { border-bottom:none; }",
-    ".msm-secao > h3 { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 4px; }",
-    ".msm-secao > .msm-ajuda { font-size:11.5px; color:#5b6672; line-height:1.5; margin:0 0 12px; }",
+    /* abas */
+    ".msm-abas { display:flex; gap:2px; margin-top:12px; }",
+    ".msm-aba { background:none; border:none; color:rgba(255,255,255,.72); cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:700; padding:9px 13px; border-radius:8px 8px 0 0; border-bottom:3px solid transparent; }",
+    ".msm-aba:hover { color:#fff; background:rgba(255,255,255,.1); }",
+    ".msm-aba[aria-selected='true'] { color:#123a7a; background:#fff; border-bottom-color:#fff; }",
 
+    ".msm-body { padding:16px 18px 18px; overflow-y:auto; flex:1; }",
+    ".msm-painel[hidden] { display:none; }",
+    ".msm-ajuda { font-size:11.5px; color:#5b6672; line-height:1.55; margin:0 0 14px; }",
+
+    /* modulos */
     ".msm-item { display:flex; align-items:flex-start; gap:12px; padding:11px 0; border-bottom:1px solid #f3f6f9; }",
     ".msm-item:last-child { border-bottom:none; }",
     ".msm-item-txt { flex:1; min-width:0; }",
     ".msm-item-nome { font-size:13px; font-weight:700; color:#16221f; }",
     ".msm-item-desc { font-size:11.5px; color:#5b6672; line-height:1.45; margin-top:2px; }",
-    ".msm-item-ver { font-size:10px; color:#9aa5b1; font-family:ui-monospace,Menlo,monospace; margin-top:3px; }",
+    ".msm-item-ver { font-size:10px; color:#9aa5b1; font-family:ui-monospace,Menlo,monospace; margin-top:4px; }",
     ".msm-ajustes { background:none; border:none; color:#1a4fa0; cursor:pointer; font-size:10px; font-family:inherit; font-weight:700; padding:0; text-decoration:underline; }",
     ".msm-ajustes:hover { color:#123a7a; }",
 
@@ -3522,41 +3812,64 @@
     ".msm-switch input:checked + .msm-slider { background:#12958a; }",
     ".msm-switch input:checked + .msm-slider::before { transform:translateX(19px); }",
 
-    ".msm-aviso { background:#fff4e2; border:1px solid #f5d9ac; color:#8a5200; font-size:11.5px; line-height:1.55; padding:10px 12px; border-radius:9px; margin:10px 0; }",
-    ".msm-aviso strong { display:block; margin-bottom:3px; }",
-    ".msm-ok { background:#e6f6f2; border:1px solid #b6e3d8; color:#0b6a62; font-size:11.5px; padding:9px 12px; border-radius:9px; margin:10px 0; }",
-    ".msm-erro { background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; line-height:1.5; padding:9px 12px; border-radius:9px; margin:10px 0; }",
+    /* fichas (medicos / unidades) */
+    ".msm-ficha { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #f3f6f9; font-size:12.5px; }",
+    ".msm-ficha:last-of-type { border-bottom:none; }",
+    ".msm-ficha-dados { flex:1; min-width:0; }",
+    ".msm-ficha-nome { font-weight:700; color:#16221f; }",
+    ".msm-ficha-doc { font-size:10.5px; color:#8a97a4; font-family:ui-monospace,Menlo,monospace; margin-top:2px; }",
+    ".msm-remover { background:none; border:none; color:#a12626; cursor:pointer; font-size:11px; flex-shrink:0; }",
+    ".msm-remover:hover { text-decoration:underline; }",
+    ".msm-vazio { font-size:12px; color:#8a97a4; font-style:italic; padding:10px 0; }",
 
-    ".msm-med { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f3f6f9; font-size:12.5px; }",
-    ".msm-med:last-of-type { border-bottom:none; }",
-    ".msm-med-dados { flex:1; min-width:0; }",
-    ".msm-med-nome { font-weight:700; color:#16221f; }",
-    ".msm-med-doc { font-size:10.5px; color:#8a97a4; font-family:ui-monospace,Menlo,monospace; margin-top:2px; }",
-    ".msm-med-remover { background:none; border:none; color:#a12626; cursor:pointer; font-size:11px; flex-shrink:0; }",
-    ".msm-med-remover:hover { text-decoration:underline; }",
-    ".msm-vazio { font-size:12px; color:#8a97a4; font-style:italic; padding:8px 0; }",
-
-    ".msm-form { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }",
+    /* formulario recolhivel */
+    ".msm-abrir-form { width:100%; background:#f4f7fb; border:1.4px dashed #b9cbe4; color:#123a7a; border-radius:9px; padding:10px; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer; margin-top:12px; }",
+    ".msm-abrir-form:hover { background:#e8f0f8; }",
+    ".msm-form { margin-top:12px; padding:13px; border:1px solid #e2e8f0; border-radius:10px; background:#fbfcfe; }",
+    ".msm-form[hidden] { display:none; }",
+    ".msm-form-grade { display:grid; grid-template-columns:1fr 1fr; gap:9px; }",
     ".msm-form label { display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:3px; }",
     ".msm-form input { width:100%; box-sizing:border-box; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; }",
-    ".msm-form .msm-largo { grid-column:1 / -1; }",
-    ".msm-dica-campo { font-size:10.5px; color:#9aa5b1; margin-top:3px; }",
+    ".msm-largo { grid-column:1 / -1; }",
+    ".msm-dica { font-size:10.5px; color:#9aa5b1; margin-top:4px; line-height:1.45; }",
+    ".msm-form-acoes { display:flex; gap:8px; margin-top:11px; }",
 
-    ".msm-botoes { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }",
-    ".msm-btn { background:#1a4fa0; color:#fff; border:none; border-radius:8px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }",
+    ".msm-btn { background:#1a4fa0; color:#fff; border:none; border-radius:8px; padding:9px 15px; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer; }",
     ".msm-btn:hover { background:#123a7a; }",
-    ".msm-btn-sec { background:#fff; color:#123a7a; border:1.4px solid #1a56ad; }",
-    ".msm-btn-sec:hover { background:#e8f0f8; }",
+    ".msm-btn-sec { background:#fff; color:#123a7a; border:1.3px solid #cbd5e1; }",
+    ".msm-btn-sec:hover { background:#eef4fb; }",
 
-    ".msm-sobre { font-size:11.5px; color:#5b6672; line-height:1.6; }",
-    ".msm-credito { font-weight:700; color:#123a7a; }",
-    ".msm-link { background:none; border:none; color:#1a4fa0; cursor:pointer; font-size:11.5px; font-family:inherit; padding:0; text-decoration:underline; }",
+    /* rodape discreto da aba */
+    ".msm-rodape-aba { margin-top:16px; padding-top:12px; border-top:1px solid #eef2f6; font-size:11px; color:#8a97a4; line-height:1.6; }",
+    ".msm-link { background:none; border:none; color:#1a4fa0; cursor:pointer; font-size:11px; font-family:inherit; font-weight:700; padding:0; text-decoration:underline; }",
     ".msm-link:hover { color:#123a7a; }",
-    ".msm-rodape { font-size:10.5px; color:#9aa5b1; line-height:1.5; margin-top:6px; }",
+
+    /* mensagens */
+    ".msm-aviso, .msm-ok, .msm-erro { font-size:11.5px; line-height:1.55; padding:10px 12px; border-radius:9px; margin:10px 0; }",
+    ".msm-aviso { background:#fff4e2; border:1px solid #f5d9ac; color:#8a5200; }",
+    ".msm-aviso strong { display:block; margin-bottom:3px; }",
+    ".msm-ok { background:#e6f6f2; border:1px solid #b6e3d8; color:#0b6a62; }",
+    ".msm-erro { background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; }",
+
+    /* sobre */
+    ".msm-sobre-credito { font-size:13px; font-weight:700; color:#123a7a; }",
+    ".msm-sobre-versao { font-size:12px; color:#5b6672; margin-top:3px; }",
+    ".msm-sobre-bloco { padding:13px 0; border-bottom:1px solid #f3f6f9; }",
+    ".msm-sobre-bloco:last-child { border-bottom:none; }",
+    ".msm-sobre-titulo { font-size:12.5px; font-weight:700; color:#16221f; margin-bottom:3px; }",
+    ".msm-sobre-texto { font-size:11.5px; color:#5b6672; line-height:1.55; margin-bottom:8px; }",
   ].join("\n");
+
+  var ABAS = [
+    { id: "funcoes", rotulo: "Funções", sub: "Ative apenas as funções que você usa" },
+    { id: "medicos", rotulo: "Médicos", sub: "Cadastre uma vez; vale para todos os laudos" },
+    { id: "unidades", rotulo: "Unidades", sub: "Estabelecimentos e CNES usados na APAC" },
+    { id: "sobre", rotulo: "Sobre", sub: "Versão, novidades e feedback" },
+  ];
 
   var overlay = null;
   var ctx = null;
+  var abaAtual = "funcoes";
 
   function escapeHtml(str) {
     return String(str == null ? "" : str).replace(/[&<>"']/g, function (c) {
@@ -3572,64 +3885,94 @@
       html:
         '<div class="msm-modal" role="dialog" aria-modal="true" aria-labelledby="msm-title">' +
         '  <div class="msm-head">' +
-        "    <div>" +
-        '      <h2 id="msm-title">Assistente Meeds</h2>' +
-        '      <p class="msm-sub">Ative apenas as funções que você usa</p>' +
+        '    <div class="msm-head-topo">' +
+        "      <div>" +
+        '        <h2 id="msm-title">Assistente Meeds</h2>' +
+        '        <p class="msm-sub" id="msm-sub"></p>' +
+        "      </div>" +
+        '      <button type="button" class="msm-fechar" aria-label="Fechar">&#10005;</button>' +
         "    </div>" +
-        '    <button type="button" class="msm-fechar" aria-label="Fechar">&#10005;</button>' +
+        '    <div class="msm-abas" role="tablist">' +
+        ABAS.map(function (a) {
+          return (
+            '<button type="button" class="msm-aba" role="tab" data-aba="' + a.id +
+            '" aria-selected="false">' + a.rotulo + "</button>"
+          );
+        }).join("") +
+        "    </div>" +
         "  </div>" +
         '  <div class="msm-body">' +
 
-        '    <div class="msm-secao">' +
-        "      <h3>Funções</h3>" +
-        '      <p class="msm-ajuda">Desligar uma função tira o botão dela da tela na hora. Você pode ligar de novo quando quiser — nada é desinstalado.</p>' +
+        /* ---- Funções ---- */
+        '    <div class="msm-painel" id="msm-painel-funcoes" role="tabpanel" hidden>' +
+        '      <p class="msm-ajuda">Desligar uma função tira o botão dela da tela na hora. Nada é desinstalado — você liga de novo quando quiser.</p>' +
         '      <div id="msm-lista"></div>' +
         "    </div>" +
 
-        '    <div class="msm-secao" id="msm-secao-medicos">' +
-        "      <h3>Médicos</h3>" +
-        '      <p class="msm-ajuda">Cadastre uma única vez. Seus dados ficam salvos com segurança neste navegador e são usados pelos geradores de laudo (APAC, Sete Lagoas e Conceição do Mato Dentro).</p>' +
+        /* ---- Médicos ---- */
+        '    <div class="msm-painel" id="msm-painel-medicos" role="tabpanel" hidden>' +
+        '      <p class="msm-ajuda">Seus dados ficam salvos apenas neste navegador e são usados pelos geradores de laudo. Atualizar o Assistente não apaga o cadastro.</p>' +
         '      <div id="msm-medicos-mensagem"></div>' +
         '      <div id="msm-medicos-lista"></div>' +
-        '      <div class="msm-form">' +
-        '        <div class="msm-largo"><label for="msm-med-nome">Nome completo</label>' +
-        '          <input id="msm-med-nome" placeholder="como deve aparecer no laudo" autocomplete="off"></div>' +
-        '        <div><label for="msm-med-crm">CRM</label>' +
-        '          <input id="msm-med-crm" placeholder="ex: 110540/MG" autocomplete="off"></div>' +
-        '        <div><label for="msm-med-cpf">CPF</label>' +
-        '          <input id="msm-med-cpf" placeholder="000.000.000-00" autocomplete="off">' +
-        '          <div class="msm-dica-campo">CRM e CPF são usados nos três geradores de laudo. Dá para completar depois.</div></div>' +
+        '      <button type="button" class="msm-abrir-form" id="msm-med-abrir">+ Cadastrar médico</button>' +
+        '      <div class="msm-form" id="msm-med-form" hidden>' +
+        '        <div class="msm-form-grade">' +
+        '          <div class="msm-largo"><label for="msm-med-nome">Nome completo</label>' +
+        '            <input id="msm-med-nome" placeholder="como deve aparecer no laudo" autocomplete="off"></div>' +
+        '          <div><label for="msm-med-crm">CRM</label>' +
+        '            <input id="msm-med-crm" placeholder="ex: 110540/MG" autocomplete="off"></div>' +
+        '          <div><label for="msm-med-cpf">CPF</label>' +
+        '            <input id="msm-med-cpf" placeholder="000.000.000-00" autocomplete="off"></div>' +
+        '          <div class="msm-largo"><p class="msm-dica">Só o nome é obrigatório. CRM e CPF entram nos laudos — dá para completar depois.</p></div>' +
+        "        </div>" +
+        '        <div class="msm-form-acoes">' +
+        '          <button type="button" class="msm-btn" id="msm-med-add">Salvar médico</button>' +
+        '          <button type="button" class="msm-btn msm-btn-sec" id="msm-med-cancelar">Cancelar</button>' +
+        "        </div>" +
         "      </div>" +
-        '      <div class="msm-botoes">' +
-        '        <button type="button" class="msm-btn" id="msm-med-add">Salvar médico</button>' +
-        '        <button type="button" class="msm-btn msm-btn-sec" id="msm-backup">Fazer backup</button>' +
-        '        <button type="button" class="msm-btn msm-btn-sec" id="msm-restaurar">Restaurar backup</button>' +
+        '      <div class="msm-rodape-aba">' +
+        '        Trocando de computador? <button type="button" class="msm-link" id="msm-backup">Fazer backup</button>' +
+        '        ou <button type="button" class="msm-link" id="msm-restaurar">restaurar um arquivo</button>.' +
         '        <input type="file" id="msm-arquivo" accept="application/json,.json" hidden>' +
         "      </div>" +
-        '      <p class="msm-rodape">O backup gera um arquivo <code>.json</code> com os médicos cadastrados. Use para trocar de computador ou de navegador — ou peça o arquivo pronto ao administrador e clique em “Restaurar backup”.</p>' +
         "    </div>" +
 
-        '    <div class="msm-secao" id="msm-secao-estabelecimentos">' +
-        "      <h3>Estabelecimentos</h3>" +
-        '      <p class="msm-ajuda">Unidades solicitantes e seus códigos CNES. Aparecem para escolher no gerador de APAC — assim você não redigita nome e CNES a cada laudo.</p>' +
+        /* ---- Unidades ---- */
+        '    <div class="msm-painel" id="msm-painel-unidades" role="tabpanel" hidden>' +
+        '      <p class="msm-ajuda">Unidades solicitantes e seus códigos CNES. Aparecem para escolher no gerador de APAC, então você não redigita nome e CNES a cada laudo.</p>' +
         '      <div id="msm-estab-mensagem"></div>' +
         '      <div id="msm-estab-lista"></div>' +
-        '      <div class="msm-form">' +
-        '        <div class="msm-largo"><label for="msm-estab-nome">Nome do estabelecimento</label>' +
-        '          <input id="msm-estab-nome" placeholder="como deve aparecer no laudo" autocomplete="off"></div>' +
-        '        <div class="msm-largo"><label for="msm-estab-cnes">CNES</label>' +
-        '          <input id="msm-estab-cnes" placeholder="somente números" inputmode="numeric" autocomplete="off"></div>' +
-        "      </div>" +
-        '      <div class="msm-botoes">' +
-        '        <button type="button" class="msm-btn" id="msm-estab-add">Salvar estabelecimento</button>' +
+        '      <button type="button" class="msm-abrir-form" id="msm-estab-abrir">+ Cadastrar unidade</button>' +
+        '      <div class="msm-form" id="msm-estab-form" hidden>' +
+        '        <div class="msm-form-grade">' +
+        '          <div class="msm-largo"><label for="msm-estab-nome">Nome da unidade</label>' +
+        '            <input id="msm-estab-nome" placeholder="como deve aparecer no laudo" autocomplete="off"></div>' +
+        '          <div class="msm-largo"><label for="msm-estab-cnes">CNES</label>' +
+        '            <input id="msm-estab-cnes" placeholder="somente números" inputmode="numeric" autocomplete="off"></div>' +
+        "        </div>" +
+        '        <div class="msm-form-acoes">' +
+        '          <button type="button" class="msm-btn" id="msm-estab-add">Salvar unidade</button>' +
+        '          <button type="button" class="msm-btn msm-btn-sec" id="msm-estab-cancelar">Cancelar</button>' +
+        "        </div>" +
         "      </div>" +
         "    </div>" +
 
-        '    <div class="msm-secao">' +
-        "      <h3>Sobre</h3>" +
-        '      <p class="msm-sobre"><span class="msm-credito">Assistente Meeds — Por: Marcelo</span><br>' +
-        '        Versão <b id="msm-versao"></b> · <button type="button" class="msm-link" id="msm-historico-versoes">ver o que mudou</button></p>' +
-        '      <p class="msm-rodape">As preferências ficam salvas apenas neste navegador. Nenhum dado de paciente é gravado em disco nem enviado para fora.</p>' +
+        /* ---- Sobre ---- */
+        '    <div class="msm-painel" id="msm-painel-sobre" role="tabpanel" hidden>' +
+        '      <div class="msm-sobre-bloco">' +
+        '        <div class="msm-sobre-credito">Assistente Meeds — Por: Marcelo</div>' +
+        '        <div class="msm-sobre-versao">Versão <b id="msm-versao"></b> · ' +
+        '          <button type="button" class="msm-link" id="msm-historico-versoes">ver o que mudou</button></div>' +
+        "      </div>" +
+        '      <div class="msm-sobre-bloco">' +
+        '        <div class="msm-sobre-titulo">Achou um problema? Tem uma ideia?</div>' +
+        '        <p class="msm-sobre-texto">Escreva em duas linhas o que aconteceu ou o que faria sua rotina render mais. É o que orienta as próximas versões.</p>' +
+        '        <button type="button" class="msm-btn" id="msm-feedback">Enviar feedback</button>' +
+        "      </div>" +
+        '      <div class="msm-sobre-bloco">' +
+        '        <div class="msm-sobre-titulo">Privacidade</div>' +
+        '        <p class="msm-sobre-texto">Nenhum dado de paciente é gravado em disco nem enviado para fora. O que fica salvo neste navegador é preferência de uso: funções ligadas, ajustes do alarme e os cadastros desta tela.</p>' +
+        "      </div>" +
         "    </div>" +
 
         "  </div>" +
@@ -3640,41 +3983,45 @@
       overlay.fechar();
     });
     overlay.$("#msm-versao").textContent = ctx.versaoNucleo;
-    /* O historico de versoes sai do MESMO dados/changelog.json que
-     * alimenta o aviso de atualizacao — uma fonte so, nunca duas. */
-    overlay.$("#msm-historico-versoes").addEventListener("click", function () {
-      overlay.fechar();
-      raiz.MeedsSuiteNovidades.mostrarHistorico(ctx.versaoNucleo);
+
+    overlay.$$(".msm-aba").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        mostrarAba(btn.getAttribute("data-aba"));
+      });
     });
 
+    /* --- médicos --- */
+    alternarForm("#msm-med-abrir", "#msm-med-form", "#msm-med-nome", "#msm-med-cancelar");
     overlay.$("#msm-med-add").addEventListener("click", salvarMedico);
-    overlay.$("#msm-estab-add").addEventListener("click", salvarEstabelecimento);
-    raiz.MeedsSuiteFormatos.aplicarMascaraCpf(overlay.$("#msm-med-cpf"));
-    overlay.$("#msm-estab-cnes").addEventListener("input", function () {
-      var el = overlay.$("#msm-estab-cnes");
-      el.value = el.value.replace(/\D/g, "").slice(0, 12);
-    });
     overlay.$("#msm-backup").addEventListener("click", fazerBackup);
     overlay.$("#msm-restaurar").addEventListener("click", function () {
       overlay.$("#msm-arquivo").click();
     });
     overlay.$("#msm-arquivo").addEventListener("change", restaurarBackup);
+    raiz.MeedsSuiteFormatos.aplicarMascaraCpf(overlay.$("#msm-med-cpf"));
+    enterSalva(["#msm-med-nome", "#msm-med-crm", "#msm-med-cpf"], salvarMedico);
 
-    // Enter em qualquer campo do formulario salva — um clique a menos
-    ["#msm-med-nome", "#msm-med-crm", "#msm-med-cpf"].forEach(function (sel) {
-      overlay.$(sel).addEventListener("keydown", function (ev) {
-        if (ev.key === "Enter") {
-          ev.preventDefault();
-          salvarMedico();
-        }
-      });
+    /* --- unidades --- */
+    alternarForm("#msm-estab-abrir", "#msm-estab-form", "#msm-estab-nome", "#msm-estab-cancelar");
+    overlay.$("#msm-estab-add").addEventListener("click", salvarEstabelecimento);
+    overlay.$("#msm-estab-cnes").addEventListener("input", function () {
+      var el = overlay.$("#msm-estab-cnes");
+      el.value = el.value.replace(/\D/g, "").slice(0, 12);
     });
-    ["#msm-estab-nome", "#msm-estab-cnes"].forEach(function (sel) {
-      overlay.$(sel).addEventListener("keydown", function (ev) {
-        if (ev.key === "Enter") {
-          ev.preventDefault();
-          salvarEstabelecimento();
-        }
+    enterSalva(["#msm-estab-nome", "#msm-estab-cnes"], salvarEstabelecimento);
+
+    /* --- sobre --- */
+    overlay.$("#msm-historico-versoes").addEventListener("click", function () {
+      overlay.fechar();
+      raiz.MeedsSuiteNovidades.mostrarHistorico(ctx.versaoNucleo);
+    });
+    overlay.$("#msm-feedback").addEventListener("click", function () {
+      overlay.fechar();
+      raiz.MeedsSuiteFeedback.abrir({
+        dock: ctx.dock,
+        versao: ctx.versaoNucleo,
+        modulos: ctx.listarModulos(),
+        contato: ctx.contato,
       });
     });
 
@@ -3682,12 +4029,57 @@
       id: "_manager",
       icone: "⚙️",
       variante: "engrenagem",
-      titulo: "Assistente Meeds — funções, médicos e ajustes",
+      titulo: "Assistente Meeds — funções, cadastros e ajustes",
       prioridade: 0,
       aoClicar: function () {
         abrir();
       },
     });
+  }
+
+  /* O formulário fica fechado até ser pedido: a lista é o que se
+   * consulta, o formulário é o que se usa uma vez. */
+  function alternarForm(seletorBotao, seletorForm, seletorFoco, seletorCancelar) {
+    var botao = overlay.$(seletorBotao);
+    var form = overlay.$(seletorForm);
+    botao.addEventListener("click", function () {
+      form.hidden = false;
+      botao.hidden = true;
+      overlay.$(seletorFoco).focus();
+    });
+    overlay.$(seletorCancelar).addEventListener("click", function () {
+      form.hidden = true;
+      botao.hidden = false;
+      form.querySelectorAll("input").forEach(function (i) {
+        i.value = "";
+      });
+    });
+  }
+
+  function enterSalva(seletores, fn) {
+    seletores.forEach(function (sel) {
+      overlay.$(sel).addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          fn();
+        }
+      });
+    });
+  }
+
+  function mostrarAba(id) {
+    abaAtual = id;
+    var ficha = ABAS.filter(function (a) {
+      return a.id === id;
+    })[0];
+    overlay.$("#msm-sub").textContent = ficha ? ficha.sub : "";
+    overlay.$$(".msm-aba").forEach(function (b) {
+      b.setAttribute("aria-selected", String(b.getAttribute("data-aba") === id));
+    });
+    overlay.$$(".msm-painel").forEach(function (p) {
+      p.hidden = p.id !== "msm-painel-" + id;
+    });
+    overlay.$(".msm-body").scrollTop = 0;
   }
 
   function abrir(secao) {
@@ -3696,22 +4088,32 @@
     renderizarEstabelecimentos();
     mostrarMensagemMedicos(null);
     mostrarMensagemEstab(null);
+
+    /* Quem chega de um atalho ("cadastrar médico" dentro de um laudo) cai
+     * direto na aba certa, com o formulário já aberto — o atalho existe
+     * justamente para poupar cliques. */
+    var destino = { medicos: "medicos", estabelecimentos: "unidades" }[secao] || "funcoes";
+    mostrarAba(destino);
     overlay.abrir();
 
-    var destinos = {
-      medicos: ["#msm-secao-medicos", "#msm-med-nome"],
-      estabelecimentos: ["#msm-secao-estabelecimentos", "#msm-estab-nome"],
-    };
-    var d = destinos[secao];
-    if (d) {
-      overlay.$(d[0]).scrollIntoView({ behavior: "smooth", block: "start" });
-      setTimeout(function () {
-        overlay.$(d[1]).focus();
-      }, 250);
-    }
+    if (secao === "medicos") abrirFormulario("#msm-med-abrir", "#msm-med-form", "#msm-med-nome");
+    if (secao === "estabelecimentos") abrirFormulario("#msm-estab-abrir", "#msm-estab-form", "#msm-estab-nome");
   }
 
-  /* ---------------- funcoes (modulos) ---------------- */
+  function abrirFormulario(seletorBotao, seletorForm, seletorFoco) {
+    overlay.$(seletorForm).hidden = false;
+    overlay.$(seletorBotao).hidden = true;
+    setTimeout(function () {
+      overlay.$(seletorFoco).focus();
+    }, 250);
+  }
+
+  function fecharFormulario(seletorBotao, seletorForm) {
+    overlay.$(seletorForm).hidden = true;
+    overlay.$(seletorBotao).hidden = false;
+  }
+
+  /* ---------------- funções (módulos) ---------------- */
   function renderizarModulos() {
     var lista = overlay.$("#msm-lista");
     var modulos = ctx.listarModulos();
@@ -3728,7 +4130,7 @@
           '  <div class="msm-item-txt">' +
           '    <div class="msm-item-nome">' + escapeHtml(m.nome) + "</div>" +
           '    <div class="msm-item-desc">' + escapeHtml(m.descricao) + "</div>" +
-          '    <div class="msm-item-ver">v' + escapeHtml(m.versao) + " · " + escapeHtml(m.id) +
+          '    <div class="msm-item-ver">v' + escapeHtml(m.versao) +
           (m.temAjustes && m.habilitado
             ? ' · <button type="button" class="msm-ajustes" data-ajustes="' + escapeHtml(m.id) + '">Ajustes</button>'
             : "") +
@@ -3753,19 +4155,15 @@
     overlay.$$('input[type="checkbox"][data-id]').forEach(function (input) {
       input.addEventListener("change", function () {
         ctx.definirHabilitado(input.getAttribute("data-id"), input.checked);
-        renderizarModulos(); // reflete o estado real (se o start falhou, nao subiu)
+        renderizarModulos();
       });
     });
   }
 
-  /* ---------------- medicos ---------------- */
+  /* ---------------- médicos ---------------- */
   function mostrarMensagemMedicos(texto, tipo) {
     var caixa = overlay.$("#msm-medicos-mensagem");
-    if (!texto) {
-      caixa.innerHTML = "";
-      return;
-    }
-    caixa.innerHTML = '<div class="msm-' + (tipo || "ok") + '">' + escapeHtml(texto) + "</div>";
+    caixa.innerHTML = texto ? '<div class="msm-' + (tipo || "ok") + '">' + escapeHtml(texto) + "</div>" : "";
   }
 
   function renderizarMedicos() {
@@ -3776,7 +4174,7 @@
       box.innerHTML =
         '<div class="msm-aviso"><strong>Cadastre seu nome e CRM uma única vez</strong>' +
         "Por segurança, os dados dos médicos não ficam mais no código do programa. " +
-        "Preencha abaixo — leva menos de um minuto e você não precisa repetir.</div>";
+        "Leva menos de um minuto e você não precisa repetir.</div>";
       return;
     }
 
@@ -3786,101 +4184,27 @@
         if (m.crm) docs.push("CRM " + m.crm);
         if (m.cpf) docs.push("CPF " + m.cpf);
         return (
-          '<div class="msm-med">' +
-          '  <div class="msm-med-dados">' +
-          '    <div class="msm-med-nome">' + escapeHtml(m.nome) + "</div>" +
-          '    <div class="msm-med-doc">' + escapeHtml(docs.join("  ·  ") || "sem documento cadastrado") + "</div>" +
+          '<div class="msm-ficha">' +
+          '  <div class="msm-ficha-dados">' +
+          '    <div class="msm-ficha-nome">' + escapeHtml(m.nome) + "</div>" +
+          '    <div class="msm-ficha-doc">' + escapeHtml(docs.join("  ·  ") || "sem documento cadastrado") + "</div>" +
           "  </div>" +
-          '  <button type="button" class="msm-med-remover" data-i="' + i + '">remover</button>' +
+          '  <button type="button" class="msm-remover" data-i="' + i + '">remover</button>' +
           "</div>"
         );
       })
       .join("");
 
-    box.querySelectorAll(".msm-med-remover").forEach(function (btn) {
+    box.querySelectorAll(".msm-remover").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var i = Number(btn.getAttribute("data-i"));
-        var nome = Cadastro.listar()[i];
+        var alvo = Cadastro.listar()[i];
         Cadastro.remover(i);
         renderizarMedicos();
-        mostrarMensagemMedicos((nome ? nome.nome : "Médico") + " foi removido do cadastro.", "ok");
+        mostrarMensagemMedicos((alvo ? alvo.nome : "Médico") + " foi removido do cadastro.", "ok");
         avisarModulos();
       });
     });
-  }
-
-  function mostrarMensagemEstab(texto, tipo) {
-    var caixa = overlay.$("#msm-estab-mensagem");
-    if (!texto) {
-      caixa.innerHTML = "";
-      return;
-    }
-    caixa.innerHTML = '<div class="msm-' + (tipo || "ok") + '">' + escapeHtml(texto) + "</div>";
-  }
-
-  function renderizarEstabelecimentos() {
-    var lista = Cadastro.listarEstabelecimentos();
-    var box = overlay.$("#msm-estab-lista");
-
-    if (!lista.length) {
-      box.innerHTML =
-        '<div class="msm-vazio">Nenhum estabelecimento cadastrado. Acrescente abaixo o nome e o CNES da unidade solicitante.</div>';
-      return;
-    }
-
-    box.innerHTML = lista
-      .map(function (e, i) {
-        return (
-          '<div class="msm-med">' +
-          '  <div class="msm-med-dados">' +
-          '    <div class="msm-med-nome">' + escapeHtml(e.nome) + "</div>" +
-          '    <div class="msm-med-doc">' + escapeHtml(e.cnes ? "CNES " + e.cnes : "sem CNES cadastrado") + "</div>" +
-          "  </div>" +
-          '  <button type="button" class="msm-med-remover" data-e="' + i + '">remover</button>' +
-          "</div>"
-        );
-      })
-      .join("");
-
-    box.querySelectorAll("[data-e]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var i = Number(btn.getAttribute("data-e"));
-        var alvo = Cadastro.listarEstabelecimentos()[i];
-        Cadastro.removerEstabelecimento(i);
-        renderizarEstabelecimentos();
-        mostrarMensagemEstab((alvo ? alvo.nome : "Estabelecimento") + " foi removido.", "ok");
-        avisarModulos();
-      });
-    });
-  }
-
-  function salvarEstabelecimento() {
-    var nome = overlay.$("#msm-estab-nome").value.trim();
-    if (!nome) {
-      mostrarMensagemEstab(
-        "Não consegui salvar porque o nome está vazio. Preencha o campo “Nome do estabelecimento”.",
-        "erro"
-      );
-      overlay.$("#msm-estab-nome").focus();
-      return;
-    }
-    var r = Cadastro.adicionarEstabelecimento({
-      nome: nome,
-      cnes: overlay.$("#msm-estab-cnes").value,
-    });
-    if (!r.ok) {
-      mostrarMensagemEstab(r.erro, "erro");
-      return;
-    }
-    overlay.$("#msm-estab-nome").value = "";
-    overlay.$("#msm-estab-cnes").value = "";
-    renderizarEstabelecimentos();
-    mostrarMensagemEstab(
-      r.atualizou ? nome + " já estava cadastrado — atualizei o CNES." : nome + " foi cadastrado com sucesso.",
-      "ok"
-    );
-    overlay.$("#msm-estab-nome").focus();
-    avisarModulos();
   }
 
   function salvarMedico() {
@@ -3905,11 +4229,7 @@
       return;
     }
 
-    var r = Cadastro.adicionar({
-      nome: nome,
-      crm: overlay.$("#msm-med-crm").value.trim(),
-      cpf: cpf,
-    });
+    var r = Cadastro.adicionar({ nome: nome, crm: overlay.$("#msm-med-crm").value.trim(), cpf: cpf });
     if (!r.ok) {
       mostrarMensagemMedicos(r.erro, "erro");
       return;
@@ -3918,17 +4238,15 @@
     ["#msm-med-nome", "#msm-med-crm", "#msm-med-cpf"].forEach(function (s) {
       overlay.$(s).value = "";
     });
+    fecharFormulario("#msm-med-abrir", "#msm-med-form");
     renderizarMedicos();
     mostrarMensagemMedicos(
       r.atualizou ? nome + " já estava cadastrado — atualizei os dados dele." : nome + " foi cadastrado com sucesso.",
       "ok"
     );
-    overlay.$("#msm-med-nome").focus();
     avisarModulos();
   }
 
-  /* Os modulos de laudo mostram a lista num <select>; quando o cadastro
-   * muda, eles precisam se redesenhar. O nucleo repassa o aviso. */
   function avisarModulos() {
     if (typeof ctx.aoMudarCadastro === "function") ctx.aoMudarCadastro();
   }
@@ -3961,7 +4279,7 @@
 
   function restaurarBackup(ev) {
     var arquivo = ev.target.files && ev.target.files[0];
-    ev.target.value = ""; // permite escolher o mesmo arquivo de novo
+    ev.target.value = "";
     if (!arquivo) return;
 
     var leitor = new FileReader();
@@ -3985,6 +4303,73 @@
       );
     };
     leitor.readAsText(arquivo);
+  }
+
+  /* ---------------- unidades ---------------- */
+  function mostrarMensagemEstab(texto, tipo) {
+    var caixa = overlay.$("#msm-estab-mensagem");
+    caixa.innerHTML = texto ? '<div class="msm-' + (tipo || "ok") + '">' + escapeHtml(texto) + "</div>" : "";
+  }
+
+  function renderizarEstabelecimentos() {
+    var lista = Cadastro.listarEstabelecimentos();
+    var box = overlay.$("#msm-estab-lista");
+
+    if (!lista.length) {
+      box.innerHTML = '<div class="msm-vazio">Nenhuma unidade cadastrada ainda.</div>';
+      return;
+    }
+
+    box.innerHTML = lista
+      .map(function (e, i) {
+        return (
+          '<div class="msm-ficha">' +
+          '  <div class="msm-ficha-dados">' +
+          '    <div class="msm-ficha-nome">' + escapeHtml(e.nome) + "</div>" +
+          '    <div class="msm-ficha-doc">' + escapeHtml(e.cnes ? "CNES " + e.cnes : "sem CNES cadastrado") + "</div>" +
+          "  </div>" +
+          '  <button type="button" class="msm-remover" data-e="' + i + '">remover</button>' +
+          "</div>"
+        );
+      })
+      .join("");
+
+    box.querySelectorAll("[data-e]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var i = Number(btn.getAttribute("data-e"));
+        var alvo = Cadastro.listarEstabelecimentos()[i];
+        Cadastro.removerEstabelecimento(i);
+        renderizarEstabelecimentos();
+        mostrarMensagemEstab((alvo ? alvo.nome : "Unidade") + " foi removida.", "ok");
+        avisarModulos();
+      });
+    });
+  }
+
+  function salvarEstabelecimento() {
+    var nome = overlay.$("#msm-estab-nome").value.trim();
+    if (!nome) {
+      mostrarMensagemEstab(
+        "Não consegui salvar porque o nome está vazio. Preencha o campo “Nome da unidade”.",
+        "erro"
+      );
+      overlay.$("#msm-estab-nome").focus();
+      return;
+    }
+    var r = Cadastro.adicionarEstabelecimento({ nome: nome, cnes: overlay.$("#msm-estab-cnes").value });
+    if (!r.ok) {
+      mostrarMensagemEstab(r.erro, "erro");
+      return;
+    }
+    overlay.$("#msm-estab-nome").value = "";
+    overlay.$("#msm-estab-cnes").value = "";
+    fecharFormulario("#msm-estab-abrir", "#msm-estab-form");
+    renderizarEstabelecimentos();
+    mostrarMensagemEstab(
+      r.atualizou ? nome + " já estava cadastrada — atualizei o CNES." : nome + " foi cadastrada com sucesso.",
+      "ok"
+    );
+    avisarModulos();
   }
 
   raiz.MeedsSuiteManager = {
@@ -4025,7 +4410,7 @@
    * versao aqui nem no bootloader — so no manifest.
    * O valor de reserva existe para o arquivo continuar rodavel solto,
    * fora do pacote (por exemplo num teste unitario). */
-  var VERSAO_NUCLEO = "2.10.0" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.10.0";
+  var VERSAO_NUCLEO = "2.11.0" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.11.0";
 
   var Auth = raiz.MeedsSuiteAuth;
   var Dock = raiz.MeedsSuiteDock;
@@ -4456,6 +4841,7 @@
       definirHabilitado: definirHabilitado,
       versaoNucleo: VERSAO_NUCLEO,
       manifesto: manifesto,
+      contato: (manifesto && manifesto.contato) || null,
       abrirAjustesDe: function (id) {
         if (porId[id] && typeof porId[id].abrirAjustes === "function") porId[id].abrirAjustes();
       },
@@ -4536,10 +4922,14 @@
   raiz.MEEDS_MARCAS = {"_leia_me":"TRADUTOR de nome comercial para principio ativo. ATENCAO: esta tabela NUNCA e fonte de medicamento. Ela so ajuda a ENCONTRAR o item dentro da REMUME do municipio — a REMUME (modules/remume/remumes.json) e a unica fonte de verdade. Se o principio ativo traduzido nao estiver na REMUME daquele municipio, o Assistente avisa que nao consta e NAO oferece o item. Para acrescentar uma marca, copie um bloco abaixo e rode 'npm run build'. Ver docs/MANUAL-ADMIN.md.","_campos":{"marca":"O que o medico digita (nome comercial, sigla ou nome alternativo).","principioAtivo":"O nome que se procura dentro da REMUME.","observacao":"Opcional. Aparece so na documentacao, nao na tela."},"_total":206,"marcas":[{"marca":"AAS","principioAtivo":"Ácido acetilsalicílico","observacao":"Sigla de uso corrente."},{"marca":"Acetaminofeno","principioAtivo":"Paracetamol","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Acfol","principioAtivo":"Acido Folico","observacao":""},{"marca":"Adalat","principioAtivo":"Nifedipino","observacao":""},{"marca":"Addera","principioAtivo":"Colecalciferol","observacao":""},{"marca":"Adenocard","principioAtivo":"Adenosina","observacao":""},{"marca":"Advil","principioAtivo":"Ibuprofeno","observacao":""},{"marca":"Aerolin","principioAtivo":"Salbutamol","observacao":""},{"marca":"Akineton","principioAtivo":"Biperideno","observacao":""},{"marca":"Aldactone","principioAtivo":"Espironolactona","observacao":""},{"marca":"Aldomet","principioAtivo":"Metildopa","observacao":""},{"marca":"Alivium","principioAtivo":"Ibuprofeno","observacao":""},{"marca":"Allegra","principioAtivo":"Fexofenadina","observacao":""},{"marca":"Amox","principioAtivo":"Amoxicilina","observacao":""},{"marca":"Amoxil","principioAtivo":"Amoxicilina","observacao":""},{"marca":"Amplictil","principioAtivo":"Clorpromazina","observacao":""},{"marca":"Amytril","principioAtivo":"Amitriptilina","observacao":""},{"marca":"Ancoron","principioAtivo":"Amiodarona","observacao":""},{"marca":"Angipress","principioAtivo":"Atenolol","observacao":""},{"marca":"Antak","principioAtivo":"Ranitidina","observacao":""},{"marca":"Apresolina","principioAtivo":"Hidralazina","observacao":""},{"marca":"Aprovel","principioAtivo":"Irbesartana","observacao":""},{"marca":"Aradois","principioAtivo":"Losartana","observacao":""},{"marca":"Aspirina","principioAtivo":"Ácido acetilsalicílico","observacao":""},{"marca":"Astromicin","principioAtivo":"Azitromicina","observacao":""},{"marca":"Atlansil","principioAtivo":"Amiodarona","observacao":""},{"marca":"Atrovent","principioAtivo":"Ipratropio","observacao":""},{"marca":"Bactrim","principioAtivo":"Sulfametoxazol","observacao":""},{"marca":"Bactroban","principioAtivo":"Mupirocina","observacao":""},{"marca":"Balcor","principioAtivo":"Diltiazem","observacao":""},{"marca":"Benzetacil","principioAtivo":"Penicilina","observacao":""},{"marca":"Buscopan","principioAtivo":"Escopolamina","observacao":""},{"marca":"Buscopan","principioAtivo":"Butilbrometo","observacao":""},{"marca":"Busonid","principioAtivo":"Budesonida","observacao":""},{"marca":"Capoten","principioAtivo":"Captopril","observacao":""},{"marca":"Cardilol","principioAtivo":"Carvedilol","observacao":""},{"marca":"Cardizem","principioAtivo":"Diltiazem","observacao":""},{"marca":"Cataflam","principioAtivo":"Diclofenaco","observacao":""},{"marca":"Cipramil","principioAtivo":"Citalopram","observacao":""},{"marca":"Cipro","principioAtivo":"Ciprofloxacino","observacao":""},{"marca":"Ciproxin","principioAtivo":"Ciprofloxacino","observacao":""},{"marca":"Citalor","principioAtivo":"Atorvastatina","observacao":""},{"marca":"Citoneurin","principioAtivo":"Complexo B","observacao":""},{"marca":"Claritine","principioAtivo":"Loratadina","observacao":""},{"marca":"Clavulin","principioAtivo":"Clavulanato","observacao":""},{"marca":"Clenil","principioAtivo":"Beclometasona","observacao":""},{"marca":"Clexane","principioAtivo":"Enoxaparina","observacao":""},{"marca":"Clorana","principioAtivo":"Hidroclorotiazida","observacao":""},{"marca":"Combiron","principioAtivo":"Sulfato Ferroso","observacao":""},{"marca":"Coreg","principioAtivo":"Carvedilol","observacao":""},{"marca":"Coumadin","principioAtivo":"Varfarina","observacao":""},{"marca":"Cozaar","principioAtivo":"Losartana","observacao":""},{"marca":"Crestor","principioAtivo":"Rosuvastatina","observacao":""},{"marca":"Cymbalta","principioAtivo":"Duloxetina","observacao":""},{"marca":"Cytotec","principioAtivo":"Misoprostol","observacao":""},{"marca":"Daforin","principioAtivo":"Fluoxetina","observacao":""},{"marca":"Daktarin","principioAtivo":"Miconazol","observacao":""},{"marca":"Dalacin","principioAtivo":"Clindamicina","observacao":""},{"marca":"Daonil","principioAtivo":"Glibenclamida","observacao":""},{"marca":"Decadron","principioAtivo":"Dexametasona","observacao":""},{"marca":"Depakene","principioAtivo":"Valproato","observacao":""},{"marca":"Depakote","principioAtivo":"Valproato","observacao":""},{"marca":"Dermazine","principioAtivo":"Sulfadiazina Prata","observacao":""},{"marca":"Desalex","principioAtivo":"Desloratadina","observacao":""},{"marca":"Diamicron","principioAtivo":"Gliclazida","observacao":""},{"marca":"Digesan","principioAtivo":"Bromoprida","observacao":""},{"marca":"Dimorf","principioAtivo":"Morfina","observacao":""},{"marca":"Diovan","principioAtivo":"Valsartana","observacao":""},{"marca":"Diprivan","principioAtivo":"Propofol","observacao":""},{"marca":"Diprospan","principioAtivo":"Betametasona","observacao":""},{"marca":"Dobutrex","principioAtivo":"Dobutamina","observacao":""},{"marca":"Dormonid","principioAtivo":"Midazolam","observacao":""},{"marca":"Dulcolax","principioAtivo":"Bisacodil","observacao":""},{"marca":"Efexor","principioAtivo":"Venlafaxina","observacao":""},{"marca":"Eliquis","principioAtivo":"Apixabana","observacao":""},{"marca":"Elocom","principioAtivo":"Mometasona","observacao":""},{"marca":"Epinefrina","principioAtivo":"Adrenalina","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Euthyrox","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Fenergan","principioAtivo":"Prometazina","observacao":""},{"marca":"Fentanil","principioAtivo":"Fentanila","observacao":""},{"marca":"Flagyl","principioAtivo":"Metronidazol","observacao":""},{"marca":"Flixotide","principioAtivo":"Fluticasona","observacao":""},{"marca":"Fluconal","principioAtivo":"Fluconazol","observacao":""},{"marca":"Folacin","principioAtivo":"Acido Folico","observacao":""},{"marca":"Gardenal","principioAtivo":"Fenobarbital","observacao":""},{"marca":"Glifage","principioAtivo":"Metformina","observacao":""},{"marca":"Haldol","principioAtivo":"Haloperidol","observacao":""},{"marca":"Hctz","principioAtivo":"Hidroclorotiazida","observacao":""},{"marca":"Hidantal","principioAtivo":"Fenitoina","observacao":""},{"marca":"Higroton","principioAtivo":"Clortalidona","observacao":""},{"marca":"Hixizine","principioAtivo":"Hidroxizina","observacao":""},{"marca":"Humulin","principioAtivo":"Insulina","observacao":""},{"marca":"Imosec","principioAtivo":"Loperamida","observacao":""},{"marca":"Inderal","principioAtivo":"Propranolol","observacao":""},{"marca":"Kanakion","principioAtivo":"Fitomenadiona","observacao":""},{"marca":"Keflex","principioAtivo":"Cefalexina","observacao":""},{"marca":"Keppra","principioAtivo":"Levetiracetam","observacao":""},{"marca":"Klaricid","principioAtivo":"Claritromicina","observacao":""},{"marca":"Label","principioAtivo":"Ranitidina","observacao":""},{"marca":"Lamisil","principioAtivo":"Terbinafina","observacao":""},{"marca":"Lanexat","principioAtivo":"Flumazenil","observacao":""},{"marca":"Lasix","principioAtivo":"Furosemida","observacao":""},{"marca":"Levaquin","principioAtivo":"Levofloxacino","observacao":""},{"marca":"Lexapro","principioAtivo":"Escitalopram","observacao":""},{"marca":"Lexotan","principioAtivo":"Bromazepam","observacao":""},{"marca":"Lioresal","principioAtivo":"Baclofeno","observacao":""},{"marca":"Lipitor","principioAtivo":"Atorvastatina","observacao":""},{"marca":"Liquemine","principioAtivo":"Heparina","observacao":""},{"marca":"Lopressor","principioAtivo":"Metoprolol","observacao":""},{"marca":"Loranil","principioAtivo":"Loratadina","observacao":""},{"marca":"Lorax","principioAtivo":"Lorazepam","observacao":""},{"marca":"Losec","principioAtivo":"Omeprazol","observacao":""},{"marca":"Luftal","principioAtivo":"Simeticona","observacao":""},{"marca":"Lyrica","principioAtivo":"Pregabalina","observacao":""},{"marca":"Macrodantina","principioAtivo":"Nitrofurantoina","observacao":""},{"marca":"Manitol 20%","principioAtivo":"Manitol","observacao":""},{"marca":"Marcaina","principioAtivo":"Bupivacaina","observacao":""},{"marca":"Marevan","principioAtivo":"Varfarina","observacao":""},{"marca":"Metamizol","principioAtivo":"Dipirona","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Meticorten","principioAtivo":"Prednisona","observacao":""},{"marca":"Micardis","principioAtivo":"Telmisartana","observacao":""},{"marca":"Micostatin","principioAtivo":"Nistatina","observacao":""},{"marca":"Miosan","principioAtivo":"Ciclobenzaprina","observacao":""},{"marca":"Motilium","principioAtivo":"Domperidona","observacao":""},{"marca":"Movatec","principioAtivo":"Meloxicam","observacao":""},{"marca":"Narcan","principioAtivo":"Naloxona","observacao":""},{"marca":"Naropin","principioAtivo":"Ropivacaina","observacao":""},{"marca":"Nasonex","principioAtivo":"Mometasona","observacao":""},{"marca":"Natrilix","principioAtivo":"Indapamida","observacao":""},{"marca":"Neocaina","principioAtivo":"Bupivacaina","observacao":""},{"marca":"Neozine","principioAtivo":"Levomepromazina","observacao":""},{"marca":"Neurontin","principioAtivo":"Gabapentina","observacao":""},{"marca":"Nexium","principioAtivo":"Esomeprazol","observacao":""},{"marca":"Nisulid","principioAtivo":"Nimesulida","observacao":""},{"marca":"Nizoral","principioAtivo":"Cetoconazol","observacao":""},{"marca":"Norepinefrina","principioAtivo":"Noradrenalina","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Norvasc","principioAtivo":"Anlodipino","observacao":""},{"marca":"Novalgina","principioAtivo":"Dipirona","observacao":""},{"marca":"Novolin","principioAtivo":"Insulina","observacao":""},{"marca":"Pantoc","principioAtivo":"Pantoprazol","observacao":""},{"marca":"Pantozol","principioAtivo":"Pantoprazol","observacao":""},{"marca":"Peprazol","principioAtivo":"Omeprazol","observacao":""},{"marca":"Plasil","principioAtivo":"Metoclopramida","observacao":""},{"marca":"Plavix","principioAtivo":"Clopidogrel","observacao":""},{"marca":"Polaramine","principioAtivo":"Dexclorfeniramina","observacao":""},{"marca":"Pradaxa","principioAtivo":"Dabigatrana","observacao":""},{"marca":"Prazol","principioAtivo":"Lansoprazol","observacao":""},{"marca":"Prelone","principioAtivo":"Prednisolona","observacao":""},{"marca":"Profenid","principioAtivo":"Cetoprofeno","observacao":""},{"marca":"Prolopa","principioAtivo":"Levodopa","observacao":""},{"marca":"Propecia","principioAtivo":"Finasterida","observacao":""},{"marca":"Propovan","principioAtivo":"Propofol","observacao":""},{"marca":"Proscar","principioAtivo":"Finasterida","observacao":""},{"marca":"Prostigmine","principioAtivo":"Neostigmina","observacao":""},{"marca":"Prostokos","principioAtivo":"Misoprostol","observacao":""},{"marca":"Prozac","principioAtivo":"Fluoxetina","observacao":""},{"marca":"Pulmicort","principioAtivo":"Budesonida","observacao":""},{"marca":"Puran T4","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Renitec","principioAtivo":"Enalapril","observacao":""},{"marca":"Ringer Lactato","principioAtivo":"Ringer","observacao":""},{"marca":"Risperdal","principioAtivo":"Risperidona","observacao":""},{"marca":"Rivotril","principioAtivo":"Clonazepam","observacao":""},{"marca":"Rocefin","principioAtivo":"Ceftriaxona","observacao":""},{"marca":"Scabin","principioAtivo":"Permetrina","observacao":""},{"marca":"Secotex","principioAtivo":"Tansulosina","observacao":""},{"marca":"Selozok","principioAtivo":"Metoprolol","observacao":""},{"marca":"Seroquel","principioAtivo":"Quetiapina","observacao":""},{"marca":"Sevorane","principioAtivo":"Sevoflurano","observacao":""},{"marca":"Sf 0.9%","principioAtivo":"Soro Fisiologico","observacao":""},{"marca":"Sg 5%","principioAtivo":"Glicose","observacao":""},{"marca":"Singulair","principioAtivo":"Montelucaste","observacao":""},{"marca":"Sinvatrox","principioAtivo":"Sinvastatina","observacao":""},{"marca":"Solucortef","principioAtivo":"Hidrocortisona","observacao":""},{"marca":"Solumedrol","principioAtivo":"Metilprednisolona","observacao":""},{"marca":"Soro Glicosado","principioAtivo":"Glicose","observacao":""},{"marca":"Synthroid","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Syntocinon","principioAtivo":"Ocitocina","observacao":""},{"marca":"Tamiflu","principioAtivo":"Oseltamivir","observacao":""},{"marca":"Tavanic","principioAtivo":"Levofloxacino","observacao":""},{"marca":"Tegretol","principioAtivo":"Carbamazepina","observacao":""},{"marca":"Tolrest","principioAtivo":"Sertralina","observacao":""},{"marca":"Topamax","principioAtivo":"Topiramato","observacao":""},{"marca":"Tramal","principioAtivo":"Tramadol","observacao":""},{"marca":"Transamin","principioAtivo":"Acido Tranexamico","observacao":""},{"marca":"Triaxon","principioAtivo":"Ceftriaxona","observacao":""},{"marca":"Tryptanol","principioAtivo":"Amitriptilina","observacao":""},{"marca":"Tylenol","principioAtivo":"Paracetamol","observacao":""},{"marca":"Uroxacin","principioAtivo":"Norfloxacino","observacao":""},{"marca":"Valium","principioAtivo":"Diazepam","observacao":""},{"marca":"Valproico","principioAtivo":"Valproato","observacao":""},{"marca":"Valtrex","principioAtivo":"Valaciclovir","observacao":""},{"marca":"Viagra","principioAtivo":"Sildenafila","observacao":""},{"marca":"Vibramicina","principioAtivo":"Doxiciclina","observacao":""},{"marca":"Vitamina K","principioAtivo":"Fitomenadiona","observacao":""},{"marca":"Voltaren","principioAtivo":"Diclofenaco","observacao":""},{"marca":"Vonau","principioAtivo":"Ondansetrona","observacao":""},{"marca":"Xarelto","principioAtivo":"Rivaroxabana","observacao":""},{"marca":"Xylocaina","principioAtivo":"Lidocaina","observacao":""},{"marca":"Zitromax","principioAtivo":"Azitromicina","observacao":""},{"marca":"Zocor","principioAtivo":"Sinvastatina","observacao":""},{"marca":"Zofran","principioAtivo":"Ondansetrona","observacao":""},{"marca":"Zoloft","principioAtivo":"Sertralina","observacao":""},{"marca":"Zoltec","principioAtivo":"Fluconazol","observacao":""},{"marca":"Zovirax","principioAtivo":"Aciclovir","observacao":""},{"marca":"Zyprexa","principioAtivo":"Olanzapina","observacao":""},{"marca":"Zyrtec","principioAtivo":"Cetirizina","observacao":""}]};
 
   /* ===== dados/changelog.json ===== */
-  raiz.MEEDS_CHANGELOG = {"_leia_me":"Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.","versoes":[{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["O contador da Sala de Espera passou a mostrar só quem realmente chegou — antes contava também quem tinha consulta marcada e ainda não tinha aparecido."],"correcoes":["A Sala de Espera não avisava quando o paciente agendado chegava. O aviso agora sai na hora em que a chegada é marcada na tela nativa.","Se a internet oscilasse, a fila podia parecer vazia por um instante. Agora a última leitura válida é mantida até a próxima tentativa."]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID passou a funcionar também nos campos de CID secundário e associados da APAC — antes só o principal tinha."],"correcoes":[]},{"versao":"2.9.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID-10 agora vive dentro do próprio campo do laudo. O botão separado saiu: havia dois caminhos para a mesma coisa.","Digitar o código sem o ponto funciona: “J069” encontra J06.9."],"correcoes":["O campo CID mostrava duas listas de sugestão ao mesmo tempo, uma por cima da outra.","Depois de escolher um CID, a lista de sugestões reaparecia sozinha."]},{"versao":"2.8.0","data":"2026-08-31","novidades":["O CID-10 agora fica dentro do próprio laudo: clique no campo CID, digite o nome da doença ou o código, escolha — o código e a descrição entram sozinhos. Vale nos três geradores."],"melhorias":["A busca de CID-10 ficou muito mais rápida e não trava mais a tela: buscas comuns que levavam mais de um segundo agora respondem quase na hora.","A lista de resultados mostra os 50 mais relevantes e diz quantos ficaram de fora, em vez de tentar desenhar milhares de linhas."],"correcoes":["A apresentação “Bem-vindo ao Assistente Meeds” aparecia toda vez que você abria o Meeds. Agora aparece uma vez só."]},{"versao":"2.7.0","data":"2026-08-31","novidades":["Nova função “Sala de Espera”: avisa, sem som, quando um paciente de consulta agendada chega — com o nome, a hora marcada e há quanto tempo espera.","O botão da Sala de Espera mostra quantos pacientes estão aguardando, e abre a lista completa."],"melhorias":["Vários pacientes chegando ao mesmo tempo viram um aviso só, que conta quantos são."],"correcoes":[]},{"versao":"2.6.0","data":"2026-08-30","novidades":["A consulta REMUME passou a entender nome comercial: digite “Tylenol” e ela mostra o paracetamol do seu município.","Quando o remédio procurado não é padronizado no município, o Assistente diz isso com todas as letras, em vez de mostrar uma lista vazia."],"melhorias":["A busca ficou mais tolerante a erro de digitação em português: “dipironá” encontra Dipirona e “cimvastatina” encontra Sinvastatina.","A lista de nomes comerciais saiu do código e virou um arquivo que o administrador edita sozinho."],"correcoes":[]},{"versao":"2.5.0","data":"2026-08-30","novidades":["Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.","O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."],"melhorias":["Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."],"correcoes":["O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."]},{"versao":"2.4.0","data":"2026-08-30","novidades":["Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.","O código escolhido na busca entra sozinho no laudo que estiver aberto.","Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.","Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."],"melhorias":["O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.","O CPF se formata sozinho enquanto você digita.","Com um único médico cadastrado, ele já vem selecionado nos laudos.","As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.","O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."],"correcoes":["O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.","Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."]},{"versao":"2.3.0","data":"2026-08-30","novidades":["Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."],"melhorias":["Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."],"correcoes":[]},{"versao":"2.2.0","data":"2026-08-30","novidades":["Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."],"melhorias":["Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."],"correcoes":["Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."]},{"versao":"2.0.0","data":"2026-08-30","novidades":["Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."],"melhorias":[],"correcoes":[]}]};
+  raiz.MEEDS_CHANGELOG = {"_leia_me":"Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.","versoes":[{"versao":"2.11.0","data":"2026-08-31","novidades":["Agora dá para enviar feedback direto do painel: conte um problema ou uma ideia, e a mensagem vai pronta para quem cuida do Assistente."],"melhorias":["O painel da engrenagem foi reorganizado em abas — Funções, Médicos, Unidades e Sobre. Antes era tudo numa rolagem só.","Os formulários de cadastro começam fechados: a lista fica limpa, e o formulário abre quando você pede."],"correcoes":[]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["O contador da Sala de Espera passou a mostrar só quem realmente chegou — antes contava também quem tinha consulta marcada e ainda não tinha aparecido."],"correcoes":["A Sala de Espera não avisava quando o paciente agendado chegava. O aviso agora sai na hora em que a chegada é marcada na tela nativa.","Se a internet oscilasse, a fila podia parecer vazia por um instante. Agora a última leitura válida é mantida até a próxima tentativa."]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID passou a funcionar também nos campos de CID secundário e associados da APAC — antes só o principal tinha."],"correcoes":[]},{"versao":"2.9.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID-10 agora vive dentro do próprio campo do laudo. O botão separado saiu: havia dois caminhos para a mesma coisa.","Digitar o código sem o ponto funciona: “J069” encontra J06.9."],"correcoes":["O campo CID mostrava duas listas de sugestão ao mesmo tempo, uma por cima da outra.","Depois de escolher um CID, a lista de sugestões reaparecia sozinha."]},{"versao":"2.8.0","data":"2026-08-31","novidades":["O CID-10 agora fica dentro do próprio laudo: clique no campo CID, digite o nome da doença ou o código, escolha — o código e a descrição entram sozinhos. Vale nos três geradores."],"melhorias":["A busca de CID-10 ficou muito mais rápida e não trava mais a tela: buscas comuns que levavam mais de um segundo agora respondem quase na hora.","A lista de resultados mostra os 50 mais relevantes e diz quantos ficaram de fora, em vez de tentar desenhar milhares de linhas."],"correcoes":["A apresentação “Bem-vindo ao Assistente Meeds” aparecia toda vez que você abria o Meeds. Agora aparece uma vez só."]},{"versao":"2.7.0","data":"2026-08-31","novidades":["Nova função “Sala de Espera”: avisa, sem som, quando um paciente de consulta agendada chega — com o nome, a hora marcada e há quanto tempo espera.","O botão da Sala de Espera mostra quantos pacientes estão aguardando, e abre a lista completa."],"melhorias":["Vários pacientes chegando ao mesmo tempo viram um aviso só, que conta quantos são."],"correcoes":[]},{"versao":"2.6.0","data":"2026-08-30","novidades":["A consulta REMUME passou a entender nome comercial: digite “Tylenol” e ela mostra o paracetamol do seu município.","Quando o remédio procurado não é padronizado no município, o Assistente diz isso com todas as letras, em vez de mostrar uma lista vazia."],"melhorias":["A busca ficou mais tolerante a erro de digitação em português: “dipironá” encontra Dipirona e “cimvastatina” encontra Sinvastatina.","A lista de nomes comerciais saiu do código e virou um arquivo que o administrador edita sozinho."],"correcoes":[]},{"versao":"2.5.0","data":"2026-08-30","novidades":["Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.","O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."],"melhorias":["Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."],"correcoes":["O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."]},{"versao":"2.4.0","data":"2026-08-30","novidades":["Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.","O código escolhido na busca entra sozinho no laudo que estiver aberto.","Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.","Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."],"melhorias":["O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.","O CPF se formata sozinho enquanto você digita.","Com um único médico cadastrado, ele já vem selecionado nos laudos.","As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.","O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."],"correcoes":["O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.","Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."]},{"versao":"2.3.0","data":"2026-08-30","novidades":["Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."],"melhorias":["Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."],"correcoes":[]},{"versao":"2.2.0","data":"2026-08-30","novidades":["Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."],"melhorias":["Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."],"correcoes":["Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."]},{"versao":"2.0.0","data":"2026-08-30","novidades":["Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."],"melhorias":[],"correcoes":[]}]};
 
   var __inv = {
-  "versao": "2.10.0",
+  "versao": "2.11.0",
+  "contato": {
+    "_leia_me": "Para onde vai o feedback do medico. O botao 'Enviar feedback' abre o programa de e-mail dele com esta mensagem ja escrita — nao ha servidor nem servico de terceiro no caminho. Troque o e-mail aqui se quem cuida do Assistente mudar.",
+    "email": "marcelonovetech@gmail.com"
+  },
   "modulos": [
     {
       "id": "alarme-fila",
@@ -4591,7 +4981,7 @@
    * cobre o resto: duas copias instaladas no Tampermonkey, ou uma
    * reexecucao do script numa navegacao da SPA. Sem ela, apareciam dois
    * docks sobrepostos e o alarme tocava duas vezes. */
-  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.10.0")) return;
+  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.11.0")) return;
 
   /* 2) O hook de rede precisa existir ANTES de qualquer chamada da
    * aplicacao — por isso e instalado aqui, em document-start, e nao
