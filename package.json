@@ -1,6 +1,6 @@
 {
   "name": "meeds-suite",
-  "version": "2.8.0",
+  "version": "2.9.0",
   "private": true,
   "description": "Pacote unificado das ferramentas Meeds da Novetech: bootloader unico, nucleo compartilhado e modulos independentes.",
   "scripts": {

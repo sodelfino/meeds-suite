@@ -2,6 +2,19 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.9.0",
+      "data": "2026-08-31",
+      "novidades": [],
+      "melhorias": [
+        "A busca de CID-10 agora vive dentro do próprio campo do laudo. O botão separado saiu: havia dois caminhos para a mesma coisa.",
+        "Digitar o código sem o ponto funciona: “J069” encontra J06.9."
+      ],
+      "correcoes": [
+        "O campo CID mostrava duas listas de sugestão ao mesmo tempo, uma por cima da outra.",
+        "Depois de escolher um CID, a lista de sugestões reaparecia sozinha."
+      ]
+    },
+    {
       "versao": "2.8.0",
       "data": "2026-08-31",
       "novidades": [
