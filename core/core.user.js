@@ -324,6 +324,10 @@
           criarOverlay: Dock.criarOverlay,
           criarBanner: Dock.criarBanner,
           criarMolduraAlerta: Dock.criarMolduraAlerta,
+          /* Para o modulo injetar CSS de elementos que ele acopla FORA
+           * da propria janela — como o autocomplete de CID, que vive
+           * dentro do formulario de outro modulo. */
+          adicionarEstilo: Dock.adicionarEstilo,
           criarAviso: Dock.criarAviso,
         },
         decisao: Decisao,

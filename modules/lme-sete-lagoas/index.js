@@ -578,6 +578,19 @@
     d.core.toast("Dados clínicos repostos do histórico.", 3500);
   }
 
+  /* Preenche codigo e descricao nos campos certos deste laudo. Usada
+   * tanto pelo autocomplete de dentro do campo quanto pela janela de
+   * busca separada — um caminho so, para os dois nunca divergirem. */
+  function preencherCidEscolhido(codigo, descricao) {
+    var campo = shadow.getElementById("lme-cid");
+    if (campo) campo.value = codigo;
+    var desc = shadow.getElementById("lme-diagnostico");
+    if (desc && (!desc.value || desc.dataset.auto === "1")) {
+      desc.value = descricao || "";
+      desc.dataset.auto = "1";
+    }
+  }
+
   function montarUI() {
     overlay = d.dock.criarOverlay({ estilo: CSS, html: HTML });
 
@@ -632,17 +645,29 @@
        * aberto — ele publica e quem estiver aberto atende. Devolver true
        * e o que diz "eu peguei"; se ninguem devolver, a busca copia o
        * codigo para a area de transferencia. */
+      /* O campo de CID deste laudo e anunciado para quem souber buscar
+       * CID-10. O modulo de busca se acopla a ele: o medico clica no
+       * campo, digita o nome da doenca e escolhe — codigo e descricao
+       * entram sozinhos. Se aquele modulo estiver desligado, ninguem
+       * atende e o campo continua sendo texto livre. */
+      function anunciarCampoCid() {
+        var campo = shadow.getElementById("lme-cid");
+        if (!campo) return;
+        deps.publicarEvento("cid:conectar-campo", {
+          input: campo,
+          aoEscolher: preencherCidEscolhido,
+        });
+      }
+      anunciarCampoCid();
+      // o modulo de busca pode ter subido depois deste laudo
+      deps.assinarEvento("cid:pronto", function () {
+        anunciarCampoCid();
+        return true;
+      });
+
       deps.assinarEvento("cid:escolhido", function (evt) {
         if (!overlay || !overlay.estaAberto()) return false;
-        var campo = shadow.getElementById("lme-cid");
-        if (!campo) return false;
-        campo.value = evt.codigo;
-        campo.dispatchEvent(new Event("input"));
-        var desc = shadow.getElementById("lme-diagnostico");
-        if (desc && !desc.value) {
-          desc.value = evt.descricao;
-          desc.dataset.auto = "1";
-        }
+        preencherCidEscolhido(evt.codigo, evt.descricao);
         return true;
       });
 

@@ -45,6 +45,7 @@
    * adiantar isso enquanto ninguem esta esperando. */
   var indice = null;
   var montandoIndice = false;
+  var estiloCampos = null;
   var totalBase = 0;
   var usandoFallback = true;
   var itensNaTela = [];
@@ -53,6 +54,11 @@
   /* Quantas linhas vao para a tela de uma vez. O resto continua
    * acessivel: e so escrever mais na busca. */
   var MAX_EXIBIDOS = 50;
+
+  /* Quantas sugestoes cabem no autocomplete de dentro do laudo. Menos que
+   * na janela de busca: e uma lista flutuante sobre o formulario, nao
+   * uma tela inteira. */
+  var MAX_SUGESTOES = 8;
 
   /* Apelidos que o medico usa na boca do dia a dia. So AMPLIAM o que da
    * para digitar; nao alteram nenhuma descricao oficial. Mesmo mecanismo
@@ -101,6 +107,23 @@
     ".cid-usar:hover { background:#123a7a; }",
     ".cid-vazio { color:#8a97a4; font-style:italic; padding:16px 4px; font-size:12.5px; }",
     ".cid-rodape { font-size:10.5px; color:#9aa5b1; line-height:1.5; }",
+  ].join("\n");
+
+  /* CSS do autocomplete que vive DENTRO do campo de CID de cada laudo.
+   * Nao ha medida em pixel de canto aqui: a lista se ancora no proprio
+   * campo (top:100%), nao na janela. Quem posiciona coisa na tela
+   * continua sendo o dock do nucleo. */
+  var CSS_CAMPO = [
+    ".cid-campo-wrap { position:relative; }",
+    ".cid-sug { position:absolute; top:100%; left:0; right:0; z-index:5; background:#fff; border:1px solid #d8dfe6; border-top:none; border-radius:0 0 8px 8px; box-shadow:0 8px 20px rgba(0,0,0,.14); max-height:230px; overflow-y:auto; }",
+    ".cid-sug[hidden] { display:none; }",
+    ".cid-sug-item { display:flex; gap:8px; align-items:baseline; padding:7px 10px; cursor:pointer; font-size:12px; line-height:1.4; border-bottom:1px solid #f1f5f9; }",
+    ".cid-sug-item:last-child { border-bottom:none; }",
+    ".cid-sug-item:hover, .cid-sug-item.cid-sug-focado { background:#e8f0f8; }",
+    ".cid-sug-cod { font-family:ui-monospace,Menlo,monospace; font-weight:700; color:#123a7a; flex-shrink:0; }",
+    ".cid-sug-desc { color:#16221f; }",
+    ".cid-sug-vazio { padding:9px 10px; font-size:11.5px; color:#8a97a4; font-style:italic; }",
+    ".cid-sug-rodape { padding:6px 10px; font-size:10.5px; color:#9aa5b1; border-top:1px solid #f1f5f9; background:#fafbfc; }",
   ].join("\n");
 
   function escapeHtml(str) {
@@ -344,6 +367,148 @@
     refs.lista.appendChild(frag);
   }
 
+  /* ------------------------------------------------------------------
+   * CONECTAR UM CAMPO DE CID DE UM LAUDO
+   * ------------------------------------------------------------------
+   * O fluxo principal do medico e dentro do formulario: ele clica no
+   * campo CID-10 do laudo, digita o nome da doenca, ve os resultados e
+   * escolhe — codigo e descricao entram sozinhos, nos campos certos. A
+   * janela de busca separada continua existindo como apoio.
+   *
+   * Este modulo NAO conhece nenhum laudo. Cada laudo ANUNCIA o proprio
+   * campo pelo barramento ("cid:conectar-campo") e diz o que fazer com a
+   * escolha. Se o modulo de CID estiver desligado, ninguem atende e o
+   * campo segue funcionando como texto livre, como sempre foi.
+   * ------------------------------------------------------------------ */
+  var camposConectados = [];
+
+  function conectarCampo(pedido) {
+    var input = pedido && pedido.input;
+    if (!input || input.__cidConectado) return false;
+    input.__cidConectado = true;
+
+    /* a lista precisa de um ancoradouro com position:relative */
+    var wrap = document.createElement("div");
+    wrap.className = "cid-campo-wrap";
+    input.parentNode.insertBefore(wrap, input);
+    wrap.appendChild(input);
+
+    var sug = document.createElement("div");
+    sug.className = "cid-sug";
+    sug.hidden = true;
+    wrap.appendChild(sug);
+
+    if (!input.getAttribute("placeholder") || /digite ou escolha/i.test(input.getAttribute("placeholder"))) {
+      input.setAttribute("placeholder", "código ou nome da doença");
+    }
+    input.setAttribute("autocomplete", "off");
+
+    var itens = [];
+    var foco = -1;
+    var debounce = null;
+
+    function fechar() {
+      sug.hidden = true;
+      foco = -1;
+    }
+
+    function escolher(item) {
+      input.value = item.codigo;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      if (typeof pedido.aoEscolher === "function") pedido.aoEscolher(item.codigo, item.descricao);
+      fechar();
+    }
+
+    function marcar(novo) {
+      var linhas = sug.querySelectorAll(".cid-sug-item");
+      if (!linhas.length) return;
+      if (linhas[foco]) linhas[foco].classList.remove("cid-sug-focado");
+      foco = Math.min(Math.max(novo, 0), linhas.length - 1);
+      linhas[foco].classList.add("cid-sug-focado");
+      linhas[foco].scrollIntoView({ block: "nearest" });
+    }
+
+    function abrirCom(termo) {
+      var texto = String(termo || "").trim();
+      if (texto.length < 2) {
+        fechar();
+        return;
+      }
+
+      var r = raiz.MeedsSuiteBusca.buscar(texto, garantirIndice(), {
+        sinonimos: SINONIMOS,
+        limite: MAX_SUGESTOES,
+        config: { PESO_SINONIMO: 2.2 },
+      });
+      itens = r.itens;
+      foco = -1;
+
+      if (!itens.length) {
+        sug.innerHTML = '<div class="cid-sug-vazio">Nenhum CID encontrado para “' + escapeHtml(texto) + '”.</div>';
+        sug.hidden = false;
+        return;
+      }
+
+      sug.innerHTML =
+        itens
+          .map(function (it, i) {
+            return (
+              '<div class="cid-sug-item" data-i="' + i + '">' +
+              '<span class="cid-sug-cod">' + escapeHtml(it.codigo) + "</span>" +
+              '<span class="cid-sug-desc">' + escapeHtml(it.descricao) + "</span>" +
+              "</div>"
+            );
+          })
+          .join("") +
+        (r.total > itens.length
+          ? '<div class="cid-sug-rodape">' + r.total.toLocaleString("pt-BR") +
+            " encontrados — escreva mais para refinar</div>"
+          : "");
+
+      sug.querySelectorAll(".cid-sug-item").forEach(function (linha) {
+        // mousedown, e nao click: o clique perderia para o blur do campo
+        linha.addEventListener("mousedown", function (ev) {
+          ev.preventDefault();
+          escolher(itens[Number(linha.getAttribute("data-i"))]);
+        });
+      });
+      sug.hidden = false;
+    }
+
+    input.addEventListener("input", function () {
+      clearTimeout(debounce);
+      debounce = setTimeout(function () {
+        abrirCom(input.value);
+      }, 180);
+    });
+    input.addEventListener("focus", function () {
+      if (input.value.trim().length >= 2) abrirCom(input.value);
+    });
+    input.addEventListener("blur", function () {
+      setTimeout(fechar, 120);
+    });
+    input.addEventListener("keydown", function (ev) {
+      if (sug.hidden) return;
+      if (ev.key === "ArrowDown") {
+        ev.preventDefault();
+        marcar(foco + 1);
+      } else if (ev.key === "ArrowUp") {
+        ev.preventDefault();
+        marcar(foco - 1);
+      } else if (ev.key === "Enter") {
+        if (itens.length) {
+          ev.preventDefault();
+          escolher(itens[foco >= 0 ? foco : 0]);
+        }
+      } else if (ev.key === "Escape") {
+        fechar();
+      }
+    });
+
+    camposConectados.push({ input: input, wrap: wrap, sug: sug });
+    return true;
+  }
+
   function montarUI() {
     overlay = d.dock.criarOverlay({
       estilo: CSS,
@@ -426,12 +591,38 @@
     start: function (deps) {
       d = deps;
       aplicarBase(raiz.MEEDS_CID10_FALLBACK || {}, false);
+      estiloCampos = d.dock.adicionarEstilo(CSS_CAMPO);
       montarUI();
       deps.aoClicarBotao(abrir);
+
+      /* Um laudo anuncia o campo de CID dele e diz o que fazer com a
+       * escolha. Devolver true e o que diz "conectei". */
+      deps.assinarEvento("cid:conectar-campo", function (pedido) {
+        return conectarCampo(pedido);
+      });
+
+      /* Os laudos que subiram ANTES deste modulo ja anunciaram os campos
+       * e nao encontraram ninguem escutando. Este aviso faz cada um deles
+       * anunciar de novo. */
+      deps.publicarEvento("cid:pronto", {});
+
       buscarBaseCompleta();
     },
 
     stop: function () {
+      /* Desligar o modulo tem que devolver os campos ao estado original:
+       * o formulario do laudo continua ali, e o campo tem que voltar a
+       * ser texto livre. */
+      camposConectados.forEach(function (c) {
+        try {
+          c.wrap.parentNode.insertBefore(c.input, c.wrap);
+          c.wrap.parentNode.removeChild(c.wrap);
+          delete c.input.__cidConectado;
+        } catch (e) {}
+      });
+      camposConectados = [];
+      if (estiloCampos && estiloCampos.parentNode) estiloCampos.parentNode.removeChild(estiloCampos);
+      estiloCampos = null;
       if (overlay) {
         overlay.remover();
         overlay = null;
