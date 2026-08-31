@@ -2918,6 +2918,60 @@
   var MARCA_INSTANCIA = "__ASSISTENTE_MEEDS_ATIVO__";
 
   /* ------------------------------------------------------------------
+   * BOAS-VINDAS: UMA VEZ SO, PARA SEMPRE
+   * ------------------------------------------------------------------
+   * A versao anterior guardava a marca em localStorage e so gravava
+   * quando o medico clicava em "Ver depois", "Cadastrar agora" ou no X.
+   * Fechar clicando FORA da janela — que e o jeito mais natural de
+   * dispensar um aviso — nao passava por nenhum desses caminhos, entao
+   * nada era gravado e a apresentacao voltava a cada visita. Era esse o
+   * incomodo relatado.
+   *
+   * Duas mudancas:
+   *   1. a marca e gravada assim que a apresentacao APARECE, e nao
+   *      quando ela e fechada. Qualquer forma de dispensar conta;
+   *   2. a marca vai para o armazenamento do Tampermonkey (GM_setValue),
+   *      que sobrevive a "limpar dados do site" e a troca de aba, com
+   *      localStorage apenas como reserva.
+   *
+   * O SUFIXO _v1 NA CHAVE E PROPOSITAL: se um dia houver uma mudanca
+   * grande que justifique reapresentar o assistente, basta subir para
+   * _v2 aqui. Sem isso, ninguem ve de novo — que e o comportamento
+   * desejado no dia a dia.
+   * ------------------------------------------------------------------ */
+  var CHAVE_BOAS_VINDAS = "meeds_assistente_boas_vindas_v1";
+  var VALOR_CONCLUIDO = "concluido";
+  var CHAVE_ANTIGA_BOAS_VINDAS = "meeds-suite:_core:boasVindas";
+
+  function temGM() {
+    return typeof GM_getValue === "function" && typeof GM_setValue === "function";
+  }
+
+  function boasVindasConcluidas() {
+    try {
+      if (temGM() && GM_getValue(CHAVE_BOAS_VINDAS, null) === VALOR_CONCLUIDO) return true;
+    } catch (e) {}
+    try {
+      if (localStorage.getItem(CHAVE_BOAS_VINDAS) === VALOR_CONCLUIDO) return true;
+      // quem ja tinha visto na versao anterior nao ve de novo
+      if (localStorage.getItem(CHAVE_ANTIGA_BOAS_VINDAS) === '"vista"') {
+        marcarBoasVindasConcluidas();
+        return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  function marcarBoasVindasConcluidas() {
+    try {
+      if (temGM()) GM_setValue(CHAVE_BOAS_VINDAS, VALOR_CONCLUIDO);
+    } catch (e) {}
+    try {
+      localStorage.setItem(CHAVE_BOAS_VINDAS, VALOR_CONCLUIDO);
+    } catch (e) {}
+  }
+
+  /* ------------------------------------------------------------------
    * 1) INSTANCIA UNICA
    * Devolve false quando JA existe uma instancia viva nesta pagina.
    * Chamado pelo bootloader antes de qualquer coisa criar UI.
@@ -3053,8 +3107,14 @@
   }
 
   function darBoasVindas(dock, storage) {
+    /* Marca ANTES de mostrar: assim, qualquer jeito de dispensar (X, os
+     * botoes, clique fora, fechar a aba) ja conta como visto. */
+    marcarBoasVindasConcluidas();
+
     var overlay = dock.criarOverlay({
       estilo: CSS,
+      /* Clicar fora fecha, como em qualquer aviso — e agora isso e
+       * seguro, porque a marca ja foi gravada. */
       html:
         '<div class="msd-aviso msd-boas-vindas" role="dialog" aria-modal="true">' +
         "  <header><h2>Bem-vindo ao Assistente Meeds</h2>" +
@@ -3077,7 +3137,7 @@
     });
 
     function encerrar() {
-      storage.gravar("boasVindas", "vista");
+      marcarBoasVindasConcluidas(); // idempotente
       overlay.fechar();
     }
     overlay.$(".msd-fechar").addEventListener("click", encerrar);
@@ -3101,7 +3161,7 @@
   var TENTATIVAS_MS = [4000, 10000, 20000, 45000];
 
   function verificar(dock, storage) {
-    if (storage.ler("boasVindas", null) !== "vista") {
+    if (!boasVindasConcluidas()) {
       setTimeout(function () {
         darBoasVindas(dock, storage);
       }, 1200);
@@ -3124,6 +3184,9 @@
   }
 
   raiz.MeedsSuiteDiagnostico = {
+    boasVindasConcluidas: boasVindasConcluidas,
+    marcarBoasVindasConcluidas: marcarBoasVindasConcluidas,
+    CHAVE_BOAS_VINDAS: CHAVE_BOAS_VINDAS,
     reservarInstancia: reservarInstancia,
     limparDockOrfao: limparDockOrfao,
     detectarAntigos: detectarAntigos,
