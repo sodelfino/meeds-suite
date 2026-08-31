@@ -351,7 +351,7 @@
     nome: "Busca de CID-10 nos laudos",
     descricao:
       "Liga a tabela completa da CID-10 ao campo CID dos laudos: digite o código ou o nome da doença e escolha na própria linha do formulário.",
-    versao: "1.1.0",
+    versao: "1.2.0",
     configPadrao: {},
 
     /* SEM BOTAO NO DOCK, de proposito.

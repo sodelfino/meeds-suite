@@ -555,6 +555,17 @@ desenhado pelo navegador, fora do alcance do CSS e do JavaScript da página.
 Por isso ele foi removido **dos campos de CID**, e só deles. O datalist de
 *procedimento* continua, porque lá não há autocomplete próprio competindo.
 
+
+**D29 — Todo campo de CID recebe a busca; só o principal alimenta a descrição.**
+A APAC tem três campos de CID (37 principal, 38 secundário, 39 associados) e
+todos recebem código — logo, todos ganham o autocomplete. Mas o campo 36,
+"Descrição do diagnóstico", descreve o diagnóstico **principal**. Por isso a
+função que preenche recebe um parâmetro: só o `apac-cid1` escreve na descrição.
+Sem essa distinção, escolher um CID associado sobrescreveria a descrição do
+principal e o médico perderia o que já tinha, sem perceber.
+Sete Lagoas e CMD têm um campo de CID cada, e nele o comportamento é o do
+principal.
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público

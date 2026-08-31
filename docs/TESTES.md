@@ -25,8 +25,8 @@ real quem faz isso é o `@require` do Tampermonkey.
 
 ## Resultado da última execução
 
-**100 casos, 100 passaram, 0 falharam.** Executado em 31/08/2026 contra
-`dist/meeds-suite.user.js` v2.9.0.
+**116 casos, 116 passaram, 0 falharam.** Executado em 31/08/2026 contra
+`dist/meeds-suite.user.js` v2.10.0.
 
 ### Núcleo, dock e login
 
@@ -312,6 +312,44 @@ contextual.
 > O teste **99** confere resíduo por resíduo, porque desligar um módulo tem que
 > devolver a tela ao estado anterior: `.cid-campo-wrap`, `.cid-sug`, a marca
 > `__cidConectado`, o `<style>` do autocomplete e o `placeholder` original.
+
+#### Todos os campos de CID (v2.10.0)
+
+Os **cinco** campos de CID dos geradores usam o mesmo motor, o mesmo índice e o
+mesmo debounce.
+
+| Campo | Gerador | Campo do formulário oficial |
+|---|---|---|
+| `apac-cid1` | APAC | 37 — CID-10 principal |
+| `apac-cid2` | APAC | 38 — CID-10 secundário |
+| `apac-cid3` | APAC | 39 — associados |
+| `lme-cid` | Sete Lagoas | Diagnóstico |
+| `cmd-cid` | CMD | Diagnóstico |
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 101 | Busca por texto nos três campos da APAC | ✅ G43 em todos |
+| 102 | Código com e sem ponto em `apac-cid2` e `apac-cid3` | ✅ J06.9 em ambos |
+| 103 | Seleção no principal preenche código **e** descrição | ✅ G43.0 |
+| 104 | Seleção no secundário preenche **só ele** | ✅ M54.5 |
+| 105 | Secundário **não** sobrescreve a descrição do principal | ✅ |
+| 106 | Seleção nos associados não mexe nos outros dois | ✅ G43.0 / M54.5 / I10 |
+| 107 | A lista fecha após a seleção, nos três | ✅ |
+| 108 | Um autocomplete por campo: 5 listas no total | ✅ |
+| 109 | Desativar não deixa resíduo em nenhum dos cinco | ✅ placeholder restaurado em cada um |
+| 110 | Religar reconecta os cinco, sem wrap duplo | ✅ |
+| 111 | Sem listener duplicado: 1 busca por digitação | ✅ |
+| 112 | Índice não reconstruído a cada tecla | ✅ 0 reconstruções |
+| 113 | Nenhuma chamada de rede | ✅ |
+| 114 | Sem botão, janela ou datalist reintroduzidos | ✅ |
+| 115 | LME e CMD: código sem ponto e seleção | ✅ M54.5 + descrição |
+| 116 | Regressão: REMUME, Sala de Espera e os 7 módulos | ✅ 7/7 ativos |
+
+> O teste **105** é o que justifica o desenho: só o CID **principal** alimenta a
+> "Descrição do diagnóstico" (campo 36). Se o secundário também escrevesse ali,
+> escolher um CID associado apagaria a descrição do principal — o médico
+> perderia o que já tinha, sem perceber.
+
 
 #### Desempenho (v2.9.0)
 
