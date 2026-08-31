@@ -240,6 +240,63 @@ function main() {
     return;
   }
 
+  /* ------------------------------------------------------------------
+   * VARIANTE PARA SAFARI / iPad (extensao "Userscripts", de quoid)
+   * ------------------------------------------------------------------
+   * Mesmo codigo, outro cabecalho. Duas restricoes da extensao mandam
+   * nisso, e as duas foram conferidas na documentacao dela:
+   *
+   * 1. "When using API methods, it's only possible to inject into the
+   *    content script scope." Ou seja: pedir QUALQUER @grant de GM joga
+   *    o script para o escopo isolado, onde o `window` nao e o da
+   *    pagina. Ali o hub de rede nao enxergaria as chamadas do Meeds — o
+   *    alarme de fila, a captura do paciente na APAC e a deteccao de
+   *    municipio do REMUME ficariam cegos. Por isso a variante usa
+   *    `@grant none` e `@inject-into page`.
+   *
+   * 2. As APIs de GM da extensao sao ASSINCRONAS (GM.setValue devolve
+   *    Promise) e nao existem na forma sincrona GM_setValue. Como o
+   *    nucleo ja cai para localStorage quando o GM nao esta disponivel,
+   *    nada quebra — muda so a durabilidade, o que esta documentado no
+   *    guia de instalacao.
+   *
+   * O @require continua valendo: e a extensao que busca jsPDF e pdf-lib
+   * na instalacao, nao a pagina em tempo de execucao.
+   * ------------------------------------------------------------------ */
+  const VARIANTE_SAFARI = "dist/meeds-suite.safari.user.js";
+
+  function cabecalhoSafari(texto) {
+    const fim = texto.indexOf("// ==/UserScript==");
+    let meta = texto.slice(0, fim);
+    const resto = texto.slice(fim);
+
+    meta = meta
+      .replace(/\/\/ @name\s+.*\n/, `// @name         ${manifest.nome} (Safari/iPad) - Por: ${manifest.autor}\n`)
+      .replace(/\/\/ @namespace\s+.*\n/, "// @namespace    novetech-meeds-suite-safari\n")
+      /* Sai todo @grant e entra `none`: e o que mantem o script no escopo
+       * da pagina, onde o hub de rede funciona. */
+      .replace(/\/\/ @grant\s+.*\n/g, "")
+      .replace(/(\/\/ @connect\s+.*\n)+/g, "")
+      .replace(
+        /(\/\/ @run-at\s+.*\n)/,
+        "// @grant        none\n// @inject-into page\n$1"
+      )
+      .replace(
+        /\/\/ @updateURL\s+.*\n/,
+        `// @updateURL    ${manifest.baseRaw}/${VARIANTE_SAFARI}\n`
+      )
+      .replace(
+        /\/\/ @downloadURL\s+.*\n/,
+        `// @downloadURL  ${manifest.baseRaw}/${VARIANTE_SAFARI}\n`
+      );
+
+    return meta + resto;
+  }
+
+  const destinoSafari = path.join(RAIZ, VARIANTE_SAFARI);
+  fs.mkdirSync(path.dirname(destinoSafari), { recursive: true });
+  fs.writeFileSync(destinoSafari, cabecalhoSafari(saidaComVersao), "utf8");
+
   const destino = path.join(RAIZ, manifest.saida);
   fs.mkdirSync(path.dirname(destino), { recursive: true });
   fs.writeFileSync(destino, saidaComVersao, "utf8");
@@ -267,7 +324,10 @@ function main() {
     console.log(`  dados:   ${CAMINHO_DADOS}`);
     resumo.forEach((l) => console.log(l));
   }
-  console.log("\nInstale/atualize dist/meeds-suite.user.js no Tampermonkey.");
+  const kbSafari = (fs.statSync(destinoSafari).size / 1024).toFixed(0);
+  console.log(`  safari:  ${VARIANTE_SAFARI} (${kbSafari} KB) — @grant none, @inject-into page`);
+  console.log("\nTampermonkey (Windows/Mac/Android): dist/meeds-suite.user.js");
+  console.log("Safari no iPad/iPhone/Mac (app Userscripts): " + VARIANTE_SAFARI);
 }
 
 try {

@@ -637,6 +637,28 @@ limpo ao fechar o painel, ao desligar o módulo e após 10 minutos de
 inatividade — consultório compartilhado não deveria depender de o médico
 lembrar de fechar a janela.
 
+
+**D38 — No Safari/iPad, `@grant none` em vez de armazenamento durável.**
+A extensão Userscripts documenta: *"When using API methods, it's only possible
+to inject into the content script scope."* Pedir qualquer `@grant` de GM tira o
+script do contexto da página — e ali o hub de rede não enxerga as chamadas do
+Meeds. Isso cegaria o alarme de fila, o preenchimento automático da APAC e a
+detecção de município do REMUME.
+A troca foi deliberada: `@grant none` + `@inject-into page`, com o cadastro
+caindo para `localStorage`. Custo: "limpar dados do site" no Safari apaga o
+cadastro. Benefício: três funções continuam funcionando. Cadastro se refaz em
+um minuto e tem backup; alarme cego, não.
+As APIs do Userscripts também são assíncronas (`GM.setValue` devolve Promise),
+e a forma síncrona não existe — o núcleo já caía para `localStorage`, então
+nada precisou mudar no código.
+
+**D39 — Uma base de código, dois cabeçalhos.**
+O `build.js` gera os dois pacotes do mesmo fonte; só o bloco de metadados
+difere, e o corpo é idêntico byte a byte. Não existe um "Assistente do iPad"
+mantido à parte — manter dois seria garantir que um deles fica para trás.
+O teste de fumaça passou a carregar a variante Safari justamente porque o
+navegador comum não tem GM nem `unsafeWindow`: testar por ali cobre os dois.
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público

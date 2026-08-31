@@ -25,8 +25,8 @@ real quem faz isso é o `@require` do Tampermonkey.
 
 ## Resultado da última execução
 
-**151 casos, 151 passaram, 0 falharam.** Executado em 31/08/2026 contra
-`dist/meeds-suite.user.js` v2.12.0.
+**160 casos, 160 passaram, 0 falharam.** Executado em 31/08/2026 contra
+`dist/meeds-suite.safari.user.js` v2.13.0 (corpo idêntico ao pacote do Tampermonkey).
 
 ### Núcleo, dock e login
 
@@ -511,6 +511,38 @@ setTimeout(async () => {
   }
 }, 300);
 ```
+
+
+### Safari / iPad *(v2.13.0)*
+
+O teste de fumaça passou a carregar **a variante Safari**, de propósito: um
+navegador comum não tem `GM_setValue` nem `unsafeWindow` — que é exatamente o
+ambiente do app Userscripts com `@grant none`. Como o corpo dos dois arquivos é
+idêntico byte a byte, a suíte inteira cobre os dois alvos.
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 152 | Ambiente sem GM e sem `unsafeWindow` (igual ao Safari) | ✅ |
+| 153 | Núcleo sobe sem GM: 7 módulos, 6 botões | ✅ |
+| 154 | Hub de rede instalado no escopo da página | ✅ |
+| 155 | **O hub enxerga o `fetch` da página** — o que o escopo isolado quebraria | ✅ evento recebido |
+| 156 | Cadastro cai para `localStorage` e funciona | ✅ |
+| 157 | Detecção de iOS: Mac sem toque → `false` | ✅ |
+| 158 | Detecção de iOS: Mac **com** toque (iPadOS 13+) → `true` | ✅ |
+| 159 | Corpo dos dois pacotes é idêntico | ✅ byte a byte |
+| 160 | REMUME e CID intactos na variante Safari | ✅ |
+
+O teste **155** é o que justifica a escolha de `@grant none`: com qualquer
+`@grant`, o Userscripts move o script para o content script scope e esse evento
+não chegaria — o alarme de fila, a captura do paciente na APAC e a detecção de
+município do REMUME ficariam cegos.
+
+> **O que ainda não foi verificado em aparelho real.** Não tenho iPad aqui.
+> Falta confirmar no dispositivo: a instalação pelo app Userscripts, o download
+> do PDF indo para Arquivos, e a suposição de que o Safari do iOS não renderiza
+> PDF em `<iframe>` — é por causa dela que a prévia não é oferecida ali. Se a
+> prévia funcionar no seu iPad, o comentário em `modules/preview-pdf/index.js`
+> diz qual linha trocar.
 
 
 ### Extensibilidade

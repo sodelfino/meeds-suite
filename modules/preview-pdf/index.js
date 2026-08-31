@@ -93,7 +93,31 @@
     d.storage.gravar("paineis", todas);
   }
 
+  /* ------------------------------------------------------------------
+   * iPad / iPhone
+   * ------------------------------------------------------------------
+   * O Safari do iOS nao exibe PDF dentro de <iframe> de forma
+   * confiavel: costuma mostrar so a primeira pagina, ou um quadro em
+   * branco. Um painel em branco e pior do que painel nenhum — o medico
+   * fica achando que travou. Por isso a previa nao e oferecida ali.
+   *
+   * O resto do Assistente funciona normalmente no iPad; e so esta funcao
+   * que depende do visualizador embutido.
+   *
+   * SE VOCE TESTOU NO SEU iPAD E A PREVIA APARECE: troque a linha abaixo
+   * para `return false;` e rode `npm run build`. Nada mais precisa mudar.
+   *
+   * iPadOS 13+ se identifica como Mac no userAgent; o que separa os dois
+   * e ter mais de um ponto de toque. */
+  function ehIOS() {
+    var ua = navigator.userAgent || "";
+    if (/Windows|Android/.test(ua)) return false;
+    var pareceApple = /iPad|iPhone|iPod|Macintosh/.test(ua);
+    return pareceApple && (navigator.maxTouchPoints || 0) > 1;
+  }
+
   function cabe() {
+    if (ehIOS()) return false;
     return raiz.innerWidth >= LARGURA_MINIMA;
   }
 
@@ -528,6 +552,7 @@
       forcarLarguraMinima: function (v) {
         LARGURA_MINIMA = v;
       },
+      ehIOS: ehIOS,
     },
   });
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);

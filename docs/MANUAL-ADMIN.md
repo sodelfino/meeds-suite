@@ -92,7 +92,7 @@ não existe changelog em dois lugares.
 
 | Comando | Para que serve |
 |---|---|
-| `npm run build` | Gera o pacote que os médicos instalam. **Rode sempre depois de editar qualquer arquivo.** |
+| `npm run build` | Gera **os dois** pacotes (Tampermonkey e Safari/iPad). **Rode sempre depois de editar qualquer arquivo.** |
 | `npm run verificar` | Confere se está tudo coerente, sem gerar nada. Bom para checar antes de publicar. |
 | `npm run sync-fallback` | Depois de editar `remumes.json`: copia a lista para dentro do pacote (a cópia que funciona sem internet). |
 | `npm run sync-cid10` | Depois de editar `dados/cid10.json`: idem, para a busca de CID. |
@@ -203,7 +203,8 @@ dados/changelog.json   o que mudou em cada versão (aviso + histórico)
 dados/cid10.json       tabela CID-10 completa (14.233 códigos)
 dados/medicos.exemplo.json   modelo da lista de médicos (não comitar preenchido)
 modules/remume/remumes.json  lista de medicamentos por município
-dist/meeds-suite.user.js     o pacote gerado — NUNCA edite à mão
+dist/meeds-suite.user.js        pacote do Tampermonkey — NUNCA edite à mão
+dist/meeds-suite.safari.user.js pacote do Safari/iPad — idem, gerado junto
 core/  modules/  scripts/    código; só mexa seguindo o guia de módulos
 docs/                  esta documentação
 ```

@@ -118,7 +118,11 @@ window.__smokeLog = log;
 </script>
 
 <!-- o pacote gerado pelo build entra aqui, como o Tampermonkey faria -->
-<script src="../dist/meeds-suite.user.js"></script>
+<!-- Carrega a variante SAFARI de proposito: o navegador comum nao tem
+     GM_setValue nem unsafeWindow, que e exatamente o ambiente do app
+     Userscripts com @grant none. Testar por aqui cobre os dois alvos —
+     o corpo dos dois arquivos e identico byte a byte. -->
+<script src="../dist/meeds-suite.safari.user.js"></script>
 
 <script>
 (function () {

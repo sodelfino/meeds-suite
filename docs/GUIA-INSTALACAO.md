@@ -24,6 +24,10 @@ Pronto. Os botões aparecem no canto inferior direito assim que você entra.
 
 ---
 
+> **Está num iPad ou iPhone?** Não existe Tampermonkey para iOS. Use o app
+> gratuito **Userscripts** no Safari e a versão `.safari.` do Assistente —
+> o passo a passo está em **[GUIA-IPAD.md](GUIA-IPAD.md)**.
+
 ## 2. Desativar os scripts antigos (importante)
 
 Se você já usava os scripts separados, **desative-os** depois de instalar a

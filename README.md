@@ -30,12 +30,20 @@ desliga num painel, sem reinstalar nada.
 
 ## 2. Como instalar
 
-Com o **Tampermonkey** instalado no navegador, abra:
+**No computador** (Windows, Mac, Linux) ou no Android, com o **Tampermonkey**:
 
 <https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.user.js>
 
-e clique em **Instalar**. Passo a passo completo, com o que fazer depois:
-**[docs/GUIA-INSTALACAO.md](docs/GUIA-INSTALACAO.md)**
+Passo a passo: **[docs/GUIA-INSTALACAO.md](docs/GUIA-INSTALACAO.md)**
+
+**No iPad ou iPhone**, com o app gratuito **Userscripts** no Safari:
+
+<https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.safari.user.js>
+
+Passo a passo e o que muda no iPad: **[docs/GUIA-IPAD.md](docs/GUIA-IPAD.md)**
+
+> As duas versões têm o **mesmo código**, byte a byte — só o cabeçalho difere.
+> Use a que tem `.safari.` no nome apenas no iPad/iPhone.
 
 ---
 
