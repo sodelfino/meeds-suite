@@ -34,12 +34,25 @@
   var d = null;
   var overlay = null;
   var refs = null;
-  var indice = null;
   var cids = null;      // { codigo: descricao }
+
+  /* O indice NAO e montado na carga da pagina.
+   * Medido com a base completa: montar custa ~364 ms de thread
+   * bloqueada, e num computador mais modesto isso passa de um segundo —
+   * o medico veria a tela do Meeds travar sem entender por que. Ele e
+   * montado quando realmente precisa: na primeira busca. Se o navegador
+   * oferecer tempo ocioso (requestIdleCallback), aproveitamos para
+   * adiantar isso enquanto ninguem esta esperando. */
+  var indice = null;
+  var montandoIndice = false;
   var totalBase = 0;
   var usandoFallback = true;
   var itensNaTela = [];
   var focado = -1;
+
+  /* Quantas linhas vao para a tela de uma vez. O resto continua
+   * acessivel: e so escrever mais na busca. */
+  var MAX_EXIBIDOS = 50;
 
   /* Apelidos que o medico usa na boca do dia a dia. So AMPLIAM o que da
    * para digitar; nao alteram nenhuma descricao oficial. Mesmo mecanismo
@@ -115,16 +128,42 @@
     cids = mapa;
     totalBase = Object.keys(mapa).length;
     usandoFallback = !completa;
-    // o indice pesquisa codigo E descricao: "I48" e "fibrilacao" acham o mesmo
-    indice = raiz.MeedsSuiteBusca.criarIndice(
-      Object.keys(mapa).map(function (cod) {
-        return { codigo: cod, descricao: mapa[cod] };
-      }),
-      function (item) {
-        return item.codigo + " " + item.descricao;
-      }
-    );
+    indice = null; // sera remontado sob demanda, com a base nova
     atualizarSubtitulo();
+    agendarMontagemOciosa();
+  }
+
+  /* Monta o indice se ainda nao existir. O indice pesquisa CODIGO e
+   * DESCRICAO juntos, entao "I48" e "fibrilacao" chegam ao mesmo item. */
+  function garantirIndice() {
+    if (indice || montandoIndice || !cids) return indice;
+    montandoIndice = true;
+    try {
+      indice = raiz.MeedsSuiteBusca.criarIndice(
+        Object.keys(cids).map(function (cod) {
+          return { codigo: cod, descricao: cids[cod] };
+        }),
+        function (item) {
+          return item.codigo + " " + item.descricao;
+        }
+      );
+    } finally {
+      montandoIndice = false;
+    }
+    return indice;
+  }
+
+  /* Adianta a montagem em tempo ocioso, quando o navegador oferece. Se
+   * nao oferecer, nada acontece e a montagem fica para a primeira busca
+   * — que e o comportamento garantido. */
+  function agendarMontagemOciosa() {
+    if (typeof raiz.requestIdleCallback !== "function") return;
+    raiz.requestIdleCallback(
+      function () {
+        garantirIndice();
+      },
+      { timeout: 8000 }
+    );
   }
 
   function atualizarSubtitulo() {
@@ -222,14 +261,17 @@
 
     var achados;
     var viaFuzzy = false;
+    var totalAchados = 0;
     if (!termo) {
+      // sem termo: so uma amostra, para a lista nao nascer com 14 mil linhas
       achados = Object.keys(cids)
-        .slice(0, 60)
+        .slice(0, MAX_EXIBIDOS)
         .map(function (c) {
           return { codigo: c, descricao: cids[c] };
         });
+      totalAchados = achados.length;
     } else {
-      var r = raiz.MeedsSuiteBusca.buscar(termo, indice, {
+      var r = raiz.MeedsSuiteBusca.buscar(termo, garantirIndice(), {
         sinonimos: SINONIMOS,
         limite: 120,
         /* Aqui os sinonimos sao inequivocos ("pressao alta" so pode ser
@@ -240,11 +282,24 @@
       });
       achados = r.itens;
       viaFuzzy = r.viaFuzzy;
+      totalAchados = r.total;
     }
 
-    refs.count.textContent = termo
-      ? achados.length + " resultado(s)"
-      : "digite o nome da doença ou o código";
+    /* Nunca desenhamos milhares de linhas: uma busca larga como "dor"
+     * casa com milhares de codigos, e montar tudo isso no DOM trava a
+     * tela sem ajudar ninguem — nenhum medico percorre 4.000 resultados.
+     * Mostramos os mais relevantes e dizemos quantos ficaram de fora. */
+    var exibidos = achados.slice(0, MAX_EXIBIDOS);
+
+    if (!termo) {
+      refs.count.textContent = "digite o nome da doença ou o código";
+    } else if (totalAchados > exibidos.length) {
+      refs.count.textContent =
+        "mostrando os " + exibidos.length + " mais relevantes de " +
+        totalAchados.toLocaleString("pt-BR") + " — escreva mais para refinar";
+    } else {
+      refs.count.textContent = exibidos.length + " resultado(s)";
+    }
 
     refs.hint.hidden = !(viaFuzzy && achados.length);
     if (!refs.hint.hidden) {
@@ -255,7 +310,7 @@
     itensNaTela = [];
     focado = -1;
 
-    if (!achados.length) {
+    if (!exibidos.length) {
       var vazio = document.createElement("li");
       vazio.className = "cid-vazio";
       vazio.textContent =
@@ -265,7 +320,7 @@
     }
 
     var frag = document.createDocumentFragment();
-    achados.forEach(function (item) {
+    exibidos.forEach(function (item) {
       var li = document.createElement("li");
       var txt = document.createElement("div");
       txt.className = "cid-item";

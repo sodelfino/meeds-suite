@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
- * core/busca.js — motor de busca tolerante (fuzzy + fonetica + sinonimos)
+ * core/busca.js — motor de busca tolerante (aproximacao + sinonimos)
  * ------------------------------------------------------------------
  * DE ONDE VEIO
  * Este motor nasceu dentro do Assistente REMUME e amadureceu la, com
@@ -16,7 +16,8 @@
  *     aproximacao -> "escetamina", farmacos sem relacao;
  *   - guarda de 3 caracteres no gatilho de sinonimo: sem ela, o "b" de
  *     "complexo_b" casava com quase qualquer busca;
- *   - forma fonetica pre-calculada por item, uma vez, e nao a cada tecla.
+ *   - custo de troca ponderado para os pares que o portugues confunde
+ *     na escrita (s/z, c/s, g/j), no lugar de uma dobra fonetica.
  *
  * O QUE MUDOU AO GENERALIZAR
  * O dicionario de sinonimos deixou de ser fixo (era so de medicamentos)
@@ -164,6 +165,13 @@
      * ativo digitado. Quem tem sinonimos inequivocos — "pressao alta"
      * so pode ser hipertensao — pode subir isso na chamada. */
     PESO_SINONIMO: 0.8,
+    /* Quantos casamentos EXATOS bastam para dispensar a aproximacao
+     * daquela palavra. Uma palavra que aparece em dezenas de itens
+     * claramente existe na base — tentar adivinhar o que ela "queria
+     * ser" so acrescenta ruido, e e a parte cara da busca. Abaixo desse
+     * numero (erro de digitacao, termo raro) a aproximacao roda normal.
+     * Tres ocorrencias ja bastam para provar que a palavra existe. */
+    EXATOS_QUE_DISPENSAM_APROXIMACAO: 3,
   };
 
   function normalizarFraseSinonimo(str) {
@@ -258,167 +266,212 @@
     return false;
   }
 
-  function pontuarItem(item, tokensDigitados, frasesSinonimo, cfg) {
-    var pontuacaoExata = 0;
-    var pontuacaoFuzzy = 0;
-
-    for (var i = 0; i < tokensDigitados.length; i++) {
-      var token = tokensDigitados[i];
-      if (item.normalizado.indexOf(token) !== -1) {
-        pontuacaoExata += 1.0;
-        if (item.normalizado.indexOf(token) === 0) pontuacaoExata += cfg.BONUS_COMECA_COM;
-        continue;
-      }
-      /* CAMADA 1 nao usa fonetica: ela aproxima demais para competir com
-       * um resultado obvio. A fonetica e a camada 2, so quando esta aqui
-       * nao achar nada. */
-      var melhorFuzzy = 0;
-      for (var j = 0; j < item.tokens.length; j++) {
-        var score = fuzzyScore(token, item.tokens[j]);
-        if (score > melhorFuzzy) melhorFuzzy = score;
-      }
-      if (melhorFuzzy >= cfg.LIMIAR_FUZZY) pontuacaoFuzzy += melhorFuzzy * 0.5;
-    }
-
-    for (var k = 0; k < frasesSinonimo.length; k++) {
-      var frase = frasesSinonimo[k];
-      /* Casamento de sinonimo respeita LIMITE DE PALAVRA. Substring cru
-       * funcionava enquanto os sinonimos eram nomes longos de farmaco
-       * (o caso do REMUME), mas quebra feio com abreviacao medica:
-       * "iam" casava dentro de "t-iam-ina", "dm" dentro de
-       * "a-dm-inistrada", "has" dentro de "c-has". Resultado: buscar
-       * "infarto" trazia Deficiencia de Tiamina em primeiro lugar. */
-      var bateDireto = casaComoPalavra(item.normalizado, frase);
-      /* Na variante SEM espacos o limite de palavra nao se aplica: o
-       * texto inteiro virou uma palavra so. Aqui vale substring, como
-       * antes — e o que faz "acido acetilsalicilico" achar quem escreveu
-       * "AcidoAcetilSalicilico100mg". O piso de 8 caracteres evita
-       * colisao de termo curto. */
-      var bateSemEspaco =
-        frase.length >= 8 &&
-        item.normalizadoSemEspaco.indexOf(frase.replace(/\s+/g, "")) !== -1;
-      if (bateDireto || bateSemEspaco) pontuacaoExata += cfg.PESO_SINONIMO;
-    }
-
-    return {
-      pontuacao: pontuacaoExata + pontuacaoFuzzy,
-      viaFuzzy: pontuacaoExata === 0 && pontuacaoFuzzy > 0,
-    };
-  }
 
   /* ------------------------------------------------------------------
    * criarIndice(itens, textoDe)
    * ------------------------------------------------------------------
-   * itens: array qualquer. textoDe(item) devolve o texto pesquisavel.
-   * O indice pre-calcula tokens e forma fonetica UMA vez — esse custo
-   * nao pode acontecer a cada tecla digitada.
+   * POR QUE ESTE INDICE E INVERTIDO
+   * A primeira versao guardava os tokens POR ITEM. Com a REMUME (algumas centenas de itens por municipio)
+   * isso nunca incomodou. Com a CID-10 completa — 14.233 itens — passou a
+   * custar caro de dois jeitos, ambos medidos:
+   *   - montar o indice bloqueava a tela por ~910 ms;
+   *   - cada busca gastava de 600 a 1500 ms, porque a comparacao por
+   *     aproximacao (Levenshtein) rodava contra os tokens de TODOS os
+   *     itens, a cada tecla digitada.
+   *
+   * Agora o indice guarda cada PALAVRA DISTINTA uma vez so, com a lista
+   * dos itens em que ela aparece. A base inteira tem dezenas de milhares
+   * de ocorrencias de palavra, mas so alguns milhares de palavras
+   * distintas — e a aproximacao passa a rodar sobre essas, nao sobre os
+   * itens.
+   *
+   * A PONTUACAO FINAL E A MESMA DE ANTES. O que mudou e quantas vezes a
+   * conta e feita, nao a conta — por isso o REMUME nao muda de
+   * comportamento.
    * ------------------------------------------------------------------ */
   function criarIndice(itens, textoDe) {
-    return (itens || []).map(function (item) {
+    var lista = itens || [];
+    var n = lista.length;
+
+    var originais = new Array(n);
+    var normalizados = new Array(n);
+    var semEspaco = new Array(n);
+
+    /* palavra distinta -> { itens: [indices em que ela aparece] } */
+    var vocabulario = Object.create(null);
+
+    for (var i = 0; i < n; i++) {
+      var item = lista[i];
       var texto = textoDe ? textoDe(item) : String(item);
+      var norm = normalizarTexto(texto);
+
+      originais[i] = item;
+      normalizados[i] = norm;
+      semEspaco[i] = norm.replace(/\s+/g, "");
+
       var tokens = tokenizarTexto(texto);
-      var normalizado = normalizarTexto(texto);
-      return {
-        original: item,
-        tokens: tokens,
-        /* Forma fonetica PT-BR, pre-calculada UMA vez por item. E usada
-         * so na camada 2 da busca (ver buscar), mas calcular aqui evita
-         * refazer isso a cada tecla digitada. */
-        tokensFoneticos: tokens.map(raiz.MeedsSuiteFonetica.codificar),
-        normalizado: normalizado,
-        normalizadoSemEspaco: normalizado.replace(/\s+/g, ""),
-      };
-    });
+      for (var j = 0; j < tokens.length; j++) {
+        var t = tokens[j];
+        var entrada = vocabulario[t];
+        if (!entrada) entrada = vocabulario[t] = { itens: [] };
+        // um item pode repetir a mesma palavra; guardamos so uma vez
+        if (entrada.itens[entrada.itens.length - 1] !== i) entrada.itens.push(i);
+      }
+    }
+
+    /* Palavras agrupadas por COMPRIMENTO. A aproximacao so precisa olhar
+     * as faixas de tamanho compativel com o que foi digitado — sem isto
+     * ela percorria as 8.391 palavras distintas so para descartar quase
+     * todas pelo tamanho. */
+    var palavras = Object.keys(vocabulario);
+    var porTamanho = Object.create(null);
+    for (var w = 0; w < palavras.length; w++) {
+      var tam = palavras[w].length;
+      (porTamanho[tam] || (porTamanho[tam] = [])).push(palavras[w]);
+    }
+
+    return {
+      tamanho: n,
+      originais: originais,
+      normalizados: normalizados,
+      semEspaco: semEspaco,
+      vocabulario: vocabulario,
+      palavras: palavras,
+      porTamanho: porTamanho,
+    };
   }
 
   /* ------------------------------------------------------------------
-   * buscar(termo, indice, opcoes) -> { itens, viaFuzzy, viaFonetica, melhor }
-   * ------------------------------------------------------------------
-   * A busca acontece em DUAS CAMADAS, nesta ordem:
-   *
-   *   1. exata + parecida (substring, sinonimos e erro de digitacao com
-   *      custo do portugues);
-   *   2. FONETICA — so entra se a camada 1 nao devolveu NADA.
-   *
-   * A separacao existe porque a fonetica e generosa por natureza: ela
-   * junta tudo que "soa parecido". Se corresse junto com a camada 1,
-   * poderia colocar um homofono na frente de um resultado exato. Rodando
-   * so no vazio, ela vira exatamente o que deve ser: a ultima tentativa
-   * antes de dizer "nao encontrei".
-   *
+   * buscar(termo, indice, opcoes) -> { itens, viaFuzzy, melhor, total }
    * opcoes: { sinonimos, limite, config }
+   *
+   * Tres passagens, da mais barata para a mais cara:
+   *   1. casamento EXATO por substring, varrendo o texto normalizado;
+   *   2. sinonimos, por frase inteira e com limite de palavra;
+   *   3. APROXIMACAO, so sobre as palavras distintas e so as de
+   *      comprimento compativel — se a diferenca de tamanho entre duas
+   *      palavras ja e maior que a distancia de edicao maxima, elas nao
+   *      tem chance e nem sao comparadas.
    * ------------------------------------------------------------------ */
-  function pontuarLista(indice, tokens, frases, cfg, limite) {
-    return indice
-      .map(function (item) {
-        var r = pontuarItem(item, tokens, frases, cfg);
-        return { item: item, pontuacao: r.pontuacao, viaFuzzy: r.viaFuzzy };
-      })
-      .filter(function (x) {
-        return x.pontuacao > 0;
-      })
-      .sort(function (a, b) {
-        return b.pontuacao - a.pontuacao;
-      })
-      .slice(0, limite);
-  }
-
-  function buscarPorFonetica(tokens, indice, limite) {
-    var codigos = tokens.map(raiz.MeedsSuiteFonetica.codificar).filter(Boolean);
-    if (!codigos.length) return [];
-
-    return indice
-      .map(function (item) {
-        var acertos = 0;
-        codigos.forEach(function (codigo) {
-          for (var j = 0; j < item.tokensFoneticos.length; j++) {
-            if (item.tokensFoneticos[j] === codigo) {
-              acertos++;
-              return;
-            }
-          }
-        });
-        return { item: item, pontuacao: acertos };
-      })
-      .filter(function (x) {
-        return x.pontuacao > 0;
-      })
-      .sort(function (a, b) {
-        return b.pontuacao - a.pontuacao;
-      })
-      .slice(0, limite);
-  }
-
   function buscar(termo, indice, opcoes) {
     opcoes = opcoes || {};
     var cfg = Object.assign({}, CONFIG_PADRAO, opcoes.config || {});
     var tokens = tokensUteis(termo);
-    if (tokens.length === 0) return { itens: [], viaFuzzy: false, viaFonetica: false, melhor: null };
-
-    var limite = opcoes.limite || cfg.LIMITE_RESULTADOS;
-    var frases = obterFrasesSinonimo(tokens, opcoes.sinonimos);
-
-    // camada 1
-    var pontuados = pontuarLista(indice, tokens, frases, cfg, limite);
-    var viaFonetica = false;
-
-    // camada 2, so no vazio
-    if (pontuados.length === 0 && opcoes.fonetica !== false) {
-      pontuados = buscarPorFonetica(tokens, indice, limite);
-      viaFonetica = pontuados.length > 0;
+    if (tokens.length === 0 || !indice || !indice.tamanho) {
+      return { itens: [], viaFuzzy: false, melhor: null, total: 0 };
     }
 
+    var n = indice.tamanho;
+    var exata = new Float64Array(n);
+    var fuzzy = new Float64Array(n);
+    var tocado = new Uint8Array(n);
+    var normalizados = indice.normalizados;
+
+    for (var q = 0; q < tokens.length; q++) {
+      var token = tokens[q];
+      var casouExato = new Uint8Array(n);
+
+      /* 1) exato */
+      var quantosExatos = 0;
+      for (var i = 0; i < n; i++) {
+        var pos = normalizados[i].indexOf(token);
+        if (pos === -1) continue;
+        casouExato[i] = 1;
+        tocado[i] = 1;
+        quantosExatos++;
+        exata[i] += 1.0;
+        if (pos === 0) exata[i] += cfg.BONUS_COMECA_COM;
+      }
+
+      /* Palavra bem escrita nao precisa de aproximacao. Isto e o que
+       * mantem a busca rapida no caso comum: com a CID-10 completa,
+       * "fibrilacao atrial" caia de 147 ms para poucos milissegundos,
+       * porque as duas palavras existem na base e nenhuma delas precisa
+       * ser comparada contra as 8.391 palavras distintas.
+       * Um casamento exato sempre vale mais que um aproximado (1.0
+       * contra no maximo 0.45 por palavra), entao pular aqui nao muda
+       * quem aparece primeiro. */
+      if (quantosExatos >= cfg.EXATOS_QUE_DISPENSAM_APROXIMACAO) continue;
+
+      /* 3) aproximacao sobre o vocabulario */
+      /* Poda por comprimento: se a diferenca de tamanho entre duas
+       * palavras ja passa da distancia maxima tolerada, nem calculamos a
+       * distancia de edicao — insercao e remocao custam 1 cada, entao
+       * nao ha como caber no limite. Usa a MESMA regra do fuzzyScore,
+       * para nao podar nada que ele aceitaria. */
+      var distanciaMaxima = limiteDeDistancia(token.length);
+      var melhorPorItem = null;
+
+      var candidatas = [];
+      for (var tam = token.length - distanciaMaxima; tam <= token.length + distanciaMaxima; tam++) {
+        var faixa = indice.porTamanho && indice.porTamanho[tam];
+        if (faixa) candidatas = candidatas.concat(faixa);
+      }
+
+      for (var p = 0; p < candidatas.length; p++) {
+        var palavra = candidatas[p];
+        var entrada = indice.vocabulario[palavra];
+        var score = fuzzyScore(token, palavra);
+        if (score < cfg.LIMIAR_FUZZY) continue;
+
+        if (!melhorPorItem) melhorPorItem = Object.create(null);
+        var dono = entrada.itens;
+        for (var k = 0; k < dono.length; k++) {
+          var id = dono[k];
+          if (casouExato[id]) continue; // este token ja pontuou exato aqui
+          if (!(id in melhorPorItem) || melhorPorItem[id] < score) melhorPorItem[id] = score;
+        }
+      }
+
+      if (melhorPorItem) {
+        for (var chave in melhorPorItem) {
+          var idFuzzy = +chave;
+          fuzzy[idFuzzy] += melhorPorItem[idFuzzy] * 0.5;
+          tocado[idFuzzy] = 1;
+        }
+      }
+    }
+
+    /* 2) sinonimos */
+    var frases = obterFrasesSinonimo(tokens, opcoes.sinonimos);
+    for (var f = 0; f < frases.length; f++) {
+      var frase = frases[f];
+      var fraseSemEspaco = frase.replace(/\s+/g, "");
+      var vaiSemEspaco = frase.length >= 8;
+      for (var m = 0; m < n; m++) {
+        var bate =
+          casaComoPalavra(normalizados[m], frase) ||
+          (vaiSemEspaco && indice.semEspaco[m].indexOf(fraseSemEspaco) !== -1);
+        if (bate) {
+          exata[m] += cfg.PESO_SINONIMO;
+          tocado[m] = 1;
+        }
+      }
+    }
+
+    /* ordena so o que pontuou */
+    var candidatos = [];
+    for (var c = 0; c < n; c++) {
+      if (!tocado[c]) continue;
+      var total = exata[c] + fuzzy[c];
+      if (total > 0) candidatos.push({ i: c, total: total, viaFuzzy: exata[c] === 0 });
+    }
+    candidatos.sort(function (a, b) {
+      return b.total - a.total;
+    });
+
+    var limite = opcoes.limite || cfg.LIMITE_RESULTADOS;
+    var recortados = candidatos.slice(0, limite);
+
     return {
-      itens: pontuados.map(function (x) {
-        return x.item.original;
+      itens: recortados.map(function (x) {
+        return indice.originais[x.i];
       }),
-      viaFuzzy: !!(pontuados[0] && pontuados[0].viaFuzzy),
-      viaFonetica: viaFonetica,
-      melhor: pontuados[0] ? pontuados[0].item.original : null,
+      viaFuzzy: !!(recortados[0] && recortados[0].viaFuzzy),
+      melhor: recortados[0] ? indice.originais[recortados[0].i] : null,
+      total: candidatos.length,
     };
   }
-
-
   raiz.MeedsSuiteBusca = {
     criarIndice: criarIndice,
     buscar: buscar,
