@@ -72,10 +72,34 @@
  * a aplicacao real faria as chamadas. O hook do nucleo entra por cima.
  * ------------------------------------------------------------------ */
 var filaMock = [];
+/* Agenda simulada do modulo Sala de Espera. Cada item tem a forma real da
+   resposta do Meeds: id, agendamentoId, statusAtendimentoId,
+   agendamento.checkinStatus, gestaoHorario.horarioInicial e
+   cliente.razaoSocialNome. */
+var agendadosMock = [];
+window.__agendados = {
+  definir: function (lista) { agendadosMock = lista; },
+  criar: function (id, nome, minutosAtras, status) {
+    var t = new Date(Date.now() - (minutosAtras || 0) * 60000).toISOString();
+    return {
+      id: id,
+      agendamentoId: "ag-" + id,
+      statusAtendimentoId: status === undefined ? 2 : status,
+      agendamento: { checkinStatus: true },
+      gestaoHorario: { horarioInicial: t },
+      cliente: { razaoSocialNome: nome },
+    };
+  },
+};
+
 var fetchDeVerdade = window.fetch.bind(window);
 window.fetch = function (url, init) {
   var u = String(url);
   if (u.indexOf("/api/v1/Atendimento") === 0) {
+    if (u.indexOf("Agendado=true") !== -1) {
+      var corpoAg = JSON.stringify({ items: agendadosMock, count: agendadosMock.length, totalPages: 1 });
+      return Promise.resolve(new Response(corpoAg, { status: 200, headers: { "Content-Type": "application/json" } }));
+    }
     var corpo = JSON.stringify({ data: filaMock.map(function (id) { return { id: id }; }) });
     return Promise.resolve(new Response(corpo, { status: 200, headers: { "Content-Type": "application/json" } }));
   }

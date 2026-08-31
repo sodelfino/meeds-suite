@@ -1,6 +1,6 @@
 {
   "nome": "Assistente Meeds",
-  "versao": "2.6.0",
+  "versao": "2.7.0",
   "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
   "repositorio": "https://github.com/sodelfino/meeds-suite",
   "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -41,6 +41,15 @@
       "arquivo": "modules/alarme-fila/index.js",
       "origem": "sodelfino/meeds-alarme-fila",
       "prioridadeBotao": 10
+    },
+    {
+      "id": "sala-espera",
+      "nome": "Sala de Espera",
+      "descricao": "Avisa quando um paciente de consulta agendada chega na sala de espera, sem som, e mostra quem está aguardando.",
+      "versao": "1.0.0",
+      "arquivo": "modules/sala-espera/index.js",
+      "origem": "novo — endpoint /api/v1/Atendimento com Agendado=true",
+      "prioridadeBotao": 15
     },
     {
       "id": "apac-itauna",

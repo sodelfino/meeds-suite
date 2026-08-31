@@ -37,6 +37,7 @@
   var shadow = null;
   var elDock = null;
   var elToast = null;
+  var elAvisos = null;
   var botoes = []; // { id, prioridade, el, visivel }
   var timerToast = null;
 
@@ -96,6 +97,44 @@
     "}",
     ".ms-overlay[hidden] { display: none; }",
 
+    /* --- avisos no canto superior direito ---
+       Ficam longe do dock de proposito: o dock e onde o medico CLICA, e o
+       aviso e algo que ele LE. Empilham para baixo, na ordem de chegada,
+       e cada um sai sozinho. */
+    "#avisos {",
+    "  position: fixed; top: 16px; right: 16px; z-index: " + (Z_BASE + 5) + ";",
+    "  display: flex; flex-direction: column; gap: 10px; align-items: flex-end;",
+    "  pointer-events: none; max-width: min(380px, calc(100vw - 32px));",
+    "}",
+    "#avisos > * { pointer-events: auto; }",
+    ".ms-aviso {",
+    "  background: #fff; border-radius: 12px; width: 100%;",
+    "  box-shadow: 0 10px 34px rgba(15,23,42,.28); overflow: hidden;",
+    "  border-left: 4px solid #1a4fa0;",
+    "  animation: ms-aviso-entra .22s ease-out;",
+    "}",
+    "@keyframes ms-aviso-entra { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }",
+    ".ms-aviso-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 12px 14px 0; }",
+    ".ms-aviso-titulo { font-size: 13px; font-weight: 700; color: #123a7a; line-height: 1.3; }",
+    ".ms-aviso-fechar { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 15px; line-height: 1; padding: 0 2px; flex-shrink: 0; }",
+    ".ms-aviso-fechar:hover { color: #475569; }",
+    ".ms-aviso-corpo { padding: 6px 14px 12px; font-size: 12.5px; line-height: 1.5; color: #16221f; }",
+    ".ms-aviso-acoes { display: flex; gap: 8px; padding: 0 14px 12px; }",
+    ".ms-aviso-btn { background: #1a4fa0; color: #fff; border: none; border-radius: 7px; padding: 7px 13px; font-size: 12px; font-weight: 700; cursor: pointer; }",
+    ".ms-aviso-btn:hover { background: #123a7a; }",
+    ".ms-aviso-btn-sec { background: #fff; color: #123a7a; border: 1.3px solid #cbd5e1; }",
+    ".ms-aviso-btn-sec:hover { background: #eef4fb; }",
+
+    /* contador no canto do botao do dock */
+    ".ms-btn { position: relative; }",
+    ".ms-badge {",
+    "  position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px;",
+    "  padding: 0 5px; border-radius: 999px; background: #dc2626; color: #fff;",
+    "  font-size: 11px; font-weight: 800; display: flex; align-items: center;",
+    "  justify-content: center; box-shadow: 0 2px 6px rgba(220,38,38,.5);",
+    "}",
+    ".ms-badge[hidden] { display: none; }",
+
     /* --- moldura de alerta em tela cheia ---
        Plantao noturno costuma ser em sala com luz baixa e o medico
        raramente esta olhando para o topo da tela. Uma moldura pulsante
@@ -138,6 +177,7 @@
       shadow = host.shadowRoot;
       elDock = shadow.getElementById("dock");
       elToast = shadow.getElementById("toast");
+      elAvisos = shadow.getElementById("avisos");
       return shadow;
     }
     host = document.createElement("div");
@@ -152,6 +192,10 @@
     elDock = document.createElement("div");
     elDock.id = "dock";
     shadow.appendChild(elDock);
+
+    elAvisos = document.createElement("div");
+    elAvisos.id = "avisos";
+    shadow.appendChild(elAvisos);
 
     elToast = document.createElement("div");
     elToast.id = "toast";
@@ -223,7 +267,12 @@
     return {
       elemento: el,
       definirTexto: function (icone, rotulo) {
+        /* Preserva o contador: textContent apagaria o badge junto, e um
+         * modulo que use os dois (icone que muda + contador) perderia o
+         * numero na primeira troca de icone. */
+        var badge = el.querySelector(".ms-badge");
         el.textContent = rotulo ? icone + " " + rotulo : icone;
+        if (badge) el.appendChild(badge);
         reposicionarToast();
       },
       definirTitulo: function (t) {
@@ -231,6 +280,18 @@
       },
       definirClasse: function (nome, ligado) {
         el.classList.toggle(nome, !!ligado);
+      },
+      /* Contador no canto do botao. Passe 0 (ou nada) para esconder. */
+      definirContador: function (n) {
+        var badge = el.querySelector(".ms-badge");
+        if (!badge) {
+          badge = document.createElement("span");
+          badge.className = "ms-badge";
+          el.appendChild(badge);
+        }
+        var valor = Number(n) || 0;
+        badge.textContent = valor > 99 ? "99+" : String(valor);
+        badge.hidden = valor <= 0;
       },
       mostrar: function () {
         el.hidden = false;
@@ -373,6 +434,93 @@
     };
   }
 
+  /* ------------------------------------------------------------------
+   * criarAviso({ titulo, corpo, acoes, autoFecharMs })
+   * ------------------------------------------------------------------
+   * Aviso discreto no canto superior direito. E para INFORMAR — nao tem
+   * som e nao bloqueia a tela, ao contrario do banner do alarme, que e
+   * para INTERROMPER. Quem precisa dos dois usa os dois.
+   *
+   * acoes = [{ rotulo, aoClicar, primario }]
+   * Devolve um handle com fechar() e atualizar(), porque quem avisa
+   * costuma precisar corrigir o que disse: tres pacientes chegando em
+   * sequencia devem virar UM aviso que conta ate tres, nao tres avisos
+   * empilhados.
+   * ------------------------------------------------------------------ */
+  function criarAviso(spec) {
+    garantirHost();
+    spec = spec || {};
+
+    var el = document.createElement("div");
+    el.className = "ms-aviso";
+    var timer = null;
+
+    function render(s) {
+      el.innerHTML =
+        '<div class="ms-aviso-topo"><div class="ms-aviso-titulo"></div>' +
+        '<button type="button" class="ms-aviso-fechar" aria-label="Fechar">&#10005;</button></div>' +
+        '<div class="ms-aviso-corpo"></div>' +
+        (s.acoes && s.acoes.length ? '<div class="ms-aviso-acoes"></div>' : "");
+
+      el.querySelector(".ms-aviso-titulo").textContent = s.titulo || "";
+      // textContent, nunca innerHTML: o corpo pode carregar nome de
+      // paciente, e nome nao pode virar HTML
+      var corpo = el.querySelector(".ms-aviso-corpo");
+      corpo.textContent = "";
+      (Array.isArray(s.corpo) ? s.corpo : [s.corpo || ""]).forEach(function (linha, i) {
+        if (i > 0) corpo.appendChild(document.createElement("br"));
+        corpo.appendChild(document.createTextNode(linha));
+      });
+
+      el.querySelector(".ms-aviso-fechar").addEventListener("click", fechar);
+
+      var caixa = el.querySelector(".ms-aviso-acoes");
+      if (caixa) {
+        (s.acoes || []).forEach(function (acao) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "ms-aviso-btn" + (acao.primario === false ? " ms-aviso-btn-sec" : "");
+          b.textContent = acao.rotulo;
+          b.addEventListener("click", function () {
+            if (typeof acao.aoClicar === "function") acao.aoClicar();
+            if (acao.fecha !== false) fechar();
+          });
+          caixa.appendChild(b);
+        });
+      }
+    }
+
+    function agendarFechamento(ms) {
+      if (timer) clearTimeout(timer);
+      if (ms > 0) timer = setTimeout(fechar, ms);
+    }
+
+    function fechar() {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }
+
+    render(spec);
+    elAvisos.appendChild(el);
+    agendarFechamento(spec.autoFecharMs);
+
+    return {
+      elemento: el,
+      atualizar: function (novo) {
+        spec = Object.assign({}, spec, novo || {});
+        render(spec);
+        // reaparece no fim da pilha, para o medico reparar na mudanca
+        if (el.parentNode) el.parentNode.appendChild(el);
+        agendarFechamento(spec.autoFecharMs);
+      },
+      fechar: fechar,
+      estaVisivel: function () {
+        return !!el.parentNode;
+      },
+    };
+  }
+
   /* Ponto de extensao para conteudo solto no shadow do nucleo (raro). */
   function adicionarEstilo(css) {
     garantirHost();
@@ -391,6 +539,7 @@
     criarOverlay: criarOverlay,
     criarBanner: criarBanner,
     criarMolduraAlerta: criarMolduraAlerta,
+    criarAviso: criarAviso,
     adicionarEstilo: adicionarEstilo,
     _reposicionarToast: reposicionarToast,
   };

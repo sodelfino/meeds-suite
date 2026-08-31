@@ -324,6 +324,7 @@
           criarOverlay: Dock.criarOverlay,
           criarBanner: Dock.criarBanner,
           criarMolduraAlerta: Dock.criarMolduraAlerta,
+          criarAviso: Dock.criarAviso,
         },
         decisao: Decisao,
         auth: Auth,

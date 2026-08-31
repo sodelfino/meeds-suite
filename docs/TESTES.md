@@ -25,8 +25,8 @@ real quem faz isso é o `@require` do Tampermonkey.
 
 ## Resultado da última execução
 
-**75 casos, 75 passaram, 0 falharam.** Executado em 30/08/2026 contra
-`dist/meeds-suite.user.js` v2.6.0.
+**86 casos, 86 passaram, 0 falharam.** Executado em 31/08/2026 contra
+`dist/meeds-suite.user.js` v2.7.0.
 
 ### Núcleo, dock e login
 
@@ -206,6 +206,36 @@ Array.from(host.querySelectorAll("#rm-results li .rm-item-text"))
   .map(li => norm(li.textContent))
   .filter(n => !lista.includes(n));   // tem que devolver []
 ```
+
+
+### Sala de Espera *(novo)*
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 76 | Primeira leitura fotografa o estado e **não** notifica | ✅ |
+| 77 | Contador no botão mostra quantos aguardam | ✅ |
+| 78 | Paciente novo gera aviso, com nome, hora e espera | ✅ |
+| 79 | Mesmo paciente na leitura seguinte **não** notifica de novo | ✅ |
+| 80 | Três chegando juntos viram **um** aviso: "3 pacientes na sala de espera" | ✅ |
+| 81 | Quem sai da fila some do conjunto de vistos | ✅ |
+| 82 | Quem volta a aguardar conta como chegada nova | ✅ |
+| 83 | Painel lista todos, com o tempo de espera de cada um | ✅ |
+| 84 | Não consulta a API na tela de login | ✅ 0 chamadas |
+| 85 | Desligar o módulo interrompe a consulta periódica | ✅ 0 chamadas |
+| 86 | Religar volta a funcionar | ✅ |
+
+Auditoria de privacidade do módulo (feita por inspeção do código):
+
+| Verificação | Resultado |
+|---|---|
+| Grava algo em disco? | ❌ nada — `localStorage`, `GM_setValue` e afins não aparecem |
+| Envia dados para fora? | ❌ só um `fetch` same-origin para o próprio Meeds |
+| Registra nome de paciente no console? | ❌ os dois `console.debug` usam texto fixo, sem PII |
+
+O mock de agendados na página de teste (`window.__agendados`) reproduz a forma
+real da resposta — `items`, `statusAtendimentoId`, `agendamento.checkinStatus`,
+`gestaoHorario.horarioInicial`, `cliente.razaoSocialNome` — para os testes
+exercitarem o mesmo caminho que roda em produção.
 
 
 ### Extensibilidade

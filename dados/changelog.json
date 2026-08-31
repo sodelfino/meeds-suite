@@ -2,6 +2,18 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.7.0",
+      "data": "2026-08-31",
+      "novidades": [
+        "Nova função “Sala de Espera”: avisa, sem som, quando um paciente de consulta agendada chega — com o nome, a hora marcada e há quanto tempo espera.",
+        "O botão da Sala de Espera mostra quantos pacientes estão aguardando, e abre a lista completa."
+      ],
+      "melhorias": [
+        "Vários pacientes chegando ao mesmo tempo viram um aviso só, que conta quantos são."
+      ],
+      "correcoes": []
+    },
+    {
       "versao": "2.6.0",
       "data": "2026-08-30",
       "novidades": [

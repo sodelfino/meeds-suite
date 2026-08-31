@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Assistente Meeds - Por: Marcelo
 // @namespace    novetech-meeds-suite
-// @version      2.6.0
+// @version      2.7.0
 // @description  Assistente Meeds - Por: Marcelo. Alarme de fila, APAC de Itauna, laudos de Sete Lagoas e Conceicao do Mato Dentro e consulta a REMUME, numa instalacao unica. Cada funcao liga e desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
 // @author       Marcelo
 // @match        *://*.meeds.com.br/*
@@ -272,6 +272,7 @@
   var shadow = null;
   var elDock = null;
   var elToast = null;
+  var elAvisos = null;
   var botoes = []; // { id, prioridade, el, visivel }
   var timerToast = null;
 
@@ -331,6 +332,44 @@
     "}",
     ".ms-overlay[hidden] { display: none; }",
 
+    /* --- avisos no canto superior direito ---
+       Ficam longe do dock de proposito: o dock e onde o medico CLICA, e o
+       aviso e algo que ele LE. Empilham para baixo, na ordem de chegada,
+       e cada um sai sozinho. */
+    "#avisos {",
+    "  position: fixed; top: 16px; right: 16px; z-index: " + (Z_BASE + 5) + ";",
+    "  display: flex; flex-direction: column; gap: 10px; align-items: flex-end;",
+    "  pointer-events: none; max-width: min(380px, calc(100vw - 32px));",
+    "}",
+    "#avisos > * { pointer-events: auto; }",
+    ".ms-aviso {",
+    "  background: #fff; border-radius: 12px; width: 100%;",
+    "  box-shadow: 0 10px 34px rgba(15,23,42,.28); overflow: hidden;",
+    "  border-left: 4px solid #1a4fa0;",
+    "  animation: ms-aviso-entra .22s ease-out;",
+    "}",
+    "@keyframes ms-aviso-entra { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }",
+    ".ms-aviso-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 12px 14px 0; }",
+    ".ms-aviso-titulo { font-size: 13px; font-weight: 700; color: #123a7a; line-height: 1.3; }",
+    ".ms-aviso-fechar { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 15px; line-height: 1; padding: 0 2px; flex-shrink: 0; }",
+    ".ms-aviso-fechar:hover { color: #475569; }",
+    ".ms-aviso-corpo { padding: 6px 14px 12px; font-size: 12.5px; line-height: 1.5; color: #16221f; }",
+    ".ms-aviso-acoes { display: flex; gap: 8px; padding: 0 14px 12px; }",
+    ".ms-aviso-btn { background: #1a4fa0; color: #fff; border: none; border-radius: 7px; padding: 7px 13px; font-size: 12px; font-weight: 700; cursor: pointer; }",
+    ".ms-aviso-btn:hover { background: #123a7a; }",
+    ".ms-aviso-btn-sec { background: #fff; color: #123a7a; border: 1.3px solid #cbd5e1; }",
+    ".ms-aviso-btn-sec:hover { background: #eef4fb; }",
+
+    /* contador no canto do botao do dock */
+    ".ms-btn { position: relative; }",
+    ".ms-badge {",
+    "  position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px;",
+    "  padding: 0 5px; border-radius: 999px; background: #dc2626; color: #fff;",
+    "  font-size: 11px; font-weight: 800; display: flex; align-items: center;",
+    "  justify-content: center; box-shadow: 0 2px 6px rgba(220,38,38,.5);",
+    "}",
+    ".ms-badge[hidden] { display: none; }",
+
     /* --- moldura de alerta em tela cheia ---
        Plantao noturno costuma ser em sala com luz baixa e o medico
        raramente esta olhando para o topo da tela. Uma moldura pulsante
@@ -373,6 +412,7 @@
       shadow = host.shadowRoot;
       elDock = shadow.getElementById("dock");
       elToast = shadow.getElementById("toast");
+      elAvisos = shadow.getElementById("avisos");
       return shadow;
     }
     host = document.createElement("div");
@@ -387,6 +427,10 @@
     elDock = document.createElement("div");
     elDock.id = "dock";
     shadow.appendChild(elDock);
+
+    elAvisos = document.createElement("div");
+    elAvisos.id = "avisos";
+    shadow.appendChild(elAvisos);
 
     elToast = document.createElement("div");
     elToast.id = "toast";
@@ -458,7 +502,12 @@
     return {
       elemento: el,
       definirTexto: function (icone, rotulo) {
+        /* Preserva o contador: textContent apagaria o badge junto, e um
+         * modulo que use os dois (icone que muda + contador) perderia o
+         * numero na primeira troca de icone. */
+        var badge = el.querySelector(".ms-badge");
         el.textContent = rotulo ? icone + " " + rotulo : icone;
+        if (badge) el.appendChild(badge);
         reposicionarToast();
       },
       definirTitulo: function (t) {
@@ -466,6 +515,18 @@
       },
       definirClasse: function (nome, ligado) {
         el.classList.toggle(nome, !!ligado);
+      },
+      /* Contador no canto do botao. Passe 0 (ou nada) para esconder. */
+      definirContador: function (n) {
+        var badge = el.querySelector(".ms-badge");
+        if (!badge) {
+          badge = document.createElement("span");
+          badge.className = "ms-badge";
+          el.appendChild(badge);
+        }
+        var valor = Number(n) || 0;
+        badge.textContent = valor > 99 ? "99+" : String(valor);
+        badge.hidden = valor <= 0;
       },
       mostrar: function () {
         el.hidden = false;
@@ -608,6 +669,93 @@
     };
   }
 
+  /* ------------------------------------------------------------------
+   * criarAviso({ titulo, corpo, acoes, autoFecharMs })
+   * ------------------------------------------------------------------
+   * Aviso discreto no canto superior direito. E para INFORMAR — nao tem
+   * som e nao bloqueia a tela, ao contrario do banner do alarme, que e
+   * para INTERROMPER. Quem precisa dos dois usa os dois.
+   *
+   * acoes = [{ rotulo, aoClicar, primario }]
+   * Devolve um handle com fechar() e atualizar(), porque quem avisa
+   * costuma precisar corrigir o que disse: tres pacientes chegando em
+   * sequencia devem virar UM aviso que conta ate tres, nao tres avisos
+   * empilhados.
+   * ------------------------------------------------------------------ */
+  function criarAviso(spec) {
+    garantirHost();
+    spec = spec || {};
+
+    var el = document.createElement("div");
+    el.className = "ms-aviso";
+    var timer = null;
+
+    function render(s) {
+      el.innerHTML =
+        '<div class="ms-aviso-topo"><div class="ms-aviso-titulo"></div>' +
+        '<button type="button" class="ms-aviso-fechar" aria-label="Fechar">&#10005;</button></div>' +
+        '<div class="ms-aviso-corpo"></div>' +
+        (s.acoes && s.acoes.length ? '<div class="ms-aviso-acoes"></div>' : "");
+
+      el.querySelector(".ms-aviso-titulo").textContent = s.titulo || "";
+      // textContent, nunca innerHTML: o corpo pode carregar nome de
+      // paciente, e nome nao pode virar HTML
+      var corpo = el.querySelector(".ms-aviso-corpo");
+      corpo.textContent = "";
+      (Array.isArray(s.corpo) ? s.corpo : [s.corpo || ""]).forEach(function (linha, i) {
+        if (i > 0) corpo.appendChild(document.createElement("br"));
+        corpo.appendChild(document.createTextNode(linha));
+      });
+
+      el.querySelector(".ms-aviso-fechar").addEventListener("click", fechar);
+
+      var caixa = el.querySelector(".ms-aviso-acoes");
+      if (caixa) {
+        (s.acoes || []).forEach(function (acao) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "ms-aviso-btn" + (acao.primario === false ? " ms-aviso-btn-sec" : "");
+          b.textContent = acao.rotulo;
+          b.addEventListener("click", function () {
+            if (typeof acao.aoClicar === "function") acao.aoClicar();
+            if (acao.fecha !== false) fechar();
+          });
+          caixa.appendChild(b);
+        });
+      }
+    }
+
+    function agendarFechamento(ms) {
+      if (timer) clearTimeout(timer);
+      if (ms > 0) timer = setTimeout(fechar, ms);
+    }
+
+    function fechar() {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }
+
+    render(spec);
+    elAvisos.appendChild(el);
+    agendarFechamento(spec.autoFecharMs);
+
+    return {
+      elemento: el,
+      atualizar: function (novo) {
+        spec = Object.assign({}, spec, novo || {});
+        render(spec);
+        // reaparece no fim da pilha, para o medico reparar na mudanca
+        if (el.parentNode) el.parentNode.appendChild(el);
+        agendarFechamento(spec.autoFecharMs);
+      },
+      fechar: fechar,
+      estaVisivel: function () {
+        return !!el.parentNode;
+      },
+    };
+  }
+
   /* Ponto de extensao para conteudo solto no shadow do nucleo (raro). */
   function adicionarEstilo(css) {
     garantirHost();
@@ -626,6 +774,7 @@
     criarOverlay: criarOverlay,
     criarBanner: criarBanner,
     criarMolduraAlerta: criarMolduraAlerta,
+    criarAviso: criarAviso,
     adicionarEstilo: adicionarEstilo,
     _reposicionarToast: reposicionarToast,
   };
@@ -3760,7 +3909,7 @@
    * versao aqui nem no bootloader — so no manifest.
    * O valor de reserva existe para o arquivo continuar rodavel solto,
    * fora do pacote (por exemplo num teste unitario). */
-  var VERSAO_NUCLEO = "2.6.0" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.6.0";
+  var VERSAO_NUCLEO = "2.7.0" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.7.0";
 
   var Auth = raiz.MeedsSuiteAuth;
   var Dock = raiz.MeedsSuiteDock;
@@ -4058,6 +4207,7 @@
           criarOverlay: Dock.criarOverlay,
           criarBanner: Dock.criarBanner,
           criarMolduraAlerta: Dock.criarMolduraAlerta,
+          criarAviso: Dock.criarAviso,
         },
         decisao: Decisao,
         auth: Auth,
@@ -4266,10 +4416,10 @@
   raiz.MEEDS_MARCAS = {"_leia_me":"TRADUTOR de nome comercial para principio ativo. ATENCAO: esta tabela NUNCA e fonte de medicamento. Ela so ajuda a ENCONTRAR o item dentro da REMUME do municipio — a REMUME (modules/remume/remumes.json) e a unica fonte de verdade. Se o principio ativo traduzido nao estiver na REMUME daquele municipio, o Assistente avisa que nao consta e NAO oferece o item. Para acrescentar uma marca, copie um bloco abaixo e rode 'npm run build'. Ver docs/MANUAL-ADMIN.md.","_campos":{"marca":"O que o medico digita (nome comercial, sigla ou nome alternativo).","principioAtivo":"O nome que se procura dentro da REMUME.","observacao":"Opcional. Aparece so na documentacao, nao na tela."},"_total":206,"marcas":[{"marca":"AAS","principioAtivo":"Ácido acetilsalicílico","observacao":"Sigla de uso corrente."},{"marca":"Acetaminofeno","principioAtivo":"Paracetamol","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Acfol","principioAtivo":"Acido Folico","observacao":""},{"marca":"Adalat","principioAtivo":"Nifedipino","observacao":""},{"marca":"Addera","principioAtivo":"Colecalciferol","observacao":""},{"marca":"Adenocard","principioAtivo":"Adenosina","observacao":""},{"marca":"Advil","principioAtivo":"Ibuprofeno","observacao":""},{"marca":"Aerolin","principioAtivo":"Salbutamol","observacao":""},{"marca":"Akineton","principioAtivo":"Biperideno","observacao":""},{"marca":"Aldactone","principioAtivo":"Espironolactona","observacao":""},{"marca":"Aldomet","principioAtivo":"Metildopa","observacao":""},{"marca":"Alivium","principioAtivo":"Ibuprofeno","observacao":""},{"marca":"Allegra","principioAtivo":"Fexofenadina","observacao":""},{"marca":"Amox","principioAtivo":"Amoxicilina","observacao":""},{"marca":"Amoxil","principioAtivo":"Amoxicilina","observacao":""},{"marca":"Amplictil","principioAtivo":"Clorpromazina","observacao":""},{"marca":"Amytril","principioAtivo":"Amitriptilina","observacao":""},{"marca":"Ancoron","principioAtivo":"Amiodarona","observacao":""},{"marca":"Angipress","principioAtivo":"Atenolol","observacao":""},{"marca":"Antak","principioAtivo":"Ranitidina","observacao":""},{"marca":"Apresolina","principioAtivo":"Hidralazina","observacao":""},{"marca":"Aprovel","principioAtivo":"Irbesartana","observacao":""},{"marca":"Aradois","principioAtivo":"Losartana","observacao":""},{"marca":"Aspirina","principioAtivo":"Ácido acetilsalicílico","observacao":""},{"marca":"Astromicin","principioAtivo":"Azitromicina","observacao":""},{"marca":"Atlansil","principioAtivo":"Amiodarona","observacao":""},{"marca":"Atrovent","principioAtivo":"Ipratropio","observacao":""},{"marca":"Bactrim","principioAtivo":"Sulfametoxazol","observacao":""},{"marca":"Bactroban","principioAtivo":"Mupirocina","observacao":""},{"marca":"Balcor","principioAtivo":"Diltiazem","observacao":""},{"marca":"Benzetacil","principioAtivo":"Penicilina","observacao":""},{"marca":"Buscopan","principioAtivo":"Escopolamina","observacao":""},{"marca":"Buscopan","principioAtivo":"Butilbrometo","observacao":""},{"marca":"Busonid","principioAtivo":"Budesonida","observacao":""},{"marca":"Capoten","principioAtivo":"Captopril","observacao":""},{"marca":"Cardilol","principioAtivo":"Carvedilol","observacao":""},{"marca":"Cardizem","principioAtivo":"Diltiazem","observacao":""},{"marca":"Cataflam","principioAtivo":"Diclofenaco","observacao":""},{"marca":"Cipramil","principioAtivo":"Citalopram","observacao":""},{"marca":"Cipro","principioAtivo":"Ciprofloxacino","observacao":""},{"marca":"Ciproxin","principioAtivo":"Ciprofloxacino","observacao":""},{"marca":"Citalor","principioAtivo":"Atorvastatina","observacao":""},{"marca":"Citoneurin","principioAtivo":"Complexo B","observacao":""},{"marca":"Claritine","principioAtivo":"Loratadina","observacao":""},{"marca":"Clavulin","principioAtivo":"Clavulanato","observacao":""},{"marca":"Clenil","principioAtivo":"Beclometasona","observacao":""},{"marca":"Clexane","principioAtivo":"Enoxaparina","observacao":""},{"marca":"Clorana","principioAtivo":"Hidroclorotiazida","observacao":""},{"marca":"Combiron","principioAtivo":"Sulfato Ferroso","observacao":""},{"marca":"Coreg","principioAtivo":"Carvedilol","observacao":""},{"marca":"Coumadin","principioAtivo":"Varfarina","observacao":""},{"marca":"Cozaar","principioAtivo":"Losartana","observacao":""},{"marca":"Crestor","principioAtivo":"Rosuvastatina","observacao":""},{"marca":"Cymbalta","principioAtivo":"Duloxetina","observacao":""},{"marca":"Cytotec","principioAtivo":"Misoprostol","observacao":""},{"marca":"Daforin","principioAtivo":"Fluoxetina","observacao":""},{"marca":"Daktarin","principioAtivo":"Miconazol","observacao":""},{"marca":"Dalacin","principioAtivo":"Clindamicina","observacao":""},{"marca":"Daonil","principioAtivo":"Glibenclamida","observacao":""},{"marca":"Decadron","principioAtivo":"Dexametasona","observacao":""},{"marca":"Depakene","principioAtivo":"Valproato","observacao":""},{"marca":"Depakote","principioAtivo":"Valproato","observacao":""},{"marca":"Dermazine","principioAtivo":"Sulfadiazina Prata","observacao":""},{"marca":"Desalex","principioAtivo":"Desloratadina","observacao":""},{"marca":"Diamicron","principioAtivo":"Gliclazida","observacao":""},{"marca":"Digesan","principioAtivo":"Bromoprida","observacao":""},{"marca":"Dimorf","principioAtivo":"Morfina","observacao":""},{"marca":"Diovan","principioAtivo":"Valsartana","observacao":""},{"marca":"Diprivan","principioAtivo":"Propofol","observacao":""},{"marca":"Diprospan","principioAtivo":"Betametasona","observacao":""},{"marca":"Dobutrex","principioAtivo":"Dobutamina","observacao":""},{"marca":"Dormonid","principioAtivo":"Midazolam","observacao":""},{"marca":"Dulcolax","principioAtivo":"Bisacodil","observacao":""},{"marca":"Efexor","principioAtivo":"Venlafaxina","observacao":""},{"marca":"Eliquis","principioAtivo":"Apixabana","observacao":""},{"marca":"Elocom","principioAtivo":"Mometasona","observacao":""},{"marca":"Epinefrina","principioAtivo":"Adrenalina","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Euthyrox","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Fenergan","principioAtivo":"Prometazina","observacao":""},{"marca":"Fentanil","principioAtivo":"Fentanila","observacao":""},{"marca":"Flagyl","principioAtivo":"Metronidazol","observacao":""},{"marca":"Flixotide","principioAtivo":"Fluticasona","observacao":""},{"marca":"Fluconal","principioAtivo":"Fluconazol","observacao":""},{"marca":"Folacin","principioAtivo":"Acido Folico","observacao":""},{"marca":"Gardenal","principioAtivo":"Fenobarbital","observacao":""},{"marca":"Glifage","principioAtivo":"Metformina","observacao":""},{"marca":"Haldol","principioAtivo":"Haloperidol","observacao":""},{"marca":"Hctz","principioAtivo":"Hidroclorotiazida","observacao":""},{"marca":"Hidantal","principioAtivo":"Fenitoina","observacao":""},{"marca":"Higroton","principioAtivo":"Clortalidona","observacao":""},{"marca":"Hixizine","principioAtivo":"Hidroxizina","observacao":""},{"marca":"Humulin","principioAtivo":"Insulina","observacao":""},{"marca":"Imosec","principioAtivo":"Loperamida","observacao":""},{"marca":"Inderal","principioAtivo":"Propranolol","observacao":""},{"marca":"Kanakion","principioAtivo":"Fitomenadiona","observacao":""},{"marca":"Keflex","principioAtivo":"Cefalexina","observacao":""},{"marca":"Keppra","principioAtivo":"Levetiracetam","observacao":""},{"marca":"Klaricid","principioAtivo":"Claritromicina","observacao":""},{"marca":"Label","principioAtivo":"Ranitidina","observacao":""},{"marca":"Lamisil","principioAtivo":"Terbinafina","observacao":""},{"marca":"Lanexat","principioAtivo":"Flumazenil","observacao":""},{"marca":"Lasix","principioAtivo":"Furosemida","observacao":""},{"marca":"Levaquin","principioAtivo":"Levofloxacino","observacao":""},{"marca":"Lexapro","principioAtivo":"Escitalopram","observacao":""},{"marca":"Lexotan","principioAtivo":"Bromazepam","observacao":""},{"marca":"Lioresal","principioAtivo":"Baclofeno","observacao":""},{"marca":"Lipitor","principioAtivo":"Atorvastatina","observacao":""},{"marca":"Liquemine","principioAtivo":"Heparina","observacao":""},{"marca":"Lopressor","principioAtivo":"Metoprolol","observacao":""},{"marca":"Loranil","principioAtivo":"Loratadina","observacao":""},{"marca":"Lorax","principioAtivo":"Lorazepam","observacao":""},{"marca":"Losec","principioAtivo":"Omeprazol","observacao":""},{"marca":"Luftal","principioAtivo":"Simeticona","observacao":""},{"marca":"Lyrica","principioAtivo":"Pregabalina","observacao":""},{"marca":"Macrodantina","principioAtivo":"Nitrofurantoina","observacao":""},{"marca":"Manitol 20%","principioAtivo":"Manitol","observacao":""},{"marca":"Marcaina","principioAtivo":"Bupivacaina","observacao":""},{"marca":"Marevan","principioAtivo":"Varfarina","observacao":""},{"marca":"Metamizol","principioAtivo":"Dipirona","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Meticorten","principioAtivo":"Prednisona","observacao":""},{"marca":"Micardis","principioAtivo":"Telmisartana","observacao":""},{"marca":"Micostatin","principioAtivo":"Nistatina","observacao":""},{"marca":"Miosan","principioAtivo":"Ciclobenzaprina","observacao":""},{"marca":"Motilium","principioAtivo":"Domperidona","observacao":""},{"marca":"Movatec","principioAtivo":"Meloxicam","observacao":""},{"marca":"Narcan","principioAtivo":"Naloxona","observacao":""},{"marca":"Naropin","principioAtivo":"Ropivacaina","observacao":""},{"marca":"Nasonex","principioAtivo":"Mometasona","observacao":""},{"marca":"Natrilix","principioAtivo":"Indapamida","observacao":""},{"marca":"Neocaina","principioAtivo":"Bupivacaina","observacao":""},{"marca":"Neozine","principioAtivo":"Levomepromazina","observacao":""},{"marca":"Neurontin","principioAtivo":"Gabapentina","observacao":""},{"marca":"Nexium","principioAtivo":"Esomeprazol","observacao":""},{"marca":"Nisulid","principioAtivo":"Nimesulida","observacao":""},{"marca":"Nizoral","principioAtivo":"Cetoconazol","observacao":""},{"marca":"Norepinefrina","principioAtivo":"Noradrenalina","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Norvasc","principioAtivo":"Anlodipino","observacao":""},{"marca":"Novalgina","principioAtivo":"Dipirona","observacao":""},{"marca":"Novolin","principioAtivo":"Insulina","observacao":""},{"marca":"Pantoc","principioAtivo":"Pantoprazol","observacao":""},{"marca":"Pantozol","principioAtivo":"Pantoprazol","observacao":""},{"marca":"Peprazol","principioAtivo":"Omeprazol","observacao":""},{"marca":"Plasil","principioAtivo":"Metoclopramida","observacao":""},{"marca":"Plavix","principioAtivo":"Clopidogrel","observacao":""},{"marca":"Polaramine","principioAtivo":"Dexclorfeniramina","observacao":""},{"marca":"Pradaxa","principioAtivo":"Dabigatrana","observacao":""},{"marca":"Prazol","principioAtivo":"Lansoprazol","observacao":""},{"marca":"Prelone","principioAtivo":"Prednisolona","observacao":""},{"marca":"Profenid","principioAtivo":"Cetoprofeno","observacao":""},{"marca":"Prolopa","principioAtivo":"Levodopa","observacao":""},{"marca":"Propecia","principioAtivo":"Finasterida","observacao":""},{"marca":"Propovan","principioAtivo":"Propofol","observacao":""},{"marca":"Proscar","principioAtivo":"Finasterida","observacao":""},{"marca":"Prostigmine","principioAtivo":"Neostigmina","observacao":""},{"marca":"Prostokos","principioAtivo":"Misoprostol","observacao":""},{"marca":"Prozac","principioAtivo":"Fluoxetina","observacao":""},{"marca":"Pulmicort","principioAtivo":"Budesonida","observacao":""},{"marca":"Puran T4","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Renitec","principioAtivo":"Enalapril","observacao":""},{"marca":"Ringer Lactato","principioAtivo":"Ringer","observacao":""},{"marca":"Risperdal","principioAtivo":"Risperidona","observacao":""},{"marca":"Rivotril","principioAtivo":"Clonazepam","observacao":""},{"marca":"Rocefin","principioAtivo":"Ceftriaxona","observacao":""},{"marca":"Scabin","principioAtivo":"Permetrina","observacao":""},{"marca":"Secotex","principioAtivo":"Tansulosina","observacao":""},{"marca":"Selozok","principioAtivo":"Metoprolol","observacao":""},{"marca":"Seroquel","principioAtivo":"Quetiapina","observacao":""},{"marca":"Sevorane","principioAtivo":"Sevoflurano","observacao":""},{"marca":"Sf 0.9%","principioAtivo":"Soro Fisiologico","observacao":""},{"marca":"Sg 5%","principioAtivo":"Glicose","observacao":""},{"marca":"Singulair","principioAtivo":"Montelucaste","observacao":""},{"marca":"Sinvatrox","principioAtivo":"Sinvastatina","observacao":""},{"marca":"Solucortef","principioAtivo":"Hidrocortisona","observacao":""},{"marca":"Solumedrol","principioAtivo":"Metilprednisolona","observacao":""},{"marca":"Soro Glicosado","principioAtivo":"Glicose","observacao":""},{"marca":"Synthroid","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Syntocinon","principioAtivo":"Ocitocina","observacao":""},{"marca":"Tamiflu","principioAtivo":"Oseltamivir","observacao":""},{"marca":"Tavanic","principioAtivo":"Levofloxacino","observacao":""},{"marca":"Tegretol","principioAtivo":"Carbamazepina","observacao":""},{"marca":"Tolrest","principioAtivo":"Sertralina","observacao":""},{"marca":"Topamax","principioAtivo":"Topiramato","observacao":""},{"marca":"Tramal","principioAtivo":"Tramadol","observacao":""},{"marca":"Transamin","principioAtivo":"Acido Tranexamico","observacao":""},{"marca":"Triaxon","principioAtivo":"Ceftriaxona","observacao":""},{"marca":"Tryptanol","principioAtivo":"Amitriptilina","observacao":""},{"marca":"Tylenol","principioAtivo":"Paracetamol","observacao":""},{"marca":"Uroxacin","principioAtivo":"Norfloxacino","observacao":""},{"marca":"Valium","principioAtivo":"Diazepam","observacao":""},{"marca":"Valproico","principioAtivo":"Valproato","observacao":""},{"marca":"Valtrex","principioAtivo":"Valaciclovir","observacao":""},{"marca":"Viagra","principioAtivo":"Sildenafila","observacao":""},{"marca":"Vibramicina","principioAtivo":"Doxiciclina","observacao":""},{"marca":"Vitamina K","principioAtivo":"Fitomenadiona","observacao":""},{"marca":"Voltaren","principioAtivo":"Diclofenaco","observacao":""},{"marca":"Vonau","principioAtivo":"Ondansetrona","observacao":""},{"marca":"Xarelto","principioAtivo":"Rivaroxabana","observacao":""},{"marca":"Xylocaina","principioAtivo":"Lidocaina","observacao":""},{"marca":"Zitromax","principioAtivo":"Azitromicina","observacao":""},{"marca":"Zocor","principioAtivo":"Sinvastatina","observacao":""},{"marca":"Zofran","principioAtivo":"Ondansetrona","observacao":""},{"marca":"Zoloft","principioAtivo":"Sertralina","observacao":""},{"marca":"Zoltec","principioAtivo":"Fluconazol","observacao":""},{"marca":"Zovirax","principioAtivo":"Aciclovir","observacao":""},{"marca":"Zyprexa","principioAtivo":"Olanzapina","observacao":""},{"marca":"Zyrtec","principioAtivo":"Cetirizina","observacao":""}]};
 
   /* ===== dados/changelog.json ===== */
-  raiz.MEEDS_CHANGELOG = {"_leia_me":"Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.","versoes":[{"versao":"2.6.0","data":"2026-08-30","novidades":["A consulta REMUME passou a entender nome comercial: digite “Tylenol” e ela mostra o paracetamol do seu município.","Quando o remédio procurado não é padronizado no município, o Assistente diz isso com todas as letras, em vez de mostrar uma lista vazia."],"melhorias":["A busca ficou mais tolerante a erro de digitação em português: “dipironá” encontra Dipirona e “cimvastatina” encontra Sinvastatina.","A lista de nomes comerciais saiu do código e virou um arquivo que o administrador edita sozinho."],"correcoes":[]},{"versao":"2.5.0","data":"2026-08-30","novidades":["Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.","O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."],"melhorias":["Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."],"correcoes":["O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."]},{"versao":"2.4.0","data":"2026-08-30","novidades":["Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.","O código escolhido na busca entra sozinho no laudo que estiver aberto.","Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.","Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."],"melhorias":["O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.","O CPF se formata sozinho enquanto você digita.","Com um único médico cadastrado, ele já vem selecionado nos laudos.","As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.","O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."],"correcoes":["O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.","Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."]},{"versao":"2.3.0","data":"2026-08-30","novidades":["Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."],"melhorias":["Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."],"correcoes":[]},{"versao":"2.2.0","data":"2026-08-30","novidades":["Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."],"melhorias":["Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."],"correcoes":["Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."]},{"versao":"2.0.0","data":"2026-08-30","novidades":["Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."],"melhorias":[],"correcoes":[]}]};
+  raiz.MEEDS_CHANGELOG = {"_leia_me":"Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.","versoes":[{"versao":"2.7.0","data":"2026-08-31","novidades":["Nova função “Sala de Espera”: avisa, sem som, quando um paciente de consulta agendada chega — com o nome, a hora marcada e há quanto tempo espera.","O botão da Sala de Espera mostra quantos pacientes estão aguardando, e abre a lista completa."],"melhorias":["Vários pacientes chegando ao mesmo tempo viram um aviso só, que conta quantos são."],"correcoes":[]},{"versao":"2.6.0","data":"2026-08-30","novidades":["A consulta REMUME passou a entender nome comercial: digite “Tylenol” e ela mostra o paracetamol do seu município.","Quando o remédio procurado não é padronizado no município, o Assistente diz isso com todas as letras, em vez de mostrar uma lista vazia."],"melhorias":["A busca ficou mais tolerante a erro de digitação em português: “dipironá” encontra Dipirona e “cimvastatina” encontra Sinvastatina.","A lista de nomes comerciais saiu do código e virou um arquivo que o administrador edita sozinho."],"correcoes":[]},{"versao":"2.5.0","data":"2026-08-30","novidades":["Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.","O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."],"melhorias":["Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."],"correcoes":["O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."]},{"versao":"2.4.0","data":"2026-08-30","novidades":["Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.","O código escolhido na busca entra sozinho no laudo que estiver aberto.","Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.","Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."],"melhorias":["O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.","O CPF se formata sozinho enquanto você digita.","Com um único médico cadastrado, ele já vem selecionado nos laudos.","As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.","O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."],"correcoes":["O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.","Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."]},{"versao":"2.3.0","data":"2026-08-30","novidades":["Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."],"melhorias":["Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."],"correcoes":[]},{"versao":"2.2.0","data":"2026-08-30","novidades":["Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."],"melhorias":["Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."],"correcoes":["Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."]},{"versao":"2.0.0","data":"2026-08-30","novidades":["Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."],"melhorias":[],"correcoes":[]}]};
 
   var __inv = {
-  "versao": "2.6.0",
+  "versao": "2.7.0",
   "modulos": [
     {
       "id": "alarme-fila",
@@ -4277,6 +4427,13 @@
       "descricao": "Avisa com som e aviso na tela quando um paciente entra na fila do Pronto Atendimento, ou quando alguém espera além do tempo que você definir. Para sozinho quando a fila esvazia.",
       "versao": "2.0.0",
       "origem": "sodelfino/meeds-alarme-fila"
+    },
+    {
+      "id": "sala-espera",
+      "nome": "Sala de Espera",
+      "descricao": "Avisa quando um paciente de consulta agendada chega na sala de espera, sem som, e mostra quem está aguardando.",
+      "versao": "1.0.0",
+      "origem": "novo — endpoint /api/v1/Atendimento com Agendado=true"
     },
     {
       "id": "apac-itauna",
@@ -4321,7 +4478,7 @@
    * cobre o resto: duas copias instaladas no Tampermonkey, ou uma
    * reexecucao do script numa navegacao da SPA. Sem ela, apareciam dois
    * docks sobrepostos e o alarme tocava duas vezes. */
-  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.6.0")) return;
+  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.7.0")) return;
 
   /* 2) O hook de rede precisa existir ANTES de qualquer chamada da
    * aplicacao — por isso e instalado aqui, em document-start, e nao
@@ -5014,6 +5171,433 @@
     },
 
     _TIPOS_DE_SOM: TIPOS_DE_SOM, // exposto so para o teste de fumaca
+  });
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== modules/sala-espera/index.js (v1.0.0) ===== */
+/* ------------------------------------------------------------------
+ * modules/sala-espera/index.js — pacientes agendados que chegaram
+ * ------------------------------------------------------------------
+ * O QUE FAZ
+ * Avisa quando um paciente de CONSULTA AGENDADA entra na sala de espera.
+ * E irmao do Alarme de Fila, mas para outro publico: o alarme cuida da
+ * fila aberta do Pronto Atendimento (som, banner, interrompe); aqui e
+ * agenda marcada, entao o aviso e discreto e sem som — o medico esta
+ * atendendo alguem e nao pode levar um susto.
+ *
+ * COMO SABE QUEM CHEGOU
+ *   GET /api/v1/Atendimento
+ *       ?ProfissionalId={do medico}
+ *       &StatusAtendimentoId=2        (2 = Aguardando)
+ *       &Agendado=true
+ *       &sort=GestaoHorario.HorarioInicial
+ * Resposta: { items: [...], count, totalPages }. De cada item interessam
+ * id, agendamentoId, statusAtendimentoId, agendamento.checkinStatus,
+ * gestaoHorario.horarioInicial e cliente.razaoSocialNome.
+ *
+ * O ProfissionalId nao e adivinhado: o modulo ESPERA a propria aplicacao
+ * fazer uma chamada com esse parametro e aproveita o valor, pelo hub de
+ * rede do nucleo. Ate conhecer o id, nao consulta nada — chutar o id de
+ * outro profissional exibiria a agenda de outra pessoa.
+ *
+ * PRIVACIDADE (LGPD)
+ * Roda 100% no navegador. O nome do paciente aparece na tela e vive so em
+ * memoria: nao vai para disco, nao vai para nenhum servico externo e NAO
+ * entra no console — os logs de depuracao usam somente ids internos.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  var INTERVALO_MS = 30000; // 30s, como o padrao de polling do proprio app
+  var AUTO_FECHAR_MS = 10000;
+  var STATUS_AGUARDANDO = 2;
+
+  var d = null;
+  var overlay = null;
+  var refs = null;
+  var timer = null;
+  var aoSair = null;
+
+  var profissionalId = null;
+  var primeiraLeitura = true;
+  var vistos = new Set();     // ids ja notificados (ver PROTECOES)
+  var aguardando = [];        // ultima leitura, so em memoria
+  var aviso = null;           // aviso unico; novos pacientes ATUALIZAM ele
+  var chegadasNoAviso = [];
+
+  /* ----------------------------------------------------------------
+   * DESCOBERTA DO PROFISSIONAL
+   * ---------------------------------------------------------------- */
+  var RX_PROFISSIONAL = /[?&]ProfissionalId=([^&]+)/i;
+
+  function capturarProfissional(url) {
+    var m = String(url || "").match(RX_PROFISSIONAL);
+    if (!m) return;
+    var id = decodeURIComponent(m[1]);
+    if (!id || id === profissionalId) return;
+    profissionalId = id;
+    console.debug("[Sala de espera] profissional identificado; iniciando consulta periodica.");
+    consultar(); // primeira leitura assim que souber quem e
+  }
+
+  /* ----------------------------------------------------------------
+   * CONSULTA
+   * ---------------------------------------------------------------- */
+  function montarUrl() {
+    return (
+      "/api/v1/Atendimento?ProfissionalId=" + encodeURIComponent(profissionalId) +
+      "&StatusAtendimentoId=" + STATUS_AGUARDANDO +
+      "&Agendado=true" +
+      "&sort=GestaoHorario.HorarioInicial"
+    );
+  }
+
+  function extrairItens(json) {
+    if (!json) return null;
+    if (Array.isArray(json.items)) return json.items;
+    if (Array.isArray(json.data)) return json.data;
+    if (Array.isArray(json)) return json;
+    return null;
+  }
+
+  function normalizarItem(item) {
+    var agendamento = item.agendamento || {};
+    var gestao = item.gestaoHorario || {};
+    var cliente = item.cliente || {};
+    return {
+      id: String(item.id || item.agendamentoId || ""),
+      agendamentoId: item.agendamentoId || null,
+      status: item.statusAtendimentoId,
+      chegou: agendamento.checkinStatus === true,
+      horario: gestao.horarioInicial || null,
+      nome: cliente.razaoSocialNome || item.pacienteNome || "Paciente",
+    };
+  }
+
+  function consultar() {
+    if (!profissionalId) return Promise.resolve();
+    if (!d || !d.auth.estaLogado()) return Promise.resolve(); // nao consulta na tela de login
+
+    return fetch(montarUrl(), { credentials: "include" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (json) {
+        var itens = extrairItens(json);
+        if (!itens) return;
+        processar(itens.map(normalizarItem));
+      })
+      .catch(function (e) {
+        // rede instavel no plantao e comum; a proxima rodada tenta de novo
+        console.debug("[Sala de espera] consulta falhou, tentando na proxima rodada.", e.message);
+      });
+  }
+
+  /* ----------------------------------------------------------------
+   * DETECCAO DE "ENTROU NA FILA"
+   * ---------------------------------------------------------------- */
+  function processar(itens) {
+    var naFilaAgora = itens.filter(function (p) {
+      return p.status === STATUS_AGUARDANDO || p.chegou;
+    });
+    aguardando = naFilaAgora;
+
+    var idsAgora = new Set(
+      naFilaAgora.map(function (p) {
+        return p.id;
+      })
+    );
+
+    /* PROTECAO: quem saiu da fila (foi atendido, cancelou) sai do
+     * conjunto. Se voltar a aguardar depois, e uma chegada nova de
+     * verdade e merece aviso. */
+    Array.from(vistos).forEach(function (id) {
+      if (!idsAgora.has(id)) vistos.delete(id);
+    });
+
+    if (primeiraLeitura) {
+      /* Primeira leitura so fotografa o estado atual: quem ja estava
+       * esperando quando o medico abriu a tela NAO "acabou de chegar". */
+      naFilaAgora.forEach(function (p) {
+        vistos.add(p.id);
+      });
+      primeiraLeitura = false;
+      atualizarContador();
+      renderizarLista();
+      return;
+    }
+
+    var novos = naFilaAgora.filter(function (p) {
+      return !vistos.has(p.id);
+    });
+    novos.forEach(function (p) {
+      vistos.add(p.id);
+    });
+
+    atualizarContador();
+    renderizarLista();
+    if (novos.length) anunciar(novos);
+  }
+
+  /* ----------------------------------------------------------------
+   * AVISO
+   * ---------------------------------------------------------------- */
+  function minutosDeEspera(horarioIso) {
+    if (!horarioIso) return null;
+    var marcada = new Date(horarioIso);
+    if (isNaN(marcada.getTime())) return null;
+    var minutos = Math.floor((Date.now() - marcada.getTime()) / 60000);
+    return minutos > 0 ? minutos : null; // adiantado nao e atraso
+  }
+
+  function horaCurta(horarioIso) {
+    if (!horarioIso) return null;
+    var dt = new Date(horarioIso);
+    if (isNaN(dt.getTime())) return null;
+    return dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function linhaDoPaciente(p) {
+    var partes = [p.nome];
+    var hora = horaCurta(p.horario);
+    if (hora) partes.push("agendado para " + hora);
+    var espera = minutosDeEspera(p.horario);
+    if (espera) partes.push("esperando há " + espera + " min");
+    return partes.join(" · ");
+  }
+
+  function anunciar(novos) {
+    /* INSTANCIA UNICA: um aviso so. Se chegarem tres pacientes seguidos,
+     * o mesmo aviso passa a dizer "3 pacientes" — nao viram tres avisos
+     * empilhados sobre a tela do medico. */
+    chegadasNoAviso = chegadasNoAviso.concat(novos);
+    if (chegadasNoAviso.length > 6) chegadasNoAviso = chegadasNoAviso.slice(-6);
+
+    var conteudo = {
+      titulo:
+        chegadasNoAviso.length === 1
+          ? "Paciente na sala de espera"
+          : chegadasNoAviso.length + " pacientes na sala de espera",
+      corpo: chegadasNoAviso.map(linhaDoPaciente),
+      acoes: [
+        { rotulo: "Ver fila", aoClicar: abrirFilaNativa },
+        { rotulo: "Fechar", primario: false },
+      ],
+      autoFecharMs: AUTO_FECHAR_MS,
+    };
+
+    if (aviso && aviso.estaVisivel()) {
+      aviso.atualizar(conteudo);
+      return;
+    }
+
+    chegadasNoAviso = novos.slice();
+    conteudo.titulo =
+      novos.length === 1 ? "Paciente na sala de espera" : novos.length + " pacientes na sala de espera";
+    conteudo.corpo = novos.map(linhaDoPaciente);
+    aviso = d.dock.criarAviso(conteudo);
+  }
+
+  /* Leva o medico para a tela nativa de Consultas Agendadas, em vez de
+   * reimplementar a fila aqui — o atendimento acontece la. */
+  function abrirFilaNativa() {
+    try {
+      raiz.location.href = "/to-meet";
+    } catch (e) {
+      d.core.toast("Abra a tela de Consultas Agendadas para atender.", 4000);
+    }
+  }
+
+  /* ----------------------------------------------------------------
+   * PAINEL
+   * ---------------------------------------------------------------- */
+  var CSS = [
+    ".se-modal { width:100%; max-width:520px; max-height:84vh; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); display:flex; flex-direction:column; overflow:hidden; }",
+    ".se-modal header { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
+    ".se-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
+    ".se-sub { margin:3px 0 0; font-size:11.5px; opacity:.9; }",
+    ".se-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; }",
+    ".se-corpo { padding:12px 18px 16px; overflow-y:auto; }",
+    ".se-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid #f1f5f9; }",
+    ".se-item:last-child { border-bottom:none; }",
+    ".se-dados { flex:1; min-width:0; }",
+    ".se-nome { font-size:13px; font-weight:700; color:#16221f; }",
+    ".se-meta { font-size:11.5px; color:#5b6672; margin-top:2px; }",
+    ".se-espera { font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; background:#eef4fb; color:#123a7a; white-space:nowrap; }",
+    ".se-espera.se-atrasado { background:#fde8e8; color:#a12626; }",
+    ".se-vazio { font-size:12.5px; color:#8a97a4; font-style:italic; padding:16px 0; }",
+    ".se-rodape { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 18px; border-top:1px solid #eef2f6; }",
+    ".se-nota { font-size:10.5px; color:#9aa5b1; line-height:1.45; }",
+    ".se-btn { background:#1a4fa0; color:#fff; border:none; border-radius:8px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; flex-shrink:0; }",
+    ".se-btn:hover { background:#123a7a; }",
+  ].join("\n");
+
+  function montarUI() {
+    overlay = d.dock.criarOverlay({
+      estilo: CSS,
+      html:
+        '<div class="se-modal" role="dialog" aria-modal="true">' +
+        "  <header><div>" +
+        "    <h2>Sala de espera</h2>" +
+        '    <p class="se-sub" id="se-sub"></p>' +
+        "  </div>" +
+        '  <button type="button" class="se-fechar" aria-label="Fechar">&#10005;</button></header>' +
+        '  <div class="se-corpo"><div id="se-lista"></div></div>' +
+        '  <div class="se-rodape">' +
+        '    <span class="se-nota">Consultas agendadas com paciente aguardando. Atualiza a cada 30 segundos.</span>' +
+        '    <button type="button" class="se-btn" id="se-ver-fila">Ver fila</button>' +
+        "  </div>" +
+        "</div>",
+    });
+
+    refs = { sub: overlay.$("#se-sub"), lista: overlay.$("#se-lista") };
+    overlay.$(".se-fechar").addEventListener("click", overlay.fechar);
+    overlay.$("#se-ver-fila").addEventListener("click", abrirFilaNativa);
+    renderizarLista();
+  }
+
+  function renderizarLista() {
+    if (!refs) return;
+
+    refs.sub.textContent = !profissionalId
+      ? "Identificando o seu cadastro…"
+      : aguardando.length === 0
+      ? "Ninguém aguardando no momento"
+      : aguardando.length === 1
+      ? "1 paciente aguardando"
+      : aguardando.length + " pacientes aguardando";
+
+    if (!aguardando.length) {
+      refs.lista.innerHTML =
+        '<div class="se-vazio">' +
+        (profissionalId
+          ? "Nenhum paciente agendado está aguardando agora."
+          : "Abra a tela de Consultas Agendadas uma vez para o Assistente reconhecer o seu cadastro.") +
+        "</div>";
+      return;
+    }
+
+    refs.lista.innerHTML = "";
+    aguardando.forEach(function (p) {
+      var espera = minutosDeEspera(p.horario);
+      var hora = horaCurta(p.horario);
+
+      var linha = document.createElement("div");
+      linha.className = "se-item";
+
+      var dados = document.createElement("div");
+      dados.className = "se-dados";
+      var nome = document.createElement("div");
+      nome.className = "se-nome";
+      nome.textContent = p.nome; // textContent: nome nao vira HTML
+      var meta = document.createElement("div");
+      meta.className = "se-meta";
+      meta.textContent = hora ? "Agendado para " + hora : "Sem horário informado";
+      dados.appendChild(nome);
+      dados.appendChild(meta);
+      linha.appendChild(dados);
+
+      var selo = document.createElement("span");
+      selo.className = "se-espera" + (espera && espera >= 15 ? " se-atrasado" : "");
+      selo.textContent = espera ? espera + " min" : "no horário";
+      linha.appendChild(selo);
+
+      refs.lista.appendChild(linha);
+    });
+  }
+
+  function atualizarContador() {
+    if (d && d.botao) d.botao.definirContador(aguardando.length);
+  }
+
+  /* ----------------------------------------------------------------
+   * CONTRATO DE MODULO
+   * ---------------------------------------------------------------- */
+  raiz.MeedsSuite.registerModule({
+    id: "sala-espera",
+    nome: "Sala de Espera",
+    descricao:
+      "Avisa quando um paciente de consulta agendada chega na sala de espera, sem som, e mostra quem está aguardando.",
+    versao: "1.0.0",
+    configPadrao: {},
+
+    botao: {
+      icone: "🪑",
+      variante: "icone",
+      titulo: "Pacientes agendados aguardando",
+      prioridade: 15, // entre o alarme de fila (10) e a APAC (20)
+    },
+
+    /* Ouve as chamadas que a PROPRIA tela faz, so para descobrir o
+     * ProfissionalId do medico logado. Nao consome o conteudo. */
+    assinaturasRede: [{ regex: /\/api\/v1\/Atendimento\?[^]*ProfissionalId=/i, metodos: ["GET"] }],
+
+    aoCargaRede: function (evt) {
+      capturarProfissional(evt.url);
+    },
+
+    start: function (deps) {
+      d = deps;
+      primeiraLeitura = true;
+      vistos = new Set();
+      aguardando = [];
+      chegadasNoAviso = [];
+
+      montarUI();
+      deps.aoClicarBotao(function () {
+        overlay.abrir();
+        renderizarLista();
+      });
+      atualizarContador();
+
+      timer = setInterval(consultar, INTERVALO_MS);
+
+      /* PROTECAO: parar a consulta quando a pagina for embora. Sem isto,
+       * uma navegacao interna deixaria o intervalo rodando a toa. */
+      aoSair = function () {
+        if (timer) clearInterval(timer);
+        timer = null;
+      };
+      raiz.addEventListener("beforeunload", aoSair);
+    },
+
+    stop: function () {
+      if (timer) clearInterval(timer);
+      timer = null;
+      if (aoSair) {
+        raiz.removeEventListener("beforeunload", aoSair);
+        aoSair = null;
+      }
+      if (aviso) {
+        aviso.fechar();
+        aviso = null;
+      }
+      if (overlay) {
+        overlay.remover();
+        overlay = null;
+      }
+      refs = null;
+      vistos = new Set();
+      aguardando = [];
+      chegadasNoAviso = [];
+      primeiraLeitura = true;
+      d = null;
+    },
+
+    /* exposto so para o teste de fumaca */
+    _teste: {
+      processar: function (itens) {
+        processar(itens.map(normalizarItem));
+      },
+      definirProfissional: function (id) {
+        profissionalId = id;
+      },
+      estado: function () {
+        return { vistos: Array.from(vistos), aguardando: aguardando.length, primeiraLeitura: primeiraLeitura };
+      },
+    },
   });
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 

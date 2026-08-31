@@ -481,6 +481,24 @@ esteja na lista. Exige uma classificação ATC por item, que a REMUME não traz
 hoje — precisaria de uma fonte nova e de validação clínica antes de sugerir
 troca de medicamento a um médico.
 
+
+**D25 — A Sala de Espera não adivinha o `ProfissionalId`; ela espera.**
+O módulo precisa do id do médico logado para consultar a agenda dele. Em vez de
+tentar deduzir de um token ou de um endpoint de perfil, ele **ouve** as chamadas
+que a própria tela já faz — pelo hub de rede do núcleo — e aproveita o valor.
+Até conhecer o id, não consulta nada. Chutar o id exibiria a agenda de outra
+pessoa, que é um vazamento de dado de paciente, não um bug de conveniência.
+O painel explica o que fazer: abrir a tela de Consultas Agendadas uma vez.
+
+**D26 — Aviso discreto, e não alarme.**
+A Sala de Espera é irmã do Alarme de Fila, mas para outro contexto: fila aberta
+de Pronto Atendimento pede interrupção (som, banner, moldura); agenda marcada
+pede informação. Por isso o aviso é um cartão no canto superior direito, sem
+som, que sai sozinho em 10 segundos. O médico costuma estar atendendo alguém
+quando o próximo chega — um susto ali atrapalha o atendimento em curso.
+Vários pacientes chegando viram **um** aviso que conta quantos são, nunca uma
+pilha de cartões sobre a tela.
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público
