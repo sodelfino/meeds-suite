@@ -72,6 +72,31 @@
 
   /* ----------------------------------------------------------------
    * CONSULTA
+   * ----------------------------------------------------------------
+   * CONSULTA PRINCIPAL — a mesma de sempre, que sabemos que funciona:
+   *   ProfissionalId={self} & StatusAtendimentoId=2 & Agendado=true
+   *
+   * CONSULTA DE CONFIRMACAO — usada SO num caso especifico, explicado
+   * abaixo. Mantem obrigatoriamente ProfissionalId={self} e Agendado=true,
+   * e limita a data ao dia de hoje. Nao existe caminho neste modulo que
+   * consulte sem ProfissionalId.
+   *
+   * POR QUE A SEGUNDA CONSULTA EXISTE
+   * Se marcar a chegada mudar o statusAtendimentoId, o atendimento SAI
+   * do filtro StatusAtendimentoId=2 — e, do ponto de vista do modulo,
+   * ele simplesmente "sumiu". Sumir tambem e o que acontece quando o
+   * paciente foi atendido ou cancelou, entao os dois casos sao
+   * indistinguiveis olhando so a consulta principal.
+   *
+   * Quando um atendimento que AINDA NAO tinha chegado desaparece, o
+   * modulo faz UMA consulta de confirmacao, sem o filtro de status, e
+   * procura aquele id. Se ele aparecer com evidencia de chegada, era
+   * chegada — e o aviso sai. Se nao aparecer, ou aparecer sem chegada,
+   * era saida mesmo e nada acontece.
+   *
+   * A confirmacao so roda quando ha um desaparecimento suspeito. Num
+   * plantao normal isso e raro, entao nao vira uma segunda consulta a
+   * cada 30 segundos.
    * ---------------------------------------------------------------- */
   function montarUrl() {
     return (
@@ -82,12 +107,209 @@
     );
   }
 
+  function hojeISO() {
+    var d0 = new Date();
+    var mes = String(d0.getMonth() + 1).padStart(2, "0");
+    var dia = String(d0.getDate()).padStart(2, "0");
+    return d0.getFullYear() + "-" + mes + "-" + dia;
+  }
+
+  function montarUrlConfirmacao() {
+    var hoje = hojeISO();
+    return (
+      "/api/v1/Atendimento?ProfissionalId=" + encodeURIComponent(profissionalId) +
+      "&Agendado=true" +
+      "&DataInicial=" + hoje +
+      "&DataFinal=" + hoje +
+      "&sort=GestaoHorario.HorarioInicial"
+    );
+  }
+
   function extrairItens(json) {
     if (!json) return null;
     if (Array.isArray(json.items)) return json.items;
     if (Array.isArray(json.data)) return json.data;
     if (Array.isArray(json)) return json;
     return null;
+  }
+
+  function buscar(url) {
+    return fetch(url, { credentials: "include" }).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    });
+  }
+
+  /* TRAVA DE SOBREPOSICAO: uma consulta nova nao comeca antes de a
+   * anterior terminar. Sem isso, uma resposta lenta faria as requisicoes
+   * empilharem e duas respostas fora de ordem poderiam se sobrescrever,
+   * fazendo a fila "piscar". */
+  var consultaEmAndamento = false;
+
+  function consultar() {
+    if (!profissionalId) return Promise.resolve();
+    if (!d || !d.auth.estaLogado()) return Promise.resolve(); // nao consulta na tela de login
+    if (consultaEmAndamento) {
+      console.debug("[Sala de espera] consulta anterior ainda em andamento; esta rodada foi pulada.");
+      return Promise.resolve();
+    }
+
+    consultaEmAndamento = true;
+    return buscar(montarUrl())
+      .then(function (json) {
+        var itens = extrairItens(json);
+        if (!itens) {
+          /* Formato inesperado: preferimos manter a ultima leitura boa a
+           * esvaziar a fila com base numa resposta que nao entendemos. */
+          console.debug("[Sala de espera] resposta em formato inesperado; mantendo a ultima leitura.");
+          return;
+        }
+        ultimaRespostaCrua = itens; // so em memoria, para o diagnostico
+        falhasSeguidas = 0;
+        processar(itens.map(normalizarItem));
+      })
+      .catch(function (e) {
+        /* FALHA DE REDE: o estado anterior e PRESERVADO de proposito. Uma
+         * oscilacao de rede no plantao nao pode fazer a fila parecer
+         * vazia — o medico acharia que nao ha ninguem esperando. A
+         * proxima rodada tenta de novo. */
+        falhasSeguidas++;
+        console.debug(
+          "[Sala de espera] consulta falhou (" + falhasSeguidas + "x seguidas); " +
+            "mantendo a ultima leitura valida e tentando na proxima rodada.",
+          e.message
+        );
+      })
+      .then(function () {
+        consultaEmAndamento = false;
+      });
+  }
+
+  /* Confirma se um atendimento que sumiu do filtro sumiu por ter
+   * chegado. Ver o bloco de comentario no topo desta secao. */
+  function confirmarDesaparecidos(ids) {
+    if (!ids.length || !profissionalId) return;
+    if (confirmacaoEmAndamento) return;
+    confirmacaoEmAndamento = true;
+
+    buscar(montarUrlConfirmacao())
+      .then(function (json) {
+        var itens = extrairItens(json);
+        if (!itens) return;
+
+        var chegaram = [];
+        itens.forEach(function (bruto) {
+          var p = normalizarItem(bruto);
+          if (ids.indexOf(p.id) === -1) return;
+          if (p.chegou === true) chegaram.push(p);
+        });
+
+        if (!chegaram.length) return;
+        console.debug(
+          "[Sala de espera] " + chegaram.length + " atendimento(s) sairam do filtro por CHEGADA, nao por saida."
+        );
+        chegaram.forEach(function (p) {
+          estado.set(p.id, {
+            chegouAntes: true,
+            statusAntes: p.status,
+            presenteNoUltimoPoll: true,
+            notificadoNestaChegada: true,
+          });
+        });
+        aguardando = aguardando.concat(chegaram);
+        atualizarContador();
+        renderizarLista();
+        anunciar(chegaram);
+      })
+      .catch(function (e) {
+        console.debug("[Sala de espera] confirmacao falhou; nada foi alterado.", e.message);
+      })
+      .then(function () {
+        confirmacaoEmAndamento = false;
+      });
+  }
+
+  /* ----------------------------------------------------------------
+   * AGENDAMENTO DAS RODADAS
+   * ----------------------------------------------------------------
+   * setTimeout encadeado, e nao setInterval: a proxima rodada so e
+   * agendada quando a atual TERMINA. Com setInterval, uma resposta lenta
+   * faria as chamadas empilharem e duas respostas fora de ordem
+   * poderiam se sobrescrever, fazendo a fila piscar.
+   * ---------------------------------------------------------------- */
+  function agendarProxima() {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(function () {
+      consultar().then(agendarProxima);
+    }, INTERVALO_MS);
+  }
+
+  /* ----------------------------------------------------------------
+   * DIAGNOSTICO — descobrir, na API real, qual campo marca a chegada
+   * ----------------------------------------------------------------
+   * Uso, no console do navegador do proprio medico:
+   *
+   *     MeedsSuite.salaEspera.diagnosticar()
+   *
+   * Tira uma foto agora e outra 45 segundos depois. Entre as duas, a
+   * recepcao marca a chegada de um paciente na tela nativa. O relatorio
+   * mostra QUAL campo mudou.
+   *
+   * Sem PII: ids viram apelidos curtos nao reversiveis, texto vira so o
+   * tamanho, data vira "data preenchida". Tudo local, nada enviado.
+   * ---------------------------------------------------------------- */
+  function diagnosticar(segundosEntreFotos) {
+    var Diag = raiz.MeedsSuiteSalaEsperaDiag;
+    var espera = (segundosEntreFotos || 45) * 1000;
+
+    if (!profissionalId) {
+      console.warn(
+        "[Sala de espera] Ainda nao sei o seu ProfissionalId. Abra a tela de Consultas Agendadas uma vez e repita."
+      );
+      return Promise.resolve(null);
+    }
+
+    console.log("%c[Sala de espera] Diagnostico iniciado", "font-weight:bold");
+    console.log("Consulta:", montarUrl().replace(/ProfissionalId=[^&]+/, "ProfissionalId=<voce>"));
+    console.log("Intervalo entre as fotos:", espera / 1000, "segundos.");
+    console.log("AGORA: peca para marcarem a chegada de um paciente na tela nativa.");
+
+    return consultar()
+      .then(function () {
+        var antes = Diag.fotografar(ultimaRespostaCrua || []);
+        console.log("Foto 1 —", antes.length, "item(ns) na resposta:");
+        console.table(
+          antes.map(function (x) {
+            return { item: x.apelido, status: x.statusAtendimentoId };
+          })
+        );
+        if (ultimaRespostaCrua && ultimaRespostaCrua[0]) {
+          console.log("Formato de um item (nomes e tipos, sem conteudo):");
+          console.table(Diag.formato(ultimaRespostaCrua[0]));
+        }
+        return new Promise(function (ok) {
+          setTimeout(function () {
+            ok(antes);
+          }, espera);
+        });
+      })
+      .then(function (antes) {
+        return consultar().then(function () {
+          var depois = Diag.fotografar(ultimaRespostaCrua || []);
+          console.log("Foto 2 —", depois.length, "item(ns) na resposta.");
+          var mudancas = Diag.comparar(antes, depois);
+          if (!mudancas.length) {
+            console.warn(
+              "Nada mudou entre as duas fotos. Se a chegada foi marcada neste intervalo, " +
+                "o atendimento provavelmente SAIU deste filtro — procure por SUMIU DA RESPOSTA."
+            );
+          } else {
+            console.log("%cO que mudou entre as duas fotos:", "font-weight:bold");
+            console.table(mudancas);
+          }
+          return { antes: antes, depois: depois, mudancas: mudancas };
+        });
+      });
   }
 
   /* ----------------------------------------------------------------
@@ -501,19 +723,20 @@
       });
       atualizarContador();
 
-      timer = setInterval(consultar, INTERVALO_MS);
+      /* Rodadas encadeadas: nunca sobrepoem (ver agendarProxima). */
+      agendarProxima();
 
       /* PROTECAO: parar a consulta quando a pagina for embora. Sem isto,
        * uma navegacao interna deixaria o intervalo rodando a toa. */
       aoSair = function () {
-        if (timer) clearInterval(timer);
+        if (timer) clearTimeout(timer);
         timer = null;
       };
       raiz.addEventListener("beforeunload", aoSair);
     },
 
     stop: function () {
-      if (timer) clearInterval(timer);
+      if (timer) clearTimeout(timer);
       timer = null;
       if (aoSair) {
         raiz.removeEventListener("beforeunload", aoSair);
