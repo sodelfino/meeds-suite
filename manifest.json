@@ -1,6 +1,6 @@
 {
   "nome": "Assistente Meeds",
-  "versao": "2.11.0",
+  "versao": "2.12.0",
   "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
   "repositorio": "https://github.com/sodelfino/meeds-suite",
   "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -107,6 +107,14 @@
       "assets": [
         "modules/remume/assets/fallback.js"
       ]
+    },
+    {
+      "id": "preview-pdf",
+      "nome": "Prévia do documento",
+      "descricao": "Mostra o PDF ao lado do formulário enquanto você preenche, nos geradores de APAC e de laudo. É o mesmo arquivo que será baixado.",
+      "versao": "1.0.0",
+      "arquivo": "modules/preview-pdf/index.js",
+      "semBotao": true
     }
   ],
   "autor": "Marcelo",

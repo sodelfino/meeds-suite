@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Assistente Meeds - Por: Marcelo
 // @namespace    novetech-meeds-suite
-// @version      2.11.0
+// @version      2.12.0
 // @description  Assistente Meeds - Por: Marcelo. Alarme de fila, APAC de Itauna, laudos de Sete Lagoas e Conceicao do Mato Dentro e consulta a REMUME, numa instalacao unica. Cada funcao liga e desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
 // @author       Marcelo
 // @match        *://*.meeds.com.br/*
@@ -4410,7 +4410,7 @@
    * versao aqui nem no bootloader — so no manifest.
    * O valor de reserva existe para o arquivo continuar rodavel solto,
    * fora do pacote (por exemplo num teste unitario). */
-  var VERSAO_NUCLEO = "2.11.0" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.11.0";
+  var VERSAO_NUCLEO = "2.12.0" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.12.0";
 
   var Auth = raiz.MeedsSuiteAuth;
   var Dock = raiz.MeedsSuiteDock;
@@ -4925,7 +4925,7 @@
   raiz.MEEDS_CHANGELOG = {"_leia_me":"Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.","versoes":[{"versao":"2.11.0","data":"2026-08-31","novidades":["Agora dá para enviar feedback direto do painel: conte um problema ou uma ideia, e a mensagem vai pronta para quem cuida do Assistente."],"melhorias":["O painel da engrenagem foi reorganizado em abas — Funções, Médicos, Unidades e Sobre. Antes era tudo numa rolagem só.","Os formulários de cadastro começam fechados: a lista fica limpa, e o formulário abre quando você pede."],"correcoes":[]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["O contador da Sala de Espera passou a mostrar só quem realmente chegou — antes contava também quem tinha consulta marcada e ainda não tinha aparecido."],"correcoes":["A Sala de Espera não avisava quando o paciente agendado chegava. O aviso agora sai na hora em que a chegada é marcada na tela nativa.","Se a internet oscilasse, a fila podia parecer vazia por um instante. Agora a última leitura válida é mantida até a próxima tentativa."]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID passou a funcionar também nos campos de CID secundário e associados da APAC — antes só o principal tinha."],"correcoes":[]},{"versao":"2.9.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID-10 agora vive dentro do próprio campo do laudo. O botão separado saiu: havia dois caminhos para a mesma coisa.","Digitar o código sem o ponto funciona: “J069” encontra J06.9."],"correcoes":["O campo CID mostrava duas listas de sugestão ao mesmo tempo, uma por cima da outra.","Depois de escolher um CID, a lista de sugestões reaparecia sozinha."]},{"versao":"2.8.0","data":"2026-08-31","novidades":["O CID-10 agora fica dentro do próprio laudo: clique no campo CID, digite o nome da doença ou o código, escolha — o código e a descrição entram sozinhos. Vale nos três geradores."],"melhorias":["A busca de CID-10 ficou muito mais rápida e não trava mais a tela: buscas comuns que levavam mais de um segundo agora respondem quase na hora.","A lista de resultados mostra os 50 mais relevantes e diz quantos ficaram de fora, em vez de tentar desenhar milhares de linhas."],"correcoes":["A apresentação “Bem-vindo ao Assistente Meeds” aparecia toda vez que você abria o Meeds. Agora aparece uma vez só."]},{"versao":"2.7.0","data":"2026-08-31","novidades":["Nova função “Sala de Espera”: avisa, sem som, quando um paciente de consulta agendada chega — com o nome, a hora marcada e há quanto tempo espera.","O botão da Sala de Espera mostra quantos pacientes estão aguardando, e abre a lista completa."],"melhorias":["Vários pacientes chegando ao mesmo tempo viram um aviso só, que conta quantos são."],"correcoes":[]},{"versao":"2.6.0","data":"2026-08-30","novidades":["A consulta REMUME passou a entender nome comercial: digite “Tylenol” e ela mostra o paracetamol do seu município.","Quando o remédio procurado não é padronizado no município, o Assistente diz isso com todas as letras, em vez de mostrar uma lista vazia."],"melhorias":["A busca ficou mais tolerante a erro de digitação em português: “dipironá” encontra Dipirona e “cimvastatina” encontra Sinvastatina.","A lista de nomes comerciais saiu do código e virou um arquivo que o administrador edita sozinho."],"correcoes":[]},{"versao":"2.5.0","data":"2026-08-30","novidades":["Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.","O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."],"melhorias":["Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."],"correcoes":["O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."]},{"versao":"2.4.0","data":"2026-08-30","novidades":["Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.","O código escolhido na busca entra sozinho no laudo que estiver aberto.","Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.","Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."],"melhorias":["O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.","O CPF se formata sozinho enquanto você digita.","Com um único médico cadastrado, ele já vem selecionado nos laudos.","As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.","O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."],"correcoes":["O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.","Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."]},{"versao":"2.3.0","data":"2026-08-30","novidades":["Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."],"melhorias":["Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."],"correcoes":[]},{"versao":"2.2.0","data":"2026-08-30","novidades":["Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."],"melhorias":["Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."],"correcoes":["Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."]},{"versao":"2.0.0","data":"2026-08-30","novidades":["Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."],"melhorias":[],"correcoes":[]}]};
 
   var __inv = {
-  "versao": "2.11.0",
+  "versao": "2.12.0",
   "contato": {
     "_leia_me": "Para onde vai o feedback do medico. O botao 'Enviar feedback' abre o programa de e-mail dele com esta mensagem ja escrita — nao ha servidor nem servico de terceiro no caminho. Troque o e-mail aqui se quem cuida do Assistente mudar.",
     "email": "marcelonovetech@gmail.com"
@@ -4971,6 +4971,12 @@
       "descricao": "Consulta a lista de medicamentos do município do atendimento. Aceita erro de digitação e nome comercial: “buscopan” encontra escopolamina.",
       "versao": "2.6.0",
       "origem": "sodelfino/meeds-remume-assistant"
+    },
+    {
+      "id": "preview-pdf",
+      "nome": "Prévia do documento",
+      "descricao": "Mostra o PDF ao lado do formulário enquanto você preenche, nos geradores de APAC e de laudo. É o mesmo arquivo que será baixado.",
+      "versao": "1.0.0"
     }
   ]
 };
@@ -4981,7 +4987,7 @@
    * cobre o resto: duas copias instaladas no Tampermonkey, ou uma
    * reexecucao do script numa navegacao da SPA. Sem ela, apareciam dois
    * docks sobrepostos e o alarme tocava duas vezes. */
-  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.11.0")) return;
+  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.12.0")) return;
 
   /* 2) O hook de rede precisa existir ANTES de qualquer chamada da
    * aplicacao — por isso e instalado aqui, em document-start, e nao
@@ -6011,7 +6017,12 @@
    * X de sexo, das caixinhas de digito do CNS) foram calibradas na mao
    * contra o formulario oficial da APAC. Nada aqui foi reescrito. */
 
-  function gerarPdfInterno(jsPDFCtor) {
+  /* gerarPdfInterno e a FONTE UNICA DE VERDADE do documento da APAC.
+   * Com apenasProduzir = true ela so desenha e devolve os bytes, sem
+   * mexer na tela nem registrar historico — e o caminho do preview.
+   * Como as duas portas passam por aqui, o que o medico ve no preview e
+   * o mesmo arquivo que ele vai baixar. */
+  function gerarPdfInterno(jsPDFCtor, apenasProduzir) {
     const nome = shadow.getElementById('apac-pac-nome').value.trim();
     const cpf = shadow.getElementById('apac-pac-cpf').value.trim();
     const nascInput = shadow.getElementById('apac-pac-nasc').value;
@@ -6163,7 +6174,9 @@
 
     const slug = nome.replace(/[^A-Za-z0-9]+/g,'_').toUpperCase().slice(0,40);
     const filename = `APAC_${slug || 'PACIENTE'}.pdf`;
-    pdfGerado = { bytes: new Uint8Array(doc.output('arraybuffer')), filename };
+    const documento = { bytes: new Uint8Array(doc.output('arraybuffer')), filename };
+    if (apenasProduzir) return documento;   // caminho do preview: nao toca na tela
+    pdfGerado = documento;
     raiz.MeedsSuiteHistorico.registrar("apac-itauna", {
       nomePaciente: nome,
       cpfPaciente: cpf,
@@ -6343,6 +6356,13 @@
     // (API) estar vazio ou desatualizado quando o medico clica.
     aplicarLeituraDaTela(lerDadosDaTela());
     overlay.abrir();
+  }
+
+  /* Porta do preview: produz os bytes sem validar e sem tocar na tela. */
+  function produzirPdf() {
+    return garantirJsPDF().then(function (jsPDFCtor) {
+      return gerarPdfInterno(jsPDFCtor, true);
+    });
   }
 
   function gerarPdf() {
@@ -6541,6 +6561,27 @@
        * pronto, e o laudo anuncia de novo. */
       deps.assinarEvento("cid:pronto", function () {
         anunciarCampoCid();
+        return true;
+      });
+
+
+      /* Anuncia este gerador para quem souber pre-visualizar PDF. O
+       * modulo de preview se acopla ao modal e chama produzirPdf() — a
+       * MESMA funcao que o botao "Gerar" usa, entao o que aparece na
+       * previa e o arquivo que vai ser baixado. Se o preview estiver
+       * desligado, ninguem atende e nada muda aqui. */
+      function anunciarPreview() {
+        deps.publicarEvento("preview:registrar-gerador", {
+          id: "apac",
+          nome: "APAC — Itaúna",
+          seletorModal: "#apac-modal",
+          overlay: overlay,
+          produzirPdf: produzirPdf,
+        });
+      }
+      anunciarPreview();
+      deps.assinarEvento("preview:pronto", function () {
+        anunciarPreview();
         return true;
       });
 
@@ -7358,30 +7399,23 @@
    * Sobrepoe o PDF OFICIAL embutido nas coordenadas ja calibradas e
    * validadas manualmente. A pagina 2 (orientacoes) e copiada sem
    * nenhuma alteracao. Nada aqui foi reescrito. */
-  async function gerarPdf() {
-    limparErro();
-    const faltam = camposFaltando();
-    if (faltam.length) { mostrarErro(mensagemDeCamposFaltando(faltam)); return; }
-
-    const btn = shadow.getElementById('lme-gerar');
-    const original = btn.textContent;
-    btn.textContent = 'Gerando…'; btn.disabled = true;
-
-    try {
-      let PDFLibRef;
-      try {
-        PDFLibRef = await garantirPdfLib();
-      } catch (e) {
-        // biblioteca que nao carrega tem causa e solucao proprias (quase
-        // sempre rede da unidade bloqueando o CDN), diferentes de um erro
-        // ao montar o PDF — por isso a mensagem e outra.
-        mostrarErro(raiz.MeedsSuiteMensagens.BIBLIOTECA_NAO_CARREGOU("pdf-lib", e.message));
-        btn.textContent = original;
-        btn.disabled = false;
-        return;
-      }
+  /* ------------------------------------------------------------------
+   * produzirPdf() — FONTE UNICA DE VERDADE do documento
+   * ------------------------------------------------------------------
+   * Monta o PDF e devolve { bytes, filename }. NAO baixa, NAO mexe na
+   * tela, NAO registra historico. E chamada por duas portas:
+   *
+   *   gerarPdf()  — o botao do medico: valida, produz, registra e baixa;
+   *   o preview   — produz e mostra, sem validar (precisa desenhar mesmo
+   *                 com o formulario pela metade).
+   *
+   * Como as duas passam por AQUI, o que o medico ve no preview e o mesmo
+   * arquivo que ele vai baixar. Se alguem mudar uma coordenada, muda nos
+   * dois — nao ha layout paralelo para divergir.
+   * ------------------------------------------------------------------ */
+  async function produzirPdf() {
+    const PDFLibRef = await garantirPdfLib();
       const { PDFDocument, StandardFonts, rgb } = PDFLibRef;
-
       const origemSel = shadow.getElementById('lme-origem-sel').value;
       const origem = (origemSel === 'outro' ? shadow.getElementById('lme-origem-outro').value : origemSel).trim().toUpperCase();
       const nome = shadow.getElementById('lme-pac-nome').value.trim().toUpperCase();
@@ -7483,9 +7517,30 @@
 
       void MUNICIPIO_FIXO; // ja vem impresso no PDF oficial (SETE LAGOAS)
 
-      const bytes = await pdfDoc.save();
-      const slug = nome.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60);
-      const filename = `LME_${slug || 'PACIENTE'}.pdf`;
+    const bytes = await pdfDoc.save();
+    const slug = nome.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60);
+    const filename = `LME_${slug || 'PACIENTE'}.pdf`;
+    return { bytes: bytes, filename: filename, nome: nome, procNome: procNome, medicoNome: medicoNome };
+  }
+
+  async function gerarPdf() {
+    limparErro();
+    limparSucesso();
+    const faltam = camposFaltando();
+    if (faltam.length) { mostrarErro(mensagemDeCamposFaltando(faltam)); return; }
+
+    const btn = shadow.getElementById('lme-gerar');
+    const original = btn.textContent;
+    btn.textContent = 'Gerando…'; btn.disabled = true;
+
+    try {
+      const documento = await produzirPdf();
+      const bytes = documento.bytes;
+      const filename = documento.filename;
+      const nome = documento.nome;
+      const procNome = documento.procNome;
+      const medicoNome = documento.medicoNome;
+
       raiz.MeedsSuiteHistorico.registrar("lme-sete-lagoas", {
         nomePaciente: nome,
         cpfPaciente: shadow.getElementById("lme-pac-cpf").value,
@@ -7506,14 +7561,22 @@
       mostrarSucesso(filename);
       toast("Pronto — laudo de Sete Lagoas baixado.", 5000);
     } catch (e) {
-      mostrarErro(
-        raiz.MeedsSuiteMensagens.erroTecnico(
-          "gerar o PDF",
-          "o programa encontrou um problema ao montar o arquivo",
-          "Confira se os campos estão preenchidos como esperado e tente de novo. Se repetir, avise o administrador com a mensagem entre parênteses.",
-          e.message
-        )
-      );
+      var msg = e && e.message ? e.message : "";
+      if (/pdf-lib|componente|rede/i.test(msg)) {
+        /* biblioteca que nao carrega tem causa e solucao proprias — quase
+         * sempre a rede da unidade bloqueando o CDN — e por isso a
+         * mensagem e outra. */
+        mostrarErro(raiz.MeedsSuiteMensagens.BIBLIOTECA_NAO_CARREGOU("pdf-lib", msg));
+      } else {
+        mostrarErro(
+          raiz.MeedsSuiteMensagens.erroTecnico(
+            "gerar o PDF",
+            "o programa encontrou um problema ao montar o arquivo",
+            "Confira se os campos estão preenchidos como esperado e tente de novo. Se repetir, avise o administrador com a mensagem entre parênteses.",
+            msg
+          )
+        );
+      }
     } finally {
       btn.textContent = original; btn.disabled = false;
     }
@@ -7772,6 +7835,27 @@
        * pronto, e o laudo anuncia de novo. */
       deps.assinarEvento("cid:pronto", function () {
         anunciarCampoCid();
+        return true;
+      });
+
+
+      /* Anuncia este gerador para quem souber pre-visualizar PDF. O
+       * modulo de preview se acopla ao modal e chama produzirPdf() — a
+       * MESMA funcao que o botao "Gerar" usa, entao o que aparece na
+       * previa e o arquivo que vai ser baixado. Se o preview estiver
+       * desligado, ninguem atende e nada muda aqui. */
+      function anunciarPreview() {
+        deps.publicarEvento("preview:registrar-gerador", {
+          id: "lme",
+          nome: "Laudo — Sete Lagoas",
+          seletorModal: "#lme-modal",
+          overlay: overlay,
+          produzirPdf: produzirPdf,
+        });
+      }
+      anunciarPreview();
+      deps.assinarEvento("preview:pronto", function () {
+        anunciarPreview();
         return true;
       });
 
@@ -8050,30 +8134,23 @@
    * valor e escrito no campo pelo proprio nome dele, sem coordenada
    * manual. Depois o formulario e achatado (flatten) para o PDF final
    * ficar identico em qualquer leitor/impressora. Nada foi reescrito. */
-  async function gerarPdf() {
-    limparErro();
-    const faltam = camposFaltando();
-    if (faltam.length) { mostrarErro(mensagemDeCamposFaltando(faltam)); return; }
-
-    const btn = shadow.getElementById('cmd-gerar');
-    const original = btn.textContent;
-    btn.textContent = 'Gerando…'; btn.disabled = true;
-
-    try {
-      let PDFLibRef;
-      try {
-        PDFLibRef = await garantirPdfLib();
-      } catch (e) {
-        // biblioteca que nao carrega tem causa e solucao proprias (quase
-        // sempre rede da unidade bloqueando o CDN), diferentes de um erro
-        // ao montar o PDF — por isso a mensagem e outra.
-        mostrarErro(raiz.MeedsSuiteMensagens.BIBLIOTECA_NAO_CARREGOU("pdf-lib", e.message));
-        btn.textContent = original;
-        btn.disabled = false;
-        return;
-      }
+  /* ------------------------------------------------------------------
+   * produzirPdf() — FONTE UNICA DE VERDADE do documento
+   * ------------------------------------------------------------------
+   * Monta o PDF e devolve { bytes, filename }. NAO baixa, NAO mexe na
+   * tela, NAO registra historico. E chamada por duas portas:
+   *
+   *   gerarPdf()  — o botao do medico: valida, produz, registra e baixa;
+   *   o preview   — produz e mostra, sem validar (precisa desenhar mesmo
+   *                 com o formulario pela metade).
+   *
+   * Como as duas passam por AQUI, o que o medico ve no preview e o mesmo
+   * arquivo que ele vai baixar. Se alguem mudar uma coordenada, muda nos
+   * dois — nao ha layout paralelo para divergir.
+   * ------------------------------------------------------------------ */
+  async function produzirPdf() {
+    const PDFLibRef = await garantirPdfLib();
       const { PDFDocument, StandardFonts } = PDFLibRef;
-
       const origemSel = shadow.getElementById('cmd-origem-sel').value;
       const origem = (origemSel === 'outro' ? shadow.getElementById('cmd-origem-outro').value : origemSel).trim().toUpperCase();
 
@@ -8146,9 +8223,30 @@
       form.updateFieldAppearances(fontR);
       form.flatten();
 
-      const bytes = await pdfDoc.save();
-      const slug = nome.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60);
-      const filename = `LAUDO_CMD_${slug || 'PACIENTE'}.pdf`;
+    const bytes = await pdfDoc.save();
+    const slug = nome.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60);
+    const filename = `LAUDO_CMD_${slug || 'PACIENTE'}.pdf`;
+    return { bytes: bytes, filename: filename, nome: nome, procNome: procNome, medicoNome: medicoNome };
+  }
+
+  async function gerarPdf() {
+    limparErro();
+    limparSucesso();
+    const faltam = camposFaltando();
+    if (faltam.length) { mostrarErro(mensagemDeCamposFaltando(faltam)); return; }
+
+    const btn = shadow.getElementById('cmd-gerar');
+    const original = btn.textContent;
+    btn.textContent = 'Gerando…'; btn.disabled = true;
+
+    try {
+      const documento = await produzirPdf();
+      const bytes = documento.bytes;
+      const filename = documento.filename;
+      const nome = documento.nome;
+      const procNome = documento.procNome;
+      const medicoNome = documento.medicoNome;
+
       raiz.MeedsSuiteHistorico.registrar("cmd", {
         nomePaciente: nome,
         cpfPaciente: shadow.getElementById("cmd-pac-cpf").value,
@@ -8169,14 +8267,22 @@
       mostrarSucesso(filename);
       toast("Pronto — laudo de Conceição do Mato Dentro baixado.", 5000);
     } catch (e) {
-      mostrarErro(
-        raiz.MeedsSuiteMensagens.erroTecnico(
-          "gerar o PDF",
-          "o programa encontrou um problema ao montar o arquivo",
-          "Confira se os campos estão preenchidos como esperado e tente de novo. Se repetir, avise o administrador com a mensagem entre parênteses.",
-          e.message
-        )
-      );
+      var msg = e && e.message ? e.message : "";
+      if (/pdf-lib|componente|rede/i.test(msg)) {
+        /* biblioteca que nao carrega tem causa e solucao proprias — quase
+         * sempre a rede da unidade bloqueando o CDN — e por isso a
+         * mensagem e outra. */
+        mostrarErro(raiz.MeedsSuiteMensagens.BIBLIOTECA_NAO_CARREGOU("pdf-lib", msg));
+      } else {
+        mostrarErro(
+          raiz.MeedsSuiteMensagens.erroTecnico(
+            "gerar o PDF",
+            "o programa encontrou um problema ao montar o arquivo",
+            "Confira se os campos estão preenchidos como esperado e tente de novo. Se repetir, avise o administrador com a mensagem entre parênteses.",
+            msg
+          )
+        );
+      }
     } finally {
       btn.textContent = original; btn.disabled = false;
     }
@@ -8476,6 +8582,27 @@
        * pronto, e o laudo anuncia de novo. */
       deps.assinarEvento("cid:pronto", function () {
         anunciarCampoCid();
+        return true;
+      });
+
+
+      /* Anuncia este gerador para quem souber pre-visualizar PDF. O
+       * modulo de preview se acopla ao modal e chama produzirPdf() — a
+       * MESMA funcao que o botao "Gerar" usa, entao o que aparece na
+       * previa e o arquivo que vai ser baixado. Se o preview estiver
+       * desligado, ninguem atende e nada muda aqui. */
+      function anunciarPreview() {
+        deps.publicarEvento("preview:registrar-gerador", {
+          id: "cmd",
+          nome: "Laudo — CMD",
+          seletorModal: "#cmd-modal",
+          overlay: overlay,
+          produzirPdf: produzirPdf,
+        });
+      }
+      anunciarPreview();
+      deps.assinarEvento("preview:pronto", function () {
+        anunciarPreview();
         return true;
       });
 
@@ -12109,6 +12236,542 @@ function moverFocoResultado(delta) {
   });
 
   void atendimentoAtual; // guardado so em memoria, para depuracao no console
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== modules/preview-pdf/index.js (v1.0.0) ===== */
+/* ------------------------------------------------------------------
+ * modules/preview-pdf/index.js — pré-visualização do documento
+ * ------------------------------------------------------------------
+ * O QUE MOSTRA
+ * O PDF de verdade, ao lado do formulário, atualizado enquanto o médico
+ * preenche. Não é um esboço nem uma imitação em HTML: o painel exibe o
+ * mesmo arquivo que o botão "Gerar" produz.
+ *
+ * FONTE ÚNICA DE VERDADE
+ * Cada gerador anuncia a própria função `produzirPdf()` pelo barramento
+ * (`preview:registrar-gerador`). O preview chama ESSA função — a mesma
+ * que o botão do médico usa. Não existe layout paralelo aqui: se alguém
+ * mudar uma coordenada no gerador, a prévia muda junto, porque é o
+ * mesmo desenho.
+ *
+ * A única diferença deliberada é a validação: `gerarPdf()` recusa campos
+ * obrigatórios vazios, e a prévia precisa desenhar mesmo pela metade —
+ * é para isso que ela serve.
+ *
+ * PRIVACIDADE
+ * A prévia mostra dado de paciente, então é tratada como tela clínica:
+ * nada vai para a rede, nada é gravado em disco, nada aparece no
+ * console. O `blob:` anterior é revogado antes de cada nova prévia, e
+ * tudo é limpo ao fechar o painel, ao trocar de gerador, depois de um
+ * tempo parado e ao desligar o módulo.
+ *
+ * POR QUE IFRAME, E NÃO CANVAS
+ * O `<iframe>` com `blob:` usa o visualizador de PDF do próprio
+ * navegador — o médico vê literalmente o arquivo, com o mesmo motor que
+ * vai imprimi-lo. O preço é que esse visualizador não expõe a posição de
+ * rolagem à página: dá para preservar a PÁGINA e o ZOOM (pelo fragmento
+ * `#page=N&zoom=Z`), não o ponto exato dentro dela. Ver
+ * docs/VIABILIDADE-PREVIEW.md.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  var DEBOUNCE_MS = 700;          // dentro da faixa de 600 a 800 pedida
+  var LARGURA_MINIMA = 1100;      // abaixo disso o painel não é oferecido
+  var INATIVIDADE_MS = 10 * 60000; // 10 min parado: limpa a prévia da tela
+  var LARGURA_PADRAO = 460;
+  var LARGURA_MIN = 320;
+  var LARGURA_MAX = 900;
+
+  var d = null;
+  var geradores = {};   // id -> { ficha, elementos, estado }
+  var estiloGlobal = null;
+
+  var CSS = [
+    /* o modal do gerador e o painel viram colunas de uma mesma linha */
+    ".pv-linha { display:flex; align-items:stretch; gap:14px; width:100%; justify-content:center; }",
+    ".pv-painel { display:flex; flex-direction:column; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); overflow:hidden; flex-shrink:0; }",
+    ".pv-painel[hidden] { display:none; }",
+    ".pv-topo { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:11px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-shrink:0; }",
+    ".pv-titulo { font-size:12.5px; font-weight:700; }",
+    ".pv-estado { font-size:10.5px; opacity:.85; margin-top:1px; min-height:13px; }",
+    ".pv-acoes { display:flex; align-items:center; gap:6px; }",
+    ".pv-bt { background:rgba(255,255,255,.18); border:none; color:#fff; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; font-family:inherit; padding:5px 8px; }",
+    ".pv-bt:hover { background:rgba(255,255,255,.32); }",
+    ".pv-bt[disabled] { opacity:.4; cursor:default; }",
+    ".pv-quadro { flex:1; border:none; width:100%; background:#525659; }",
+    ".pv-vazio { flex:1; display:flex; align-items:center; justify-content:center; text-align:center; padding:24px; font-size:12.5px; color:#8a97a4; line-height:1.6; background:#f7f9fb; }",
+
+    /* botao que abre/fecha, dentro do cabecalho do gerador */
+    ".pv-alternar { background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; font-family:inherit; cursor:pointer; }",
+    ".pv-alternar:hover { background:rgba(255,255,255,.34); }",
+    ".pv-alternar[aria-pressed='true'] { background:#fff; color:#123a7a; }",
+
+    /* alca de redimensionamento */
+    ".pv-alca { width:6px; cursor:col-resize; background:transparent; flex-shrink:0; align-self:stretch; border-radius:3px; }",
+    ".pv-alca:hover, .pv-alca.pv-arrastando { background:rgba(255,255,255,.5); }",
+  ].join("\n");
+
+  /* ------------------------------------------------------------------
+   * ESTADO LEMBRADO (aberto/fechado e largura), por gerador
+   * ------------------------------------------------------------------
+   * DESLIGADO por padrão na primeira execução: quem abre um laudo pela
+   * primeira vez quer preencher, não olhar um documento em branco.
+   * ------------------------------------------------------------------ */
+  function lerPreferencia(id) {
+    var todas = d.storage.ler("paineis", {}) || {};
+    var p = todas[id] || {};
+    return {
+      aberto: p.aberto === true,
+      largura: Math.min(LARGURA_MAX, Math.max(LARGURA_MIN, Number(p.largura) || LARGURA_PADRAO)),
+      zoom: p.zoom || "page-width",
+    };
+  }
+
+  function gravarPreferencia(id, mudanca) {
+    var todas = d.storage.ler("paineis", {}) || {};
+    todas[id] = Object.assign({}, todas[id] || {}, mudanca);
+    d.storage.gravar("paineis", todas);
+  }
+
+  function cabe() {
+    return raiz.innerWidth >= LARGURA_MINIMA;
+  }
+
+  /* ------------------------------------------------------------------
+   * ACOPLAMENTO A UM GERADOR
+   * ------------------------------------------------------------------ */
+  function registrarGerador(ficha) {
+    if (!ficha || !ficha.id || geradores[ficha.id]) return false;
+
+    var modal = ficha.overlay && ficha.overlay.$(ficha.seletorModal);
+    if (!modal) return false;
+
+    var pref = lerPreferencia(ficha.id);
+
+    /* O modal passa a ser a primeira coluna de uma linha; o painel é a
+     * segunda. Com o painel fechado, a linha tem uma coluna só e o
+     * formulário fica exatamente como era. */
+    var linha = document.createElement("div");
+    linha.className = "pv-linha";
+    modal.parentNode.insertBefore(linha, modal);
+    linha.appendChild(modal);
+
+    var alca = document.createElement("div");
+    alca.className = "pv-alca";
+    alca.hidden = true;
+    linha.appendChild(alca);
+
+    var painel = document.createElement("div");
+    painel.className = "pv-painel";
+    painel.hidden = true;
+    painel.style.width = pref.largura + "px";
+    painel.innerHTML =
+      '<div class="pv-topo">' +
+      "  <div><div class=\"pv-titulo\">Prévia do documento</div>" +
+      '  <div class="pv-estado"></div></div>' +
+      '  <div class="pv-acoes">' +
+      '    <button type="button" class="pv-bt" data-zoom="menos" title="Diminuir">&minus;</button>' +
+      '    <button type="button" class="pv-bt" data-zoom="mais" title="Aumentar">+</button>' +
+      '    <button type="button" class="pv-bt" data-fechar title="Fechar a prévia">&#10005;</button>' +
+      "  </div>" +
+      "</div>" +
+      '<div class="pv-vazio">Preencha o formulário para ver a prévia aqui.</div>';
+    linha.appendChild(painel);
+
+    /* Botão de abrir/fechar, no cabeçalho do próprio gerador — não é um
+     * botão novo no dock. */
+    var alternar = document.createElement("button");
+    alternar.type = "button";
+    alternar.className = "pv-alternar";
+    alternar.setAttribute("aria-pressed", "false");
+    alternar.textContent = "👁 Prévia";
+    alternar.title = "Ver o documento enquanto preenche";
+    var cabecalho = modal.querySelector("[id$='-modal-head'] > div:last-child") || modal.firstElementChild;
+    if (cabecalho) cabecalho.insertBefore(alternar, cabecalho.firstChild);
+
+    var g = {
+      ficha: ficha,
+      modal: modal,
+      linha: linha,
+      painel: painel,
+      alca: alca,
+      alternar: alternar,
+      quadro: null,
+      urlAtual: null,
+      timerDebounce: null,
+      timerInatividade: null,
+      geracao: 0,
+      assinaturaAnterior: null,
+      aberto: false,
+      largura: pref.largura,
+      zoom: pref.zoom,
+      pagina: 1,
+      handlers: {},
+      medidas: [],
+      renderizacoes: 0,
+    };
+    geradores[ficha.id] = g;
+
+    alternar.addEventListener("click", function () {
+      definirAberto(g, !g.aberto);
+    });
+    painel.querySelector("[data-fechar]").addEventListener("click", function () {
+      definirAberto(g, false);
+    });
+    painel.querySelector('[data-zoom="mais"]').addEventListener("click", function () {
+      mudarZoom(g, 1);
+    });
+    painel.querySelector('[data-zoom="menos"]').addEventListener("click", function () {
+      mudarZoom(g, -1);
+    });
+
+    /* Mudança em qualquer campo do formulário agenda uma prévia. Um
+     * ouvinte só, delegado no modal — não um por campo. */
+    g.handlers.mudou = function () {
+      agendar(g);
+    };
+    modal.addEventListener("input", g.handlers.mudou);
+    modal.addEventListener("change", g.handlers.mudou);
+
+    ligarRedimensionamento(g);
+
+    /* A preferência é lembrada, mas só vale se a tela couber. */
+    if (pref.aberto && cabe()) definirAberto(g, true, true);
+    atualizarDisponibilidade(g);
+
+    return true;
+  }
+
+  function atualizarDisponibilidade(g) {
+    var disponivel = cabe();
+    g.alternar.hidden = !disponivel;
+    if (!disponivel && g.aberto) definirAberto(g, false, true);
+  }
+
+  function definirAberto(g, aberto, semGravar) {
+    g.aberto = !!aberto;
+    g.painel.hidden = !g.aberto;
+    g.alca.hidden = !g.aberto;
+    g.alternar.setAttribute("aria-pressed", String(g.aberto));
+    if (!semGravar) gravarPreferencia(g.ficha.id, { aberto: g.aberto });
+
+    if (g.aberto) {
+      agendar(g, true);
+    } else {
+      /* Fechar limpa de verdade: o dado de paciente sai da tela e o blob
+       * é revogado. Não fica um documento pendurado em memória. */
+      limparPrevia(g);
+    }
+  }
+
+  function mudarZoom(g, direcao) {
+    var escala = ["page-fit", "50", "75", "100", "125", "150", "200"];
+    var atual = escala.indexOf(String(g.zoom));
+    if (atual === -1) atual = 3;
+    var novo = Math.min(escala.length - 1, Math.max(0, atual + direcao));
+    g.zoom = escala[novo];
+    gravarPreferencia(g.ficha.id, { zoom: g.zoom });
+    if (g.quadro && g.urlAtual) g.quadro.src = enderecoComVista(g);
+  }
+
+  function enderecoComVista(g) {
+    /* O visualizador nativo aceita página e zoom pelo fragmento. É o que
+     * dá para preservar entre re-renderizações. */
+    return g.urlAtual + "#page=" + g.pagina + "&zoom=" + g.zoom + "&toolbar=1";
+  }
+
+  function ligarRedimensionamento(g) {
+    var arrastando = false;
+    var xInicial = 0;
+    var larguraInicial = 0;
+
+    g.handlers.mouseDown = function (ev) {
+      arrastando = true;
+      xInicial = ev.clientX;
+      larguraInicial = g.painel.getBoundingClientRect().width;
+      g.alca.classList.add("pv-arrastando");
+      ev.preventDefault();
+    };
+    g.handlers.mouseMove = function (ev) {
+      if (!arrastando) return;
+      var nova = Math.min(LARGURA_MAX, Math.max(LARGURA_MIN, larguraInicial - (ev.clientX - xInicial)));
+      g.largura = Math.round(nova);
+      g.painel.style.width = g.largura + "px";
+    };
+    g.handlers.mouseUp = function () {
+      if (!arrastando) return;
+      arrastando = false;
+      g.alca.classList.remove("pv-arrastando");
+      gravarPreferencia(g.ficha.id, { largura: g.largura });
+    };
+
+    g.alca.addEventListener("mousedown", g.handlers.mouseDown);
+    raiz.addEventListener("mousemove", g.handlers.mouseMove);
+    raiz.addEventListener("mouseup", g.handlers.mouseUp);
+  }
+
+  /* ------------------------------------------------------------------
+   * AGENDAMENTO — o que evita a digitação engasgar
+   * ------------------------------------------------------------------ */
+  function assinaturaDoFormulario(g) {
+    var partes = [];
+    g.modal.querySelectorAll("input, select, textarea").forEach(function (campo) {
+      partes.push(campo.id + "=" + (campo.value || ""));
+    });
+    return partes.join("|");
+  }
+
+  function agendar(g, imediato) {
+    if (!g.aberto) return;                       // painel fechado: nem agenda
+    if (!g.ficha.overlay.estaAberto()) return;   // modal fechado: idem
+
+    clearTimeout(g.timerDebounce);
+    marcarDesatualizado(g, true);
+
+    g.timerDebounce = setTimeout(function () {
+      renderizar(g);
+    }, imediato ? 60 : DEBOUNCE_MS);
+  }
+
+  function marcarDesatualizado(g, sim) {
+    var estado = g.painel.querySelector(".pv-estado");
+    /* Só troca o TEXTO, nunca o tamanho do painel: mexer no layout aqui
+     * faria a prévia saltar a cada tecla. */
+    estado.textContent = sim ? "atualizando…" : g.ultimaLegenda || "";
+  }
+
+  function renderizar(g) {
+    if (!g.aberto || !g.ficha.overlay.estaAberto()) return;
+
+    /* Aba em segundo plano não renderiza: o médico não está olhando, e
+     * gerar PDF à toa gasta CPU dele. Quando voltar, o listener de
+     * visibilidade reagenda. */
+    if (document.hidden) return;
+
+    var assinatura = assinaturaDoFormulario(g);
+    if (assinatura === g.assinaturaAnterior) {
+      marcarDesatualizado(g, false);
+      return; // nada relevante mudou
+    }
+
+    var minhaGeracao = ++g.geracao;
+    var t0 = performance.now();
+
+    Promise.resolve()
+      .then(function () {
+        return g.ficha.produzirPdf();
+      })
+      .then(function (documento) {
+        /* Chegou tarde: outra renderização já começou depois desta.
+         * Descarta em vez de sobrescrever o resultado mais novo. */
+        if (minhaGeracao !== g.geracao) return;
+        if (!g.aberto) return;
+
+        var ms = performance.now() - t0;
+        g.medidas.push(ms);
+        g.renderizacoes++;
+        g.assinaturaAnterior = assinatura;
+
+        mostrar(g, documento.bytes);
+        g.ultimaLegenda = documento.filename + " · " + Math.round(ms) + " ms";
+        marcarDesatualizado(g, false);
+        reiniciarInatividade(g);
+      })
+      .catch(function (e) {
+        if (minhaGeracao !== g.geracao) return;
+        /* Formulário pela metade costuma dar erro de desenho, e isso é
+         * esperado — a prévia não é um validador. Mostramos um recado
+         * curto, sem detalhe técnico e sem nada do documento. */
+        mostrarVazio(g, "Ainda não dá para montar a prévia. Continue preenchendo.");
+        g.ultimaLegenda = "";
+        marcarDesatualizado(g, false);
+      });
+  }
+
+  function mostrar(g, bytes) {
+    var blob = new Blob([bytes], { type: "application/pdf" });
+    var url = URL.createObjectURL(blob);
+
+    /* Revoga a anterior ANTES de trocar: sem isso, cada tecla deixaria
+     * um PDF pendurado em memória até a aba fechar. */
+    if (g.urlAtual) URL.revokeObjectURL(g.urlAtual);
+    g.urlAtual = url;
+
+    var vazio = g.painel.querySelector(".pv-vazio");
+    if (vazio) vazio.remove();
+
+    if (!g.quadro) {
+      g.quadro = document.createElement("iframe");
+      g.quadro.className = "pv-quadro";
+      g.quadro.setAttribute("title", "Prévia do documento");
+      g.painel.appendChild(g.quadro);
+    }
+    g.quadro.src = enderecoComVista(g);
+  }
+
+  function mostrarVazio(g, texto) {
+    if (g.quadro) {
+      g.quadro.remove();
+      g.quadro = null;
+    }
+    if (g.urlAtual) {
+      URL.revokeObjectURL(g.urlAtual);
+      g.urlAtual = null;
+    }
+    var vazio = g.painel.querySelector(".pv-vazio");
+    if (!vazio) {
+      vazio = document.createElement("div");
+      vazio.className = "pv-vazio";
+      g.painel.appendChild(vazio);
+    }
+    vazio.textContent = texto;
+  }
+
+  /* Consultório compartilhado: depois de um tempo parado, o documento
+   * sai da tela. Ninguém precisa lembrar de fechar. */
+  function reiniciarInatividade(g) {
+    clearTimeout(g.timerInatividade);
+    g.timerInatividade = setTimeout(function () {
+      if (!g.aberto) return;
+      mostrarVazio(g, "Prévia ocultada por inatividade. Toque em qualquer campo para gerar de novo.");
+      g.assinaturaAnterior = null;
+    }, INATIVIDADE_MS);
+  }
+
+  function limparPrevia(g) {
+    clearTimeout(g.timerDebounce);
+    clearTimeout(g.timerInatividade);
+    g.geracao++; // invalida qualquer renderização em voo
+    if (g.quadro) {
+      g.quadro.remove();
+      g.quadro = null;
+    }
+    if (g.urlAtual) {
+      URL.revokeObjectURL(g.urlAtual);
+      g.urlAtual = null;
+    }
+    g.assinaturaAnterior = null;
+    g.ultimaLegenda = "";
+    var vazio = g.painel.querySelector(".pv-vazio");
+    if (!vazio) {
+      vazio = document.createElement("div");
+      vazio.className = "pv-vazio";
+      g.painel.appendChild(vazio);
+    }
+    vazio.textContent = "Preencha o formulário para ver a prévia aqui.";
+  }
+
+  function desacoplar(g) {
+    limparPrevia(g);
+    g.modal.removeEventListener("input", g.handlers.mudou);
+    g.modal.removeEventListener("change", g.handlers.mudou);
+    g.alca.removeEventListener("mousedown", g.handlers.mouseDown);
+    raiz.removeEventListener("mousemove", g.handlers.mouseMove);
+    raiz.removeEventListener("mouseup", g.handlers.mouseUp);
+    if (g.alternar.parentNode) g.alternar.parentNode.removeChild(g.alternar);
+    /* Devolve o modal ao lugar original e desfaz a linha de duas colunas:
+     * o formulário volta a ser exatamente o que era. */
+    if (g.linha.parentNode) {
+      g.linha.parentNode.insertBefore(g.modal, g.linha);
+      g.linha.parentNode.removeChild(g.linha);
+    }
+  }
+
+  var aoMudarTela = null;
+  var aoMudarVisibilidade = null;
+
+  raiz.MeedsSuite.registerModule({
+    id: "preview-pdf",
+    nome: "Prévia do documento",
+    descricao:
+      "Mostra o PDF ao lado do formulário enquanto você preenche, nos geradores de APAC e de laudo. É o mesmo arquivo que será baixado.",
+    versao: "1.0.0",
+    configPadrao: {},
+
+    /* Sem botão no dock: a prévia só faz sentido dentro de um gerador, e
+     * o botão de abrir vive no cabeçalho do próprio gerador. Mesmo
+     * desenho do módulo de CID-10. */
+    botao: null,
+    assinaturasRede: [],
+
+    start: function (deps) {
+      d = deps;
+      geradores = {};
+      estiloGlobal = d.dock.adicionarEstilo(CSS);
+
+      deps.assinarEvento("preview:registrar-gerador", function (ficha) {
+        return registrarGerador(ficha);
+      });
+
+      /* Geradores que subiram antes deste módulo já anunciaram e não
+       * encontraram ninguém. Este aviso faz cada um anunciar de novo. */
+      deps.publicarEvento("preview:pronto", {});
+
+      aoMudarTela = function () {
+        Object.keys(geradores).forEach(function (id) {
+          atualizarDisponibilidade(geradores[id]);
+        });
+      };
+      raiz.addEventListener("resize", aoMudarTela);
+
+      aoMudarVisibilidade = function () {
+        if (document.hidden) return;
+        Object.keys(geradores).forEach(function (id) {
+          var g = geradores[id];
+          if (g.aberto) agendar(g);
+        });
+      };
+      document.addEventListener("visibilitychange", aoMudarVisibilidade);
+    },
+
+    stop: function () {
+      Object.keys(geradores).forEach(function (id) {
+        desacoplar(geradores[id]);
+      });
+      geradores = {};
+      if (estiloGlobal && estiloGlobal.parentNode) estiloGlobal.parentNode.removeChild(estiloGlobal);
+      estiloGlobal = null;
+      if (aoMudarTela) raiz.removeEventListener("resize", aoMudarTela);
+      if (aoMudarVisibilidade) document.removeEventListener("visibilitychange", aoMudarVisibilidade);
+      aoMudarTela = null;
+      aoMudarVisibilidade = null;
+      d = null;
+    },
+
+    /* exposto só para o teste de fumaça */
+    _teste: {
+      estado: function () {
+        return Object.keys(geradores).map(function (id) {
+          var g = geradores[id];
+          return {
+            id: id,
+            aberto: g.aberto,
+            temQuadro: !!g.quadro,
+            temUrl: !!g.urlAtual,
+            renderizacoes: g.renderizacoes,
+            medidas: g.medidas.slice(),
+          };
+        });
+      },
+      zerarMedidas: function () {
+        Object.keys(geradores).forEach(function (id) {
+          geradores[id].renderizacoes = 0;
+          geradores[id].medidas = [];
+        });
+      },
+      abrir: function (id) {
+        if (geradores[id]) definirAberto(geradores[id], true);
+      },
+      fechar: function (id) {
+        if (geradores[id]) definirAberto(geradores[id], false);
+      },
+      forcarLarguraMinima: function (v) {
+        LARGURA_MINIMA = v;
+      },
+    },
+  });
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
 
