@@ -280,12 +280,27 @@ function main() {
       .replace(/\/\/ @name\s+.*\n/, `// @name         ${manifest.nome} para iPad - por ${manifest.autor}\n`)
       .replace(/\/\/ @namespace\s+.*\n/, "// @namespace    novetech-meeds-suite-safari\n")
       /* Sai todo @grant e entra `none`: e o que mantem o script no escopo
-       * da pagina, onde o hub de rede funciona. */
+       * da pagina, onde o hub de rede funciona.
+       *
+       * `@inject-into auto` e nao `page` de proposito. Com `page` a
+       * extensao injeta uma tag <script> na pagina, e a CSP do Meeds
+       * recusa executa-la: o script aparece instalado e casado no popup
+       * do Userscripts e mesmo assim nada acontece na tela — foi
+       * exatamente o que aconteceu no iPad do plantao. A documentacao da
+       * extensao aponta `auto` como o remedio para CSP estrita.
+       *
+       * `auto` tenta a pagina primeiro e, se a CSP barrar, cai para o
+       * escopo isolado. No escopo isolado o DOM e o mesmo (dock, paineis,
+       * leitura de tela, geracao de PDF seguem inteiros), mas o `window`
+       * nao e o da pagina: o hub de rede deixa de ver as chamadas do
+       * Meeds. O alarme de fila continua funcionando pelos outros sinais
+       * (toast e contador na tela), com um voto a menos. Perder um sinal
+       * e melhor que nao rodar. */
       .replace(/\/\/ @grant\s+.*\n/g, "")
       .replace(/(\/\/ @connect\s+.*\n)+/g, "")
       .replace(
         /(\/\/ @run-at\s+.*\n)/,
-        "// @grant        none\n// @inject-into page\n$1"
+        "// @grant        none\n// @inject-into auto\n$1"
       )
       /* A documentacao do Userscripts e explicita: o @updateURL deve
        * terminar em .meta.js, e o @downloadURL em .user.js. Apontar os
@@ -353,7 +368,7 @@ function main() {
     resumo.forEach((l) => console.log(l));
   }
   const kbSafari = (fs.statSync(destinoSafari).size / 1024).toFixed(0);
-  console.log(`  safari:  ${VARIANTE_SAFARI} (${kbSafari} KB) — @grant none, @inject-into page`);
+  console.log(`  safari:  ${VARIANTE_SAFARI} (${kbSafari} KB) — @grant none, @inject-into auto`);
   console.log("\nTampermonkey (Windows/Mac/Android): dist/meeds-suite.user.js");
   console.log("Safari no iPad/iPhone/Mac (app Userscripts): " + VARIANTE_SAFARI);
 }

@@ -1,47 +1,45 @@
 // ==UserScript==
-// @name         Teste de instalacao - Assistente Meeds
+// @name         Teste do Assistente para iPad
 // @namespace    novetech-meeds-teste
-// @version      1.0.0
-// @description  Script minimo, so para conferir se o Userscripts esta instalando e rodando no iPad. Nao faz nada alem de mostrar uma faixa verde no topo da tela do Meeds.
+// @version      3
+// @description  Script minimo de diagnostico: mostra uma faixa no topo do Meeds dizendo que rodou e em que escopo.
 // @author       Marcelo
 // @match        *://*.meeds.com.br/*
-// @match        *://doctor-calltech.meeds.com.br/*
 // @grant        none
-// @inject-into page
+// @inject-into  auto
 // @run-at       document-end
 // ==/UserScript==
 
-/* ------------------------------------------------------------------
- * PARA QUE ESTE ARQUIVO EXISTE
- * Quando o Assistente nao aparece no iPad, ha duas explicacoes bem
- * diferentes: ou o Userscripts nao esta instalando/rodando nada, ou ele
- * roda mas engasga com o pacote grande do Assistente (1 MB, com dois
- * @require).
- *
- * Este script separa as duas. Ele tem 20 linhas, nenhum @require e nao
- * depende de nada. Se a faixa verde aparecer, o Userscripts esta OK e o
- * problema e o pacote. Se nao aparecer, o problema e a instalacao — e
- * nem adianta mexer no Assistente.
- * ------------------------------------------------------------------ */
+/* Nao tem @require, nao tem biblioteca, nao tem rede. Se esta faixa
+ * aparecer, o Userscripts instala e executa neste iPad — e qualquer
+ * problema restante esta no pacote do Assistente, nao na extensao. */
 (function () {
   "use strict";
-  if (window.self !== window.top) return;
 
-  function mostrar() {
-    if (document.getElementById("teste-meeds")) return;
-    var faixa = document.createElement("div");
-    faixa.id = "teste-meeds";
-    faixa.textContent = "✅ Userscripts está funcionando neste iPad";
-    faixa.style.cssText =
-      "position:fixed;top:0;left:0;right:0;z-index:2147483647;" +
-      "background:#12958a;color:#fff;font:700 15px -apple-system,sans-serif;" +
-      "text-align:center;padding:12px;box-shadow:0 2px 10px rgba(0,0,0,.3)";
-    faixa.addEventListener("click", function () {
-      faixa.remove();
-    });
-    document.body.appendChild(faixa);
-  }
+  /* Mesmo teste de escopo do nucleo: manda a PAGINA cravar uma marca.
+   * Se ela chegar ate aqui, "aqui" e a pagina; senao, e o escopo isolado. */
+  var marca = "__meedsTesteEscopo";
+  var escopo = "isolado";
+  try {
+    var tag = document.createElement("script");
+    tag.textContent = "window['" + marca + "']=1;";
+    (document.documentElement || document.head).appendChild(tag);
+    tag.remove();
+    if (window[marca] === 1) escopo = "pagina";
+    delete window[marca];
+  } catch (e) {}
 
-  if (document.body) mostrar();
-  else document.addEventListener("DOMContentLoaded", mostrar);
+  var faixa = document.createElement("div");
+  faixa.textContent =
+    escopo === "pagina"
+      ? "✅ Funcionou — escopo: PAGINA (tudo disponivel)"
+      : "✅ Funcionou — escopo: ISOLADO (a CSP do site barrou a pagina)";
+  faixa.style.cssText =
+    "position:fixed;top:0;left:0;right:0;z-index:2147483647;" +
+    "background:#0a7d32;color:#fff;font:600 15px/1.4 system-ui,sans-serif;" +
+    "padding:10px 14px;text-align:center;";
+  faixa.addEventListener("click", function () {
+    faixa.remove();
+  });
+  (document.body || document.documentElement).appendChild(faixa);
 })();

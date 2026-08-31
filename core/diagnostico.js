@@ -295,6 +295,38 @@
     });
   }
 
+  /* Em que escopo o script esta rodando?
+   *
+   * Importa porque muda o que o Assistente consegue fazer. No escopo da
+   * pagina o hub de rede enxerga as chamadas do Meeds; no escopo isolado
+   * (para onde o Safari empurra o script quando a CSP do site barra a
+   * injecao) o DOM e o mesmo, mas o `window` nao — a rede fica invisivel
+   * e o alarme de fila passa a decidir so pelos sinais de tela.
+   *
+   * O teste: mandar a PAGINA definir uma marca. Se ela aparecer aqui, o
+   * "aqui" e a propria pagina. Se nao aparecer — porque a marca ficou no
+   * outro escopo, ou porque a CSP recusou a tag — nao e. */
+  var escopoLembrado = null;
+  function escopoDeExecucao() {
+    if (escopoLembrado) return escopoLembrado;
+    var marca = "__meedsEscopo" + String(MARCA_INSTANCIA).replace(/\W/g, "");
+    try {
+      var tag = document.createElement("script");
+      tag.textContent = "window['" + marca + "']=1;";
+      (document.documentElement || document.head).appendChild(tag);
+      tag.remove();
+    } catch (e) {
+      /* sem permissao de criar a tag: tratamos como isolado */
+    }
+    escopoLembrado = raiz[marca] === 1 ? "pagina" : "isolado";
+    try {
+      delete raiz[marca];
+    } catch (e2) {
+      raiz[marca] = undefined;
+    }
+    return escopoLembrado;
+  }
+
   raiz.MeedsSuiteDiagnostico = {
     boasVindasConcluidas: boasVindasConcluidas,
     marcarBoasVindasConcluidas: marcarBoasVindasConcluidas,
@@ -303,6 +335,7 @@
     limparDockOrfao: limparDockOrfao,
     detectarAntigos: detectarAntigos,
     verificar: verificar,
+    escopoDeExecucao: escopoDeExecucao,
     MARCA_INSTANCIA: MARCA_INSTANCIA,
   };
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);

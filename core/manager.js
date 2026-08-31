@@ -220,6 +220,7 @@
         '        <div class="msm-sobre-credito">Assistente Meeds — Por: Marcelo</div>' +
         '        <div class="msm-sobre-versao">Versão <b id="msm-versao"></b> · ' +
         '          <button type="button" class="msm-link" id="msm-historico-versoes">ver o que mudou</button></div>' +
+        '        <div class="msm-sobre-versao" id="msm-escopo"></div>' +
         "      </div>" +
         '      <div class="msm-sobre-bloco">' +
         '        <div class="msm-sobre-titulo">Achou um problema? Tem uma ideia?</div>' +
@@ -240,6 +241,20 @@
       overlay.fechar();
     });
     overlay.$("#msm-versao").textContent = ctx.versaoNucleo;
+
+    /* Linha tecnica de uma frase. Existe por um motivo concreto: quando o
+     * Assistente "nao faz nada" num iPad, a primeira pergunta e sempre em
+     * que escopo ele caiu — e ate agora a unica forma de descobrir era
+     * ligar o aparelho num Mac. Agora e abrir o Sobre. */
+    (function () {
+      var linha = overlay.$("#msm-escopo");
+      var diag = raiz.MeedsSuiteDiagnostico;
+      if (!linha || !diag || !diag.escopoDeExecucao) return;
+      linha.textContent =
+        diag.escopoDeExecucao() === "pagina"
+          ? "Funcionando com todos os sinais"
+          : "Modo restrito: o navegador isolou o Assistente, então o alarme de fila decide só pelo que aparece na tela";
+    })();
 
     overlay.$$(".msm-aba").forEach(function (btn) {
       btn.addEventListener("click", function () {
