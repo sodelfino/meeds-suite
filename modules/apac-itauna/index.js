@@ -330,7 +330,12 @@
    * X de sexo, das caixinhas de digito do CNS) foram calibradas na mao
    * contra o formulario oficial da APAC. Nada aqui foi reescrito. */
 
-  function gerarPdfInterno(jsPDFCtor) {
+  /* gerarPdfInterno e a FONTE UNICA DE VERDADE do documento da APAC.
+   * Com apenasProduzir = true ela so desenha e devolve os bytes, sem
+   * mexer na tela nem registrar historico — e o caminho do preview.
+   * Como as duas portas passam por aqui, o que o medico ve no preview e
+   * o mesmo arquivo que ele vai baixar. */
+  function gerarPdfInterno(jsPDFCtor, apenasProduzir) {
     const nome = shadow.getElementById('apac-pac-nome').value.trim();
     const cpf = shadow.getElementById('apac-pac-cpf').value.trim();
     const nascInput = shadow.getElementById('apac-pac-nasc').value;
@@ -482,7 +487,9 @@
 
     const slug = nome.replace(/[^A-Za-z0-9]+/g,'_').toUpperCase().slice(0,40);
     const filename = `APAC_${slug || 'PACIENTE'}.pdf`;
-    pdfGerado = { bytes: new Uint8Array(doc.output('arraybuffer')), filename };
+    const documento = { bytes: new Uint8Array(doc.output('arraybuffer')), filename };
+    if (apenasProduzir) return documento;   // caminho do preview: nao toca na tela
+    pdfGerado = documento;
     raiz.MeedsSuiteHistorico.registrar("apac-itauna", {
       nomePaciente: nome,
       cpfPaciente: cpf,
@@ -662,6 +669,13 @@
     // (API) estar vazio ou desatualizado quando o medico clica.
     aplicarLeituraDaTela(lerDadosDaTela());
     overlay.abrir();
+  }
+
+  /* Porta do preview: produz os bytes sem validar e sem tocar na tela. */
+  function produzirPdf() {
+    return garantirJsPDF().then(function (jsPDFCtor) {
+      return gerarPdfInterno(jsPDFCtor, true);
+    });
   }
 
   function gerarPdf() {
@@ -860,6 +874,27 @@
        * pronto, e o laudo anuncia de novo. */
       deps.assinarEvento("cid:pronto", function () {
         anunciarCampoCid();
+        return true;
+      });
+
+
+      /* Anuncia este gerador para quem souber pre-visualizar PDF. O
+       * modulo de preview se acopla ao modal e chama produzirPdf() — a
+       * MESMA funcao que o botao "Gerar" usa, entao o que aparece na
+       * previa e o arquivo que vai ser baixado. Se o preview estiver
+       * desligado, ninguem atende e nada muda aqui. */
+      function anunciarPreview() {
+        deps.publicarEvento("preview:registrar-gerador", {
+          id: "apac",
+          nome: "APAC — Itaúna",
+          seletorModal: "#apac-modal",
+          overlay: overlay,
+          produzirPdf: produzirPdf,
+        });
+      }
+      anunciarPreview();
+      deps.assinarEvento("preview:pronto", function () {
+        anunciarPreview();
         return true;
       });
 

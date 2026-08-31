@@ -240,30 +240,23 @@
    * Sobrepoe o PDF OFICIAL embutido nas coordenadas ja calibradas e
    * validadas manualmente. A pagina 2 (orientacoes) e copiada sem
    * nenhuma alteracao. Nada aqui foi reescrito. */
-  async function gerarPdf() {
-    limparErro();
-    const faltam = camposFaltando();
-    if (faltam.length) { mostrarErro(mensagemDeCamposFaltando(faltam)); return; }
-
-    const btn = shadow.getElementById('lme-gerar');
-    const original = btn.textContent;
-    btn.textContent = 'Gerando…'; btn.disabled = true;
-
-    try {
-      let PDFLibRef;
-      try {
-        PDFLibRef = await garantirPdfLib();
-      } catch (e) {
-        // biblioteca que nao carrega tem causa e solucao proprias (quase
-        // sempre rede da unidade bloqueando o CDN), diferentes de um erro
-        // ao montar o PDF — por isso a mensagem e outra.
-        mostrarErro(raiz.MeedsSuiteMensagens.BIBLIOTECA_NAO_CARREGOU("pdf-lib", e.message));
-        btn.textContent = original;
-        btn.disabled = false;
-        return;
-      }
+  /* ------------------------------------------------------------------
+   * produzirPdf() — FONTE UNICA DE VERDADE do documento
+   * ------------------------------------------------------------------
+   * Monta o PDF e devolve { bytes, filename }. NAO baixa, NAO mexe na
+   * tela, NAO registra historico. E chamada por duas portas:
+   *
+   *   gerarPdf()  — o botao do medico: valida, produz, registra e baixa;
+   *   o preview   — produz e mostra, sem validar (precisa desenhar mesmo
+   *                 com o formulario pela metade).
+   *
+   * Como as duas passam por AQUI, o que o medico ve no preview e o mesmo
+   * arquivo que ele vai baixar. Se alguem mudar uma coordenada, muda nos
+   * dois — nao ha layout paralelo para divergir.
+   * ------------------------------------------------------------------ */
+  async function produzirPdf() {
+    const PDFLibRef = await garantirPdfLib();
       const { PDFDocument, StandardFonts, rgb } = PDFLibRef;
-
       const origemSel = shadow.getElementById('lme-origem-sel').value;
       const origem = (origemSel === 'outro' ? shadow.getElementById('lme-origem-outro').value : origemSel).trim().toUpperCase();
       const nome = shadow.getElementById('lme-pac-nome').value.trim().toUpperCase();
@@ -365,9 +358,30 @@
 
       void MUNICIPIO_FIXO; // ja vem impresso no PDF oficial (SETE LAGOAS)
 
-      const bytes = await pdfDoc.save();
-      const slug = nome.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60);
-      const filename = `LME_${slug || 'PACIENTE'}.pdf`;
+    const bytes = await pdfDoc.save();
+    const slug = nome.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60);
+    const filename = `LME_${slug || 'PACIENTE'}.pdf`;
+    return { bytes: bytes, filename: filename, nome: nome, procNome: procNome, medicoNome: medicoNome };
+  }
+
+  async function gerarPdf() {
+    limparErro();
+    limparSucesso();
+    const faltam = camposFaltando();
+    if (faltam.length) { mostrarErro(mensagemDeCamposFaltando(faltam)); return; }
+
+    const btn = shadow.getElementById('lme-gerar');
+    const original = btn.textContent;
+    btn.textContent = 'Gerando…'; btn.disabled = true;
+
+    try {
+      const documento = await produzirPdf();
+      const bytes = documento.bytes;
+      const filename = documento.filename;
+      const nome = documento.nome;
+      const procNome = documento.procNome;
+      const medicoNome = documento.medicoNome;
+
       raiz.MeedsSuiteHistorico.registrar("lme-sete-lagoas", {
         nomePaciente: nome,
         cpfPaciente: shadow.getElementById("lme-pac-cpf").value,
@@ -388,14 +402,22 @@
       mostrarSucesso(filename);
       toast("Pronto — laudo de Sete Lagoas baixado.", 5000);
     } catch (e) {
-      mostrarErro(
-        raiz.MeedsSuiteMensagens.erroTecnico(
-          "gerar o PDF",
-          "o programa encontrou um problema ao montar o arquivo",
-          "Confira se os campos estão preenchidos como esperado e tente de novo. Se repetir, avise o administrador com a mensagem entre parênteses.",
-          e.message
-        )
-      );
+      var msg = e && e.message ? e.message : "";
+      if (/pdf-lib|componente|rede/i.test(msg)) {
+        /* biblioteca que nao carrega tem causa e solucao proprias — quase
+         * sempre a rede da unidade bloqueando o CDN — e por isso a
+         * mensagem e outra. */
+        mostrarErro(raiz.MeedsSuiteMensagens.BIBLIOTECA_NAO_CARREGOU("pdf-lib", msg));
+      } else {
+        mostrarErro(
+          raiz.MeedsSuiteMensagens.erroTecnico(
+            "gerar o PDF",
+            "o programa encontrou um problema ao montar o arquivo",
+            "Confira se os campos estão preenchidos como esperado e tente de novo. Se repetir, avise o administrador com a mensagem entre parênteses.",
+            msg
+          )
+        );
+      }
     } finally {
       btn.textContent = original; btn.disabled = false;
     }
@@ -654,6 +676,27 @@
        * pronto, e o laudo anuncia de novo. */
       deps.assinarEvento("cid:pronto", function () {
         anunciarCampoCid();
+        return true;
+      });
+
+
+      /* Anuncia este gerador para quem souber pre-visualizar PDF. O
+       * modulo de preview se acopla ao modal e chama produzirPdf() — a
+       * MESMA funcao que o botao "Gerar" usa, entao o que aparece na
+       * previa e o arquivo que vai ser baixado. Se o preview estiver
+       * desligado, ninguem atende e nada muda aqui. */
+      function anunciarPreview() {
+        deps.publicarEvento("preview:registrar-gerador", {
+          id: "lme",
+          nome: "Laudo — Sete Lagoas",
+          seletorModal: "#lme-modal",
+          overlay: overlay,
+          produzirPdf: produzirPdf,
+        });
+      }
+      anunciarPreview();
+      deps.assinarEvento("preview:pronto", function () {
+        anunciarPreview();
         return true;
       });
 
