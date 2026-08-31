@@ -142,6 +142,27 @@ function main() {
     console.warn("AVISO: " + CAMINHO_DADOS + " nao encontrado — os formularios vao subir sem catalogo.");
   }
 
+  /* --- changelog ---
+   * Vai embutido, e nao buscado em runtime: a notificacao de atualizacao
+   * tem que funcionar mesmo sem internet, e o arquivo e pequeno. Ele e a
+   * UNICA fonte tanto do aviso quanto do historico no painel. */
+  const CAMINHO_CHANGELOG = "dados/changelog.json";
+  let injecaoChangelog = "";
+  if (fs.existsSync(path.join(RAIZ, CAMINHO_CHANGELOG))) {
+    const cl = JSON.parse(ler(CAMINHO_CHANGELOG)); // JSON quebrado falha o build
+    if (!Array.isArray(cl.versoes)) throw new Error(`${CAMINHO_CHANGELOG} precisa ter uma lista "versoes"`);
+    if (cl.versoes.length && cl.versoes[0].versao !== manifest.versao) {
+      console.warn(
+        `AVISO: a versao do manifest e ${manifest.versao}, mas o topo do changelog e ` +
+          `${cl.versoes[0].versao}. Quem atualizar nao vera o que mudou. ` +
+          `Acrescente o bloco da versao ${manifest.versao} em dados/changelog.json.`
+      );
+    }
+    injecaoChangelog =
+      "\n  /* ===== " + CAMINHO_CHANGELOG + " ===== */\n  raiz.MEEDS_CHANGELOG = " +
+      JSON.stringify(cl) + ";\n";
+  }
+
   /* --- inventario embutido, para o painel exibir mesmo offline --- */
   const inventario =
     "var __inv = " +
@@ -171,10 +192,25 @@ function main() {
   const injetar = (texto) => () => texto;
 
   const saida = bootloader
-    .replace(MARCADOR_NUCLEO, injetar(pecasNucleo.join("\n\n") + "\n" + injecaoDados + "\n  " + inventario))
+    .replace(MARCADOR_NUCLEO, injetar(pecasNucleo.join("\n\n") + "\n" + injecaoDados + injecaoChangelog + "\n  " + inventario))
     .replace(MARCADOR_MODULOS, injetar(pecasModulos.join("\n\n")))
     .replace(/@version\s+[\d.]+/, injetar(`@version      ${manifest.versao}`))
     .replace("__VERSAO__", injetar(manifest.versao));
+
+  /* A versao aparece em tres lugares alem do metadata: o nucleo (para o
+   * painel e a deteccao de atualizacao), o bootloader e o package.json.
+   * Todos saem do manifest — e por isso que o admin so mexe em um. */
+  const saidaComVersao = saida.split("__MEEDS_VERSAO__").join(manifest.versao);
+
+  const pkgPath = path.join(RAIZ, "package.json");
+  if (fs.existsSync(pkgPath)) {
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+    if (pkg.version !== manifest.versao) {
+      pkg.version = manifest.versao;
+      fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
+      console.log(`  package.json sincronizado para ${manifest.versao}`);
+    }
+  }
 
   if (soChecar) {
     console.log("OK — manifest coerente, regras de arquitetura respeitadas.");
@@ -185,9 +221,9 @@ function main() {
 
   const destino = path.join(RAIZ, manifest.saida);
   fs.mkdirSync(path.dirname(destino), { recursive: true });
-  fs.writeFileSync(destino, saida, "utf8");
+  fs.writeFileSync(destino, saidaComVersao, "utf8");
 
-  const kb = (Buffer.byteLength(saida, "utf8") / 1024).toFixed(0);
+  const kb = (Buffer.byteLength(saidaComVersao, "utf8") / 1024).toFixed(0);
   console.log(`Gerado: ${manifest.saida} (${kb} KB)`);
   console.log(`  nucleo:  ${manifest.nucleo.length} arquivo(s)`);
   console.log(`  modulos: ${manifest.modulos.length} (${manifest.modulos.map((m) => m.id).join(", ")})`);

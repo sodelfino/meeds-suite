@@ -1,0 +1,73 @@
+{
+  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
+  "versoes": [
+    {
+      "versao": "2.5.0",
+      "data": "2026-08-30",
+      "novidades": [
+        "Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.",
+        "O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."
+      ],
+      "melhorias": [
+        "Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."
+      ],
+      "correcoes": [
+        "O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."
+      ]
+    },
+    {
+      "versao": "2.4.0",
+      "data": "2026-08-30",
+      "novidades": [
+        "Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.",
+        "O código escolhido na busca entra sozinho no laudo que estiver aberto.",
+        "Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.",
+        "Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."
+      ],
+      "melhorias": [
+        "O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.",
+        "O CPF se formata sozinho enquanto você digita.",
+        "Com um único médico cadastrado, ele já vem selecionado nos laudos.",
+        "As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.",
+        "O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."
+      ],
+      "correcoes": [
+        "O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.",
+        "Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."
+      ]
+    },
+    {
+      "versao": "2.3.0",
+      "data": "2026-08-30",
+      "novidades": [
+        "Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."
+      ],
+      "melhorias": [
+        "Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."
+      ],
+      "correcoes": []
+    },
+    {
+      "versao": "2.2.0",
+      "data": "2026-08-30",
+      "novidades": [
+        "Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."
+      ],
+      "melhorias": [
+        "Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."
+      ],
+      "correcoes": [
+        "Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."
+      ]
+    },
+    {
+      "versao": "2.0.0",
+      "data": "2026-08-30",
+      "novidades": [
+        "Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."
+      ],
+      "melhorias": [],
+      "correcoes": []
+    }
+  ]
+}

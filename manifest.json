@@ -1,6 +1,6 @@
 {
   "nome": "Assistente Meeds",
-  "versao": "2.4.0",
+  "versao": "2.5.0",
   "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
   "repositorio": "https://github.com/sodelfino/meeds-suite",
   "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -20,13 +20,15 @@
     "core/cadastro.js",
     "core/historico.js",
     "core/diagnostico.js",
+    "core/novidades.js",
     "core/manager.js",
     "core/core.user.js"
   ],
   "dadosRemotos": {
     "seletores": "seletores.json",
     "remumes": "modules/remume/remumes.json",
-    "cid10": "dados/cid10.json"
+    "cid10": "dados/cid10.json",
+    "changelog": "dados/changelog.json"
   },
   "modulos": [
     {

@@ -20,7 +20,13 @@
 (function (raiz) {
   "use strict";
 
-  var VERSAO_NUCLEO = "2.0.0";
+  /* FONTE UNICA DE VERSAO: manifest.json.
+   * O build substitui o marcador abaixo pela versao de la e tambem
+   * escreve o @version do userscript e o package.json. Nao edite a
+   * versao aqui nem no bootloader — so no manifest.
+   * O valor de reserva existe para o arquivo continuar rodavel solto,
+   * fora do pacote (por exemplo num teste unitario). */
+  var VERSAO_NUCLEO = "__MEEDS_VERSAO__" === "__MEEDS" + "_VERSAO__" ? "dev" : "__MEEDS_VERSAO__";
 
   var Auth = raiz.MeedsSuiteAuth;
   var Dock = raiz.MeedsSuiteDock;
@@ -469,6 +475,11 @@
 
     atualizarSeletoresRemoto(opcoes.urlSeletores);
 
+    /* Aviso de atualizacao: compara a versao atual com a ultima que o
+     * medico viu. Roda ANTES do diagnostico de propósito — quem acabou
+     * de instalar tem que ver as boas-vindas, nao um "atualizado". */
+    raiz.MeedsSuiteNovidades.verificar({ dock: Dock, versaoAtual: VERSAO_NUCLEO });
+
     /* Boas-vindas na primeira vez e aviso se os scripts antigos ainda
      * estiverem ativos (eles rodam em document-idle, entao a checagem
      * espera alguns segundos antes de olhar o DOM). */
@@ -480,6 +491,7 @@
 
   var API = {
     versao: VERSAO_NUCLEO,
+    novidades: raiz.MeedsSuiteNovidades,
     registerModule: registerModule,
     listarModulos: listarModulos,
     estaHabilitado: estaHabilitado,

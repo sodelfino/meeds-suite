@@ -23,6 +23,7 @@ desliga num painel, sem reinstalar nada.
 | 📋 **APAC — Itaúna** | Gera a APAC já preenchida com os dados da tela e leva direto para a assinatura no gov.br. |
 | 📄 **Laudo — Sete Lagoas** | Preenche o Laudo Médico de Alto Custo no formulário oficial da prefeitura. |
 | 📄 **Laudo — Conceição do Mato Dentro** | Idem, no formulário oficial de CMD. |
+| 🔎 **Buscar CID-10** | Procura o código pelo nome da doença, na tabela completa (14.233 códigos), e preenche no laudo aberto. |
 | 💊 **Assistente REMUME** | Consulta os medicamentos do município do atendimento. Aceita erro de digitação e nome comercial. |
 
 ---
@@ -40,7 +41,12 @@ e clique em **Instalar**. Passo a passo completo, com o que fazer depois:
 
 ## 3. Como atualizar
 
-Não precisa fazer nada: o Tampermonkey baixa as versões novas sozinho.
+Não precisa fazer nada: o Tampermonkey baixa as versões novas sozinho. Na
+primeira vez que você abrir o Meeds depois de uma atualização, aparece um aviso
+com o que mudou naquela versão. Ele aparece **uma vez só** por versão e **não
+tem som**.
+
+O histórico completo fica em ⚙️ → **Sobre** → *ver o que mudou*.
 
 Para forçar agora: Tampermonkey → painel de controle → o script → **Atualizar**.
 
@@ -68,6 +74,8 @@ Nada disso exige mexer em código:
 | Unidades de origem, procedimentos, CIDs | `dados/formularios.json` |
 | Lista de medicamentos | `modules/remume/remumes.json` |
 | Rótulo que o Meeds mudou (ex: "Nome da Mãe") | `seletores.json` |
+| O que aparece no aviso de atualização | `dados/changelog.json` |
+| Códigos da CID-10 | `dados/cid10.json` |
 
 Depois de editar:
 
@@ -85,10 +93,15 @@ Tabela completa e explicações: **[docs/MANUAL-ADMIN.md](docs/MANUAL-ADMIN.md)*
 npm run build       # gera dist/meeds-suite.user.js
 npm run verificar   # valida sem gerar
 npm run sync-fallback   # sincroniza a lista de medicamentos embutida
+npm run sync-cid10      # sincroniza a lista de CID embutida
 ```
 
 O build **reprova** se um módulo posicionar o próprio botão em pixel ou
 instalar hook próprio de fetch/XHR. As regras não são só documentação.
+
+**Antes de publicar uma versão:** suba `versao` no `manifest.json` (é o único
+lugar — o build propaga para o userscript, o núcleo e o `package.json`) e
+descreva o que mudou em `dados/changelog.json`. O build avisa se você esquecer.
 
 ```
 bootloader.user.js     o único arquivo que o médico instala

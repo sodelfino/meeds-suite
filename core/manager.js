@@ -82,6 +82,8 @@
 
     ".msm-sobre { font-size:11.5px; color:#5b6672; line-height:1.6; }",
     ".msm-credito { font-weight:700; color:#123a7a; }",
+    ".msm-link { background:none; border:none; color:#1a4fa0; cursor:pointer; font-size:11.5px; font-family:inherit; padding:0; text-decoration:underline; }",
+    ".msm-link:hover { color:#123a7a; }",
     ".msm-rodape { font-size:10.5px; color:#9aa5b1; line-height:1.5; margin-top:6px; }",
   ].join("\n");
 
@@ -158,7 +160,7 @@
         '    <div class="msm-secao">' +
         "      <h3>Sobre</h3>" +
         '      <p class="msm-sobre"><span class="msm-credito">Assistente Meeds — Por: Marcelo</span><br>' +
-        '        Versão <span id="msm-versao"></span></p>' +
+        '        Versão <b id="msm-versao"></b> · <button type="button" class="msm-link" id="msm-historico-versoes">ver o que mudou</button></p>' +
         '      <p class="msm-rodape">As preferências ficam salvas apenas neste navegador. Nenhum dado de paciente é gravado em disco nem enviado para fora.</p>' +
         "    </div>" +
 
@@ -170,6 +172,12 @@
       overlay.fechar();
     });
     overlay.$("#msm-versao").textContent = ctx.versaoNucleo;
+    /* O historico de versoes sai do MESMO dados/changelog.json que
+     * alimenta o aviso de atualizacao — uma fonte so, nunca duas. */
+    overlay.$("#msm-historico-versoes").addEventListener("click", function () {
+      overlay.fechar();
+      raiz.MeedsSuiteNovidades.mostrarHistorico(ctx.versaoNucleo);
+    });
 
     overlay.$("#msm-med-add").addEventListener("click", salvarMedico);
     overlay.$("#msm-estab-add").addEventListener("click", salvarEstabelecimento);

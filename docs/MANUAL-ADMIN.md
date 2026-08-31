@@ -39,10 +39,49 @@ Os médicos recebem a mudança sozinhos, sem reinstalar nada.
 | Acrescentar um **território vascular** (Doppler) | `dados/formularios.json` | `"apac-itauna"` → `"territorios"` |
 | Mudar o **nome ou a descrição** de uma função no painel ⚙️ | `manifest.json` | bloco `"modulos"`, campos `nome` e `descricao` |
 | Mudar a **ordem dos botões** na tela | `manifest.json` | campo `prioridadeBotao` (menor = mais embaixo) |
+| Subir a **versão** | `manifest.json` | campo `versao` — é o único lugar |
+| Descrever **o que mudou** numa versão | `dados/changelog.json` | bloco novo no topo de `versoes` |
+| Acrescentar um **CID** que faltou | `dados/cid10.json` | bloco `cids`; depois rode `npm run sync-cid10` |
 | Atualizar a **lista de medicamentos** (REMUME) | `modules/remume/remumes.json` | depois rode `npm run sync-fallback` |
 | Corrigir um **rótulo que o Meeds mudou** (ex: "Nome da Mãe") | `seletores.json` | veja a seção abaixo |
 | Preparar a **lista de médicos** da equipe | `dados/medicos.exemplo.json` | veja a seção abaixo |
 | Criar uma **função nova** | — | siga [COMO-ADICIONAR-MODULO.md](COMO-ADICIONAR-MODULO.md) |
+
+---
+
+## Publicar uma versão nova (faça sempre nesta ordem)
+
+1. **Suba a versão** em `manifest.json`, campo `"versao"` no topo do arquivo.
+   É o **único lugar**: o build escreve esse número no userscript, no núcleo
+   e no `package.json` sozinho.
+2. **Descreva o que mudou** em `dados/changelog.json`: acrescente um bloco
+   **no topo** da lista `"versoes"`, com a versão nova. Escreva para o médico,
+   não para o programador — "o CPF se formata sozinho", não "aplicada máscara
+   ao input".
+3. `npm run build` — se você esquecer o passo 2, ele avisa: *"a versão do
+   manifest é X, mas o topo do changelog é Y. Quem atualizar não verá o que
+   mudou."*
+4. `git add . && git commit -m "..." && git push`
+
+Na próxima vez que o médico abrir o Meeds, o Tampermonkey atualiza sozinho e
+ele vê um aviso com exatamente o que você escreveu no changelog. Quem ficou
+tempo sem abrir e pulou versões vê o acumulado de todas elas.
+
+### O bloco do changelog
+
+```json
+{
+  "versao": "2.6.0",
+  "data": "2026-09-15",
+  "novidades": ["O que passou a existir"],
+  "melhorias": ["O que já existia e ficou melhor"],
+  "correcoes": ["O que estava errado e foi arrumado"]
+}
+```
+
+As três categorias são opcionais — use `[]` nas que não se aplicam. Este mesmo
+arquivo alimenta o histórico de versões dentro do painel da engrenagem, então
+não existe changelog em dois lugares.
 
 ---
 
@@ -53,6 +92,7 @@ Os médicos recebem a mudança sozinhos, sem reinstalar nada.
 | `npm run build` | Gera o pacote que os médicos instalam. **Rode sempre depois de editar qualquer arquivo.** |
 | `npm run verificar` | Confere se está tudo coerente, sem gerar nada. Bom para checar antes de publicar. |
 | `npm run sync-fallback` | Depois de editar `remumes.json`: copia a lista para dentro do pacote (a cópia que funciona sem internet). |
+| `npm run sync-cid10` | Depois de editar `dados/cid10.json`: idem, para a busca de CID. |
 
 ---
 
@@ -139,6 +179,8 @@ Isso descarta as edições ainda não publicadas e volta ao último estado bom.
 manifest.json          nomes, descrições, ordem dos botões, versões
 seletores.json         textos que o sistema procura na tela do Meeds
 dados/formularios.json unidades, procedimentos, CIDs, estabelecimento
+dados/changelog.json   o que mudou em cada versão (aviso + histórico)
+dados/cid10.json       tabela CID-10 completa (14.233 códigos)
 dados/medicos.exemplo.json   modelo da lista de médicos (não comitar preenchido)
 modules/remume/remumes.json  lista de medicamentos por município
 dist/meeds-suite.user.js     o pacote gerado — NUNCA edite à mão

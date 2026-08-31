@@ -25,8 +25,8 @@ real quem faz isso é o `@require` do Tampermonkey.
 
 ## Resultado da última execução
 
-**48 casos, 48 passaram, 0 falharam.** Executado em 30/08/2026 contra
-`dist/meeds-suite.user.js` v2.2.0.
+**64 casos, 64 passaram, 0 falharam.** Executado em 30/08/2026 contra
+`dist/meeds-suite.user.js` v2.5.0.
 
 ### Núcleo, dock e login
 
@@ -130,6 +130,46 @@ real quem faz isso é o `@require` do Tampermonkey.
 > carregamento, porque é assim no mundo real (eles rodam em `document-idle`).
 > A checagem é repetida em 4s, 10s, 20s e 45s — uma checagem única perderia
 > esse caso.
+
+### Busca de CID-10 *(novo)*
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 49 | Base completa (14.233 códigos) baixa da internet | ✅ |
+| 50 | Sem internet, o fallback embutido (90 códigos) segura | ✅ |
+| 51 | "enxaqueca" → G43; "diabetes" → E10; "dpoc" → J44.0 | ✅ |
+| 52 | "AVC" (sigla) → I64 Acidente Vascular Cerebral | ✅ |
+| 53 | "dor lombar" → M54.5, e não uma lista de cefaleias | ✅ |
+| 54 | "dor de cabeça" → Cefaleia, e não "Deformidades…" | ✅ |
+| 55 | "Usar" preenche o CID no laudo que está aberto | ✅ |
+| 56 | REMUME não regrediu depois de o motor virar núcleo | ✅ |
+
+> Os testes 52–54 existem porque cada um deles **falhou** durante a
+> implementação, por um motivo diferente: sinônimo curto casando dentro de
+> outra palavra ("iam" em "tiamina"), gatilho por substring ("pressao"
+> ativando "depressao") e palavra vazia pontuando ("de" em "deformidades").
+> São casos de regressão — não remova.
+
+### Aviso de atualização *(novo)*
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 57 | Primeira instalação mostra boas-vindas, **não** "atualizado" | ✅ |
+| 58 | Primeira instalação já registra a versão atual | ✅ |
+| 59 | Reabrir na mesma versão não mostra nada | ✅ |
+| 60 | Atualização mostra o aviso, com as três categorias | ✅ |
+| 61 | A versão é gravada ao **exibir**, não ao fechar (evita repetir em outra aba) | ✅ |
+| 62 | Pulo de versões (2.2.0 → 2.5.0) mostra as 3 acumuladas | ✅ |
+| 63 | Comparação numérica: 2.10.0 é maior que 2.9.0 | ✅ |
+| 64 | ⚙️ → Sobre mostra crédito, versão e histórico completo | ✅ |
+
+Para simular uma atualização sem publicar nada:
+
+```js
+localStorage.setItem("meeds-suite:ultima_versao_vista", "2.2.0");
+location.reload();
+```
+
 
 ### Extensibilidade
 

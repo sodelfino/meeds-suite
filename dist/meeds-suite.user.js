@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Assistente Meeds - Por: Marcelo
 // @namespace    novetech-meeds-suite
-// @version      2.4.0
+// @version      2.5.0
 // @description  Assistente Meeds - Por: Marcelo. Alarme de fila, APAC de Itauna, laudos de Sete Lagoas e Conceicao do Mato Dentro e consulta a REMUME, numa instalacao unica. Cada funcao liga e desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
 // @author       Marcelo
 // @match        *://*.meeds.com.br/*
@@ -2716,6 +2716,275 @@
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
 
+/* ===== core/novidades.js ===== */
+/* ------------------------------------------------------------------
+ * core/novidades.js — aviso de atualizacao e historico de versoes
+ * ------------------------------------------------------------------
+ * O Tampermonkey atualiza o Assistente sozinho, em silencio. O medico
+ * abria o Meeds e as coisas simplesmente estavam diferentes — sem saber
+ * que houve atualizacao, nem o que mudou. Aqui ele fica sabendo, uma vez
+ * por versao.
+ *
+ * TRES SITUACOES, TRES COMPORTAMENTOS
+ *   - primeira instalacao (nada guardado): NAO mostra "atualizado", que
+ *     seria mentira. Quem cuida disso e o aviso de boas-vindas
+ *     (core/diagnostico.js);
+ *   - mesma versao de antes: nao mostra nada;
+ *   - versao diferente: mostra o que mudou. E se o medico ficou tempo
+ *     sem abrir e pulou versoes, mostra o acumulado de TODAS as versoes
+ *     entre a que ele viu e a atual — nao so a ultima.
+ *
+ * NAO TEM SOM. E informacao, nao alarme: assustar alguem no meio de um
+ * plantao com um som inesperado seria o oposto do objetivo.
+ *
+ * UMA VEZ SO, MESMO COM VARIAS ABAS
+ * A versao vista e gravada no instante em que o aviso APARECE, nao
+ * quando o medico clica em "Entendi". Duas abas abertas ao mesmo tempo
+ * depois de uma atualizacao mostrariam o aviso duas vezes se a gravacao
+ * esperasse o clique. Alem disso, um marcador em localStorage avisa as
+ * outras abas para fecharem o aviso que ja estiver aberto nelas.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  /* NUNCA TROQUE ESTA CHAVE — o medico veria de novo avisos ja lidos. */
+  var CHAVE_VERSAO_VISTA = "ultima_versao_vista";
+  var CHAVE_SINAL_ABAS = "meeds-suite:aviso-versao-exibido";
+
+  var changelog = { versoes: [] };
+  var overlay = null;
+  var ctx = null;
+
+  function temGM() {
+    return typeof GM_getValue === "function" && typeof GM_setValue === "function";
+  }
+
+  function lerVersaoVista() {
+    try {
+      if (temGM()) {
+        var v = GM_getValue(CHAVE_VERSAO_VISTA, undefined);
+        return v === undefined ? null : v;
+      }
+    } catch (e) {}
+    try {
+      return localStorage.getItem("meeds-suite:" + CHAVE_VERSAO_VISTA);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function gravarVersaoVista(versao) {
+    try {
+      if (temGM()) GM_setValue(CHAVE_VERSAO_VISTA, versao);
+    } catch (e) {}
+    try {
+      localStorage.setItem("meeds-suite:" + CHAVE_VERSAO_VISTA, versao);
+      // sinaliza as outras abas
+      localStorage.setItem(CHAVE_SINAL_ABAS, versao + "|" + Date.now());
+    } catch (e) {}
+  }
+
+  /* Compara "2.10.0" com "2.9.0" corretamente — comparacao de texto
+   * diria que 2.10.0 e MENOR, e o medico deixaria de ver a novidade. */
+  function compararVersoes(a, b) {
+    var pa = String(a || "0").split(".").map(Number);
+    var pb = String(b || "0").split(".").map(Number);
+    for (var i = 0; i < Math.max(pa.length, pb.length); i++) {
+      var x = pa[i] || 0;
+      var y = pb[i] || 0;
+      if (x !== y) return x > y ? 1 : -1;
+    }
+    return 0;
+  }
+
+  /* Versoes lancadas DEPOIS da que o medico viu, ate a atual. */
+  function versoesNaoVistas(vistaEm, atual) {
+    return (changelog.versoes || []).filter(function (v) {
+      return compararVersoes(v.versao, vistaEm) > 0 && compararVersoes(v.versao, atual) <= 0;
+    });
+  }
+
+  function versaoDoChangelog(versao) {
+    return (changelog.versoes || []).filter(function (v) {
+      return v.versao === versao;
+    })[0];
+  }
+
+  var CSS = [
+    ".msn-caixa { width:100%; max-width:540px; max-height:84vh; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); display:flex; flex-direction:column; overflow:hidden; }",
+    ".msn-caixa header { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 18px; display:flex; justify-content:space-between; align-items:center; gap:12px; }",
+    ".msn-caixa header h2 { margin:0; font-size:15px; font-weight:700; }",
+    ".msn-versao { margin:2px 0 0; font-size:11.5px; opacity:.9; }",
+    ".msn-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; }",
+    ".msn-fechar:hover { background:rgba(255,255,255,.34); }",
+    ".msn-corpo { padding:14px 18px; overflow-y:auto; }",
+    ".msn-grupo { margin-bottom:14px; }",
+    ".msn-grupo:last-child { margin-bottom:0; }",
+    ".msn-grupo h3 { margin:0 0 6px; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; }",
+    ".msn-grupo ul { margin:0; padding-left:18px; }",
+    ".msn-grupo li { font-size:12.5px; line-height:1.55; color:#16221f; margin-bottom:4px; }",
+    ".msn-bloco-versao { border-bottom:1px solid #eef2f6; padding-bottom:12px; margin-bottom:12px; }",
+    ".msn-bloco-versao:last-child { border-bottom:none; padding-bottom:0; margin-bottom:0; }",
+    ".msn-bloco-titulo { font-size:12px; font-weight:700; color:#5b6672; margin-bottom:8px; }",
+    ".msn-rodape { display:flex; justify-content:flex-end; padding:12px 18px; border-top:1px solid #eef2f6; }",
+    ".msn-btn { background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:700; cursor:pointer; }",
+    ".msn-btn:hover { background:#123a7a; }",
+    ".msn-vazio { font-size:12.5px; color:#8a97a4; font-style:italic; }",
+  ].join("\n");
+
+  function escapeHtml(str) {
+    return String(str == null ? "" : str).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  var ROTULOS = [
+    ["novidades", "Novidades"],
+    ["melhorias", "Melhorias"],
+    ["correcoes", "Correções"],
+  ];
+
+  function htmlDeUmaVersao(v, comCabecalho) {
+    var grupos = ROTULOS.map(function (par) {
+      var itens = v[par[0]] || [];
+      if (!itens.length) return "";
+      return (
+        '<div class="msn-grupo"><h3>' + par[1] + "</h3><ul>" +
+        itens.map(function (i) { return "<li>" + escapeHtml(i) + "</li>"; }).join("") +
+        "</ul></div>"
+      );
+    }).join("");
+
+    if (!grupos) grupos = '<div class="msn-vazio">Sem mudanças registradas nesta versão.</div>';
+
+    return (
+      '<div class="msn-bloco-versao">' +
+      (comCabecalho
+        ? '<div class="msn-bloco-titulo">Versão ' + escapeHtml(v.versao) +
+          (v.data ? " · " + escapeHtml(formatarData(v.data)) : "") + "</div>"
+        : "") +
+      grupos +
+      "</div>"
+    );
+  }
+
+  function formatarData(iso) {
+    var m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m ? m[3] + "/" + m[2] + "/" + m[1] : iso;
+  }
+
+  function montarOverlay() {
+    if (overlay) return overlay;
+    overlay = ctx.dock.criarOverlay({ estilo: CSS, html: "" });
+    return overlay;
+  }
+
+  /* Aviso pos-atualizacao. Aceita varias versoes de uma vez (quando o
+   * medico pulou atualizacoes). */
+  function mostrarAviso(versoes, versaoAtual) {
+    montarOverlay();
+    var varias = versoes.length > 1;
+
+    overlay.elemento.innerHTML =
+      '<div class="msn-caixa" role="dialog" aria-modal="true">' +
+      "  <header><div>" +
+      "    <h2>Assistente Meeds atualizado</h2>" +
+      '    <p class="msn-versao">Agora na versão ' + escapeHtml(versaoAtual) +
+      (varias ? " · " + versoes.length + " atualizações desde a última vez" : "") +
+      "</p>" +
+      "  </div>" +
+      '  <button type="button" class="msn-fechar" aria-label="Fechar">&#10005;</button></header>' +
+      '  <div class="msn-corpo">' +
+      versoes.map(function (v) { return htmlDeUmaVersao(v, varias); }).join("") +
+      "  </div>" +
+      '  <div class="msn-rodape"><button type="button" class="msn-btn" id="msn-entendi">Entendi</button></div>' +
+      "</div>";
+
+    overlay.$(".msn-fechar").addEventListener("click", overlay.fechar);
+    overlay.$("#msn-entendi").addEventListener("click", overlay.fechar);
+    overlay.abrir();
+  }
+
+  /* Historico completo, aberto pelo painel da engrenagem. Mesma fonte. */
+  function mostrarHistorico(versaoAtual) {
+    montarOverlay();
+    var lista = changelog.versoes || [];
+
+    overlay.elemento.innerHTML =
+      '<div class="msn-caixa" role="dialog" aria-modal="true">' +
+      "  <header><div>" +
+      "    <h2>Histórico de versões</h2>" +
+      '    <p class="msn-versao">Você está na versão ' + escapeHtml(versaoAtual) + "</p>" +
+      "  </div>" +
+      '  <button type="button" class="msn-fechar" aria-label="Fechar">&#10005;</button></header>' +
+      '  <div class="msn-corpo">' +
+      (lista.length
+        ? lista.map(function (v) { return htmlDeUmaVersao(v, true); }).join("")
+        : '<div class="msn-vazio">Nenhuma versão registrada.</div>') +
+      "  </div>" +
+      '  <div class="msn-rodape"><button type="button" class="msn-btn" id="msn-entendi">Fechar</button></div>' +
+      "</div>";
+
+    overlay.$(".msn-fechar").addEventListener("click", overlay.fechar);
+    overlay.$("#msn-entendi").addEventListener("click", overlay.fechar);
+    overlay.abrir();
+  }
+
+  /* Chamado no start do nucleo. */
+  function verificar(contexto) {
+    ctx = contexto;
+    changelog = raiz.MEEDS_CHANGELOG || { versoes: [] };
+    var atual = ctx.versaoAtual;
+    var vista = lerVersaoVista();
+
+    // outra aba mostrou o aviso: fecha o daqui, para nao repetir
+    try {
+      raiz.addEventListener("storage", function (ev) {
+        if (ev.key === CHAVE_SINAL_ABAS && overlay && overlay.estaAberto()) overlay.fechar();
+      });
+    } catch (e) {}
+
+    if (!vista) {
+      /* Primeira instalacao: nada de "atualizado". So registra a versao,
+       * para a proxima atualizacao ser detectada. As boas-vindas ficam a
+       * cargo do core/diagnostico.js. */
+      gravarVersaoVista(atual);
+      return { situacao: "primeira-instalacao" };
+    }
+
+    if (compararVersoes(atual, vista) === 0) return { situacao: "sem-mudanca" };
+
+    var novas = versoesNaoVistas(vista, atual);
+    if (!novas.length) {
+      // versao mudou mas ninguem descreveu no changelog: nao inventa
+      gravarVersaoVista(atual);
+      return { situacao: "sem-changelog" };
+    }
+
+    /* Grava ANTES de o medico fechar: se esperasse o clique, duas abas
+     * abertas mostrariam o aviso duas vezes. */
+    gravarVersaoVista(atual);
+    setTimeout(function () {
+      mostrarAviso(novas, atual);
+    }, 1500);
+    return { situacao: "atualizado", versoes: novas.map(function (v) { return v.versao; }) };
+  }
+
+  raiz.MeedsSuiteNovidades = {
+    verificar: verificar,
+    mostrarHistorico: mostrarHistorico,
+    compararVersoes: compararVersoes,
+    versoesNaoVistas: versoesNaoVistas,
+    versaoDoChangelog: versaoDoChangelog,
+    lerVersaoVista: lerVersaoVista,
+    CHAVE_VERSAO_VISTA: CHAVE_VERSAO_VISTA,
+    _definirChangelog: function (c) {
+      changelog = c;
+    },
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
 /* ===== core/manager.js ===== */
 /* ------------------------------------------------------------------
  * core/manager.js — painel da engrenagem
@@ -2801,6 +3070,8 @@
 
     ".msm-sobre { font-size:11.5px; color:#5b6672; line-height:1.6; }",
     ".msm-credito { font-weight:700; color:#123a7a; }",
+    ".msm-link { background:none; border:none; color:#1a4fa0; cursor:pointer; font-size:11.5px; font-family:inherit; padding:0; text-decoration:underline; }",
+    ".msm-link:hover { color:#123a7a; }",
     ".msm-rodape { font-size:10.5px; color:#9aa5b1; line-height:1.5; margin-top:6px; }",
   ].join("\n");
 
@@ -2877,7 +3148,7 @@
         '    <div class="msm-secao">' +
         "      <h3>Sobre</h3>" +
         '      <p class="msm-sobre"><span class="msm-credito">Assistente Meeds — Por: Marcelo</span><br>' +
-        '        Versão <span id="msm-versao"></span></p>' +
+        '        Versão <b id="msm-versao"></b> · <button type="button" class="msm-link" id="msm-historico-versoes">ver o que mudou</button></p>' +
         '      <p class="msm-rodape">As preferências ficam salvas apenas neste navegador. Nenhum dado de paciente é gravado em disco nem enviado para fora.</p>' +
         "    </div>" +
 
@@ -2889,6 +3160,12 @@
       overlay.fechar();
     });
     overlay.$("#msm-versao").textContent = ctx.versaoNucleo;
+    /* O historico de versoes sai do MESMO dados/changelog.json que
+     * alimenta o aviso de atualizacao — uma fonte so, nunca duas. */
+    overlay.$("#msm-historico-versoes").addEventListener("click", function () {
+      overlay.fechar();
+      raiz.MeedsSuiteNovidades.mostrarHistorico(ctx.versaoNucleo);
+    });
 
     overlay.$("#msm-med-add").addEventListener("click", salvarMedico);
     overlay.$("#msm-estab-add").addEventListener("click", salvarEstabelecimento);
@@ -3262,7 +3539,13 @@
 (function (raiz) {
   "use strict";
 
-  var VERSAO_NUCLEO = "2.0.0";
+  /* FONTE UNICA DE VERSAO: manifest.json.
+   * O build substitui o marcador abaixo pela versao de la e tambem
+   * escreve o @version do userscript e o package.json. Nao edite a
+   * versao aqui nem no bootloader — so no manifest.
+   * O valor de reserva existe para o arquivo continuar rodavel solto,
+   * fora do pacote (por exemplo num teste unitario). */
+  var VERSAO_NUCLEO = "2.5.0" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.5.0";
 
   var Auth = raiz.MeedsSuiteAuth;
   var Dock = raiz.MeedsSuiteDock;
@@ -3711,6 +3994,11 @@
 
     atualizarSeletoresRemoto(opcoes.urlSeletores);
 
+    /* Aviso de atualizacao: compara a versao atual com a ultima que o
+     * medico viu. Roda ANTES do diagnostico de propósito — quem acabou
+     * de instalar tem que ver as boas-vindas, nao um "atualizado". */
+    raiz.MeedsSuiteNovidades.verificar({ dock: Dock, versaoAtual: VERSAO_NUCLEO });
+
     /* Boas-vindas na primeira vez e aviso se os scripts antigos ainda
      * estiverem ativos (eles rodam em document-idle, entao a checagem
      * espera alguns segundos antes de olhar o DOM). */
@@ -3722,6 +4010,7 @@
 
   var API = {
     versao: VERSAO_NUCLEO,
+    novidades: raiz.MeedsSuiteNovidades,
     registerModule: registerModule,
     listarModulos: listarModulos,
     estaHabilitado: estaHabilitado,
@@ -3758,8 +4047,11 @@
   /* ===== dados/formularios.json ===== */
   raiz.MEEDS_DADOS_FORMULARIOS = {"_leia_me":"Dados dos formularios: unidades de origem, catalogos de procedimento e listas de CID-10. Edite este arquivo e rode \"npm run build\" — as mudancas aparecem para os medicos sem precisar mexer em codigo. Ver docs/MANUAL-ADMIN.md.","lme-sete-lagoas":{"_leia_me":"Laudo Medico de Alto Custo de Sete Lagoas.","municipio":"SETE LAGOAS","origens":["SAÚDE AUDITIVA","UBS CIDADE DE DEUS","UBS BELO VALE"],"procedimentos":{"RM_CRANIO":{"nome":"Ressonância nuclear magnética de crânio","codigo":"02.07.01.006-4"},"RM_BASE_CRANIO":{"nome":"Ressonância nuclear magnética de base do crânio","codigo":"02.07.01.006-4"},"RM_SELA_TURCICA":{"nome":"Ressonância nuclear magnética de sela túrcica","codigo":"02.07.01.007-2"},"RM_ATM":{"nome":"Ressonância nuclear magnética de articulação temporomandibular (bilateral)","codigo":"02.07.01.002-1"},"ANGIO_RM_CEREBRAL":{"nome":"Angiorressonância cerebral","codigo":"02.07.01.001-3"},"RM_COLUNA_CERVICAL":{"nome":"Ressonância nuclear magnética de coluna cervical","codigo":"02.07.01.003-0"},"RM_COLUNA_TORACICA":{"nome":"Ressonância nuclear magnética de coluna torácica","codigo":"02.07.01.005-6"},"RM_COLUNA_LOMBOSSACRA":{"nome":"Ressonância nuclear magnética de coluna lombo-sacra","codigo":"02.07.01.004-8"},"RM_CORACAO_AORTA":{"nome":"Ressonância nuclear magnética de coração/aorta com cine","codigo":"02.07.02.001-9"},"RM_MEMBRO_SUPERIOR":{"nome":"Ressonância nuclear magnética de membro superior (unilateral)","codigo":"02.07.02.002-7"},"TC_CRANIO":{"nome":"Tomografia computadorizada do crânio","codigo":"02.06.01.007-9"},"TC_SELA_TURCICA":{"nome":"Tomografia computadorizada de sela túrcica","codigo":"02.06.01.006-0"},"TC_FACE_ATM":{"nome":"Tomografia computadorizada de face/seios da face/ATM","codigo":"02.06.01.004-4"},"TC_PESCOCO":{"nome":"Tomografia computadorizada do pescoço","codigo":"02.06.01.005-2"},"TC_COLUNA_CERVICAL":{"nome":"Tomografia computadorizada de coluna cervical (com ou sem contraste)","codigo":"02.06.01.001-0"},"TC_COLUNA_TORACICA":{"nome":"Tomografia computadorizada de coluna torácica (com ou sem contraste)","codigo":"02.06.01.003-6"},"TC_COLUNA_LOMBOSSACRA":{"nome":"Tomografia computadorizada de coluna lombo-sacra (com ou sem contraste)","codigo":"02.06.01.002-8"},"TC_TORAX":{"nome":"Tomografia computadorizada de tórax (sem contraste)","codigo":"02.06.02.003-1"},"TC_ABDOME_SUPERIOR":{"nome":"Tomografia computadorizada de abdome superior","codigo":"02.06.03.001-0"},"TC_PELVE":{"nome":"Tomografia computadorizada de pelve/bacia/abdome inferior","codigo":"02.06.03.003-7"},"TC_ARTIC_MEMBRO_SUP":{"nome":"Tomografia computadorizada de articulações de membro superior","codigo":"02.06.02.001-5"},"TC_ARTIC_MEMBRO_INF":{"nome":"Tomografia computadorizada de articulações de membro inferior","codigo":"02.06.03.002-9"},"TC_SEGMENTOS_APENDIC":{"nome":"Tomografia computadorizada de segmentos apendiculares (braço, antebraço, mão, coxa, perna, pé)","codigo":"02.06.02.002-3"},"DENSITOMETRIA_2SEG":{"nome":"Densitometria óssea (dois segmentos)","codigo":"02.04.06.002-8"},"DENSITOMETRIA_CORPO":{"nome":"Densitometria óssea (corpo inteiro)","codigo":"02.04.06.002-8"},"ENDOSCOPIA_DIGESTIVA_ALTA":{"nome":"Endoscopia digestiva alta (esofagogastroduodenoscopia)","codigo":"02.09.01.003-7"},"COLONOSCOPIA":{"nome":"Colonoscopia (coloscopia)","codigo":"02.09.01.002-9"},"ANGIOCORONARIOGRAFIA":{"nome":"Angiocoronariografia (cateterismo cardíaco)","codigo":"02.11.02.001-0"},"CINTILOGRAFIA_MIOCARDIO_ESTRESSE":{"nome":"Cintilografia de perfusão do miocárdio (estresse, mín. 3 projeções)","codigo":"02.08.01.002-5"},"CINTILOGRAFIA_MIOCARDIO_REPOUSO":{"nome":"Cintilografia de perfusão do miocárdio (repouso, mín. 3 projeções)","codigo":"02.08.01.003-3"},"ECOCARDIOGRAMA_TRANSTORACICO":{"nome":"Ecocardiograma transtorácico","codigo":"02.05.01.003-2"},"TESTE_ERGOMETRICO":{"nome":"Teste ergométrico (teste de esforço)","codigo":"02.11.02.006-0"},"HOLTER_24H":{"nome":"Holter 24 horas (eletrocardiograma dinâmico, 3 canais)","codigo":"02.11.02.004-4"},"MAPA_24H":{"nome":"MAPA 24 horas (monitorização ambulatorial da pressão arterial)","codigo":"02.11.02.005-2"},"RETOSSIGMOIDOSCOPIA":{"nome":"Retossigmoidoscopia (diagnóstica)","codigo":"02.09.01.005-3"}},"cids":{"G43.0":"Enxaqueca sem aura (enxaqueca comum)","G43.8":"Outras formas de enxaqueca","P14.3":"Outras lesões do plexo braquial devidas a traumatismo de parto","L93":"Lúpus eritematoso","M18.0":"Artrose primária bilateral das primeiras articulações carpometacarpianas","M25.5":"Dor articular","R73.9":"Hiperglicemia não especificada","G00.9":"Meningite bacteriana não especificada","H90.3":"Perda de audição neurossensorial bilateral","F82":"Transtorno específico do desenvolvimento motor","F80.9":"Transtorno de desenvolvimento da fala ou linguagem não especificado","G43.9":"Enxaqueca não especificada","G44.1":"Cefaleia vascular, não classificada em outra parte","G40.9":"Epilepsia não especificada","G93.4":"Encefalopatia não especificada","R51":"Cefaleia","G80.9":"Paralisia cerebral não especificada","F84.0":"Autismo infantil","F70":"Retardo mental leve","F71":"Retardo mental moderado","Q90.9":"Síndrome de Down não especificada","P07.3":"Outros recém-nascidos pré-termo","M19.9":"Artrose não especificada","M79.1":"Mialgia","M54.5":"Dor lombar baixa","M54.2":"Cervicalgia","M06.9":"Artrite reumatoide não especificada","M32.9":"Lúpus eritematoso sistêmico não especificado","M81.9":"Osteoporose não especificada","M85.8":"Outros transtornos especificados da densidade e da estrutura ósseas","M47.9":"Espondilose não especificada","M51.1":"Transtornos de discos lombares e de outros discos intervertebrais com radiculopatia","E10.9":"Diabetes mellitus tipo 1 sem complicações","E11.9":"Diabetes mellitus tipo 2 sem complicações","E03.9":"Hipotireoidismo não especificado","E05.9":"Tireotoxicose não especificada","E66.9":"Obesidade não especificada","E78.0":"Hipercolesterolemia pura","I10":"Hipertensão essencial (primária)","J44.9":"Doença pulmonar obstrutiva crônica não especificada","N18.9":"Doença renal crônica não especificada","R07.4":"Dor torácica, não especificada"}},"cmd":{"_leia_me":"Laudo Medico de Alto Custo de Conceicao do Mato Dentro.","municipio":"CONCEIÇÃO DO MATO DENTRO","origens":["CEMO DR SEBASTIAO SOARES DOS SANTOS"],"procedimentos":{"RM_CRANIO":{"nome":"Ressonância nuclear magnética de crânio","codigo":"02.07.01.006-4"},"RM_BASE_CRANIO":{"nome":"Ressonância nuclear magnética de base do crânio","codigo":"02.07.01.006-4"},"RM_SELA_TURCICA":{"nome":"Ressonância nuclear magnética de sela túrcica","codigo":"02.07.01.007-2"},"RM_ATM":{"nome":"Ressonância nuclear magnética de articulação temporomandibular (bilateral)","codigo":"02.07.01.002-1"},"ANGIO_RM_CEREBRAL":{"nome":"Angiorressonância cerebral","codigo":"02.07.01.001-3"},"RM_COLUNA_CERVICAL":{"nome":"Ressonância nuclear magnética de coluna cervical","codigo":"02.07.01.003-0"},"RM_COLUNA_TORACICA":{"nome":"Ressonância nuclear magnética de coluna torácica","codigo":"02.07.01.005-6"},"RM_COLUNA_LOMBOSSACRA":{"nome":"Ressonância nuclear magnética de coluna lombo-sacra","codigo":"02.07.01.004-8"},"RM_CORACAO_AORTA":{"nome":"Ressonância nuclear magnética de coração/aorta com cine","codigo":"02.07.02.001-9"},"RM_MEMBRO_SUPERIOR":{"nome":"Ressonância nuclear magnética de membro superior (unilateral)","codigo":"02.07.02.002-7"},"TC_CRANIO":{"nome":"Tomografia computadorizada do crânio","codigo":"02.06.01.007-9"},"TC_SELA_TURCICA":{"nome":"Tomografia computadorizada de sela túrcica","codigo":"02.06.01.006-0"},"TC_FACE_ATM":{"nome":"Tomografia computadorizada de face/seios da face/ATM","codigo":"02.06.01.004-4"},"TC_PESCOCO":{"nome":"Tomografia computadorizada do pescoço","codigo":"02.06.01.005-2"},"TC_COLUNA_CERVICAL":{"nome":"Tomografia computadorizada de coluna cervical (com ou sem contraste)","codigo":"02.06.01.001-0"},"TC_COLUNA_TORACICA":{"nome":"Tomografia computadorizada de coluna torácica (com ou sem contraste)","codigo":"02.06.01.003-6"},"TC_COLUNA_LOMBOSSACRA":{"nome":"Tomografia computadorizada de coluna lombo-sacra (com ou sem contraste)","codigo":"02.06.01.002-8"},"TC_TORAX":{"nome":"Tomografia computadorizada de tórax (sem contraste)","codigo":"02.06.02.003-1"},"TC_ABDOME_SUPERIOR":{"nome":"Tomografia computadorizada de abdome superior","codigo":"02.06.03.001-0"},"TC_PELVE":{"nome":"Tomografia computadorizada de pelve/bacia/abdome inferior","codigo":"02.06.03.003-7"},"TC_ARTIC_MEMBRO_SUP":{"nome":"Tomografia computadorizada de articulações de membro superior","codigo":"02.06.02.001-5"},"TC_ARTIC_MEMBRO_INF":{"nome":"Tomografia computadorizada de articulações de membro inferior","codigo":"02.06.03.002-9"},"TC_SEGMENTOS_APENDIC":{"nome":"Tomografia computadorizada de segmentos apendiculares (braço, antebraço, mão, coxa, perna, pé)","codigo":"02.06.02.002-3"},"DENSITOMETRIA_2SEG":{"nome":"Densitometria óssea (dois segmentos)","codigo":"02.04.06.002-8"},"DENSITOMETRIA_CORPO":{"nome":"Densitometria óssea (corpo inteiro)","codigo":"02.04.06.002-8"},"ENDOSCOPIA_DIGESTIVA_ALTA":{"nome":"Endoscopia digestiva alta (esofagogastroduodenoscopia)","codigo":"02.09.01.003-7"},"COLONOSCOPIA":{"nome":"Colonoscopia (coloscopia)","codigo":"02.09.01.002-9"},"ANGIOCORONARIOGRAFIA":{"nome":"Angiocoronariografia (cateterismo cardíaco)","codigo":"02.11.02.001-0"},"CINTILOGRAFIA_MIOCARDIO_ESTRESSE":{"nome":"Cintilografia de perfusão do miocárdio (estresse, mín. 3 projeções)","codigo":"02.08.01.002-5"},"CINTILOGRAFIA_MIOCARDIO_REPOUSO":{"nome":"Cintilografia de perfusão do miocárdio (repouso, mín. 3 projeções)","codigo":"02.08.01.003-3"},"ECOCARDIOGRAMA_TRANSTORACICO":{"nome":"Ecocardiograma transtorácico","codigo":"02.05.01.003-2"},"TESTE_ERGOMETRICO":{"nome":"Teste ergométrico (teste de esforço)","codigo":"02.11.02.006-0"},"HOLTER_24H":{"nome":"Holter 24 horas (eletrocardiograma dinâmico, 3 canais)","codigo":"02.11.02.004-4"},"MAPA_24H":{"nome":"MAPA 24 horas (monitorização ambulatorial da pressão arterial)","codigo":"02.11.02.005-2"},"RETOSSIGMOIDOSCOPIA":{"nome":"Retossigmoidoscopia (diagnóstica)","codigo":"02.09.01.005-3"}},"cids":{"K83.8":"Outras doenças especificadas das vias biliares","I10":"Hipertensão essencial (primária)","I11.9":"Doença cardíaca hipertensiva sem insuficiência cardíaca","I15.9":"Hipertensão secundária não especificada","I20.0":"Angina instável","I20.9":"Angina pectoris, não especificada","I21.9":"Infarto agudo do miocárdio não especificado","I22.9":"Infarto do miocárdio recorrente não especificado","I24.9":"Doença isquêmica aguda do coração, não especificada","I25.1":"Doença aterosclerótica do coração","I25.9":"Doença isquêmica crônica do coração, não especificada","I27.9":"Doença cardiopulmonar não especificada","I34.0":"Insuficiência da valva mitral","I34.9":"Transtorno não-reumático da valva mitral, não especificado","I35.0":"Estenose aórtica","I35.9":"Transtorno da valva aórtica não especificado","I36.1":"Insuficiência não-reumática da valva tricúspide","I38":"Endocardite de valva não especificada","I42.0":"Cardiomiopatia dilatada","I42.9":"Cardiomiopatia não especificada","I44.2":"Bloqueio atrioventricular total","I45.9":"Transtorno de condução não especificado","I47.1":"Taquicardia supraventricular","I47.2":"Taquicardia ventricular","I48":"Flutter e fibrilação atrial","I48.9":"Flutter e fibrilação atrial","I49.5":"Síndrome do nó sinusal","I49.9":"Arritmia cardíaca não especificada","I50":"Insuficiência cardíaca","I50.9":"Insuficiência cardíaca não especificada","I51.7":"Cardiomegalia","I70.0":"Aterosclerose da aorta","I70.2":"Aterosclerose das artérias das extremidades","I71.4":"Aneurisma da aorta abdominal, sem menção de ruptura","I73.9":"Doença vascular periférica não especificada","I80.2":"Flebite e tromboflebite de outros vasos profundos dos membros inferiores","I82.9":"Embolia e trombose venosa não especificada","Q21.1":"Comunicação interatrial","Q24.9":"Malformação congênita do coração não especificada","E78.5":"Hiperlipidemia não especificada","R00.0":"Taquicardia não especificada","R00.1":"Bradicardia não especificada","R00.2":"Palpitações","R07.2":"Dor precordial","R42":"Tontura e instabilidade","R55":"Síncope e colapso","Z95.0":"Presença de marca-passo cardíaco","Z95.1":"Presença de enxerto de ponte aortocoronária","Z95.5":"Presença de implante e enxerto de angioplastia coronária","G43.0":"Enxaqueca sem aura (enxaqueca comum)","G43.8":"Outras formas de enxaqueca","G43.9":"Enxaqueca não especificada","G44.1":"Cefaleia vascular, não classificada em outra parte","G40.9":"Epilepsia não especificada","G93.4":"Encefalopatia não especificada","R51":"Cefaleia","G80.9":"Paralisia cerebral não especificada","F84.0":"Autismo infantil","F70":"Retardo mental leve","F71":"Retardo mental moderado","F82":"Transtorno específico do desenvolvimento motor","F80.9":"Transtorno de desenvolvimento da fala ou linguagem não especificado","Q90.9":"Síndrome de Down não especificada","P07.3":"Outros recém-nascidos pré-termo","P14.3":"Outras lesões do plexo braquial devidas a traumatismo de parto","L93":"Lúpus eritematoso","G00.9":"Meningite bacteriana não especificada","H90.3":"Perda de audição neurossensorial bilateral","M18.0":"Artrose primária bilateral das primeiras articulações carpometacarpianas","M19.9":"Artrose não especificada","M25.5":"Dor articular","M79.1":"Mialgia","M54.5":"Dor lombar baixa","M54.2":"Cervicalgia","M06.9":"Artrite reumatoide não especificada","M32.9":"Lúpus eritematoso sistêmico não especificado","M81.9":"Osteoporose não especificada","M85.8":"Outros transtornos especificados da densidade e da estrutura ósseas","M47.9":"Espondilose não especificada","M51.1":"Transtornos de discos lombares e de outros discos intervertebrais com radiculopatia","E10.9":"Diabetes mellitus tipo 1 sem complicações","E11.9":"Diabetes mellitus tipo 2 sem complicações","E03.9":"Hipotireoidismo não especificado","E05.9":"Tireotoxicose não especificada","E66.9":"Obesidade não especificada","E78.0":"Hipercolesterolemia pura","R73.9":"Hiperglicemia não especificada","J44.9":"Doença pulmonar obstrutiva crônica não especificada","N18.9":"Doença renal crônica não especificada","R07.4":"Dor torácica, não especificada"}},"apac-itauna":{"_leia_me":"APAC de Itauna. O estabelecimento ja aparece preenchido no formulario.","estabelecimento":{"nome":"CENTRO DE ESPEC MEDICAS E ODONTO DR OVIDIO NOGUEIRA MACHADO","cnes":"2105578"},"procedimentos":{"HOLTER":{"nome":"Holter 24h","codigo":"02.11.02.004-4","label":"MONITORAMENTO PELO SISTEMA HOLTER 24 HS (3 CANAIS)"},"MAPA":{"nome":"MAPA 24h","codigo":"02.11.02.005-2","label":"MONITORIZAÇÃO AMBULATORIAL DE PRESSÃO ARTERIAL (MAPA)"},"TE":{"nome":"Teste Ergométrico","codigo":"02.11.02.006-0","label":"TESTE DE ESFORÇO / TESTE ERGOMÉTRICO"},"DOPPLER":{"nome":"Doppler vascular","codigo":"02.05.01.004-0","label":null},"CINTILO":{"nome":"Cintilografia miocárdio","codigo":"02.08.01.002-5","label":"CINTILOGRAFIA DE MIOCÁRDIO P/ AVALIAÇÃO DA PERFUSÃO EM SITUAÇÃO DE ESTRESSE (MÍNIMO 3 PROJEÇÕES)"},"ECO":{"nome":"Ecocardiograma","codigo":"02.05.01.003-2","label":null},"CATETER":{"nome":"Cateterismo cardíaco","codigo":"02.11.02.001-0","label":"CATETERISMO CARDÍACO (CINECORONARIOGRAFIA)"},"OUTRO":{"nome":"Outro procedimento…","codigo":"","label":null}},"ecoVariantes":{"REPOUSO":{"codigo":"02.05.01.003-2","nome":"ECOCARDIOGRAFIA TRANSTORACICA"},"ESTRESSE":{"codigo":"02.05.01.001-6","nome":"ECOCARDIOGRAFIA COM ESTRESSE"},"TRANSESOFAGICO":{"codigo":"02.05.01.002-4","nome":"ECOCARDIOGRAFIA BI-DIMENSIONAL TRANSESOFAGICO"}},"territorios":["DOPPLER DE ARTÉRIAS CARÓTIDAS E VERTEBRAIS","DOPPLER DE VEIAS CERVICAIS","DOPPLER AORTA ABDOMINAL","DOPPLER DE ARTÉRIAS RENAIS","DOPPLER ARTERIAL DE MEMBROS SUPERIORES","DOPPLER ARTERIAL DE MEMBROS INFERIORES","DOPPLER VENOSO DE MEMBROS SUPERIORES","DOPPLER VENOSO DE MEMBROS INFERIORES"],"cids":{"I10":"Hipertensão essencial (primária)","I11.9":"Doença cardíaca hipertensiva sem insuficiência cardíaca","I15.9":"Hipertensão secundária não especificada","I20.0":"Angina instável","I20.9":"Angina pectoris, não especificada","I21.9":"Infarto agudo do miocárdio não especificado","I22.9":"Infarto do miocárdio recorrente não especificado","I24.9":"Doença isquêmica aguda do coração, não especificada","I25.1":"Doença aterosclerótica do coração","I25.9":"Doença isquêmica crônica do coração, não especificada","I27.9":"Doença cardiopulmonar não especificada","I34.0":"Insuficiência da valva mitral","I34.9":"Transtorno não-reumático da valva mitral, não especificado","I35.0":"Estenose aórtica","I35.9":"Transtorno da valva aórtica não especificado","I36.1":"Insuficiência não-reumática da valva tricúspide","I38":"Endocardite de valva não especificada","I42.0":"Cardiomiopatia dilatada","I42.9":"Cardiomiopatia não especificada","I44.2":"Bloqueio atrioventricular total","I45.9":"Transtorno de condução não especificado","I47.1":"Taquicardia supraventricular","I47.2":"Taquicardia ventricular","I48":"Flutter e fibrilação atrial","I48.9":"Flutter e fibrilação atrial","I49.5":"Síndrome do nó sinusal","I49.9":"Arritmia cardíaca não especificada","I50":"Insuficiência cardíaca","I50.9":"Insuficiência cardíaca não especificada","I51.7":"Cardiomegalia","I70.0":"Aterosclerose da aorta","I70.2":"Aterosclerose das artérias das extremidades","I71.4":"Aneurisma da aorta abdominal, sem menção de ruptura","I73.9":"Doença vascular periférica não especificada","I80.2":"Flebite e tromboflebite de outros vasos profundos dos membros inferiores","I82.9":"Embolia e trombose venosa não especificada","Q21.1":"Comunicação interatrial","Q24.9":"Malformação congênita do coração não especificada","E11":"Diabetes mellitus não-insulino-dependente","E11.9":"Diabetes mellitus não-insulino-dependente - sem complicações","E78.0":"Hipercolesterolemia pura","E78.5":"Hiperlipidemia não especificada","R00.0":"Taquicardia não especificada","R00.1":"Bradicardia não especificada","R00.2":"Palpitações","R07.2":"Dor precordial","R07.4":"Dor torácica, não especificada","R42":"Tontura e instabilidade","R55":"Síncope e colapso","Z95.0":"Presença de marca-passo cardíaco","Z95.1":"Presença de enxerto de ponte aortocoronária","Z95.5":"Presença de implante e enxerto de angioplastia coronária"}}};
 
+  /* ===== dados/changelog.json ===== */
+  raiz.MEEDS_CHANGELOG = {"_leia_me":"Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.","versoes":[{"versao":"2.5.0","data":"2026-08-30","novidades":["Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.","O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."],"melhorias":["Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."],"correcoes":["O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."]},{"versao":"2.4.0","data":"2026-08-30","novidades":["Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.","O código escolhido na busca entra sozinho no laudo que estiver aberto.","Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.","Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."],"melhorias":["O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.","O CPF se formata sozinho enquanto você digita.","Com um único médico cadastrado, ele já vem selecionado nos laudos.","As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.","O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."],"correcoes":["O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.","Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."]},{"versao":"2.3.0","data":"2026-08-30","novidades":["Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."],"melhorias":["Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."],"correcoes":[]},{"versao":"2.2.0","data":"2026-08-30","novidades":["Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."],"melhorias":["Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."],"correcoes":["Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."]},{"versao":"2.0.0","data":"2026-08-30","novidades":["Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."],"melhorias":[],"correcoes":[]}]};
+
   var __inv = {
-  "versao": "2.4.0",
+  "versao": "2.5.0",
   "modulos": [
     {
       "id": "alarme-fila",
@@ -3811,7 +4103,7 @@
    * cobre o resto: duas copias instaladas no Tampermonkey, ou uma
    * reexecucao do script numa navegacao da SPA. Sem ela, apareciam dois
    * docks sobrepostos e o alarme tocava duas vezes. */
-  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.4.0")) return;
+  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.5.0")) return;
 
   /* 2) O hook de rede precisa existir ANTES de qualquer chamada da
    * aplicacao — por isso e instalado aqui, em document-start, e nao
