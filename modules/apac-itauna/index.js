@@ -730,15 +730,32 @@
   /* Preenche codigo e descricao nos campos certos deste laudo. Usada
    * tanto pelo autocomplete de dentro do campo quanto pela janela de
    * busca separada — um caminho so, para os dois nunca divergirem. */
-  function preencherCidEscolhido(codigo, descricao) {
-    var campo = shadow.getElementById("apac-cid1");
-    if (campo) campo.value = codigo;
-    var desc = shadow.getElementById("apac-cid-desc");
-    if (desc && (!desc.value || desc.dataset.auto === "1")) {
-      desc.value = descricao || "";
-      desc.dataset.auto = "1";
-    }
+  /* Os tres campos de CID da APAC sao os campos 37 (principal), 38
+   * (secundario) e 39 (associados) do formulario oficial. Todos recebem
+   * codigo de CID e por isso todos ganham a busca.
+   *
+   * So o PRINCIPAL alimenta a "Descricao do diagnostico" (campo 36): ela
+   * descreve o diagnostico principal. Se o secundario tambem escrevesse
+   * ali, escolher um CID associado sobrescreveria a descricao do
+   * principal — o medico perderia o que ja tinha, sem perceber. */
+  function preencherCidEmCampo(idCampo, alimentaDescricao) {
+    return function (codigo, descricao) {
+      var campo = shadow.getElementById(idCampo);
+      if (campo) campo.value = codigo;
+      if (!alimentaDescricao) return;
+      var desc = shadow.getElementById("apac-cid-desc");
+      if (desc && (!desc.value || desc.dataset.auto === "1")) {
+        desc.value = descricao || "";
+        desc.dataset.auto = "1";
+      }
+    };
   }
+
+  var CAMPOS_CID = [
+    { id: "apac-cid1", alimentaDescricao: true },  // 37 - CID10 principal
+    { id: "apac-cid2", alimentaDescricao: false }, // 38 - CID10 secundario
+    { id: "apac-cid3", alimentaDescricao: false }, // 39 - associados
+  ];
 
   function montarUI() {
     overlay = d.dock.criarOverlay({ estilo: CSS, html: HTML });
@@ -821,17 +838,19 @@
 
 
 
-      /* O campo de CID deste laudo e anunciado para quem souber buscar
-       * CID-10. O modulo de busca se acopla a ele: o medico clica no
-       * campo, digita o codigo ou o nome da doenca e escolhe — codigo e
-       * descricao entram sozinhos. Se aquele modulo estiver desligado,
-       * ninguem atende e o campo continua sendo texto livre. */
+      /* Os campos de CID deste gerador sao anunciados para quem souber
+       * buscar CID-10. O modulo de busca se acopla a cada um: o medico
+       * clica no campo, digita o codigo ou o nome da doenca e escolhe.
+       * Se aquele modulo estiver desligado, ninguem atende e os campos
+       * continuam sendo texto livre, como sempre foram. */
       function anunciarCampoCid() {
-        var campo = shadow.getElementById("apac-cid1");
-        if (!campo) return;
-        deps.publicarEvento("cid:conectar-campo", {
-          input: campo,
-          aoEscolher: preencherCidEscolhido,
+        CAMPOS_CID.forEach(function (c) {
+          var campo = shadow.getElementById(c.id);
+          if (!campo) return;
+          deps.publicarEvento("cid:conectar-campo", {
+            input: campo,
+            aoEscolher: preencherCidEmCampo(c.id, c.alimentaDescricao),
+          });
         });
       }
       anunciarCampoCid();

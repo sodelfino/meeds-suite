@@ -48,6 +48,10 @@
   var aviso = null;           // aviso unico; novos pacientes ATUALIZAM ele
   var chegadasNoAviso = [];
 
+  /* Ultima resposta da API, so em memoria e so para o diagnostico
+   * comparar duas leituras. Nunca vai para disco nem para o console. */
+  var ultimaRespostaCrua = null;
+
   /* ----------------------------------------------------------------
    * DESCOBERTA DO PROFISSIONAL
    * ---------------------------------------------------------------- */
@@ -109,11 +113,79 @@
       .then(function (json) {
         var itens = extrairItens(json);
         if (!itens) return;
+        ultimaRespostaCrua = itens; // so em memoria, para o diagnostico
         processar(itens.map(normalizarItem));
       })
       .catch(function (e) {
         // rede instavel no plantao e comum; a proxima rodada tenta de novo
         console.debug("[Sala de espera] consulta falhou, tentando na proxima rodada.", e.message);
+      });
+  }
+
+  /* ----------------------------------------------------------------
+   * DIAGNOSTICO — descobrir, na API real, qual campo marca a chegada
+   * ----------------------------------------------------------------
+   * Uso, no console do navegador do proprio medico:
+   *
+   *     MeedsSuite.salaEspera.diagnosticar()
+   *
+   * Ele tira uma foto agora e outra depois de 45 segundos. Entre as
+   * duas, o medico (ou a recepcao) marca a chegada de um paciente na
+   * tela nativa. O relatorio mostra QUAL campo mudou.
+   *
+   * O relatorio nao imprime nome, CPF nem nenhum outro dado de paciente:
+   * ids viram apelidos curtos nao reversiveis e texto vira so o tamanho.
+   * Nada e enviado para fora — e console local.
+   * ---------------------------------------------------------------- */
+  function diagnosticar(segundosEntreFotos) {
+    var Diag = raiz.MeedsSuiteSalaEsperaDiag;
+    var espera = (segundosEntreFotos || 45) * 1000;
+
+    if (!profissionalId) {
+      console.warn(
+        "[Sala de espera] Ainda nao sei o seu ProfissionalId. Abra a tela de Consultas Agendadas uma vez e repita."
+      );
+      return Promise.resolve(null);
+    }
+
+    console.log("%c[Sala de espera] Diagnostico iniciado", "font-weight:bold");
+    console.log("Consulta:", montarUrl().replace(/ProfissionalId=[^&]+/, "ProfissionalId=<voce>"));
+    console.log("Intervalo entre as fotos:", espera / 1000, "segundos.");
+    console.log("AGORA: peca para marcarem a chegada de um paciente na tela nativa.");
+
+    return consultar()
+      .then(function () {
+        var antes = Diag.fotografar(ultimaRespostaCrua || []);
+        console.log("Foto 1 —", antes.length, "item(ns) na resposta:");
+        console.table(antes.map(function (x) {
+          return { item: x.apelido, status: x.statusAtendimentoId };
+        }));
+        if (ultimaRespostaCrua && ultimaRespostaCrua[0]) {
+          console.log("Formato de um item (nomes e tipos, sem conteudo):");
+          console.table(Diag.formato(ultimaRespostaCrua[0]));
+        }
+        return new Promise(function (ok) {
+          setTimeout(function () {
+            ok(antes);
+          }, espera);
+        });
+      })
+      .then(function (antes) {
+        return consultar().then(function () {
+          var depois = Diag.fotografar(ultimaRespostaCrua || []);
+          console.log("Foto 2 —", depois.length, "item(ns) na resposta.");
+          var mudancas = Diag.comparar(antes, depois);
+          if (!mudancas.length) {
+            console.warn(
+              "Nada mudou entre as duas fotos. Se a chegada foi marcada neste intervalo, " +
+                "o atendimento provavelmente SAIU deste filtro — veja se algum item consta como SUMIU DA RESPOSTA."
+            );
+          } else {
+            console.log("%cO que mudou entre as duas fotos:", "font-weight:bold");
+            console.table(mudancas);
+          }
+          return { antes: antes, depois: depois, mudancas: mudancas };
+        });
       });
   }
 
@@ -368,6 +440,17 @@
       chegadasNoAviso = [];
 
       montarUI();
+
+      /* Comando de diagnostico, para o medico rodar no console:
+       *     MeedsSuite.salaEspera.diagnosticar()
+       * Fica no nucleo para nao depender de o modulo estar em escopo. */
+      raiz.MeedsSuite.salaEspera = {
+        diagnosticar: diagnosticar,
+        estado: function () {
+          return { profissionalIdConhecido: !!profissionalId, aguardando: aguardando.length };
+        },
+      };
+
       deps.aoClicarBotao(function () {
         overlay.abrir();
         renderizarLista();
@@ -401,6 +484,9 @@
         overlay = null;
       }
       refs = null;
+      try {
+        delete raiz.MeedsSuite.salaEspera;
+      } catch (e) {}
       vistos = new Set();
       aguardando = [];
       chegadasNoAviso = [];

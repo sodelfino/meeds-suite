@@ -49,7 +49,10 @@
       "versao": "1.0.0",
       "arquivo": "modules/sala-espera/index.js",
       "origem": "novo — endpoint /api/v1/Atendimento com Agendado=true",
-      "prioridadeBotao": 15
+      "prioridadeBotao": 15,
+      "assets": [
+        "modules/sala-espera/diagnostico.js"
+      ]
     },
     {
       "id": "apac-itauna",

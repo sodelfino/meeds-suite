@@ -5295,6 +5295,191 @@
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
 
+/* ===== modules/sala-espera/diagnostico.js ===== */
+/* ------------------------------------------------------------------
+ * modules/sala-espera/diagnostico.js — evidencia da API, sem PII
+ * ------------------------------------------------------------------
+ * POR QUE ISTO EXISTE
+ * Nao da para consertar a deteccao de chegada no chute. E preciso ver o
+ * que a API DE VERDADE devolve antes e depois do paciente fazer
+ * check-in — quais campos existem, qual muda, e se o atendimento
+ * continua aparecendo no filtro depois da mudanca.
+ *
+ * Este arquivo tira duas fotos da mesma consulta, espacadas no tempo, e
+ * mostra a diferenca. Ele roda na sessao do proprio medico, com o
+ * ProfissionalId dele, e imprime no console do navegador dele.
+ *
+ * O QUE NUNCA SAI DAQUI
+ * Nome, CPF, CNS, telefone, data de nascimento, nome da mae — nada
+ * disso e impresso. O relatorio mostra:
+ *   - quantidade de itens;
+ *   - id do atendimento reduzido a um apelido curto e nao reversivel;
+ *   - statusAtendimentoId (numero);
+ *   - os campos CANDIDATOS a "chegada", com valor e tipo;
+ *   - o FORMATO da resposta (nomes de campo e tipos), com o conteudo de
+ *     texto substituido por "texto(n)" — o nome do campo ajuda a achar a
+ *     chegada, o conteudo dele nao;
+ *   - carimbo de tempo.
+ * Nada e enviado para lugar nenhum: e console local.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  /* Apelido curto e NAO reversivel para o id do atendimento. Serve para
+   * acompanhar o mesmo item entre duas fotos sem escrever o id real. */
+  function apelido(id) {
+    var s = String(id || "");
+    var h = 5381;
+    for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+    return "#" + h.toString(36).slice(0, 5);
+  }
+
+  /* Campos que PODEM representar a chegada do paciente. A lista e ampla
+   * de proposito: o objetivo do diagnostico e descobrir qual deles a API
+   * realmente usa, e nao confirmar um palpite. */
+  var CAMINHOS_CANDIDATOS = [
+    "agendamento.checkinStatus",
+    "agendamento.checkIn",
+    "agendamento.checkin",
+    "agendamento.chegou",
+    "agendamento.presente",
+    "agendamento.dataCheckin",
+    "agendamento.dataChegada",
+    "agendamento.horarioChegada",
+    "agendamento.statusAgendamentoId",
+    "agendamento.situacao",
+    "checkinStatus",
+    "checkIn",
+    "chegou",
+    "presente",
+    "dataCheckin",
+    "dataChegada",
+    "statusAtendimentoId",
+    "situacaoId",
+  ];
+
+  function pegar(obj, caminho) {
+    var partes = caminho.split(".");
+    var atual = obj;
+    for (var i = 0; i < partes.length; i++) {
+      if (atual === null || atual === undefined) return undefined;
+      atual = atual[partes[i]];
+    }
+    return atual;
+  }
+
+  /* Valor seguro de imprimir: booleano e numero vao inteiros (nao
+   * identificam ninguem); texto vira o tamanho; data vira so o fato de
+   * existir. */
+  function valorSeguro(v) {
+    if (v === null) return "null";
+    if (v === undefined) return "ausente";
+    var t = typeof v;
+    if (t === "boolean") return v + " (booleano)";
+    if (t === "number") return v + " (numero)";
+    if (t === "string") {
+      if (v === "true" || v === "false") return '"' + v + '" (texto)';
+      if (/^\d{4}-\d{2}-\d{2}/.test(v)) return "data preenchida (texto)";
+      if (/^\d+$/.test(v)) return '"' + v + '" (numero em texto)';
+      return "texto(" + v.length + ")";
+    }
+    if (t === "object") return Array.isArray(v) ? "lista(" + v.length + ")" : "objeto";
+    return t;
+  }
+
+  /* Formato da resposta: nomes de campo e TIPOS, sem conteudo de texto.
+   * E o que permite descobrir um campo de chegada que nao esta na lista
+   * de candidatos acima. */
+  function formato(obj, prefixo, saida, profundidade) {
+    saida = saida || {};
+    prefixo = prefixo || "";
+    profundidade = profundidade || 0;
+    if (profundidade > 2 || !obj || typeof obj !== "object") return saida;
+    Object.keys(obj).forEach(function (k) {
+      var v = obj[k];
+      var caminho = prefixo ? prefixo + "." + k : k;
+      if (v && typeof v === "object" && !Array.isArray(v)) {
+        formato(v, caminho, saida, profundidade + 1);
+      } else {
+        saida[caminho] = valorSeguro(v);
+      }
+    });
+    return saida;
+  }
+
+  function fotografar(itens) {
+    return itens.map(function (item) {
+      var candidatos = {};
+      CAMINHOS_CANDIDATOS.forEach(function (c) {
+        var v = pegar(item, c);
+        if (v !== undefined) candidatos[c] = valorSeguro(v);
+      });
+      return {
+        apelido: apelido(item.id || item.agendamentoId),
+        statusAtendimentoId: item.statusAtendimentoId,
+        candidatos: candidatos,
+      };
+    });
+  }
+
+  function comparar(antes, depois) {
+    var porApelido = {};
+    antes.forEach(function (x) {
+      porApelido[x.apelido] = x;
+    });
+
+    var mudancas = [];
+    depois.forEach(function (agora) {
+      var antigo = porApelido[agora.apelido];
+      if (!antigo) {
+        mudancas.push({ item: agora.apelido, evento: "APARECEU", status: agora.statusAtendimentoId });
+        return;
+      }
+      delete porApelido[agora.apelido];
+
+      if (antigo.statusAtendimentoId !== agora.statusAtendimentoId) {
+        mudancas.push({
+          item: agora.apelido,
+          evento: "statusAtendimentoId mudou",
+          de: antigo.statusAtendimentoId,
+          para: agora.statusAtendimentoId,
+        });
+      }
+      Object.keys(agora.candidatos).forEach(function (campo) {
+        if (antigo.candidatos[campo] !== agora.candidatos[campo]) {
+          mudancas.push({
+            item: agora.apelido,
+            evento: "campo mudou",
+            campo: campo,
+            de: antigo.candidatos[campo] === undefined ? "ausente" : antigo.candidatos[campo],
+            para: agora.candidatos[campo],
+          });
+        }
+      });
+    });
+
+    Object.keys(porApelido).forEach(function (ap) {
+      mudancas.push({
+        item: ap,
+        evento: "SUMIU DA RESPOSTA",
+        status: porApelido[ap].statusAtendimentoId,
+      });
+    });
+
+    return mudancas;
+  }
+
+  raiz.MeedsSuiteSalaEsperaDiag = {
+    apelido: apelido,
+    valorSeguro: valorSeguro,
+    formato: formato,
+    fotografar: fotografar,
+    comparar: comparar,
+    CAMINHOS_CANDIDATOS: CAMINHOS_CANDIDATOS,
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
 /* ===== modules/sala-espera/index.js (v1.0.0) ===== */
 /* ------------------------------------------------------------------
  * modules/sala-espera/index.js — pacientes agendados que chegaram
@@ -5345,6 +5530,10 @@
   var aguardando = [];        // ultima leitura, so em memoria
   var aviso = null;           // aviso unico; novos pacientes ATUALIZAM ele
   var chegadasNoAviso = [];
+
+  /* Ultima resposta da API, so em memoria e so para o diagnostico
+   * comparar duas leituras. Nunca vai para disco nem para o console. */
+  var ultimaRespostaCrua = null;
 
   /* ----------------------------------------------------------------
    * DESCOBERTA DO PROFISSIONAL
@@ -5407,11 +5596,79 @@
       .then(function (json) {
         var itens = extrairItens(json);
         if (!itens) return;
+        ultimaRespostaCrua = itens; // so em memoria, para o diagnostico
         processar(itens.map(normalizarItem));
       })
       .catch(function (e) {
         // rede instavel no plantao e comum; a proxima rodada tenta de novo
         console.debug("[Sala de espera] consulta falhou, tentando na proxima rodada.", e.message);
+      });
+  }
+
+  /* ----------------------------------------------------------------
+   * DIAGNOSTICO — descobrir, na API real, qual campo marca a chegada
+   * ----------------------------------------------------------------
+   * Uso, no console do navegador do proprio medico:
+   *
+   *     MeedsSuite.salaEspera.diagnosticar()
+   *
+   * Ele tira uma foto agora e outra depois de 45 segundos. Entre as
+   * duas, o medico (ou a recepcao) marca a chegada de um paciente na
+   * tela nativa. O relatorio mostra QUAL campo mudou.
+   *
+   * O relatorio nao imprime nome, CPF nem nenhum outro dado de paciente:
+   * ids viram apelidos curtos nao reversiveis e texto vira so o tamanho.
+   * Nada e enviado para fora — e console local.
+   * ---------------------------------------------------------------- */
+  function diagnosticar(segundosEntreFotos) {
+    var Diag = raiz.MeedsSuiteSalaEsperaDiag;
+    var espera = (segundosEntreFotos || 45) * 1000;
+
+    if (!profissionalId) {
+      console.warn(
+        "[Sala de espera] Ainda nao sei o seu ProfissionalId. Abra a tela de Consultas Agendadas uma vez e repita."
+      );
+      return Promise.resolve(null);
+    }
+
+    console.log("%c[Sala de espera] Diagnostico iniciado", "font-weight:bold");
+    console.log("Consulta:", montarUrl().replace(/ProfissionalId=[^&]+/, "ProfissionalId=<voce>"));
+    console.log("Intervalo entre as fotos:", espera / 1000, "segundos.");
+    console.log("AGORA: peca para marcarem a chegada de um paciente na tela nativa.");
+
+    return consultar()
+      .then(function () {
+        var antes = Diag.fotografar(ultimaRespostaCrua || []);
+        console.log("Foto 1 —", antes.length, "item(ns) na resposta:");
+        console.table(antes.map(function (x) {
+          return { item: x.apelido, status: x.statusAtendimentoId };
+        }));
+        if (ultimaRespostaCrua && ultimaRespostaCrua[0]) {
+          console.log("Formato de um item (nomes e tipos, sem conteudo):");
+          console.table(Diag.formato(ultimaRespostaCrua[0]));
+        }
+        return new Promise(function (ok) {
+          setTimeout(function () {
+            ok(antes);
+          }, espera);
+        });
+      })
+      .then(function (antes) {
+        return consultar().then(function () {
+          var depois = Diag.fotografar(ultimaRespostaCrua || []);
+          console.log("Foto 2 —", depois.length, "item(ns) na resposta.");
+          var mudancas = Diag.comparar(antes, depois);
+          if (!mudancas.length) {
+            console.warn(
+              "Nada mudou entre as duas fotos. Se a chegada foi marcada neste intervalo, " +
+                "o atendimento provavelmente SAIU deste filtro — veja se algum item consta como SUMIU DA RESPOSTA."
+            );
+          } else {
+            console.log("%cO que mudou entre as duas fotos:", "font-weight:bold");
+            console.table(mudancas);
+          }
+          return { antes: antes, depois: depois, mudancas: mudancas };
+        });
       });
   }
 
@@ -5666,6 +5923,17 @@
       chegadasNoAviso = [];
 
       montarUI();
+
+      /* Comando de diagnostico, para o medico rodar no console:
+       *     MeedsSuite.salaEspera.diagnosticar()
+       * Fica no nucleo para nao depender de o modulo estar em escopo. */
+      raiz.MeedsSuite.salaEspera = {
+        diagnosticar: diagnosticar,
+        estado: function () {
+          return { profissionalIdConhecido: !!profissionalId, aguardando: aguardando.length };
+        },
+      };
+
       deps.aoClicarBotao(function () {
         overlay.abrir();
         renderizarLista();
@@ -5699,6 +5967,9 @@
         overlay = null;
       }
       refs = null;
+      try {
+        delete raiz.MeedsSuite.salaEspera;
+      } catch (e) {}
       vistos = new Set();
       aguardando = [];
       chegadasNoAviso = [];
@@ -6455,15 +6726,32 @@
   /* Preenche codigo e descricao nos campos certos deste laudo. Usada
    * tanto pelo autocomplete de dentro do campo quanto pela janela de
    * busca separada — um caminho so, para os dois nunca divergirem. */
-  function preencherCidEscolhido(codigo, descricao) {
-    var campo = shadow.getElementById("apac-cid1");
-    if (campo) campo.value = codigo;
-    var desc = shadow.getElementById("apac-cid-desc");
-    if (desc && (!desc.value || desc.dataset.auto === "1")) {
-      desc.value = descricao || "";
-      desc.dataset.auto = "1";
-    }
+  /* Os tres campos de CID da APAC sao os campos 37 (principal), 38
+   * (secundario) e 39 (associados) do formulario oficial. Todos recebem
+   * codigo de CID e por isso todos ganham a busca.
+   *
+   * So o PRINCIPAL alimenta a "Descricao do diagnostico" (campo 36): ela
+   * descreve o diagnostico principal. Se o secundario tambem escrevesse
+   * ali, escolher um CID associado sobrescreveria a descricao do
+   * principal — o medico perderia o que ja tinha, sem perceber. */
+  function preencherCidEmCampo(idCampo, alimentaDescricao) {
+    return function (codigo, descricao) {
+      var campo = shadow.getElementById(idCampo);
+      if (campo) campo.value = codigo;
+      if (!alimentaDescricao) return;
+      var desc = shadow.getElementById("apac-cid-desc");
+      if (desc && (!desc.value || desc.dataset.auto === "1")) {
+        desc.value = descricao || "";
+        desc.dataset.auto = "1";
+      }
+    };
   }
+
+  var CAMPOS_CID = [
+    { id: "apac-cid1", alimentaDescricao: true },  // 37 - CID10 principal
+    { id: "apac-cid2", alimentaDescricao: false }, // 38 - CID10 secundario
+    { id: "apac-cid3", alimentaDescricao: false }, // 39 - associados
+  ];
 
   function montarUI() {
     overlay = d.dock.criarOverlay({ estilo: CSS, html: HTML });
@@ -6546,17 +6834,19 @@
 
 
 
-      /* O campo de CID deste laudo e anunciado para quem souber buscar
-       * CID-10. O modulo de busca se acopla a ele: o medico clica no
-       * campo, digita o codigo ou o nome da doenca e escolhe — codigo e
-       * descricao entram sozinhos. Se aquele modulo estiver desligado,
-       * ninguem atende e o campo continua sendo texto livre. */
+      /* Os campos de CID deste gerador sao anunciados para quem souber
+       * buscar CID-10. O modulo de busca se acopla a cada um: o medico
+       * clica no campo, digita o codigo ou o nome da doenca e escolhe.
+       * Se aquele modulo estiver desligado, ninguem atende e os campos
+       * continuam sendo texto livre, como sempre foram. */
       function anunciarCampoCid() {
-        var campo = shadow.getElementById("apac-cid1");
-        if (!campo) return;
-        deps.publicarEvento("cid:conectar-campo", {
-          input: campo,
-          aoEscolher: preencherCidEscolhido,
+        CAMPOS_CID.forEach(function (c) {
+          var campo = shadow.getElementById(c.id);
+          if (!campo) return;
+          deps.publicarEvento("cid:conectar-campo", {
+            input: campo,
+            aoEscolher: preencherCidEmCampo(c.id, c.alimentaDescricao),
+          });
         });
       }
       anunciarCampoCid();
