@@ -65,14 +65,14 @@
     },
     {
       "id": "cid10",
-      "nome": "Buscar CID-10",
-      "descricao": "Procura o código CID-10 pelo nome da doença, na tabela completa, e preenche no laudo que estiver aberto.",
+      "nome": "Busca de CID-10 nos laudos",
+      "descricao": "Liga a tabela completa da CID-10 ao campo CID dos laudos: digite o código ou o nome da doença e escolha na própria linha do formulário.",
       "versao": "1.1.0",
       "arquivo": "modules/cid10/index.js",
-      "prioridadeBotao": 25,
       "assets": [
         "modules/cid10/assets/fallback.js"
-      ]
+      ],
+      "semBotao": true
     },
     {
       "id": "lme-sete-lagoas",
