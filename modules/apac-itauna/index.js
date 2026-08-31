@@ -431,7 +431,13 @@
         qtde: '01',
       };
     } else {
-      const p = CATALOGO[procedimentoAtivo]; principal = { codigo: p.codigo, nome: p.label, qtde: '01' };
+      /* Sem procedimento escolhido, a linha sai em branco em vez de
+       * quebrar. So a PREVIA chega aqui assim: gerarPdf() valida antes e
+       * exige a escolha, entao o documento final nunca sai sem
+       * procedimento. Isto existe para a previa poder desenhar desde a
+       * primeira tecla, com o formulario ainda pela metade. */
+      const p = CATALOGO[procedimentoAtivo] || { codigo: '', label: '' };
+      principal = { codigo: p.codigo, nome: p.label, qtde: procedimentoAtivo ? '01' : '' };
     }
     linhaProc(y, 24, principal.codigo, principal.nome, principal.qtde, ['18 - CÓDIGO','19 - NOME','20 - QTDE.']); y += 24;
 

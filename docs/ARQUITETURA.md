@@ -598,6 +598,45 @@ seja removida — e volta movendo o bloco de lugar. Apagar o módulo perderia os
 testes e as decisões junto; comentar o registro deixaria código morto no
 bundle. Mover no manifest é reversível e não custa bytes ao médico.
 
+
+**D33 — A prévia chama `produzirPdf()`, a mesma função do botão.**
+Cada gerador anuncia a própria função de produção pelo barramento; a prévia a
+chama e exibe o resultado num `<iframe blob:>`. Não existe layout paralelo: se
+alguém mudar uma coordenada, a prévia muda junto, porque é o mesmo desenho.
+Um preview aproximado em HTML seria uma segunda fonte de verdade — divergiria
+do documento no primeiro ajuste, e o médico confiaria na versão errada.
+A única diferença deliberada é a validação: `gerarPdf()` exige campos
+obrigatórios; a prévia precisa desenhar com o formulário pela metade.
+
+**D34 — Prévia e final não são byte-idênticos, e isso é esperado.**
+jsPDF e pdf-lib carimbam data nos metadados. Medido: 99,28% do arquivo é byte a
+byte idêntico, e **dois PDFs finais gerados com um segundo de diferença também
+divergem, no mesmo offset**. A comparação correta é conteúdo, não hash bruto.
+Registrado para ninguém "corrigir" isso desligando o carimbo — mexer nisso
+mudaria o documento final, que é justamente o que não pode acontecer.
+
+**D35 — `<iframe>` com o visualizador nativo, não pdf.js em canvas.**
+O médico vê literalmente o arquivo, com o mesmo motor que vai imprimi-lo.
+O preço é que o visualizador nativo não expõe a rolagem à página: preservamos
+**página e zoom** pelo fragmento (`#page=N&zoom=Z`), não o ponto exato.
+pdf.js permitiria guardar o `scrollTop`, mas acrescentaria uma terceira
+biblioteca, buscaria o worker na rede no momento de renderizar — proibido — e
+entregaria uma *re-renderização* do PDF em vez do PDF.
+
+**D36 — O que protege a digitação são quatro guardas, não só o debounce.**
+Debounce de 700 ms; nada renderiza com o painel fechado ou com o modal do
+gerador fechado; nada renderiza com a aba em segundo plano (`document.hidden`);
+e uma assinatura do formulário evita re-render quando nenhum campo mudou.
+Renderizações em voo são descartadas por um contador de geração — a que chega
+atrasada não sobrescreve a mais nova. Medido: **20 teclas → 1 renderização**.
+
+**D37 — A prévia é tela clínica.**
+Mostra dado de paciente, então: nada vai para a rede, nada é gravado, nada
+aparece no console. O `blob:` anterior é revogado antes de cada novo, e tudo é
+limpo ao fechar o painel, ao desligar o módulo e após 10 minutos de
+inatividade — consultório compartilhado não deveria depender de o médico
+lembrar de fechar a janela.
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público

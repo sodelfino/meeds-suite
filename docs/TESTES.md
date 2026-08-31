@@ -25,8 +25,8 @@ real quem faz isso é o `@require` do Tampermonkey.
 
 ## Resultado da última execução
 
-**135 casos, 135 passaram, 0 falharam.** Executado em 31/08/2026 contra
-`dist/meeds-suite.user.js` v2.11.0.
+**151 casos, 151 passaram, 0 falharam.** Executado em 31/08/2026 contra
+`dist/meeds-suite.user.js` v2.12.0.
 
 ### Núcleo, dock e login
 
@@ -425,6 +425,92 @@ console.log("índice:", Math.round(performance.now() - t0), "ms");
 O subtítulo do cabeçalho (teste **120**) existe por causa de um defeito
 concreto da versão anterior: quem rolava até o formulário de cadastro via o
 título ainda dizendo *"ative apenas as funções que você usa"*.
+
+
+### Prévia do documento *(v2.12.0)*
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 136 | Prévia reflete o digitado, depois do debounce | ✅ 1 render, 88 ms |
+| 137 | **Prévia e PDF final são o mesmo documento** | ✅ 99,28% byte a byte |
+| 138 | Nenhuma renderização com o painel fechado | ✅ 0 |
+| 139 | 20 teclas geram muito menos de 20 renderizações | ✅ **1** |
+| 140 | Fechar revoga o blob e remove o iframe | ✅ |
+| 141 | Abrir/fechar 3× não duplica painel nem iframe | ✅ 3 painéis, 0 iframes órfãos |
+| 142 | Alternar entre geradores não mistura dados | ✅ `LME_…` / `LAUDO_CMD_…` |
+| 143 | Zero chamadas de rede no ciclo | ✅ |
+| 144 | Nada do documento em `localStorage` | ✅ só a preferência do painel |
+| 145 | Desativar não deixa resíduo | ✅ 0 painéis, 0 alças, CSS removido |
+| 146 | Modal volta ao lugar original | ✅ filho direto do overlay |
+| 147 | Religar reconecta os 3, sem duplicar | ✅ |
+| 148 | Tela estreita não oferece o painel, formulário intacto | ✅ |
+| 149 | Formulário vazio não gera erro | ✅ APAC desenha com procedimento em branco |
+| 150 | Acentuação renderiza corretamente | ✅ "alteração de enzimas hepáticas" |
+| 151 | Regressão: REMUME, CID nos 5 campos, dock | ✅ 7 módulos, 6 botões |
+
+#### Teste 137 — a evidência que mais importa
+
+Gerei o PDF pela prévia e pelo botão, com os mesmos dados, e comparei byte a
+byte:
+
+```
+tamanho preview: 147.365 bytes
+tamanho final:   147.365 bytes
+primeiros 146.311 bytes: IDÊNTICOS  (99,28% do arquivo)
+```
+
+Os 1.054 bytes finais diferem. Para provar que a diferença é o carimbo de
+tempo da biblioteca, e não a prévia, gerei **dois PDFs finais seguidos**:
+
+```
+final A vs final B: também diferem, no MESMO offset (146.312)
+```
+
+Ou seja: dois arquivos "oficiais" gerados com um segundo de diferença já não
+são byte-idênticos entre si. A prévia não é mais diferente do final do que o
+final é de si mesmo. Está previsto em `docs/VIABILIDADE-PREVIEW.md`.
+
+#### Desempenho
+
+Medido pela porta real (`produzirPdf`, a mesma do botão "Gerar"):
+
+| Gerador | Medições limpas | Tamanho |
+|---|---|---|
+| APAC | 8 · 11 · 12 · 13 · 22 ms | 19 KB |
+| Sete Lagoas | 23 · 28 · 29 · 33 · 41 · 53 ms | 117 KB |
+| CMD | 50 · 52 · 54 · 68 · 80 · 88 · 100 ms | 141 KB |
+
+**Todos abaixo dos ~400 ms.** Pior caso limpo: 100 ms (CMD).
+
+> **Ressalva honesta sobre a medição.** O painel do navegador do ambiente de
+> teste é escondido entre uma chamada e outra, e o Chrome estrangula timers e
+> continuações assíncronas em aba de segundo plano. Em rajadas de gerações
+> coladas, o CMD chegou a marcar ~3.000 ms — mas a instrumentação por fase
+> mostrou que **as etapas síncronas ficaram em 3 a 8 ms em todas as
+> iterações**; só os dois `await` (`PDFDocument.load` e `doc.save()`)
+> incharam. É a assinatura de throttling, não de custo de CPU.
+>
+> Para medir com rigor, rode o trecho abaixo num Chrome comum, com a aba em
+> primeiro plano:
+
+```js
+// com um gerador aberto e a prévia ligada
+let fichas = [];
+MeedsSuite.assinarEvento("preview:registrar-gerador", f => { fichas.push(f); return true; });
+MeedsSuite.publicarEvento("preview:pronto", {});
+setTimeout(async () => {
+  for (const f of fichas) {
+    const ms = [];
+    for (let i = 0; i < 5; i++) {
+      await new Promise(r => setTimeout(r, 800));   // mesmo intervalo do debounce
+      const t = performance.now();
+      await f.produzirPdf();
+      ms.push(Math.round(performance.now() - t));
+    }
+    console.log(f.id, ms);
+  }
+}, 300);
+```
 
 
 ### Extensibilidade
