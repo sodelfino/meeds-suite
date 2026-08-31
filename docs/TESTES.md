@@ -25,8 +25,8 @@ real quem faz isso é o `@require` do Tampermonkey.
 
 ## Resultado da última execução
 
-**64 casos, 64 passaram, 0 falharam.** Executado em 30/08/2026 contra
-`dist/meeds-suite.user.js` v2.5.0.
+**75 casos, 75 passaram, 0 falharam.** Executado em 30/08/2026 contra
+`dist/meeds-suite.user.js` v2.6.0.
 
 ### Núcleo, dock e login
 
@@ -168,6 +168,43 @@ Para simular uma atualização sem publicar nada:
 ```js
 localStorage.setItem("meeds-suite:ultima_versao_vista", "2.2.0");
 location.reload();
+```
+
+
+### Busca do REMUME — marcas, acentos e fonética *(novo)*
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 65 | Erro com acento: "dipironá" → Dipirona | ✅ 5 resultados |
+| 66 | Erro fonético: "cimvastatina" → Sinvastatina | ✅ 4 resultados |
+| 67 | Marca presente: "Tylenol" → Paracetamol do município | ✅ 3 resultados |
+| 68 | Avisa de onde veio: *"Mostrando Paracetamol — princípio ativo de Tylenol."* | ✅ |
+| 69 | Marca ausente: "Allegra" → *"Allegra (Fexofenadina) não consta na REMUME deste município."* | ✅ |
+| 70 | Marca ausente **não** vira item selecionável | ✅ só a explicação |
+| 71 | **Nenhum resultado vem de fora da REMUME do município** | ✅ 24 itens conferidos, 0 violações |
+| 72 | Falsos positivos: "dipirona" não traz digoxina | ✅ |
+| 73 | Falsos positivos: "losartana" não traz lorazepam | ✅ |
+| 74 | Falsos positivos: "clonazepam" não traz clonidina | ✅ |
+| 75 | Falsos positivos: "amoxicilina" não traz amitriptilina | ✅ |
+
+> O teste **71** é o mais importante do arquivo. Ele pega cada resultado
+> devolvido pela busca e confere, item por item, que o texto existe
+> literalmente na REMUME do município selecionado. Foi rodado em Macaé e Sete
+> Lagoas, com termos que exercitam todos os caminhos (marca, acento, fonética,
+> marca ausente). **Nunca remova nem afrouxe este teste:** ele é a garantia
+> mecânica da regra de ouro (ver ARQUITETURA.md, D22).
+
+Como reproduzir a garantia do teste 71:
+
+```js
+// no console, com a consulta REMUME aberta
+const host = document.getElementById("meeds-suite-dock-host").shadowRoot;
+const norm = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim();
+const lista = window.MEEDS_REMUMES_FALLBACK["Macaé"].map(x => norm(String(x).split("(Local de acesso:")[0]));
+// digite algo na busca, depois:
+Array.from(host.querySelectorAll("#rm-results li .rm-item-text"))
+  .map(li => norm(li.textContent))
+  .filter(n => !lista.includes(n));   // tem que devolver []
 ```
 
 

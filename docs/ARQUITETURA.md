@@ -62,6 +62,8 @@ E o custo prático: **5 instalações e 5 atualizações separadas por médico**
   │  storage.js         config por módulo, namespaced            │
   │  cadastro.js        médicos e estabelecimentos + backup      │
   │  formatos.js        máscara de CPF e formatação de campos    │
+  │  busca.js           motor de busca em duas camadas            │
+  │  fonetica-ptbr.js   código fonético do português              │
   │  historico.js       documentos gerados, sem dado de paciente │
   │  mensagens.js       como o sistema fala com o médico         │
   │  diagnostico.js     instância única, scripts antigos, 1ª vez │
@@ -437,6 +439,47 @@ são um cadastro local (chave `estabelecimentos`), com a lista do arquivo de
 dados servindo de **semente** na primeira execução. A marca de "já semeei" é
 separada da lista estar vazia — senão, apagar tudo faria a semente voltar na
 recarga seguinte.
+
+
+**D22 — A REMUME do município é a única fonte de medicamentos. Regra de ouro.**
+`dados/marcas-medicamentos.json` traduz nome comercial para princípio ativo —
+e **só isso**. Ele muda *o que* se procura, nunca *onde*. Nenhum resultado da
+consulta REMUME pode vir dessa tabela: se a marca é reconhecida mas o princípio
+ativo não está na lista daquele município, o Assistente diz que não consta e
+**não oferece o item**. Na dúvida, filtra para fora; nunca acrescenta.
+Consequência prática para quem for mexer: qualquer melhoria futura na busca
+tem que preservar isso. Um medicamento oferecido a um médico e não disponível
+na unidade é pior do que uma busca que não achou nada.
+A REMUME não tem campo `principioAtivo`, então a tradução casa pelo **nome** do
+item — foi verificado antes de decidir.
+
+**D23 — Distância de edição com custos do português, e o limite escolhido.**
+Trocar `s`/`z`, `c`/`s`, `g`/`j`, `l`/`u`, `m`/`n`, `x`/`s`, `b`/`v`, `e`/`i`,
+`o`/`u` custa **meio ponto** em vez de um: é erro de grafia previsível, não
+outra palavra. Inserção e remoção continuam custando um — falta ou sobra de
+letra não é confusão de grafia.
+O limite de tolerância é por tamanho do que foi digitado: **1,0** até 6 letras,
+**2,0** até 10, **3,0** acima. Foi calibrado contra pares que não podem se
+misturar — `dipirona`/`digoxina` exige 4 trocas não relacionadas e fica de
+fora, enquanto `dipironá`/`dipirona` e `azitromissina`/`azitromicina` passam.
+
+**D24 — Fonética própria do português, e como camada secundária.**
+Soundex é para sobrenomes em inglês: não conhece Ç, LH, NH, o "ão" nasal, nem
+que C antes de E/I soa como S. `core/fonetica-ptbr.js` implementa as regras do
+português na ordem em que dependem umas das outras (dígrafos primeiro, depois
+letras dependentes de vogal, depois nasais, depois L final). Convergências
+verificadas: `cimvastatina` = `simvastatina` = `sinvastatina`,
+`azitromicina` = `azitromissina`, `cefalexina` = `sefalexina` — e
+`dipirona` ≠ `digoxina`.
+Ela roda **só quando a camada 1 não achou nada**. Fonética é generosa por
+natureza; correndo junto com a busca normal, colocaria um homófono na frente de
+um resultado exato.
+
+**PENDÊNCIA REGISTRADA (não implementada):** quando o princípio ativo não
+consta na REMUME, sugerir alternativa terapêutica da mesma classe ATC que
+esteja na lista. Exige uma classificação ATC por item, que a REMUME não traz
+hoje — precisaria de uma fonte nova e de validação clínica antes de sugerir
+troca de medicamento a um médico.
 
 ---
 

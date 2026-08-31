@@ -43,6 +43,7 @@ Os médicos recebem a mudança sozinhos, sem reinstalar nada.
 | Descrever **o que mudou** numa versão | `dados/changelog.json` | bloco novo no topo de `versoes` |
 | Acrescentar um **CID** que faltou | `dados/cid10.json` | bloco `cids`; depois rode `npm run sync-cid10` |
 | Atualizar a **lista de medicamentos** (REMUME) | `modules/remume/remumes.json` | depois rode `npm run sync-fallback` |
+| Acrescentar um **nome comercial** (ex: Tylenol → Paracetamol) | `dados/marcas-medicamentos.json` | lista `marcas` |
 | Corrigir um **rótulo que o Meeds mudou** (ex: "Nome da Mãe") | `seletores.json` | veja a seção abaixo |
 | Preparar a **lista de médicos** da equipe | `dados/medicos.exemplo.json` | veja a seção abaixo |
 | Criar uma **função nova** | — | siga [COMO-ADICIONAR-MODULO.md](COMO-ADICIONAR-MODULO.md) |
@@ -132,6 +133,23 @@ Para poupar esse trabalho da equipe:
 
 **Nunca faça `git commit` desse arquivo preenchido.** O `.gitignore` já bloqueia
 os nomes mais prováveis, mas confira antes de publicar.
+
+### Acrescentar um nome comercial
+
+Abra `dados/marcas-medicamentos.json` e acrescente um bloco na lista `marcas`:
+
+```json
+{ "marca": "Novalgina", "principioAtivo": "Dipirona", "observacao": "" }
+```
+
+Depois `npm run build`. O médico passa a poder digitar "Novalgina" e ver a
+dipirona do município dele.
+
+> **Importante:** esta tabela **não** acrescenta medicamento nenhum. Ela só
+> traduz o nome comercial para o princípio ativo, que é então procurado na
+> REMUME do município. Se o município não padroniza aquele princípio ativo, o
+> Assistente avisa que não consta — e não oferece o item. Para o medicamento
+> **existir**, ele tem que estar em `modules/remume/remumes.json`.
 
 ### Atualizar a lista de medicamentos (REMUME)
 

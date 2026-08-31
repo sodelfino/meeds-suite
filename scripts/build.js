@@ -142,6 +142,26 @@ function main() {
     console.warn("AVISO: " + CAMINHO_DADOS + " nao encontrado — os formularios vao subir sem catalogo.");
   }
 
+  /* --- tabela de marcas (tradutor marca -> principio ativo) ---
+   * Vai embutida: e pequena e precisa estar disponivel no instante em que
+   * o medico digita. Nao e fonte de medicamento — ver a regra de ouro em
+   * docs/ARQUITETURA.md. */
+  const CAMINHO_MARCAS = "dados/marcas-medicamentos.json";
+  let injecaoMarcas = "";
+  if (fs.existsSync(path.join(RAIZ, CAMINHO_MARCAS))) {
+    const mk = JSON.parse(ler(CAMINHO_MARCAS));
+    if (!Array.isArray(mk.marcas)) throw new Error(`${CAMINHO_MARCAS} precisa ter uma lista "marcas"`);
+    const invalidas = mk.marcas.filter((m) => !m.marca || !m.principioAtivo);
+    if (invalidas.length) {
+      throw new Error(
+        `${CAMINHO_MARCAS}: ${invalidas.length} entrada(s) sem "marca" ou sem "principioAtivo"`
+      );
+    }
+    injecaoMarcas =
+      "\n  /* ===== " + CAMINHO_MARCAS + " ===== */\n  raiz.MEEDS_MARCAS = " +
+      JSON.stringify(mk) + ";\n";
+  }
+
   /* --- changelog ---
    * Vai embutido, e nao buscado em runtime: a notificacao de atualizacao
    * tem que funcionar mesmo sem internet, e o arquivo e pequeno. Ele e a
@@ -192,7 +212,7 @@ function main() {
   const injetar = (texto) => () => texto;
 
   const saida = bootloader
-    .replace(MARCADOR_NUCLEO, injetar(pecasNucleo.join("\n\n") + "\n" + injecaoDados + injecaoChangelog + "\n  " + inventario))
+    .replace(MARCADOR_NUCLEO, injetar(pecasNucleo.join("\n\n") + "\n" + injecaoDados + injecaoMarcas + injecaoChangelog + "\n  " + inventario))
     .replace(MARCADOR_MODULOS, injetar(pecasModulos.join("\n\n")))
     .replace(/@version\s+[\d.]+/, injetar(`@version      ${manifest.versao}`))
     .replace("__VERSAO__", injetar(manifest.versao));
@@ -228,6 +248,9 @@ function main() {
   console.log(`  nucleo:  ${manifest.nucleo.length} arquivo(s)`);
   console.log(`  modulos: ${manifest.modulos.length} (${manifest.modulos.map((m) => m.id).join(", ")})`);
   console.log(`  versao:  ${manifest.versao}`);
+  if (injecaoMarcas) {
+    console.log(`  marcas:  ${JSON.parse(ler(CAMINHO_MARCAS)).marcas.length} nome(s) comercial(is)`);
+  }
   if (injecaoDados) {
     const d = JSON.parse(ler(CAMINHO_DADOS));
     const resumo = Object.keys(d)

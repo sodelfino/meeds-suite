@@ -172,180 +172,52 @@ function extrairPrincipioAtivo(nome) {
     return normalizarTexto(principio).length >= 3 ? principio : nome.trim();
   }
 
-const SINONIMOS_BUSCA = {
-    dipirona: ["metamizol", "novalgina"],
-    aas: ["aspirina", "acido acetilsalicilico"],
-    escopolamina: ["buscopan"],
-    butilbrometo: ["buscopan"],
-    salbutamol: ["aerolin"],
-    paracetamol: ["tylenol", "acetaminofeno"],
-    ibuprofeno: ["advil", "alivium"],
-    omeprazol: ["peprazol", "losec"],
-    metoclopramida: ["plasil"],
-    bromoprida: ["digesan"],
-    ondansetrona: ["vonau", "zofran"],
-    simeticona: ["luftal"],
-    loratadina: ["claritine", "loranil"],
-    dexclorfeniramina: ["polaramine"],
-    prometazina: ["fenergan"],
-    diazepam: ["valium"],
-    clonazepam: ["rivotril"],
-    midazolam: ["dormonid"],
-    morfina: ["dimorf"],
-    fentanila: ["fentanil"],
-    tramadol: ["tramal"],
-    lidocaina: ["xylocaina"],
-    bupivacaina: ["neocaina", "marcaina"],
-    ropivacaina: ["naropin"],
-    propofol: ["diprivan", "propovan"],
-    sevoflurano: ["sevorane"],
-    enoxaparina: ["clexane"],
-    heparina: ["liquemine"],
-    varfarina: ["marevan", "coumadin"],
-    rivaroxabana: ["xarelto"],
-    losartana: ["cozaar", "aradois"],
-    enalapril: ["renitec"],
-    captopril: ["capoten"],
-    metformina: ["glifage"],
-    glibenclamida: ["daonil"],
-    gliclazida: ["diamicron"],
-    levotiroxina: ["puran t4", "synthroid", "euthyrox"],
-    fluoxetina: ["prozac", "daforin"],
-    sertralina: ["zoloft", "tolrest"],
-    amitriptilina: ["amytril", "tryptanol"],
-    haloperidol: ["haldol"],
-    risperidona: ["risperdal"],
-    clorpromazina: ["amplictil"],
-    fenobarbital: ["gardenal"],
-    fenitoina: ["hidantal"],
-    carbamazepina: ["tegretol"],
-    valproato: ["depakene", "depakote", "valproico"],
-    levetiracetam: ["keppra"],
-    amoxicilina: ["amoxil", "amox"],
-    azitromicina: ["zitromax", "astromicin"],
-    cefalexina: ["keflex"],
-    ceftriaxona: ["rocefin", "triaxon"],
-    ciprofloxacino: ["cipro", "ciproxin"],
-    sulfametoxazol: ["bactrim"],
-    metronidazol: ["flagyl"],
-    fluconazol: ["zoltec", "fluconal"],
-    nistatina: ["micostatin"],
-    prednisona: ["meticorten"],
-    prednisolona: ["prelone"],
-    dexametasona: ["decadron"],
-    hidrocortisona: ["solucortef"],
-    metilprednisolona: ["solumedrol"],
-    betametasona: ["diprospan"],
-    beclometasona: ["clenil"],
-    nifedipino: ["adalat"],
-    anlodipino: ["norvasc"],
-    carvedilol: ["cardilol", "coreg"],
-    propranolol: ["inderal"],
-    atenolol: ["angipress"],
-    metoprolol: ["selozok", "lopressor"],
-    furosemida: ["lasix"],
-    hidroclorotiazida: ["clorana", "hctz"],
-    espironolactona: ["aldactone"],
-    sinvastatina: ["zocor", "sinvatrox"],
-    apixabana: ["eliquis"],
-    acido_folico: ["folacin", "acfol"],
-    acido_tranexamico: ["transamin"],
-    complexo_b: ["citoneurin"],
-    soro_fisiologico: ["sf 0.9%"],
-    ringer: ["ringer lactato"],
-    glicose: ["soro glicosado", "sg 5%"],
-    manitol: ["manitol 20%"],
-    adrenalina: ["epinefrina"],
-    noradrenalina: ["norepinefrina"],
-    dobutamina: ["dobutrex"],
-    amiodarona: ["ancoron", "atlansil"],
-    adenosina: ["adenocard"],
-    naloxona: ["narcan"],
-    flumazenil: ["lanexat"],
-    neostigmina: ["prostigmine"],
-    ocitocina: ["syntocinon"],
-    misoprostol: ["cytotec", "prostokos"],
-    fitomenadiona: ["vitamina k", "kanakion"],
+/* ------------------------------------------------------------------
+   * TRADUTOR DE MARCA -> PRINCIPIO ATIVO
+   * ------------------------------------------------------------------
+   * REGRA DE OURO: esta tabela NUNCA e fonte de medicamento. A REMUME do
+   * municipio e a unica fonte de verdade. A tabela so traduz o que o
+   * medico digitou ("Tylenol") para o nome que se procura DENTRO da
+   * lista ("Paracetamol"). Se o principio ativo traduzido nao estiver na
+   * REMUME daquele municipio, o Assistente diz que nao consta e NAO
+   * oferece o item — em hipotese nenhuma um resultado vem daqui.
+   *
+   * O conteudo vem de dados/marcas-medicamentos.json, editavel pelo
+   * administrador sem tocar em codigo. */
+  var MARCAS = (raiz.MEEDS_MARCAS && raiz.MEEDS_MARCAS.marcas) || [];
 
-    /* --------------------------------------------------------------
-     * [SINONIMOS] Ampliacao com nomes comerciais populares no Brasil.
-     * A logica de match ja e bidirecional por construcao (ver
-     * obterFrasesSinonimo, hoje em core/busca.js): digitar a chave OU
-     * qualquer sinonimo (nome comercial) da mesma entrada dispara a
-     * busca pelos dois lados. Aqui so ampliamos os dados.
-     * -------------------------------------------------------------- */
-    diclofenaco: ["voltaren", "cataflam"],
-    nimesulida: ["nisulid"],
-    meloxicam: ["movatec"],
-    cetoprofeno: ["profenid"],
-    domperidona: ["motilium"],
-    ranitidina: ["antak", "label"],
-    pantoprazol: ["pantozol", "pantoc"],
-    lansoprazol: ["prazol"],
-    esomeprazol: ["nexium"],
-    clopidogrel: ["plavix"],
-    atorvastatina: ["lipitor", "citalor"],
-    rosuvastatina: ["crestor"],
-    hidralazina: ["apresolina"],
-    diltiazem: ["balcor", "cardizem"],
-    dabigatrana: ["pradaxa"],
-    clortalidona: ["higroton"],
-    indapamida: ["natrilix"],
-    telmisartana: ["micardis"],
-    valsartana: ["diovan"],
-    irbesartana: ["aprovel"],
-    metildopa: ["aldomet"],
-    bromazepam: ["lexotan"],
-    lorazepam: ["lorax"],
-    quetiapina: ["seroquel"],
-    olanzapina: ["zyprexa"],
-    citalopram: ["cipramil"],
-    escitalopram: ["lexapro"],
-    venlafaxina: ["efexor"],
-    duloxetina: ["cymbalta"],
-    topiramato: ["topamax"],
-    gabapentina: ["neurontin"],
-    pregabalina: ["lyrica"],
-    baclofeno: ["lioresal"],
-    levomepromazina: ["neozine"],
-    biperideno: ["akineton"],
-    ciclobenzaprina: ["miosan"],
-    budesonida: ["pulmicort", "busonid"],
-    fluticasona: ["flixotide"],
-    montelucaste: ["singulair"],
-    ipratropio: ["atrovent"],
-    mometasona: ["nasonex", "elocom"],
-    desloratadina: ["desalex"],
-    cetirizina: ["zyrtec"],
-    fexofenadina: ["allegra"],
-    hidroxizina: ["hixizine"],
-    loperamida: ["imosec"],
-    bisacodil: ["dulcolax"],
-    cetoconazol: ["nizoral"],
-    terbinafina: ["lamisil"],
-    aciclovir: ["zovirax"],
-    valaciclovir: ["valtrex"],
-    oseltamivir: ["tamiflu"],
-    insulina: ["humulin", "novolin"],
-    finasterida: ["propecia", "proscar"],
-    tansulosina: ["secotex"],
-    sildenafila: ["viagra"],
-    claritromicina: ["klaricid"],
-    clindamicina: ["dalacin"],
-    nitrofurantoina: ["macrodantina"],
-    norfloxacino: ["uroxacin"],
-    levofloxacino: ["levaquin", "tavanic"],
-    doxiciclina: ["vibramicina"],
-    penicilina: ["benzetacil"],
-    clavulanato: ["clavulin"],
-    miconazol: ["daktarin"],
-    permetrina: ["scabin"],
-    mupirocina: ["bactroban"],
-    sulfadiazina_prata: ["dermazine"],
-    sulfato_ferroso: ["combiron"],
-    colecalciferol: ["addera"],
-    levodopa: ["prolopa"],
-  };
+  /* Indice de busca das MARCAS (nao dos medicamentos): serve so para
+   * reconhecer o nome comercial digitado, inclusive com erro leve. */
+  var _indiceMarcas = null;
+
+  function indiceDeMarcas() {
+    if (!_indiceMarcas) {
+      _indiceMarcas = raiz.MeedsSuiteBusca.criarIndice(MARCAS, function (m) {
+        return m.marca;
+      });
+    }
+    return _indiceMarcas;
+  }
+
+  /* Devolve { marca, principioAtivo } quando o que foi digitado e um nome
+   * comercial reconhecido. Exige casamento exato ou erro leve NO NOME DA
+   * MARCA — nao vale aproximar marca por fonetica, que abriria espaco
+   * para traduzir para o farmaco errado. */
+  function traduzirMarca(termo) {
+    var alvo = normalizarTexto(termo);
+    if (!alvo) return null;
+
+    for (var i = 0; i < MARCAS.length; i++) {
+      if (normalizarTexto(MARCAS[i].marca) === alvo) return MARCAS[i];
+    }
+
+    var r = raiz.MeedsSuiteBusca.buscar(termo, indiceDeMarcas(), {
+      limite: 1,
+      fonetica: false, // ver comentario acima
+    });
+    return r.melhor || null;
+  }
+
 
 const CONFIG_BUSCA = {
     LIMITE_RESULTADOS: 80,
@@ -361,24 +233,46 @@ const CONFIG_BUSCA = {
 
 
 function buscarMedicamentos(termo, cidade) {
-    /* O motor de busca (fuzzy + fonetica + sinonimos) mudou de lugar: era
-     * daqui e virou core/busca.js, para a busca de CID-10 usar o mesmo.
-     * As funcoes foram MOVIDAS, nao reescritas — o comportamento e o
-     * mesmo, e os casos que ele ja tratava (novalgina x valina, buscopan
-     * x escetamina, o "b" de complexo_b) continuam cobertos pelo teste de
-     * fumaca. O dicionario de sinonimos continua aqui, porque e de
-     * medicamento; o motor e generico. */
+    /* PIPELINE
+     *   1. o que foi digitado e um nome comercial? -> traduz para o
+     *      principio ativo e passa a procurar POR ELE;
+     *   2. busca dentro da REMUME do municipio (camada exata/parecida e,
+     *      se nada aparecer, fonetica);
+     *   3. se a marca foi reconhecida mas o principio ativo nao esta na
+     *      lista, devolve "nao consta" — sem oferecer nada.
+     *
+     * Em nenhum ponto um item entra no resultado vindo da tabela de
+     * marcas: ela so muda O QUE se procura, nunca ONDE. */
     var indice = obterIndiceBusca(cidade);
-    var r = raiz.MeedsSuiteBusca.buscar(termo, indice, {
-      sinonimos: SINONIMOS_BUSCA,
+    var marca = traduzirMarca(termo);
+    var termoDeBusca = marca ? marca.principioAtivo : termo;
+
+    var r = raiz.MeedsSuiteBusca.buscar(termoDeBusca, indice, {
       limite: CONFIG_BUSCA.LIMITE_RESULTADOS,
       config: CONFIG_BUSCA,
     });
 
+    /* Marca reconhecida e principio ativo ausente da REMUME deste
+     * municipio: e o caso do "Tylenol em municipio que so tem dipirona".
+     * O medico precisa saber que nao ha — e nao ver uma lista vazia sem
+     * explicacao, nem (pior) um item que nao existe na lista. */
+    if (marca && r.itens.length === 0) {
+      return {
+        itens: [],
+        termoReconhecido: null,
+        marca: marca,
+        naoConsta: true,
+      };
+    }
+
     var termoReconhecido = null;
-    if (r.melhor && r.viaFuzzy && normalizarTexto(termo).length >= CONFIG_BUSCA.MIN_LEN_DICA_TERMO) {
+    if (!marca && r.melhor && (r.viaFuzzy || r.viaFonetica)) {
       var principioAtivo = extrairPrincipioAtivo(r.melhor.nome);
-      if (principioAtivo && normalizarTexto(principioAtivo) !== normalizarTexto(termo)) {
+      if (
+        principioAtivo &&
+        normalizarTexto(principioAtivo) !== normalizarTexto(termo) &&
+        normalizarTexto(termo).length >= CONFIG_BUSCA.MIN_LEN_DICA_TERMO
+      ) {
         termoReconhecido = principioAtivo;
       }
     }
@@ -388,6 +282,9 @@ function buscarMedicamentos(termo, cidade) {
         return { nome: x.nome, local: x.local };
       }),
       termoReconhecido: termoReconhecido,
+      marca: marca,
+      naoConsta: false,
+      viaFonetica: r.viaFonetica,
     };
   }
 
@@ -603,6 +500,7 @@ function moverFocoResultado(delta) {
     ".rm-body select, .rm-body input { width:100%; padding:8px 10px; border:1px solid #d8e6e3; border-radius:8px; font-size:13px; color:#16221f; }",
     ".rm-hint { font-size:11.5px; color:#a15c00; background:#fff4e2; padding:7px 10px; border-radius:7px; }",
     ".rm-hint[hidden] { display:none; }",
+    ".rm-hint-alerta { color:#8a2020; background:#fde8e8; border:1px solid #f0b8b8; font-weight:600; }",
     ".rm-count { font-size:11px; color:#5b6c68; }",
     ".rm-results { list-style:none; margin:0; padding:0; overflow-y:auto; flex:1; min-height:120px; border-top:1px solid #eef2f6; }",
     ".rm-results li { display:flex; align-items:center; gap:10px; padding:8px 4px; border-bottom:1px solid #f1f5f9; font-size:12.5px; line-height:1.45; }",
@@ -744,13 +642,27 @@ function moverFocoResultado(delta) {
       ? filtrados.length + " de " + lista.length + " medicamento(s)"
       : lista.length + " medicamento(s) na REMUME de " + cidade;
 
-    // dica de "termo reconhecido": so aparece quando a busca precisou
-    // corrigir o que foi digitado (fuzzy/fonetica), nunca em match direto
-    if (resultado.termoReconhecido) {
-      refs.hint.hidden = false;
+    /* Tres avisos possiveis, nesta ordem de prioridade:
+     *   - a marca foi reconhecida mas o farmaco NAO esta na REMUME;
+     *   - a marca foi reconhecida e traduzida (mostra de onde veio);
+     *   - a busca precisou corrigir o que foi digitado. */
+    refs.hint.hidden = false;
+    if (resultado.naoConsta) {
+      refs.hint.className = "rm-hint rm-hint-alerta";
+      refs.hint.textContent =
+        resultado.marca.marca + " (" + resultado.marca.principioAtivo +
+        ") não consta na REMUME deste município.";
+    } else if (resultado.marca) {
+      refs.hint.className = "rm-hint";
+      refs.hint.textContent =
+        "Mostrando " + resultado.marca.principioAtivo +
+        " — princípio ativo de " + resultado.marca.marca + ".";
+    } else if (resultado.termoReconhecido) {
+      refs.hint.className = "rm-hint";
       refs.hint.textContent = 'Mostrando resultados para "' + resultado.termoReconhecido + '"';
     } else {
       refs.hint.hidden = true;
+      refs.hint.className = "rm-hint";
       refs.hint.textContent = "";
     }
 
@@ -761,9 +673,11 @@ function moverFocoResultado(delta) {
     if (filtrados.length === 0) {
       var vazio = document.createElement("li");
       vazio.className = "rm-vazio";
-      vazio.textContent = termo
+      vazio.textContent = resultado.naoConsta
+        ? "Este município não padroniza esse medicamento. Considere uma alternativa que esteja na lista."
+        : termo
         ? 'Nenhum medicamento encontrado para "' + termo + '".'
-        : "Nenhum medicamento cadastrado para este municipio.";
+        : "Nenhum medicamento cadastrado para este município.";
       refs.results.appendChild(vazio);
       return;
     }

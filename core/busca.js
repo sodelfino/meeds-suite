@@ -58,41 +58,83 @@
     return uteis.length ? uteis : todos;
   }
 
-  function normalizarFonetico(tokenNormalizado) {
-    return tokenNormalizado
-      .replace(/^h/, "") // H mudo no inicio: "hemitartarato" ~ "emitartarato"
-      .replace(/ch/g, "x") // mesmo som: "chave" ~ "xarope"
-      .replace(/ss/g, "s") // "massa" ~ "masa"
-      .replace(/c(?=[ei])/g, "s") // C antes de E/I soa como S: "cedo" ~ "sedo"
-      .replace(/g(?=[ei])/g, "j") // G antes de E/I soa como J: "gelo" ~ "jelo"
-      .replace(/z/g, "s"); // "zebra" ~ "sebra"
+  /* Pares de letras que o portugues confunde na escrita. Trocar uma pela
+   * outra custa MEIO ponto em vez de um: e um erro de grafia previsivel,
+   * nao uma palavra diferente.
+   *   s/z   "azia" ~ "asia"        c/s   "cedo" ~ "sedo"
+   *   c/k   "caro" ~ "karo"        g/j   "gelo" ~ "jelo"
+   *   l/u   "mal"  ~ "mau"         m/n   "sim"  ~ "sin"
+   *   i/y, v/w, q/k                x/s   "exame" ~ "esame"
+   */
+  var PARES_PROXIMOS = {};
+  [
+    ["s", "z"], ["s", "c"], ["c", "z"], ["c", "k"], ["q", "k"],
+    ["g", "j"], ["l", "u"], ["m", "n"], ["i", "y"], ["v", "w"],
+    ["x", "s"], ["b", "v"], ["e", "i"], ["o", "u"],
+  ].forEach(function (par) {
+    PARES_PROXIMOS[par[0] + par[1]] = true;
+    PARES_PROXIMOS[par[1] + par[0]] = true;
+  });
+
+  function custoTroca(a, b) {
+    if (a === b) return 0;
+    return PARES_PROXIMOS[a + b] ? 0.5 : 1;
   }
 
+  /* Levenshtein com custo de troca ponderado (ver acima). Insercao e
+   * remocao continuam custando 1: falta ou sobra de letra nao e confusao
+   * de grafia. */
   function levenshtein(a, b) {
-    const m = a.length;
-    const n = b.length;
-    const dp = Array.from({ length: m + 1 }, (_, i) =>
-      Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
-    );
-    for (let i = 1; i <= m; i++) {
-      for (let j = 1; j <= n; j++) {
-        dp[i][j] =
-          a[i - 1] === b[j - 1]
-            ? dp[i - 1][j - 1]
-            : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    var m = a.length;
+    var n = b.length;
+    var dp = [];
+    for (var i = 0; i <= m; i++) {
+      dp[i] = [];
+      for (var j = 0; j <= n; j++) {
+        dp[i][j] = i === 0 ? j : j === 0 ? i : 0;
+      }
+    }
+    for (var x = 1; x <= m; x++) {
+      for (var y = 1; y <= n; y++) {
+        dp[x][y] = Math.min(
+          dp[x - 1][y] + 1,
+          dp[x][y - 1] + 1,
+          dp[x - 1][y - 1] + custoTroca(a[x - 1], b[y - 1])
+        );
       }
     }
     return dp[m][n];
   }
 
+  /* LIMITE DE TOLERANCIA — a regra que separa "erro de digitacao" de
+   * "outro medicamento".
+   *
+   * Nao basta a razao de similaridade: palavras compridas com o mesmo
+   * sufixo passam de 0.6 sem ter quase nada em comum ("novalgina" e
+   * "valina" terminam em -ina). Por isso exigimos tambem uma distancia
+   * ABSOLUTA pequena, proporcional ao tamanho do que foi digitado:
+   *
+   *     ate  6 letras  ->  1.0 de distancia
+   *     ate 10 letras  ->  2.0
+   *     acima          ->  3.0
+   *
+   * Com o custo ponderado, uma troca previsivel (s/z, c/s, g/j) gasta so
+   * meio ponto, entao "dipironá" e "azitromissina" continuam sendo
+   * aceitos — mas "dipirona" x "digoxina" precisa de 4 trocas nao
+   * relacionadas e fica de fora, que e o resultado desejado. */
+  function limiteDeDistancia(tamanhoQuery) {
+    if (tamanhoQuery <= 6) return 1;
+    if (tamanhoQuery <= 10) return 2;
+    return 3;
+  }
+
   function fuzzyScore(query, target) {
     if (query === target) return 1.0;
-    if (target.includes(query)) return 0.9;
-    const maxLen = Math.max(query.length, target.length);
+    if (target.indexOf(query) !== -1) return 0.9;
+    var maxLen = Math.max(query.length, target.length);
     if (maxLen === 0) return 1;
-    const distancia = levenshtein(query, target);
-    const distanciaMaxima = query.length <= 6 ? 1 : query.length <= 10 ? 2 : 3;
-    if (distancia > distanciaMaxima) return 0;
+    var distancia = levenshtein(query, target);
+    if (distancia > limiteDeDistancia(query.length)) return 0;
     return 1 - distancia / maxLen;
   }
 
@@ -216,7 +258,7 @@
     return false;
   }
 
-  function pontuarItem(item, tokensDigitados, tokensDigitadosFoneticos, frasesSinonimo, cfg) {
+  function pontuarItem(item, tokensDigitados, frasesSinonimo, cfg) {
     var pontuacaoExata = 0;
     var pontuacaoFuzzy = 0;
 
@@ -227,13 +269,12 @@
         if (item.normalizado.indexOf(token) === 0) pontuacaoExata += cfg.BONUS_COMECA_COM;
         continue;
       }
-      var tokenFonetico = tokensDigitadosFoneticos[i];
+      /* CAMADA 1 nao usa fonetica: ela aproxima demais para competir com
+       * um resultado obvio. A fonetica e a camada 2, so quando esta aqui
+       * nao achar nada. */
       var melhorFuzzy = 0;
       for (var j = 0; j < item.tokens.length; j++) {
-        var score = Math.max(
-          fuzzyScore(token, item.tokens[j]),
-          fuzzyScore(tokenFonetico, item.tokensFoneticos[j])
-        );
+        var score = fuzzyScore(token, item.tokens[j]);
         if (score > melhorFuzzy) melhorFuzzy = score;
       }
       if (melhorFuzzy >= cfg.LIMIAR_FUZZY) pontuacaoFuzzy += melhorFuzzy * 0.5;
@@ -280,45 +321,110 @@
       return {
         original: item,
         tokens: tokens,
-        tokensFoneticos: tokens.map(normalizarFonetico),
+        /* Forma fonetica PT-BR, pre-calculada UMA vez por item. E usada
+         * so na camada 2 da busca (ver buscar), mas calcular aqui evita
+         * refazer isso a cada tecla digitada. */
+        tokensFoneticos: tokens.map(raiz.MeedsSuiteFonetica.codificar),
         normalizado: normalizado,
         normalizadoSemEspaco: normalizado.replace(/\s+/g, ""),
       };
     });
   }
 
-  /* buscar(termo, indice, opcoes) -> { itens, viaFuzzy }
-   * opcoes: { sinonimos, limite, config } */
+  /* ------------------------------------------------------------------
+   * buscar(termo, indice, opcoes) -> { itens, viaFuzzy, viaFonetica, melhor }
+   * ------------------------------------------------------------------
+   * A busca acontece em DUAS CAMADAS, nesta ordem:
+   *
+   *   1. exata + parecida (substring, sinonimos e erro de digitacao com
+   *      custo do portugues);
+   *   2. FONETICA — so entra se a camada 1 nao devolveu NADA.
+   *
+   * A separacao existe porque a fonetica e generosa por natureza: ela
+   * junta tudo que "soa parecido". Se corresse junto com a camada 1,
+   * poderia colocar um homofono na frente de um resultado exato. Rodando
+   * so no vazio, ela vira exatamente o que deve ser: a ultima tentativa
+   * antes de dizer "nao encontrei".
+   *
+   * opcoes: { sinonimos, limite, config }
+   * ------------------------------------------------------------------ */
+  function pontuarLista(indice, tokens, frases, cfg, limite) {
+    return indice
+      .map(function (item) {
+        var r = pontuarItem(item, tokens, frases, cfg);
+        return { item: item, pontuacao: r.pontuacao, viaFuzzy: r.viaFuzzy };
+      })
+      .filter(function (x) {
+        return x.pontuacao > 0;
+      })
+      .sort(function (a, b) {
+        return b.pontuacao - a.pontuacao;
+      })
+      .slice(0, limite);
+  }
+
+  function buscarPorFonetica(tokens, indice, limite) {
+    var codigos = tokens.map(raiz.MeedsSuiteFonetica.codificar).filter(Boolean);
+    if (!codigos.length) return [];
+
+    return indice
+      .map(function (item) {
+        var acertos = 0;
+        codigos.forEach(function (codigo) {
+          for (var j = 0; j < item.tokensFoneticos.length; j++) {
+            if (item.tokensFoneticos[j] === codigo) {
+              acertos++;
+              return;
+            }
+          }
+        });
+        return { item: item, pontuacao: acertos };
+      })
+      .filter(function (x) {
+        return x.pontuacao > 0;
+      })
+      .sort(function (a, b) {
+        return b.pontuacao - a.pontuacao;
+      })
+      .slice(0, limite);
+  }
+
   function buscar(termo, indice, opcoes) {
     opcoes = opcoes || {};
     var cfg = Object.assign({}, CONFIG_PADRAO, opcoes.config || {});
     var tokens = tokensUteis(termo);
-    if (tokens.length === 0) return { itens: [], viaFuzzy: false };
+    if (tokens.length === 0) return { itens: [], viaFuzzy: false, viaFonetica: false, melhor: null };
 
-    var foneticos = tokens.map(normalizarFonetico);
+    var limite = opcoes.limite || cfg.LIMITE_RESULTADOS;
     var frases = obterFrasesSinonimo(tokens, opcoes.sinonimos);
 
-    var pontuados = indice
-      .map(function (item) {
-        var r = pontuarItem(item, tokens, foneticos, frases, cfg);
-        return { item: item, pontuacao: r.pontuacao, viaFuzzy: r.viaFuzzy };
-      })
-      .filter(function (x) { return x.pontuacao > 0; })
-      .sort(function (a, b) { return b.pontuacao - a.pontuacao; })
-      .slice(0, opcoes.limite || cfg.LIMITE_RESULTADOS);
+    // camada 1
+    var pontuados = pontuarLista(indice, tokens, frases, cfg, limite);
+    var viaFonetica = false;
+
+    // camada 2, so no vazio
+    if (pontuados.length === 0 && opcoes.fonetica !== false) {
+      pontuados = buscarPorFonetica(tokens, indice, limite);
+      viaFonetica = pontuados.length > 0;
+    }
 
     return {
-      itens: pontuados.map(function (x) { return x.item.original; }),
+      itens: pontuados.map(function (x) {
+        return x.item.original;
+      }),
       viaFuzzy: !!(pontuados[0] && pontuados[0].viaFuzzy),
+      viaFonetica: viaFonetica,
       melhor: pontuados[0] ? pontuados[0].item.original : null,
     };
   }
 
+
   raiz.MeedsSuiteBusca = {
     criarIndice: criarIndice,
     buscar: buscar,
-    normalizarFonetico: normalizarFonetico,
     fuzzyScore: fuzzyScore,
+    limiteDeDistancia: limiteDeDistancia,
+    custoTroca: custoTroca,
     levenshtein: levenshtein,
     tokenizarTexto: tokenizarTexto,
     tokensUteis: tokensUteis,

@@ -1,6 +1,6 @@
 {
   "nome": "Assistente Meeds",
-  "versao": "2.5.0",
+  "versao": "2.6.0",
   "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
   "repositorio": "https://github.com/sodelfino/meeds-suite",
   "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -15,6 +15,7 @@
     "core/dom-reader.js",
     "core/decision-engine.js",
     "core/formatos.js",
+    "core/fonetica-ptbr.js",
     "core/busca.js",
     "core/mensagens.js",
     "core/cadastro.js",
@@ -28,7 +29,8 @@
     "seletores": "seletores.json",
     "remumes": "modules/remume/remumes.json",
     "cid10": "dados/cid10.json",
-    "changelog": "dados/changelog.json"
+    "changelog": "dados/changelog.json",
+    "marcas": "dados/marcas-medicamentos.json"
   },
   "modulos": [
     {
@@ -97,7 +99,7 @@
       "id": "remume",
       "nome": "Assistente REMUME",
       "descricao": "Consulta a lista de medicamentos do município do atendimento. Aceita erro de digitação e nome comercial: “buscopan” encontra escopolamina.",
-      "versao": "2.0.1",
+      "versao": "2.6.0",
       "arquivo": "modules/remume/index.js",
       "origem": "sodelfino/meeds-remume-assistant",
       "prioridadeBotao": 50,

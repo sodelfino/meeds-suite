@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Assistente Meeds - Por: Marcelo
 // @namespace    novetech-meeds-suite
-// @version      2.5.0
+// @version      2.6.0
 // @description  Assistente Meeds - Por: Marcelo. Alarme de fila, APAC de Itauna, laudos de Sete Lagoas e Conceicao do Mato Dentro e consulta a REMUME, numa instalacao unica. Cada funcao liga e desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
 // @author       Marcelo
 // @match        *://*.meeds.com.br/*
@@ -1308,6 +1308,115 @@
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
 
+/* ===== core/fonetica-ptbr.js ===== */
+/* ------------------------------------------------------------------
+ * core/fonetica-ptbr.js — codigo fonetico para portugues do Brasil
+ * ------------------------------------------------------------------
+ * POR QUE NAO SOUNDEX
+ * Soundex foi feito para sobrenomes em ingles. Ele nao conhece Ç, LH, NH,
+ * o "ão" nasal, nem o fato de que em portugues C antes de E/I soa como S
+ * e G antes de E/I soa como J. Aplicado a nome de medicamento em
+ * portugues, ele aproxima coisas que nao soam parecido e separa coisas
+ * que soam igual — que e o contrario do que se quer.
+ *
+ * O QUE ESTE CODIGO FAZ
+ * Reduz a palavra ao seu esqueleto sonoro em portugues, aplicando as
+ * regras na ordem em que uma depende da outra. O caso que motivou:
+ *
+ *   "cimvastatina"  ->  sinvastatina  ->  SINVASTATINA
+ *   "simvastatina"  ->  sinvastatina  ->  SINVASTATINA
+ *   "sinvastatina"  ->  sinvastatina  ->  SINVASTATINA
+ *
+ * As tres convergem: C antes de I vira S, e M antes de consoante que nao
+ * seja B/P vira N.
+ *
+ * ONDE ELE ENTRA NA BUSCA
+ * Como CAMADA SECUNDARIA, e so quando a busca normal (exata + parecida)
+ * nao achou NADA. Fonetica aproxima demais para competir com um resultado
+ * obvio: se o medico digitou "dipirona" e a lista tem "Dipirona", a
+ * fonetica nao deve ter chance de colocar outra coisa na frente.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  var VOGAIS = "aeiou";
+
+  function ehVogal(c) {
+    return VOGAIS.indexOf(c) !== -1;
+  }
+
+  /* Recebe texto JA normalizado (sem acento, caixa baixa). */
+  function codificar(palavra) {
+    var p = String(palavra || "").replace(/[^a-z]/g, "");
+    if (!p) return "";
+
+    /* 1) H mudo no inicio: "hemitartarato" soa como "emitartarato". */
+    p = p.replace(/^h+/, "");
+
+    /* 2) Digrafos — antes de qualquer regra de letra solta, senao o "c"
+     *    de "ch" seria tratado como C isolado. */
+    p = p
+      .replace(/ph/g, "f")
+      .replace(/lh/g, "1") // som proprio, sem letra equivalente
+      .replace(/nh/g, "2")
+      .replace(/ch/g, "x")
+      .replace(/qu/g, "k")
+      .replace(/gu([ei])/g, "g$1")
+      .replace(/sc([ei])/g, "s$1")
+      .replace(/ss/g, "s")
+      .replace(/rr/g, "r")
+      .replace(/xc([ei])/g, "s$1");
+
+    /* 3) Letras que dependem da vogal seguinte. */
+    p = p
+      .replace(/c([ei])/g, "s$1")
+      .replace(/c/g, "k")
+      .replace(/g([ei])/g, "j$1")
+      .replace(/q/g, "k");
+
+    /* 4) Letras que soam igual em portugues. */
+    p = p
+      .replace(/z/g, "s")
+      .replace(/y/g, "i")
+      .replace(/w/g, "v");
+
+    /* 5) Nasais. M antes de B/P continua M; nos outros casos o som e o
+     *    mesmo de N ("simvastatina" ~ "sinvastatina"). No fim da palavra,
+     *    idem ("bom" ~ "bon"). */
+    p = p.replace(/m([^bp]|$)/g, "n$1");
+
+    /* 6) "ão" e "am" no fim ja viraram "ao"/"an" pela normalizacao de
+     *    acento; unificamos os dois. */
+    p = p.replace(/ao$/, "an").replace(/am$/, "an");
+
+    /* 7) L no fim da silaba soa como U ("mal" ~ "mau"). */
+    p = p.replace(/l($|[bcdfgjkpstvx1-9])/g, "u$1");
+
+    /* 8) Letras repetidas nao mudam o som. */
+    p = p.replace(/(.)\1+/g, "$1");
+
+    return p.toUpperCase();
+  }
+
+  /* Codifica uma frase inteira, palavra a palavra. */
+  function codificarFrase(texto) {
+    return String(texto || "")
+      .split(/\s+/)
+      .filter(function (t) {
+        return t.length > 0;
+      })
+      .map(codificar)
+      .join(" ");
+  }
+
+  raiz.MeedsSuiteFonetica = {
+    codificar: codificar,
+    codificarFrase: codificarFrase,
+    ehVogal: ehVogal,
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
 /* ===== core/busca.js ===== */
 /* ------------------------------------------------------------------
  * core/busca.js — motor de busca tolerante (fuzzy + fonetica + sinonimos)
@@ -1369,41 +1478,83 @@
     return uteis.length ? uteis : todos;
   }
 
-  function normalizarFonetico(tokenNormalizado) {
-    return tokenNormalizado
-      .replace(/^h/, "") // H mudo no inicio: "hemitartarato" ~ "emitartarato"
-      .replace(/ch/g, "x") // mesmo som: "chave" ~ "xarope"
-      .replace(/ss/g, "s") // "massa" ~ "masa"
-      .replace(/c(?=[ei])/g, "s") // C antes de E/I soa como S: "cedo" ~ "sedo"
-      .replace(/g(?=[ei])/g, "j") // G antes de E/I soa como J: "gelo" ~ "jelo"
-      .replace(/z/g, "s"); // "zebra" ~ "sebra"
+  /* Pares de letras que o portugues confunde na escrita. Trocar uma pela
+   * outra custa MEIO ponto em vez de um: e um erro de grafia previsivel,
+   * nao uma palavra diferente.
+   *   s/z   "azia" ~ "asia"        c/s   "cedo" ~ "sedo"
+   *   c/k   "caro" ~ "karo"        g/j   "gelo" ~ "jelo"
+   *   l/u   "mal"  ~ "mau"         m/n   "sim"  ~ "sin"
+   *   i/y, v/w, q/k                x/s   "exame" ~ "esame"
+   */
+  var PARES_PROXIMOS = {};
+  [
+    ["s", "z"], ["s", "c"], ["c", "z"], ["c", "k"], ["q", "k"],
+    ["g", "j"], ["l", "u"], ["m", "n"], ["i", "y"], ["v", "w"],
+    ["x", "s"], ["b", "v"], ["e", "i"], ["o", "u"],
+  ].forEach(function (par) {
+    PARES_PROXIMOS[par[0] + par[1]] = true;
+    PARES_PROXIMOS[par[1] + par[0]] = true;
+  });
+
+  function custoTroca(a, b) {
+    if (a === b) return 0;
+    return PARES_PROXIMOS[a + b] ? 0.5 : 1;
   }
 
+  /* Levenshtein com custo de troca ponderado (ver acima). Insercao e
+   * remocao continuam custando 1: falta ou sobra de letra nao e confusao
+   * de grafia. */
   function levenshtein(a, b) {
-    const m = a.length;
-    const n = b.length;
-    const dp = Array.from({ length: m + 1 }, (_, i) =>
-      Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
-    );
-    for (let i = 1; i <= m; i++) {
-      for (let j = 1; j <= n; j++) {
-        dp[i][j] =
-          a[i - 1] === b[j - 1]
-            ? dp[i - 1][j - 1]
-            : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    var m = a.length;
+    var n = b.length;
+    var dp = [];
+    for (var i = 0; i <= m; i++) {
+      dp[i] = [];
+      for (var j = 0; j <= n; j++) {
+        dp[i][j] = i === 0 ? j : j === 0 ? i : 0;
+      }
+    }
+    for (var x = 1; x <= m; x++) {
+      for (var y = 1; y <= n; y++) {
+        dp[x][y] = Math.min(
+          dp[x - 1][y] + 1,
+          dp[x][y - 1] + 1,
+          dp[x - 1][y - 1] + custoTroca(a[x - 1], b[y - 1])
+        );
       }
     }
     return dp[m][n];
   }
 
+  /* LIMITE DE TOLERANCIA — a regra que separa "erro de digitacao" de
+   * "outro medicamento".
+   *
+   * Nao basta a razao de similaridade: palavras compridas com o mesmo
+   * sufixo passam de 0.6 sem ter quase nada em comum ("novalgina" e
+   * "valina" terminam em -ina). Por isso exigimos tambem uma distancia
+   * ABSOLUTA pequena, proporcional ao tamanho do que foi digitado:
+   *
+   *     ate  6 letras  ->  1.0 de distancia
+   *     ate 10 letras  ->  2.0
+   *     acima          ->  3.0
+   *
+   * Com o custo ponderado, uma troca previsivel (s/z, c/s, g/j) gasta so
+   * meio ponto, entao "dipironá" e "azitromissina" continuam sendo
+   * aceitos — mas "dipirona" x "digoxina" precisa de 4 trocas nao
+   * relacionadas e fica de fora, que e o resultado desejado. */
+  function limiteDeDistancia(tamanhoQuery) {
+    if (tamanhoQuery <= 6) return 1;
+    if (tamanhoQuery <= 10) return 2;
+    return 3;
+  }
+
   function fuzzyScore(query, target) {
     if (query === target) return 1.0;
-    if (target.includes(query)) return 0.9;
-    const maxLen = Math.max(query.length, target.length);
+    if (target.indexOf(query) !== -1) return 0.9;
+    var maxLen = Math.max(query.length, target.length);
     if (maxLen === 0) return 1;
-    const distancia = levenshtein(query, target);
-    const distanciaMaxima = query.length <= 6 ? 1 : query.length <= 10 ? 2 : 3;
-    if (distancia > distanciaMaxima) return 0;
+    var distancia = levenshtein(query, target);
+    if (distancia > limiteDeDistancia(query.length)) return 0;
     return 1 - distancia / maxLen;
   }
 
@@ -1527,7 +1678,7 @@
     return false;
   }
 
-  function pontuarItem(item, tokensDigitados, tokensDigitadosFoneticos, frasesSinonimo, cfg) {
+  function pontuarItem(item, tokensDigitados, frasesSinonimo, cfg) {
     var pontuacaoExata = 0;
     var pontuacaoFuzzy = 0;
 
@@ -1538,13 +1689,12 @@
         if (item.normalizado.indexOf(token) === 0) pontuacaoExata += cfg.BONUS_COMECA_COM;
         continue;
       }
-      var tokenFonetico = tokensDigitadosFoneticos[i];
+      /* CAMADA 1 nao usa fonetica: ela aproxima demais para competir com
+       * um resultado obvio. A fonetica e a camada 2, so quando esta aqui
+       * nao achar nada. */
       var melhorFuzzy = 0;
       for (var j = 0; j < item.tokens.length; j++) {
-        var score = Math.max(
-          fuzzyScore(token, item.tokens[j]),
-          fuzzyScore(tokenFonetico, item.tokensFoneticos[j])
-        );
+        var score = fuzzyScore(token, item.tokens[j]);
         if (score > melhorFuzzy) melhorFuzzy = score;
       }
       if (melhorFuzzy >= cfg.LIMIAR_FUZZY) pontuacaoFuzzy += melhorFuzzy * 0.5;
@@ -1591,45 +1741,110 @@
       return {
         original: item,
         tokens: tokens,
-        tokensFoneticos: tokens.map(normalizarFonetico),
+        /* Forma fonetica PT-BR, pre-calculada UMA vez por item. E usada
+         * so na camada 2 da busca (ver buscar), mas calcular aqui evita
+         * refazer isso a cada tecla digitada. */
+        tokensFoneticos: tokens.map(raiz.MeedsSuiteFonetica.codificar),
         normalizado: normalizado,
         normalizadoSemEspaco: normalizado.replace(/\s+/g, ""),
       };
     });
   }
 
-  /* buscar(termo, indice, opcoes) -> { itens, viaFuzzy }
-   * opcoes: { sinonimos, limite, config } */
+  /* ------------------------------------------------------------------
+   * buscar(termo, indice, opcoes) -> { itens, viaFuzzy, viaFonetica, melhor }
+   * ------------------------------------------------------------------
+   * A busca acontece em DUAS CAMADAS, nesta ordem:
+   *
+   *   1. exata + parecida (substring, sinonimos e erro de digitacao com
+   *      custo do portugues);
+   *   2. FONETICA — so entra se a camada 1 nao devolveu NADA.
+   *
+   * A separacao existe porque a fonetica e generosa por natureza: ela
+   * junta tudo que "soa parecido". Se corresse junto com a camada 1,
+   * poderia colocar um homofono na frente de um resultado exato. Rodando
+   * so no vazio, ela vira exatamente o que deve ser: a ultima tentativa
+   * antes de dizer "nao encontrei".
+   *
+   * opcoes: { sinonimos, limite, config }
+   * ------------------------------------------------------------------ */
+  function pontuarLista(indice, tokens, frases, cfg, limite) {
+    return indice
+      .map(function (item) {
+        var r = pontuarItem(item, tokens, frases, cfg);
+        return { item: item, pontuacao: r.pontuacao, viaFuzzy: r.viaFuzzy };
+      })
+      .filter(function (x) {
+        return x.pontuacao > 0;
+      })
+      .sort(function (a, b) {
+        return b.pontuacao - a.pontuacao;
+      })
+      .slice(0, limite);
+  }
+
+  function buscarPorFonetica(tokens, indice, limite) {
+    var codigos = tokens.map(raiz.MeedsSuiteFonetica.codificar).filter(Boolean);
+    if (!codigos.length) return [];
+
+    return indice
+      .map(function (item) {
+        var acertos = 0;
+        codigos.forEach(function (codigo) {
+          for (var j = 0; j < item.tokensFoneticos.length; j++) {
+            if (item.tokensFoneticos[j] === codigo) {
+              acertos++;
+              return;
+            }
+          }
+        });
+        return { item: item, pontuacao: acertos };
+      })
+      .filter(function (x) {
+        return x.pontuacao > 0;
+      })
+      .sort(function (a, b) {
+        return b.pontuacao - a.pontuacao;
+      })
+      .slice(0, limite);
+  }
+
   function buscar(termo, indice, opcoes) {
     opcoes = opcoes || {};
     var cfg = Object.assign({}, CONFIG_PADRAO, opcoes.config || {});
     var tokens = tokensUteis(termo);
-    if (tokens.length === 0) return { itens: [], viaFuzzy: false };
+    if (tokens.length === 0) return { itens: [], viaFuzzy: false, viaFonetica: false, melhor: null };
 
-    var foneticos = tokens.map(normalizarFonetico);
+    var limite = opcoes.limite || cfg.LIMITE_RESULTADOS;
     var frases = obterFrasesSinonimo(tokens, opcoes.sinonimos);
 
-    var pontuados = indice
-      .map(function (item) {
-        var r = pontuarItem(item, tokens, foneticos, frases, cfg);
-        return { item: item, pontuacao: r.pontuacao, viaFuzzy: r.viaFuzzy };
-      })
-      .filter(function (x) { return x.pontuacao > 0; })
-      .sort(function (a, b) { return b.pontuacao - a.pontuacao; })
-      .slice(0, opcoes.limite || cfg.LIMITE_RESULTADOS);
+    // camada 1
+    var pontuados = pontuarLista(indice, tokens, frases, cfg, limite);
+    var viaFonetica = false;
+
+    // camada 2, so no vazio
+    if (pontuados.length === 0 && opcoes.fonetica !== false) {
+      pontuados = buscarPorFonetica(tokens, indice, limite);
+      viaFonetica = pontuados.length > 0;
+    }
 
     return {
-      itens: pontuados.map(function (x) { return x.item.original; }),
+      itens: pontuados.map(function (x) {
+        return x.item.original;
+      }),
       viaFuzzy: !!(pontuados[0] && pontuados[0].viaFuzzy),
+      viaFonetica: viaFonetica,
       melhor: pontuados[0] ? pontuados[0].item.original : null,
     };
   }
 
+
   raiz.MeedsSuiteBusca = {
     criarIndice: criarIndice,
     buscar: buscar,
-    normalizarFonetico: normalizarFonetico,
     fuzzyScore: fuzzyScore,
+    limiteDeDistancia: limiteDeDistancia,
+    custoTroca: custoTroca,
     levenshtein: levenshtein,
     tokenizarTexto: tokenizarTexto,
     tokensUteis: tokensUteis,
@@ -3545,7 +3760,7 @@
    * versao aqui nem no bootloader — so no manifest.
    * O valor de reserva existe para o arquivo continuar rodavel solto,
    * fora do pacote (por exemplo num teste unitario). */
-  var VERSAO_NUCLEO = "2.5.0" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.5.0";
+  var VERSAO_NUCLEO = "2.6.0" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.6.0";
 
   var Auth = raiz.MeedsSuiteAuth;
   var Dock = raiz.MeedsSuiteDock;
@@ -4047,11 +4262,14 @@
   /* ===== dados/formularios.json ===== */
   raiz.MEEDS_DADOS_FORMULARIOS = {"_leia_me":"Dados dos formularios: unidades de origem, catalogos de procedimento e listas de CID-10. Edite este arquivo e rode \"npm run build\" — as mudancas aparecem para os medicos sem precisar mexer em codigo. Ver docs/MANUAL-ADMIN.md.","lme-sete-lagoas":{"_leia_me":"Laudo Medico de Alto Custo de Sete Lagoas.","municipio":"SETE LAGOAS","origens":["SAÚDE AUDITIVA","UBS CIDADE DE DEUS","UBS BELO VALE"],"procedimentos":{"RM_CRANIO":{"nome":"Ressonância nuclear magnética de crânio","codigo":"02.07.01.006-4"},"RM_BASE_CRANIO":{"nome":"Ressonância nuclear magnética de base do crânio","codigo":"02.07.01.006-4"},"RM_SELA_TURCICA":{"nome":"Ressonância nuclear magnética de sela túrcica","codigo":"02.07.01.007-2"},"RM_ATM":{"nome":"Ressonância nuclear magnética de articulação temporomandibular (bilateral)","codigo":"02.07.01.002-1"},"ANGIO_RM_CEREBRAL":{"nome":"Angiorressonância cerebral","codigo":"02.07.01.001-3"},"RM_COLUNA_CERVICAL":{"nome":"Ressonância nuclear magnética de coluna cervical","codigo":"02.07.01.003-0"},"RM_COLUNA_TORACICA":{"nome":"Ressonância nuclear magnética de coluna torácica","codigo":"02.07.01.005-6"},"RM_COLUNA_LOMBOSSACRA":{"nome":"Ressonância nuclear magnética de coluna lombo-sacra","codigo":"02.07.01.004-8"},"RM_CORACAO_AORTA":{"nome":"Ressonância nuclear magnética de coração/aorta com cine","codigo":"02.07.02.001-9"},"RM_MEMBRO_SUPERIOR":{"nome":"Ressonância nuclear magnética de membro superior (unilateral)","codigo":"02.07.02.002-7"},"TC_CRANIO":{"nome":"Tomografia computadorizada do crânio","codigo":"02.06.01.007-9"},"TC_SELA_TURCICA":{"nome":"Tomografia computadorizada de sela túrcica","codigo":"02.06.01.006-0"},"TC_FACE_ATM":{"nome":"Tomografia computadorizada de face/seios da face/ATM","codigo":"02.06.01.004-4"},"TC_PESCOCO":{"nome":"Tomografia computadorizada do pescoço","codigo":"02.06.01.005-2"},"TC_COLUNA_CERVICAL":{"nome":"Tomografia computadorizada de coluna cervical (com ou sem contraste)","codigo":"02.06.01.001-0"},"TC_COLUNA_TORACICA":{"nome":"Tomografia computadorizada de coluna torácica (com ou sem contraste)","codigo":"02.06.01.003-6"},"TC_COLUNA_LOMBOSSACRA":{"nome":"Tomografia computadorizada de coluna lombo-sacra (com ou sem contraste)","codigo":"02.06.01.002-8"},"TC_TORAX":{"nome":"Tomografia computadorizada de tórax (sem contraste)","codigo":"02.06.02.003-1"},"TC_ABDOME_SUPERIOR":{"nome":"Tomografia computadorizada de abdome superior","codigo":"02.06.03.001-0"},"TC_PELVE":{"nome":"Tomografia computadorizada de pelve/bacia/abdome inferior","codigo":"02.06.03.003-7"},"TC_ARTIC_MEMBRO_SUP":{"nome":"Tomografia computadorizada de articulações de membro superior","codigo":"02.06.02.001-5"},"TC_ARTIC_MEMBRO_INF":{"nome":"Tomografia computadorizada de articulações de membro inferior","codigo":"02.06.03.002-9"},"TC_SEGMENTOS_APENDIC":{"nome":"Tomografia computadorizada de segmentos apendiculares (braço, antebraço, mão, coxa, perna, pé)","codigo":"02.06.02.002-3"},"DENSITOMETRIA_2SEG":{"nome":"Densitometria óssea (dois segmentos)","codigo":"02.04.06.002-8"},"DENSITOMETRIA_CORPO":{"nome":"Densitometria óssea (corpo inteiro)","codigo":"02.04.06.002-8"},"ENDOSCOPIA_DIGESTIVA_ALTA":{"nome":"Endoscopia digestiva alta (esofagogastroduodenoscopia)","codigo":"02.09.01.003-7"},"COLONOSCOPIA":{"nome":"Colonoscopia (coloscopia)","codigo":"02.09.01.002-9"},"ANGIOCORONARIOGRAFIA":{"nome":"Angiocoronariografia (cateterismo cardíaco)","codigo":"02.11.02.001-0"},"CINTILOGRAFIA_MIOCARDIO_ESTRESSE":{"nome":"Cintilografia de perfusão do miocárdio (estresse, mín. 3 projeções)","codigo":"02.08.01.002-5"},"CINTILOGRAFIA_MIOCARDIO_REPOUSO":{"nome":"Cintilografia de perfusão do miocárdio (repouso, mín. 3 projeções)","codigo":"02.08.01.003-3"},"ECOCARDIOGRAMA_TRANSTORACICO":{"nome":"Ecocardiograma transtorácico","codigo":"02.05.01.003-2"},"TESTE_ERGOMETRICO":{"nome":"Teste ergométrico (teste de esforço)","codigo":"02.11.02.006-0"},"HOLTER_24H":{"nome":"Holter 24 horas (eletrocardiograma dinâmico, 3 canais)","codigo":"02.11.02.004-4"},"MAPA_24H":{"nome":"MAPA 24 horas (monitorização ambulatorial da pressão arterial)","codigo":"02.11.02.005-2"},"RETOSSIGMOIDOSCOPIA":{"nome":"Retossigmoidoscopia (diagnóstica)","codigo":"02.09.01.005-3"}},"cids":{"G43.0":"Enxaqueca sem aura (enxaqueca comum)","G43.8":"Outras formas de enxaqueca","P14.3":"Outras lesões do plexo braquial devidas a traumatismo de parto","L93":"Lúpus eritematoso","M18.0":"Artrose primária bilateral das primeiras articulações carpometacarpianas","M25.5":"Dor articular","R73.9":"Hiperglicemia não especificada","G00.9":"Meningite bacteriana não especificada","H90.3":"Perda de audição neurossensorial bilateral","F82":"Transtorno específico do desenvolvimento motor","F80.9":"Transtorno de desenvolvimento da fala ou linguagem não especificado","G43.9":"Enxaqueca não especificada","G44.1":"Cefaleia vascular, não classificada em outra parte","G40.9":"Epilepsia não especificada","G93.4":"Encefalopatia não especificada","R51":"Cefaleia","G80.9":"Paralisia cerebral não especificada","F84.0":"Autismo infantil","F70":"Retardo mental leve","F71":"Retardo mental moderado","Q90.9":"Síndrome de Down não especificada","P07.3":"Outros recém-nascidos pré-termo","M19.9":"Artrose não especificada","M79.1":"Mialgia","M54.5":"Dor lombar baixa","M54.2":"Cervicalgia","M06.9":"Artrite reumatoide não especificada","M32.9":"Lúpus eritematoso sistêmico não especificado","M81.9":"Osteoporose não especificada","M85.8":"Outros transtornos especificados da densidade e da estrutura ósseas","M47.9":"Espondilose não especificada","M51.1":"Transtornos de discos lombares e de outros discos intervertebrais com radiculopatia","E10.9":"Diabetes mellitus tipo 1 sem complicações","E11.9":"Diabetes mellitus tipo 2 sem complicações","E03.9":"Hipotireoidismo não especificado","E05.9":"Tireotoxicose não especificada","E66.9":"Obesidade não especificada","E78.0":"Hipercolesterolemia pura","I10":"Hipertensão essencial (primária)","J44.9":"Doença pulmonar obstrutiva crônica não especificada","N18.9":"Doença renal crônica não especificada","R07.4":"Dor torácica, não especificada"}},"cmd":{"_leia_me":"Laudo Medico de Alto Custo de Conceicao do Mato Dentro.","municipio":"CONCEIÇÃO DO MATO DENTRO","origens":["CEMO DR SEBASTIAO SOARES DOS SANTOS"],"procedimentos":{"RM_CRANIO":{"nome":"Ressonância nuclear magnética de crânio","codigo":"02.07.01.006-4"},"RM_BASE_CRANIO":{"nome":"Ressonância nuclear magnética de base do crânio","codigo":"02.07.01.006-4"},"RM_SELA_TURCICA":{"nome":"Ressonância nuclear magnética de sela túrcica","codigo":"02.07.01.007-2"},"RM_ATM":{"nome":"Ressonância nuclear magnética de articulação temporomandibular (bilateral)","codigo":"02.07.01.002-1"},"ANGIO_RM_CEREBRAL":{"nome":"Angiorressonância cerebral","codigo":"02.07.01.001-3"},"RM_COLUNA_CERVICAL":{"nome":"Ressonância nuclear magnética de coluna cervical","codigo":"02.07.01.003-0"},"RM_COLUNA_TORACICA":{"nome":"Ressonância nuclear magnética de coluna torácica","codigo":"02.07.01.005-6"},"RM_COLUNA_LOMBOSSACRA":{"nome":"Ressonância nuclear magnética de coluna lombo-sacra","codigo":"02.07.01.004-8"},"RM_CORACAO_AORTA":{"nome":"Ressonância nuclear magnética de coração/aorta com cine","codigo":"02.07.02.001-9"},"RM_MEMBRO_SUPERIOR":{"nome":"Ressonância nuclear magnética de membro superior (unilateral)","codigo":"02.07.02.002-7"},"TC_CRANIO":{"nome":"Tomografia computadorizada do crânio","codigo":"02.06.01.007-9"},"TC_SELA_TURCICA":{"nome":"Tomografia computadorizada de sela túrcica","codigo":"02.06.01.006-0"},"TC_FACE_ATM":{"nome":"Tomografia computadorizada de face/seios da face/ATM","codigo":"02.06.01.004-4"},"TC_PESCOCO":{"nome":"Tomografia computadorizada do pescoço","codigo":"02.06.01.005-2"},"TC_COLUNA_CERVICAL":{"nome":"Tomografia computadorizada de coluna cervical (com ou sem contraste)","codigo":"02.06.01.001-0"},"TC_COLUNA_TORACICA":{"nome":"Tomografia computadorizada de coluna torácica (com ou sem contraste)","codigo":"02.06.01.003-6"},"TC_COLUNA_LOMBOSSACRA":{"nome":"Tomografia computadorizada de coluna lombo-sacra (com ou sem contraste)","codigo":"02.06.01.002-8"},"TC_TORAX":{"nome":"Tomografia computadorizada de tórax (sem contraste)","codigo":"02.06.02.003-1"},"TC_ABDOME_SUPERIOR":{"nome":"Tomografia computadorizada de abdome superior","codigo":"02.06.03.001-0"},"TC_PELVE":{"nome":"Tomografia computadorizada de pelve/bacia/abdome inferior","codigo":"02.06.03.003-7"},"TC_ARTIC_MEMBRO_SUP":{"nome":"Tomografia computadorizada de articulações de membro superior","codigo":"02.06.02.001-5"},"TC_ARTIC_MEMBRO_INF":{"nome":"Tomografia computadorizada de articulações de membro inferior","codigo":"02.06.03.002-9"},"TC_SEGMENTOS_APENDIC":{"nome":"Tomografia computadorizada de segmentos apendiculares (braço, antebraço, mão, coxa, perna, pé)","codigo":"02.06.02.002-3"},"DENSITOMETRIA_2SEG":{"nome":"Densitometria óssea (dois segmentos)","codigo":"02.04.06.002-8"},"DENSITOMETRIA_CORPO":{"nome":"Densitometria óssea (corpo inteiro)","codigo":"02.04.06.002-8"},"ENDOSCOPIA_DIGESTIVA_ALTA":{"nome":"Endoscopia digestiva alta (esofagogastroduodenoscopia)","codigo":"02.09.01.003-7"},"COLONOSCOPIA":{"nome":"Colonoscopia (coloscopia)","codigo":"02.09.01.002-9"},"ANGIOCORONARIOGRAFIA":{"nome":"Angiocoronariografia (cateterismo cardíaco)","codigo":"02.11.02.001-0"},"CINTILOGRAFIA_MIOCARDIO_ESTRESSE":{"nome":"Cintilografia de perfusão do miocárdio (estresse, mín. 3 projeções)","codigo":"02.08.01.002-5"},"CINTILOGRAFIA_MIOCARDIO_REPOUSO":{"nome":"Cintilografia de perfusão do miocárdio (repouso, mín. 3 projeções)","codigo":"02.08.01.003-3"},"ECOCARDIOGRAMA_TRANSTORACICO":{"nome":"Ecocardiograma transtorácico","codigo":"02.05.01.003-2"},"TESTE_ERGOMETRICO":{"nome":"Teste ergométrico (teste de esforço)","codigo":"02.11.02.006-0"},"HOLTER_24H":{"nome":"Holter 24 horas (eletrocardiograma dinâmico, 3 canais)","codigo":"02.11.02.004-4"},"MAPA_24H":{"nome":"MAPA 24 horas (monitorização ambulatorial da pressão arterial)","codigo":"02.11.02.005-2"},"RETOSSIGMOIDOSCOPIA":{"nome":"Retossigmoidoscopia (diagnóstica)","codigo":"02.09.01.005-3"}},"cids":{"K83.8":"Outras doenças especificadas das vias biliares","I10":"Hipertensão essencial (primária)","I11.9":"Doença cardíaca hipertensiva sem insuficiência cardíaca","I15.9":"Hipertensão secundária não especificada","I20.0":"Angina instável","I20.9":"Angina pectoris, não especificada","I21.9":"Infarto agudo do miocárdio não especificado","I22.9":"Infarto do miocárdio recorrente não especificado","I24.9":"Doença isquêmica aguda do coração, não especificada","I25.1":"Doença aterosclerótica do coração","I25.9":"Doença isquêmica crônica do coração, não especificada","I27.9":"Doença cardiopulmonar não especificada","I34.0":"Insuficiência da valva mitral","I34.9":"Transtorno não-reumático da valva mitral, não especificado","I35.0":"Estenose aórtica","I35.9":"Transtorno da valva aórtica não especificado","I36.1":"Insuficiência não-reumática da valva tricúspide","I38":"Endocardite de valva não especificada","I42.0":"Cardiomiopatia dilatada","I42.9":"Cardiomiopatia não especificada","I44.2":"Bloqueio atrioventricular total","I45.9":"Transtorno de condução não especificado","I47.1":"Taquicardia supraventricular","I47.2":"Taquicardia ventricular","I48":"Flutter e fibrilação atrial","I48.9":"Flutter e fibrilação atrial","I49.5":"Síndrome do nó sinusal","I49.9":"Arritmia cardíaca não especificada","I50":"Insuficiência cardíaca","I50.9":"Insuficiência cardíaca não especificada","I51.7":"Cardiomegalia","I70.0":"Aterosclerose da aorta","I70.2":"Aterosclerose das artérias das extremidades","I71.4":"Aneurisma da aorta abdominal, sem menção de ruptura","I73.9":"Doença vascular periférica não especificada","I80.2":"Flebite e tromboflebite de outros vasos profundos dos membros inferiores","I82.9":"Embolia e trombose venosa não especificada","Q21.1":"Comunicação interatrial","Q24.9":"Malformação congênita do coração não especificada","E78.5":"Hiperlipidemia não especificada","R00.0":"Taquicardia não especificada","R00.1":"Bradicardia não especificada","R00.2":"Palpitações","R07.2":"Dor precordial","R42":"Tontura e instabilidade","R55":"Síncope e colapso","Z95.0":"Presença de marca-passo cardíaco","Z95.1":"Presença de enxerto de ponte aortocoronária","Z95.5":"Presença de implante e enxerto de angioplastia coronária","G43.0":"Enxaqueca sem aura (enxaqueca comum)","G43.8":"Outras formas de enxaqueca","G43.9":"Enxaqueca não especificada","G44.1":"Cefaleia vascular, não classificada em outra parte","G40.9":"Epilepsia não especificada","G93.4":"Encefalopatia não especificada","R51":"Cefaleia","G80.9":"Paralisia cerebral não especificada","F84.0":"Autismo infantil","F70":"Retardo mental leve","F71":"Retardo mental moderado","F82":"Transtorno específico do desenvolvimento motor","F80.9":"Transtorno de desenvolvimento da fala ou linguagem não especificado","Q90.9":"Síndrome de Down não especificada","P07.3":"Outros recém-nascidos pré-termo","P14.3":"Outras lesões do plexo braquial devidas a traumatismo de parto","L93":"Lúpus eritematoso","G00.9":"Meningite bacteriana não especificada","H90.3":"Perda de audição neurossensorial bilateral","M18.0":"Artrose primária bilateral das primeiras articulações carpometacarpianas","M19.9":"Artrose não especificada","M25.5":"Dor articular","M79.1":"Mialgia","M54.5":"Dor lombar baixa","M54.2":"Cervicalgia","M06.9":"Artrite reumatoide não especificada","M32.9":"Lúpus eritematoso sistêmico não especificado","M81.9":"Osteoporose não especificada","M85.8":"Outros transtornos especificados da densidade e da estrutura ósseas","M47.9":"Espondilose não especificada","M51.1":"Transtornos de discos lombares e de outros discos intervertebrais com radiculopatia","E10.9":"Diabetes mellitus tipo 1 sem complicações","E11.9":"Diabetes mellitus tipo 2 sem complicações","E03.9":"Hipotireoidismo não especificado","E05.9":"Tireotoxicose não especificada","E66.9":"Obesidade não especificada","E78.0":"Hipercolesterolemia pura","R73.9":"Hiperglicemia não especificada","J44.9":"Doença pulmonar obstrutiva crônica não especificada","N18.9":"Doença renal crônica não especificada","R07.4":"Dor torácica, não especificada"}},"apac-itauna":{"_leia_me":"APAC de Itauna. O estabelecimento ja aparece preenchido no formulario.","estabelecimento":{"nome":"CENTRO DE ESPEC MEDICAS E ODONTO DR OVIDIO NOGUEIRA MACHADO","cnes":"2105578"},"procedimentos":{"HOLTER":{"nome":"Holter 24h","codigo":"02.11.02.004-4","label":"MONITORAMENTO PELO SISTEMA HOLTER 24 HS (3 CANAIS)"},"MAPA":{"nome":"MAPA 24h","codigo":"02.11.02.005-2","label":"MONITORIZAÇÃO AMBULATORIAL DE PRESSÃO ARTERIAL (MAPA)"},"TE":{"nome":"Teste Ergométrico","codigo":"02.11.02.006-0","label":"TESTE DE ESFORÇO / TESTE ERGOMÉTRICO"},"DOPPLER":{"nome":"Doppler vascular","codigo":"02.05.01.004-0","label":null},"CINTILO":{"nome":"Cintilografia miocárdio","codigo":"02.08.01.002-5","label":"CINTILOGRAFIA DE MIOCÁRDIO P/ AVALIAÇÃO DA PERFUSÃO EM SITUAÇÃO DE ESTRESSE (MÍNIMO 3 PROJEÇÕES)"},"ECO":{"nome":"Ecocardiograma","codigo":"02.05.01.003-2","label":null},"CATETER":{"nome":"Cateterismo cardíaco","codigo":"02.11.02.001-0","label":"CATETERISMO CARDÍACO (CINECORONARIOGRAFIA)"},"OUTRO":{"nome":"Outro procedimento…","codigo":"","label":null}},"ecoVariantes":{"REPOUSO":{"codigo":"02.05.01.003-2","nome":"ECOCARDIOGRAFIA TRANSTORACICA"},"ESTRESSE":{"codigo":"02.05.01.001-6","nome":"ECOCARDIOGRAFIA COM ESTRESSE"},"TRANSESOFAGICO":{"codigo":"02.05.01.002-4","nome":"ECOCARDIOGRAFIA BI-DIMENSIONAL TRANSESOFAGICO"}},"territorios":["DOPPLER DE ARTÉRIAS CARÓTIDAS E VERTEBRAIS","DOPPLER DE VEIAS CERVICAIS","DOPPLER AORTA ABDOMINAL","DOPPLER DE ARTÉRIAS RENAIS","DOPPLER ARTERIAL DE MEMBROS SUPERIORES","DOPPLER ARTERIAL DE MEMBROS INFERIORES","DOPPLER VENOSO DE MEMBROS SUPERIORES","DOPPLER VENOSO DE MEMBROS INFERIORES"],"cids":{"I10":"Hipertensão essencial (primária)","I11.9":"Doença cardíaca hipertensiva sem insuficiência cardíaca","I15.9":"Hipertensão secundária não especificada","I20.0":"Angina instável","I20.9":"Angina pectoris, não especificada","I21.9":"Infarto agudo do miocárdio não especificado","I22.9":"Infarto do miocárdio recorrente não especificado","I24.9":"Doença isquêmica aguda do coração, não especificada","I25.1":"Doença aterosclerótica do coração","I25.9":"Doença isquêmica crônica do coração, não especificada","I27.9":"Doença cardiopulmonar não especificada","I34.0":"Insuficiência da valva mitral","I34.9":"Transtorno não-reumático da valva mitral, não especificado","I35.0":"Estenose aórtica","I35.9":"Transtorno da valva aórtica não especificado","I36.1":"Insuficiência não-reumática da valva tricúspide","I38":"Endocardite de valva não especificada","I42.0":"Cardiomiopatia dilatada","I42.9":"Cardiomiopatia não especificada","I44.2":"Bloqueio atrioventricular total","I45.9":"Transtorno de condução não especificado","I47.1":"Taquicardia supraventricular","I47.2":"Taquicardia ventricular","I48":"Flutter e fibrilação atrial","I48.9":"Flutter e fibrilação atrial","I49.5":"Síndrome do nó sinusal","I49.9":"Arritmia cardíaca não especificada","I50":"Insuficiência cardíaca","I50.9":"Insuficiência cardíaca não especificada","I51.7":"Cardiomegalia","I70.0":"Aterosclerose da aorta","I70.2":"Aterosclerose das artérias das extremidades","I71.4":"Aneurisma da aorta abdominal, sem menção de ruptura","I73.9":"Doença vascular periférica não especificada","I80.2":"Flebite e tromboflebite de outros vasos profundos dos membros inferiores","I82.9":"Embolia e trombose venosa não especificada","Q21.1":"Comunicação interatrial","Q24.9":"Malformação congênita do coração não especificada","E11":"Diabetes mellitus não-insulino-dependente","E11.9":"Diabetes mellitus não-insulino-dependente - sem complicações","E78.0":"Hipercolesterolemia pura","E78.5":"Hiperlipidemia não especificada","R00.0":"Taquicardia não especificada","R00.1":"Bradicardia não especificada","R00.2":"Palpitações","R07.2":"Dor precordial","R07.4":"Dor torácica, não especificada","R42":"Tontura e instabilidade","R55":"Síncope e colapso","Z95.0":"Presença de marca-passo cardíaco","Z95.1":"Presença de enxerto de ponte aortocoronária","Z95.5":"Presença de implante e enxerto de angioplastia coronária"}}};
 
+  /* ===== dados/marcas-medicamentos.json ===== */
+  raiz.MEEDS_MARCAS = {"_leia_me":"TRADUTOR de nome comercial para principio ativo. ATENCAO: esta tabela NUNCA e fonte de medicamento. Ela so ajuda a ENCONTRAR o item dentro da REMUME do municipio — a REMUME (modules/remume/remumes.json) e a unica fonte de verdade. Se o principio ativo traduzido nao estiver na REMUME daquele municipio, o Assistente avisa que nao consta e NAO oferece o item. Para acrescentar uma marca, copie um bloco abaixo e rode 'npm run build'. Ver docs/MANUAL-ADMIN.md.","_campos":{"marca":"O que o medico digita (nome comercial, sigla ou nome alternativo).","principioAtivo":"O nome que se procura dentro da REMUME.","observacao":"Opcional. Aparece so na documentacao, nao na tela."},"_total":206,"marcas":[{"marca":"AAS","principioAtivo":"Ácido acetilsalicílico","observacao":"Sigla de uso corrente."},{"marca":"Acetaminofeno","principioAtivo":"Paracetamol","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Acfol","principioAtivo":"Acido Folico","observacao":""},{"marca":"Adalat","principioAtivo":"Nifedipino","observacao":""},{"marca":"Addera","principioAtivo":"Colecalciferol","observacao":""},{"marca":"Adenocard","principioAtivo":"Adenosina","observacao":""},{"marca":"Advil","principioAtivo":"Ibuprofeno","observacao":""},{"marca":"Aerolin","principioAtivo":"Salbutamol","observacao":""},{"marca":"Akineton","principioAtivo":"Biperideno","observacao":""},{"marca":"Aldactone","principioAtivo":"Espironolactona","observacao":""},{"marca":"Aldomet","principioAtivo":"Metildopa","observacao":""},{"marca":"Alivium","principioAtivo":"Ibuprofeno","observacao":""},{"marca":"Allegra","principioAtivo":"Fexofenadina","observacao":""},{"marca":"Amox","principioAtivo":"Amoxicilina","observacao":""},{"marca":"Amoxil","principioAtivo":"Amoxicilina","observacao":""},{"marca":"Amplictil","principioAtivo":"Clorpromazina","observacao":""},{"marca":"Amytril","principioAtivo":"Amitriptilina","observacao":""},{"marca":"Ancoron","principioAtivo":"Amiodarona","observacao":""},{"marca":"Angipress","principioAtivo":"Atenolol","observacao":""},{"marca":"Antak","principioAtivo":"Ranitidina","observacao":""},{"marca":"Apresolina","principioAtivo":"Hidralazina","observacao":""},{"marca":"Aprovel","principioAtivo":"Irbesartana","observacao":""},{"marca":"Aradois","principioAtivo":"Losartana","observacao":""},{"marca":"Aspirina","principioAtivo":"Ácido acetilsalicílico","observacao":""},{"marca":"Astromicin","principioAtivo":"Azitromicina","observacao":""},{"marca":"Atlansil","principioAtivo":"Amiodarona","observacao":""},{"marca":"Atrovent","principioAtivo":"Ipratropio","observacao":""},{"marca":"Bactrim","principioAtivo":"Sulfametoxazol","observacao":""},{"marca":"Bactroban","principioAtivo":"Mupirocina","observacao":""},{"marca":"Balcor","principioAtivo":"Diltiazem","observacao":""},{"marca":"Benzetacil","principioAtivo":"Penicilina","observacao":""},{"marca":"Buscopan","principioAtivo":"Escopolamina","observacao":""},{"marca":"Buscopan","principioAtivo":"Butilbrometo","observacao":""},{"marca":"Busonid","principioAtivo":"Budesonida","observacao":""},{"marca":"Capoten","principioAtivo":"Captopril","observacao":""},{"marca":"Cardilol","principioAtivo":"Carvedilol","observacao":""},{"marca":"Cardizem","principioAtivo":"Diltiazem","observacao":""},{"marca":"Cataflam","principioAtivo":"Diclofenaco","observacao":""},{"marca":"Cipramil","principioAtivo":"Citalopram","observacao":""},{"marca":"Cipro","principioAtivo":"Ciprofloxacino","observacao":""},{"marca":"Ciproxin","principioAtivo":"Ciprofloxacino","observacao":""},{"marca":"Citalor","principioAtivo":"Atorvastatina","observacao":""},{"marca":"Citoneurin","principioAtivo":"Complexo B","observacao":""},{"marca":"Claritine","principioAtivo":"Loratadina","observacao":""},{"marca":"Clavulin","principioAtivo":"Clavulanato","observacao":""},{"marca":"Clenil","principioAtivo":"Beclometasona","observacao":""},{"marca":"Clexane","principioAtivo":"Enoxaparina","observacao":""},{"marca":"Clorana","principioAtivo":"Hidroclorotiazida","observacao":""},{"marca":"Combiron","principioAtivo":"Sulfato Ferroso","observacao":""},{"marca":"Coreg","principioAtivo":"Carvedilol","observacao":""},{"marca":"Coumadin","principioAtivo":"Varfarina","observacao":""},{"marca":"Cozaar","principioAtivo":"Losartana","observacao":""},{"marca":"Crestor","principioAtivo":"Rosuvastatina","observacao":""},{"marca":"Cymbalta","principioAtivo":"Duloxetina","observacao":""},{"marca":"Cytotec","principioAtivo":"Misoprostol","observacao":""},{"marca":"Daforin","principioAtivo":"Fluoxetina","observacao":""},{"marca":"Daktarin","principioAtivo":"Miconazol","observacao":""},{"marca":"Dalacin","principioAtivo":"Clindamicina","observacao":""},{"marca":"Daonil","principioAtivo":"Glibenclamida","observacao":""},{"marca":"Decadron","principioAtivo":"Dexametasona","observacao":""},{"marca":"Depakene","principioAtivo":"Valproato","observacao":""},{"marca":"Depakote","principioAtivo":"Valproato","observacao":""},{"marca":"Dermazine","principioAtivo":"Sulfadiazina Prata","observacao":""},{"marca":"Desalex","principioAtivo":"Desloratadina","observacao":""},{"marca":"Diamicron","principioAtivo":"Gliclazida","observacao":""},{"marca":"Digesan","principioAtivo":"Bromoprida","observacao":""},{"marca":"Dimorf","principioAtivo":"Morfina","observacao":""},{"marca":"Diovan","principioAtivo":"Valsartana","observacao":""},{"marca":"Diprivan","principioAtivo":"Propofol","observacao":""},{"marca":"Diprospan","principioAtivo":"Betametasona","observacao":""},{"marca":"Dobutrex","principioAtivo":"Dobutamina","observacao":""},{"marca":"Dormonid","principioAtivo":"Midazolam","observacao":""},{"marca":"Dulcolax","principioAtivo":"Bisacodil","observacao":""},{"marca":"Efexor","principioAtivo":"Venlafaxina","observacao":""},{"marca":"Eliquis","principioAtivo":"Apixabana","observacao":""},{"marca":"Elocom","principioAtivo":"Mometasona","observacao":""},{"marca":"Epinefrina","principioAtivo":"Adrenalina","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Euthyrox","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Fenergan","principioAtivo":"Prometazina","observacao":""},{"marca":"Fentanil","principioAtivo":"Fentanila","observacao":""},{"marca":"Flagyl","principioAtivo":"Metronidazol","observacao":""},{"marca":"Flixotide","principioAtivo":"Fluticasona","observacao":""},{"marca":"Fluconal","principioAtivo":"Fluconazol","observacao":""},{"marca":"Folacin","principioAtivo":"Acido Folico","observacao":""},{"marca":"Gardenal","principioAtivo":"Fenobarbital","observacao":""},{"marca":"Glifage","principioAtivo":"Metformina","observacao":""},{"marca":"Haldol","principioAtivo":"Haloperidol","observacao":""},{"marca":"Hctz","principioAtivo":"Hidroclorotiazida","observacao":""},{"marca":"Hidantal","principioAtivo":"Fenitoina","observacao":""},{"marca":"Higroton","principioAtivo":"Clortalidona","observacao":""},{"marca":"Hixizine","principioAtivo":"Hidroxizina","observacao":""},{"marca":"Humulin","principioAtivo":"Insulina","observacao":""},{"marca":"Imosec","principioAtivo":"Loperamida","observacao":""},{"marca":"Inderal","principioAtivo":"Propranolol","observacao":""},{"marca":"Kanakion","principioAtivo":"Fitomenadiona","observacao":""},{"marca":"Keflex","principioAtivo":"Cefalexina","observacao":""},{"marca":"Keppra","principioAtivo":"Levetiracetam","observacao":""},{"marca":"Klaricid","principioAtivo":"Claritromicina","observacao":""},{"marca":"Label","principioAtivo":"Ranitidina","observacao":""},{"marca":"Lamisil","principioAtivo":"Terbinafina","observacao":""},{"marca":"Lanexat","principioAtivo":"Flumazenil","observacao":""},{"marca":"Lasix","principioAtivo":"Furosemida","observacao":""},{"marca":"Levaquin","principioAtivo":"Levofloxacino","observacao":""},{"marca":"Lexapro","principioAtivo":"Escitalopram","observacao":""},{"marca":"Lexotan","principioAtivo":"Bromazepam","observacao":""},{"marca":"Lioresal","principioAtivo":"Baclofeno","observacao":""},{"marca":"Lipitor","principioAtivo":"Atorvastatina","observacao":""},{"marca":"Liquemine","principioAtivo":"Heparina","observacao":""},{"marca":"Lopressor","principioAtivo":"Metoprolol","observacao":""},{"marca":"Loranil","principioAtivo":"Loratadina","observacao":""},{"marca":"Lorax","principioAtivo":"Lorazepam","observacao":""},{"marca":"Losec","principioAtivo":"Omeprazol","observacao":""},{"marca":"Luftal","principioAtivo":"Simeticona","observacao":""},{"marca":"Lyrica","principioAtivo":"Pregabalina","observacao":""},{"marca":"Macrodantina","principioAtivo":"Nitrofurantoina","observacao":""},{"marca":"Manitol 20%","principioAtivo":"Manitol","observacao":""},{"marca":"Marcaina","principioAtivo":"Bupivacaina","observacao":""},{"marca":"Marevan","principioAtivo":"Varfarina","observacao":""},{"marca":"Metamizol","principioAtivo":"Dipirona","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Meticorten","principioAtivo":"Prednisona","observacao":""},{"marca":"Micardis","principioAtivo":"Telmisartana","observacao":""},{"marca":"Micostatin","principioAtivo":"Nistatina","observacao":""},{"marca":"Miosan","principioAtivo":"Ciclobenzaprina","observacao":""},{"marca":"Motilium","principioAtivo":"Domperidona","observacao":""},{"marca":"Movatec","principioAtivo":"Meloxicam","observacao":""},{"marca":"Narcan","principioAtivo":"Naloxona","observacao":""},{"marca":"Naropin","principioAtivo":"Ropivacaina","observacao":""},{"marca":"Nasonex","principioAtivo":"Mometasona","observacao":""},{"marca":"Natrilix","principioAtivo":"Indapamida","observacao":""},{"marca":"Neocaina","principioAtivo":"Bupivacaina","observacao":""},{"marca":"Neozine","principioAtivo":"Levomepromazina","observacao":""},{"marca":"Neurontin","principioAtivo":"Gabapentina","observacao":""},{"marca":"Nexium","principioAtivo":"Esomeprazol","observacao":""},{"marca":"Nisulid","principioAtivo":"Nimesulida","observacao":""},{"marca":"Nizoral","principioAtivo":"Cetoconazol","observacao":""},{"marca":"Norepinefrina","principioAtivo":"Noradrenalina","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Norvasc","principioAtivo":"Anlodipino","observacao":""},{"marca":"Novalgina","principioAtivo":"Dipirona","observacao":""},{"marca":"Novolin","principioAtivo":"Insulina","observacao":""},{"marca":"Pantoc","principioAtivo":"Pantoprazol","observacao":""},{"marca":"Pantozol","principioAtivo":"Pantoprazol","observacao":""},{"marca":"Peprazol","principioAtivo":"Omeprazol","observacao":""},{"marca":"Plasil","principioAtivo":"Metoclopramida","observacao":""},{"marca":"Plavix","principioAtivo":"Clopidogrel","observacao":""},{"marca":"Polaramine","principioAtivo":"Dexclorfeniramina","observacao":""},{"marca":"Pradaxa","principioAtivo":"Dabigatrana","observacao":""},{"marca":"Prazol","principioAtivo":"Lansoprazol","observacao":""},{"marca":"Prelone","principioAtivo":"Prednisolona","observacao":""},{"marca":"Profenid","principioAtivo":"Cetoprofeno","observacao":""},{"marca":"Prolopa","principioAtivo":"Levodopa","observacao":""},{"marca":"Propecia","principioAtivo":"Finasterida","observacao":""},{"marca":"Propovan","principioAtivo":"Propofol","observacao":""},{"marca":"Proscar","principioAtivo":"Finasterida","observacao":""},{"marca":"Prostigmine","principioAtivo":"Neostigmina","observacao":""},{"marca":"Prostokos","principioAtivo":"Misoprostol","observacao":""},{"marca":"Prozac","principioAtivo":"Fluoxetina","observacao":""},{"marca":"Pulmicort","principioAtivo":"Budesonida","observacao":""},{"marca":"Puran T4","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Renitec","principioAtivo":"Enalapril","observacao":""},{"marca":"Ringer Lactato","principioAtivo":"Ringer","observacao":""},{"marca":"Risperdal","principioAtivo":"Risperidona","observacao":""},{"marca":"Rivotril","principioAtivo":"Clonazepam","observacao":""},{"marca":"Rocefin","principioAtivo":"Ceftriaxona","observacao":""},{"marca":"Scabin","principioAtivo":"Permetrina","observacao":""},{"marca":"Secotex","principioAtivo":"Tansulosina","observacao":""},{"marca":"Selozok","principioAtivo":"Metoprolol","observacao":""},{"marca":"Seroquel","principioAtivo":"Quetiapina","observacao":""},{"marca":"Sevorane","principioAtivo":"Sevoflurano","observacao":""},{"marca":"Sf 0.9%","principioAtivo":"Soro Fisiologico","observacao":""},{"marca":"Sg 5%","principioAtivo":"Glicose","observacao":""},{"marca":"Singulair","principioAtivo":"Montelucaste","observacao":""},{"marca":"Sinvatrox","principioAtivo":"Sinvastatina","observacao":""},{"marca":"Solucortef","principioAtivo":"Hidrocortisona","observacao":""},{"marca":"Solumedrol","principioAtivo":"Metilprednisolona","observacao":""},{"marca":"Soro Glicosado","principioAtivo":"Glicose","observacao":""},{"marca":"Synthroid","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Syntocinon","principioAtivo":"Ocitocina","observacao":""},{"marca":"Tamiflu","principioAtivo":"Oseltamivir","observacao":""},{"marca":"Tavanic","principioAtivo":"Levofloxacino","observacao":""},{"marca":"Tegretol","principioAtivo":"Carbamazepina","observacao":""},{"marca":"Tolrest","principioAtivo":"Sertralina","observacao":""},{"marca":"Topamax","principioAtivo":"Topiramato","observacao":""},{"marca":"Tramal","principioAtivo":"Tramadol","observacao":""},{"marca":"Transamin","principioAtivo":"Acido Tranexamico","observacao":""},{"marca":"Triaxon","principioAtivo":"Ceftriaxona","observacao":""},{"marca":"Tryptanol","principioAtivo":"Amitriptilina","observacao":""},{"marca":"Tylenol","principioAtivo":"Paracetamol","observacao":""},{"marca":"Uroxacin","principioAtivo":"Norfloxacino","observacao":""},{"marca":"Valium","principioAtivo":"Diazepam","observacao":""},{"marca":"Valproico","principioAtivo":"Valproato","observacao":""},{"marca":"Valtrex","principioAtivo":"Valaciclovir","observacao":""},{"marca":"Viagra","principioAtivo":"Sildenafila","observacao":""},{"marca":"Vibramicina","principioAtivo":"Doxiciclina","observacao":""},{"marca":"Vitamina K","principioAtivo":"Fitomenadiona","observacao":""},{"marca":"Voltaren","principioAtivo":"Diclofenaco","observacao":""},{"marca":"Vonau","principioAtivo":"Ondansetrona","observacao":""},{"marca":"Xarelto","principioAtivo":"Rivaroxabana","observacao":""},{"marca":"Xylocaina","principioAtivo":"Lidocaina","observacao":""},{"marca":"Zitromax","principioAtivo":"Azitromicina","observacao":""},{"marca":"Zocor","principioAtivo":"Sinvastatina","observacao":""},{"marca":"Zofran","principioAtivo":"Ondansetrona","observacao":""},{"marca":"Zoloft","principioAtivo":"Sertralina","observacao":""},{"marca":"Zoltec","principioAtivo":"Fluconazol","observacao":""},{"marca":"Zovirax","principioAtivo":"Aciclovir","observacao":""},{"marca":"Zyprexa","principioAtivo":"Olanzapina","observacao":""},{"marca":"Zyrtec","principioAtivo":"Cetirizina","observacao":""}]};
+
   /* ===== dados/changelog.json ===== */
-  raiz.MEEDS_CHANGELOG = {"_leia_me":"Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.","versoes":[{"versao":"2.5.0","data":"2026-08-30","novidades":["Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.","O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."],"melhorias":["Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."],"correcoes":["O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."]},{"versao":"2.4.0","data":"2026-08-30","novidades":["Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.","O código escolhido na busca entra sozinho no laudo que estiver aberto.","Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.","Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."],"melhorias":["O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.","O CPF se formata sozinho enquanto você digita.","Com um único médico cadastrado, ele já vem selecionado nos laudos.","As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.","O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."],"correcoes":["O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.","Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."]},{"versao":"2.3.0","data":"2026-08-30","novidades":["Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."],"melhorias":["Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."],"correcoes":[]},{"versao":"2.2.0","data":"2026-08-30","novidades":["Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."],"melhorias":["Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."],"correcoes":["Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."]},{"versao":"2.0.0","data":"2026-08-30","novidades":["Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."],"melhorias":[],"correcoes":[]}]};
+  raiz.MEEDS_CHANGELOG = {"_leia_me":"Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.","versoes":[{"versao":"2.6.0","data":"2026-08-30","novidades":["A consulta REMUME passou a entender nome comercial: digite “Tylenol” e ela mostra o paracetamol do seu município.","Quando o remédio procurado não é padronizado no município, o Assistente diz isso com todas as letras, em vez de mostrar uma lista vazia."],"melhorias":["A busca ficou mais tolerante a erro de digitação em português: “dipironá” encontra Dipirona e “cimvastatina” encontra Sinvastatina.","A lista de nomes comerciais saiu do código e virou um arquivo que o administrador edita sozinho."],"correcoes":[]},{"versao":"2.5.0","data":"2026-08-30","novidades":["Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.","O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."],"melhorias":["Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."],"correcoes":["O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."]},{"versao":"2.4.0","data":"2026-08-30","novidades":["Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.","O código escolhido na busca entra sozinho no laudo que estiver aberto.","Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.","Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."],"melhorias":["O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.","O CPF se formata sozinho enquanto você digita.","Com um único médico cadastrado, ele já vem selecionado nos laudos.","As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.","O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."],"correcoes":["O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.","Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."]},{"versao":"2.3.0","data":"2026-08-30","novidades":["Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."],"melhorias":["Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."],"correcoes":[]},{"versao":"2.2.0","data":"2026-08-30","novidades":["Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."],"melhorias":["Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."],"correcoes":["Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."]},{"versao":"2.0.0","data":"2026-08-30","novidades":["Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."],"melhorias":[],"correcoes":[]}]};
 
   var __inv = {
-  "versao": "2.5.0",
+  "versao": "2.6.0",
   "modulos": [
     {
       "id": "alarme-fila",
@@ -4091,7 +4309,7 @@
       "id": "remume",
       "nome": "Assistente REMUME",
       "descricao": "Consulta a lista de medicamentos do município do atendimento. Aceita erro de digitação e nome comercial: “buscopan” encontra escopolamina.",
-      "versao": "2.0.1",
+      "versao": "2.6.0",
       "origem": "sodelfino/meeds-remume-assistant"
     }
   ]
@@ -4103,7 +4321,7 @@
    * cobre o resto: duas copias instaladas no Tampermonkey, ou uma
    * reexecucao do script numa navegacao da SPA. Sem ela, apareciam dois
    * docks sobrepostos e o alarme tocava duas vezes. */
-  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.5.0")) return;
+  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.6.0")) return;
 
   /* 2) O hook de rede precisa existir ANTES de qualquer chamada da
    * aplicacao — por isso e instalado aqui, em document-start, e nao
@@ -10382,7 +10600,7 @@
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
 
-/* ===== modules/remume/index.js (v2.0.1) ===== */
+/* ===== modules/remume/index.js (v2.6.0) ===== */
 /* ------------------------------------------------------------------
  * modules/remume/index.js
  * Origem: sodelfino/meeds-remume-assistant -> meeds-remume-assistant.user.js v1.7.4
@@ -10557,180 +10775,52 @@ function extrairPrincipioAtivo(nome) {
     return normalizarTexto(principio).length >= 3 ? principio : nome.trim();
   }
 
-const SINONIMOS_BUSCA = {
-    dipirona: ["metamizol", "novalgina"],
-    aas: ["aspirina", "acido acetilsalicilico"],
-    escopolamina: ["buscopan"],
-    butilbrometo: ["buscopan"],
-    salbutamol: ["aerolin"],
-    paracetamol: ["tylenol", "acetaminofeno"],
-    ibuprofeno: ["advil", "alivium"],
-    omeprazol: ["peprazol", "losec"],
-    metoclopramida: ["plasil"],
-    bromoprida: ["digesan"],
-    ondansetrona: ["vonau", "zofran"],
-    simeticona: ["luftal"],
-    loratadina: ["claritine", "loranil"],
-    dexclorfeniramina: ["polaramine"],
-    prometazina: ["fenergan"],
-    diazepam: ["valium"],
-    clonazepam: ["rivotril"],
-    midazolam: ["dormonid"],
-    morfina: ["dimorf"],
-    fentanila: ["fentanil"],
-    tramadol: ["tramal"],
-    lidocaina: ["xylocaina"],
-    bupivacaina: ["neocaina", "marcaina"],
-    ropivacaina: ["naropin"],
-    propofol: ["diprivan", "propovan"],
-    sevoflurano: ["sevorane"],
-    enoxaparina: ["clexane"],
-    heparina: ["liquemine"],
-    varfarina: ["marevan", "coumadin"],
-    rivaroxabana: ["xarelto"],
-    losartana: ["cozaar", "aradois"],
-    enalapril: ["renitec"],
-    captopril: ["capoten"],
-    metformina: ["glifage"],
-    glibenclamida: ["daonil"],
-    gliclazida: ["diamicron"],
-    levotiroxina: ["puran t4", "synthroid", "euthyrox"],
-    fluoxetina: ["prozac", "daforin"],
-    sertralina: ["zoloft", "tolrest"],
-    amitriptilina: ["amytril", "tryptanol"],
-    haloperidol: ["haldol"],
-    risperidona: ["risperdal"],
-    clorpromazina: ["amplictil"],
-    fenobarbital: ["gardenal"],
-    fenitoina: ["hidantal"],
-    carbamazepina: ["tegretol"],
-    valproato: ["depakene", "depakote", "valproico"],
-    levetiracetam: ["keppra"],
-    amoxicilina: ["amoxil", "amox"],
-    azitromicina: ["zitromax", "astromicin"],
-    cefalexina: ["keflex"],
-    ceftriaxona: ["rocefin", "triaxon"],
-    ciprofloxacino: ["cipro", "ciproxin"],
-    sulfametoxazol: ["bactrim"],
-    metronidazol: ["flagyl"],
-    fluconazol: ["zoltec", "fluconal"],
-    nistatina: ["micostatin"],
-    prednisona: ["meticorten"],
-    prednisolona: ["prelone"],
-    dexametasona: ["decadron"],
-    hidrocortisona: ["solucortef"],
-    metilprednisolona: ["solumedrol"],
-    betametasona: ["diprospan"],
-    beclometasona: ["clenil"],
-    nifedipino: ["adalat"],
-    anlodipino: ["norvasc"],
-    carvedilol: ["cardilol", "coreg"],
-    propranolol: ["inderal"],
-    atenolol: ["angipress"],
-    metoprolol: ["selozok", "lopressor"],
-    furosemida: ["lasix"],
-    hidroclorotiazida: ["clorana", "hctz"],
-    espironolactona: ["aldactone"],
-    sinvastatina: ["zocor", "sinvatrox"],
-    apixabana: ["eliquis"],
-    acido_folico: ["folacin", "acfol"],
-    acido_tranexamico: ["transamin"],
-    complexo_b: ["citoneurin"],
-    soro_fisiologico: ["sf 0.9%"],
-    ringer: ["ringer lactato"],
-    glicose: ["soro glicosado", "sg 5%"],
-    manitol: ["manitol 20%"],
-    adrenalina: ["epinefrina"],
-    noradrenalina: ["norepinefrina"],
-    dobutamina: ["dobutrex"],
-    amiodarona: ["ancoron", "atlansil"],
-    adenosina: ["adenocard"],
-    naloxona: ["narcan"],
-    flumazenil: ["lanexat"],
-    neostigmina: ["prostigmine"],
-    ocitocina: ["syntocinon"],
-    misoprostol: ["cytotec", "prostokos"],
-    fitomenadiona: ["vitamina k", "kanakion"],
+/* ------------------------------------------------------------------
+   * TRADUTOR DE MARCA -> PRINCIPIO ATIVO
+   * ------------------------------------------------------------------
+   * REGRA DE OURO: esta tabela NUNCA e fonte de medicamento. A REMUME do
+   * municipio e a unica fonte de verdade. A tabela so traduz o que o
+   * medico digitou ("Tylenol") para o nome que se procura DENTRO da
+   * lista ("Paracetamol"). Se o principio ativo traduzido nao estiver na
+   * REMUME daquele municipio, o Assistente diz que nao consta e NAO
+   * oferece o item — em hipotese nenhuma um resultado vem daqui.
+   *
+   * O conteudo vem de dados/marcas-medicamentos.json, editavel pelo
+   * administrador sem tocar em codigo. */
+  var MARCAS = (raiz.MEEDS_MARCAS && raiz.MEEDS_MARCAS.marcas) || [];
 
-    /* --------------------------------------------------------------
-     * [SINONIMOS] Ampliacao com nomes comerciais populares no Brasil.
-     * A logica de match ja e bidirecional por construcao (ver
-     * obterFrasesSinonimo, hoje em core/busca.js): digitar a chave OU
-     * qualquer sinonimo (nome comercial) da mesma entrada dispara a
-     * busca pelos dois lados. Aqui so ampliamos os dados.
-     * -------------------------------------------------------------- */
-    diclofenaco: ["voltaren", "cataflam"],
-    nimesulida: ["nisulid"],
-    meloxicam: ["movatec"],
-    cetoprofeno: ["profenid"],
-    domperidona: ["motilium"],
-    ranitidina: ["antak", "label"],
-    pantoprazol: ["pantozol", "pantoc"],
-    lansoprazol: ["prazol"],
-    esomeprazol: ["nexium"],
-    clopidogrel: ["plavix"],
-    atorvastatina: ["lipitor", "citalor"],
-    rosuvastatina: ["crestor"],
-    hidralazina: ["apresolina"],
-    diltiazem: ["balcor", "cardizem"],
-    dabigatrana: ["pradaxa"],
-    clortalidona: ["higroton"],
-    indapamida: ["natrilix"],
-    telmisartana: ["micardis"],
-    valsartana: ["diovan"],
-    irbesartana: ["aprovel"],
-    metildopa: ["aldomet"],
-    bromazepam: ["lexotan"],
-    lorazepam: ["lorax"],
-    quetiapina: ["seroquel"],
-    olanzapina: ["zyprexa"],
-    citalopram: ["cipramil"],
-    escitalopram: ["lexapro"],
-    venlafaxina: ["efexor"],
-    duloxetina: ["cymbalta"],
-    topiramato: ["topamax"],
-    gabapentina: ["neurontin"],
-    pregabalina: ["lyrica"],
-    baclofeno: ["lioresal"],
-    levomepromazina: ["neozine"],
-    biperideno: ["akineton"],
-    ciclobenzaprina: ["miosan"],
-    budesonida: ["pulmicort", "busonid"],
-    fluticasona: ["flixotide"],
-    montelucaste: ["singulair"],
-    ipratropio: ["atrovent"],
-    mometasona: ["nasonex", "elocom"],
-    desloratadina: ["desalex"],
-    cetirizina: ["zyrtec"],
-    fexofenadina: ["allegra"],
-    hidroxizina: ["hixizine"],
-    loperamida: ["imosec"],
-    bisacodil: ["dulcolax"],
-    cetoconazol: ["nizoral"],
-    terbinafina: ["lamisil"],
-    aciclovir: ["zovirax"],
-    valaciclovir: ["valtrex"],
-    oseltamivir: ["tamiflu"],
-    insulina: ["humulin", "novolin"],
-    finasterida: ["propecia", "proscar"],
-    tansulosina: ["secotex"],
-    sildenafila: ["viagra"],
-    claritromicina: ["klaricid"],
-    clindamicina: ["dalacin"],
-    nitrofurantoina: ["macrodantina"],
-    norfloxacino: ["uroxacin"],
-    levofloxacino: ["levaquin", "tavanic"],
-    doxiciclina: ["vibramicina"],
-    penicilina: ["benzetacil"],
-    clavulanato: ["clavulin"],
-    miconazol: ["daktarin"],
-    permetrina: ["scabin"],
-    mupirocina: ["bactroban"],
-    sulfadiazina_prata: ["dermazine"],
-    sulfato_ferroso: ["combiron"],
-    colecalciferol: ["addera"],
-    levodopa: ["prolopa"],
-  };
+  /* Indice de busca das MARCAS (nao dos medicamentos): serve so para
+   * reconhecer o nome comercial digitado, inclusive com erro leve. */
+  var _indiceMarcas = null;
+
+  function indiceDeMarcas() {
+    if (!_indiceMarcas) {
+      _indiceMarcas = raiz.MeedsSuiteBusca.criarIndice(MARCAS, function (m) {
+        return m.marca;
+      });
+    }
+    return _indiceMarcas;
+  }
+
+  /* Devolve { marca, principioAtivo } quando o que foi digitado e um nome
+   * comercial reconhecido. Exige casamento exato ou erro leve NO NOME DA
+   * MARCA — nao vale aproximar marca por fonetica, que abriria espaco
+   * para traduzir para o farmaco errado. */
+  function traduzirMarca(termo) {
+    var alvo = normalizarTexto(termo);
+    if (!alvo) return null;
+
+    for (var i = 0; i < MARCAS.length; i++) {
+      if (normalizarTexto(MARCAS[i].marca) === alvo) return MARCAS[i];
+    }
+
+    var r = raiz.MeedsSuiteBusca.buscar(termo, indiceDeMarcas(), {
+      limite: 1,
+      fonetica: false, // ver comentario acima
+    });
+    return r.melhor || null;
+  }
+
 
 const CONFIG_BUSCA = {
     LIMITE_RESULTADOS: 80,
@@ -10746,24 +10836,46 @@ const CONFIG_BUSCA = {
 
 
 function buscarMedicamentos(termo, cidade) {
-    /* O motor de busca (fuzzy + fonetica + sinonimos) mudou de lugar: era
-     * daqui e virou core/busca.js, para a busca de CID-10 usar o mesmo.
-     * As funcoes foram MOVIDAS, nao reescritas — o comportamento e o
-     * mesmo, e os casos que ele ja tratava (novalgina x valina, buscopan
-     * x escetamina, o "b" de complexo_b) continuam cobertos pelo teste de
-     * fumaca. O dicionario de sinonimos continua aqui, porque e de
-     * medicamento; o motor e generico. */
+    /* PIPELINE
+     *   1. o que foi digitado e um nome comercial? -> traduz para o
+     *      principio ativo e passa a procurar POR ELE;
+     *   2. busca dentro da REMUME do municipio (camada exata/parecida e,
+     *      se nada aparecer, fonetica);
+     *   3. se a marca foi reconhecida mas o principio ativo nao esta na
+     *      lista, devolve "nao consta" — sem oferecer nada.
+     *
+     * Em nenhum ponto um item entra no resultado vindo da tabela de
+     * marcas: ela so muda O QUE se procura, nunca ONDE. */
     var indice = obterIndiceBusca(cidade);
-    var r = raiz.MeedsSuiteBusca.buscar(termo, indice, {
-      sinonimos: SINONIMOS_BUSCA,
+    var marca = traduzirMarca(termo);
+    var termoDeBusca = marca ? marca.principioAtivo : termo;
+
+    var r = raiz.MeedsSuiteBusca.buscar(termoDeBusca, indice, {
       limite: CONFIG_BUSCA.LIMITE_RESULTADOS,
       config: CONFIG_BUSCA,
     });
 
+    /* Marca reconhecida e principio ativo ausente da REMUME deste
+     * municipio: e o caso do "Tylenol em municipio que so tem dipirona".
+     * O medico precisa saber que nao ha — e nao ver uma lista vazia sem
+     * explicacao, nem (pior) um item que nao existe na lista. */
+    if (marca && r.itens.length === 0) {
+      return {
+        itens: [],
+        termoReconhecido: null,
+        marca: marca,
+        naoConsta: true,
+      };
+    }
+
     var termoReconhecido = null;
-    if (r.melhor && r.viaFuzzy && normalizarTexto(termo).length >= CONFIG_BUSCA.MIN_LEN_DICA_TERMO) {
+    if (!marca && r.melhor && (r.viaFuzzy || r.viaFonetica)) {
       var principioAtivo = extrairPrincipioAtivo(r.melhor.nome);
-      if (principioAtivo && normalizarTexto(principioAtivo) !== normalizarTexto(termo)) {
+      if (
+        principioAtivo &&
+        normalizarTexto(principioAtivo) !== normalizarTexto(termo) &&
+        normalizarTexto(termo).length >= CONFIG_BUSCA.MIN_LEN_DICA_TERMO
+      ) {
         termoReconhecido = principioAtivo;
       }
     }
@@ -10773,6 +10885,9 @@ function buscarMedicamentos(termo, cidade) {
         return { nome: x.nome, local: x.local };
       }),
       termoReconhecido: termoReconhecido,
+      marca: marca,
+      naoConsta: false,
+      viaFonetica: r.viaFonetica,
     };
   }
 
@@ -10988,6 +11103,7 @@ function moverFocoResultado(delta) {
     ".rm-body select, .rm-body input { width:100%; padding:8px 10px; border:1px solid #d8e6e3; border-radius:8px; font-size:13px; color:#16221f; }",
     ".rm-hint { font-size:11.5px; color:#a15c00; background:#fff4e2; padding:7px 10px; border-radius:7px; }",
     ".rm-hint[hidden] { display:none; }",
+    ".rm-hint-alerta { color:#8a2020; background:#fde8e8; border:1px solid #f0b8b8; font-weight:600; }",
     ".rm-count { font-size:11px; color:#5b6c68; }",
     ".rm-results { list-style:none; margin:0; padding:0; overflow-y:auto; flex:1; min-height:120px; border-top:1px solid #eef2f6; }",
     ".rm-results li { display:flex; align-items:center; gap:10px; padding:8px 4px; border-bottom:1px solid #f1f5f9; font-size:12.5px; line-height:1.45; }",
@@ -11129,13 +11245,27 @@ function moverFocoResultado(delta) {
       ? filtrados.length + " de " + lista.length + " medicamento(s)"
       : lista.length + " medicamento(s) na REMUME de " + cidade;
 
-    // dica de "termo reconhecido": so aparece quando a busca precisou
-    // corrigir o que foi digitado (fuzzy/fonetica), nunca em match direto
-    if (resultado.termoReconhecido) {
-      refs.hint.hidden = false;
+    /* Tres avisos possiveis, nesta ordem de prioridade:
+     *   - a marca foi reconhecida mas o farmaco NAO esta na REMUME;
+     *   - a marca foi reconhecida e traduzida (mostra de onde veio);
+     *   - a busca precisou corrigir o que foi digitado. */
+    refs.hint.hidden = false;
+    if (resultado.naoConsta) {
+      refs.hint.className = "rm-hint rm-hint-alerta";
+      refs.hint.textContent =
+        resultado.marca.marca + " (" + resultado.marca.principioAtivo +
+        ") não consta na REMUME deste município.";
+    } else if (resultado.marca) {
+      refs.hint.className = "rm-hint";
+      refs.hint.textContent =
+        "Mostrando " + resultado.marca.principioAtivo +
+        " — princípio ativo de " + resultado.marca.marca + ".";
+    } else if (resultado.termoReconhecido) {
+      refs.hint.className = "rm-hint";
       refs.hint.textContent = 'Mostrando resultados para "' + resultado.termoReconhecido + '"';
     } else {
       refs.hint.hidden = true;
+      refs.hint.className = "rm-hint";
       refs.hint.textContent = "";
     }
 
@@ -11146,9 +11276,11 @@ function moverFocoResultado(delta) {
     if (filtrados.length === 0) {
       var vazio = document.createElement("li");
       vazio.className = "rm-vazio";
-      vazio.textContent = termo
+      vazio.textContent = resultado.naoConsta
+        ? "Este município não padroniza esse medicamento. Considere uma alternativa que esteja na lista."
+        : termo
         ? 'Nenhum medicamento encontrado para "' + termo + '".'
-        : "Nenhum medicamento cadastrado para este municipio.";
+        : "Nenhum medicamento cadastrado para este município.";
       refs.results.appendChild(vazio);
       return;
     }
