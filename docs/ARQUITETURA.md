@@ -531,6 +531,30 @@ Tampermonkey, que sobrevive a "limpar dados do site". A chave é
 `meeds_assistente_boas_vindas_v1`: o sufixo permite reapresentar de propósito
 numa mudança futura, subindo para `_v2`.
 
+
+**D27 — Um módulo pode não ter tela. O de CID-10 não tem.**
+Ele nasceu com botão no dock e janela própria, e depois ganhou o autocomplete
+dentro do campo do laudo. Ficaram os dois — e um médico com dois caminhos para
+a mesma coisa não escolhe o melhor, ele hesita. O botão saiu.
+O contrato já previa `botao: null`; agora existe um módulo que usa isso de
+verdade, o que é útil como referência: **módulo não é sinônimo de botão**. Este
+existe para servir um campo de outro módulo, via barramento
+(`cid:conectar-campo` / `cid:pronto`), e é invisível até o médico clicar no
+campo certo.
+
+Consequência para quem for criar o oitavo módulo: se a função só faz sentido
+dentro de um formulário que já existe, não crie botão. Anuncie o campo e
+conecte-se a ele.
+
+**D28 — O `<datalist>` nativo é incompatível com autocomplete próprio.**
+Os geradores traziam `<input list="…">` desde a versão original. Quando o
+autocomplete do módulo passou a se acoplar ao mesmo input, o navegador
+continuou desenhando o dropdown dele por cima — dois menus concorrendo, um com
+90 códigos e outro com 14.233. Não há como "coordenar" os dois: o datalist é
+desenhado pelo navegador, fora do alcance do CSS e do JavaScript da página.
+Por isso ele foi removido **dos campos de CID**, e só deles. O datalist de
+*procedimento* continua, porque lá não há autocomplete próprio competindo.
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público

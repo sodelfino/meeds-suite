@@ -25,8 +25,8 @@ real quem faz isso é o `@require` do Tampermonkey.
 
 ## Resultado da última execução
 
-**82 casos, 82 passaram, 0 falharam.** Executado em 31/08/2026 contra
-`dist/meeds-suite.user.js` v2.8.0.
+**100 casos, 100 passaram, 0 falharam.** Executado em 31/08/2026 contra
+`dist/meeds-suite.user.js` v2.9.0.
 
 ### Núcleo, dock e login
 
@@ -131,24 +131,6 @@ real quem faz isso é o `@require` do Tampermonkey.
 > A checagem é repetida em 4s, 10s, 20s e 45s — uma checagem única perderia
 > esse caso.
 
-### Busca de CID-10 *(novo)*
-
-| # | O que verifica | Resultado |
-|---|---|---|
-| 49 | Base completa (14.233 códigos) baixa da internet | ✅ |
-| 50 | Sem internet, o fallback embutido (90 códigos) segura | ✅ |
-| 51 | "enxaqueca" → G43; "diabetes" → E10; "dpoc" → J44.0 | ✅ |
-| 52 | "AVC" (sigla) → I64 Acidente Vascular Cerebral | ✅ |
-| 53 | "dor lombar" → M54.5, e não uma lista de cefaleias | ✅ |
-| 54 | "dor de cabeça" → Cefaleia, e não "Deformidades…" | ✅ |
-| 55 | "Usar" preenche o CID no laudo que está aberto | ✅ |
-| 56 | REMUME não regrediu depois de o motor virar núcleo | ✅ |
-
-> Os testes 52–54 existem porque cada um deles **falhou** durante a
-> implementação, por um motivo diferente: sinônimo curto casando dentro de
-> outra palavra ("iam" em "tiamina"), gatilho por substring ("pressao"
-> ativando "depressao") e palavra vazia pontuando ("de" em "deformidades").
-> São casos de regressão — não remova.
 
 ### Aviso de atualização *(novo)*
 
@@ -302,6 +284,70 @@ antes e depois da otimização:
 
 > O teste 79 é a regressão que motivou a correção: fechar clicando fora era o
 > único caminho que não gravava nada, e era o mais natural de todos.
+
+
+### CID-10 dentro do campo do laudo *(reescrito na v2.9.0)*
+
+A busca de CID **não tem mais tela própria**. Ela existe apenas no campo
+CID-10 dos geradores. Os casos abaixo cobrem os critérios de aceite do escopo
+contextual.
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 87 | O dock **não** tem mais entrada de CID | ✅ 7 botões, nenhum de CID |
+| 88 | Não existe overlay global de CID | ✅ `.cid-modal` não existe |
+| 89 | Campo do APAC busca por código ("J06.9") | ✅ |
+| 90 | Campo do APAC busca por código sem ponto ("J069") | ✅ casamento exato |
+| 91 | Campo do APAC busca por texto ("enxaqueca") | ✅ G43 em primeiro |
+| 92 | Campo de Sete Lagoas por código e por texto | ✅ I10 / M54.5 |
+| 93 | Campo de CMD por código e por texto | ✅ I10 / M54.5 |
+| 94 | Selecionar preenche **código e descrição** | ✅ nos três geradores |
+| 95 | A lista fecha ao escolher e **não reabre** | ✅ |
+| 96 | Teclado: ↑ ↓ movem, Enter escolhe, Esc fecha | ✅ |
+| 97 | Um único autocomplete por campo (sem datalist) | ✅ `list=null` |
+| 98 | Buscar **não** dispara chamada de rede | ✅ 0 chamadas |
+| 99 | Módulo desativado devolve o campo ao original | ✅ sem wrap, sem lista, sem marca, sem estilo; placeholder restaurado |
+| 100 | O índice **não** é reconstruído a cada tecla | ✅ 0 reconstruções em 3 teclas |
+
+> O teste **99** confere resíduo por resíduo, porque desligar um módulo tem que
+> devolver a tela ao estado anterior: `.cid-campo-wrap`, `.cid-sug`, a marca
+> `__cidConectado`, o `<style>` do autocomplete e o `placeholder` original.
+
+#### Desempenho (v2.9.0)
+
+Medido no motor, sobre a base completa de **14.233 códigos**, sem UI:
+
+| Operação | Tempo |
+|---|---|
+| Montagem do índice (uma vez, sob demanda) | 369 ms |
+| Busca "diabetes" | 8 ms |
+| Busca "enxaqueca" | 10 ms |
+| Busca "J06.9" | 10 ms |
+| Busca "dia" (prefixo curto) | 6 ms |
+| Busca "dor lombar" | 3 ms |
+| Busca sem resultado ("abc", "xyz") | 11–19 ms |
+
+Equivalente ao medido na v2.8.0 — a mudança de escopo não custou desempenho.
+O índice continua sendo montado **uma vez**, sob demanda, e o debounce de
+180 ms segue no lugar.
+
+Para repetir a medição:
+
+```js
+const B = window.MeedsSuiteBusca;
+const cids = (await (await fetch("/dados/cid10.json")).json()).cids;
+const t0 = performance.now();
+const idx = B.criarIndice(
+  Object.keys(cids).map(c => ({ codigo: c, descricao: cids[c] })),
+  i => i.codigo + " " + i.codigo.replace(/[^A-Za-z0-9]/g, "") + " " + i.descricao
+);
+console.log("índice:", Math.round(performance.now() - t0), "ms");
+["diabetes","enxaqueca","J06.9","dia"].forEach(t => {
+  const a = performance.now();
+  B.buscar(t, idx, { limite: 8 });
+  console.log(t, Math.round(performance.now() - a), "ms");
+});
+```
 
 
 ### Extensibilidade
