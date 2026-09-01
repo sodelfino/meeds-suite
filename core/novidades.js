@@ -36,31 +36,28 @@
   var overlay = null;
   var ctx = null;
 
-  function temGM() {
-    return typeof GM_getValue === "function" && typeof GM_setValue === "function";
+  /* Caminho duravel unico — ver core/storage.js. No iPad isto e o que
+   * impede o "o que mudou" de reaparecer a cada login. */
+  var portaVersao = null;
+  function porta() {
+    if (!portaVersao) {
+      portaVersao = raiz.MeedsSuiteStorage.duravel(CHAVE_VERSAO_VISTA, "meeds-suite:" + CHAVE_VERSAO_VISTA);
+    }
+    return portaVersao;
   }
 
   function lerVersaoVista() {
-    try {
-      if (temGM()) {
-        var v = GM_getValue(CHAVE_VERSAO_VISTA, undefined);
-        return v === undefined ? null : v;
-      }
-    } catch (e) {}
-    try {
-      return localStorage.getItem("meeds-suite:" + CHAVE_VERSAO_VISTA);
-    } catch (e) {
-      return null;
-    }
+    var v = porta().ler(null);
+    return v === undefined ? null : v;
   }
 
   function gravarVersaoVista(versao) {
+    porta().gravar(versao);
+    /* O sinal entre abas CONTINUA no localStorage de proposito: e ele
+     * que dispara o evento "storage" nas outras abas, coisa que nem o
+     * GM nem o IndexedDB fazem. E efemero e da mesma sessao, entao o
+     * logout levar junto nao custa nada. */
     try {
-      if (temGM()) GM_setValue(CHAVE_VERSAO_VISTA, versao);
-    } catch (e) {}
-    try {
-      localStorage.setItem("meeds-suite:" + CHAVE_VERSAO_VISTA, versao);
-      // sinaliza as outras abas
       localStorage.setItem(CHAVE_SINAL_ABAS, versao + "|" + Date.now());
     } catch (e) {}
   }

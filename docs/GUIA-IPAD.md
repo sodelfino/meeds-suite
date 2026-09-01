@@ -84,15 +84,25 @@ Quase nada. Três diferenças, todas explicadas:
 
 ### O cadastro fica no armazenamento do Safari
 
-No computador, o cadastro de médicos fica guardado pelo Tampermonkey e
-sobrevive até a "limpar dados do site". No iPad, ele fica no armazenamento do
-próprio Safari.
+No computador, o cadastro de médicos fica guardado pelo Tampermonkey. No iPad,
+onde essa API não existe, ele fica num banco do próprio Safari (IndexedDB).
 
-Na prática: **limpar histórico e dados de sites no Safari apaga o cadastro.**
+**Sair do Meeds não apaga nada** — nem o cadastro, nem o histórico, nem quais
+funções você deixou ligadas. Até a v2.14.0 apagava, e era um incômodo real: o
+médico se recadastrava a cada plantão.
 
-Não é grave, mas vale saber: se você faz isso com frequência, use o
-⚙️ → **Médicos** → **Fazer backup** e guarde o arquivo. Restaurar leva dez
-segundos.
+Duas coisas ainda apagam, e não há como o script impedir:
+
+- **Limpar histórico e dados de sites** no Safari.
+- **Ficar sete dias sem abrir o Meeds** nesse iPad. É uma política de privacidade
+  do próprio Safari, que descarta armazenamento de sites sem uso recente. Para
+  quem abre no plantão isso nunca dispara; depois de férias longas, dispara.
+
+Se algum dos dois for o seu caso, use ⚙️ → **Médicos** → **Fazer backup** e
+guarde o arquivo. Restaurar leva dez segundos.
+
+Para conferir a qualquer momento: ⚙️ → **Sobre** diz se as configurações estão
+sendo salvas de forma permanente neste navegador.
 
 ### A prévia do documento não aparece
 
@@ -125,9 +135,14 @@ E é dessas chamadas que dependem o alarme de fila, o preenchimento automático
 dos dados do paciente na APAC e a detecção do município no REMUME. Ou seja:
 pedir o armazenamento durável custaria três funções.
 
-A versão do iPad opta pelo contrário — `@grant none` e `@inject-into page`.
-Fica no contexto da página, enxerga a rede, e usa o armazenamento comum do
-Safari para o cadastro. Foi a troca certa: cadastro se refaz em um minuto e tem
+A versão do iPad opta pelo contrário — `@grant none` e `@inject-into auto`.
+Não pede nada ao gerenciador, e por isso pode ficar no contexto da página e
+enxergar a rede. O armazenamento durável, que era o que se perdia nessa troca,
+foi recuperado por outro caminho desde a v2.15.0: um banco do próprio Safari
+(IndexedDB), carregado uma vez quando o Assistente sobe. Ou seja, hoje não há
+mais troca a fazer — as três funções e o cadastro convivem.
+O texto abaixo descreve o raciocínio original, quando a troca ainda existia:
+cadastro se refaz em um minuto e tem
 backup; alarme cego, não.
 
 **2. As funções do gerenciador são assíncronas.**

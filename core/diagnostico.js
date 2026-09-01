@@ -55,17 +55,22 @@
   var VALOR_CONCLUIDO = "concluido";
   var CHAVE_ANTIGA_BOAS_VINDAS = "meeds-suite:_core:boasVindas";
 
-  function temGM() {
-    return typeof GM_getValue === "function" && typeof GM_setValue === "function";
+  /* Caminho duravel unico — ver core/storage.js. A chave local aqui NAO
+   * tem o prefixo "meeds-suite:" (e anterior a ele) e por isso escapa da
+   * varredura de migracao do boot; quem a traz para o duravel e a
+   * promocao na leitura, dentro do proprio storage. */
+  var portaBoasVindas = null;
+  function porta() {
+    if (!portaBoasVindas) {
+      portaBoasVindas = raiz.MeedsSuiteStorage.duravel(CHAVE_BOAS_VINDAS, CHAVE_BOAS_VINDAS);
+    }
+    return portaBoasVindas;
   }
 
   function boasVindasConcluidas() {
+    if (porta().ler(null) === VALOR_CONCLUIDO) return true;
     try {
-      if (temGM() && GM_getValue(CHAVE_BOAS_VINDAS, null) === VALOR_CONCLUIDO) return true;
-    } catch (e) {}
-    try {
-      if (localStorage.getItem(CHAVE_BOAS_VINDAS) === VALOR_CONCLUIDO) return true;
-      // quem ja tinha visto na versao anterior nao ve de novo
+      // quem ja tinha visto numa versao anterior nao ve de novo
       if (localStorage.getItem(CHAVE_ANTIGA_BOAS_VINDAS) === '"vista"') {
         marcarBoasVindasConcluidas();
         return true;
@@ -75,12 +80,7 @@
   }
 
   function marcarBoasVindasConcluidas() {
-    try {
-      if (temGM()) GM_setValue(CHAVE_BOAS_VINDAS, VALOR_CONCLUIDO);
-    } catch (e) {}
-    try {
-      localStorage.setItem(CHAVE_BOAS_VINDAS, VALOR_CONCLUIDO);
-    } catch (e) {}
+    porta().gravar(VALOR_CONCLUIDO);
   }
 
   /* ------------------------------------------------------------------
@@ -233,7 +233,10 @@
         '  <button type="button" class="msd-fechar" aria-label="Fechar">&#10005;</button></header>' +
         '  <div class="msd-corpo">' +
         "    <p>Os botões ficam no <b>canto inferior direito</b> da tela e só aparecem depois que você entra no Meeds.</p>" +
-        "    <p>O botão <b>⚙️</b>, o menor de todos, embaixo da pilha, é onde você:</p>" +
+        "    <p>Se ocuparem espaço demais, o botão <b>✕</b> lá embaixo recolhe todos. Com eles recolhidos, " +
+        "       basta aproximar o mouse do canto (ou tocar no <b>☰</b>, no iPad) para eles voltarem. " +
+        "       Se a fila de espera encher, o alarme aparece sozinho mesmo recolhido.</p>" +
+        "    <p>O botão <b>⚙️</b> é onde você:</p>" +
         "    <ul>" +
         "      <li><b>liga e desliga</b> cada função — deixe só as que você usa;</li>" +
         "      <li><b>cadastra seu nome e CRM</b>, uma única vez, para os laudos.</li>" +

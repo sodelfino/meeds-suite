@@ -250,10 +250,26 @@
       var linha = overlay.$("#msm-escopo");
       var diag = raiz.MeedsSuiteDiagnostico;
       if (!linha || !diag || !diag.escopoDeExecucao) return;
-      linha.textContent =
+      var partes = [
         diag.escopoDeExecucao() === "pagina"
           ? "Funcionando com todos os sinais"
-          : "Modo restrito: o navegador isolou o Assistente, então o alarme de fila decide só pelo que aparece na tela";
+          : "Modo restrito: o navegador isolou o Assistente, então o alarme de fila decide só pelo que aparece na tela",
+      ];
+
+      /* A segunda metade da mesma pergunta. "Sumiu meu cadastro" e
+       * "voltaram todos os botoes" tem a mesma causa raiz — o dado nao
+       * estava num lugar que sobrevive ao logout — e ate agora nao havia
+       * como saber isso sem abrir o console. */
+      var onde = raiz.MeedsSuiteStorage && raiz.MeedsSuiteStorage.ondeEstaGuardado
+        ? raiz.MeedsSuiteStorage.ondeEstaGuardado()
+        : null;
+      if (onde === "sessao") {
+        partes.push("Atenção: suas configurações e o cadastro podem se perder ao sair do Meeds neste navegador");
+      } else if (onde) {
+        partes.push("Configurações e cadastro ficam salvos mesmo depois de você sair");
+      }
+
+      linha.innerHTML = partes.map(escapeHtml).join(" · ");
     })();
 
     overlay.$$(".msm-aba").forEach(function (btn) {

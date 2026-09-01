@@ -426,6 +426,8 @@
     Dock.definirVisibilidadeGeral(Auth.estaLogado());
   }
 
+  var carregouPreferencias = false;
+
   function iniciar(opcoes) {
     if (iniciado) return;
     opcoes = opcoes || {};
@@ -436,11 +438,39 @@
       return;
     }
 
+    /* No Safari/iPad as preferencias vivem no IndexedDB, que e
+     * assincrono. Nenhum modulo pode subir antes de elas estarem em
+     * memoria: quem le um cache vazio acha que nunca foi configurado e
+     * liga sozinho — exatamente o bug que estamos consertando.
+     *
+     * No Tampermonkey isto resolve no mesmo instante (a leitura ja e
+     * sincrona), entao o boot nao fica mais lento la. */
+    if (!carregouPreferencias) {
+      Storage.carregar()
+        .catch(function (e) {
+          console.warn("[Assistente Meeds] preferencias nao carregaram, usando padroes.", e);
+        })
+        .then(function () {
+          carregouPreferencias = true;
+          iniciar(opcoes);
+        });
+      return;
+    }
+
     storageNucleo = Storage.storageDoNucleo();
     Dock.garantirHost();
     /* Segunda camada contra dock duplicado: se sobrou um host de uma
      * execucao anterior (SPA que remontou a pagina), remove o orfao. */
     raiz.MeedsSuiteDiagnostico.limparDockOrfao("meeds-suite-dock-host");
+
+    /* Estado da caixa de botoes. Fica no mesmo armazenamento duravel
+     * das outras preferencias, entao sobrevive ao logout — recolheu,
+     * volta recolhido. Padrao: aberta, para quem nunca mexeu nao
+     * estranhar a tela. */
+    Dock.definirRecolhido(storageNucleo.ler("dock_recolhido", false) === true);
+    Dock.aoAlternarRecolhido(function (valor) {
+      storageNucleo.gravar("dock_recolhido", !!valor);
+    });
 
     // engrenagem: SEMPRE presente, mesmo com todos os modulos desligados
     /* MIGRACAO DO CADASTRO — roda antes de qualquer modulo subir, para

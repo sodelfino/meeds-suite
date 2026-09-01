@@ -700,10 +700,53 @@ onde moram. Quem já tinha preferência salva não perde nada: a migração copi
 para o durável na primeira leitura, e só apaga a cópia antiga **depois** de
 confirmar que a gravação deu certo (a ordem inversa trocaria um incômodo por uma
 perda).
-Pendência assumida: no Safari/iPad não existe `GM_setValue` (ver D38), então lá
-o problema do logout continua. Resolver exigiria IndexedDB e uma API de leitura
-assíncrona, mudando a assinatura usada por todos os módulos. Fica registrado
-como pendência, não como esquecimento.
+Pendência aberta na v2.14.0 e **resolvida na v2.15.0** — ver D42.
+
+**D42 — No iPad, IndexedDB por trás de uma API que continua síncrona.**
+A D41 deixou o Safari de fora porque `GM_setValue` não existe lá e o
+substituto natural, o IndexedDB, é assíncrono — enquanto `storage.ler()` é
+síncrono e é chamado por todos os módulos dentro de `start()`. Tornar a leitura
+assíncrona resolveria o armazenamento mexendo na assinatura do contrato de
+módulo, ou seja, alterando código que funciona para consertar outra coisa.
+A saída foi inverter onde a espera acontece: **carrega tudo uma vez no boot** e
+serve de memória depois; só a escrita vai ao disco em segundo plano. O núcleo
+passou a aguardar `Storage.carregar()` antes de subir o primeiro módulo — e essa
+ordem não é detalhe: um módulo que leia o cache vazio conclui que nunca foi
+configurado e liga sozinho, que é o bug original de volta.
+Onde há `GM_setValue`, nada disso entra em cena: o caminho segue síncrono.
+
+**D43 — Um caminho durável, não cinco.**
+`cadastro.js`, `historico.js`, `novidades.js` e `diagnostico.js` tinham **cada
+um** a sua cópia do par "GM se existir, senão localStorage". No Tampermonkey os
+cinco funcionavam, então a duplicação passou despercebida por doze versões. No
+iPad, onde não há GM, os quatro caíam no `localStorage` — e o logout levava
+junto o cadastro dos médicos, o histórico de laudos e a marca de "já vi as
+boas-vindas". O sintoma que o médico relatou (botões voltando) era a ponta
+visível de um problema que apagava coisa bem mais cara.
+Agora existe `Storage.duravel(chaveGM, chaveLocal)` e os quatro usam ele.
+**A camada aceita um par de chaves de propósito**: as preferências por módulo
+sempre usaram a chave com prefixo também no GM, enquanto o cadastro usa
+`"medicos"` pelado. Unificar agora faria um médico atualizar e não encontrar o
+próprio cadastro — exatamente o que a regra de chave fixa e imutável (D11)
+existe para impedir.
+A migração acontece em dois momentos: uma varredura no boot para as chaves com
+prefixo, e uma **promoção na leitura** para as demais. A segunda não é redundante
+— a marca das boas-vindas é anterior ao prefixo e é escrita uma vez e depois só
+lida, então sem ela nunca migraria e seria apagada no logout seguinte.
+
+**D44 — A caixa de botões recolhe, e o alarme escapa dela.**
+Com as sete funções ligadas, a pilha ocupava boa parte da lateral direita. A
+alça no canto recolhe tudo; no computador, aproximar o mouse já reabre (zero
+clique, premissa A), e no iPad é um toque — a diferença é feita por
+`@media (hover: hover) and (pointer: fine)`, sem código condicional.
+Duas regras não são preferência: **botão em alerta não se esconde** (se a fila
+encheu, o alarme sai da caixa e continua piscando — esconder um alerta é o
+oposto do que ele existe para fazer), e a engrenagem recolhe junto com o resto,
+porque mantê-la fora anularia metade do ganho de espaço.
+Detalhe de CSS que custou um bug: a regra que reabre no hover precisa repetir os
+`:not()` da regra que esconde, senão perde em especificidade e o hover não abre
+nada. E precisa de `:not([hidden])`, senão ressuscita botões que o próprio
+módulo desligou.
 
 ---
 

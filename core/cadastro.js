@@ -47,56 +47,25 @@
 
   var VERSAO_ESTRUTURA = 1;
 
-  function temGM() {
-    return typeof GM_getValue === "function" && typeof GM_setValue === "function";
+  /* Uma linha por chave, e o resto e problema de core/storage.js:
+   * ele decide entre GM (Tampermonkey) e IndexedDB (Safari/iPad) e
+   * migra o que ficou no localStorage. Este arquivo tinha a sua propria
+   * copia dessa logica ate a v2.14.0, e era ela que fazia o cadastro
+   * evaporar no logout do iPad. */
+  function porta(chave) {
+    return raiz.MeedsSuiteStorage.duravel(chave, "meeds-suite:" + chave);
   }
 
   function lerBruto(chave, padrao) {
-    try {
-      if (temGM()) {
-        var v = GM_getValue(chave, undefined);
-        return v === undefined ? padrao : v;
-      }
-    } catch (e) {
-      /* cai para o localStorage */
-    }
-    try {
-      var cru = localStorage.getItem("meeds-suite:" + chave);
-      return cru === null ? padrao : JSON.parse(cru);
-    } catch (e) {
-      return padrao;
-    }
+    return porta(chave).ler(padrao);
   }
 
   function gravarBruto(chave, valor) {
-    try {
-      if (temGM()) {
-        GM_setValue(chave, valor);
-        return true;
-      }
-    } catch (e) {
-      /* cai para o localStorage */
-    }
-    try {
-      localStorage.setItem("meeds-suite:" + chave, JSON.stringify(valor));
-      return true;
-    } catch (e) {
-      return false;
-    }
+    return porta(chave).gravar(valor);
   }
 
   function apagarBruto(chave) {
-    try {
-      if (typeof GM_deleteValue === "function") GM_deleteValue(chave);
-      else if (temGM()) GM_setValue(chave, undefined);
-    } catch (e) {
-      /* silencioso */
-    }
-    try {
-      localStorage.removeItem("meeds-suite:" + chave);
-    } catch (e) {
-      /* silencioso */
-    }
+    porta(chave).remover();
   }
 
   /* --- normalizacao de uma ficha ---
@@ -435,6 +404,5 @@
     adicionarEstabelecimento: adicionarEstabelecimento,
     removerEstabelecimento: removerEstabelecimento,
     semearEstabelecimentos: semearEstabelecimentos,
-    usandoArmazenamentoDoTampermonkey: temGM,
   };
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);

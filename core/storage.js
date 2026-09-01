@@ -29,12 +29,29 @@
  * localStorage nao perde nada: migrarSeNecessario() copia para o GM na
  * primeira leitura.
  *
- * LIMITACAO CONHECIDA (Safari/iPad): la o script roda com @grant none e
- * nao existe GM_setValue, entao continua valendo o localStorage e o
- * problema do logout permanece. Resolver isso exige um armazenamento
- * assincrono (IndexedDB) e uma API de leitura assincrona, o que mudaria
- * a assinatura usada por todos os modulos. Fica registrado como
- * pendencia, nao como esquecimento.
+ * E NO SAFARI/iPAD (v2.15.0)
+ * La o script roda com @grant none e GM_setValue nao existe (ver D38).
+ * O substituto e o IndexedDB, que e armazenamento separado do
+ * localStorage e por isso NAO cai junto no logout do Meeds.
+ *
+ * O IndexedDB e assincrono e este `ler()` e sincrono — usado por todos
+ * os modulos dentro de start(). Tornar tudo assincrono mudaria a
+ * assinatura do contrato de modulo, ou seja, mexeria em codigo que hoje
+ * funciona, para resolver um problema que e de armazenamento. Em vez
+ * disso: CARREGA UMA VEZ NO BOOT e serve de memoria depois. A escrita e
+ * que vai para o disco em segundo plano.
+ *
+ * O preco disso e uma regra que o nucleo precisa respeitar:
+ * `carregar()` tem que terminar ANTES do primeiro modulo subir, senao o
+ * modulo le um cache vazio e liga sozinho. E o que core.user.js faz.
+ *
+ * Onde ha GM_setValue (Tampermonkey), nada disso entra em cena: o
+ * caminho continua sincrono e direto, como sempre foi.
+ *
+ * LIMITACAO QUE PERMANECE: o Safari apaga armazenamento de sites que
+ * ficam 7 dias sem uso. Para quem abre o Meeds no plantao isso nunca
+ * dispara, mas depois de umas ferias longas a configuracao volta ao
+ * padrao. Nao ha como contornar pelo script — e politica do navegador.
  * ------------------------------------------------------------------ */
 (function (raiz) {
   "use strict";
@@ -134,12 +151,139 @@
     return antigo;
   }
 
+  /* ---- camada do IndexedDB (Safari/iPad, onde nao ha GM) ----
+   *
+   * So entra em cena quando temGM() e falso. O cache em memoria e a
+   * fonte que `ler()` consulta; o IndexedDB e o disco por tras dele. */
+
+  var BANCO = "meeds-suite";
+  var DEPOSITO = "preferencias";
+  var cache = null; /* null = ainda nao carregado */
+  var bancoAberto = null;
+
+  function abrirBanco() {
+    if (bancoAberto) return bancoAberto;
+    bancoAberto = new Promise(function (resolver) {
+      var idb = typeof indexedDB !== "undefined" ? indexedDB : null;
+      if (!idb) return resolver(null);
+      var req;
+      try {
+        req = idb.open(BANCO, 1);
+      } catch (e) {
+        return resolver(null);
+      }
+      req.onupgradeneeded = function () {
+        try {
+          if (!req.result.objectStoreNames.contains(DEPOSITO)) req.result.createObjectStore(DEPOSITO);
+        } catch (e) {
+          /* silencioso: resolve como null adiante */
+        }
+      };
+      req.onsuccess = function () {
+        resolver(req.result);
+      };
+      req.onerror = function () {
+        resolver(null);
+      };
+      /* Navegacao privada no Safari pode deixar a requisicao pendurada
+       * sem sucesso nem erro. Sem este limite, o nucleo nunca subiria —
+       * o Assistente ficaria invisivel, que e pior que nao ser
+       * duravel. */
+      setTimeout(function () {
+        resolver(null);
+      }, 3000);
+    });
+    return bancoAberto;
+  }
+
+  function gravarNoBanco(chave, valor) {
+    abrirBanco().then(function (db) {
+      if (!db) return;
+      try {
+        var tx = db.transaction(DEPOSITO, "readwrite");
+        tx.objectStore(DEPOSITO).put(valor, chave);
+      } catch (e) {
+        /* preferencia nao persistiu; o cache em memoria segue valendo
+         * ate o fim da sessao */
+      }
+    });
+  }
+
+  function apagarDoBanco(chave) {
+    abrirBanco().then(function (db) {
+      if (!db) return;
+      try {
+        db.transaction(DEPOSITO, "readwrite").objectStore(DEPOSITO)["delete"](chave);
+      } catch (e) {
+        /* silencioso */
+      }
+    });
+  }
+
+  /* Le TUDO para a memoria e migra o que tiver ficado no localStorage.
+   * Devolve uma Promise que o nucleo espera antes de subir modulo. */
+  function carregar() {
+    if (cache) return Promise.resolve();
+    if (temGM()) {
+      /* Caminho do Tampermonkey: leitura sincrona, sem cache. */
+      cache = null;
+      return Promise.resolve();
+    }
+    return abrirBanco().then(function (db) {
+      var mapa = {};
+      return new Promise(function (resolver) {
+        if (!db) return resolver(mapa);
+        var req;
+        try {
+          req = db.transaction(DEPOSITO, "readonly").objectStore(DEPOSITO).openCursor();
+        } catch (e) {
+          return resolver(mapa);
+        }
+        req.onsuccess = function () {
+          var c = req.result;
+          if (!c) return resolver(mapa);
+          mapa[c.key] = c.value;
+          c["continue"]();
+        };
+        req.onerror = function () {
+          resolver(mapa);
+        };
+      });
+    }).then(function (mapa) {
+      cache = mapa;
+      migrarLocalParaBanco();
+    });
+  }
+
+  /* Quem ja usava o Assistente no iPad tem preferencia no localStorage.
+   * Copia para o banco o que ainda nao esta la — e, como na migracao do
+   * Tampermonkey, so limpa a origem depois de a copia existir. */
+  function migrarLocalParaBanco() {
+    var pendentes = [];
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf(PREFIXO) === 0 && !Object.prototype.hasOwnProperty.call(cache, k)) pendentes.push(k);
+      }
+    } catch (e) {
+      return;
+    }
+    pendentes.forEach(function (k) {
+      var v = lerLocal(k, VAZIO);
+      if (ehVazio(v)) return;
+      cache[k] = v;
+      gravarNoBanco(k, v);
+      removerLocal(k);
+    });
+  }
+
   /* ---- API interna usada pelos storages por modulo ---- */
 
   function lerBruto(chave, padrao) {
     var valor = migrarSeNecessario(chave);
     if (!ehVazio(valor)) return valor;
-    /* sem GM (Safari/iPad) ou nada gravado ainda: cai para o site */
+    /* Safari/iPad: o cache foi preenchido por carregar() no boot. */
+    if (cache && Object.prototype.hasOwnProperty.call(cache, chave)) return cache[chave];
     return lerLocal(chave, padrao);
   }
 
@@ -148,6 +292,14 @@
       /* Uma unica fonte de verdade. Se sobrasse copia no localStorage,
        * ela viraria um valor fantasma esperando o dia em que o GM
        * falhasse para ressuscitar uma preferencia antiga. */
+      removerLocal(chave);
+      return true;
+    }
+    if (cache) {
+      /* Grava na memoria AGORA e no disco em segundo plano: a proxima
+       * leitura desta sessao nao pode depender do banco ter respondido. */
+      cache[chave] = valor;
+      gravarNoBanco(chave, valor);
       removerLocal(chave);
       return true;
     }
@@ -162,6 +314,10 @@
       } catch (e) {
         /* silencioso */
       }
+    }
+    if (cache) {
+      delete cache[chave];
+      apagarDoBanco(chave);
     }
     removerLocal(chave);
   }
@@ -214,9 +370,100 @@
     };
   }
 
+  /* ------------------------------------------------------------------
+   * ARMAZENAMENTO DURAVEL COMPARTILHADO
+   * ------------------------------------------------------------------
+   * Ate a v2.14.0 cadastro.js, historico.js, novidades.js e
+   * diagnostico.js tinham CADA UM a sua copia do par "GM se existir,
+   * senao localStorage". No Tampermonkey isso funcionava, entao a
+   * duplicacao passou despercebida. No iPad nao ha GM: os quatro caiam
+   * no localStorage, e o logout do Meeds levava junto o cadastro de
+   * medicos, o historico e ate a marca de "ja vi as boas-vindas".
+   *
+   * Agora existe um caminho so, e e este. Quem precisa de durabilidade
+   * pede um `duravel(chaveGM, chaveLocal)` e esquece onde o dado mora.
+   *
+   * POR QUE DUAS CHAVES. Os dois formatos ja existem no navegador dos
+   * medicos e nao podem mudar: as preferencias por modulo sempre usaram
+   * a chave COM prefixo tambem no GM, enquanto o cadastro usa "medicos"
+   * pelado no GM e "meeds-suite:medicos" no localStorage. Unificar
+   * agora significaria um medico abrir o Assistente e nao encontrar o
+   * proprio cadastro — que e exatamente o que a regra de chave fixa e
+   * imutavel existe para impedir. Entao a camada aceita o par.
+   * ------------------------------------------------------------------ */
+  function duravel(chaveGM, chaveLocal) {
+    return {
+      ler: function (padrao) {
+        if (temGM()) {
+          var v = lerDuravel(chaveGM);
+          if (!ehVazio(v)) return v;
+        }
+        if (cache && Object.prototype.hasOwnProperty.call(cache, chaveLocal)) return cache[chaveLocal];
+
+        var antigo = lerLocal(chaveLocal, VAZIO);
+        if (ehVazio(antigo)) return padrao;
+
+        /* Achou so no localStorage: promove para o duravel AGORA. Sem
+         * isto, um dado que e escrito uma vez e depois so lido — a marca
+         * de "ja vi as boas-vindas" e o caso exato — nunca migraria, e
+         * seria apagado no proximo logout. Migrar na leitura resolve
+         * para qualquer chave, inclusive as que nao usam o prefixo e
+         * portanto escapam da varredura do boot. */
+        if (cache) {
+          cache[chaveLocal] = antigo;
+          gravarNoBanco(chaveLocal, antigo);
+          removerLocal(chaveLocal);
+        } else if (gravarDuravel(chaveGM, antigo)) {
+          removerLocal(chaveLocal);
+        }
+        return antigo;
+      },
+
+      gravar: function (valor) {
+        if (gravarDuravel(chaveGM, valor)) {
+          removerLocal(chaveLocal);
+          return true;
+        }
+        if (cache) {
+          cache[chaveLocal] = valor;
+          gravarNoBanco(chaveLocal, valor);
+          removerLocal(chaveLocal);
+          return true;
+        }
+        return gravarLocal(chaveLocal, valor);
+      },
+
+      remover: function () {
+        if (temGM()) {
+          try {
+            if (typeof GM_deleteValue === "function") GM_deleteValue(chaveGM);
+          } catch (e) {
+            /* silencioso */
+          }
+        }
+        if (cache) {
+          delete cache[chaveLocal];
+          apagarDoBanco(chaveLocal);
+        }
+        removerLocal(chaveLocal);
+      },
+    };
+  }
+
+  /* Uma frase para o painel "Sobre". Diagnosticar "sumiu minha
+   * configuracao" a distancia depende de saber isto primeiro. */
+  function ondeEstaGuardado() {
+    if (temGM()) return "duravel";           /* Tampermonkey */
+    if (cache && bancoAberto) return "banco"; /* IndexedDB (Safari/iPad) */
+    return "sessao";                          /* so localStorage: cai no logout */
+  }
+
   raiz.MeedsSuiteStorage = {
     criarStorage: criarStorage,
     storageDoNucleo: storageDoNucleo,
+    carregar: carregar,
+    duravel: duravel,
+    ondeEstaGuardado: ondeEstaGuardado,
     PREFIXO: PREFIXO,
   };
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);

@@ -39,6 +39,9 @@
   var elToast = null;
   var elAvisos = null;
   var botoes = []; // { id, prioridade, el, visivel }
+  var elAlca = null;
+  var recolhido = false;
+  var aoAlternar = null;
   var timerToast = null;
 
   var ESTILOS = [
@@ -73,6 +76,39 @@
     "  box-shadow: 0 2px 10px rgba(15,23,42,.22);",
     "}",
     ".ms-btn.ms-btn-engrenagem:hover { background: #f1f5f9; }",
+
+    /* --- caixa recolhida ---------------------------------------------
+     * Com todas as funcoes ligadas a pilha ocupa boa parte da lateral.
+     * Recolhida, sobra uma alca no canto e o resto da tela e do medico.
+     *
+     * Tres regras, e a ordem entre elas importa:
+     *
+     * 1. Recolhido esconde os botoes — MENOS o que estiver em alerta.
+     *    Se a fila encheu, o alarme sai da caixa e continua piscando.
+     *    Esconder um alerta e o oposto do que ele existe para fazer.
+     *
+     * 2. No computador, passar o mouse perto do canto ja abre: zero
+     *    clique. O `@media (hover:hover) and (pointer:fine)` e o que
+     *    impede isso de valer no iPad, onde "hover" e um toque preso e
+     *    a caixa abriria sozinha ao rolar a tela.
+     *
+     * 3. Botao escondido por um modulo (`[hidden]`) continua escondido
+     *    mesmo com o mouse por cima. A regra abaixo carrega o #dock so
+     *    para ganhar da regra de hover na especificidade — sem isso, o
+     *    hover ressuscitaria botoes que o modulo desligou. */
+    ".ms-alca { width: 44px; height: 44px; padding: 0; border-radius: 50%; font-size: 17px;",
+    "  background: #fff; color: #334155; border: 1px solid #e2e8f0;",
+    "  box-shadow: 0 2px 10px rgba(15,23,42,.22); }",
+    ".ms-alca:hover { background: #f1f5f9; }",
+    "#dock.ms-recolhido .ms-btn:not(.ms-alca):not(.ms-ativo) { display: none; }",
+    "@media (hover: hover) and (pointer: fine) {",
+    /* Os :not() repetidos nao sao enfeite: sem eles esta regra perde em
+     * especificidade para a de esconder logo acima, e o hover nao abre
+     * nada. O :not([hidden]) e o que impede o hover de ressuscitar um
+     * botao que o proprio modulo desligou. */
+    "  #dock.ms-recolhido:hover .ms-btn:not(.ms-alca):not(.ms-ativo):not([hidden]) { display: flex; }",
+    "}",
+    "#dock .ms-btn[hidden] { display: none; }",
 
     /* estado ligado/alerta (usado pelo alarme de fila) */
     ".ms-btn.ms-ativo { background: linear-gradient(135deg, #f97316, #dc2626); box-shadow: 0 4px 18px rgba(220,38,38,.55); animation: ms-pulso 2.2s ease-in-out infinite; }",
@@ -192,6 +228,7 @@
     elDock = document.createElement("div");
     elDock.id = "dock";
     shadow.appendChild(elDock);
+    criarAlca();
 
     elAvisos = document.createElement("div");
     elAvisos.id = "avisos";
@@ -203,6 +240,46 @@
     shadow.appendChild(elToast);
 
     return shadow;
+  }
+
+  /* A alca nao passa por registrarBotao de proposito: ela nao pertence
+   * a modulo nenhum, nao entra na contagem de botoes e precisa ficar
+   * sempre encostada no canto, abaixo de qualquer prioridade. */
+  function criarAlca() {
+    elAlca = document.createElement("button");
+    elAlca.type = "button";
+    elAlca.className = "ms-btn ms-btn-icone ms-alca";
+    elAlca.addEventListener("click", function () {
+      definirRecolhido(!recolhido);
+      if (typeof aoAlternar === "function") aoAlternar(recolhido);
+    });
+    elDock.appendChild(elAlca);
+    pintarAlca();
+  }
+
+  function pintarAlca() {
+    if (!elAlca) return;
+    var escondidos = 0;
+    botoes.forEach(function (b) {
+      if (!b.el.hidden && !b.el.classList.contains("ms-ativo")) escondidos++;
+    });
+    elAlca.textContent = recolhido ? "☰" : "✕";
+    elAlca.title = recolhido
+      ? escondidos === 1
+        ? "Mostrar 1 função"
+        : "Mostrar " + escondidos + " funções"
+      : "Recolher para liberar espaço na tela";
+    elAlca.setAttribute("aria-label", elAlca.title);
+    elAlca.setAttribute("aria-expanded", recolhido ? "false" : "true");
+    /* Recolhido e sem nada para mostrar, a alca so ocuparia espaco. */
+    elAlca.hidden = recolhido && escondidos === 0;
+  }
+
+  function definirRecolhido(valor) {
+    recolhido = !!valor;
+    if (elDock) elDock.classList.toggle("ms-recolhido", recolhido);
+    pintarAlca();
+    reposicionarToast();
   }
 
   /* Reordena o DOM do dock conforme a prioridade declarada. Como o
@@ -217,6 +294,9 @@
     botoes.forEach(function (b) {
       elDock.appendChild(b.el);
     });
+    /* column-reverse: o PRIMEIRO filho e o mais proximo do canto. */
+    if (elAlca) elDock.insertBefore(elAlca, elDock.firstChild);
+    pintarAlca();
     reposicionarToast();
   }
 
@@ -280,6 +360,12 @@
       },
       definirClasse: function (nome, ligado) {
         el.classList.toggle(nome, !!ligado);
+        /* Entrar ou sair de alerta muda quem escapa da caixa recolhida,
+         * e portanto muda a contagem que a alca mostra. */
+        if (nome === "ms-ativo") {
+          pintarAlca();
+          reposicionarToast();
+        }
       },
       /* Contador no canto do botao. Passe 0 (ou nada) para esconder. */
       definirContador: function (n) {
@@ -295,10 +381,12 @@
       },
       mostrar: function () {
         el.hidden = false;
+        pintarAlca();
         reposicionarToast();
       },
       esconder: function () {
         el.hidden = true;
+        pintarAlca();
         reposicionarToast();
       },
       remover: function () {
@@ -535,6 +623,15 @@
     registrarBotao: registrarBotao,
     removerBotao: removerBotao,
     definirVisibilidadeGeral: definirVisibilidadeGeral,
+    /* Quem decide o estado inicial e quem o guarda e o nucleo — o dock
+     * so sabe desenhar. Mesma divisao que vale para posicao de botao. */
+    definirRecolhido: definirRecolhido,
+    estaRecolhido: function () {
+      return recolhido;
+    },
+    aoAlternarRecolhido: function (fn) {
+      aoAlternar = fn;
+    },
     toast: toast,
     criarOverlay: criarOverlay,
     criarBanner: criarBanner,

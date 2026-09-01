@@ -36,38 +36,17 @@
   var PREFIXO = "historico:";
   var LIMITE = 30; // igual ao do APAC original
 
-  function temGM() {
-    return typeof GM_getValue === "function" && typeof GM_setValue === "function";
+  /* Mesmo caminho duravel do cadastro — ver core/storage.js. */
+  function porta(chave) {
+    return raiz.MeedsSuiteStorage.duravel(chave, "meeds-suite:" + chave);
   }
 
   function ler(chave, padrao) {
-    try {
-      if (temGM()) {
-        var v = GM_getValue(chave, undefined);
-        return v === undefined ? padrao : v;
-      }
-    } catch (e) {}
-    try {
-      var cru = localStorage.getItem("meeds-suite:" + chave);
-      return cru === null ? padrao : JSON.parse(cru);
-    } catch (e) {
-      return padrao;
-    }
+    return porta(chave).ler(padrao);
   }
 
   function gravar(chave, valor) {
-    try {
-      if (temGM()) {
-        GM_setValue(chave, valor);
-        return true;
-      }
-    } catch (e) {}
-    try {
-      localStorage.setItem("meeds-suite:" + chave, JSON.stringify(valor));
-      return true;
-    } catch (e) {
-      return false;
-    }
+    return porta(chave).gravar(valor);
   }
 
   /* ------------------------------------------------------------------

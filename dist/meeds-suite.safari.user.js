@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Assistente Meeds para iPad - por Marcelo
 // @namespace    novetech-meeds-suite-safari
-// @version      2.14.0
+// @version      2.15.0
 // @description  Assistente Meeds - Por: Marcelo. Alarme de fila, APAC de Itauna, laudos de Sete Lagoas e Conceicao do Mato Dentro e consulta a REMUME, numa instalacao unica. Cada funcao liga e desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
 // @author       Marcelo
 // @match        *://*.meeds.com.br/*
@@ -80,12 +80,29 @@
  * localStorage nao perde nada: migrarSeNecessario() copia para o GM na
  * primeira leitura.
  *
- * LIMITACAO CONHECIDA (Safari/iPad): la o script roda com @grant none e
- * nao existe GM_setValue, entao continua valendo o localStorage e o
- * problema do logout permanece. Resolver isso exige um armazenamento
- * assincrono (IndexedDB) e uma API de leitura assincrona, o que mudaria
- * a assinatura usada por todos os modulos. Fica registrado como
- * pendencia, nao como esquecimento.
+ * E NO SAFARI/iPAD (v2.15.0)
+ * La o script roda com @grant none e GM_setValue nao existe (ver D38).
+ * O substituto e o IndexedDB, que e armazenamento separado do
+ * localStorage e por isso NAO cai junto no logout do Meeds.
+ *
+ * O IndexedDB e assincrono e este `ler()` e sincrono — usado por todos
+ * os modulos dentro de start(). Tornar tudo assincrono mudaria a
+ * assinatura do contrato de modulo, ou seja, mexeria em codigo que hoje
+ * funciona, para resolver um problema que e de armazenamento. Em vez
+ * disso: CARREGA UMA VEZ NO BOOT e serve de memoria depois. A escrita e
+ * que vai para o disco em segundo plano.
+ *
+ * O preco disso e uma regra que o nucleo precisa respeitar:
+ * `carregar()` tem que terminar ANTES do primeiro modulo subir, senao o
+ * modulo le um cache vazio e liga sozinho. E o que core.user.js faz.
+ *
+ * Onde ha GM_setValue (Tampermonkey), nada disso entra em cena: o
+ * caminho continua sincrono e direto, como sempre foi.
+ *
+ * LIMITACAO QUE PERMANECE: o Safari apaga armazenamento de sites que
+ * ficam 7 dias sem uso. Para quem abre o Meeds no plantao isso nunca
+ * dispara, mas depois de umas ferias longas a configuracao volta ao
+ * padrao. Nao ha como contornar pelo script — e politica do navegador.
  * ------------------------------------------------------------------ */
 (function (raiz) {
   "use strict";
@@ -185,12 +202,139 @@
     return antigo;
   }
 
+  /* ---- camada do IndexedDB (Safari/iPad, onde nao ha GM) ----
+   *
+   * So entra em cena quando temGM() e falso. O cache em memoria e a
+   * fonte que `ler()` consulta; o IndexedDB e o disco por tras dele. */
+
+  var BANCO = "meeds-suite";
+  var DEPOSITO = "preferencias";
+  var cache = null; /* null = ainda nao carregado */
+  var bancoAberto = null;
+
+  function abrirBanco() {
+    if (bancoAberto) return bancoAberto;
+    bancoAberto = new Promise(function (resolver) {
+      var idb = typeof indexedDB !== "undefined" ? indexedDB : null;
+      if (!idb) return resolver(null);
+      var req;
+      try {
+        req = idb.open(BANCO, 1);
+      } catch (e) {
+        return resolver(null);
+      }
+      req.onupgradeneeded = function () {
+        try {
+          if (!req.result.objectStoreNames.contains(DEPOSITO)) req.result.createObjectStore(DEPOSITO);
+        } catch (e) {
+          /* silencioso: resolve como null adiante */
+        }
+      };
+      req.onsuccess = function () {
+        resolver(req.result);
+      };
+      req.onerror = function () {
+        resolver(null);
+      };
+      /* Navegacao privada no Safari pode deixar a requisicao pendurada
+       * sem sucesso nem erro. Sem este limite, o nucleo nunca subiria —
+       * o Assistente ficaria invisivel, que e pior que nao ser
+       * duravel. */
+      setTimeout(function () {
+        resolver(null);
+      }, 3000);
+    });
+    return bancoAberto;
+  }
+
+  function gravarNoBanco(chave, valor) {
+    abrirBanco().then(function (db) {
+      if (!db) return;
+      try {
+        var tx = db.transaction(DEPOSITO, "readwrite");
+        tx.objectStore(DEPOSITO).put(valor, chave);
+      } catch (e) {
+        /* preferencia nao persistiu; o cache em memoria segue valendo
+         * ate o fim da sessao */
+      }
+    });
+  }
+
+  function apagarDoBanco(chave) {
+    abrirBanco().then(function (db) {
+      if (!db) return;
+      try {
+        db.transaction(DEPOSITO, "readwrite").objectStore(DEPOSITO)["delete"](chave);
+      } catch (e) {
+        /* silencioso */
+      }
+    });
+  }
+
+  /* Le TUDO para a memoria e migra o que tiver ficado no localStorage.
+   * Devolve uma Promise que o nucleo espera antes de subir modulo. */
+  function carregar() {
+    if (cache) return Promise.resolve();
+    if (temGM()) {
+      /* Caminho do Tampermonkey: leitura sincrona, sem cache. */
+      cache = null;
+      return Promise.resolve();
+    }
+    return abrirBanco().then(function (db) {
+      var mapa = {};
+      return new Promise(function (resolver) {
+        if (!db) return resolver(mapa);
+        var req;
+        try {
+          req = db.transaction(DEPOSITO, "readonly").objectStore(DEPOSITO).openCursor();
+        } catch (e) {
+          return resolver(mapa);
+        }
+        req.onsuccess = function () {
+          var c = req.result;
+          if (!c) return resolver(mapa);
+          mapa[c.key] = c.value;
+          c["continue"]();
+        };
+        req.onerror = function () {
+          resolver(mapa);
+        };
+      });
+    }).then(function (mapa) {
+      cache = mapa;
+      migrarLocalParaBanco();
+    });
+  }
+
+  /* Quem ja usava o Assistente no iPad tem preferencia no localStorage.
+   * Copia para o banco o que ainda nao esta la — e, como na migracao do
+   * Tampermonkey, so limpa a origem depois de a copia existir. */
+  function migrarLocalParaBanco() {
+    var pendentes = [];
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf(PREFIXO) === 0 && !Object.prototype.hasOwnProperty.call(cache, k)) pendentes.push(k);
+      }
+    } catch (e) {
+      return;
+    }
+    pendentes.forEach(function (k) {
+      var v = lerLocal(k, VAZIO);
+      if (ehVazio(v)) return;
+      cache[k] = v;
+      gravarNoBanco(k, v);
+      removerLocal(k);
+    });
+  }
+
   /* ---- API interna usada pelos storages por modulo ---- */
 
   function lerBruto(chave, padrao) {
     var valor = migrarSeNecessario(chave);
     if (!ehVazio(valor)) return valor;
-    /* sem GM (Safari/iPad) ou nada gravado ainda: cai para o site */
+    /* Safari/iPad: o cache foi preenchido por carregar() no boot. */
+    if (cache && Object.prototype.hasOwnProperty.call(cache, chave)) return cache[chave];
     return lerLocal(chave, padrao);
   }
 
@@ -199,6 +343,14 @@
       /* Uma unica fonte de verdade. Se sobrasse copia no localStorage,
        * ela viraria um valor fantasma esperando o dia em que o GM
        * falhasse para ressuscitar uma preferencia antiga. */
+      removerLocal(chave);
+      return true;
+    }
+    if (cache) {
+      /* Grava na memoria AGORA e no disco em segundo plano: a proxima
+       * leitura desta sessao nao pode depender do banco ter respondido. */
+      cache[chave] = valor;
+      gravarNoBanco(chave, valor);
       removerLocal(chave);
       return true;
     }
@@ -213,6 +365,10 @@
       } catch (e) {
         /* silencioso */
       }
+    }
+    if (cache) {
+      delete cache[chave];
+      apagarDoBanco(chave);
     }
     removerLocal(chave);
   }
@@ -265,9 +421,100 @@
     };
   }
 
+  /* ------------------------------------------------------------------
+   * ARMAZENAMENTO DURAVEL COMPARTILHADO
+   * ------------------------------------------------------------------
+   * Ate a v2.14.0 cadastro.js, historico.js, novidades.js e
+   * diagnostico.js tinham CADA UM a sua copia do par "GM se existir,
+   * senao localStorage". No Tampermonkey isso funcionava, entao a
+   * duplicacao passou despercebida. No iPad nao ha GM: os quatro caiam
+   * no localStorage, e o logout do Meeds levava junto o cadastro de
+   * medicos, o historico e ate a marca de "ja vi as boas-vindas".
+   *
+   * Agora existe um caminho so, e e este. Quem precisa de durabilidade
+   * pede um `duravel(chaveGM, chaveLocal)` e esquece onde o dado mora.
+   *
+   * POR QUE DUAS CHAVES. Os dois formatos ja existem no navegador dos
+   * medicos e nao podem mudar: as preferencias por modulo sempre usaram
+   * a chave COM prefixo tambem no GM, enquanto o cadastro usa "medicos"
+   * pelado no GM e "meeds-suite:medicos" no localStorage. Unificar
+   * agora significaria um medico abrir o Assistente e nao encontrar o
+   * proprio cadastro — que e exatamente o que a regra de chave fixa e
+   * imutavel existe para impedir. Entao a camada aceita o par.
+   * ------------------------------------------------------------------ */
+  function duravel(chaveGM, chaveLocal) {
+    return {
+      ler: function (padrao) {
+        if (temGM()) {
+          var v = lerDuravel(chaveGM);
+          if (!ehVazio(v)) return v;
+        }
+        if (cache && Object.prototype.hasOwnProperty.call(cache, chaveLocal)) return cache[chaveLocal];
+
+        var antigo = lerLocal(chaveLocal, VAZIO);
+        if (ehVazio(antigo)) return padrao;
+
+        /* Achou so no localStorage: promove para o duravel AGORA. Sem
+         * isto, um dado que e escrito uma vez e depois so lido — a marca
+         * de "ja vi as boas-vindas" e o caso exato — nunca migraria, e
+         * seria apagado no proximo logout. Migrar na leitura resolve
+         * para qualquer chave, inclusive as que nao usam o prefixo e
+         * portanto escapam da varredura do boot. */
+        if (cache) {
+          cache[chaveLocal] = antigo;
+          gravarNoBanco(chaveLocal, antigo);
+          removerLocal(chaveLocal);
+        } else if (gravarDuravel(chaveGM, antigo)) {
+          removerLocal(chaveLocal);
+        }
+        return antigo;
+      },
+
+      gravar: function (valor) {
+        if (gravarDuravel(chaveGM, valor)) {
+          removerLocal(chaveLocal);
+          return true;
+        }
+        if (cache) {
+          cache[chaveLocal] = valor;
+          gravarNoBanco(chaveLocal, valor);
+          removerLocal(chaveLocal);
+          return true;
+        }
+        return gravarLocal(chaveLocal, valor);
+      },
+
+      remover: function () {
+        if (temGM()) {
+          try {
+            if (typeof GM_deleteValue === "function") GM_deleteValue(chaveGM);
+          } catch (e) {
+            /* silencioso */
+          }
+        }
+        if (cache) {
+          delete cache[chaveLocal];
+          apagarDoBanco(chaveLocal);
+        }
+        removerLocal(chaveLocal);
+      },
+    };
+  }
+
+  /* Uma frase para o painel "Sobre". Diagnosticar "sumiu minha
+   * configuracao" a distancia depende de saber isto primeiro. */
+  function ondeEstaGuardado() {
+    if (temGM()) return "duravel";           /* Tampermonkey */
+    if (cache && bancoAberto) return "banco"; /* IndexedDB (Safari/iPad) */
+    return "sessao";                          /* so localStorage: cai no logout */
+  }
+
   raiz.MeedsSuiteStorage = {
     criarStorage: criarStorage,
     storageDoNucleo: storageDoNucleo,
+    carregar: carregar,
+    duravel: duravel,
+    ondeEstaGuardado: ondeEstaGuardado,
     PREFIXO: PREFIXO,
   };
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
@@ -387,6 +634,9 @@
   var elToast = null;
   var elAvisos = null;
   var botoes = []; // { id, prioridade, el, visivel }
+  var elAlca = null;
+  var recolhido = false;
+  var aoAlternar = null;
   var timerToast = null;
 
   var ESTILOS = [
@@ -421,6 +671,39 @@
     "  box-shadow: 0 2px 10px rgba(15,23,42,.22);",
     "}",
     ".ms-btn.ms-btn-engrenagem:hover { background: #f1f5f9; }",
+
+    /* --- caixa recolhida ---------------------------------------------
+     * Com todas as funcoes ligadas a pilha ocupa boa parte da lateral.
+     * Recolhida, sobra uma alca no canto e o resto da tela e do medico.
+     *
+     * Tres regras, e a ordem entre elas importa:
+     *
+     * 1. Recolhido esconde os botoes — MENOS o que estiver em alerta.
+     *    Se a fila encheu, o alarme sai da caixa e continua piscando.
+     *    Esconder um alerta e o oposto do que ele existe para fazer.
+     *
+     * 2. No computador, passar o mouse perto do canto ja abre: zero
+     *    clique. O `@media (hover:hover) and (pointer:fine)` e o que
+     *    impede isso de valer no iPad, onde "hover" e um toque preso e
+     *    a caixa abriria sozinha ao rolar a tela.
+     *
+     * 3. Botao escondido por um modulo (`[hidden]`) continua escondido
+     *    mesmo com o mouse por cima. A regra abaixo carrega o #dock so
+     *    para ganhar da regra de hover na especificidade — sem isso, o
+     *    hover ressuscitaria botoes que o modulo desligou. */
+    ".ms-alca { width: 44px; height: 44px; padding: 0; border-radius: 50%; font-size: 17px;",
+    "  background: #fff; color: #334155; border: 1px solid #e2e8f0;",
+    "  box-shadow: 0 2px 10px rgba(15,23,42,.22); }",
+    ".ms-alca:hover { background: #f1f5f9; }",
+    "#dock.ms-recolhido .ms-btn:not(.ms-alca):not(.ms-ativo) { display: none; }",
+    "@media (hover: hover) and (pointer: fine) {",
+    /* Os :not() repetidos nao sao enfeite: sem eles esta regra perde em
+     * especificidade para a de esconder logo acima, e o hover nao abre
+     * nada. O :not([hidden]) e o que impede o hover de ressuscitar um
+     * botao que o proprio modulo desligou. */
+    "  #dock.ms-recolhido:hover .ms-btn:not(.ms-alca):not(.ms-ativo):not([hidden]) { display: flex; }",
+    "}",
+    "#dock .ms-btn[hidden] { display: none; }",
 
     /* estado ligado/alerta (usado pelo alarme de fila) */
     ".ms-btn.ms-ativo { background: linear-gradient(135deg, #f97316, #dc2626); box-shadow: 0 4px 18px rgba(220,38,38,.55); animation: ms-pulso 2.2s ease-in-out infinite; }",
@@ -540,6 +823,7 @@
     elDock = document.createElement("div");
     elDock.id = "dock";
     shadow.appendChild(elDock);
+    criarAlca();
 
     elAvisos = document.createElement("div");
     elAvisos.id = "avisos";
@@ -551,6 +835,46 @@
     shadow.appendChild(elToast);
 
     return shadow;
+  }
+
+  /* A alca nao passa por registrarBotao de proposito: ela nao pertence
+   * a modulo nenhum, nao entra na contagem de botoes e precisa ficar
+   * sempre encostada no canto, abaixo de qualquer prioridade. */
+  function criarAlca() {
+    elAlca = document.createElement("button");
+    elAlca.type = "button";
+    elAlca.className = "ms-btn ms-btn-icone ms-alca";
+    elAlca.addEventListener("click", function () {
+      definirRecolhido(!recolhido);
+      if (typeof aoAlternar === "function") aoAlternar(recolhido);
+    });
+    elDock.appendChild(elAlca);
+    pintarAlca();
+  }
+
+  function pintarAlca() {
+    if (!elAlca) return;
+    var escondidos = 0;
+    botoes.forEach(function (b) {
+      if (!b.el.hidden && !b.el.classList.contains("ms-ativo")) escondidos++;
+    });
+    elAlca.textContent = recolhido ? "☰" : "✕";
+    elAlca.title = recolhido
+      ? escondidos === 1
+        ? "Mostrar 1 função"
+        : "Mostrar " + escondidos + " funções"
+      : "Recolher para liberar espaço na tela";
+    elAlca.setAttribute("aria-label", elAlca.title);
+    elAlca.setAttribute("aria-expanded", recolhido ? "false" : "true");
+    /* Recolhido e sem nada para mostrar, a alca so ocuparia espaco. */
+    elAlca.hidden = recolhido && escondidos === 0;
+  }
+
+  function definirRecolhido(valor) {
+    recolhido = !!valor;
+    if (elDock) elDock.classList.toggle("ms-recolhido", recolhido);
+    pintarAlca();
+    reposicionarToast();
   }
 
   /* Reordena o DOM do dock conforme a prioridade declarada. Como o
@@ -565,6 +889,9 @@
     botoes.forEach(function (b) {
       elDock.appendChild(b.el);
     });
+    /* column-reverse: o PRIMEIRO filho e o mais proximo do canto. */
+    if (elAlca) elDock.insertBefore(elAlca, elDock.firstChild);
+    pintarAlca();
     reposicionarToast();
   }
 
@@ -628,6 +955,12 @@
       },
       definirClasse: function (nome, ligado) {
         el.classList.toggle(nome, !!ligado);
+        /* Entrar ou sair de alerta muda quem escapa da caixa recolhida,
+         * e portanto muda a contagem que a alca mostra. */
+        if (nome === "ms-ativo") {
+          pintarAlca();
+          reposicionarToast();
+        }
       },
       /* Contador no canto do botao. Passe 0 (ou nada) para esconder. */
       definirContador: function (n) {
@@ -643,10 +976,12 @@
       },
       mostrar: function () {
         el.hidden = false;
+        pintarAlca();
         reposicionarToast();
       },
       esconder: function () {
         el.hidden = true;
+        pintarAlca();
         reposicionarToast();
       },
       remover: function () {
@@ -883,6 +1218,15 @@
     registrarBotao: registrarBotao,
     removerBotao: removerBotao,
     definirVisibilidadeGeral: definirVisibilidadeGeral,
+    /* Quem decide o estado inicial e quem o guarda e o nucleo — o dock
+     * so sabe desenhar. Mesma divisao que vale para posicao de botao. */
+    definirRecolhido: definirRecolhido,
+    estaRecolhido: function () {
+      return recolhido;
+    },
+    aoAlternarRecolhido: function (fn) {
+      aoAlternar = fn;
+    },
     toast: toast,
     criarOverlay: criarOverlay,
     criarBanner: criarBanner,
@@ -2221,56 +2565,25 @@
 
   var VERSAO_ESTRUTURA = 1;
 
-  function temGM() {
-    return typeof GM_getValue === "function" && typeof GM_setValue === "function";
+  /* Uma linha por chave, e o resto e problema de core/storage.js:
+   * ele decide entre GM (Tampermonkey) e IndexedDB (Safari/iPad) e
+   * migra o que ficou no localStorage. Este arquivo tinha a sua propria
+   * copia dessa logica ate a v2.14.0, e era ela que fazia o cadastro
+   * evaporar no logout do iPad. */
+  function porta(chave) {
+    return raiz.MeedsSuiteStorage.duravel(chave, "meeds-suite:" + chave);
   }
 
   function lerBruto(chave, padrao) {
-    try {
-      if (temGM()) {
-        var v = GM_getValue(chave, undefined);
-        return v === undefined ? padrao : v;
-      }
-    } catch (e) {
-      /* cai para o localStorage */
-    }
-    try {
-      var cru = localStorage.getItem("meeds-suite:" + chave);
-      return cru === null ? padrao : JSON.parse(cru);
-    } catch (e) {
-      return padrao;
-    }
+    return porta(chave).ler(padrao);
   }
 
   function gravarBruto(chave, valor) {
-    try {
-      if (temGM()) {
-        GM_setValue(chave, valor);
-        return true;
-      }
-    } catch (e) {
-      /* cai para o localStorage */
-    }
-    try {
-      localStorage.setItem("meeds-suite:" + chave, JSON.stringify(valor));
-      return true;
-    } catch (e) {
-      return false;
-    }
+    return porta(chave).gravar(valor);
   }
 
   function apagarBruto(chave) {
-    try {
-      if (typeof GM_deleteValue === "function") GM_deleteValue(chave);
-      else if (temGM()) GM_setValue(chave, undefined);
-    } catch (e) {
-      /* silencioso */
-    }
-    try {
-      localStorage.removeItem("meeds-suite:" + chave);
-    } catch (e) {
-      /* silencioso */
-    }
+    porta(chave).remover();
   }
 
   /* --- normalizacao de uma ficha ---
@@ -2609,7 +2922,6 @@
     adicionarEstabelecimento: adicionarEstabelecimento,
     removerEstabelecimento: removerEstabelecimento,
     semearEstabelecimentos: semearEstabelecimentos,
-    usandoArmazenamentoDoTampermonkey: temGM,
   };
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
@@ -2653,38 +2965,17 @@
   var PREFIXO = "historico:";
   var LIMITE = 30; // igual ao do APAC original
 
-  function temGM() {
-    return typeof GM_getValue === "function" && typeof GM_setValue === "function";
+  /* Mesmo caminho duravel do cadastro — ver core/storage.js. */
+  function porta(chave) {
+    return raiz.MeedsSuiteStorage.duravel(chave, "meeds-suite:" + chave);
   }
 
   function ler(chave, padrao) {
-    try {
-      if (temGM()) {
-        var v = GM_getValue(chave, undefined);
-        return v === undefined ? padrao : v;
-      }
-    } catch (e) {}
-    try {
-      var cru = localStorage.getItem("meeds-suite:" + chave);
-      return cru === null ? padrao : JSON.parse(cru);
-    } catch (e) {
-      return padrao;
-    }
+    return porta(chave).ler(padrao);
   }
 
   function gravar(chave, valor) {
-    try {
-      if (temGM()) {
-        GM_setValue(chave, valor);
-        return true;
-      }
-    } catch (e) {}
-    try {
-      localStorage.setItem("meeds-suite:" + chave, JSON.stringify(valor));
-      return true;
-    } catch (e) {
-      return false;
-    }
+    return porta(chave).gravar(valor);
   }
 
   /* ------------------------------------------------------------------
@@ -2949,17 +3240,22 @@
   var VALOR_CONCLUIDO = "concluido";
   var CHAVE_ANTIGA_BOAS_VINDAS = "meeds-suite:_core:boasVindas";
 
-  function temGM() {
-    return typeof GM_getValue === "function" && typeof GM_setValue === "function";
+  /* Caminho duravel unico — ver core/storage.js. A chave local aqui NAO
+   * tem o prefixo "meeds-suite:" (e anterior a ele) e por isso escapa da
+   * varredura de migracao do boot; quem a traz para o duravel e a
+   * promocao na leitura, dentro do proprio storage. */
+  var portaBoasVindas = null;
+  function porta() {
+    if (!portaBoasVindas) {
+      portaBoasVindas = raiz.MeedsSuiteStorage.duravel(CHAVE_BOAS_VINDAS, CHAVE_BOAS_VINDAS);
+    }
+    return portaBoasVindas;
   }
 
   function boasVindasConcluidas() {
+    if (porta().ler(null) === VALOR_CONCLUIDO) return true;
     try {
-      if (temGM() && GM_getValue(CHAVE_BOAS_VINDAS, null) === VALOR_CONCLUIDO) return true;
-    } catch (e) {}
-    try {
-      if (localStorage.getItem(CHAVE_BOAS_VINDAS) === VALOR_CONCLUIDO) return true;
-      // quem ja tinha visto na versao anterior nao ve de novo
+      // quem ja tinha visto numa versao anterior nao ve de novo
       if (localStorage.getItem(CHAVE_ANTIGA_BOAS_VINDAS) === '"vista"') {
         marcarBoasVindasConcluidas();
         return true;
@@ -2969,12 +3265,7 @@
   }
 
   function marcarBoasVindasConcluidas() {
-    try {
-      if (temGM()) GM_setValue(CHAVE_BOAS_VINDAS, VALOR_CONCLUIDO);
-    } catch (e) {}
-    try {
-      localStorage.setItem(CHAVE_BOAS_VINDAS, VALOR_CONCLUIDO);
-    } catch (e) {}
+    porta().gravar(VALOR_CONCLUIDO);
   }
 
   /* ------------------------------------------------------------------
@@ -3127,7 +3418,10 @@
         '  <button type="button" class="msd-fechar" aria-label="Fechar">&#10005;</button></header>' +
         '  <div class="msd-corpo">' +
         "    <p>Os botões ficam no <b>canto inferior direito</b> da tela e só aparecem depois que você entra no Meeds.</p>" +
-        "    <p>O botão <b>⚙️</b>, o menor de todos, embaixo da pilha, é onde você:</p>" +
+        "    <p>Se ocuparem espaço demais, o botão <b>✕</b> lá embaixo recolhe todos. Com eles recolhidos, " +
+        "       basta aproximar o mouse do canto (ou tocar no <b>☰</b>, no iPad) para eles voltarem. " +
+        "       Se a fila de espera encher, o alarme aparece sozinho mesmo recolhido.</p>" +
+        "    <p>O botão <b>⚙️</b> é onde você:</p>" +
         "    <ul>" +
         "      <li><b>liga e desliga</b> cada função — deixe só as que você usa;</li>" +
         "      <li><b>cadastra seu nome e CRM</b>, uma única vez, para os laudos.</li>" +
@@ -3274,31 +3568,28 @@
   var overlay = null;
   var ctx = null;
 
-  function temGM() {
-    return typeof GM_getValue === "function" && typeof GM_setValue === "function";
+  /* Caminho duravel unico — ver core/storage.js. No iPad isto e o que
+   * impede o "o que mudou" de reaparecer a cada login. */
+  var portaVersao = null;
+  function porta() {
+    if (!portaVersao) {
+      portaVersao = raiz.MeedsSuiteStorage.duravel(CHAVE_VERSAO_VISTA, "meeds-suite:" + CHAVE_VERSAO_VISTA);
+    }
+    return portaVersao;
   }
 
   function lerVersaoVista() {
-    try {
-      if (temGM()) {
-        var v = GM_getValue(CHAVE_VERSAO_VISTA, undefined);
-        return v === undefined ? null : v;
-      }
-    } catch (e) {}
-    try {
-      return localStorage.getItem("meeds-suite:" + CHAVE_VERSAO_VISTA);
-    } catch (e) {
-      return null;
-    }
+    var v = porta().ler(null);
+    return v === undefined ? null : v;
   }
 
   function gravarVersaoVista(versao) {
+    porta().gravar(versao);
+    /* O sinal entre abas CONTINUA no localStorage de proposito: e ele
+     * que dispara o evento "storage" nas outras abas, coisa que nem o
+     * GM nem o IndexedDB fazem. E efemero e da mesma sessao, entao o
+     * logout levar junto nao custa nada. */
     try {
-      if (temGM()) GM_setValue(CHAVE_VERSAO_VISTA, versao);
-    } catch (e) {}
-    try {
-      localStorage.setItem("meeds-suite:" + CHAVE_VERSAO_VISTA, versao);
-      // sinaliza as outras abas
       localStorage.setItem(CHAVE_SINAL_ABAS, versao + "|" + Date.now());
     } catch (e) {}
   }
@@ -4032,10 +4323,26 @@
       var linha = overlay.$("#msm-escopo");
       var diag = raiz.MeedsSuiteDiagnostico;
       if (!linha || !diag || !diag.escopoDeExecucao) return;
-      linha.textContent =
+      var partes = [
         diag.escopoDeExecucao() === "pagina"
           ? "Funcionando com todos os sinais"
-          : "Modo restrito: o navegador isolou o Assistente, então o alarme de fila decide só pelo que aparece na tela";
+          : "Modo restrito: o navegador isolou o Assistente, então o alarme de fila decide só pelo que aparece na tela",
+      ];
+
+      /* A segunda metade da mesma pergunta. "Sumiu meu cadastro" e
+       * "voltaram todos os botoes" tem a mesma causa raiz — o dado nao
+       * estava num lugar que sobrevive ao logout — e ate agora nao havia
+       * como saber isso sem abrir o console. */
+      var onde = raiz.MeedsSuiteStorage && raiz.MeedsSuiteStorage.ondeEstaGuardado
+        ? raiz.MeedsSuiteStorage.ondeEstaGuardado()
+        : null;
+      if (onde === "sessao") {
+        partes.push("Atenção: suas configurações e o cadastro podem se perder ao sair do Meeds neste navegador");
+      } else if (onde) {
+        partes.push("Configurações e cadastro ficam salvos mesmo depois de você sair");
+      }
+
+      linha.innerHTML = partes.map(escapeHtml).join(" · ");
     })();
 
     overlay.$$(".msm-aba").forEach(function (btn) {
@@ -4464,7 +4771,7 @@
    * versao aqui nem no bootloader — so no manifest.
    * O valor de reserva existe para o arquivo continuar rodavel solto,
    * fora do pacote (por exemplo num teste unitario). */
-  var VERSAO_NUCLEO = "2.14.0" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.14.0";
+  var VERSAO_NUCLEO = "2.15.0" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.15.0";
 
   var Auth = raiz.MeedsSuiteAuth;
   var Dock = raiz.MeedsSuiteDock;
@@ -4864,6 +5171,8 @@
     Dock.definirVisibilidadeGeral(Auth.estaLogado());
   }
 
+  var carregouPreferencias = false;
+
   function iniciar(opcoes) {
     if (iniciado) return;
     opcoes = opcoes || {};
@@ -4874,11 +5183,39 @@
       return;
     }
 
+    /* No Safari/iPad as preferencias vivem no IndexedDB, que e
+     * assincrono. Nenhum modulo pode subir antes de elas estarem em
+     * memoria: quem le um cache vazio acha que nunca foi configurado e
+     * liga sozinho — exatamente o bug que estamos consertando.
+     *
+     * No Tampermonkey isto resolve no mesmo instante (a leitura ja e
+     * sincrona), entao o boot nao fica mais lento la. */
+    if (!carregouPreferencias) {
+      Storage.carregar()
+        .catch(function (e) {
+          console.warn("[Assistente Meeds] preferencias nao carregaram, usando padroes.", e);
+        })
+        .then(function () {
+          carregouPreferencias = true;
+          iniciar(opcoes);
+        });
+      return;
+    }
+
     storageNucleo = Storage.storageDoNucleo();
     Dock.garantirHost();
     /* Segunda camada contra dock duplicado: se sobrou um host de uma
      * execucao anterior (SPA que remontou a pagina), remove o orfao. */
     raiz.MeedsSuiteDiagnostico.limparDockOrfao("meeds-suite-dock-host");
+
+    /* Estado da caixa de botoes. Fica no mesmo armazenamento duravel
+     * das outras preferencias, entao sobrevive ao logout — recolheu,
+     * volta recolhido. Padrao: aberta, para quem nunca mexeu nao
+     * estranhar a tela. */
+    Dock.definirRecolhido(storageNucleo.ler("dock_recolhido", false) === true);
+    Dock.aoAlternarRecolhido(function (valor) {
+      storageNucleo.gravar("dock_recolhido", !!valor);
+    });
 
     // engrenagem: SEMPRE presente, mesmo com todos os modulos desligados
     /* MIGRACAO DO CADASTRO — roda antes de qualquer modulo subir, para
@@ -4976,10 +5313,10 @@
   raiz.MEEDS_MARCAS = {"_leia_me":"TRADUTOR de nome comercial para principio ativo. ATENCAO: esta tabela NUNCA e fonte de medicamento. Ela so ajuda a ENCONTRAR o item dentro da REMUME do municipio — a REMUME (modules/remume/remumes.json) e a unica fonte de verdade. Se o principio ativo traduzido nao estiver na REMUME daquele municipio, o Assistente avisa que nao consta e NAO oferece o item. Para acrescentar uma marca, copie um bloco abaixo e rode 'npm run build'. Ver docs/MANUAL-ADMIN.md.","_campos":{"marca":"O que o medico digita (nome comercial, sigla ou nome alternativo).","principioAtivo":"O nome que se procura dentro da REMUME.","observacao":"Opcional. Aparece so na documentacao, nao na tela."},"_total":206,"marcas":[{"marca":"AAS","principioAtivo":"Ácido acetilsalicílico","observacao":"Sigla de uso corrente."},{"marca":"Acetaminofeno","principioAtivo":"Paracetamol","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Acfol","principioAtivo":"Acido Folico","observacao":""},{"marca":"Adalat","principioAtivo":"Nifedipino","observacao":""},{"marca":"Addera","principioAtivo":"Colecalciferol","observacao":""},{"marca":"Adenocard","principioAtivo":"Adenosina","observacao":""},{"marca":"Advil","principioAtivo":"Ibuprofeno","observacao":""},{"marca":"Aerolin","principioAtivo":"Salbutamol","observacao":""},{"marca":"Akineton","principioAtivo":"Biperideno","observacao":""},{"marca":"Aldactone","principioAtivo":"Espironolactona","observacao":""},{"marca":"Aldomet","principioAtivo":"Metildopa","observacao":""},{"marca":"Alivium","principioAtivo":"Ibuprofeno","observacao":""},{"marca":"Allegra","principioAtivo":"Fexofenadina","observacao":""},{"marca":"Amox","principioAtivo":"Amoxicilina","observacao":""},{"marca":"Amoxil","principioAtivo":"Amoxicilina","observacao":""},{"marca":"Amplictil","principioAtivo":"Clorpromazina","observacao":""},{"marca":"Amytril","principioAtivo":"Amitriptilina","observacao":""},{"marca":"Ancoron","principioAtivo":"Amiodarona","observacao":""},{"marca":"Angipress","principioAtivo":"Atenolol","observacao":""},{"marca":"Antak","principioAtivo":"Ranitidina","observacao":""},{"marca":"Apresolina","principioAtivo":"Hidralazina","observacao":""},{"marca":"Aprovel","principioAtivo":"Irbesartana","observacao":""},{"marca":"Aradois","principioAtivo":"Losartana","observacao":""},{"marca":"Aspirina","principioAtivo":"Ácido acetilsalicílico","observacao":""},{"marca":"Astromicin","principioAtivo":"Azitromicina","observacao":""},{"marca":"Atlansil","principioAtivo":"Amiodarona","observacao":""},{"marca":"Atrovent","principioAtivo":"Ipratropio","observacao":""},{"marca":"Bactrim","principioAtivo":"Sulfametoxazol","observacao":""},{"marca":"Bactroban","principioAtivo":"Mupirocina","observacao":""},{"marca":"Balcor","principioAtivo":"Diltiazem","observacao":""},{"marca":"Benzetacil","principioAtivo":"Penicilina","observacao":""},{"marca":"Buscopan","principioAtivo":"Escopolamina","observacao":""},{"marca":"Buscopan","principioAtivo":"Butilbrometo","observacao":""},{"marca":"Busonid","principioAtivo":"Budesonida","observacao":""},{"marca":"Capoten","principioAtivo":"Captopril","observacao":""},{"marca":"Cardilol","principioAtivo":"Carvedilol","observacao":""},{"marca":"Cardizem","principioAtivo":"Diltiazem","observacao":""},{"marca":"Cataflam","principioAtivo":"Diclofenaco","observacao":""},{"marca":"Cipramil","principioAtivo":"Citalopram","observacao":""},{"marca":"Cipro","principioAtivo":"Ciprofloxacino","observacao":""},{"marca":"Ciproxin","principioAtivo":"Ciprofloxacino","observacao":""},{"marca":"Citalor","principioAtivo":"Atorvastatina","observacao":""},{"marca":"Citoneurin","principioAtivo":"Complexo B","observacao":""},{"marca":"Claritine","principioAtivo":"Loratadina","observacao":""},{"marca":"Clavulin","principioAtivo":"Clavulanato","observacao":""},{"marca":"Clenil","principioAtivo":"Beclometasona","observacao":""},{"marca":"Clexane","principioAtivo":"Enoxaparina","observacao":""},{"marca":"Clorana","principioAtivo":"Hidroclorotiazida","observacao":""},{"marca":"Combiron","principioAtivo":"Sulfato Ferroso","observacao":""},{"marca":"Coreg","principioAtivo":"Carvedilol","observacao":""},{"marca":"Coumadin","principioAtivo":"Varfarina","observacao":""},{"marca":"Cozaar","principioAtivo":"Losartana","observacao":""},{"marca":"Crestor","principioAtivo":"Rosuvastatina","observacao":""},{"marca":"Cymbalta","principioAtivo":"Duloxetina","observacao":""},{"marca":"Cytotec","principioAtivo":"Misoprostol","observacao":""},{"marca":"Daforin","principioAtivo":"Fluoxetina","observacao":""},{"marca":"Daktarin","principioAtivo":"Miconazol","observacao":""},{"marca":"Dalacin","principioAtivo":"Clindamicina","observacao":""},{"marca":"Daonil","principioAtivo":"Glibenclamida","observacao":""},{"marca":"Decadron","principioAtivo":"Dexametasona","observacao":""},{"marca":"Depakene","principioAtivo":"Valproato","observacao":""},{"marca":"Depakote","principioAtivo":"Valproato","observacao":""},{"marca":"Dermazine","principioAtivo":"Sulfadiazina Prata","observacao":""},{"marca":"Desalex","principioAtivo":"Desloratadina","observacao":""},{"marca":"Diamicron","principioAtivo":"Gliclazida","observacao":""},{"marca":"Digesan","principioAtivo":"Bromoprida","observacao":""},{"marca":"Dimorf","principioAtivo":"Morfina","observacao":""},{"marca":"Diovan","principioAtivo":"Valsartana","observacao":""},{"marca":"Diprivan","principioAtivo":"Propofol","observacao":""},{"marca":"Diprospan","principioAtivo":"Betametasona","observacao":""},{"marca":"Dobutrex","principioAtivo":"Dobutamina","observacao":""},{"marca":"Dormonid","principioAtivo":"Midazolam","observacao":""},{"marca":"Dulcolax","principioAtivo":"Bisacodil","observacao":""},{"marca":"Efexor","principioAtivo":"Venlafaxina","observacao":""},{"marca":"Eliquis","principioAtivo":"Apixabana","observacao":""},{"marca":"Elocom","principioAtivo":"Mometasona","observacao":""},{"marca":"Epinefrina","principioAtivo":"Adrenalina","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Euthyrox","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Fenergan","principioAtivo":"Prometazina","observacao":""},{"marca":"Fentanil","principioAtivo":"Fentanila","observacao":""},{"marca":"Flagyl","principioAtivo":"Metronidazol","observacao":""},{"marca":"Flixotide","principioAtivo":"Fluticasona","observacao":""},{"marca":"Fluconal","principioAtivo":"Fluconazol","observacao":""},{"marca":"Folacin","principioAtivo":"Acido Folico","observacao":""},{"marca":"Gardenal","principioAtivo":"Fenobarbital","observacao":""},{"marca":"Glifage","principioAtivo":"Metformina","observacao":""},{"marca":"Haldol","principioAtivo":"Haloperidol","observacao":""},{"marca":"Hctz","principioAtivo":"Hidroclorotiazida","observacao":""},{"marca":"Hidantal","principioAtivo":"Fenitoina","observacao":""},{"marca":"Higroton","principioAtivo":"Clortalidona","observacao":""},{"marca":"Hixizine","principioAtivo":"Hidroxizina","observacao":""},{"marca":"Humulin","principioAtivo":"Insulina","observacao":""},{"marca":"Imosec","principioAtivo":"Loperamida","observacao":""},{"marca":"Inderal","principioAtivo":"Propranolol","observacao":""},{"marca":"Kanakion","principioAtivo":"Fitomenadiona","observacao":""},{"marca":"Keflex","principioAtivo":"Cefalexina","observacao":""},{"marca":"Keppra","principioAtivo":"Levetiracetam","observacao":""},{"marca":"Klaricid","principioAtivo":"Claritromicina","observacao":""},{"marca":"Label","principioAtivo":"Ranitidina","observacao":""},{"marca":"Lamisil","principioAtivo":"Terbinafina","observacao":""},{"marca":"Lanexat","principioAtivo":"Flumazenil","observacao":""},{"marca":"Lasix","principioAtivo":"Furosemida","observacao":""},{"marca":"Levaquin","principioAtivo":"Levofloxacino","observacao":""},{"marca":"Lexapro","principioAtivo":"Escitalopram","observacao":""},{"marca":"Lexotan","principioAtivo":"Bromazepam","observacao":""},{"marca":"Lioresal","principioAtivo":"Baclofeno","observacao":""},{"marca":"Lipitor","principioAtivo":"Atorvastatina","observacao":""},{"marca":"Liquemine","principioAtivo":"Heparina","observacao":""},{"marca":"Lopressor","principioAtivo":"Metoprolol","observacao":""},{"marca":"Loranil","principioAtivo":"Loratadina","observacao":""},{"marca":"Lorax","principioAtivo":"Lorazepam","observacao":""},{"marca":"Losec","principioAtivo":"Omeprazol","observacao":""},{"marca":"Luftal","principioAtivo":"Simeticona","observacao":""},{"marca":"Lyrica","principioAtivo":"Pregabalina","observacao":""},{"marca":"Macrodantina","principioAtivo":"Nitrofurantoina","observacao":""},{"marca":"Manitol 20%","principioAtivo":"Manitol","observacao":""},{"marca":"Marcaina","principioAtivo":"Bupivacaina","observacao":""},{"marca":"Marevan","principioAtivo":"Varfarina","observacao":""},{"marca":"Metamizol","principioAtivo":"Dipirona","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Meticorten","principioAtivo":"Prednisona","observacao":""},{"marca":"Micardis","principioAtivo":"Telmisartana","observacao":""},{"marca":"Micostatin","principioAtivo":"Nistatina","observacao":""},{"marca":"Miosan","principioAtivo":"Ciclobenzaprina","observacao":""},{"marca":"Motilium","principioAtivo":"Domperidona","observacao":""},{"marca":"Movatec","principioAtivo":"Meloxicam","observacao":""},{"marca":"Narcan","principioAtivo":"Naloxona","observacao":""},{"marca":"Naropin","principioAtivo":"Ropivacaina","observacao":""},{"marca":"Nasonex","principioAtivo":"Mometasona","observacao":""},{"marca":"Natrilix","principioAtivo":"Indapamida","observacao":""},{"marca":"Neocaina","principioAtivo":"Bupivacaina","observacao":""},{"marca":"Neozine","principioAtivo":"Levomepromazina","observacao":""},{"marca":"Neurontin","principioAtivo":"Gabapentina","observacao":""},{"marca":"Nexium","principioAtivo":"Esomeprazol","observacao":""},{"marca":"Nisulid","principioAtivo":"Nimesulida","observacao":""},{"marca":"Nizoral","principioAtivo":"Cetoconazol","observacao":""},{"marca":"Norepinefrina","principioAtivo":"Noradrenalina","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Norvasc","principioAtivo":"Anlodipino","observacao":""},{"marca":"Novalgina","principioAtivo":"Dipirona","observacao":""},{"marca":"Novolin","principioAtivo":"Insulina","observacao":""},{"marca":"Pantoc","principioAtivo":"Pantoprazol","observacao":""},{"marca":"Pantozol","principioAtivo":"Pantoprazol","observacao":""},{"marca":"Peprazol","principioAtivo":"Omeprazol","observacao":""},{"marca":"Plasil","principioAtivo":"Metoclopramida","observacao":""},{"marca":"Plavix","principioAtivo":"Clopidogrel","observacao":""},{"marca":"Polaramine","principioAtivo":"Dexclorfeniramina","observacao":""},{"marca":"Pradaxa","principioAtivo":"Dabigatrana","observacao":""},{"marca":"Prazol","principioAtivo":"Lansoprazol","observacao":""},{"marca":"Prelone","principioAtivo":"Prednisolona","observacao":""},{"marca":"Profenid","principioAtivo":"Cetoprofeno","observacao":""},{"marca":"Prolopa","principioAtivo":"Levodopa","observacao":""},{"marca":"Propecia","principioAtivo":"Finasterida","observacao":""},{"marca":"Propovan","principioAtivo":"Propofol","observacao":""},{"marca":"Proscar","principioAtivo":"Finasterida","observacao":""},{"marca":"Prostigmine","principioAtivo":"Neostigmina","observacao":""},{"marca":"Prostokos","principioAtivo":"Misoprostol","observacao":""},{"marca":"Prozac","principioAtivo":"Fluoxetina","observacao":""},{"marca":"Pulmicort","principioAtivo":"Budesonida","observacao":""},{"marca":"Puran T4","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Renitec","principioAtivo":"Enalapril","observacao":""},{"marca":"Ringer Lactato","principioAtivo":"Ringer","observacao":""},{"marca":"Risperdal","principioAtivo":"Risperidona","observacao":""},{"marca":"Rivotril","principioAtivo":"Clonazepam","observacao":""},{"marca":"Rocefin","principioAtivo":"Ceftriaxona","observacao":""},{"marca":"Scabin","principioAtivo":"Permetrina","observacao":""},{"marca":"Secotex","principioAtivo":"Tansulosina","observacao":""},{"marca":"Selozok","principioAtivo":"Metoprolol","observacao":""},{"marca":"Seroquel","principioAtivo":"Quetiapina","observacao":""},{"marca":"Sevorane","principioAtivo":"Sevoflurano","observacao":""},{"marca":"Sf 0.9%","principioAtivo":"Soro Fisiologico","observacao":""},{"marca":"Sg 5%","principioAtivo":"Glicose","observacao":""},{"marca":"Singulair","principioAtivo":"Montelucaste","observacao":""},{"marca":"Sinvatrox","principioAtivo":"Sinvastatina","observacao":""},{"marca":"Solucortef","principioAtivo":"Hidrocortisona","observacao":""},{"marca":"Solumedrol","principioAtivo":"Metilprednisolona","observacao":""},{"marca":"Soro Glicosado","principioAtivo":"Glicose","observacao":""},{"marca":"Synthroid","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Syntocinon","principioAtivo":"Ocitocina","observacao":""},{"marca":"Tamiflu","principioAtivo":"Oseltamivir","observacao":""},{"marca":"Tavanic","principioAtivo":"Levofloxacino","observacao":""},{"marca":"Tegretol","principioAtivo":"Carbamazepina","observacao":""},{"marca":"Tolrest","principioAtivo":"Sertralina","observacao":""},{"marca":"Topamax","principioAtivo":"Topiramato","observacao":""},{"marca":"Tramal","principioAtivo":"Tramadol","observacao":""},{"marca":"Transamin","principioAtivo":"Acido Tranexamico","observacao":""},{"marca":"Triaxon","principioAtivo":"Ceftriaxona","observacao":""},{"marca":"Tryptanol","principioAtivo":"Amitriptilina","observacao":""},{"marca":"Tylenol","principioAtivo":"Paracetamol","observacao":""},{"marca":"Uroxacin","principioAtivo":"Norfloxacino","observacao":""},{"marca":"Valium","principioAtivo":"Diazepam","observacao":""},{"marca":"Valproico","principioAtivo":"Valproato","observacao":""},{"marca":"Valtrex","principioAtivo":"Valaciclovir","observacao":""},{"marca":"Viagra","principioAtivo":"Sildenafila","observacao":""},{"marca":"Vibramicina","principioAtivo":"Doxiciclina","observacao":""},{"marca":"Vitamina K","principioAtivo":"Fitomenadiona","observacao":""},{"marca":"Voltaren","principioAtivo":"Diclofenaco","observacao":""},{"marca":"Vonau","principioAtivo":"Ondansetrona","observacao":""},{"marca":"Xarelto","principioAtivo":"Rivaroxabana","observacao":""},{"marca":"Xylocaina","principioAtivo":"Lidocaina","observacao":""},{"marca":"Zitromax","principioAtivo":"Azitromicina","observacao":""},{"marca":"Zocor","principioAtivo":"Sinvastatina","observacao":""},{"marca":"Zofran","principioAtivo":"Ondansetrona","observacao":""},{"marca":"Zoloft","principioAtivo":"Sertralina","observacao":""},{"marca":"Zoltec","principioAtivo":"Fluconazol","observacao":""},{"marca":"Zovirax","principioAtivo":"Aciclovir","observacao":""},{"marca":"Zyprexa","principioAtivo":"Olanzapina","observacao":""},{"marca":"Zyrtec","principioAtivo":"Cetirizina","observacao":""}]};
 
   /* ===== dados/changelog.json ===== */
-  raiz.MEEDS_CHANGELOG = {"_leia_me":"Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.","versoes":[{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":["A checagem de atualização ficou muito mais leve: o Tampermonkey passa a baixar 1 KB para saber se há versão nova, em vez de mais de 1 MB."],"correcoes":["Correções internas na Sala de Espera, que está em standby: a consulta de confirmação não estava sendo executada."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":[],"correcoes":["As funções que você desliga continuam desligadas depois do logout. Antes, o Meeds apagava a configuração ao sair e todos os botões voltavam no acesso seguinte. O que você já tinha configurado é aproveitado, não precisa remarcar nada."]},{"versao":"2.13.1","data":"2026-08-31","novidades":[],"melhorias":[],"correcoes":["No iPad, o Assistente aparecia instalado e mesmo assim não fazia nada: a proteção de conteúdo do Meeds bloqueava a execução. Corrigido. Se o navegador precisar isolar o Assistente, o alarme de fila passa a decidir só pelo que aparece na tela, e o painel Sobre avisa quando isso acontece."]},{"versao":"2.13.0","data":"2026-08-31","novidades":["Agora dá para usar o Assistente no iPad e no iPhone, pelo Safari, com o app gratuito Userscripts. O passo a passo está no guia do iPad."],"melhorias":[],"correcoes":[]},{"versao":"2.12.0","data":"2026-08-31","novidades":["Nova função “Prévia do documento”: veja o PDF ao lado do formulário enquanto preenche, nos geradores de APAC e de laudo. É o mesmo arquivo que será baixado — nada de aproximação."],"melhorias":["A prévia vem desligada; abra pelo botão 👁 Prévia no alto do gerador. O tamanho do painel fica do jeito que você deixar."],"correcoes":[]},{"versao":"2.11.0","data":"2026-08-31","novidades":["Agora dá para enviar feedback direto do painel: conte um problema ou uma ideia, e a mensagem vai pronta para quem cuida do Assistente."],"melhorias":["O painel da engrenagem foi reorganizado em abas — Funções, Médicos, Unidades e Sobre. Antes era tudo numa rolagem só.","Os formulários de cadastro começam fechados: a lista fica limpa, e o formulário abre quando você pede."],"correcoes":[]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["O contador da Sala de Espera passou a mostrar só quem realmente chegou — antes contava também quem tinha consulta marcada e ainda não tinha aparecido."],"correcoes":["A Sala de Espera não avisava quando o paciente agendado chegava. O aviso agora sai na hora em que a chegada é marcada na tela nativa.","Se a internet oscilasse, a fila podia parecer vazia por um instante. Agora a última leitura válida é mantida até a próxima tentativa."]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID passou a funcionar também nos campos de CID secundário e associados da APAC — antes só o principal tinha."],"correcoes":[]},{"versao":"2.9.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID-10 agora vive dentro do próprio campo do laudo. O botão separado saiu: havia dois caminhos para a mesma coisa.","Digitar o código sem o ponto funciona: “J069” encontra J06.9."],"correcoes":["O campo CID mostrava duas listas de sugestão ao mesmo tempo, uma por cima da outra.","Depois de escolher um CID, a lista de sugestões reaparecia sozinha."]},{"versao":"2.8.0","data":"2026-08-31","novidades":["O CID-10 agora fica dentro do próprio laudo: clique no campo CID, digite o nome da doença ou o código, escolha — o código e a descrição entram sozinhos. Vale nos três geradores."],"melhorias":["A busca de CID-10 ficou muito mais rápida e não trava mais a tela: buscas comuns que levavam mais de um segundo agora respondem quase na hora.","A lista de resultados mostra os 50 mais relevantes e diz quantos ficaram de fora, em vez de tentar desenhar milhares de linhas."],"correcoes":["A apresentação “Bem-vindo ao Assistente Meeds” aparecia toda vez que você abria o Meeds. Agora aparece uma vez só."]},{"versao":"2.7.0","data":"2026-08-31","novidades":["Nova função “Sala de Espera”: avisa, sem som, quando um paciente de consulta agendada chega — com o nome, a hora marcada e há quanto tempo espera.","O botão da Sala de Espera mostra quantos pacientes estão aguardando, e abre a lista completa."],"melhorias":["Vários pacientes chegando ao mesmo tempo viram um aviso só, que conta quantos são."],"correcoes":[]},{"versao":"2.6.0","data":"2026-08-30","novidades":["A consulta REMUME passou a entender nome comercial: digite “Tylenol” e ela mostra o paracetamol do seu município.","Quando o remédio procurado não é padronizado no município, o Assistente diz isso com todas as letras, em vez de mostrar uma lista vazia."],"melhorias":["A busca ficou mais tolerante a erro de digitação em português: “dipironá” encontra Dipirona e “cimvastatina” encontra Sinvastatina.","A lista de nomes comerciais saiu do código e virou um arquivo que o administrador edita sozinho."],"correcoes":[]},{"versao":"2.5.0","data":"2026-08-30","novidades":["Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.","O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."],"melhorias":["Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."],"correcoes":["O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."]},{"versao":"2.4.0","data":"2026-08-30","novidades":["Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.","O código escolhido na busca entra sozinho no laudo que estiver aberto.","Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.","Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."],"melhorias":["O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.","O CPF se formata sozinho enquanto você digita.","Com um único médico cadastrado, ele já vem selecionado nos laudos.","As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.","O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."],"correcoes":["O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.","Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."]},{"versao":"2.3.0","data":"2026-08-30","novidades":["Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."],"melhorias":["Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."],"correcoes":[]},{"versao":"2.2.0","data":"2026-08-30","novidades":["Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."],"melhorias":["Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."],"correcoes":["Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."]},{"versao":"2.0.0","data":"2026-08-30","novidades":["Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."],"melhorias":[],"correcoes":[]}]};
+  raiz.MEEDS_CHANGELOG = {"_leia_me":"Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.","versoes":[{"versao":"2.15.0","data":"2026-09-01","novidades":["Os botões agora recolhem. O ✕ no canto guarda todos e libera a tela; no computador basta aproximar o mouse do canto para eles voltarem, e no iPad é um toque no ☰. Se a fila de espera encher, o alarme aparece sozinho mesmo com tudo recolhido."],"melhorias":["O painel Sobre agora informa se suas configurações estão sendo salvas de forma permanente neste navegador."],"correcoes":["No iPad, o cadastro de médicos, o histórico de laudos e as configurações se perdiam toda vez que você saía do Meeds. Agora ficam guardados de verdade."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":["A checagem de atualização ficou muito mais leve: o Tampermonkey passa a baixar 1 KB para saber se há versão nova, em vez de mais de 1 MB."],"correcoes":["Correções internas na Sala de Espera, que está em standby: a consulta de confirmação não estava sendo executada."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":[],"correcoes":["As funções que você desliga continuam desligadas depois do logout. Antes, o Meeds apagava a configuração ao sair e todos os botões voltavam no acesso seguinte. O que você já tinha configurado é aproveitado, não precisa remarcar nada."]},{"versao":"2.13.1","data":"2026-08-31","novidades":[],"melhorias":[],"correcoes":["No iPad, o Assistente aparecia instalado e mesmo assim não fazia nada: a proteção de conteúdo do Meeds bloqueava a execução. Corrigido. Se o navegador precisar isolar o Assistente, o alarme de fila passa a decidir só pelo que aparece na tela, e o painel Sobre avisa quando isso acontece."]},{"versao":"2.13.0","data":"2026-08-31","novidades":["Agora dá para usar o Assistente no iPad e no iPhone, pelo Safari, com o app gratuito Userscripts. O passo a passo está no guia do iPad."],"melhorias":[],"correcoes":[]},{"versao":"2.12.0","data":"2026-08-31","novidades":["Nova função “Prévia do documento”: veja o PDF ao lado do formulário enquanto preenche, nos geradores de APAC e de laudo. É o mesmo arquivo que será baixado — nada de aproximação."],"melhorias":["A prévia vem desligada; abra pelo botão 👁 Prévia no alto do gerador. O tamanho do painel fica do jeito que você deixar."],"correcoes":[]},{"versao":"2.11.0","data":"2026-08-31","novidades":["Agora dá para enviar feedback direto do painel: conte um problema ou uma ideia, e a mensagem vai pronta para quem cuida do Assistente."],"melhorias":["O painel da engrenagem foi reorganizado em abas — Funções, Médicos, Unidades e Sobre. Antes era tudo numa rolagem só.","Os formulários de cadastro começam fechados: a lista fica limpa, e o formulário abre quando você pede."],"correcoes":[]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["O contador da Sala de Espera passou a mostrar só quem realmente chegou — antes contava também quem tinha consulta marcada e ainda não tinha aparecido."],"correcoes":["A Sala de Espera não avisava quando o paciente agendado chegava. O aviso agora sai na hora em que a chegada é marcada na tela nativa.","Se a internet oscilasse, a fila podia parecer vazia por um instante. Agora a última leitura válida é mantida até a próxima tentativa."]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID passou a funcionar também nos campos de CID secundário e associados da APAC — antes só o principal tinha."],"correcoes":[]},{"versao":"2.9.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID-10 agora vive dentro do próprio campo do laudo. O botão separado saiu: havia dois caminhos para a mesma coisa.","Digitar o código sem o ponto funciona: “J069” encontra J06.9."],"correcoes":["O campo CID mostrava duas listas de sugestão ao mesmo tempo, uma por cima da outra.","Depois de escolher um CID, a lista de sugestões reaparecia sozinha."]},{"versao":"2.8.0","data":"2026-08-31","novidades":["O CID-10 agora fica dentro do próprio laudo: clique no campo CID, digite o nome da doença ou o código, escolha — o código e a descrição entram sozinhos. Vale nos três geradores."],"melhorias":["A busca de CID-10 ficou muito mais rápida e não trava mais a tela: buscas comuns que levavam mais de um segundo agora respondem quase na hora.","A lista de resultados mostra os 50 mais relevantes e diz quantos ficaram de fora, em vez de tentar desenhar milhares de linhas."],"correcoes":["A apresentação “Bem-vindo ao Assistente Meeds” aparecia toda vez que você abria o Meeds. Agora aparece uma vez só."]},{"versao":"2.7.0","data":"2026-08-31","novidades":["Nova função “Sala de Espera”: avisa, sem som, quando um paciente de consulta agendada chega — com o nome, a hora marcada e há quanto tempo espera.","O botão da Sala de Espera mostra quantos pacientes estão aguardando, e abre a lista completa."],"melhorias":["Vários pacientes chegando ao mesmo tempo viram um aviso só, que conta quantos são."],"correcoes":[]},{"versao":"2.6.0","data":"2026-08-30","novidades":["A consulta REMUME passou a entender nome comercial: digite “Tylenol” e ela mostra o paracetamol do seu município.","Quando o remédio procurado não é padronizado no município, o Assistente diz isso com todas as letras, em vez de mostrar uma lista vazia."],"melhorias":["A busca ficou mais tolerante a erro de digitação em português: “dipironá” encontra Dipirona e “cimvastatina” encontra Sinvastatina.","A lista de nomes comerciais saiu do código e virou um arquivo que o administrador edita sozinho."],"correcoes":[]},{"versao":"2.5.0","data":"2026-08-30","novidades":["Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.","O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."],"melhorias":["Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."],"correcoes":["O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."]},{"versao":"2.4.0","data":"2026-08-30","novidades":["Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.","O código escolhido na busca entra sozinho no laudo que estiver aberto.","Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.","Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."],"melhorias":["O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.","O CPF se formata sozinho enquanto você digita.","Com um único médico cadastrado, ele já vem selecionado nos laudos.","As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.","O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."],"correcoes":["O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.","Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."]},{"versao":"2.3.0","data":"2026-08-30","novidades":["Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."],"melhorias":["Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."],"correcoes":[]},{"versao":"2.2.0","data":"2026-08-30","novidades":["Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."],"melhorias":["Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."],"correcoes":["Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."]},{"versao":"2.0.0","data":"2026-08-30","novidades":["Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."],"melhorias":[],"correcoes":[]}]};
 
   var __inv = {
-  "versao": "2.14.0",
+  "versao": "2.15.0",
   "contato": {
     "_leia_me": "Para onde vai o feedback do medico. O botao 'Enviar feedback' abre o programa de e-mail dele com esta mensagem ja escrita — nao ha servidor nem servico de terceiro no caminho. Troque o e-mail aqui se quem cuida do Assistente mudar.",
     "email": "marcelonovetech@gmail.com"
@@ -5041,7 +5378,7 @@
    * cobre o resto: duas copias instaladas no Tampermonkey, ou uma
    * reexecucao do script numa navegacao da SPA. Sem ela, apareciam dois
    * docks sobrepostos e o alarme tocava duas vezes. */
-  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.14.0")) return;
+  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.15.0")) return;
 
   /* 2) O hook de rede precisa existir ANTES de qualquer chamada da
    * aplicacao — por isso e instalado aqui, em document-start, e nao
