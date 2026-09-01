@@ -133,8 +133,17 @@ tests/                 teste de fumaça com mock da API
 docs/                  arquitetura, instalação, manual do admin, testes
 ```
 
-Desenho, contrato de módulo, checklist de funções preservadas e decisões
-técnicas: **[docs/ARQUITETURA.md](docs/ARQUITETURA.md)**
+### Documentação
+
+| Documento | Para quê |
+|---|---|
+| [ARQUITETURA.md](docs/ARQUITETURA.md) | desenho, contrato de módulo, decisões técnicas |
+| [COMO-ADICIONAR-MODULO.md](docs/COMO-ADICIONAR-MODULO.md) | criar uma função nova, em 6 passos |
+| [MANUAL-ADMIN.md](docs/MANUAL-ADMIN.md) | "quero fazer X → abro o arquivo Y" |
+| [GUIA-INSTALACAO.md](docs/GUIA-INSTALACAO.md) · [GUIA-IPAD.md](docs/GUIA-IPAD.md) | para o médico |
+| [TESTES.md](docs/TESTES.md) | roteiro de QA e resultados |
+| [DIAGNOSTICO-SALA-ESPERA.md](docs/DIAGNOSTICO-SALA-ESPERA.md) · [DIAGNOSTICO-CID.md](docs/DIAGNOSTICO-CID.md) | investigação de defeitos: causa raiz, evidência e o que foi corrigido |
+| [VIABILIDADE-PREVIEW.md](docs/VIABILIDADE-PREVIEW.md) | por que a prévia do PDF foi feita assim |
 
 ---
 

@@ -75,6 +75,15 @@
    * comparar duas leituras. Nunca vai para disco nem para o console. */
   var ultimaRespostaCrua = null;
 
+  /* Quantas consultas seguidas falharam. So para registro: o estado
+   * anterior e preservado de qualquer jeito. */
+  var falhasSeguidas = 0;
+
+  /* Trava da consulta de confirmacao — ela e disparada por um evento
+   * (alguem sumiu do filtro) e nao pelo relogio, entao dois pollings
+   * seguidos poderiam pedir a mesma confirmacao duas vezes. */
+  var confirmacaoEmAndamento = false;
+
   /* ----------------------------------------------------------------
    * DESCOBERTA DO PROFISSIONAL
    * ---------------------------------------------------------------- */
@@ -503,13 +512,21 @@
     /* Quem nao veio nesta resposta perde o estado ativo: foi atendido,
      * cancelado, ou mudou para um status fora do filtro. Se voltar
      * depois aguardando, sera tratado como chegada nova. */
+    var sumiramSemTerChegado = [];
     estado.forEach(function (registro, id) {
-      if (!idsNestePoll[id]) estado.delete(id);
+      if (idsNestePoll[id]) return;
+      /* Sumiu sem NUNCA ter chegado: pode ter sido atendido ou
+       * cancelado, OU o proprio check-in pode te-lo tirado deste filtro.
+       * Os dois casos sao identicos daqui — quem desempata e a consulta
+       * de confirmacao, la embaixo. */
+      if (registro.chegouAntes === false) sumiramSemTerChegado.push(id);
+      estado.delete(id);
     });
 
     aguardando = agora.filter(chegouDeVerdade);
 
     if (primeiraLeitura) {
+      /* Nao ha desaparecidos a confirmar: nao havia estado anterior. */
       primeiraLeitura = false;
       atualizarContador();
       renderizarLista();
@@ -519,6 +536,7 @@
     atualizarContador();
     renderizarLista();
     if (chegadasNovas.length) anunciar(chegadasNovas);
+    if (sumiramSemTerChegado.length) confirmarDesaparecidos(sumiramSemTerChegado);
   }
 
   /* ----------------------------------------------------------------

@@ -27,9 +27,11 @@
  *    GM_setValue guarda o dado no armazenamento do Tampermonkey, que e
  *    independente da versao do userscript e sobrevive a atualizacao
  *    automatica, a limpeza de cache e a limpeza de cookies do site.
- *    (localStorage NAO daria essa garantia: "limpar dados do site"
- *    apagaria tudo.) Por isso o cadastro usa GM_setValue e as
- *    preferencias corriqueiras continuam em localStorage.
+ *    (localStorage NAO daria essa garantia: o Meeds apaga o
+ *    localStorage no logout, e "limpar dados do site" apagaria o
+ *    resto.) Desde a v2.14.0 as preferencias de uso seguem a MESMA
+ *    regra, em core/storage.js — antes elas ficavam em localStorage e
+ *    o medico perdia a configuracao a cada logout.
  * ------------------------------------------------------------------ */
 (function (raiz) {
   "use strict";

@@ -652,7 +652,7 @@ to inject into the content script scope."* Pedir qualquer `@grant` de GM tira o
 script do contexto da página — e ali o hub de rede não enxerga as chamadas do
 Meeds. Isso cegaria o alarme de fila, o preenchimento automático da APAC e a
 detecção de município do REMUME.
-A troca foi deliberada: `@grant none` + `@inject-into page`, com o cadastro
+A troca foi deliberada: `@grant none` (com `@inject-into auto`, ver D40), com o cadastro
 caindo para `localStorage`. Custo: "limpar dados do site" no Safari apaga o
 cadastro. Benefício: três funções continuam funcionando. Cadastro se refaz em
 um minuto e tem backup; alarme cego, não.
@@ -666,6 +666,44 @@ difere, e o corpo é idêntico byte a byte. Não existe um "Assistente do iPad"
 mantido à parte — manter dois seria garantir que um deles fica para trás.
 O teste de fumaça passou a carregar a variante Safari justamente porque o
 navegador comum não tem GM nem `unsafeWindow`: testar por ali cobre os dois.
+
+**D40 — `@inject-into auto` no Safari: rodar com um sinal a menos é melhor que
+não rodar.**
+A D38 escolheu `@inject-into page` para preservar o hub de rede. No iPad do
+plantão isso falhou de um jeito silencioso: o script aparecia **instalado e
+casado** no popup do Userscripts, com a chave ligada, e nada acontecia na tela.
+Com `page`, a extensão injeta uma tag `<script>` no documento — e a CSP do Meeds
+recusa executá-la. A documentação da própria extensão aponta `auto` como remédio
+para CSP estrita.
+`auto` tenta a página e, se barrado, cai para o escopo isolado. Ali o DOM é o
+mesmo (dock, painéis, leitura de tela e os três geradores de PDF seguem
+inteiros), mas o `window` não é o da página: o hub de rede deixa de ver as
+chamadas do Meeds e o alarme de fila passa a decidir só pelos sinais de tela —
+um voto a menos no motor de decisão, não cegueira.
+A premissa da D38 continua correta; o que estava errado era supor que `page`
+sempre funcionaria. Para não repetir o diagnóstico às cegas, o painel **Sobre**
+agora informa em qual escopo o Assistente está rodando.
+
+**D41 — Preferência de uso também é dado que não pode sumir.**
+Até a v2.13.1 as preferências (quais funções aparecem, som e volume do alarme)
+viviam só no `localStorage`, com a justificativa de que "preferência corriqueira"
+não exigia a durabilidade do cadastro de médicos. Estava errado, e o erro só
+aparece em uso real: **o Meeds limpa o `localStorage` no logout**, como quase
+todo sistema com login. No acesso seguinte o Assistente não achava nada salvo e
+caía no padrão de fábrica — que é *tudo ligado*. O médico desligava o que não
+usava e, a cada troca de plantão, todos os botões voltavam.
+Agora vale a mesma regra do cadastro: `GM_setValue` quando existe, que é
+armazenamento do Tampermonkey e não do site, e por isso sobrevive a logout, a
+limpeza de dados do site e à atualização do script.
+**As chaves não mudaram** — continuam `meeds-suite:<módulo>:<nome>`, só mudou
+onde moram. Quem já tinha preferência salva não perde nada: a migração copia
+para o durável na primeira leitura, e só apaga a cópia antiga **depois** de
+confirmar que a gravação deu certo (a ordem inversa trocaria um incômodo por uma
+perda).
+Pendência assumida: no Safari/iPad não existe `GM_setValue` (ver D38), então lá
+o problema do logout continua. Resolver exigiria IndexedDB e uma API de leitura
+assíncrona, mudando a assinatura usada por todos os módulos. Fica registrado
+como pendência, não como esquecimento.
 
 ---
 

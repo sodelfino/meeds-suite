@@ -455,9 +455,6 @@
     });
   }
 
-  function onMedicoChange() {
-    if (seletorMedico) seletorMedico.limpar();
-  }
 
   function montarOrigens() {
     var sel = shadow.getElementById("cmd-origem-sel");

@@ -117,15 +117,6 @@
    * curta do paciente (iniciais + 3 ultimos digitos do CPF) — o nome
    * completo, que a versao anterior gravava, sai do disco na migracao. */
 
-  function titleCase(s) {
-    return String(s).split(" ").map(function (w) {
-      return w ? w[0] + w.slice(1).toLowerCase() : w;
-    }).join(" ");
-  }
-  var ESCAPE_HTML_MAP = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
-  function escapeHtml(str) {
-    return String(str == null ? "" : str).replace(/[&<>"']/g, function (c) { return ESCAPE_HTML_MAP[c]; });
-  }
   function formatarCpf(digits) {
     var dd = (digits || "").replace(/\D/g, "").padStart(11, "0");
     return dd.slice(0,3) + "." + dd.slice(3,6) + "." + dd.slice(6,9) + "-" + dd.slice(9,11);

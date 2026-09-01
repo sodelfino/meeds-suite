@@ -108,7 +108,7 @@ function criarAmbiente() {
     aoMudarCadastro() {},
   };
 
-  return { raiz, documento, deps, avisos, anuncios, contador };
+  return { raiz, documento, deps, avisos, anuncios, contador, urlsChamadas: [] };
 }
 
 function carregarModulo(amb) {
@@ -128,7 +128,10 @@ function carregarModulo(amb) {
     String,
     Number,
     isNaN,
-    fetch: () => Promise.reject(new Error("rede desligada no teste")),
+    fetch: (url) => {
+      amb.urlsChamadas.push(String(url));
+      return Promise.reject(new Error("rede desligada no teste"));
+    },
     unsafeWindow: amb.raiz,
   };
   contexto.window = amb.raiz;
@@ -215,12 +218,55 @@ cenario("6    primeira leitura ja com paciente chegado", ({ poll, avisos, contad
 });
 
 /* 7: some do filtro apos o check-in (sem rede, so confere que nao quebra) */
-cenario("7    atendimento some do filtro sem ter chegado", ({ poll, contador, def }) => {
+cenario("7    atendimento some do filtro sem ter chegado", ({ poll, contador, def, urlsChamadas }) => {
+  def._teste.definirProfissional("PROF-1");
   poll([paciente("A", false)]);
-  poll([]); // sumiu: dispara a confirmacao (fetch rejeita no teste)
-  verificar("nao quebra sem rede", true);
+  urlsChamadas.length = 0;
+
+  poll([]); // sumiu sem ter chegado
+
+  /* A confirmacao TEM que ser disparada. Sem esta verificacao, a funcao
+   * podia existir e nunca ser chamada — foi exatamente o que aconteceu
+   * numa versao anterior desta correcao, e o teste antigo (que so
+   * conferia "nao quebra") deixou passar. */
+  const confirmacao = urlsChamadas.filter((u) => u.indexOf("DataInicial=") !== -1);
+  verificar("dispara a consulta de confirmacao", confirmacao.length === 1, urlsChamadas);
+  verificar(
+    "confirmacao sempre com ProfissionalId",
+    confirmacao.every((u) => /[?&]ProfissionalId=PROF-1(&|$)/.test(u)),
+    confirmacao
+  );
+  verificar(
+    "confirmacao sem filtro de status",
+    confirmacao.every((u) => u.indexOf("StatusAtendimentoId=") === -1),
+    confirmacao
+  );
   verificar("contador zerado", contador.valor === 0, contador.valor);
   verificar("estado ativo foi liberado", def._teste.estado().estado.length === 0, def._teste.estado().estado);
+});
+
+/* 7b: quem sumiu DEPOIS de ter chegado nao gera confirmacao — ele foi
+ * atendido, e perguntar de novo seria consulta a toa. */
+cenario("7b   quem sumiu ja tendo chegado nao dispara confirmacao", ({ poll, def, urlsChamadas }) => {
+  def._teste.definirProfissional("PROF-1");
+  poll([paciente("A", false)]);
+  poll([paciente("A", true)]);
+  urlsChamadas.length = 0;
+  poll([]);
+  verificar(
+    "nenhuma consulta extra",
+    urlsChamadas.filter((u) => u.indexOf("DataInicial=") !== -1).length === 0,
+    urlsChamadas
+  );
+});
+
+/* 10: nunca consultar sem ProfissionalId */
+cenario("10b  toda consulta leva ProfissionalId", ({ def, urlsChamadas, poll }) => {
+  def._teste.definirProfissional("PROF-1");
+  poll([paciente("A", false)]);
+  poll([]);
+  const semProf = urlsChamadas.filter((u) => u.indexOf("ProfissionalId=") === -1);
+  verificar("nenhuma URL sem ProfissionalId", semProf.length === 0, semProf);
 });
 
 /* 8: formatos alternativos de chegada */
