@@ -10,7 +10,8 @@
     "teste": "node scripts/build.js && node -e \"console.log('Agora sirva a pasta e abra tests/smoke.html — ver docs/TESTES.md')\"",
     "sync-cid10": "node scripts/sync-cid10.js",
     "teste-sala-espera": "node tests/sala-espera.test.js",
-    "teste-storage": "node tests/storage.test.js"
+    "teste-storage": "node tests/storage.test.js",
+    "modelo-remume": "node scripts/exportar-modelo-remume.js"
   },
   "engines": {
     "node": ">=14"
