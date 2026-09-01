@@ -41,6 +41,15 @@ const FORMAS = [
   "colírio", "aerossol", "aerosol", "spray", "shampoo", "sabonete",
   "supositório", "óvulo", "adesivo transdérmico", "adesivo",
   "granulado", "drágea", "pastilha", "gotas", "injetável",
+  /* Formas que aparecem nas listas municipais e faltavam no vocabulario.
+   * Cada uma foi tirada de item real, nao de catalogo teorico. */
+  "implante subdérmico", "implante",
+  "geleia vaginal", "geléia vaginal", "geleia", "geléia",
+  "goma de mascar", "goma",
+  "enema", "aquoso nasal", "spray nasal", "pasta", "xampu",
+  "pomada dermatológica", "creme vaginal", "sabonete líquido",
+  "solução tópica degermante", "solução hidroalcoólica",
+  "líquido", "concentrado",
 ];
 
 /* Abreviacoes que aparecem nas listas municipais. Sao expandidas so
@@ -84,8 +93,12 @@ function semAcento(t) {
  * \b exige troca entre caractere de palavra e nao-palavra, entao em
  * "2% (20mg/ml)" ele FALHA depois do "%" (% e espaco sao os dois
  * nao-palavra) e a busca pula para a concentracao seguinte — levando o
- * "2%" para dentro do principio ativo. */
-const RE_CONC = /(\d+[\d.,]*)\s*(mg\/[\d.,]+\s*ml|mg\/ml|mcg\/ml|g\/ml|ui\/ml|mg\/g|mcg\/dose|mg\/dose|mg|mcg|kg|g|ui|ml|l|%)(?![a-z0-9])/i;
+ * "2%" para dentro do principio ativo.
+ *
+ * O "%" tem ramo proprio porque tambem aparece grudado na palavra
+ * seguinte nas listas reais ("0,9%solucao injetavel"): ali o sufixo nao
+ * pode recusar letra, so digito. */
+const RE_CONC = /(\d+[\d.,]*)\s*(mg\/[\d.,]+\s*ml|mg\/ml|mcg\/ml|g\/ml|ui\/ml|mg\/g|mcg\/dose|mg\/dose|mg|mcg|kg|g|ui|ml|l)(?![a-z0-9])|(\d+[\d.,]*)\s*%(?![0-9])/i;
 
 function acharConcentracao(texto) {
   const m = texto.match(RE_CONC);
@@ -131,18 +144,34 @@ function acharForma(texto) {
     base = base.replace(re, (achado) => semAcento(exp).padEnd(achado.length, " ").slice(0, achado.length));
   });
   let melhor = { valor: "", indice: -1 };
+  let adiante = { valor: "", indice: -1 };
   for (const f of FORMAS) {
     /* Fronteira de palavra, nao "contem". Sem isto "po" casa dentro de
      * "potassio" e o principio ativo e cortado no meio da palavra —
      * mesmo erro que ja tinha mordido a busca do REMUME. */
-    const re = new RegExp("\\b" + semAcento(f).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b");
+    /* Duas tolerancias tiradas de itens reais:
+     *   "comprimidos 100 mg"  -> plural
+     *   "comprimido150 mg"    -> a lista veio sem o espaco
+     * O \b final falharia nos dois: de "o" para "s" e de "o" para "1"
+     * nao ha troca palavra/nao-palavra. O fim correto e "nao vem outra
+     * LETRA depois", deixando digito passar. */
+    const re = new RegExp(
+      "\\b" + semAcento(f).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "s?(?![a-z])"
+    );
     const achado = base.match(re);
     if (!achado) continue;
     const i = achado.index;
     /* A primeira forma que aparece no texto ganha; entre duas na mesma
      * posicao, a mais longa (a lista ja vem ordenada assim). */
     if (melhor.indice === -1 || i < melhor.indice) melhor = { valor: f, indice: i };
+    /* Guarda tambem a primeira ocorrencia que NAO esteja no comeco. Em
+     * "Solução Ringer Simples - Solução Injetável Intravenosa" a
+     * palavra no indice 0 faz parte do NOME do produto; a forma de
+     * verdade e a segunda. Sem isto nao ha onde cortar e o principio
+     * ativo fica com a linha inteira. */
+    if (i > 0 && (adiante.indice === -1 || i < adiante.indice)) adiante = { valor: f, indice: i };
   }
+  if (melhor.indice === 0 && adiante.indice > 0) return adiante;
   /* Abreviacao expandida ocupa espaco diferente do original: nao da
    * para confiar no indice quando o texto foi reescrito nesse trecho. */
   return melhor;
@@ -153,9 +182,14 @@ function acharApresentacao(texto) {
   for (const e of EMBALAGENS) {
     const i = alvo.indexOf(semAcento(e));
     if (i < 0) continue;
-    const trecho = texto.slice(i, i + 40);
-    const m = trecho.match(/^[^\s]+(\s+\d+[\d.,]*\s*(ml|l|g|mg|kg|doses|comprimidos|unidades)?)?/i);
-    return (m ? m[0] : texto.slice(i, i + 20)).trim().replace(/[,;.]$/, "");
+    /* O termo casado pode ter mais de uma palavra ("Frasco Ampola"):
+     * recorta pelo COMPRIMENTO dele, e nao ate o primeiro espaco —
+     * senao a segunda palavra fica de fora e a apresentacao muda de
+     * sentido. Depois anexa o volume, quando vier colado. */
+    const termo = texto.slice(i, i + e.length);
+    const resto = texto.slice(i + e.length, i + e.length + 24);
+    const volume = resto.match(/^\s+\d+[\d.,]*\s*(ml|l|g|mg|kg|doses|comprimidos|unidades|un)?\b/i);
+    return (termo + (volume ? volume[0] : "")).trim().replace(/[,;.]$/, "");
   }
   return "";
 }
@@ -172,6 +206,21 @@ function decompor(nome) {
   /* Separador "-" que os municipios usam entre principio e forma. */
   principio = principio.replace(/[\s,;:\-–—]+$/, "").trim();
 
+  /* Numero solto no fim do principio ativo e, quase sempre, uma dose que
+   * a lista escreveu sem unidade: "Carvedilol 3,125 comprimido",
+   * "Albumina Humana 0.2". Move para a concentracao.
+   *
+   * O travessao antes do numero e a excecao que importa: em
+   * "Saccharomyces Boulardii – 17" o 17 e a CEPA, nao a dose. Tratar os
+   * dois igual inventaria uma concentracao que o municipio nao
+   * publicou. */
+  let concentracao = conc.valor;
+  const soltoNoFim = principio.match(/\s(\d+[\d.,]*)$/);
+  if (!concentracao && soltoNoFim && !/[-–—]\s*\d+[\d.,]*$/.test(principio)) {
+    concentracao = soltoNoFim[1];
+    principio = principio.slice(0, soltoNoFim.index).trim();
+  }
+
   const apresentacao = acharApresentacao(nome);
 
   /* Marca "revisar" quando ha sinal concreto de quebra malfeita, e nao
@@ -179,19 +228,29 @@ function decompor(nome) {
    * ou nome de forma farmaceutica e quebra errada — e entregar isso
    * como "automatica" seria pior que admitir a duvida. */
   const limpo = semAcento(principio);
-  const sujo =
-    /\d/.test(principio) ||
-    FORMAS.some(function (f) {
-      /* Fronteira de palavra tambem aqui: com "contem", "potassio"
-       * acusaria a forma "po" e um principio ativo perfeitamente
-       * decomposto seria mandado para revisao a toa. */
-      return new RegExp("\\b" + semAcento(f).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b").test(limpo);
-    });
+
+  /* "Qualquer digito" era grosseiro demais: "Piridoxina (vit. B6)" e
+   * "Colecalciferol (Vitamina D3)" tem digito e estao perfeitos. O que
+   * de fato denuncia quebra malfeita e ter sobrado uma CONCENTRAcao
+   * dentro do principio, ou ele terminar num numero solto. */
+  const sobrouDose = RE_CONC.test(principio) || /[\s(]\d+[\d.,]*$/.test(principio);
+
+  /* Uma forma no COMEcO do principio faz parte do nome do produto —
+   * "Solução Ringer + Lactato", "Água para Injetáveis". So acusa quando
+   * ela aparece depois do inicio, que e onde indica corte errado. */
+  const formaNoMeio = FORMAS.some(function (f) {
+    const m = limpo.match(
+      new RegExp("\\b" + semAcento(f).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "s?(?![a-z])")
+    );
+    return m && m.index > 0;
+  });
+
+  const sujo = sobrouDose || formaNoMeio;
   const confiavel = principio.length > 2 && forma.valor !== "" && !sujo;
 
   return {
     principio_ativo: principio,
-    concentracao: conc.valor,
+    concentracao: concentracao,
     forma_farmaceutica: forma.valor,
     apresentacao,
     decomposicao: confiavel ? "automatica" : "revisar",
@@ -213,14 +272,20 @@ const COLUNAS = [
   ["codigo_identificacao", 20, "sim", "Chave da linha. DEVE ser estável entre importações: se for regerado por arquivo, uma carga nova aponta para o medicamento errado. Aqui é derivado do conteúdo (sigla do município + hash da descrição)."],
   ["descricao_original", 62, "sim", "O texto EXATO publicado pelo município, sem tratamento. É a prova de auditoria e é por onde o médico procura — ele digita o que vê na lista da prefeitura."],
   ["principio_ativo", 34, "sim", "Extraído da descrição. Em associações, vem mais de um princípio."],
-  ["concentracao", 22, "não", "2,2% dos itens reais não têm concentração (água destilada, material)."],
-  ["forma_farmaceutica", 26, "não", "15% dos itens reais não trazem forma reconhecível na descrição."],
+  ["concentracao", 22, "não", "Vazio quando o município não publica. Ocorre em ~2% dos itens reais (água destilada, material de consumo)."],
+  ["forma_farmaceutica", 26, "não", "Vazio quando o município não publica. Ocorre em 9,9% dos itens (277 de 2.793). Sete Lagoas publica a lista INTEIRA sem forma farmacêutica: se a importação exigir esta coluna, aquele município não carrega."],
   ["apresentacao", 24, "não", "Embalagem e volume."],
   ["local_dispensacao", 34, "não", "Onde o item é retirado (UBS, hospital, emergência). 6 dos 11 municípios publicam. Define se a prescrição se cumpre onde o paciente vai buscar."],
   ["situacao", 12, "não", "ativo | suspenso. REMUME tem item temporariamente fora."],
   ["restricao", 24, "não", "Uso restrito, protocolo, receituário especial. Muda a conduta."],
-  ["decomposicao", 14, "auto", "automatica | revisar. Marca as linhas em que a quebra em colunas não teve certeza — para revisão humana, em vez de entregar campo errado com cara de campo certo."],
 ];
+
+/* Celula vazia nas colunas opcionais quer dizer UMA coisa so: o
+ * municipio nao publicou aquele campo. Nunca "ficou faltando preencher".
+ * Sete Lagoas, por exemplo, publica a lista inteira sem forma
+ * farmaceutica — inventar uma seria colocar no sistema informacao que a
+ * prefeitura nao deu, exatamente o que a REMUME como fonte unica de
+ * verdade proibe. */
 
 async function main() {
   const wb = new ExcelJS.Workbook();
@@ -235,6 +300,16 @@ async function main() {
     { header: "para que serve", key: "p", width: 96 },
   ];
   COLUNAS.forEach(([nome, , obrig, desc]) => dic.addRow({ c: nome, o: obrig, p: desc }));
+  dic.addRow({});
+  const nota = dic.addRow({
+    c: "COMO LER",
+    o: "",
+    p:
+      "Célula vazia numa coluna opcional significa que O MUNICÍPIO NÃO PUBLICOU aquele campo — não que ficou faltando preencher. " +
+      "Completar por conta própria colocaria no sistema informação que a prefeitura não forneceu, e a lista do município é a única " +
+      "fonte de verdade sobre o que ele dispensa. A coluna descricao_original guarda sempre o texto exato publicado, para conferência.",
+  });
+  nota.font = { bold: true };
   dic.getRow(1).font = { bold: true };
   dic.getColumn("p").alignment = { wrapText: true, vertical: "top" };
   dic.views = [{ state: "frozen", ySplit: 1 }];
@@ -263,7 +338,6 @@ async function main() {
     local_dispensacao: "UBS",
     situacao: "ativo",
     restricao: "",
-    decomposicao: "automatica",
   });
   vazio.getRow(2).font = { italic: true, color: { argb: "FF7A8794" } };
 
@@ -274,6 +348,7 @@ async function main() {
   const porMunicipio = {};
   const comLocal = {};
   const revisarPorMunicipio = {};
+  const semForma = {};
   const vistos = new Set();
   let colisoes = 0;
 
@@ -281,6 +356,7 @@ async function main() {
     porMunicipio[municipio] = 0;
     comLocal[municipio] = 0;
     revisarPorMunicipio[municipio] = 0;
+    semForma[municipio] = 0;
     REMUMES[municipio].forEach((item) => {
       const descricao = String(item.nome || "").trim();
       if (!descricao) return;
@@ -301,24 +377,16 @@ async function main() {
         local_dispensacao: item.local || "",
         situacao: "ativo",
         restricao: "",
-        decomposicao: d.decomposicao,
       });
       total++;
       porMunicipio[municipio]++;
       if (item.local && String(item.local).trim()) comLocal[municipio]++;
+      if (!d.forma_farmaceutica) semForma[municipio]++;
       if (d.decomposicao === "revisar") {
         revisar++;
         revisarPorMunicipio[municipio]++;
       }
     });
-  });
-
-  /* Destaca visualmente o que precisa de olho humano. */
-  dados.eachRow((row, i) => {
-    if (i === 1) return;
-    if (row.getCell("decomposicao").value === "revisar") {
-      row.getCell("decomposicao").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF3CD" } };
-    }
   });
 
   /* ---------- aba 4: resumo ----------
@@ -330,14 +398,14 @@ async function main() {
     { header: "municipio", key: "m", width: 28 },
     { header: "itens", key: "n", width: 10 },
     { header: "com local de dispensação", key: "l", width: 26 },
-    { header: "a revisar", key: "r", width: 12 },
+    { header: "sem forma farmacêutica na origem", key: "r", width: 32 },
   ];
   resumo.getRow(1).font = { bold: true };
   Object.keys(porMunicipio).sort().forEach((m) => {
-    resumo.addRow({ m, n: porMunicipio[m], l: comLocal[m] || 0, r: revisarPorMunicipio[m] || 0 });
+    resumo.addRow({ m, n: porMunicipio[m], l: comLocal[m] || 0, r: semForma[m] || 0 });
   });
   resumo.addRow({});
-  const linhaTotal = resumo.addRow({ m: "TOTAL", n: total, l: Object.values(comLocal).reduce((a, b) => a + b, 0), r: revisar });
+  const linhaTotal = resumo.addRow({ m: "TOTAL", n: total, l: Object.values(comLocal).reduce((a, b) => a + b, 0), r: Object.values(semForma).reduce((a, b) => a + b, 0) });
   linhaTotal.font = { bold: true };
 
   fs.mkdirSync(path.dirname(SAIDA), { recursive: true });
@@ -346,7 +414,11 @@ async function main() {
   console.log("Gerado: " + SAIDA);
   console.log("  linhas:      " + total);
   console.log("  municipios:  " + Object.keys(porMunicipio).length);
-  console.log("  a revisar:   " + revisar + " (" + ((revisar / total) * 100).toFixed(1) + "%)");
+  const semFormaTotal = Object.values(semForma).reduce((a, b) => a + b, 0);
+  console.log("  sem forma na origem: " + semFormaTotal + " (" + ((semFormaTotal / total) * 100).toFixed(1) + "%)");
+  /* Continua sendo medido, so nao vai para a planilha entregue: se um
+   * dia voltar a subir, e sinal de que a decomposicao regrediu. */
+  console.log("  quebra suspeita:     " + revisar);
   console.log("  codigos duplicados: " + colisoes);
   Object.entries(porMunicipio).forEach(([m, n]) => console.log("    " + String(n).padStart(4) + "  " + m));
 }
