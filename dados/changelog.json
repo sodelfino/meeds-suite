@@ -5,6 +5,17 @@
       "versao": "2.14.0",
       "data": "2026-09-01",
       "novidades": [],
+      "melhorias": [
+        "A checagem de atualização ficou muito mais leve: o Tampermonkey passa a baixar 1 KB para saber se há versão nova, em vez de mais de 1 MB."
+      ],
+      "correcoes": [
+        "Correções internas na Sala de Espera, que está em standby: a consulta de confirmação não estava sendo executada."
+      ]
+    },
+    {
+      "versao": "2.14.0",
+      "data": "2026-09-01",
+      "novidades": [],
       "melhorias": [],
       "correcoes": [
         "As funções que você desliga continuam desligadas depois do logout. Antes, o Meeds apagava a configuração ao sair e todos os botões voltavam no acesso seguinte. O que você já tinha configurado é aproveitado, não precisa remarcar nada."

@@ -545,6 +545,51 @@ município do REMUME ficariam cegos.
 > diz qual linha trocar.
 
 
+### Faxina do repositório *(QA de limpeza)*
+
+Executado em 01/09/2026 contra `dist/meeds-suite.user.js` v2.14.0.
+
+**Método:** um cruzamento automático de cada arquivo versionado contra o
+`manifest.json` e contra o texto de todos os outros arquivos, mais um detector
+de funções definidas e nunca chamadas. Nada foi removido por impressão.
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 83 | Nenhum arquivo versionado ficou sem referência | ✅ |
+| 84 | Nenhuma função definida e nunca chamada | ✅ |
+| 85 | `cimvastatina` → sinvastatina (capacidade que a fonética removida cobria) | ✅ |
+| 86 | REMUME sem regressão (6 termos) | ✅ |
+| 87 | CID no campo dos três laudos: sugestão e preenchimento | ✅ |
+| 88 | Máscara de CPF | ✅ |
+| 89 | Painel: abas, crédito, versão e histórico | ✅ |
+| 90 | Ligar/desligar módulo ao vivo | ✅ |
+| 91 | Alarme: base → disparo → auto-silêncio + moldura | ✅ |
+| 92 | Boas-vindas aparece na 1ª visita e **não** na 2ª | ✅ |
+| 93 | Sala de Espera: 31 testes de unidade | ✅ |
+
+> **Dois testes meus deram falso negativo e vale registrar por quê**, porque a
+> mesma armadilha volta:
+> 1. o crédito do painel foi procurado por `.msm-credito`, mas a classe virou
+>    `.msm-sobre-credito` quando o painel ganhou abas — o produto estava certo;
+> 2. o teste das boas-vindas limpou o `localStorage` **depois** de a página já
+>    ter decidido se mostrava o aviso. Para valer, é preciso limpar **e
+>    recarregar**.
+
+### Defeitos encontrados pela própria limpeza
+
+O detector de código morto achou dois defeitos reais na Sala de Espera, que os
+testes anteriores não pegavam:
+
+| Defeito | Como aparecia |
+|---|---|
+| `confirmarDesaparecidos` definida e **nunca chamada** | a consulta de confirmação — peça central da detecção — não rodava |
+| `confirmacaoEmAndamento` e `falhasSeguidas` **nunca declaradas** | `ReferenceError` no primeiro paciente que saísse do filtro |
+
+Os dois passaram por `node --check` porque ele só valida sintaxe. O teste 7 foi
+reescrito para exigir que a consulta de confirmação **aconteça** (antes ele só
+verificava que "não quebra"), e ganhou dois vizinhos: 7b (quem já chegou não
+gera consulta extra) e 10b (nenhuma URL sem `ProfissionalId`).
+
 ### Extensibilidade
 
 Verificado à parte: criei um sexto módulo a partir de `modules/_template`,
