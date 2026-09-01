@@ -748,6 +748,57 @@ Detalhe de CSS que custou um bug: a regra que reabre no hover precisa repetir os
 nada. E precisa de `:not([hidden])`, senão ressuscita botões que o próprio
 módulo desligou.
 
+**D45 — Palavra genérica desempata, mas não escolhe.**
+Qualquer token que casasse trazia o item para a lista. Numa REMUME isso
+degenera: "comprimido" está em 44% da lista de Mendes e a sigla "hpm" em 80%
+da de Macaé. Resultado medido: `acetilcisteina comprimido` devolvia **159 dos
+357** itens de Mendes, e `dipirona comprimido` **201 de 538** em Macaé — os
+certos no topo e o resto ruído, dentro de uma lista que a tela corta em 80.
+O médico rolava 80 linhas para achar 2.
+Agora um token presente em mais de 30% dos itens **pontua mas não seleciona**.
+O corte é por frequência medida, não por lista fixa de palavras: uma lista fixa
+quebraria justamente em Sete Lagoas, onde *nenhuma* palavra passa de 10% porque
+o município não publica forma farmacêutica. A medição nos 11 municípios mostrou
+separação larga — acima de 30% só existem formas e siglas de unidade, e nenhum
+princípio ativo passa de 10% em lugar nenhum.
+A palavra genérica segue somando pontos, então "amoxicilina suspensão" continua
+priorizando a suspensão; ela só não pode, sozinha, trazer uma suspensão que nada
+tem a ver com amoxicilina. Há rede de segurança: se a busca inteira for genérica
+("comprimido", "UBS"), a restrição é suspensa, senão a tela diria "não consta"
+para termo que existe.
+**Isto só remove item do resultado, nunca acrescenta** — a regra de a REMUME do
+município ser a única fonte de verdade continua valendo por construção.
+Efeito colateral bom: em Macaé, dois itens com Dipirona que estavam além da
+posição 80, escondidos pelo ruído, voltaram a aparecer.
+
+**D46 — Extrair princípio ativo cortando no primeiro dígito estava errado.**
+`extrairPrincipioAtivo()` cortava no primeiro dígito ou na primeira forma
+farmacêutica. Rodando contra os 2.793 itens reais, isso produzia **20 textos
+quebrados**, e eles vão para a tela como "você quis dizer": `Piridoxina
+(Vitamina B6)` virava `Piridoxina (Vitamina B`, `Lamivudina (3TC)` virava
+`Lamivudina (` — com parêntese aberto.
+Três correções: corta na concentração (número **seguido de unidade**), e não em
+qualquer dígito; ignora forma que esteja no início do nome, porque ali ela faz
+parte do produto ("Solução Ringer", "Sachê oral Polimixina"); e recua o corte
+quando ele deixaria um parêntese aberto.
+A dica também ganhou teto de tamanho: itens como "Nutrição Parenteral Tripla …
+via venosa central." não têm onde cortar, a função devolve a linha inteira por
+contrato, e um parágrafo como sugestão confunde em vez de ajudar.
+
+**D47 — Os bugs de fronteira de palavra são uma família, não incidentes.**
+A revisão da planilha-modelo de REMUME encontrou seis defeitos, e cinco eram a
+mesma coisa em roupas diferentes: casar palavra por "contém" em vez de por
+fronteira, ou confiar em `\b` onde ele não vale.
+O `\b` falha em três situações que ocorrem em dado real: depois de `%` (`%` e
+espaço são ambos não-palavra, então `2%` escapava para dentro do princípio
+ativo), antes de dígito colado (`comprimido150 mg`, que existe na lista de
+Barbacena) e antes de plural (`comprimidos`). Onde o fim correto é "não vem
+letra depois", a expressão é `(?![a-z])`, não `\b`.
+Já tinha mordido a busca do REMUME uma vez (sinônimo curto casando dentro de
+palavra). Vale conferir esta família primeiro sempre que um casamento de texto
+se comportar de forma estranha — e vale avisar quem for implementar o importador
+do lado do servidor, porque a decomposição lá terá os mesmos riscos.
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público

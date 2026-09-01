@@ -165,6 +165,14 @@
      * ativo digitado. Quem tem sinonimos inequivocos — "pressao alta"
      * so pode ser hipertensao — pode subir isso na chamada. */
     PESO_SINONIMO: 0.8,
+    /* Acima desta fracao dos itens, a palavra deixa de escolher item e
+     * passa so a desempatar. O 0,30 nao e chute: medindo os 11
+     * municipios, tudo acima de 30% e forma farmaceutica ou sigla de
+     * unidade ("comprimido" 44% em Mendes, "hpm" 80% em Macae), e
+     * nenhum principio ativo passa de 10% em lugar nenhum. A separacao
+     * entre os dois grupos e larga, entao o valor exato nao e critico —
+     * qualquer coisa entre 0,15 e 0,30 se comportaria igual. */
+    FRACAO_PALAVRA_GENERICA: 0.3,
     /* Quantos casamentos EXATOS bastam para dispensar a aproximacao
      * daquela palavra. Uma palavra que aparece em dezenas de itens
      * claramente existe na base — tentar adivinhar o que ela "queria
@@ -367,6 +375,10 @@
     var tocado = new Uint8Array(n);
     var normalizados = indice.normalizados;
 
+    /* Itens que SO foram alcancados por palavra generica. Ficam de fora
+     * do resultado, a menos que nada mais tenha sido encontrado. */
+    var tocadoGenerico = new Uint8Array(n);
+
     for (var q = 0; q < tokens.length; q++) {
       var token = tokens[q];
       var casouExato = new Uint8Array(n);
@@ -377,10 +389,42 @@
         var pos = normalizados[i].indexOf(token);
         if (pos === -1) continue;
         casouExato[i] = 1;
-        tocado[i] = 1;
         quantosExatos++;
         exata[i] += 1.0;
         if (pos === 0) exata[i] += cfg.BONUS_COMECA_COM;
+      }
+
+      /* PALAVRA GENERICA NAO ESCOLHE ITEM, SO DESEMPATA.
+       *
+       * Numa REMUME, "comprimido" aparece em 44% da lista de Mendes e
+       * as siglas de unidade ("hpm", "upa", "ubs") em ate 80% da de
+       * Macae. Como qualquer token que casa marca o item como
+       * candidato, "acetilcisteina comprimido" devolvia 159 dos 357
+       * itens de Mendes: os dois certos no topo e 157 de ruido atras,
+       * dentro de uma lista que a tela corta em 80. O medico rolava 80
+       * linhas para achar 2.
+       *
+       * A medicao mostrou uma separacao limpa: acima de 30% so existem
+       * formas farmaceuticas e siglas de unidade — nenhum principio
+       * ativo chega perto disso em nenhum dos 11 municipios. Entao o
+       * corte por frequencia distingue exatamente o que precisamos, sem
+       * lista fixa de palavras (que quebraria justamente em Sete
+       * Lagoas, onde NENHUMA palavra passa de 10% porque o municipio
+       * nao publica forma farmaceutica).
+       *
+       * A palavra generica continua somando pontos: em "amoxicilina
+       * suspensao", "suspensao" segue empurrando a suspensao para cima
+       * — ela so nao pode, sozinha, trazer para a lista uma suspensao
+       * que nada tem a ver com amoxicilina.
+       *
+       * Isto so REMOVE item do resultado, nunca acrescenta: a regra de
+       * a REMUME do municipio ser a unica fonte de verdade continua
+       * valendo por construcao. */
+      var generico = quantosExatos > 0 && quantosExatos / n > cfg.FRACAO_PALAVRA_GENERICA;
+      for (var t = 0; t < n; t++) {
+        if (!casouExato[t]) continue;
+        if (generico) tocadoGenerico[t] = 1;
+        else tocado[t] = 1;
       }
 
       /* Palavra bem escrita nao precisa de aproximacao. Isto e o que
@@ -429,6 +473,23 @@
           fuzzy[idFuzzy] += melhorPorItem[idFuzzy] * 0.5;
           tocado[idFuzzy] = 1;
         }
+      }
+    }
+
+    /* Se a busca inteira era generica — o medico digitou so
+     * "comprimido", ou so "UBS" — nao ha nada mais especifico para
+     * mostrar. Ai a palavra generica volta a escolher, senao a tela
+     * diria "nao consta" para um termo que existe na lista. */
+    var achouAlgo = false;
+    for (var v = 0; v < n; v++) {
+      if (tocado[v]) {
+        achouAlgo = true;
+        break;
+      }
+    }
+    if (!achouAlgo) {
+      for (var w = 0; w < n; w++) {
+        if (tocadoGenerico[w]) tocado[w] = 1;
       }
     }
 

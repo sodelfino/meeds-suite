@@ -1,17 +1,18 @@
 {
   "name": "meeds-suite",
-  "version": "2.15.0",
+  "version": "2.16.0",
   "private": true,
   "description": "Pacote unificado das ferramentas Meeds da Novetech: bootloader unico, nucleo compartilhado e modulos independentes.",
   "scripts": {
     "build": "node scripts/build.js",
-    "verificar": "node scripts/build.js --check && node scripts/sync-fallback.js --check && node scripts/sync-cid10.js --check && node tests/sala-espera.test.js && node tests/storage.test.js",
+    "verificar": "node scripts/build.js --check && node scripts/sync-fallback.js --check && node scripts/sync-cid10.js --check && node tests/sala-espera.test.js && node tests/storage.test.js && node tests/busca-remume.test.js",
     "sync-fallback": "node scripts/sync-fallback.js",
     "teste": "node scripts/build.js && node -e \"console.log('Agora sirva a pasta e abra tests/smoke.html — ver docs/TESTES.md')\"",
     "sync-cid10": "node scripts/sync-cid10.js",
     "teste-sala-espera": "node tests/sala-espera.test.js",
     "teste-storage": "node tests/storage.test.js",
-    "modelo-remume": "node scripts/exportar-modelo-remume.js"
+    "modelo-remume": "node scripts/exportar-modelo-remume.js",
+    "teste-busca": "node tests/busca-remume.test.js"
   },
   "engines": {
     "node": ">=14"

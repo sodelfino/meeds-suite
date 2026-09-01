@@ -157,18 +157,52 @@ const FORMAS_FARMACEUTICAS_RX = new RegExp(
       ")\\b"
   );;
 
-function extrairPrincipioAtivo(nome) {
+/* Concentracao de verdade: numero SEGUIDO DE UNIDADE.
+   *
+   * A versao anterior cortava no primeiro digito, qualquer um, e o
+   * resultado ia para a tela como "voce quis dizer". Nos 2.793 itens
+   * dos 11 municipios isso produzia 20 textos quebrados, entre eles
+   * "Piridoxina (Vitamina B" e "Colecalciferol (Vitamina D" — o digito
+   * que disparava o corte era o da propria vitamina. */
+  const CONCENTRACAO_RX = /\d+[\d.,]*\s*(mg\/ml|mcg\/ml|g\/ml|ui\/ml|mg\/g|mg|mcg|kg|g|ui|ml|%)/;
+
+  function extrairPrincipioAtivo(nome) {
     const nomeNormalizado = normalizarTexto(nome);
-    const idxDigito = nomeNormalizado.search(/\d/);
-    const matchForma = nomeNormalizado.match(FORMAS_FARMACEUTICAS_RX);
-    const idxForma = matchForma ? matchForma.index : -1;
-    const candidatos = [idxDigito, idxForma].filter((i) => i >= 0);
+
+    const mConc = nomeNormalizado.match(CONCENTRACAO_RX);
+    const idxConc = mConc ? mConc.index : -1;
+
+    /* Forma no INICIO faz parte do nome do produto ("Solução Ringer",
+     * "Sachê oral Polimixina"): cortar ali deixaria o principio vazio e
+     * a funcao devolveria a linha inteira, que nao ajuda ninguem.
+     * Procura entao a primeira ocorrencia depois do inicio. */
+    let idxForma = -1;
+    const rx = new RegExp(FORMAS_FARMACEUTICAS_RX.source, "g");
+    let m;
+    while ((m = rx.exec(nomeNormalizado)) !== null) {
+      if (m.index > 0) {
+        idxForma = m.index;
+        break;
+      }
+    }
+
+    const candidatos = [idxConc, idxForma].filter((i) => i > 0);
     if (candidatos.length === 0) return nome.trim();
+
     // remocao de acento via NFD preserva a contagem de caracteres 1:1 com
     // o original, entao o mesmo indice serve pra cortar a string ORIGINAL
     // sem perder a acentuacao no texto exibido ao medico.
-    const idx = Math.min(...candidatos);
-    const principio = nome.slice(0, idx).trim().replace(/[\s,;:\-]+$/, "").trim();
+    let principio = nome.slice(0, Math.min(...candidatos));
+
+    /* Parentese aberto e nao fechado significa que o corte caiu DENTRO
+     * de um aposto — "Lamivudina (3TC)" virava "Lamivudina (". Recua
+     * para antes dele: melhor entregar o nome curto e correto do que um
+     * fragmento com pontuacao pendurada. */
+    const abre = (principio.match(/\(/g) || []).length;
+    const fecha = (principio.match(/\)/g) || []).length;
+    if (abre > fecha) principio = principio.slice(0, principio.lastIndexOf("("));
+
+    principio = principio.trim().replace(/[\s,;:\-–—(]+$/, "").trim();
     return normalizarTexto(principio).length >= 3 ? principio : nome.trim();
   }
 
@@ -221,6 +255,9 @@ function extrairPrincipioAtivo(nome) {
 
 const CONFIG_BUSCA = {
     LIMITE_RESULTADOS: 80,
+    /* Teto da dica "voce quis dizer". Nome de principio ativo nao passa
+     * disso nem nas associacoes mais longas da base. */
+    MAX_LEN_DICA_TERMO: 60,
     LIMIAR_FUZZY: 0.6,
     BONUS_COMECA_COM: 0.2,
     // tamanho minimo do termo digitado para exibir a dica de "termo
@@ -270,6 +307,12 @@ function buscarMedicamentos(termo, cidade) {
       var principioAtivo = extrairPrincipioAtivo(r.melhor.nome);
       if (
         principioAtivo &&
+        /* Quando o item nao tem concentracao nem forma onde cortar — e
+         * o caso de "Nutrição Parenteral Tripla ... via venosa
+         * central." — a extracao devolve a linha inteira, por contrato.
+         * Isso serve para busca, mas nao para a dica "voce quis dizer":
+         * um paragrafo inteiro ali confunde em vez de ajudar. */
+        principioAtivo.length <= CONFIG_BUSCA.MAX_LEN_DICA_TERMO &&
         normalizarTexto(principioAtivo) !== normalizarTexto(termo) &&
         normalizarTexto(termo).length >= CONFIG_BUSCA.MIN_LEN_DICA_TERMO
       ) {
