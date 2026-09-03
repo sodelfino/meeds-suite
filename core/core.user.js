@@ -490,6 +490,11 @@
       storageNucleo.gravar("dock_recolhido", !!valor);
     });
 
+    /* Translucidez em repouso. Ligada de fabrica: o pedido que originou
+     * isto foi justamente "que nao atrapalhe a visualizacao da tela".
+     * Quem preferir os botoes sempre solidos desliga na engrenagem. */
+    Dock.definirTranslucidez(storageNucleo.ler("dock_translucido", true) !== false);
+
     // engrenagem: SEMPRE presente, mesmo com todos os modulos desligados
     /* MIGRACAO DO CADASTRO — roda antes de qualquer modulo subir, para
      * que o primeiro <select> de medicos ja apareca preenchido. */
@@ -544,6 +549,9 @@
       definirHabilitado: definirHabilitado,
       versaoNucleo: VERSAO_NUCLEO,
       manifesto: manifesto,
+      dockTranslucido: function (valor) {
+        return API.dockTranslucido(valor);
+      },
       contato: (manifesto && manifesto.contato) || null,
       abrirAjustesDe: function (id) {
         if (porId[id] && typeof porId[id].abrirAjustes === "function") porId[id].abrirAjustes();
@@ -598,6 +606,21 @@
     cadastro: Cadastro,
     assinarEvento: assinarEvento,
     publicarEvento: publicarEvento,
+    /* Aparencia do dock. Fica na API do NUCLEO e nao nas dependencias
+     * do modulo de proposito: como o modulo nao decide posicao de botao,
+     * tambem nao decide opacidade da pilha inteira. Quem chama isto e o
+     * painel da engrenagem.
+     *
+     * (No v2 esta funcao foi parar, por engano, no objeto de
+     * dependencias do modulo — o `abrirCadastro` existe nos dois, e a
+     * ancora pegou o errado. Daria a um modulo qualquer o poder de
+     * apagar a pilha inteira.) */
+    dockTranslucido: function (valor) {
+      if (valor === undefined) return Dock.estaTranslucido();
+      Dock.definirTranslucidez(!!valor);
+      if (storageNucleo) storageNucleo.gravar("dock_translucido", !!valor);
+      return !!valor;
+    },
     abrirCadastro: function () {
       raiz.MeedsSuiteManager.abrir("medicos");
     },

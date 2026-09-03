@@ -42,6 +42,15 @@
   var elAlca = null;
   var recolhido = false;
   var aoAlternar = null;
+  var translucido = true;      // preferencia do medico (o nucleo carrega)
+  var timerAdormecer = null;
+
+  /* Quanto tempo depois da ultima interacao a pilha volta a desaparecer.
+   * 2,5s foi escolhido para cobrir o intervalo entre soltar o mouse e
+   * decidir o proximo clique. Menos que isso e a pilha some enquanto o
+   * medico ainda esta mirando; muito mais e ela deixa de sair do
+   * caminho, que e o motivo de existir. */
+  var MS_ATE_ADORMECER = 2500;
   var timerToast = null;
 
   var ESTILOS = [
@@ -101,14 +110,43 @@
     "  box-shadow: 0 2px 10px rgba(15,23,42,.22); }",
     ".ms-alca:hover { background: #f1f5f9; }",
     "#dock.ms-recolhido .ms-btn:not(.ms-alca):not(.ms-ativo) { display: none; }",
-    "@media (hover: hover) and (pointer: fine) {",
-    /* Os :not() repetidos nao sao enfeite: sem eles esta regra perde em
-     * especificidade para a de esconder logo acima, e o hover nao abre
-     * nada. O :not([hidden]) e o que impede o hover de ressuscitar um
-     * botao que o proprio modulo desligou. */
-    "  #dock.ms-recolhido:hover .ms-btn:not(.ms-alca):not(.ms-ativo):not([hidden]) { display: flex; }",
-    "}",
     "#dock .ms-btn[hidden] { display: none; }",
+
+    /* --- translucidez em repouso ------------------------------------
+     * O que o medico pediu: que a pilha nao atrapalhe a leitura da tela
+     * quando ele nao esta usando, e que abrir e fechar seja decisao
+     * dele, nao do ponteiro.
+     *
+     * A VERSAO ANTERIOR ABRIA A PILHA NO HOVER, E ISSO ESTAVA ERRADO
+     * POR DOIS MOTIVOS CONCRETOS:
+     *   1. o canto inferior direito e rota de passagem, nao destino:
+     *      atravessar a regiao fazia sete itens saltarem sobre o
+     *      conteudo sem ninguem ter pedido;
+     *   2. como so ficava aberto enquanto o ponteiro estivesse dentro,
+     *      cortar caminho na diagonal para alcancar um botao fechava a
+     *      caixa no meio do movimento.
+     *
+     * O hover aqui continua existindo, mas mexendo SO NA OPACIDADE. A
+     * diferenca nao e detalhe: opacidade nao desloca nada, nao cobre
+     * conteudo novo e nao muda a area clicavel — entao nao ha como
+     * "sair sem querer" de algo que nao mudou de lugar. Layout no hover
+     * e armadilha; opacidade no hover e conforto.
+     *
+     * A transicao tambem tem lado: some devagar (.45s) e volta rapido
+     * (.12s). Sumir e enfeite e pode ser suave; reaparecer e resposta a
+     * uma intencao e precisa parecer instantaneo. */
+    "#dock { transition: opacity .45s ease; }",
+    "#dock.ms-translucido { opacity: .28; }",
+    "#dock.ms-translucido.ms-acordado { opacity: 1; transition: opacity .12s ease; }",
+    /* Alerta NUNCA fica translucido. Se a fila encheu, o alarme e o
+     * unico motivo pelo qual o medico deveria olhar para o canto —
+     * apaga-lo seria desligar o aviso pela metade. */
+    "#dock.ms-tem-alerta { opacity: 1 !important; }",
+    /* No toque nao existe aproximar o ponteiro: o primeiro contato ja e
+     * o clique. Entao o repouso e menos apagado ali — 28% num aparelho
+     * onde nao da para "espiar antes" vira um botao que o medico precisa
+     * adivinhar. */
+    "@media (hover: none) { #dock.ms-translucido { opacity: .5; } }",
 
     /* estado ligado/alerta (usado pelo alarme de fila) */
     ".ms-btn.ms-ativo { background: linear-gradient(135deg, #f97316, #dc2626); box-shadow: 0 4px 18px rgba(220,38,38,.55); animation: ms-pulso 2.2s ease-in-out infinite; }",
@@ -229,6 +267,8 @@
     elDock.id = "dock";
     shadow.appendChild(elDock);
     criarAlca();
+    ligarSensoresDeInteracao();
+    definirTranslucidez(translucido);
 
     elAvisos = document.createElement("div");
     elAvisos.id = "avisos";
@@ -240,6 +280,82 @@
     shadow.appendChild(elToast);
 
     return shadow;
+  }
+
+  /* ------------------------------------------------------------------
+   * ACORDAR E ADORMECER
+   * ------------------------------------------------------------------
+   * "Acordado" e opacidade cheia. Qualquer sinal de intencao acorda —
+   * mouse por cima, foco de teclado, toque. Depois de um tempo parado,
+   * volta a desaparecer sozinho.
+   *
+   * O foco de teclado entra na lista por acessibilidade: quem navega de
+   * Tab nao gera hover nenhum, e uma pilha a 28% de opacidade seria
+   * praticamente invisivel para essa pessoa.
+   * ------------------------------------------------------------------ */
+  function acordar() {
+    if (!elDock) return;
+    elDock.classList.add("ms-acordado");
+    if (timerAdormecer) clearTimeout(timerAdormecer);
+    timerAdormecer = null;
+  }
+
+  function agendarAdormecer() {
+    if (!elDock) return;
+    if (timerAdormecer) clearTimeout(timerAdormecer);
+    timerAdormecer = setTimeout(function () {
+      timerAdormecer = null;
+      /* Nao adormece com o teclado dentro: seria apagar a pilha embaixo
+       * do cursor de quem esta navegando por Tab. */
+      if (elDock.contains(document.activeElement)) return;
+      elDock.classList.remove("ms-acordado");
+    }, MS_ATE_ADORMECER);
+  }
+
+  function ligarSensoresDeInteracao() {
+    if (!elDock) return;
+    /* pointerenter/leave em vez de mouseenter: cobre mouse, caneta e
+     * toque com o mesmo par de eventos. */
+    elDock.addEventListener("pointerenter", acordar);
+    elDock.addEventListener("pointerleave", agendarAdormecer);
+    /* No toque nao existe "sair": o dedo levanta e pronto. Entao um
+     * toque acorda e o proprio timer devolve ao repouso. */
+    elDock.addEventListener("pointerdown", function () {
+      acordar();
+      agendarAdormecer();
+    });
+    elDock.addEventListener("focusin", acordar);
+    elDock.addEventListener("focusout", agendarAdormecer);
+  }
+
+  /* Ligada e desligada pelo medico no painel da engrenagem. Desligada, a
+   * pilha fica sempre com opacidade cheia — que era o comportamento
+   * antes desta versao. */
+  function definirTranslucidez(valor) {
+    translucido = !!valor;
+    if (!elDock) return;
+    elDock.classList.toggle("ms-translucido", translucido);
+    if (translucido) {
+      /* Acorda ANTES de agendar o sono. Na carga da pagina nada ficou
+       * "parado" ainda: nascer a 28% faria o medico achar que o
+       * Assistente carregou pela metade. Ele aparece inteiro e some
+       * depois, que e o que "discreto quando parado" quer dizer. */
+      acordar();
+      agendarAdormecer();
+    } else {
+      acordar();
+    }
+  }
+
+  /* Chamado quando um botao entra ou sai de alerta. Um dock com alarme
+   * tocando nao pode desaparecer. */
+  function recalcularAlerta() {
+    if (!elDock) return;
+    var temAlerta = false;
+    botoes.forEach(function (b) {
+      if (!b.el.hidden && b.el.classList.contains("ms-ativo")) temAlerta = true;
+    });
+    elDock.classList.toggle("ms-tem-alerta", temAlerta);
   }
 
   /* A alca nao passa por registrarBotao de proposito: ela nao pertence
@@ -263,12 +379,15 @@
     botoes.forEach(function (b) {
       if (!b.el.hidden && !b.el.classList.contains("ms-ativo")) escondidos++;
     });
-    elAlca.textContent = recolhido ? "☰" : "✕";
+    /* "✕" dizia a coisa errada: ele significa fechar/descartar, e o
+     * medico so quer TIRAR DO CAMINHO. O chevron para baixo mostra o
+     * movimento real — a pilha se recolhe em direcao ao canto. */
+    elAlca.textContent = recolhido ? "☰" : "⌄";
     elAlca.title = recolhido
       ? escondidos === 1
         ? "Mostrar 1 função"
         : "Mostrar " + escondidos + " funções"
-      : "Recolher para liberar espaço na tela";
+      : "Minimizar (as funções continuam ativas)";
     elAlca.setAttribute("aria-label", elAlca.title);
     elAlca.setAttribute("aria-expanded", recolhido ? "false" : "true");
     /* Recolhido e sem nada para mostrar, a alca so ocuparia espaco. */
@@ -278,6 +397,10 @@
   function definirRecolhido(valor) {
     recolhido = !!valor;
     if (elDock) elDock.classList.toggle("ms-recolhido", recolhido);
+    /* Minimizar ou expandir e uma intencao explicita: o resultado tem
+     * que ficar visivel na hora, e nao a 28% de opacidade. */
+    acordar();
+    if (translucido) agendarAdormecer();
     pintarAlca();
     reposicionarToast();
   }
@@ -364,6 +487,7 @@
          * e portanto muda a contagem que a alca mostra. */
         if (nome === "ms-ativo") {
           pintarAlca();
+          recalcularAlerta();
           reposicionarToast();
         }
       },
@@ -382,11 +506,13 @@
       mostrar: function () {
         el.hidden = false;
         pintarAlca();
+        recalcularAlerta();
         reposicionarToast();
       },
       esconder: function () {
         el.hidden = true;
         pintarAlca();
+        recalcularAlerta();
         reposicionarToast();
       },
       remover: function () {
@@ -626,6 +752,10 @@
     /* Quem decide o estado inicial e quem o guarda e o nucleo — o dock
      * so sabe desenhar. Mesma divisao que vale para posicao de botao. */
     definirRecolhido: definirRecolhido,
+    definirTranslucidez: definirTranslucidez,
+    estaTranslucido: function () {
+      return translucido;
+    },
     estaRecolhido: function () {
       return recolhido;
     },
