@@ -162,6 +162,22 @@ function main() {
       JSON.stringify(mk) + ";\n";
   }
 
+  /* --- dados da APAC ---
+   * Separado de formularios.json porque a APAC deixou de ser de um
+   * municipio so: o formulario e nacional, e o arquivo lista o catalogo
+   * comum mais os estabelecimentos de cada municipio. */
+  const CAMINHO_APAC = "dados/apac.json";
+  let injecaoApac = "";
+  if (fs.existsSync(path.join(RAIZ, CAMINHO_APAC))) {
+    const ap = JSON.parse(ler(CAMINHO_APAC)); // JSON quebrado falha o build
+    if (!ap.municipios || !Object.keys(ap.municipios).length) {
+      throw new Error(`${CAMINHO_APAC} precisa de pelo menos um municipio em "municipios"`);
+    }
+    injecaoApac =
+      "\n  /* ===== " + CAMINHO_APAC + " ===== */\n  raiz.MEEDS_DADOS_APAC = " +
+      JSON.stringify(ap) + ";\n";
+  }
+
   /* --- changelog ---
    * Vai embutido, e nao buscado em runtime: a notificacao de atualizacao
    * tem que funcionar mesmo sem internet, e o arquivo e pequeno. Ele e a
@@ -217,7 +233,7 @@ function main() {
   const injetar = (texto) => () => texto;
 
   const saida = bootloader
-    .replace(MARCADOR_NUCLEO, injetar(pecasNucleo.join("\n\n") + "\n" + injecaoDados + injecaoMarcas + injecaoChangelog + "\n  " + inventario))
+    .replace(MARCADOR_NUCLEO, injetar(pecasNucleo.join("\n\n") + "\n" + injecaoDados + injecaoApac + injecaoMarcas + injecaoChangelog + "\n  " + inventario))
     .replace(MARCADOR_MODULOS, injetar(pecasModulos.join("\n\n")))
     .replace(/@version\s+[\d.]+/, injetar(`@version      ${manifest.versao}`))
     .replace("__VERSAO__", injetar(manifest.versao));
@@ -353,6 +369,15 @@ function main() {
   console.log(`  nucleo:  ${manifest.nucleo.length} arquivo(s)`);
   console.log(`  modulos: ${manifest.modulos.length} (${manifest.modulos.map((m) => m.id).join(", ")})`);
   console.log(`  versao:  ${manifest.versao}`);
+  if (injecaoApac) {
+    const ap = JSON.parse(ler(CAMINHO_APAC));
+    const mun = Object.keys(ap.municipios);
+    console.log(`  APAC:    ${mun.length} municipio(s) — ${mun.join(", ")}`);
+    mun.forEach((m) => {
+      const n = (ap.municipios[m].estabelecimentos || []).length;
+      if (!n) console.log(`           AVISO: ${m} ainda sem estabelecimento cadastrado`);
+    });
+  }
   if (injecaoMarcas) {
     console.log(`  marcas:  ${JSON.parse(ler(CAMINHO_MARCAS)).marcas.length} nome(s) comercial(is)`);
   }

@@ -1,0 +1,144 @@
+{
+ "_leia_me": "APAC — Laudo para Solicitacao/Autorizacao de Procedimento Ambulatorial. O formulario e NACIONAL, do Ministerio da Saude: o mesmo PDF vale para qualquer municipio. O que muda de um para outro e o ESTABELECIMENTO solicitante (nome e CNES) — e so isso, hoje. Por isso o catalogo de procedimentos e CIDs fica em '_comum', compartilhado, e cada municipio lista apenas os seus estabelecimentos. Para acrescentar um municipio: crie um bloco em 'municipios' com os estabelecimentos dele e rode 'npm run build'. Nao e preciso mexer em codigo.",
+ "_comum": {
+  "_leia_me": "Vale para TODOS os municipios. Se um dia um municipio precisar de lista propria, acrescente 'procedimentos' ou 'cids' dentro do bloco dele: o que estiver la substitui o comum.",
+  "procedimentos": {
+   "HOLTER": {
+    "nome": "Holter 24h",
+    "codigo": "02.11.02.004-4",
+    "label": "MONITORAMENTO PELO SISTEMA HOLTER 24 HS (3 CANAIS)"
+   },
+   "MAPA": {
+    "nome": "MAPA 24h",
+    "codigo": "02.11.02.005-2",
+    "label": "MONITORIZAÇÃO AMBULATORIAL DE PRESSÃO ARTERIAL (MAPA)"
+   },
+   "TE": {
+    "nome": "Teste Ergométrico",
+    "codigo": "02.11.02.006-0",
+    "label": "TESTE DE ESFORÇO / TESTE ERGOMÉTRICO"
+   },
+   "DOPPLER": {
+    "nome": "Doppler vascular",
+    "codigo": "02.05.01.004-0",
+    "label": null
+   },
+   "CINTILO": {
+    "nome": "Cintilografia miocárdio",
+    "codigo": "02.08.01.002-5",
+    "label": "CINTILOGRAFIA DE MIOCÁRDIO P/ AVALIAÇÃO DA PERFUSÃO EM SITUAÇÃO DE ESTRESSE (MÍNIMO 3 PROJEÇÕES)"
+   },
+   "ECO": {
+    "nome": "Ecocardiograma",
+    "codigo": "02.05.01.003-2",
+    "label": null
+   },
+   "CATETER": {
+    "nome": "Cateterismo cardíaco",
+    "codigo": "02.11.02.001-0",
+    "label": "CATETERISMO CARDÍACO (CINECORONARIOGRAFIA)"
+   },
+   "OUTRO": {
+    "nome": "Outro procedimento…",
+    "codigo": "",
+    "label": null
+   }
+  },
+  "ecoVariantes": {
+   "REPOUSO": {
+    "codigo": "02.05.01.003-2",
+    "nome": "ECOCARDIOGRAFIA TRANSTORACICA"
+   },
+   "ESTRESSE": {
+    "codigo": "02.05.01.001-6",
+    "nome": "ECOCARDIOGRAFIA COM ESTRESSE"
+   },
+   "TRANSESOFAGICO": {
+    "codigo": "02.05.01.002-4",
+    "nome": "ECOCARDIOGRAFIA BI-DIMENSIONAL TRANSESOFAGICO"
+   }
+  },
+  "territorios": [
+   "DOPPLER DE ARTÉRIAS CARÓTIDAS E VERTEBRAIS",
+   "DOPPLER DE VEIAS CERVICAIS",
+   "DOPPLER AORTA ABDOMINAL",
+   "DOPPLER DE ARTÉRIAS RENAIS",
+   "DOPPLER ARTERIAL DE MEMBROS SUPERIORES",
+   "DOPPLER ARTERIAL DE MEMBROS INFERIORES",
+   "DOPPLER VENOSO DE MEMBROS SUPERIORES",
+   "DOPPLER VENOSO DE MEMBROS INFERIORES"
+  ],
+  "cids": {
+   "I10": "Hipertensão essencial (primária)",
+   "I11.9": "Doença cardíaca hipertensiva sem insuficiência cardíaca",
+   "I15.9": "Hipertensão secundária não especificada",
+   "I20.0": "Angina instável",
+   "I20.9": "Angina pectoris, não especificada",
+   "I21.9": "Infarto agudo do miocárdio não especificado",
+   "I22.9": "Infarto do miocárdio recorrente não especificado",
+   "I24.9": "Doença isquêmica aguda do coração, não especificada",
+   "I25.1": "Doença aterosclerótica do coração",
+   "I25.9": "Doença isquêmica crônica do coração, não especificada",
+   "I27.9": "Doença cardiopulmonar não especificada",
+   "I34.0": "Insuficiência da valva mitral",
+   "I34.9": "Transtorno não-reumático da valva mitral, não especificado",
+   "I35.0": "Estenose aórtica",
+   "I35.9": "Transtorno da valva aórtica não especificado",
+   "I36.1": "Insuficiência não-reumática da valva tricúspide",
+   "I38": "Endocardite de valva não especificada",
+   "I42.0": "Cardiomiopatia dilatada",
+   "I42.9": "Cardiomiopatia não especificada",
+   "I44.2": "Bloqueio atrioventricular total",
+   "I45.9": "Transtorno de condução não especificado",
+   "I47.1": "Taquicardia supraventricular",
+   "I47.2": "Taquicardia ventricular",
+   "I48": "Flutter e fibrilação atrial",
+   "I48.9": "Flutter e fibrilação atrial",
+   "I49.5": "Síndrome do nó sinusal",
+   "I49.9": "Arritmia cardíaca não especificada",
+   "I50": "Insuficiência cardíaca",
+   "I50.9": "Insuficiência cardíaca não especificada",
+   "I51.7": "Cardiomegalia",
+   "I70.0": "Aterosclerose da aorta",
+   "I70.2": "Aterosclerose das artérias das extremidades",
+   "I71.4": "Aneurisma da aorta abdominal, sem menção de ruptura",
+   "I73.9": "Doença vascular periférica não especificada",
+   "I80.2": "Flebite e tromboflebite de outros vasos profundos dos membros inferiores",
+   "I82.9": "Embolia e trombose venosa não especificada",
+   "Q21.1": "Comunicação interatrial",
+   "Q24.9": "Malformação congênita do coração não especificada",
+   "E11": "Diabetes mellitus não-insulino-dependente",
+   "E11.9": "Diabetes mellitus não-insulino-dependente - sem complicações",
+   "E78.0": "Hipercolesterolemia pura",
+   "E78.5": "Hiperlipidemia não especificada",
+   "R00.0": "Taquicardia não especificada",
+   "R00.1": "Bradicardia não especificada",
+   "R00.2": "Palpitações",
+   "R07.2": "Dor precordial",
+   "R07.4": "Dor torácica, não especificada",
+   "R42": "Tontura e instabilidade",
+   "R55": "Síncope e colapso",
+   "Z95.0": "Presença de marca-passo cardíaco",
+   "Z95.1": "Presença de enxerto de ponte aortocoronária",
+   "Z95.5": "Presença de implante e enxerto de angioplastia coronária"
+  }
+ },
+ "municipios": {
+  "Itaúna": {
+   "estabelecimentos": [
+    {
+     "nome": "CENTRO DE ESPEC MEDICAS E ODONTO DR OVIDIO NOGUEIRA MACHADO",
+     "cnes": "2105578"
+    }
+   ]
+  },
+  "Betim": {
+   "_leia_me": "Estabelecimentos ainda nao informados. Ate serem preenchidos aqui, o medico cadastra o dele pelo painel da engrenagem, em Unidades.",
+   "estabelecimentos": []
+  },
+  "Sete Lagoas": {
+   "_leia_me": "Idem Betim. Atencao: Sete Lagoas tambem tem o Laudo de Alto Custo, que e outro documento, com formulario proprio da prefeitura — sao coisas diferentes.",
+   "estabelecimentos": []
+  }
+ }
+}
