@@ -233,15 +233,27 @@
         descricao: m.descricao || e.def.descricao || "",
         versao: m.versao || e.def.versao || "?",
         habilitado: estaHabilitado(e.def.id),
+        sempreAtivo: sempreAtivo(e.def.id),
         rodando: e.rodando,
       };
     });
+  }
+
+  /* Um modulo marcado com sempreAtivo no manifest nao pode ser desligado.
+   * Nao e censura de opcao: sao melhorias do PROPRIO formulario do laudo
+   * (a busca de CID dentro do campo, a previa do documento). Elas nao
+   * criam botao nem ruido na tela — desligar so deixaria o formulario
+   * pior, sem nada em troca. Por isso nao ha chave para elas no painel. */
+  function sempreAtivo(id) {
+    var m = fichaDoManifesto(id);
+    return !!(m && m.sempreAtivo);
   }
 
   /* Preferencia de habilitacao. Padrao: modulo novo entra HABILITADO,
    * para que quem ja usava os 5 scripts nao precise ligar nada na mao
    * depois de migrar. */
   function estaHabilitado(id) {
+    if (sempreAtivo(id)) return true;
     var mapa = storageNucleo ? storageNucleo.ler("modulos", {}) : {};
     if (mapa && Object.prototype.hasOwnProperty.call(mapa, id)) return !!mapa[id];
     return true;
@@ -249,6 +261,12 @@
 
   function definirHabilitado(id, valor) {
     if (!storageNucleo) return;
+    if (sempreAtivo(id)) {
+      /* Nao ha caminho na interface que chegue aqui, mas a regra vale
+       * tambem para quem chamar pelo console. */
+      console.debug("[Assistente Meeds] " + id + " e sempre ativo; o pedido de desligar foi ignorado.");
+      return;
+    }
     var mapa = storageNucleo.ler("modulos", {}) || {};
     mapa[id] = !!valor;
     storageNucleo.gravar("modulos", mapa);

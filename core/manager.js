@@ -59,6 +59,8 @@
     ".msm-item-nome { font-size:13px; font-weight:700; color:#16221f; }",
     ".msm-item-desc { font-size:11.5px; color:#5b6672; line-height:1.45; margin-top:2px; }",
     ".msm-item-ver { font-size:10px; color:#9aa5b1; font-family:ui-monospace,Menlo,monospace; margin-top:4px; }",
+    ".msm-fixos { font-size:11px; color:#8a97a4; line-height:1.5; padding:10px 0 2px; border-top:1px solid #f3f6f9; margin-top:4px; }",
+    ".msm-fixos b { color:#5b6672; font-weight:600; }",
     ".msm-ajustes { background:none; border:none; color:#1a4fa0; cursor:pointer; font-size:10px; font-family:inherit; font-weight:700; padding:0; text-decoration:underline; }",
     ".msm-ajustes:hover { color:#123a7a; }",
 
@@ -404,9 +406,18 @@
   /* ---------------- funções (módulos) ---------------- */
   function renderizarModulos() {
     var lista = overlay.$("#msm-lista");
-    var modulos = ctx.listarModulos();
+    var todos = ctx.listarModulos();
 
-    if (!modulos.length) {
+    /* Funcoes marcadas como sempre ativas nao entram na lista de chaves.
+     * Elas melhoram o proprio formulario do laudo (a busca de CID dentro
+     * do campo, a previa do documento) e nao adicionam botao nem ruido —
+     * uma chave para desliga-las so ofereceria um jeito de piorar o
+     * formulario. Ficam citadas no rodape, para o medico saber que
+     * existem. */
+    var modulos = todos.filter(function (m) { return !m.sempreAtivo; });
+    var fixos = todos.filter(function (m) { return m.sempreAtivo; });
+
+    if (!modulos.length && !fixos.length) {
       lista.innerHTML = '<div class="msm-vazio">Nenhuma função carregada neste pacote.</div>';
       return;
     }
@@ -432,6 +443,13 @@
         );
       })
       .join("");
+
+    if (fixos.length) {
+      lista.innerHTML +=
+        '<div class="msm-fixos">Sempre ativas, porque melhoram o próprio formulário: <b>' +
+        fixos.map(function (m) { return escapeHtml(m.nome); }).join("</b> e <b>") +
+        "</b>.</div>";
+    }
 
     overlay.$$("button[data-ajustes]").forEach(function (btn) {
       btn.addEventListener("click", function () {

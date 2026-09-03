@@ -799,6 +799,18 @@ palavra). Vale conferir esta família primeiro sempre que um casamento de texto
 se comportar de forma estranha — e vale avisar quem for implementar o importador
 do lado do servidor, porque a decomposição lá terá os mesmos riscos.
 
+
+**D26 — Funções que melhoram o formulário não têm chave liga/desliga.**
+A busca de CID-10 dentro do campo e a prévia do documento não são funções que
+o médico escolhe usar: são melhorias do próprio formulário do laudo. Não criam
+botão nem ruído na tela, então uma chave para desligá-las só ofereceria um jeito
+de piorar o formulário. Passaram a ser `sempreAtivo: true` no `manifest.json`,
+o que faz três coisas: `estaHabilitado()` devolve sempre `true`, o painel omite
+a chave, e `definirHabilitado()` ignora o pedido — inclusive vindo do console.
+Elas aparecem numa nota no rodapé da aba **Funções**, para o médico saber que
+existem. Uma preferência antiga de "desligado", de quem tinha desativado antes,
+deixa de valer e a função volta sozinha.
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público

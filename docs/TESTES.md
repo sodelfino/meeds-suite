@@ -590,6 +590,38 @@ reescrito para exigir que a consulta de confirmação **aconteça** (antes ele s
 verificava que "não quebra"), e ganhou dois vizinhos: 7b (quem já chegou não
 gera consulta extra) e 10b (nenhuma URL sem `ProfissionalId`).
 
+### Funções sempre ativas *(novo)*
+
+Executado em 01/09/2026 contra `dist/meeds-suite.user.js` v2.18.0.
+**31 verificações, 31 passaram.**
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 94 | O painel não mostra chave para a busca de CID nem para a prévia | ✅ |
+| 95 | As outras cinco funções seguem com chave | ✅ |
+| 96 | A nota do rodapé nomeia as duas sempre ativas | ✅ |
+| 97 | Quem tinha **desligado** antes: as duas voltam sozinhas | ✅ |
+| 98 | `definirHabilitado` pelo console é ignorado para elas | ✅ |
+| 99 | Ligar/desligar as demais continua valendo na hora | ✅ |
+| 100 | Campo de CID conectado nos três laudos, com a função sempre ativa | ✅ |
+| 101 | Prévia do documento montada ao abrir o laudo | ✅ |
+
+> **Como resetar o estado para testar do zero.** O armazenamento deixou de ser
+> só `localStorage`: as preferências vivem num banco durável (IndexedDB
+> `meeds-suite`), para sobreviver a "limpar dados do site" no iPad. Um
+> `localStorage.clear()` **não** reseta mais nada — e isso me custou três
+> rodadas de falso negativo neste QA. O reset correto:
+>
+> ```js
+> localStorage.clear(); sessionStorage.clear();
+> // feche as outras abas do mesmo endereço: uma conexão aberta bloqueia o delete
+> indexedDB.deleteDatabase("meeds-suite");
+> ```
+>
+> Depois disso, recarregue a página **numa aba nova** — o painel de teste
+> reaproveita o contexto JS ao renavegar para a mesma URL, então o núcleo não
+> reinicializa e o estado antigo continua em memória.
+
 ### Extensibilidade
 
 Verificado à parte: criei um sexto módulo a partir de `modules/_template`,

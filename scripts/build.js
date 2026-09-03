@@ -196,6 +196,10 @@ function main() {
           descricao: m.descricao,
           versao: m.versao,
           origem: m.origem,
+          /* Precisa vir para o pacote: e o que faz o painel esconder a
+           * chave liga/desliga dessa funcao. Sem este campo, o nucleo
+           * nao tem como saber que ela e sempre ativa. */
+          sempreAtivo: !!m.sempreAtivo,
         })),
       },
       null,
