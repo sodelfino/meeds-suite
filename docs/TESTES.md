@@ -705,6 +705,48 @@ mostrar, porque até então todo município tinha no máximo uma unidade.
 > um índice de dígitos. A regra está fixada em `tests/apac-municipio.test.js`
 > para ninguém reintroduzir o `Number()` cru.
 
+### Revisão funcional e enxugamento de textos *(v2.21.0)*
+
+Executado em 03/09/2026 percorrendo a interface como o médico a usa, do
+primeiro acesso em diante. **113 verificações sem navegador + 21 no navegador.**
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 123 | Instalação nova: boas-vindas aparecem e citam o botão **⌄**, que é o real | ✅ |
+| 124 | Os 7 módulos sobem depois do login e a pilha monta os 4 botões | ✅ |
+| 125 | Desligar uma função tira o botão na hora; religar traz de volta | ✅ |
+| 126 | As duas sempre ativas seguem sem chave, com a nota no rodapé | ✅ |
+| 127 | "Ajustes" do alarme continua abrindo | ✅ |
+| 128 | CID-10 sugere sozinho dentro do laudo e preenche ao clicar | ✅ |
+| 129 | Prévia disponível no laudo | ✅ |
+| 130 | REMUME: busca por erro de digitação, nome comercial e marca da UPA | ✅ |
+| 131 | REMUME: o cabeçalho não contradiz mais o seletor de município | ✅ |
+| 132 | Backup leva médicos **e** unidades; backup antigo continua importando | ✅ |
+| 133 | Unidade restaurada chega no município certo, sem vazar para outro | ✅ |
+
+**Três defeitos corrigidos, todos encontrados por usar a interface e não por
+ler o código:**
+
+1. As boas-vindas mandavam recolher os botões pelo **✕**, mas na v2.20.0 ele
+   virou **⌄**. A primeira instrução que o médico recebe apontava para um botão
+   que não existe mais.
+2. Na Consulta REMUME, o cabeçalho dizia "município não identificado" enquanto o
+   seletor logo abaixo mostrava a cidade escolhida — a tela se contradizia. O
+   subtítulo agora só aparece quando o município vem do atendimento, que é a
+   informação nova; quando não vem, o seletor já responde sozinho.
+3. **O backup não salvava as unidades.** As semeadas voltam sozinhas na máquina
+   nova, mas a que o médico cadastrou à mão — justamente a que não está na lista
+   — só existia no navegador dele. O fluxo se chama "Trocando de computador?" e
+   perdia exatamente o cadastro que deu trabalho.
+
+**Texto removido**, sem perder informação: boas-vindas de ~950 para 309
+caracteres (cinco parágrafos viraram dois); a aba Médicos dizia três vezes que o
+cadastro é uma vez só; a aba Unidades repetia o próprio subtítulo; saíram as
+justificativas de projeto ("porque melhoram o próprio formulário", "os dados não
+ficam mais no código do programa" — história do repositório, não do médico); e a
+lista de funções deixou de estampar cinco números de versão diferentes, que não
+dizem nada ao médico e ainda conflitavam com a versão do pacote na aba Sobre.
+
 ### Extensibilidade
 
 Verificado à parte: criei um sexto módulo a partir de `modules/_template`,

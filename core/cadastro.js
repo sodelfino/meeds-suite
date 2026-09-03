@@ -194,6 +194,11 @@
    * administrador preparar UM arquivo com a equipe inteira e distribuir:
    * cada medico importa e ja fica com a lista pronta, sem que nenhum CPF
    * precise entrar no codigo. */
+  /* O backup leva medicos E unidades. As unidades semeadas voltam
+   * sozinhas na maquina nova, mas a que o medico cadastrou a mao —
+   * justamente a que nao esta na lista — so existe no navegador dele.
+   * Sem ela aqui, "trocando de computador" perdia exatamente o cadastro
+   * que deu trabalho. */
   function exportar() {
     return JSON.stringify(
       {
@@ -201,6 +206,7 @@
         _versao: VERSAO_ESTRUTURA,
         _exportadoEm: new Date().toISOString().slice(0, 10),
         medicos: listar(),
+        estabelecimentos: listarEstabelecimentos(),
       },
       null,
       2
@@ -230,7 +236,16 @@
     // acrescenta ao que ja existe, mesclando por nome — restaurar um
     // backup nunca apaga um cadastro que ja estava ali
     validos.forEach(adicionar);
-    return { ok: true, quantidade: validos.length };
+
+    /* Unidades sao opcionais: um backup gerado antes desta versao nao
+     * tem a lista, e continua valendo. */
+    var unidades = 0;
+    if (Array.isArray(dados.estabelecimentos)) {
+      dados.estabelecimentos.forEach(function (e) {
+        if (e && e.nome) { adicionarEstabelecimento(e); unidades++; }
+      });
+    }
+    return { ok: true, quantidade: validos.length, unidades: unidades };
   }
 
 

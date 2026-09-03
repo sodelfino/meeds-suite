@@ -563,7 +563,7 @@ function moverFocoResultado(delta) {
         '<div class="rm-modal" role="dialog" aria-modal="true" aria-labelledby="rm-title">' +
         "  <header><div>" +
         '    <h2 id="rm-title">Consulta REMUME</h2>' +
-        '    <p class="rm-sub" id="rm-sub">Municipio nao identificado ainda</p>' +
+        '    <p class="rm-sub" id="rm-sub" hidden></p>' +
         '    <p class="rm-meta" id="rm-meta" hidden></p>' +
         "  </div>" +
         '  <button type="button" class="rm-fechar" aria-label="Fechar">&#10005;</button></header>' +
@@ -650,9 +650,15 @@ function moverFocoResultado(delta) {
     }
   }
 
+  /* O subtitulo so aparece quando o municipio veio do ATENDIMENTO —
+   * essa e a informacao nova. Quando nao ha deteccao, ele some: o
+   * seletor logo abaixo ja diz qual lista esta aberta, e um
+   * "municipio nao identificado" fixo contradizia o que o medico
+   * acabara de escolher ali. */
   function atualizarUIComMunicipio(municipio) {
     if (!refs) return;
-    refs.sub.textContent = "Atendimento em: " + municipio;
+    refs.sub.hidden = !municipio;
+    refs.sub.textContent = municipio ? "Atendimento em: " + municipio : "";
     // so muda a selecao automaticamente se o modal ainda nao foi mexido
     if (!overlay.estaAberto()) refs.select.value = municipio;
   }

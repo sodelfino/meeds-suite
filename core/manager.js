@@ -165,13 +165,13 @@
 
         /* ---- Funções ---- */
         '    <div class="msm-painel" id="msm-painel-funcoes" role="tabpanel" hidden>' +
-        '      <p class="msm-ajuda">Desligar uma função tira o botão dela da tela na hora. Nada é desinstalado — você liga de novo quando quiser.</p>' +
+        '      <p class="msm-ajuda">Desligar tira o botão da tela. Você liga de novo quando quiser.</p>' +
         '      <div id="msm-lista"></div>' +
         "    </div>" +
 
         /* ---- Médicos ---- */
         '    <div class="msm-painel" id="msm-painel-medicos" role="tabpanel" hidden>' +
-        '      <p class="msm-ajuda">Seus dados ficam salvos apenas neste navegador e são usados pelos geradores de laudo. Atualizar o Assistente não apaga o cadastro.</p>' +
+        '      <p class="msm-ajuda">Ficam salvos neste navegador e sobrevivem às atualizações.</p>' +
         '      <div id="msm-medicos-mensagem"></div>' +
         '      <div id="msm-medicos-lista"></div>' +
         '      <button type="button" class="msm-abrir-form" id="msm-med-abrir">+ Cadastrar médico</button>' +
@@ -199,7 +199,7 @@
 
         /* ---- Unidades ---- */
         '    <div class="msm-painel" id="msm-painel-unidades" role="tabpanel" hidden>' +
-        '      <p class="msm-ajuda">Unidades solicitantes e seus códigos CNES. Aparecem para escolher no gerador de APAC, então você não redigita nome e CNES a cada laudo.</p>' +
+  
         '      <div id="msm-estab-mensagem"></div>' +
         '      <div id="msm-estab-lista"></div>' +
         '      <button type="button" class="msm-abrir-form" id="msm-estab-abrir">+ Cadastrar unidade</button>' +
@@ -435,11 +435,10 @@
           '  <div class="msm-item-txt">' +
           '    <div class="msm-item-nome">' + escapeHtml(m.nome) + "</div>" +
           '    <div class="msm-item-desc">' + escapeHtml(m.descricao) + "</div>" +
-          '    <div class="msm-item-ver">v' + escapeHtml(m.versao) +
           (m.temAjustes && m.habilitado
-            ? ' · <button type="button" class="msm-ajustes" data-ajustes="' + escapeHtml(m.id) + '">Ajustes</button>'
+            ? '    <div class="msm-item-ver"><button type="button" class="msm-ajustes" data-ajustes="' +
+              escapeHtml(m.id) + '">Ajustes</button></div>'
             : "") +
-          "</div>" +
           "  </div>" +
           '  <label class="msm-switch">' +
           '    <input type="checkbox" data-id="' + escapeHtml(m.id) + '" ' + (m.habilitado ? "checked" : "") + " />" +
@@ -452,7 +451,7 @@
 
     if (fixos.length) {
       lista.innerHTML +=
-        '<div class="msm-fixos">Sempre ativas, porque melhoram o próprio formulário: <b>' +
+        '<div class="msm-fixos">Sempre ativas: <b>' +
         fixos.map(function (m) { return escapeHtml(m.nome); }).join("</b> e <b>") +
         "</b>.</div>";
     }
@@ -465,7 +464,7 @@
         '<div class="msm-item msm-aparencia">' +
         '  <div class="msm-item-txt">' +
         '    <div class="msm-item-nome">Botões discretos quando parados</div>' +
-        '    <div class="msm-item-desc">Os botões ficam translúcidos depois de alguns segundos sem uso e voltam ao normal quando você aproxima o mouse. O alarme de fila nunca fica translúcido.</div>' +
+        '    <div class="msm-item-desc">Ficam translúcidos sem uso e voltam ao normal quando você aproxima o mouse. O alarme nunca fica translúcido.</div>' +
         "  </div>" +
         '  <label class="msm-switch">' +
         '    <input type="checkbox" id="msm-translucido" ' + (ctx.dockTranslucido() ? "checked" : "") + " />" +
@@ -508,9 +507,8 @@
 
     if (!lista.length) {
       box.innerHTML =
-        '<div class="msm-aviso"><strong>Cadastre seu nome e CRM uma única vez</strong>' +
-        "Por segurança, os dados dos médicos não ficam mais no código do programa. " +
-        "Leva menos de um minuto e você não precisa repetir.</div>";
+        '<div class="msm-aviso"><strong>Nenhum médico cadastrado</strong>' +
+        "Leva menos de um minuto.</div>";
       return;
     }
 
@@ -627,7 +625,9 @@
       }
       renderizarMedicos();
       mostrarMensagemMedicos(
-        "Backup restaurado: " + r.quantidade + " médico(s) adicionados. Quem já estava cadastrado foi mantido.",
+        "Backup restaurado: " + r.quantidade + " médico(s)" +
+          (r.unidades ? " e " + r.unidades + " unidade(s)" : "") +
+          ". Quem já estava cadastrado foi mantido.",
         "ok"
       );
       avisarModulos();
@@ -676,7 +676,9 @@
     var box = overlay.$("#msm-estab-lista");
 
     if (!lista.length) {
-      box.innerHTML = '<div class="msm-vazio">Nenhuma unidade cadastrada ainda.</div>';
+      box.innerHTML =
+        '<div class="msm-vazio">As unidades aparecem aqui sozinhas quando você ' +
+        "escolhe o município na APAC. Cadastre à mão só se a sua não estiver na lista.</div>";
       return;
     }
 

@@ -178,5 +178,33 @@ function ambiente() {
      Number("") === 0);
 }
 
+/* 8. backup e restauracao levam as UNIDADES, nao so os medicos.
+ *    As unidades semeadas voltam sozinhas na maquina nova; a que o
+ *    medico cadastrou a mao — justamente a que nao esta na lista — so
+ *    existe no navegador dele, e era a unica coisa que o backup nao
+ *    salvava. */
+{
+  const origem = ambiente();
+  origem.MeedsSuiteCadastro.adicionar({ nome: "DRA FULANA", cpf: "529.982.247-25", crm: "MG-1" });
+  origem.MeedsSuiteCadastro.adicionarEstabelecimento(
+    { nome: "UNIDADE QUE SO ELE TEM", cnes: "1111111", municipio: "Betim" });
+  const arquivo = origem.MeedsSuiteCadastro.exportar();
+  ok("backup leva a unidade cadastrada a mao", arquivo.indexOf("1111111") !== -1);
+
+  const destino = ambiente();               // a "maquina nova"
+  const r = destino.MeedsSuiteCadastro.importar(arquivo);
+  ok("restaurou o medico", r.ok && r.quantidade === 1, JSON.stringify(r));
+  ok("restaurou a unidade", r.unidades === 1);
+  ok("a unidade chegou no municipio certo",
+     destino.MeedsSuiteCadastro.listarEstabelecimentosDe("Betim").some((e) => e.cnes === "1111111"));
+  ok("e nao vazou para outro municipio",
+     !destino.MeedsSuiteCadastro.listarEstabelecimentosDe("Itaúna").some((e) => e.cnes === "1111111"));
+
+  /* Backup antigo (so medicos) tem que continuar valendo. */
+  const antigo = JSON.stringify({ medicos: [{ nome: "DR SICRANO", cpf: "", crm: "" }] });
+  const r2 = ambiente().MeedsSuiteCadastro.importar(antigo);
+  ok("backup antigo, sem unidades, continua importando", r2.ok && r2.quantidade === 1, JSON.stringify(r2));
+}
+
 console.log(falhas ? `\n${falhas} FALHA(S)` : "\ntodos passaram");
 process.exit(falhas ? 1 : 0);

@@ -232,17 +232,10 @@
         "  <header><h2>Bem-vindo ao Assistente Meeds</h2>" +
         '  <button type="button" class="msd-fechar" aria-label="Fechar">&#10005;</button></header>' +
         '  <div class="msd-corpo">' +
-        "    <p>Os botões ficam no <b>canto inferior direito</b> da tela e só aparecem depois que você entra no Meeds.</p>" +
-        "    <p>Se ocuparem espaço demais, o botão <b>✕</b> lá embaixo recolhe todos. Com eles recolhidos, " +
-        "       basta aproximar o mouse do canto (ou tocar no <b>☰</b>, no iPad) para eles voltarem. " +
-        "       Se a fila de espera encher, o alarme aparece sozinho mesmo recolhido.</p>" +
-        "    <p>O botão <b>⚙️</b> é onde você:</p>" +
-        "    <ul>" +
-        "      <li><b>liga e desliga</b> cada função — deixe só as que você usa;</li>" +
-        "      <li><b>cadastra seu nome e CRM</b>, uma única vez, para os laudos.</li>" +
-        "    </ul>" +
-        "    <p>Por segurança, os dados dos médicos não ficam mais no código do programa. " +
-        "O cadastro leva menos de um minuto e você não precisa repetir.</p>" +
+        "    <p>Os botões ficam no <b>canto inferior direito</b> da tela, depois que você entra no Meeds. " +
+        "       O <b>⌄</b> recolhe todos; aproxime o mouse do canto para eles voltarem.</p>" +
+        "    <p>No <b>⚙️</b> você liga e desliga cada função e cadastra seu nome e CRM — uma vez só, " +
+        "       para todos os laudos.</p>" +
         "  </div>" +
         '  <div class="msd-rodape">' +
         '    <button type="button" class="msd-btn msd-btn-sec" id="msd-depois">Ver depois</button>' +
