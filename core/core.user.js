@@ -497,6 +497,45 @@
     /* Tira do disco o nome completo de paciente que o historico do APAC
      * gravava na versao anterior, convertendo para a referencia curta. */
     raiz.MeedsSuiteHistorico.migrarHistoricoApac();
+    raiz.MeedsSuiteHistorico.migrarHistoricoApacGlobal();
+
+    /* A preferencia de ligado/desligado tambem e por id: sem isto, quem
+     * tinha desligado a APAC de Itauna veria a APAC global aparecer
+     * sozinha, e quem a tinha ligada perderia a escolha. */
+    (function migrarPreferenciaApac() {
+      var mapa = storageNucleo.ler("modulos", {}) || {};
+      if (Object.prototype.hasOwnProperty.call(mapa, "apac-itauna")) {
+        if (!Object.prototype.hasOwnProperty.call(mapa, "apac")) mapa.apac = mapa["apac-itauna"];
+        delete mapa["apac-itauna"];
+        storageNucleo.gravar("modulos", mapa);
+        console.debug("[Assistente Meeds] preferencia da APAC migrada de apac-itauna para apac.");
+      }
+    })();
+
+    /* Antes da APAC global o estabelecimento era salvo sem municipio.
+     * A regra de compatibilidade mostra esses cadastros em TODAS as
+     * cidades — o que ate a versao anterior era inofensivo (so existia
+     * Itauna) e agora deixaria o CNES de Itauna a um clique de sair numa
+     * APAC de Betim. Aqui o municipio e preenchido pelo CNES, que e
+     * unico e esta em dados/apac.json: e conferencia, nao adivinhacao.
+     * Quem tem um CNES que nao esta na tabela fica como estava. */
+    /* Antes da APAC global o estabelecimento era salvo sem municipio.
+     * A regra de compatibilidade mostra esses cadastros em TODAS as
+     * cidades — inofensivo enquanto so existia Itauna, mas agora isso
+     * deixaria o CNES de Itauna a um clique de sair numa APAC de Betim.
+     * O municipio e preenchido pelo CNES, que consta em dados/apac.json. */
+    (function carimbarMunicipioPeloCnes() {
+      var dados = raiz.MEEDS_DADOS_APAC;
+      if (!dados || !dados.municipios || !Cadastro || !Cadastro.preencherMunicipioPeloCnes) return;
+      var deQuemE = {};
+      Object.keys(dados.municipios).forEach(function (cidade) {
+        (dados.municipios[cidade].estabelecimentos || []).forEach(function (e) {
+          if (e && e.cnes) deQuemE[String(e.cnes).replace(/\D/g, "")] = cidade;
+        });
+      });
+      var mudou = Cadastro.preencherMunicipioPeloCnes(deQuemE);
+      if (mudou) console.debug("[Assistente Meeds] municipio preenchido em", mudou, "estabelecimento(s) pelo CNES.");
+    })();
 
     raiz.MeedsSuiteManager.montar({
       dock: Dock,

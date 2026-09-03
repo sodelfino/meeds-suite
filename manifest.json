@@ -1,6 +1,6 @@
 {
  "nome": "Assistente Meeds",
- "versao": "2.18.0",
+ "versao": "2.19.0",
  "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
  "repositorio": "https://github.com/sodelfino/meeds-suite",
  "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -17,6 +17,7 @@
   "core/formatos.js",
   "core/busca.js",
   "core/mensagens.js",
+  "core/municipio.js",
   "core/cadastro.js",
   "core/historico.js",
   "core/diagnostico.js",
@@ -30,7 +31,8 @@
   "remumes": "modules/remume/remumes.json",
   "cid10": "dados/cid10.json",
   "changelog": "dados/changelog.json",
-  "marcas": "dados/marcas-medicamentos.json"
+  "marcas": "dados/marcas-medicamentos.json",
+  "apac": "dados/apac.json"
  },
  "modulos": [
   {
@@ -43,11 +45,11 @@
    "prioridadeBotao": 10
   },
   {
-   "id": "apac-itauna",
-   "nome": "APAC — Itaúna",
-   "descricao": "Gera a APAC de Itaúna já preenchida com os dados do paciente que estão na tela e leva você direto para a assinatura no gov.br.",
-   "versao": "2.3.0",
-   "arquivo": "modules/apac-itauna/index.js",
+   "id": "apac",
+   "nome": "APAC",
+   "descricao": "Gera a APAC (Autorização de Procedimento Ambulatorial) já preenchida com os dados do paciente que estão na tela e leva direto para a assinatura no gov.br. Atende vários municípios: o formulário é nacional e muda só a unidade solicitante.",
+   "versao": "3.0.0",
+   "arquivo": "modules/apac/index.js",
    "origem": "sodelfino/apac-itauna-meeds",
    "prioridadeBotao": 20,
    "requer": [

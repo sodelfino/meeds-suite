@@ -241,7 +241,22 @@
     };
   }
 
+  /* A APAC deixou de ser de um municipio so e o modulo mudou de id:
+   * apac-itauna -> apac. O historico e guardado POR ID, entao sem esta
+   * migracao o medico abriria o historico e o veria vazio, como se os
+   * documentos que ele emitiu tivessem sumido. */
+  function migrarHistoricoApacGlobal() {
+    var antigo = listar("apac-itauna");
+    if (!antigo.length) return 0;
+    var atual = listar("apac");
+    gravar(PREFIXO + "apac", antigo.concat(atual).slice(0, LIMITE));
+    gravar(PREFIXO + "apac-itauna", []);
+    console.debug("[Assistente Meeds] historico da APAC migrado:", antigo.length, "registro(s).");
+    return antigo.length;
+  }
+
   raiz.MeedsSuiteHistorico = {
+    migrarHistoricoApacGlobal: migrarHistoricoApacGlobal,
     registrar: registrar,
     listar: listar,
     limpar: limpar,

@@ -13,7 +13,6 @@
     "E03.9": "Hipotireoidismo Não Especificado",
     "E05.9": "Tireotoxicose Não Especificada",
     "E10.9": "Diabetes Mellitus Insulino-dependente - Sem Complicações",
-    "E11": "Diabetes Mellitus Não-insulino-dependente",
     "E11.9": "Diabetes Mellitus Não-insulino-dependente - Sem Complicações",
     "E66.9": "Obesidade Não Especificada",
     "E78.0": "Hipercolesterolemia Pura",

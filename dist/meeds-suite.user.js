@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Assistente Meeds - Por: Marcelo
 // @namespace    novetech-meeds-suite
-// @version      2.18.0
+// @version      2.19.0
 // @description  Assistente Meeds - Por: Marcelo. Alarme de fila, APAC de Itauna, laudos de Sete Lagoas e Conceicao do Mato Dentro e consulta a REMUME, numa instalacao unica. Cada funcao liga e desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
 // @author       Marcelo
 // @match        *://*.meeds.com.br/*
@@ -2581,6 +2581,119 @@
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
 
+/* ===== core/municipio.js ===== */
+/* ------------------------------------------------------------------
+ * core/municipio.js — de que municipio e o atendimento aberto
+ * ------------------------------------------------------------------
+ * O Meeds e multi-municipio: o mesmo medico atende, na mesma fila,
+ * pacientes de cidades diferentes. Saber de qual cidade e o atendimento
+ * aberto evita perguntar ao medico o que o sistema ja sabe.
+ *
+ * O sinal e o cliente do atendimento — a prefeitura ou fundacao que
+ * contratou o servico —, cujo nome vem em razaoSocialNome. Ele chega em
+ * formatos diferentes conforme o estado do atendimento, entao tentamos
+ * os mais especificos primeiro.
+ *
+ * QUANDO NAO DA PARA SABER, NAO CHUTA. Devolver o municipio errado seria
+ * pior do que devolver nada: a APAC sairia com o CNES de outra cidade e
+ * seria glosada. Na duvida devolve null e quem chamou pergunta.
+ *
+ * (O Assistente REMUME tem uma deteccao equivalente, nascida antes desta.
+ * Ela pode migrar para ca quando houver folga para testar — nao foi
+ * mexida agora para nao arriscar regressao numa funcao em uso.)
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  var Dom = raiz.MeedsSuiteDom;
+
+  var PREFIXOS_INSTITUCIONAIS = [
+    "prefeitura municipal de ",
+    "prefeitura de ",
+    "municipio de ",
+    "fundacao municipal de saude de ",
+    "secretaria municipal de saude de ",
+    "secretaria de saude de ",
+  ];
+
+  function normalizar(s) {
+    return Dom.normalizarTexto(s || "");
+  }
+
+  /* "Prefeitura Municipal de Itauna" -> "itauna" */
+  function extrairNomeCidade(razaoSocialNome) {
+    var nome = normalizar(razaoSocialNome);
+    if (!nome) return "";
+    for (var i = 0; i < PREFIXOS_INSTITUCIONAIS.length; i++) {
+      if (nome.indexOf(PREFIXOS_INSTITUCIONAIS[i]) === 0) {
+        nome = nome.slice(PREFIXOS_INSTITUCIONAIS[i].length);
+        break;
+      }
+    }
+    return nome.trim();
+  }
+
+  function candidatosDoAtendimento(atendimento) {
+    var lista = [];
+    if (!atendimento || typeof atendimento !== "object") return lista;
+
+    if (atendimento.cliente && atendimento.cliente.razaoSocialNome) {
+      lista.push(atendimento.cliente.razaoSocialNome);
+    }
+    if (atendimento.paciente && atendimento.paciente.cliente && atendimento.paciente.cliente.razaoSocialNome) {
+      lista.push(atendimento.paciente.cliente.razaoSocialNome);
+    }
+    if (atendimento.clienteId && Array.isArray(atendimento.clientes)) {
+      for (var i = 0; i < atendimento.clientes.length; i++) {
+        var c = atendimento.clientes[i];
+        if (c && c.id === atendimento.clienteId && c.razaoSocialNome) lista.push(c.razaoSocialNome);
+      }
+    }
+    if (Array.isArray(atendimento.clientes) && atendimento.clientes.length === 1) {
+      var unico = atendimento.clientes[0];
+      if (unico && unico.razaoSocialNome) lista.push(unico.razaoSocialNome);
+    }
+    return lista;
+  }
+
+  /* detectar(atendimento, nomesConhecidos) -> nome exato da lista, ou null.
+   * nomesConhecidos e a lista de municipios que o modulo aceita; o retorno
+   * e sempre um item DELA, para quem chamou poder usar direto. */
+  function detectar(atendimento, nomesConhecidos) {
+    var conhecidos = nomesConhecidos || [];
+    if (!conhecidos.length) return null;
+
+    var candidatos = candidatosDoAtendimento(atendimento);
+    for (var i = 0; i < candidatos.length; i++) {
+      var cidade = extrairNomeCidade(candidatos[i]);
+      if (!cidade) continue;
+      for (var j = 0; j < conhecidos.length; j++) {
+        if (normalizar(conhecidos[j]) === cidade) return conhecidos[j];
+      }
+    }
+    return null;
+  }
+
+  /* Segunda via, independente da API: procura os nomes conhecidos no
+   * texto da tela. So decide se achar EXATAMENTE UM — com dois na tela
+   * (uma lista de clientes, por exemplo) escolher seria adivinhar. */
+  function detectarNaTela(nomesConhecidos) {
+    var texto = Dom.textoDaPaginaNormalizado();
+    if (!texto) return null;
+    var achados = (nomesConhecidos || []).filter(function (m) {
+      return texto.indexOf(normalizar(m)) !== -1;
+    });
+    return raiz.MeedsSuiteDecisao.unicoOuNada(achados);
+  }
+
+  raiz.MeedsSuiteMunicipio = {
+    detectar: detectar,
+    detectarNaTela: detectarNaTela,
+    extrairNomeCidade: extrairNomeCidade,
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
 /* ===== core/cadastro.js ===== */
 /* ------------------------------------------------------------------
  * core/cadastro.js — cadastro de medicos (dado pessoal, fora do codigo)
@@ -2986,17 +3099,51 @@
   /* Copia a semente de dados/formularios.json na primeira execucao. Roda
    * uma vez: depois disso a lista do medico e a que vale, mesmo que ele
    * tenha apagado tudo (por isso a marca separada, e nao "lista vazia"). */
-  function semearEstabelecimentos(sementes) {
-    if (lerBruto("estabelecimentosSemeados", false)) return 0;
+  function semearEstabelecimentos(sementes, municipio) {
+    /* A marca de "ja semeei" e por MUNICIPIO. Uma marca global faria o
+     * segundo municipio nunca receber a semente dele, so porque o
+     * primeiro ja tinha sido semeado. E ela existe separada de "a lista
+     * esta vazia" de proposito: quem apagou a unidade semeada nao quer
+     * ela de volta na proxima recarga. */
+    var marca = "estabelecimentosSemeados" + (municipio ? ":" + municipio : "");
+    if (lerBruto(marca, false)) return 0;
     var n = 0;
     (sementes || []).forEach(function (s) {
-      if (s && s.nome) {
-        adicionarEstabelecimento(s);
-        n++;
-      }
+      if (!s || !s.nome) return;
+      /* Carimbar o municipio aqui NAO e detalhe: sem ele a semente fica
+       * "sem municipio" e a regra de compatibilidade a mostra em TODAS as
+       * cidades — ou seja, o CNES de Itauna apareceria na lista de Betim. */
+      var ficha = {};
+      Object.keys(s).forEach(function (k) { ficha[k] = s[k]; });
+      if (municipio && !ficha.municipio) ficha.municipio = municipio;
+      adicionarEstabelecimento(ficha);
+      n++;
     });
-    gravarBruto("estabelecimentosSemeados", true);
+    gravarBruto(marca, true);
     return n;
+  }
+
+
+  /* Preenche o municipio de quem foi cadastrado antes de a APAC virar
+   * multi-municipio. O mapa vem de dados/apac.json (CNES -> cidade), e o
+   * CNES e unico por estabelecimento: e conferencia, nao adivinhacao.
+   * Quem tem CNES fora da tabela fica exatamente como estava. */
+  function preencherMunicipioPeloCnes(mapaCnesParaMunicipio) {
+    var mapa = mapaCnesParaMunicipio || {};
+    var lista = listarEstabelecimentos();
+    var mudou = 0;
+    var nova = lista.map(function (e) {
+      if (!e || e.municipio) return e;
+      var cidade = mapa[String(e.cnes || "").replace(/\D/g, "")];
+      if (!cidade) return e;
+      mudou++;
+      var ficha = {};
+      Object.keys(e).forEach(function (k) { ficha[k] = e[k]; });
+      ficha.municipio = cidade;
+      return ficha;
+    });
+    if (mudou) gravarEstabelecimentos(nova);
+    return mudou;
   }
 
   raiz.MeedsSuiteCadastro = {
@@ -3015,6 +3162,7 @@
     adicionarEstabelecimento: adicionarEstabelecimento,
     removerEstabelecimento: removerEstabelecimento,
     semearEstabelecimentos: semearEstabelecimentos,
+    preencherMunicipioPeloCnes: preencherMunicipioPeloCnes,
   };
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
@@ -3263,7 +3411,22 @@
     };
   }
 
+  /* A APAC deixou de ser de um municipio so e o modulo mudou de id:
+   * apac-itauna -> apac. O historico e guardado POR ID, entao sem esta
+   * migracao o medico abriria o historico e o veria vazio, como se os
+   * documentos que ele emitiu tivessem sumido. */
+  function migrarHistoricoApacGlobal() {
+    var antigo = listar("apac-itauna");
+    if (!antigo.length) return 0;
+    var atual = listar("apac");
+    gravar(PREFIXO + "apac", antigo.concat(atual).slice(0, LIMITE));
+    gravar(PREFIXO + "apac-itauna", []);
+    console.debug("[Assistente Meeds] historico da APAC migrado:", antigo.length, "registro(s).");
+    return antigo.length;
+  }
+
   raiz.MeedsSuiteHistorico = {
+    migrarHistoricoApacGlobal: migrarHistoricoApacGlobal,
     registrar: registrar,
     listar: listar,
     limpar: limpar,
@@ -4916,7 +5079,7 @@
    * versao aqui nem no bootloader — so no manifest.
    * O valor de reserva existe para o arquivo continuar rodavel solto,
    * fora do pacote (por exemplo num teste unitario). */
-  var VERSAO_NUCLEO = "2.18.0" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.18.0";
+  var VERSAO_NUCLEO = "2.19.0" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.19.0";
 
   var Auth = raiz.MeedsSuiteAuth;
   var Dock = raiz.MeedsSuiteDock;
@@ -5387,6 +5550,45 @@
     /* Tira do disco o nome completo de paciente que o historico do APAC
      * gravava na versao anterior, convertendo para a referencia curta. */
     raiz.MeedsSuiteHistorico.migrarHistoricoApac();
+    raiz.MeedsSuiteHistorico.migrarHistoricoApacGlobal();
+
+    /* A preferencia de ligado/desligado tambem e por id: sem isto, quem
+     * tinha desligado a APAC de Itauna veria a APAC global aparecer
+     * sozinha, e quem a tinha ligada perderia a escolha. */
+    (function migrarPreferenciaApac() {
+      var mapa = storageNucleo.ler("modulos", {}) || {};
+      if (Object.prototype.hasOwnProperty.call(mapa, "apac-itauna")) {
+        if (!Object.prototype.hasOwnProperty.call(mapa, "apac")) mapa.apac = mapa["apac-itauna"];
+        delete mapa["apac-itauna"];
+        storageNucleo.gravar("modulos", mapa);
+        console.debug("[Assistente Meeds] preferencia da APAC migrada de apac-itauna para apac.");
+      }
+    })();
+
+    /* Antes da APAC global o estabelecimento era salvo sem municipio.
+     * A regra de compatibilidade mostra esses cadastros em TODAS as
+     * cidades — o que ate a versao anterior era inofensivo (so existia
+     * Itauna) e agora deixaria o CNES de Itauna a um clique de sair numa
+     * APAC de Betim. Aqui o municipio e preenchido pelo CNES, que e
+     * unico e esta em dados/apac.json: e conferencia, nao adivinhacao.
+     * Quem tem um CNES que nao esta na tabela fica como estava. */
+    /* Antes da APAC global o estabelecimento era salvo sem municipio.
+     * A regra de compatibilidade mostra esses cadastros em TODAS as
+     * cidades — inofensivo enquanto so existia Itauna, mas agora isso
+     * deixaria o CNES de Itauna a um clique de sair numa APAC de Betim.
+     * O municipio e preenchido pelo CNES, que consta em dados/apac.json. */
+    (function carimbarMunicipioPeloCnes() {
+      var dados = raiz.MEEDS_DADOS_APAC;
+      if (!dados || !dados.municipios || !Cadastro || !Cadastro.preencherMunicipioPeloCnes) return;
+      var deQuemE = {};
+      Object.keys(dados.municipios).forEach(function (cidade) {
+        (dados.municipios[cidade].estabelecimentos || []).forEach(function (e) {
+          if (e && e.cnes) deQuemE[String(e.cnes).replace(/\D/g, "")] = cidade;
+        });
+      });
+      var mudou = Cadastro.preencherMunicipioPeloCnes(deQuemE);
+      if (mudou) console.debug("[Assistente Meeds] municipio preenchido em", mudou, "estabelecimento(s) pelo CNES.");
+    })();
 
     raiz.MeedsSuiteManager.montar({
       dock: Dock,
@@ -5479,10 +5681,10 @@
   raiz.MEEDS_MARCAS = {"_leia_me":"TRADUTOR de nome comercial para principio ativo. ATENCAO: esta tabela NUNCA e fonte de medicamento. Ela so ajuda a ENCONTRAR o item dentro da REMUME do municipio — a REMUME (modules/remume/remumes.json) e a unica fonte de verdade. Se o principio ativo traduzido nao estiver na REMUME daquele municipio, o Assistente avisa que nao consta e NAO oferece o item. Para acrescentar uma marca, copie um bloco abaixo e rode 'npm run build'. Ver docs/MANUAL-ADMIN.md.","_campos":{"marca":"O que o medico digita (nome comercial, sigla ou nome alternativo).","principioAtivo":"O nome que se procura dentro da REMUME.","observacao":"Opcional. Aparece so na documentacao, nao na tela."},"_total":252,"marcas":[{"marca":"AAS","principioAtivo":"Ácido acetilsalicílico","observacao":"Sigla de uso corrente."},{"marca":"Acetaminofeno","principioAtivo":"Paracetamol","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Acfol","principioAtivo":"Acido Folico","observacao":""},{"marca":"Actilyse","principioAtivo":"Alteplase","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Adalat","principioAtivo":"Nifedipino","observacao":""},{"marca":"Adalat Oros","principioAtivo":"Nifedipina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Addera","principioAtivo":"Colecalciferol","observacao":""},{"marca":"Adenocard","principioAtivo":"Adenosina","observacao":""},{"marca":"Advil","principioAtivo":"Ibuprofeno","observacao":""},{"marca":"Aerolin","principioAtivo":"Salbutamol","observacao":""},{"marca":"Akineton","principioAtivo":"Biperideno","observacao":""},{"marca":"Aldactone","principioAtivo":"Espironolactona","observacao":""},{"marca":"Aldomet","principioAtivo":"Metildopa","observacao":""},{"marca":"Alivium","principioAtivo":"Ibuprofeno","observacao":""},{"marca":"Allegra","principioAtivo":"Fexofenadina","observacao":""},{"marca":"Amox","principioAtivo":"Amoxicilina","observacao":""},{"marca":"Amoxil","principioAtivo":"Amoxicilina","observacao":""},{"marca":"Amplictil","principioAtivo":"Clorpromazina","observacao":""},{"marca":"Amytril","principioAtivo":"Amitriptilina","observacao":""},{"marca":"Ancoron","principioAtivo":"Amiodarona","observacao":""},{"marca":"Angipress","principioAtivo":"Atenolol","observacao":""},{"marca":"Antak","principioAtivo":"Ranitidina","observacao":""},{"marca":"Apresolina","principioAtivo":"Hidralazina","observacao":""},{"marca":"Apressolina","principioAtivo":"Hidralazina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Aprovel","principioAtivo":"Irbesartana","observacao":""},{"marca":"Aradois","principioAtivo":"Losartana","observacao":""},{"marca":"Asmafen","principioAtivo":"Aminofilina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Aspirina","principioAtivo":"Ácido acetilsalicílico","observacao":""},{"marca":"Astromicin","principioAtivo":"Azitromicina","observacao":""},{"marca":"Atensina","principioAtivo":"Clonidina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Atlansil","principioAtivo":"Amiodarona","observacao":""},{"marca":"Atrovent","principioAtivo":"Ipratropio","observacao":""},{"marca":"Bactrim","principioAtivo":"Sulfametoxazol","observacao":""},{"marca":"Bactroban","principioAtivo":"Mupirocina","observacao":""},{"marca":"Balcor","principioAtivo":"Diltiazem","observacao":""},{"marca":"Benerva","principioAtivo":"Tiamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Benzetacil","principioAtivo":"Penicilina","observacao":""},{"marca":"Buscopam Composto","principioAtivo":"Escopolamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Buscopan","principioAtivo":"Escopolamina","observacao":""},{"marca":"Buscopan","principioAtivo":"Butilbrometo","observacao":""},{"marca":"Buscopan Composto","principioAtivo":"Escopolamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Buscopan Simples","principioAtivo":"Escopolamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Busonid","principioAtivo":"Budesonida","observacao":""},{"marca":"Capoten","principioAtivo":"Captopril","observacao":""},{"marca":"Cardilol","principioAtivo":"Carvedilol","observacao":""},{"marca":"Cardizem","principioAtivo":"Diltiazem","observacao":""},{"marca":"Cataflam","principioAtivo":"Diclofenaco","observacao":""},{"marca":"Cimetidan","principioAtivo":"Cimetidina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Cipramil","principioAtivo":"Citalopram","observacao":""},{"marca":"Cipro","principioAtivo":"Ciprofloxacino","observacao":""},{"marca":"Ciproxin","principioAtivo":"Ciprofloxacino","observacao":""},{"marca":"Citalor","principioAtivo":"Atorvastatina","observacao":""},{"marca":"Citoneurin","principioAtivo":"Complexo B","observacao":""},{"marca":"Claritine","principioAtivo":"Loratadina","observacao":""},{"marca":"Clavulin","principioAtivo":"Clavulanato","observacao":""},{"marca":"Clenil","principioAtivo":"Beclometasona","observacao":""},{"marca":"Clexane","principioAtivo":"Enoxaparina","observacao":""},{"marca":"Clisterol","principioAtivo":"Glicerina Clister","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Clorana","principioAtivo":"Hidroclorotiazida","observacao":""},{"marca":"Combiron","principioAtivo":"Sulfato Ferroso","observacao":""},{"marca":"Coreg","principioAtivo":"Carvedilol","observacao":""},{"marca":"Coumadin","principioAtivo":"Varfarina","observacao":""},{"marca":"Cozaar","principioAtivo":"Losartana","observacao":""},{"marca":"Crestor","principioAtivo":"Rosuvastatina","observacao":""},{"marca":"Cymbalta","principioAtivo":"Duloxetina","observacao":""},{"marca":"Cytotec","principioAtivo":"Misoprostol","observacao":""},{"marca":"Daforin","principioAtivo":"Fluoxetina","observacao":""},{"marca":"Daktarin","principioAtivo":"Miconazol","observacao":""},{"marca":"Dalacin","principioAtivo":"Clindamicina","observacao":""},{"marca":"Dalacin C","principioAtivo":"Clindamicina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Daonil","principioAtivo":"Glibenclamida","observacao":""},{"marca":"Decadron","principioAtivo":"Dexametasona","observacao":""},{"marca":"Depakene","principioAtivo":"Valproato","observacao":""},{"marca":"Depakote","principioAtivo":"Valproato","observacao":""},{"marca":"Dermazine","principioAtivo":"Sulfadiazina Prata","observacao":""},{"marca":"Desalex","principioAtivo":"Desloratadina","observacao":""},{"marca":"Deslanol","principioAtivo":"Deslanosídeo","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Despacilina","principioAtivo":"Benzilpenicilina Potássica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Diamicron","principioAtivo":"Gliclazida","observacao":""},{"marca":"Digesan","principioAtivo":"Bromoprida","observacao":""},{"marca":"Dimorf","principioAtivo":"Morfina","observacao":""},{"marca":"Diovan","principioAtivo":"Valsartana","observacao":""},{"marca":"Diprivan","principioAtivo":"Propofol","observacao":""},{"marca":"Diprospan","principioAtivo":"Betametasona","observacao":""},{"marca":"Dobutrex","principioAtivo":"Dobutamina","observacao":""},{"marca":"Dormonid","principioAtivo":"Midazolam","observacao":""},{"marca":"Dulcolax","principioAtivo":"Bisacodil","observacao":""},{"marca":"Efexor","principioAtivo":"Venlafaxina","observacao":""},{"marca":"Efortil","principioAtivo":"Etilefrina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Eliquis","principioAtivo":"Apixabana","observacao":""},{"marca":"Elocom","principioAtivo":"Mometasona","observacao":""},{"marca":"Epinefrina","principioAtivo":"Adrenalina","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Esmeron","principioAtivo":"Rocurônio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Euthyrox","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Fenergan","principioAtivo":"Prometazina","observacao":""},{"marca":"Fenocris","principioAtivo":"Fenobarbital Sódico","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Fentanil","principioAtivo":"Fentanila","observacao":""},{"marca":"Flagyl","principioAtivo":"Metronidazol","observacao":""},{"marca":"Flixotide","principioAtivo":"Fluticasona","observacao":""},{"marca":"Fluconal","principioAtivo":"Fluconazol","observacao":""},{"marca":"Folacin","principioAtivo":"Acido Folico","observacao":""},{"marca":"Franol","principioAtivo":"Efedrina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Garamicina","principioAtivo":"Gentamicina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Gardenal","principioAtivo":"Fenobarbital","observacao":""},{"marca":"Gentamisan","principioAtivo":"Gentamicina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Glifage","principioAtivo":"Metformina","observacao":""},{"marca":"Glucoformin","principioAtivo":"Metformina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Haldol","principioAtivo":"Haloperidol","observacao":""},{"marca":"Hctz","principioAtivo":"Hidroclorotiazida","observacao":""},{"marca":"Hidantal","principioAtivo":"Fenitoina","observacao":""},{"marca":"Hidraplex","principioAtivo":"Sais para reidratação oral","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Higroton","principioAtivo":"Clortalidona","observacao":""},{"marca":"Hixizine","principioAtivo":"Hidroxizina","observacao":""},{"marca":"Humulin","principioAtivo":"Insulina","observacao":""},{"marca":"Hypnomidate","principioAtivo":"Etomidato","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Imosec","principioAtivo":"Loperamida","observacao":""},{"marca":"Inderal","principioAtivo":"Propranolol","observacao":""},{"marca":"Insunorm","principioAtivo":"Insulina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Iruxol","principioAtivo":"Colagenase","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Kanakion","principioAtivo":"Fitomenadiona","observacao":""},{"marca":"Kanakion Im/sc","principioAtivo":"Fitomenadiona","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Kcl","principioAtivo":"Cloreto de potássio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Keflex","principioAtivo":"Cefalexina","observacao":""},{"marca":"Keppra","principioAtivo":"Levetiracetam","observacao":""},{"marca":"Ketamin","principioAtivo":"Escetamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Klaricid","principioAtivo":"Claritromicina","observacao":""},{"marca":"Label","principioAtivo":"Ranitidina","observacao":""},{"marca":"Lactulona","principioAtivo":"Lactulose","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Lamisil","principioAtivo":"Terbinafina","observacao":""},{"marca":"Lanexat","principioAtivo":"Flumazenil","observacao":""},{"marca":"Lasix","principioAtivo":"Furosemida","observacao":""},{"marca":"Levaquin","principioAtivo":"Levofloxacino","observacao":""},{"marca":"Lexapro","principioAtivo":"Escitalopram","observacao":""},{"marca":"Lexotan","principioAtivo":"Bromazepam","observacao":""},{"marca":"Lioresal","principioAtivo":"Baclofeno","observacao":""},{"marca":"Lipitor","principioAtivo":"Atorvastatina","observacao":""},{"marca":"Liquemine","principioAtivo":"Heparina","observacao":""},{"marca":"Liquemine EV","principioAtivo":"Heparina Sódica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Liquemine Sc","principioAtivo":"Heparina Sódica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Lopressor","principioAtivo":"Metoprolol","observacao":""},{"marca":"Loranil","principioAtivo":"Loratadina","observacao":""},{"marca":"Lorax","principioAtivo":"Lorazepam","observacao":""},{"marca":"Losec","principioAtivo":"Omeprazol","observacao":""},{"marca":"Luftal","principioAtivo":"Simeticona","observacao":""},{"marca":"Lyrica","principioAtivo":"Pregabalina","observacao":""},{"marca":"Macrodantina","principioAtivo":"Nitrofurantoina","observacao":""},{"marca":"Manitol 20%","principioAtivo":"Manitol","observacao":""},{"marca":"Marcaina","principioAtivo":"Bupivacaina","observacao":""},{"marca":"Marevan","principioAtivo":"Varfarina","observacao":""},{"marca":"Metamizol","principioAtivo":"Dipirona","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Meticorten","principioAtivo":"Prednisona","observacao":""},{"marca":"Micardis","principioAtivo":"Telmisartana","observacao":""},{"marca":"Micostatin","principioAtivo":"Nistatina","observacao":""},{"marca":"Miosan","principioAtivo":"Ciclobenzaprina","observacao":""},{"marca":"Motilium","principioAtivo":"Domperidona","observacao":""},{"marca":"Movatec","principioAtivo":"Meloxicam","observacao":""},{"marca":"Nacl 0,9%.","principioAtivo":"Cloreto de Sódio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Nacl 20%.","principioAtivo":"Cloreto de Sódio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Narcan","principioAtivo":"Naloxona","observacao":""},{"marca":"Naropin","principioAtivo":"Ropivacaina","observacao":""},{"marca":"Nasonex","principioAtivo":"Mometasona","observacao":""},{"marca":"Natrilix","principioAtivo":"Indapamida","observacao":""},{"marca":"Nebacetin","principioAtivo":"Neomicina + bacitracina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Neocaina","principioAtivo":"Bupivacaina","observacao":""},{"marca":"Neozine","principioAtivo":"Levomepromazina","observacao":""},{"marca":"Nepresol","principioAtivo":"Hidralazina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Neurontin","principioAtivo":"Gabapentina","observacao":""},{"marca":"Nexium","principioAtivo":"Esomeprazol","observacao":""},{"marca":"Nipride","principioAtivo":"Nitroprusseto de Sódio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Nisulid","principioAtivo":"Nimesulida","observacao":""},{"marca":"Nizoral","principioAtivo":"Cetoconazol","observacao":""},{"marca":"Noradrenalina","principioAtivo":"Norepinefrina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Norepinefrina","principioAtivo":"Noradrenalina","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Norvasc","principioAtivo":"Anlodipino","observacao":""},{"marca":"Novalgina","principioAtivo":"Dipirona","observacao":""},{"marca":"Novolin","principioAtivo":"Insulina","observacao":""},{"marca":"Pantoc","principioAtivo":"Pantoprazol","observacao":""},{"marca":"Pantozol","principioAtivo":"Pantoprazol","observacao":""},{"marca":"Peprazol","principioAtivo":"Omeprazol","observacao":""},{"marca":"Plasil","principioAtivo":"Metoclopramida","observacao":""},{"marca":"Plavix","principioAtivo":"Clopidogrel","observacao":""},{"marca":"Polaramine","principioAtivo":"Dexclorfeniramina","observacao":""},{"marca":"Pradaxa","principioAtivo":"Dabigatrana","observacao":""},{"marca":"Prazol","principioAtivo":"Lansoprazol","observacao":""},{"marca":"Predi-medrol","principioAtivo":"Metilprednisolona","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Prelone","principioAtivo":"Prednisolona","observacao":""},{"marca":"Profenid","principioAtivo":"Cetoprofeno","observacao":""},{"marca":"Prolopa","principioAtivo":"Levodopa","observacao":""},{"marca":"Propecia","principioAtivo":"Finasterida","observacao":""},{"marca":"Propovan","principioAtivo":"Propofol","observacao":""},{"marca":"Proscar","principioAtivo":"Finasterida","observacao":""},{"marca":"Prostigmine","principioAtivo":"Neostigmina","observacao":""},{"marca":"Prostokos","principioAtivo":"Misoprostol","observacao":""},{"marca":"Prozac","principioAtivo":"Fluoxetina","observacao":""},{"marca":"Pulmicort","principioAtivo":"Budesonida","observacao":""},{"marca":"Puran T4","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Renitec","principioAtivo":"Enalapril","observacao":""},{"marca":"Revivan","principioAtivo":"Dopamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Ringer Lactato","principioAtivo":"Ringer","observacao":""},{"marca":"Risperdal","principioAtivo":"Risperidona","observacao":""},{"marca":"Rivotril","principioAtivo":"Clonazepam","observacao":""},{"marca":"Rocefin","principioAtivo":"Ceftriaxona","observacao":""},{"marca":"Scabin","principioAtivo":"Permetrina","observacao":""},{"marca":"Secotex","principioAtivo":"Tansulosina","observacao":""},{"marca":"Seloken","principioAtivo":"Metoprolol","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Selozok","principioAtivo":"Metoprolol","observacao":""},{"marca":"Seroquel","principioAtivo":"Quetiapina","observacao":""},{"marca":"Sevorane","principioAtivo":"Sevoflurano","observacao":""},{"marca":"Sf 0.9%","principioAtivo":"Soro Fisiologico","observacao":""},{"marca":"Sg 5%","principioAtivo":"Glicose","observacao":""},{"marca":"Singulair","principioAtivo":"Montelucaste","observacao":""},{"marca":"Sinvatrox","principioAtivo":"Sinvastatina","observacao":""},{"marca":"Solucortef","principioAtivo":"Hidrocortisona","observacao":""},{"marca":"Solumedrol","principioAtivo":"Metilprednisolona","observacao":""},{"marca":"Sorcal","principioAtivo":"Poliestirenossulfonato de Calcio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Soro Glicosado","principioAtivo":"Glicose","observacao":""},{"marca":"Staficilin","principioAtivo":"Oxacilina sódica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Succinil Colin","principioAtivo":"Suxametonio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Synthroid","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Syntocinon","principioAtivo":"Ocitocina","observacao":""},{"marca":"Tamiflu","principioAtivo":"Oseltamivir","observacao":""},{"marca":"Tavanic","principioAtivo":"Levofloxacino","observacao":""},{"marca":"Tegretol","principioAtivo":"Carbamazepina","observacao":""},{"marca":"Tolrest","principioAtivo":"Sertralina","observacao":""},{"marca":"Topamax","principioAtivo":"Topiramato","observacao":""},{"marca":"Tramal","principioAtivo":"Tramadol","observacao":""},{"marca":"Transamin","principioAtivo":"Acido Tranexamico","observacao":""},{"marca":"Triaxon","principioAtivo":"Ceftriaxona","observacao":""},{"marca":"Tridil","principioAtivo":"Nitroglicerina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Tryptanol","principioAtivo":"Amitriptilina","observacao":""},{"marca":"Tylenol","principioAtivo":"Paracetamol","observacao":""},{"marca":"Uroxacin","principioAtivo":"Norfloxacino","observacao":""},{"marca":"Valium","principioAtivo":"Diazepam","observacao":""},{"marca":"Valproico","principioAtivo":"Valproato","observacao":""},{"marca":"Valtrex","principioAtivo":"Valaciclovir","observacao":""},{"marca":"Viagra","principioAtivo":"Sildenafila","observacao":""},{"marca":"Vibramicina","principioAtivo":"Doxiciclina","observacao":""},{"marca":"Vitamina K","principioAtivo":"Fitomenadiona","observacao":""},{"marca":"Voltaren","principioAtivo":"Diclofenaco","observacao":""},{"marca":"Vonau","principioAtivo":"Ondansetrona","observacao":""},{"marca":"Xarelto","principioAtivo":"Rivaroxabana","observacao":""},{"marca":"Xylocaina","principioAtivo":"Lidocaina","observacao":""},{"marca":"Xylocaina 2% com","principioAtivo":"Lidocaína","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Xylocaina 2% Sem","principioAtivo":"Lidocaína","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Zitromax","principioAtivo":"Azitromicina","observacao":""},{"marca":"Zocor","principioAtivo":"Sinvastatina","observacao":""},{"marca":"Zofran","principioAtivo":"Ondansetrona","observacao":""},{"marca":"Zoloft","principioAtivo":"Sertralina","observacao":""},{"marca":"Zoltec","principioAtivo":"Fluconazol","observacao":""},{"marca":"Zovirax","principioAtivo":"Aciclovir","observacao":""},{"marca":"Zyprexa","principioAtivo":"Olanzapina","observacao":""},{"marca":"Zyrtec","principioAtivo":"Cetirizina","observacao":""}]};
 
   /* ===== dados/changelog.json ===== */
-  raiz.MEEDS_CHANGELOG = {"_leia_me":"Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.","versoes":[{"versao":"2.18.0","data":"2026-09-01","novidades":[],"melhorias":["A busca de CID-10 dentro dos laudos e a prévia do documento passam a ficar sempre ligadas. Elas não são funções separadas — são melhorias do próprio formulário —, então saíram da lista de liga/desliga do painel."],"correcoes":[]},{"versao":"2.17.1","data":"2026-09-01","novidades":["A REMUME de Barbacena agora inclui os 161 medicamentos padronizados da UPA, com o selo “UPA” ao lado de cada um. Os itens das UBS, CTA/CEM e CAF continuam como estavam."],"melhorias":["47 nomes comerciais novos na busca: procurar por “Atensina”, “Buscopan Composto”, “Lactulona” ou “Nipride” já encontra o princípio ativo."],"correcoes":[]},{"versao":"2.16.0","data":"2026-09-01","novidades":[],"melhorias":["A busca de medicamentos ficou muito mais direta. Procurar \"acetilcisteína comprimido\" devolvia 159 itens; agora devolve os 2 certos. Palavras como \"comprimido\", \"solução\" ou a sigla da unidade agora servem para ordenar o resultado, não para inchar a lista. Em Macaé, dois itens com dipirona que ficavam escondidos no fim da lista voltaram a aparecer."],"correcoes":["A sugestão \"você quis dizer\" mostrava nomes cortados no meio, como \"Piridoxina (Vitamina B\" em vez de \"Piridoxina (Vitamina B6)\". Corrigido em todos os municípios."]},{"versao":"2.15.0","data":"2026-09-01","novidades":["Os botões agora recolhem. O ✕ no canto guarda todos e libera a tela; no computador basta aproximar o mouse do canto para eles voltarem, e no iPad é um toque no ☰. Se a fila de espera encher, o alarme aparece sozinho mesmo com tudo recolhido."],"melhorias":["O painel Sobre agora informa se suas configurações estão sendo salvas de forma permanente neste navegador."],"correcoes":["No iPad, o cadastro de médicos, o histórico de laudos e as configurações se perdiam toda vez que você saía do Meeds. Agora ficam guardados de verdade."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":["A checagem de atualização ficou muito mais leve: o Tampermonkey passa a baixar 1 KB para saber se há versão nova, em vez de mais de 1 MB."],"correcoes":["Correções internas na Sala de Espera, que está em standby: a consulta de confirmação não estava sendo executada."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":[],"correcoes":["As funções que você desliga continuam desligadas depois do logout. Antes, o Meeds apagava a configuração ao sair e todos os botões voltavam no acesso seguinte. O que você já tinha configurado é aproveitado, não precisa remarcar nada."]},{"versao":"2.13.1","data":"2026-08-31","novidades":[],"melhorias":[],"correcoes":["No iPad, o Assistente aparecia instalado e mesmo assim não fazia nada: a proteção de conteúdo do Meeds bloqueava a execução. Corrigido. Se o navegador precisar isolar o Assistente, o alarme de fila passa a decidir só pelo que aparece na tela, e o painel Sobre avisa quando isso acontece."]},{"versao":"2.13.0","data":"2026-08-31","novidades":["Agora dá para usar o Assistente no iPad e no iPhone, pelo Safari, com o app gratuito Userscripts. O passo a passo está no guia do iPad."],"melhorias":[],"correcoes":[]},{"versao":"2.12.0","data":"2026-08-31","novidades":["Nova função “Prévia do documento”: veja o PDF ao lado do formulário enquanto preenche, nos geradores de APAC e de laudo. É o mesmo arquivo que será baixado — nada de aproximação."],"melhorias":["A prévia vem desligada; abra pelo botão 👁 Prévia no alto do gerador. O tamanho do painel fica do jeito que você deixar."],"correcoes":[]},{"versao":"2.11.0","data":"2026-08-31","novidades":["Agora dá para enviar feedback direto do painel: conte um problema ou uma ideia, e a mensagem vai pronta para quem cuida do Assistente."],"melhorias":["O painel da engrenagem foi reorganizado em abas — Funções, Médicos, Unidades e Sobre. Antes era tudo numa rolagem só.","Os formulários de cadastro começam fechados: a lista fica limpa, e o formulário abre quando você pede."],"correcoes":[]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["O contador da Sala de Espera passou a mostrar só quem realmente chegou — antes contava também quem tinha consulta marcada e ainda não tinha aparecido."],"correcoes":["A Sala de Espera não avisava quando o paciente agendado chegava. O aviso agora sai na hora em que a chegada é marcada na tela nativa.","Se a internet oscilasse, a fila podia parecer vazia por um instante. Agora a última leitura válida é mantida até a próxima tentativa."]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID passou a funcionar também nos campos de CID secundário e associados da APAC — antes só o principal tinha."],"correcoes":[]},{"versao":"2.9.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID-10 agora vive dentro do próprio campo do laudo. O botão separado saiu: havia dois caminhos para a mesma coisa.","Digitar o código sem o ponto funciona: “J069” encontra J06.9."],"correcoes":["O campo CID mostrava duas listas de sugestão ao mesmo tempo, uma por cima da outra.","Depois de escolher um CID, a lista de sugestões reaparecia sozinha."]},{"versao":"2.8.0","data":"2026-08-31","novidades":["O CID-10 agora fica dentro do próprio laudo: clique no campo CID, digite o nome da doença ou o código, escolha — o código e a descrição entram sozinhos. Vale nos três geradores."],"melhorias":["A busca de CID-10 ficou muito mais rápida e não trava mais a tela: buscas comuns que levavam mais de um segundo agora respondem quase na hora.","A lista de resultados mostra os 50 mais relevantes e diz quantos ficaram de fora, em vez de tentar desenhar milhares de linhas."],"correcoes":["A apresentação “Bem-vindo ao Assistente Meeds” aparecia toda vez que você abria o Meeds. Agora aparece uma vez só."]},{"versao":"2.7.0","data":"2026-08-31","novidades":["Nova função “Sala de Espera”: avisa, sem som, quando um paciente de consulta agendada chega — com o nome, a hora marcada e há quanto tempo espera.","O botão da Sala de Espera mostra quantos pacientes estão aguardando, e abre a lista completa."],"melhorias":["Vários pacientes chegando ao mesmo tempo viram um aviso só, que conta quantos são."],"correcoes":[]},{"versao":"2.6.0","data":"2026-08-30","novidades":["A consulta REMUME passou a entender nome comercial: digite “Tylenol” e ela mostra o paracetamol do seu município.","Quando o remédio procurado não é padronizado no município, o Assistente diz isso com todas as letras, em vez de mostrar uma lista vazia."],"melhorias":["A busca ficou mais tolerante a erro de digitação em português: “dipironá” encontra Dipirona e “cimvastatina” encontra Sinvastatina.","A lista de nomes comerciais saiu do código e virou um arquivo que o administrador edita sozinho."],"correcoes":[]},{"versao":"2.5.0","data":"2026-08-30","novidades":["Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.","O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."],"melhorias":["Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."],"correcoes":["O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."]},{"versao":"2.4.0","data":"2026-08-30","novidades":["Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.","O código escolhido na busca entra sozinho no laudo que estiver aberto.","Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.","Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."],"melhorias":["O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.","O CPF se formata sozinho enquanto você digita.","Com um único médico cadastrado, ele já vem selecionado nos laudos.","As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.","O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."],"correcoes":["O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.","Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."]},{"versao":"2.3.0","data":"2026-08-30","novidades":["Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."],"melhorias":["Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."],"correcoes":[]},{"versao":"2.2.0","data":"2026-08-30","novidades":["Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."],"melhorias":["Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."],"correcoes":["Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."]},{"versao":"2.0.0","data":"2026-08-30","novidades":["Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."],"melhorias":[],"correcoes":[]}]};
+  raiz.MEEDS_CHANGELOG = {"_leia_me":"Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.","versoes":[{"versao":"2.19.0","data":"2026-09-03","novidades":["O gerador de APAC deixou de ser exclusivo de Itaúna. Agora o primeiro campo do formulário é o Município, e a mesma tela atende Itaúna, Betim e Sete Lagoas. Quando o atendimento identifica a cidade, ela já vem escolhida."],"melhorias":["O estabelecimento e o CNES passaram a ser guardados por município: ao trocar de cidade, a lista mostra só as unidades daquela cidade. Isso impede uma APAC sair com o CNES de outro município, que é motivo de devolução pela regulação.","As APACs que você já tinha gerado continuam no histórico e podem ser reabertas normalmente."],"correcoes":["Na tela de erro, o campo do médico solicitante era chamado de “Selecionar”. Agora aparece pelo nome."]},{"versao":"2.18.0","data":"2026-09-01","novidades":[],"melhorias":["A busca de CID-10 dentro dos laudos e a prévia do documento passam a ficar sempre ligadas. Elas não são funções separadas — são melhorias do próprio formulário —, então saíram da lista de liga/desliga do painel."],"correcoes":[]},{"versao":"2.17.1","data":"2026-09-01","novidades":["A REMUME de Barbacena agora inclui os 161 medicamentos padronizados da UPA, com o selo “UPA” ao lado de cada um. Os itens das UBS, CTA/CEM e CAF continuam como estavam."],"melhorias":["47 nomes comerciais novos na busca: procurar por “Atensina”, “Buscopan Composto”, “Lactulona” ou “Nipride” já encontra o princípio ativo."],"correcoes":[]},{"versao":"2.16.0","data":"2026-09-01","novidades":[],"melhorias":["A busca de medicamentos ficou muito mais direta. Procurar \"acetilcisteína comprimido\" devolvia 159 itens; agora devolve os 2 certos. Palavras como \"comprimido\", \"solução\" ou a sigla da unidade agora servem para ordenar o resultado, não para inchar a lista. Em Macaé, dois itens com dipirona que ficavam escondidos no fim da lista voltaram a aparecer."],"correcoes":["A sugestão \"você quis dizer\" mostrava nomes cortados no meio, como \"Piridoxina (Vitamina B\" em vez de \"Piridoxina (Vitamina B6)\". Corrigido em todos os municípios."]},{"versao":"2.15.0","data":"2026-09-01","novidades":["Os botões agora recolhem. O ✕ no canto guarda todos e libera a tela; no computador basta aproximar o mouse do canto para eles voltarem, e no iPad é um toque no ☰. Se a fila de espera encher, o alarme aparece sozinho mesmo com tudo recolhido."],"melhorias":["O painel Sobre agora informa se suas configurações estão sendo salvas de forma permanente neste navegador."],"correcoes":["No iPad, o cadastro de médicos, o histórico de laudos e as configurações se perdiam toda vez que você saía do Meeds. Agora ficam guardados de verdade."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":["A checagem de atualização ficou muito mais leve: o Tampermonkey passa a baixar 1 KB para saber se há versão nova, em vez de mais de 1 MB."],"correcoes":["Correções internas na Sala de Espera, que está em standby: a consulta de confirmação não estava sendo executada."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":[],"correcoes":["As funções que você desliga continuam desligadas depois do logout. Antes, o Meeds apagava a configuração ao sair e todos os botões voltavam no acesso seguinte. O que você já tinha configurado é aproveitado, não precisa remarcar nada."]},{"versao":"2.13.1","data":"2026-08-31","novidades":[],"melhorias":[],"correcoes":["No iPad, o Assistente aparecia instalado e mesmo assim não fazia nada: a proteção de conteúdo do Meeds bloqueava a execução. Corrigido. Se o navegador precisar isolar o Assistente, o alarme de fila passa a decidir só pelo que aparece na tela, e o painel Sobre avisa quando isso acontece."]},{"versao":"2.13.0","data":"2026-08-31","novidades":["Agora dá para usar o Assistente no iPad e no iPhone, pelo Safari, com o app gratuito Userscripts. O passo a passo está no guia do iPad."],"melhorias":[],"correcoes":[]},{"versao":"2.12.0","data":"2026-08-31","novidades":["Nova função “Prévia do documento”: veja o PDF ao lado do formulário enquanto preenche, nos geradores de APAC e de laudo. É o mesmo arquivo que será baixado — nada de aproximação."],"melhorias":["A prévia vem desligada; abra pelo botão 👁 Prévia no alto do gerador. O tamanho do painel fica do jeito que você deixar."],"correcoes":[]},{"versao":"2.11.0","data":"2026-08-31","novidades":["Agora dá para enviar feedback direto do painel: conte um problema ou uma ideia, e a mensagem vai pronta para quem cuida do Assistente."],"melhorias":["O painel da engrenagem foi reorganizado em abas — Funções, Médicos, Unidades e Sobre. Antes era tudo numa rolagem só.","Os formulários de cadastro começam fechados: a lista fica limpa, e o formulário abre quando você pede."],"correcoes":[]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["O contador da Sala de Espera passou a mostrar só quem realmente chegou — antes contava também quem tinha consulta marcada e ainda não tinha aparecido."],"correcoes":["A Sala de Espera não avisava quando o paciente agendado chegava. O aviso agora sai na hora em que a chegada é marcada na tela nativa.","Se a internet oscilasse, a fila podia parecer vazia por um instante. Agora a última leitura válida é mantida até a próxima tentativa."]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID passou a funcionar também nos campos de CID secundário e associados da APAC — antes só o principal tinha."],"correcoes":[]},{"versao":"2.9.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID-10 agora vive dentro do próprio campo do laudo. O botão separado saiu: havia dois caminhos para a mesma coisa.","Digitar o código sem o ponto funciona: “J069” encontra J06.9."],"correcoes":["O campo CID mostrava duas listas de sugestão ao mesmo tempo, uma por cima da outra.","Depois de escolher um CID, a lista de sugestões reaparecia sozinha."]},{"versao":"2.8.0","data":"2026-08-31","novidades":["O CID-10 agora fica dentro do próprio laudo: clique no campo CID, digite o nome da doença ou o código, escolha — o código e a descrição entram sozinhos. Vale nos três geradores."],"melhorias":["A busca de CID-10 ficou muito mais rápida e não trava mais a tela: buscas comuns que levavam mais de um segundo agora respondem quase na hora.","A lista de resultados mostra os 50 mais relevantes e diz quantos ficaram de fora, em vez de tentar desenhar milhares de linhas."],"correcoes":["A apresentação “Bem-vindo ao Assistente Meeds” aparecia toda vez que você abria o Meeds. Agora aparece uma vez só."]},{"versao":"2.7.0","data":"2026-08-31","novidades":["Nova função “Sala de Espera”: avisa, sem som, quando um paciente de consulta agendada chega — com o nome, a hora marcada e há quanto tempo espera.","O botão da Sala de Espera mostra quantos pacientes estão aguardando, e abre a lista completa."],"melhorias":["Vários pacientes chegando ao mesmo tempo viram um aviso só, que conta quantos são."],"correcoes":[]},{"versao":"2.6.0","data":"2026-08-30","novidades":["A consulta REMUME passou a entender nome comercial: digite “Tylenol” e ela mostra o paracetamol do seu município.","Quando o remédio procurado não é padronizado no município, o Assistente diz isso com todas as letras, em vez de mostrar uma lista vazia."],"melhorias":["A busca ficou mais tolerante a erro de digitação em português: “dipironá” encontra Dipirona e “cimvastatina” encontra Sinvastatina.","A lista de nomes comerciais saiu do código e virou um arquivo que o administrador edita sozinho."],"correcoes":[]},{"versao":"2.5.0","data":"2026-08-30","novidades":["Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.","O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."],"melhorias":["Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."],"correcoes":["O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."]},{"versao":"2.4.0","data":"2026-08-30","novidades":["Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.","O código escolhido na busca entra sozinho no laudo que estiver aberto.","Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.","Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."],"melhorias":["O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.","O CPF se formata sozinho enquanto você digita.","Com um único médico cadastrado, ele já vem selecionado nos laudos.","As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.","O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."],"correcoes":["O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.","Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."]},{"versao":"2.3.0","data":"2026-08-30","novidades":["Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."],"melhorias":["Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."],"correcoes":[]},{"versao":"2.2.0","data":"2026-08-30","novidades":["Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."],"melhorias":["Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."],"correcoes":["Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."]},{"versao":"2.0.0","data":"2026-08-30","novidades":["Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."],"melhorias":[],"correcoes":[]}]};
 
   var __inv = {
-  "versao": "2.18.0",
+  "versao": "2.19.0",
   "contato": {
     "_leia_me": "Para onde vai o feedback do medico. O botao 'Enviar feedback' abre o programa de e-mail dele com esta mensagem ja escrita — nao ha servidor nem servico de terceiro no caminho. Troque o e-mail aqui se quem cuida do Assistente mudar.",
     "email": "marcelonovetech@gmail.com"
@@ -5497,10 +5699,10 @@
       "sempreAtivo": false
     },
     {
-      "id": "apac-itauna",
-      "nome": "APAC — Itaúna",
-      "descricao": "Gera a APAC de Itaúna já preenchida com os dados do paciente que estão na tela e leva você direto para a assinatura no gov.br.",
-      "versao": "2.3.0",
+      "id": "apac",
+      "nome": "APAC",
+      "descricao": "Gera a APAC (Autorização de Procedimento Ambulatorial) já preenchida com os dados do paciente que estão na tela e leva direto para a assinatura no gov.br. Atende vários municípios: o formulário é nacional e muda só a unidade solicitante.",
+      "versao": "3.0.0",
       "origem": "sodelfino/apac-itauna-meeds",
       "sempreAtivo": false
     },
@@ -5551,7 +5753,7 @@
    * cobre o resto: duas copias instaladas no Tampermonkey, ou uma
    * reexecucao do script numa navegacao da SPA. Sem ela, apareciam dois
    * docks sobrepostos e o alarme tocava duas vezes. */
-  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.18.0")) return;
+  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.19.0")) return;
 
   /* 2) O hook de rede precisa existir ANTES de qualquer chamada da
    * aplicacao — por isso e instalado aqui, em document-start, e nao
@@ -6248,9 +6450,9 @@
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
 
-/* ===== modules/apac-itauna/index.js (v2.3.0) ===== */
+/* ===== modules/apac/index.js (v3.0.0) ===== */
 /* ------------------------------------------------------------------
- * modules/apac-itauna/index.js
+ * modules/apac/index.js
  * Origem: sodelfino/apac-itauna-meeds -> APAC_GERADOR_FINAL.user.js v1.9.0
  * ------------------------------------------------------------------
  * O QUE MUDOU NA MIGRACAO (e o que NAO mudou)
@@ -6498,19 +6700,42 @@
    * pacote pelo build. Ficam fora do codigo porque sao a parte que o
    * administrador edita de vez em quando. Se o arquivo faltar, os padroes
    * seguram e o modulo continua funcionando. */
-  var DADOS = (raiz.MEEDS_DADOS_FORMULARIOS || {})["apac-itauna"] || {};
+  /* O formulario da APAC e NACIONAL: o mesmo PDF vale para qualquer
+   * municipio. O que muda e o ESTABELECIMENTO solicitante. Por isso o
+   * catalogo vem do bloco comum e o municipio so escolhe a unidade. */
+  var BASE = raiz.MEEDS_DADOS_APAC || { _comum: {}, municipios: {} };
+  var COMUM = BASE._comum || {};
 
-  var CATALOGO = DADOS.procedimentos || {};
-  var ECO_VARIANTES = DADOS.ecoVariantes || {};
-  var TERRITORIOS = DADOS.territorios || [];
-  var CID_DIC = DADOS.cids || {};
-  var ESTABELECIMENTO = DADOS.estabelecimento || { nome: "", cnes: "" };
+  function municipiosDisponiveis() {
+    return Object.keys(BASE.municipios || {});
+  }
+
+  /* Um municipio pode sobrescrever o catalogo comum, mas hoje nenhum
+   * precisa — a lista de cardiologia e a mesma nos tres. */
+  function dadosDoMunicipio(nome) {
+    var m = (BASE.municipios || {})[nome] || {};
+    return {
+      procedimentos: m.procedimentos || COMUM.procedimentos || {},
+      ecoVariantes: m.ecoVariantes || COMUM.ecoVariantes || {},
+      territorios: m.territorios || COMUM.territorios || [],
+      cids: m.cids || COMUM.cids || {},
+      estabelecimentos: m.estabelecimentos || [],
+    };
+  }
+
+  var municipioAtual = null;
+  var DADOS = dadosDoMunicipio(null);
+
+  var CATALOGO = DADOS.procedimentos;
+  var ECO_VARIANTES = DADOS.ecoVariantes;
+  var TERRITORIOS = DADOS.territorios;
+  var CID_DIC = DADOS.cids;
 
 
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
   var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#apac-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #apac-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #apac-modal-head h2{ margin:0; font-size:15px; }\n    #apac-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #apac-body{ padding:18px 20px; }\n    .apac-sec{ margin-bottom:16px; }\n    .apac-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .apac-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .apac-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6c68; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8e6e3; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:56px; resize:vertical; }\n    .apac-proc-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }\n    .apac-proc-btn{ border:1.4px solid #d8e6e3; border-radius:9px; padding:9px; cursor:pointer; }\n    .apac-proc-btn:hover{ border-color:#17ab9e; }\n    .apac-proc-btn.sel{ border-color:#12958a; background:#e3f5f3; }\n    .apac-proc-btn .t{ font-size:11.5px; font-weight:700; }\n    .apac-proc-btn .c{ font-size:9.5px; color:#0e7a70; font-family:monospace; }\n    #apac-territorio-wrap{ display:none; margin-top:8px; }\n    #apac-territorio-wrap.show{ display:block; }\n    #apac-eco-variante-wrap{ display:none; margin-top:8px; }\n    #apac-eco-variante-wrap.show{ display:block; }\n    #apac-outro-wrap{ display:none; margin-top:8px; }\n    #apac-outro-wrap.show{ display:block; }\n    #apac-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    #apac-sec-assinatura{ border:1.5px dashed #17ab9e; border-radius:12px; padding:14px; background:#f9fdfc; }\n    .apac-opcoes-assinatura{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }\n    button.apac-primary{ background:#12958a; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.apac-primary:hover{ background:#0b6a62; }\n    button.apac-primary:disabled{ background:#a0c9c4; cursor:not-allowed; }\n    button.apac-secondary{ background:#fff; color:#0e7a70; border:1.4px solid #17ab9e; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.apac-secondary:hover{ background:#e3f5f3; }\n    button.apac-tertiary{ background:#f0f4f3; color:#0e7a70; border:1px solid #d8e6e3; border-radius:9px; padding:9px 14px; font-size:12px; font-weight:700; cursor:pointer; }\n    button.apac-tertiary:hover{ background:#e3f5f3; }\n    #apac-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #apac-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }\n    .apac-info-box{ background:#e8f4f8; color:#0e7a70; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:10px; line-height:1.4; }";
 
-  var HTML = "<div id=\"apac-modal\">\n      <div id=\"apac-modal-head\"><h2>Gerador de APAC — Itaúna</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"apac-refresh-modal\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"apac-historico-abrir\" title=\"Últimas APACs geradas nesta máquina\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"apac-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"apac-body\">\n        <div id=\"apac-auto-aviso\"></div>\n\n        <div id=\"apac-historico-painel\"></div>\n\n        <div class=\"apac-sec\">\n          <h3>Estabelecimento</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome *</label><select id=\"apac-estab-sel\"></select></div>\n            <div><label>CNES *</label><input id=\"apac-estab-cnes\" readonly style=\"background:#f1f5f9;\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Médico solicitante</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Selecionar *</label><select id=\"apac-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"apac-medico-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-medico-cpf\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Paciente</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome completo *</label><input id=\"apac-pac-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-pac-cpf\"></div>\n          </div>\n          <div class=\"apac-grid3\" style=\"margin-top:8px;\">\n            <div><label>Nascimento *</label><input type=\"date\" id=\"apac-pac-nasc\"></div>\n            <div><label>Sexo *</label><select id=\"apac-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"M\">Masculino</option><option value=\"F\">Feminino</option></select></div>\n            <div><label>Nome da mãe *</label><input id=\"apac-pac-mae\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Procedimento *</h3>\n          <div class=\"apac-proc-grid\" id=\"apac-proc-grid\"></div>\n          <div id=\"apac-territorio-wrap\">\n            <label>Território vascular (obrigatório para Doppler)</label>\n            <select id=\"apac-territorio-sel\"></select>\n          </div>\n          <div id=\"apac-eco-variante-wrap\">\n            <label>Variante do ecocardiograma</label>\n            <select id=\"apac-eco-variante-sel\">\n              <option value=\"REPOUSO\">Transtorácica de repouso (padrão)</option>\n              <option value=\"ESTRESSE\">Com estresse (farmacológico/Dobutamina)</option>\n              <option value=\"TRANSESOFAGICO\">Transesofágico</option>\n            </select>\n          </div>\n          <div id=\"apac-outro-wrap\">\n            <label>Código SIGTAP *</label>\n            <input id=\"apac-outro-codigo\" placeholder=\"ex: 02.11.02.001-0\" style=\"margin-bottom:8px;\">\n            <label>Nome do procedimento *</label>\n            <input id=\"apac-outro-nome\" placeholder=\"como deve aparecer no campo 19\">\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>CID-10 *</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Principal *</label><input id=\"apac-cid1\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Secundário</label><input id=\"apac-cid2\" autocomplete=\"off\"></div>\n            <div><label>Associados</label><input id=\"apac-cid3\" autocomplete=\"off\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Descrição (campo 36) *</label><input id=\"apac-cid-desc\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Texto do pedido (campo 40) *</h3>\n          <textarea id=\"apac-obs\"></textarea>\n        </div>\n\n        <!-- ETAPA 2 — Assinatura -->\n        <div class=\"apac-sec\" id=\"apac-sec-assinatura\" style=\"display:none;\">\n          <h3>Etapa 2 — Assinatura</h3>\n          <div class=\"apac-info-box\">\n            ✅ <b>APAC gerada.</b> Ela já ficou registrada no 📜 Histórico. Escolha como quer finalizar:\n          </div>\n\n          <div class=\"apac-opcoes-assinatura\">\n            <button id=\"apac-assinar-govbr\" class=\"apac-primary\">\n              🏛️ Assinar via gov.br<br><small style=\"font-weight:400;opacity:.9;\">Baixa PDF e abre o portal</small>\n            </button>\n            <button id=\"apac-baixar-sem\" class=\"apac-tertiary\">\n              💾 Baixar sem assinar<br><small style=\"font-weight:400;opacity:.8;\">PDF simples</small>\n            </button>\n          </div>\n        </div>\n\n        <div id=\"apac-erro\"></div>\n        \n      </div>\n      <div id=\"apac-footer\">\n        <button class=\"apac-secondary\" id=\"apac-limpar\">Limpar</button>\n        <button class=\"apac-primary\" id=\"apac-gerar\">Gerar PDF</button>\n      </div>\n    </div>";
+  var HTML = "<div id=\"apac-modal\">\n      <div id=\"apac-modal-head\"><h2>Gerador de APAC</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"apac-refresh-modal\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"apac-historico-abrir\" title=\"Últimas APACs geradas nesta máquina\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"apac-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"apac-body\">\n        <div id=\"apac-auto-aviso\"></div>\n\n        <div id=\"apac-historico-painel\"></div>\n\n        <div class=\"apac-sec\">\n          <h3>Município *</h3>\n          <select id=\"apac-municipio-sel\"></select>\n          <div id=\"apac-municipio-dica\" style=\"font-size:10.5px;color:#5b6c68;margin-top:4px;\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Estabelecimento</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome *</label><select id=\"apac-estab-sel\"></select></div>\n            <div><label>CNES *</label><input id=\"apac-estab-cnes\" readonly style=\"background:#f1f5f9;\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Médico solicitante</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Selecionar *</label><select id=\"apac-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"apac-medico-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-medico-cpf\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Paciente</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome completo *</label><input id=\"apac-pac-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-pac-cpf\"></div>\n          </div>\n          <div class=\"apac-grid3\" style=\"margin-top:8px;\">\n            <div><label>Nascimento *</label><input type=\"date\" id=\"apac-pac-nasc\"></div>\n            <div><label>Sexo *</label><select id=\"apac-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"M\">Masculino</option><option value=\"F\">Feminino</option></select></div>\n            <div><label>Nome da mãe *</label><input id=\"apac-pac-mae\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Procedimento *</h3>\n          <div class=\"apac-proc-grid\" id=\"apac-proc-grid\"></div>\n          <div id=\"apac-territorio-wrap\">\n            <label>Território vascular (obrigatório para Doppler)</label>\n            <select id=\"apac-territorio-sel\"></select>\n          </div>\n          <div id=\"apac-eco-variante-wrap\">\n            <label>Variante do ecocardiograma</label>\n            <select id=\"apac-eco-variante-sel\">\n              <option value=\"REPOUSO\">Transtorácica de repouso (padrão)</option>\n              <option value=\"ESTRESSE\">Com estresse (farmacológico/Dobutamina)</option>\n              <option value=\"TRANSESOFAGICO\">Transesofágico</option>\n            </select>\n          </div>\n          <div id=\"apac-outro-wrap\">\n            <label>Código SIGTAP *</label>\n            <input id=\"apac-outro-codigo\" placeholder=\"ex: 02.11.02.001-0\" style=\"margin-bottom:8px;\">\n            <label>Nome do procedimento *</label>\n            <input id=\"apac-outro-nome\" placeholder=\"como deve aparecer no campo 19\">\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>CID-10 *</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Principal *</label><input id=\"apac-cid1\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Secundário</label><input id=\"apac-cid2\" autocomplete=\"off\"></div>\n            <div><label>Associados</label><input id=\"apac-cid3\" autocomplete=\"off\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Descrição (campo 36) *</label><input id=\"apac-cid-desc\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Texto do pedido (campo 40) *</h3>\n          <textarea id=\"apac-obs\"></textarea>\n        </div>\n\n        <!-- ETAPA 2 — Assinatura -->\n        <div class=\"apac-sec\" id=\"apac-sec-assinatura\" style=\"display:none;\">\n          <h3>Etapa 2 — Assinatura</h3>\n          <div class=\"apac-info-box\">\n            ✅ <b>APAC gerada.</b> Ela já ficou registrada no 📜 Histórico. Escolha como quer finalizar:\n          </div>\n\n          <div class=\"apac-opcoes-assinatura\">\n            <button id=\"apac-assinar-govbr\" class=\"apac-primary\">\n              🏛️ Assinar via gov.br<br><small style=\"font-weight:400;opacity:.9;\">Baixa PDF e abre o portal</small>\n            </button>\n            <button id=\"apac-baixar-sem\" class=\"apac-tertiary\">\n              💾 Baixar sem assinar<br><small style=\"font-weight:400;opacity:.8;\">PDF simples</small>\n            </button>\n          </div>\n        </div>\n\n        <div id=\"apac-erro\"></div>\n        \n      </div>\n      <div id=\"apac-footer\">\n        <button class=\"apac-secondary\" id=\"apac-limpar\">Limpar</button>\n        <button class=\"apac-primary\" id=\"apac-gerar\">Gerar PDF</button>\n      </div>\n    </div>";
 
   /* ---- extraidas do original sem alteracao ---- */
 
@@ -6522,11 +6747,13 @@
    * obrigatorio". O texto final e montado pelo nucleo
    * (core/mensagens.js), para o tom ser o mesmo em todos os modulos. */
   var CAMPOS_OBRIGATORIOS = [
-      { id: "apac-medico-sel", descricao: "escolher o médico solicitante", rotulo: "Selecionar",
+      { id: "apac-medico-sel", descricao: "escolher o médico solicitante", rotulo: "Médico solicitante",
         comoResolver: "se a lista estiver vazia, cadastre-se no painel da engrenagem (⚙️)" },
       { id: "apac-medico-nome", descricao: "o nome do médico", rotulo: "Nome" },
       { id: "apac-medico-cpf", descricao: "o CPF do médico", rotulo: "CPF",
         comoResolver: "complete o cadastro dele no painel da engrenagem (⚙️)" },
+      { id: "apac-municipio-sel", descricao: "o município do atendimento", rotulo: "Município",
+        comoResolver: "ele é escolhido sozinho quando o Assistente reconhece o atendimento; se não vier, selecione na lista" },
       { id: "apac-estab-sel", descricao: "o estabelecimento solicitante", rotulo: "Nome",
         comoResolver: "cadastre a unidade no painel da engrenagem (⚙️), em Estabelecimentos" },
       { id: "apac-pac-nome", descricao: "o nome do paciente", rotulo: "Nome completo",
@@ -6738,7 +6965,7 @@
     const documento = { bytes: new Uint8Array(doc.output('arraybuffer')), filename };
     if (apenasProduzir) return documento;   // caminho do preview: nao toca na tela
     pdfGerado = documento;
-    raiz.MeedsSuiteHistorico.registrar("apac-itauna", {
+    raiz.MeedsSuiteHistorico.registrar("apac", {
       nomePaciente: nome,
       cpfPaciente: cpf,
       titulo: principal.nome || procedimentoAtivo,
@@ -6775,9 +7002,83 @@
    * na primeira execucao com o que estava em dados/formularios.json.
    * Antes o nome e o CNES vinham fixos e o medico que atendesse por
    * outra unidade tinha que digitar os dois a cada laudo. */
+  /* Troca o municipio: recarrega o catalogo e ZERA o estabelecimento.
+   * Zerar e deliberado — manter a unidade da cidade anterior e o jeito
+   * mais facil de emitir uma APAC com o CNES errado, que e glosada. */
+  function aplicarMunicipio(nome) {
+    municipioAtual = nome || null;
+    var d2 = dadosDoMunicipio(municipioAtual);
+    CATALOGO = d2.procedimentos;
+    ECO_VARIANTES = d2.ecoVariantes;
+    TERRITORIOS = d2.territorios;
+    CID_DIC = d2.cids;
+
+    var selEstab = shadow.getElementById("apac-estab-sel");
+    if (selEstab) selEstab.value = "";
+    var cnes = shadow.getElementById("apac-estab-cnes");
+    if (cnes) cnes.value = "";
+
+    semearEstabelecimentosDoMunicipio();
+    montarEstabelecimentos();
+
+    var dica = shadow.getElementById("apac-municipio-dica");
+    if (dica) {
+      var qtd = d.cadastro.listarEstabelecimentosDe(municipioAtual).length;
+      dica.textContent = !municipioAtual
+        ? "Escolha o município para liberar as unidades solicitantes."
+        : qtd
+        ? qtd + " unidade(s) cadastrada(s) em " + municipioAtual + "."
+        : "Nenhuma unidade cadastrada em " + municipioAtual +
+          ". Cadastre pelo painel da engrenagem, em Unidades.";
+    }
+  }
+
+  /* Copia para o cadastro local as unidades que o municipio traz no
+   * arquivo de dados. So na primeira vez de cada municipio: depois disso
+   * quem manda e a lista que o medico mantem. */
+  function semearEstabelecimentosDoMunicipio() {
+    if (!municipioAtual) return;
+    var sementes = (dadosDoMunicipio(municipioAtual).estabelecimentos || []).map(function (e) {
+      return { nome: e.nome, cnes: e.cnes, municipio: municipioAtual };
+    });
+    if (sementes.length) d.cadastro.semearEstabelecimentos(sementes, municipioAtual);
+  }
+
+  function montarMunicipios() {
+    var sel = shadow.getElementById("apac-municipio-sel");
+    if (!sel) return;
+    var lista = municipiosDisponiveis();
+    sel.innerHTML = "";
+    var ph = document.createElement("option");
+    ph.value = ""; ph.textContent = "Selecione o município…"; ph.disabled = true; ph.selected = true;
+    sel.appendChild(ph);
+    lista.forEach(function (m) {
+      var o = document.createElement("option");
+      o.value = m; o.textContent = m;
+      sel.appendChild(o);
+    });
+    /* Um municipio so: nao ha o que escolher. */
+    if (lista.length === 1) {
+      sel.value = lista[0];
+      aplicarMunicipio(lista[0]);
+    }
+  }
+
+  /* O municipio do atendimento aberto, quando da para saber com certeza.
+   * MENOS CLIQUES: o medico nao deveria informar o que o sistema ja sabe. */
+  function detectarMunicipio() {
+    var lista = municipiosDisponiveis();
+    var achado = raiz.MeedsSuiteMunicipio.detectar(cache, lista) ||
+                 raiz.MeedsSuiteMunicipio.detectarNaTela(lista);
+    if (!achado || achado === municipioAtual) return;
+    var sel = shadow.getElementById("apac-municipio-sel");
+    if (sel) sel.value = achado;
+    aplicarMunicipio(achado);
+  }
+
   function estabelecimentoEscolhido() {
     var sel = shadow.getElementById("apac-estab-sel");
-    var lista = d.cadastro.listarEstabelecimentos();
+    var lista = d.cadastro.listarEstabelecimentosDe(municipioAtual);
     var e = lista[Number(sel && sel.value)];
     return e ? e.nome : "";
   }
@@ -6785,7 +7086,7 @@
   function montarEstabelecimentos() {
     var sel = shadow.getElementById("apac-estab-sel");
     var cnesEl = shadow.getElementById("apac-estab-cnes");
-    var lista = d.cadastro.listarEstabelecimentos();
+    var lista = d.cadastro.listarEstabelecimentosDe(municipioAtual);
     var anterior = sel.value;
     sel.innerHTML = "";
 
@@ -6817,7 +7118,7 @@
 
   function refletirCnes() {
     var sel = shadow.getElementById("apac-estab-sel");
-    var lista = d.cadastro.listarEstabelecimentos();
+    var lista = d.cadastro.listarEstabelecimentosDe(municipioAtual);
     var e = lista[Number(sel.value)];
     shadow.getElementById("apac-estab-cnes").value = e ? e.cnes : "";
   }
@@ -6897,6 +7198,7 @@
     shadow.getElementById("apac-pac-nasc").value = "";
     shadow.getElementById("apac-pac-sexo").value = "";
     if (seletorMedico) seletorMedico.atualizar();
+    /* o municipio NAO e limpo: ele descreve o atendimento, nao o pedido */
     shadow.getElementById("apac-auto-aviso").style.display = "none";
     limparErro();
     procedimentoAtivo = null;
@@ -6912,6 +7214,7 @@
     // o cadastro pode ter mudado desde a ultima abertura (outro modal,
     // outra aba, restauracao de backup)
     if (seletorMedico) seletorMedico.atualizar();
+    detectarMunicipio();
     preencherDoCache();
     // reforco: ao abrir, tambem le a tela na hora — cobre o caso do cache
     // (API) estar vazio ou desatualizado quando o medico clica.
@@ -7024,7 +7327,7 @@
 
     historico = raiz.MeedsSuiteHistorico.montarPainel(
       shadow.getElementById("apac-historico-painel"),
-      "apac-itauna",
+      "apac",
       { aoReabrir: reabrirDoHistorico }
     );
 
@@ -7037,10 +7340,10 @@
     shadow.getElementById("apac-baixar-sem").addEventListener("click", baixarSemAssinar);
     shadow.getElementById("apac-historico-abrir").addEventListener("click", historico.alternar);
 
-    /* Semeia o cadastro de estabelecimentos com o que veio em
-     * dados/formularios.json. So na primeira execucao — depois quem manda
-     * e a lista que o medico mantem no painel. */
-    d.cadastro.semearEstabelecimentos(ESTABELECIMENTO && ESTABELECIMENTO.nome ? [ESTABELECIMENTO] : []);
+    montarMunicipios();
+    shadow.getElementById("apac-municipio-sel").addEventListener("change", function () {
+      aplicarMunicipio(shadow.getElementById("apac-municipio-sel").value);
+    });
     montarEstabelecimentos();
     shadow.getElementById("apac-estab-sel").addEventListener("change", function () {
       var sel = shadow.getElementById("apac-estab-sel");
@@ -7064,17 +7367,17 @@
    * CONTRATO DE MODULO
    * ---------------------------------------------------------------- */
   raiz.MeedsSuite.registerModule({
-    id: "apac-itauna",
-    nome: "APAC — Itaúna",
+    id: "apac",
+    nome: "APAC",
     descricao:
-      "Gera o Laudo para Solicitação/Autorização de Procedimento Ambulatorial (APAC) de Itaúna em PDF e encaminha para assinatura no gov.br.",
+      "Gera o Laudo para Solicitação/Autorização de Procedimento Ambulatorial (APAC) em PDF e encaminha para assinatura no gov.br. O formulário é o mesmo em qualquer município; muda só a unidade solicitante.",
     versao: "2.0.0",
     configPadrao: {},
 
     botao: {
       icone: "📋",
-      rotulo: "APAC - Itaúna",
-      titulo: "Gerador de APAC — Itaúna",
+      rotulo: "APAC",
+      titulo: "Gerador de APAC",
       prioridade: 20,
     },
 
@@ -7134,7 +7437,7 @@
       function anunciarPreview() {
         deps.publicarEvento("preview:registrar-gerador", {
           id: "apac",
-          nome: "APAC — Itaúna",
+          nome: "APAC",
           seletorModal: "#apac-modal",
           overlay: overlay,
           produzirPdf: produzirPdf,
@@ -7196,7 +7499,6 @@
     "E03.9": "Hipotireoidismo Não Especificado",
     "E05.9": "Tireotoxicose Não Especificada",
     "E10.9": "Diabetes Mellitus Insulino-dependente - Sem Complicações",
-    "E11": "Diabetes Mellitus Não-insulino-dependente",
     "E11.9": "Diabetes Mellitus Não-insulino-dependente - Sem Complicações",
     "E66.9": "Obesidade Não Especificada",
     "E78.0": "Hipercolesterolemia Pura",

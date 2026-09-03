@@ -811,6 +811,50 @@ Elas aparecem numa nota no rodapé da aba **Funções**, para o médico saber qu
 existem. Uma preferência antiga de "desligado", de quem tinha desativado antes,
 deixa de valer e a função volta sozinha.
 
+
+**D27 — A APAC é um módulo só, com seletor de município; o que separa é o
+estabelecimento.**
+A APAC de Itaúna virou a APAC e passou a atender Betim e Sete Lagoas. Duas
+opções estavam na mesa: um módulo por município (como LME‑Sete Lagoas e CMD) ou
+um módulo com seletor. Venceu o seletor, por um motivo concreto: o formulário da
+APAC é **nacional** — `gerarPdfInterno()` não tem uma única referência a
+município, e o catálogo de procedimentos, CIDs e territórios é o mesmo em
+qualquer cidade. Um módulo por município seria o mesmo código e os mesmos dados
+clínicos copiados N vezes, e cada correção teria que ser feita N vezes.
+
+Isso **não** vale para LME‑Sete Lagoas e CMD: ali o formulário é próprio do
+município, e por isso eles continuam separados.
+
+O que de fato varia por município é o **estabelecimento (nome + CNES)**, e é aí
+que mora o risco: uma APAC emitida com o CNES de outra cidade é devolvida pela
+regulação e o paciente perde a vaga. Por isso:
+
+- os dados saíram de `dados/formularios.json` para `dados/apac.json`, com o
+  catálogo clínico em `_comum` e só os estabelecimentos por município;
+- o cadastro guarda `municipio` em cada estabelecimento e a listagem é filtrada
+  (`listarEstabelecimentosDe`);
+- **trocar de município zera o estabelecimento e o CNES.** É deliberadamente
+  incômodo: o contrário — manter o que estava lá — é exatamente como se emite um
+  laudo com o CNES errado sem perceber;
+- o município é campo obrigatório na validação;
+- a semente carimba o município na ficha. Sem esse carimbo a unidade fica "sem
+  município" e a regra de compatibilidade a mostraria em **todas** as cidades;
+- quem vinha da versão anterior tem o estabelecimento salvo sem município: a
+  migração preenche pelo **CNES**, que é único e está em `dados/apac.json`. É
+  conferência, não adivinhação — CNES fora da tabela fica como estava.
+
+A detecção automática do município lê o cliente do atendimento
+(`cliente.razaoSocialNome`, a prefeitura contratante) e, na dúvida, devolve
+`null` em vez de escolher. Chutar aqui seria pior que não detectar: escolheria a
+cidade errada sem o médico perceber. Com mais de um município disponível, nada
+vem pré‑selecionado.
+
+O id do módulo mudou de `apac-itauna` para `apac`, o que exigiu migrar duas
+coisas guardadas por id: a preferência de ligado/desligado e o histórico de
+documentos. Ambas rodam na subida do núcleo.
+
+Regressão coberta por `tests/apac-municipio.test.js`.
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público

@@ -2,6 +2,20 @@
  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
  "versoes": [
   {
+   "versao": "2.19.0",
+   "data": "2026-09-03",
+   "novidades": [
+    "O gerador de APAC deixou de ser exclusivo de Itaúna. Agora o primeiro campo do formulário é o Município, e a mesma tela atende Itaúna, Betim e Sete Lagoas. Quando o atendimento identifica a cidade, ela já vem escolhida."
+   ],
+   "melhorias": [
+    "O estabelecimento e o CNES passaram a ser guardados por município: ao trocar de cidade, a lista mostra só as unidades daquela cidade. Isso impede uma APAC sair com o CNES de outro município, que é motivo de devolução pela regulação.",
+    "As APACs que você já tinha gerado continuam no histórico e podem ser reabertas normalmente."
+   ],
+   "correcoes": [
+    "Na tela de erro, o campo do médico solicitante era chamado de “Selecionar”. Agora aparece pelo nome."
+   ]
+  },
+  {
    "versao": "2.18.0",
    "data": "2026-09-01",
    "novidades": [],

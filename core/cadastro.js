@@ -402,17 +402,51 @@
   /* Copia a semente de dados/formularios.json na primeira execucao. Roda
    * uma vez: depois disso a lista do medico e a que vale, mesmo que ele
    * tenha apagado tudo (por isso a marca separada, e nao "lista vazia"). */
-  function semearEstabelecimentos(sementes) {
-    if (lerBruto("estabelecimentosSemeados", false)) return 0;
+  function semearEstabelecimentos(sementes, municipio) {
+    /* A marca de "ja semeei" e por MUNICIPIO. Uma marca global faria o
+     * segundo municipio nunca receber a semente dele, so porque o
+     * primeiro ja tinha sido semeado. E ela existe separada de "a lista
+     * esta vazia" de proposito: quem apagou a unidade semeada nao quer
+     * ela de volta na proxima recarga. */
+    var marca = "estabelecimentosSemeados" + (municipio ? ":" + municipio : "");
+    if (lerBruto(marca, false)) return 0;
     var n = 0;
     (sementes || []).forEach(function (s) {
-      if (s && s.nome) {
-        adicionarEstabelecimento(s);
-        n++;
-      }
+      if (!s || !s.nome) return;
+      /* Carimbar o municipio aqui NAO e detalhe: sem ele a semente fica
+       * "sem municipio" e a regra de compatibilidade a mostra em TODAS as
+       * cidades — ou seja, o CNES de Itauna apareceria na lista de Betim. */
+      var ficha = {};
+      Object.keys(s).forEach(function (k) { ficha[k] = s[k]; });
+      if (municipio && !ficha.municipio) ficha.municipio = municipio;
+      adicionarEstabelecimento(ficha);
+      n++;
     });
-    gravarBruto("estabelecimentosSemeados", true);
+    gravarBruto(marca, true);
     return n;
+  }
+
+
+  /* Preenche o municipio de quem foi cadastrado antes de a APAC virar
+   * multi-municipio. O mapa vem de dados/apac.json (CNES -> cidade), e o
+   * CNES e unico por estabelecimento: e conferencia, nao adivinhacao.
+   * Quem tem CNES fora da tabela fica exatamente como estava. */
+  function preencherMunicipioPeloCnes(mapaCnesParaMunicipio) {
+    var mapa = mapaCnesParaMunicipio || {};
+    var lista = listarEstabelecimentos();
+    var mudou = 0;
+    var nova = lista.map(function (e) {
+      if (!e || e.municipio) return e;
+      var cidade = mapa[String(e.cnes || "").replace(/\D/g, "")];
+      if (!cidade) return e;
+      mudou++;
+      var ficha = {};
+      Object.keys(e).forEach(function (k) { ficha[k] = e[k]; });
+      ficha.municipio = cidade;
+      return ficha;
+    });
+    if (mudou) gravarEstabelecimentos(nova);
+    return mudou;
   }
 
   raiz.MeedsSuiteCadastro = {
@@ -431,5 +465,6 @@
     adicionarEstabelecimento: adicionarEstabelecimento,
     removerEstabelecimento: removerEstabelecimento,
     semearEstabelecimentos: semearEstabelecimentos,
+    preencherMunicipioPeloCnes: preencherMunicipioPeloCnes,
   };
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);

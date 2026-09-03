@@ -622,6 +622,60 @@ Executado em 01/09/2026 contra `dist/meeds-suite.user.js` v2.18.0.
 > reaproveita o contexto JS ao renavegar para a mesma URL, então o núcleo não
 > reinicializa e o estado antigo continua em memória.
 
+### APAC para vários municípios *(v2.19.0)*
+
+Executado em 03/09/2026 contra `dist/meeds-suite.user.js` v2.19.0.
+**Navegador: 19 verificações. Sem navegador: 24 (`npm run teste-apac`).**
+
+Migração de quem vinha da v2.18 — estado semeado no armazenamento **durável**
+(pela API, não pelo `localStorage`; ver o box de reset acima):
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 102 | A preferência migra de `apac-itauna` para `apac` | ✅ |
+| 103 | A preferência dos outros módulos não é tocada | ✅ |
+| 104 | O histórico de APACs migra e continua reabrível | ✅ |
+| 105 | A chave antiga do histórico fica vazia | ✅ |
+| 106 | O botão passa a se chamar só **APAC** | ✅ |
+
+Município e estabelecimento — é aqui que mora o risco de emitir uma APAC com o
+CNES de outra cidade:
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 107 | O município é o primeiro campo e lista os três | ✅ |
+| 108 | Com mais de um município, nada vem pré‑selecionado | ✅ |
+| 109 | Itaúna traz a unidade semeada e o CNES 2105578 | ✅ |
+| 110 | Betim e Sete Lagoas **não** herdam a unidade de Itaúna | ✅ |
+| 111 | Trocar de município zera estabelecimento e CNES | ✅ |
+| 112 | Voltar a Itaúna recupera a unidade | ✅ |
+| 113 | Gerar sem município é barrado, com o campo nomeado | ✅ |
+| 114 | Fluxo completo em Itaúna gera PDF (22 KB) com o CNES certo | ✅ |
+| 115 | O documento entra no histórico sem o nome completo do paciente | ✅ |
+
+> **Dois defeitos reais encontrados por este QA**, ambos corrigidos antes de
+> publicar:
+>
+> 1. `semearEstabelecimentos()` não carimbava o município na ficha. A unidade
+>    semeada ficava "sem município" e a regra de compatibilidade a mostrava em
+>    **todas** as cidades — ou seja, o CNES de Itaúna aparecia na lista de Betim.
+> 2. Quem vinha da v2.18 tinha a unidade salva sem município, com o mesmo
+>    efeito. Passou a ser preenchida na subida **pelo CNES**, que é único e
+>    consta em `dados/apac.json`.
+>
+> Nenhum dos dois aparece na tela: a lista simplesmente traz uma unidade a mais,
+> plausível, e o médico escolheria sem desconfiar. Foram achados pelo teste sem
+> navegador, não pelo roteiro manual — que é a razão de ele existir.
+
+> **jsPDF no ambiente de teste.** A geração falha na página de fumaça com
+> "o componente que monta o arquivo (jsPDF) não carregou": a página local não o
+> traz. Carregue-o antes de testar a geração:
+> ```js
+> await new Promise((ok, falhou) => { const s = document.createElement("script");
+>   s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+>   s.onload = ok; s.onerror = falhou; document.head.appendChild(s); });
+> ```
+
 ### Extensibilidade
 
 Verificado à parte: criei um sexto módulo a partir de `modules/_template`,
@@ -632,7 +686,8 @@ alterada** nos cinco módulos existentes nem no núcleo. Depois removi.
 ## Verificações que rodam sem navegador
 
 ```bash
-npm run verificar   # manifest coerente, regras de arquitetura, fallback em dia
+npm run verificar   # manifest, regras de arquitetura, fallback e as 4 suites de teste
+npm run teste-apac  # so a separacao de municipio da APAC
 ```
 
 O build **reprova** (código de saída 1) se algum módulo — ou o próprio
