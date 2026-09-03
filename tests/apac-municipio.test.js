@@ -156,5 +156,27 @@ function ambiente() {
   ok("rodar de novo nao muda nada", C.preencherMunicipioPeloCnes(mapa) === 0);
 }
 
+/* 7. a armadilha do Number(""), que este QA pegou tres vezes seguidas.
+ *    O select guarda o INDICE como texto e o placeholder vale "".
+ *    Number("") nao e NaN: e 0. Ou seja, "nenhum escolhido" era lido
+ *    como "o primeiro da lista" — e o CNES da primeira unidade do
+ *    municipio ia para o PDF sem o medico ter escolhido nada.
+ *    O modulo le a escolha so por estabelecimentoDaVez(); aqui fica a
+ *    regra dele, para ninguem reintroduzir o Number() cru. */
+{
+  const lista = [{ nome: "SAÚDE AUDITIVA", cnes: "6977073" },
+                 { nome: "UBS CIDADE DE DEUS", cnes: "2209241" }];
+  const escolhido = (valorDoSelect) =>
+    (/^\d+$/.test(valorDoSelect) ? lista[Number(valorDoSelect)] : null) || null;
+
+  ok('placeholder "" NAO e o indice 0', escolhido("") === null);
+  ok('"__cadastrar" nao e escolha', escolhido("__cadastrar") === null);
+  ok("indice 0 e a primeira", escolhido("0") === lista[0]);
+  ok("indice 1 e a segunda", escolhido("1") === lista[1]);
+  ok("indice fora da lista devolve null", escolhido("9") === null);
+  ok("Number(\"\") continua sendo 0 — e por isso que o teste de digito existe",
+     Number("") === 0);
+}
+
 console.log(falhas ? `\n${falhas} FALHA(S)` : "\ntodos passaram");
 process.exit(falhas ? 1 : 0);

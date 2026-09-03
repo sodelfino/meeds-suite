@@ -134,11 +134,29 @@
   },
   "Betim": {
    "_leia_me": "Estabelecimentos ainda nao informados. Ate serem preenchidos aqui, o medico cadastra o dele pelo painel da engrenagem, em Unidades.",
-   "estabelecimentos": []
+   "estabelecimentos": [
+    {
+     "nome": "CENTRO R E ESPECIALIDADES DIVINO FERREIRA BRAGA",
+     "cnes": "2125943"
+    }
+   ]
   },
   "Sete Lagoas": {
    "_leia_me": "Idem Betim. Atencao: Sete Lagoas tambem tem o Laudo de Alto Custo, que e outro documento, com formulario proprio da prefeitura — sao coisas diferentes.",
-   "estabelecimentos": []
+   "estabelecimentos": [
+    {
+     "nome": "SAÚDE AUDITIVA",
+     "cnes": "6977073"
+    },
+    {
+     "nome": "UBS CIDADE DE DEUS",
+     "cnes": "2209241"
+    },
+    {
+     "nome": "UBS BELO VALE",
+     "cnes": "5358965"
+    }
+   ]
   }
  }
 }

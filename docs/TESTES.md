@@ -676,6 +676,35 @@ CNES de outra cidade:
 >   s.onload = ok; s.onerror = falhou; document.head.appendChild(s); });
 > ```
 
+### Estabelecimentos de Betim e Sete Lagoas *(v2.19.1)*
+
+Executado em 03/09/2026, **7 verificações no navegador + 6 sem navegador**,
+todas passando. Betim entrou com uma unidade e Sete Lagoas com as três do laudo
+de Sete Lagoas — o que fez aparecer um defeito que a versão anterior não podia
+mostrar, porque até então todo município tinha no máximo uma unidade.
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 116 | Sem município escolhido, nenhuma unidade é listada | ✅ |
+| 117 | Betim (1 unidade) já vem selecionada — é seguro | ✅ |
+| 118 | Sete Lagoas (3 unidades): **nenhuma** vem selecionada | ✅ |
+| 119 | Escolher UBS Cidade de Deus preenche o CNES dela | ✅ |
+| 120 | Trocar de município não carrega a escolha da cidade anterior | ✅ |
+| 121 | Voltar a Sete Lagoas não restaura a escolha antiga | ✅ |
+| 122 | APAC de Sete Lagoas sai com o CNES escolhido e nenhum outro | ✅ |
+
+> **A armadilha do `Number("")`.** O `<select>` de estabelecimento guarda o
+> **índice** como texto e o placeholder vale `""`. `Number("")` não é `NaN`:
+> é **0**. Então "nenhum escolhido" era lido como "o primeiro da lista", em três
+> lugares diferentes — inclusive no que monta o PDF. Com um município de uma
+> unidade só isso passava despercebido (o primeiro era mesmo o certo); com as
+> três de Sete Lagoas, a APAC saía com o CNES da Saúde Auditiva sem o médico ter
+> tocado no campo.
+>
+> A leitura da escolha ficou num único ponto, `estabelecimentoDaVez()`, que exige
+> um índice de dígitos. A regra está fixada em `tests/apac-municipio.test.js`
+> para ninguém reintroduzir o `Number()` cru.
+
 ### Extensibilidade
 
 Verificado à parte: criei um sexto módulo a partir de `modules/_template`,

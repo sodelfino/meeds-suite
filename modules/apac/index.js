@@ -271,6 +271,7 @@
   }
 
   var municipioAtual = null;
+  var cnesSelecionado = ""; // ver montarEstabelecimentos: a selecao viaja por CNES, nao por indice
   var DADOS = dadosDoMunicipio(null);
 
   var CATALOGO = DADOS.procedimentos;
@@ -560,6 +561,10 @@
     TERRITORIOS = d2.territorios;
     CID_DIC = d2.cids;
 
+    /* Trocar de cidade zera a unidade — inclusive o CNES lembrado. E de
+     * proposito incomodo: manter o que estava la e exatamente como se
+     * emite uma APAC com o CNES de outro municipio sem perceber. */
+    cnesSelecionado = "";
     var selEstab = shadow.getElementById("apac-estab-sel");
     if (selEstab) selEstab.value = "";
     var cnes = shadow.getElementById("apac-estab-cnes");
@@ -570,7 +575,7 @@
 
     var dica = shadow.getElementById("apac-municipio-dica");
     if (dica) {
-      var qtd = d.cadastro.listarEstabelecimentosDe(municipioAtual).length;
+      var qtd = estabelecimentosVisiveis().length;
       dica.textContent = !municipioAtual
         ? "Escolha o município para liberar as unidades solicitantes."
         : qtd
@@ -623,18 +628,43 @@
     aplicarMunicipio(achado);
   }
 
-  function estabelecimentoEscolhido() {
+  /* ------------------------------------------------------------------
+   * A ARMADILHA DO Number("")
+   * ------------------------------------------------------------------
+   * O select de estabelecimento guarda o INDICE como texto, e o
+   * placeholder vale "". Number("") nao e NaN: e 0 — ou seja, "nenhum
+   * escolhido" era lido como "o primeiro da lista". Numa APAC isso sai
+   * caro: o CNES da primeira unidade do municipio aparecia preenchido
+   * sozinho e ia para o PDF sem o medico ter escolhido nada.
+   * Toda leitura da escolha passa por aqui.
+   * ------------------------------------------------------------------ */
+  function estabelecimentosVisiveis() {
+    if (!municipioAtual) return [];
+    return d.cadastro.listarEstabelecimentosDe(municipioAtual);
+  }
+
+  function estabelecimentoDaVez() {
     var sel = shadow.getElementById("apac-estab-sel");
-    var lista = d.cadastro.listarEstabelecimentosDe(municipioAtual);
-    var e = lista[Number(sel && sel.value)];
+    var v = sel ? sel.value : "";
+    if (!/^\d+$/.test(v)) return null;
+    return estabelecimentosVisiveis()[Number(v)] || null;
+  }
+
+  function estabelecimentoEscolhido() {
+    var e = estabelecimentoDaVez();
     return e ? e.nome : "";
   }
 
   function montarEstabelecimentos() {
     var sel = shadow.getElementById("apac-estab-sel");
     var cnesEl = shadow.getElementById("apac-estab-cnes");
-    var lista = d.cadastro.listarEstabelecimentosDe(municipioAtual);
-    var anterior = sel.value;
+    var lista = estabelecimentosVisiveis();
+    /* O que se guarda para restaurar e o CNES, NAO o indice: o indice e
+     * posicional dentro do municipio, entao guardar "0" faria a selecao
+     * virar o primeiro estabelecimento da cidade nova — outra unidade,
+     * ja preenchida, sem o medico tocar em nada. */
+    var anterior = estabelecimentoDaVez();
+    var cnesAnterior = (anterior && anterior.cnes) || cnesSelecionado;
     sel.innerHTML = "";
 
     var ph = document.createElement("option");
@@ -657,17 +687,22 @@
     sel.appendChild(cadastrar);
 
     // um so cadastrado: ja seleciona — o caso comum e o medico atender
-    // sempre pela mesma unidade
-    if (lista.length === 1) sel.value = "0";
-    else if (anterior && lista[Number(anterior)]) sel.value = anterior;
+    // sempre pela mesma unidade. Com duas ou mais, escolher por ele
+    // seria emitir a APAC pela unidade errada sem ele perceber.
+    if (lista.length === 1) {
+      sel.value = "0";
+    } else if (cnesAnterior) {
+      for (var k = 0; k < lista.length; k++) {
+        if (lista[k].cnes === cnesAnterior) { sel.value = String(k); break; }
+      }
+    }
     refletirCnes();
   }
 
   function refletirCnes() {
-    var sel = shadow.getElementById("apac-estab-sel");
-    var lista = d.cadastro.listarEstabelecimentosDe(municipioAtual);
-    var e = lista[Number(sel.value)];
-    shadow.getElementById("apac-estab-cnes").value = e ? e.cnes : "";
+    var e = estabelecimentoDaVez();
+    cnesSelecionado = e ? e.cnes : "";
+    shadow.getElementById("apac-estab-cnes").value = cnesSelecionado;
   }
 
   function preencherMedico(ficha) {
