@@ -1,1041 +1,1271 @@
 {
-  "_leia_me": "TRADUTOR de nome comercial para principio ativo. ATENCAO: esta tabela NUNCA e fonte de medicamento. Ela so ajuda a ENCONTRAR o item dentro da REMUME do municipio — a REMUME (modules/remume/remumes.json) e a unica fonte de verdade. Se o principio ativo traduzido nao estiver na REMUME daquele municipio, o Assistente avisa que nao consta e NAO oferece o item. Para acrescentar uma marca, copie um bloco abaixo e rode 'npm run build'. Ver docs/MANUAL-ADMIN.md.",
-  "_campos": {
-    "marca": "O que o medico digita (nome comercial, sigla ou nome alternativo).",
-    "principioAtivo": "O nome que se procura dentro da REMUME.",
-    "observacao": "Opcional. Aparece so na documentacao, nao na tela."
+ "_leia_me": "TRADUTOR de nome comercial para principio ativo. ATENCAO: esta tabela NUNCA e fonte de medicamento. Ela so ajuda a ENCONTRAR o item dentro da REMUME do municipio — a REMUME (modules/remume/remumes.json) e a unica fonte de verdade. Se o principio ativo traduzido nao estiver na REMUME daquele municipio, o Assistente avisa que nao consta e NAO oferece o item. Para acrescentar uma marca, copie um bloco abaixo e rode 'npm run build'. Ver docs/MANUAL-ADMIN.md.",
+ "_campos": {
+  "marca": "O que o medico digita (nome comercial, sigla ou nome alternativo).",
+  "principioAtivo": "O nome que se procura dentro da REMUME.",
+  "observacao": "Opcional. Aparece so na documentacao, nao na tela."
+ },
+ "_total": 252,
+ "marcas": [
+  {
+   "marca": "AAS",
+   "principioAtivo": "Ácido acetilsalicílico",
+   "observacao": "Sigla de uso corrente."
   },
-  "_total": 206,
-  "marcas": [
-    {
-      "marca": "AAS",
-      "principioAtivo": "Ácido acetilsalicílico",
-      "observacao": "Sigla de uso corrente."
-    },
-    {
-      "marca": "Acetaminofeno",
-      "principioAtivo": "Paracetamol",
-      "observacao": "Outro nome do mesmo princípio ativo."
-    },
-    {
-      "marca": "Acfol",
-      "principioAtivo": "Acido Folico",
-      "observacao": ""
-    },
-    {
-      "marca": "Adalat",
-      "principioAtivo": "Nifedipino",
-      "observacao": ""
-    },
-    {
-      "marca": "Addera",
-      "principioAtivo": "Colecalciferol",
-      "observacao": ""
-    },
-    {
-      "marca": "Adenocard",
-      "principioAtivo": "Adenosina",
-      "observacao": ""
-    },
-    {
-      "marca": "Advil",
-      "principioAtivo": "Ibuprofeno",
-      "observacao": ""
-    },
-    {
-      "marca": "Aerolin",
-      "principioAtivo": "Salbutamol",
-      "observacao": ""
-    },
-    {
-      "marca": "Akineton",
-      "principioAtivo": "Biperideno",
-      "observacao": ""
-    },
-    {
-      "marca": "Aldactone",
-      "principioAtivo": "Espironolactona",
-      "observacao": ""
-    },
-    {
-      "marca": "Aldomet",
-      "principioAtivo": "Metildopa",
-      "observacao": ""
-    },
-    {
-      "marca": "Alivium",
-      "principioAtivo": "Ibuprofeno",
-      "observacao": ""
-    },
-    {
-      "marca": "Allegra",
-      "principioAtivo": "Fexofenadina",
-      "observacao": ""
-    },
-    {
-      "marca": "Amox",
-      "principioAtivo": "Amoxicilina",
-      "observacao": ""
-    },
-    {
-      "marca": "Amoxil",
-      "principioAtivo": "Amoxicilina",
-      "observacao": ""
-    },
-    {
-      "marca": "Amplictil",
-      "principioAtivo": "Clorpromazina",
-      "observacao": ""
-    },
-    {
-      "marca": "Amytril",
-      "principioAtivo": "Amitriptilina",
-      "observacao": ""
-    },
-    {
-      "marca": "Ancoron",
-      "principioAtivo": "Amiodarona",
-      "observacao": ""
-    },
-    {
-      "marca": "Angipress",
-      "principioAtivo": "Atenolol",
-      "observacao": ""
-    },
-    {
-      "marca": "Antak",
-      "principioAtivo": "Ranitidina",
-      "observacao": ""
-    },
-    {
-      "marca": "Apresolina",
-      "principioAtivo": "Hidralazina",
-      "observacao": ""
-    },
-    {
-      "marca": "Aprovel",
-      "principioAtivo": "Irbesartana",
-      "observacao": ""
-    },
-    {
-      "marca": "Aradois",
-      "principioAtivo": "Losartana",
-      "observacao": ""
-    },
-    {
-      "marca": "Aspirina",
-      "principioAtivo": "Ácido acetilsalicílico",
-      "observacao": ""
-    },
-    {
-      "marca": "Astromicin",
-      "principioAtivo": "Azitromicina",
-      "observacao": ""
-    },
-    {
-      "marca": "Atlansil",
-      "principioAtivo": "Amiodarona",
-      "observacao": ""
-    },
-    {
-      "marca": "Atrovent",
-      "principioAtivo": "Ipratropio",
-      "observacao": ""
-    },
-    {
-      "marca": "Bactrim",
-      "principioAtivo": "Sulfametoxazol",
-      "observacao": ""
-    },
-    {
-      "marca": "Bactroban",
-      "principioAtivo": "Mupirocina",
-      "observacao": ""
-    },
-    {
-      "marca": "Balcor",
-      "principioAtivo": "Diltiazem",
-      "observacao": ""
-    },
-    {
-      "marca": "Benzetacil",
-      "principioAtivo": "Penicilina",
-      "observacao": ""
-    },
-    {
-      "marca": "Buscopan",
-      "principioAtivo": "Escopolamina",
-      "observacao": ""
-    },
-    {
-      "marca": "Buscopan",
-      "principioAtivo": "Butilbrometo",
-      "observacao": ""
-    },
-    {
-      "marca": "Busonid",
-      "principioAtivo": "Budesonida",
-      "observacao": ""
-    },
-    {
-      "marca": "Capoten",
-      "principioAtivo": "Captopril",
-      "observacao": ""
-    },
-    {
-      "marca": "Cardilol",
-      "principioAtivo": "Carvedilol",
-      "observacao": ""
-    },
-    {
-      "marca": "Cardizem",
-      "principioAtivo": "Diltiazem",
-      "observacao": ""
-    },
-    {
-      "marca": "Cataflam",
-      "principioAtivo": "Diclofenaco",
-      "observacao": ""
-    },
-    {
-      "marca": "Cipramil",
-      "principioAtivo": "Citalopram",
-      "observacao": ""
-    },
-    {
-      "marca": "Cipro",
-      "principioAtivo": "Ciprofloxacino",
-      "observacao": ""
-    },
-    {
-      "marca": "Ciproxin",
-      "principioAtivo": "Ciprofloxacino",
-      "observacao": ""
-    },
-    {
-      "marca": "Citalor",
-      "principioAtivo": "Atorvastatina",
-      "observacao": ""
-    },
-    {
-      "marca": "Citoneurin",
-      "principioAtivo": "Complexo B",
-      "observacao": ""
-    },
-    {
-      "marca": "Claritine",
-      "principioAtivo": "Loratadina",
-      "observacao": ""
-    },
-    {
-      "marca": "Clavulin",
-      "principioAtivo": "Clavulanato",
-      "observacao": ""
-    },
-    {
-      "marca": "Clenil",
-      "principioAtivo": "Beclometasona",
-      "observacao": ""
-    },
-    {
-      "marca": "Clexane",
-      "principioAtivo": "Enoxaparina",
-      "observacao": ""
-    },
-    {
-      "marca": "Clorana",
-      "principioAtivo": "Hidroclorotiazida",
-      "observacao": ""
-    },
-    {
-      "marca": "Combiron",
-      "principioAtivo": "Sulfato Ferroso",
-      "observacao": ""
-    },
-    {
-      "marca": "Coreg",
-      "principioAtivo": "Carvedilol",
-      "observacao": ""
-    },
-    {
-      "marca": "Coumadin",
-      "principioAtivo": "Varfarina",
-      "observacao": ""
-    },
-    {
-      "marca": "Cozaar",
-      "principioAtivo": "Losartana",
-      "observacao": ""
-    },
-    {
-      "marca": "Crestor",
-      "principioAtivo": "Rosuvastatina",
-      "observacao": ""
-    },
-    {
-      "marca": "Cymbalta",
-      "principioAtivo": "Duloxetina",
-      "observacao": ""
-    },
-    {
-      "marca": "Cytotec",
-      "principioAtivo": "Misoprostol",
-      "observacao": ""
-    },
-    {
-      "marca": "Daforin",
-      "principioAtivo": "Fluoxetina",
-      "observacao": ""
-    },
-    {
-      "marca": "Daktarin",
-      "principioAtivo": "Miconazol",
-      "observacao": ""
-    },
-    {
-      "marca": "Dalacin",
-      "principioAtivo": "Clindamicina",
-      "observacao": ""
-    },
-    {
-      "marca": "Daonil",
-      "principioAtivo": "Glibenclamida",
-      "observacao": ""
-    },
-    {
-      "marca": "Decadron",
-      "principioAtivo": "Dexametasona",
-      "observacao": ""
-    },
-    {
-      "marca": "Depakene",
-      "principioAtivo": "Valproato",
-      "observacao": ""
-    },
-    {
-      "marca": "Depakote",
-      "principioAtivo": "Valproato",
-      "observacao": ""
-    },
-    {
-      "marca": "Dermazine",
-      "principioAtivo": "Sulfadiazina Prata",
-      "observacao": ""
-    },
-    {
-      "marca": "Desalex",
-      "principioAtivo": "Desloratadina",
-      "observacao": ""
-    },
-    {
-      "marca": "Diamicron",
-      "principioAtivo": "Gliclazida",
-      "observacao": ""
-    },
-    {
-      "marca": "Digesan",
-      "principioAtivo": "Bromoprida",
-      "observacao": ""
-    },
-    {
-      "marca": "Dimorf",
-      "principioAtivo": "Morfina",
-      "observacao": ""
-    },
-    {
-      "marca": "Diovan",
-      "principioAtivo": "Valsartana",
-      "observacao": ""
-    },
-    {
-      "marca": "Diprivan",
-      "principioAtivo": "Propofol",
-      "observacao": ""
-    },
-    {
-      "marca": "Diprospan",
-      "principioAtivo": "Betametasona",
-      "observacao": ""
-    },
-    {
-      "marca": "Dobutrex",
-      "principioAtivo": "Dobutamina",
-      "observacao": ""
-    },
-    {
-      "marca": "Dormonid",
-      "principioAtivo": "Midazolam",
-      "observacao": ""
-    },
-    {
-      "marca": "Dulcolax",
-      "principioAtivo": "Bisacodil",
-      "observacao": ""
-    },
-    {
-      "marca": "Efexor",
-      "principioAtivo": "Venlafaxina",
-      "observacao": ""
-    },
-    {
-      "marca": "Eliquis",
-      "principioAtivo": "Apixabana",
-      "observacao": ""
-    },
-    {
-      "marca": "Elocom",
-      "principioAtivo": "Mometasona",
-      "observacao": ""
-    },
-    {
-      "marca": "Epinefrina",
-      "principioAtivo": "Adrenalina",
-      "observacao": "Outro nome do mesmo princípio ativo."
-    },
-    {
-      "marca": "Euthyrox",
-      "principioAtivo": "Levotiroxina",
-      "observacao": ""
-    },
-    {
-      "marca": "Fenergan",
-      "principioAtivo": "Prometazina",
-      "observacao": ""
-    },
-    {
-      "marca": "Fentanil",
-      "principioAtivo": "Fentanila",
-      "observacao": ""
-    },
-    {
-      "marca": "Flagyl",
-      "principioAtivo": "Metronidazol",
-      "observacao": ""
-    },
-    {
-      "marca": "Flixotide",
-      "principioAtivo": "Fluticasona",
-      "observacao": ""
-    },
-    {
-      "marca": "Fluconal",
-      "principioAtivo": "Fluconazol",
-      "observacao": ""
-    },
-    {
-      "marca": "Folacin",
-      "principioAtivo": "Acido Folico",
-      "observacao": ""
-    },
-    {
-      "marca": "Gardenal",
-      "principioAtivo": "Fenobarbital",
-      "observacao": ""
-    },
-    {
-      "marca": "Glifage",
-      "principioAtivo": "Metformina",
-      "observacao": ""
-    },
-    {
-      "marca": "Haldol",
-      "principioAtivo": "Haloperidol",
-      "observacao": ""
-    },
-    {
-      "marca": "Hctz",
-      "principioAtivo": "Hidroclorotiazida",
-      "observacao": ""
-    },
-    {
-      "marca": "Hidantal",
-      "principioAtivo": "Fenitoina",
-      "observacao": ""
-    },
-    {
-      "marca": "Higroton",
-      "principioAtivo": "Clortalidona",
-      "observacao": ""
-    },
-    {
-      "marca": "Hixizine",
-      "principioAtivo": "Hidroxizina",
-      "observacao": ""
-    },
-    {
-      "marca": "Humulin",
-      "principioAtivo": "Insulina",
-      "observacao": ""
-    },
-    {
-      "marca": "Imosec",
-      "principioAtivo": "Loperamida",
-      "observacao": ""
-    },
-    {
-      "marca": "Inderal",
-      "principioAtivo": "Propranolol",
-      "observacao": ""
-    },
-    {
-      "marca": "Kanakion",
-      "principioAtivo": "Fitomenadiona",
-      "observacao": ""
-    },
-    {
-      "marca": "Keflex",
-      "principioAtivo": "Cefalexina",
-      "observacao": ""
-    },
-    {
-      "marca": "Keppra",
-      "principioAtivo": "Levetiracetam",
-      "observacao": ""
-    },
-    {
-      "marca": "Klaricid",
-      "principioAtivo": "Claritromicina",
-      "observacao": ""
-    },
-    {
-      "marca": "Label",
-      "principioAtivo": "Ranitidina",
-      "observacao": ""
-    },
-    {
-      "marca": "Lamisil",
-      "principioAtivo": "Terbinafina",
-      "observacao": ""
-    },
-    {
-      "marca": "Lanexat",
-      "principioAtivo": "Flumazenil",
-      "observacao": ""
-    },
-    {
-      "marca": "Lasix",
-      "principioAtivo": "Furosemida",
-      "observacao": ""
-    },
-    {
-      "marca": "Levaquin",
-      "principioAtivo": "Levofloxacino",
-      "observacao": ""
-    },
-    {
-      "marca": "Lexapro",
-      "principioAtivo": "Escitalopram",
-      "observacao": ""
-    },
-    {
-      "marca": "Lexotan",
-      "principioAtivo": "Bromazepam",
-      "observacao": ""
-    },
-    {
-      "marca": "Lioresal",
-      "principioAtivo": "Baclofeno",
-      "observacao": ""
-    },
-    {
-      "marca": "Lipitor",
-      "principioAtivo": "Atorvastatina",
-      "observacao": ""
-    },
-    {
-      "marca": "Liquemine",
-      "principioAtivo": "Heparina",
-      "observacao": ""
-    },
-    {
-      "marca": "Lopressor",
-      "principioAtivo": "Metoprolol",
-      "observacao": ""
-    },
-    {
-      "marca": "Loranil",
-      "principioAtivo": "Loratadina",
-      "observacao": ""
-    },
-    {
-      "marca": "Lorax",
-      "principioAtivo": "Lorazepam",
-      "observacao": ""
-    },
-    {
-      "marca": "Losec",
-      "principioAtivo": "Omeprazol",
-      "observacao": ""
-    },
-    {
-      "marca": "Luftal",
-      "principioAtivo": "Simeticona",
-      "observacao": ""
-    },
-    {
-      "marca": "Lyrica",
-      "principioAtivo": "Pregabalina",
-      "observacao": ""
-    },
-    {
-      "marca": "Macrodantina",
-      "principioAtivo": "Nitrofurantoina",
-      "observacao": ""
-    },
-    {
-      "marca": "Manitol 20%",
-      "principioAtivo": "Manitol",
-      "observacao": ""
-    },
-    {
-      "marca": "Marcaina",
-      "principioAtivo": "Bupivacaina",
-      "observacao": ""
-    },
-    {
-      "marca": "Marevan",
-      "principioAtivo": "Varfarina",
-      "observacao": ""
-    },
-    {
-      "marca": "Metamizol",
-      "principioAtivo": "Dipirona",
-      "observacao": "Outro nome do mesmo princípio ativo."
-    },
-    {
-      "marca": "Meticorten",
-      "principioAtivo": "Prednisona",
-      "observacao": ""
-    },
-    {
-      "marca": "Micardis",
-      "principioAtivo": "Telmisartana",
-      "observacao": ""
-    },
-    {
-      "marca": "Micostatin",
-      "principioAtivo": "Nistatina",
-      "observacao": ""
-    },
-    {
-      "marca": "Miosan",
-      "principioAtivo": "Ciclobenzaprina",
-      "observacao": ""
-    },
-    {
-      "marca": "Motilium",
-      "principioAtivo": "Domperidona",
-      "observacao": ""
-    },
-    {
-      "marca": "Movatec",
-      "principioAtivo": "Meloxicam",
-      "observacao": ""
-    },
-    {
-      "marca": "Narcan",
-      "principioAtivo": "Naloxona",
-      "observacao": ""
-    },
-    {
-      "marca": "Naropin",
-      "principioAtivo": "Ropivacaina",
-      "observacao": ""
-    },
-    {
-      "marca": "Nasonex",
-      "principioAtivo": "Mometasona",
-      "observacao": ""
-    },
-    {
-      "marca": "Natrilix",
-      "principioAtivo": "Indapamida",
-      "observacao": ""
-    },
-    {
-      "marca": "Neocaina",
-      "principioAtivo": "Bupivacaina",
-      "observacao": ""
-    },
-    {
-      "marca": "Neozine",
-      "principioAtivo": "Levomepromazina",
-      "observacao": ""
-    },
-    {
-      "marca": "Neurontin",
-      "principioAtivo": "Gabapentina",
-      "observacao": ""
-    },
-    {
-      "marca": "Nexium",
-      "principioAtivo": "Esomeprazol",
-      "observacao": ""
-    },
-    {
-      "marca": "Nisulid",
-      "principioAtivo": "Nimesulida",
-      "observacao": ""
-    },
-    {
-      "marca": "Nizoral",
-      "principioAtivo": "Cetoconazol",
-      "observacao": ""
-    },
-    {
-      "marca": "Norepinefrina",
-      "principioAtivo": "Noradrenalina",
-      "observacao": "Outro nome do mesmo princípio ativo."
-    },
-    {
-      "marca": "Norvasc",
-      "principioAtivo": "Anlodipino",
-      "observacao": ""
-    },
-    {
-      "marca": "Novalgina",
-      "principioAtivo": "Dipirona",
-      "observacao": ""
-    },
-    {
-      "marca": "Novolin",
-      "principioAtivo": "Insulina",
-      "observacao": ""
-    },
-    {
-      "marca": "Pantoc",
-      "principioAtivo": "Pantoprazol",
-      "observacao": ""
-    },
-    {
-      "marca": "Pantozol",
-      "principioAtivo": "Pantoprazol",
-      "observacao": ""
-    },
-    {
-      "marca": "Peprazol",
-      "principioAtivo": "Omeprazol",
-      "observacao": ""
-    },
-    {
-      "marca": "Plasil",
-      "principioAtivo": "Metoclopramida",
-      "observacao": ""
-    },
-    {
-      "marca": "Plavix",
-      "principioAtivo": "Clopidogrel",
-      "observacao": ""
-    },
-    {
-      "marca": "Polaramine",
-      "principioAtivo": "Dexclorfeniramina",
-      "observacao": ""
-    },
-    {
-      "marca": "Pradaxa",
-      "principioAtivo": "Dabigatrana",
-      "observacao": ""
-    },
-    {
-      "marca": "Prazol",
-      "principioAtivo": "Lansoprazol",
-      "observacao": ""
-    },
-    {
-      "marca": "Prelone",
-      "principioAtivo": "Prednisolona",
-      "observacao": ""
-    },
-    {
-      "marca": "Profenid",
-      "principioAtivo": "Cetoprofeno",
-      "observacao": ""
-    },
-    {
-      "marca": "Prolopa",
-      "principioAtivo": "Levodopa",
-      "observacao": ""
-    },
-    {
-      "marca": "Propecia",
-      "principioAtivo": "Finasterida",
-      "observacao": ""
-    },
-    {
-      "marca": "Propovan",
-      "principioAtivo": "Propofol",
-      "observacao": ""
-    },
-    {
-      "marca": "Proscar",
-      "principioAtivo": "Finasterida",
-      "observacao": ""
-    },
-    {
-      "marca": "Prostigmine",
-      "principioAtivo": "Neostigmina",
-      "observacao": ""
-    },
-    {
-      "marca": "Prostokos",
-      "principioAtivo": "Misoprostol",
-      "observacao": ""
-    },
-    {
-      "marca": "Prozac",
-      "principioAtivo": "Fluoxetina",
-      "observacao": ""
-    },
-    {
-      "marca": "Pulmicort",
-      "principioAtivo": "Budesonida",
-      "observacao": ""
-    },
-    {
-      "marca": "Puran T4",
-      "principioAtivo": "Levotiroxina",
-      "observacao": ""
-    },
-    {
-      "marca": "Renitec",
-      "principioAtivo": "Enalapril",
-      "observacao": ""
-    },
-    {
-      "marca": "Ringer Lactato",
-      "principioAtivo": "Ringer",
-      "observacao": ""
-    },
-    {
-      "marca": "Risperdal",
-      "principioAtivo": "Risperidona",
-      "observacao": ""
-    },
-    {
-      "marca": "Rivotril",
-      "principioAtivo": "Clonazepam",
-      "observacao": ""
-    },
-    {
-      "marca": "Rocefin",
-      "principioAtivo": "Ceftriaxona",
-      "observacao": ""
-    },
-    {
-      "marca": "Scabin",
-      "principioAtivo": "Permetrina",
-      "observacao": ""
-    },
-    {
-      "marca": "Secotex",
-      "principioAtivo": "Tansulosina",
-      "observacao": ""
-    },
-    {
-      "marca": "Selozok",
-      "principioAtivo": "Metoprolol",
-      "observacao": ""
-    },
-    {
-      "marca": "Seroquel",
-      "principioAtivo": "Quetiapina",
-      "observacao": ""
-    },
-    {
-      "marca": "Sevorane",
-      "principioAtivo": "Sevoflurano",
-      "observacao": ""
-    },
-    {
-      "marca": "Sf 0.9%",
-      "principioAtivo": "Soro Fisiologico",
-      "observacao": ""
-    },
-    {
-      "marca": "Sg 5%",
-      "principioAtivo": "Glicose",
-      "observacao": ""
-    },
-    {
-      "marca": "Singulair",
-      "principioAtivo": "Montelucaste",
-      "observacao": ""
-    },
-    {
-      "marca": "Sinvatrox",
-      "principioAtivo": "Sinvastatina",
-      "observacao": ""
-    },
-    {
-      "marca": "Solucortef",
-      "principioAtivo": "Hidrocortisona",
-      "observacao": ""
-    },
-    {
-      "marca": "Solumedrol",
-      "principioAtivo": "Metilprednisolona",
-      "observacao": ""
-    },
-    {
-      "marca": "Soro Glicosado",
-      "principioAtivo": "Glicose",
-      "observacao": ""
-    },
-    {
-      "marca": "Synthroid",
-      "principioAtivo": "Levotiroxina",
-      "observacao": ""
-    },
-    {
-      "marca": "Syntocinon",
-      "principioAtivo": "Ocitocina",
-      "observacao": ""
-    },
-    {
-      "marca": "Tamiflu",
-      "principioAtivo": "Oseltamivir",
-      "observacao": ""
-    },
-    {
-      "marca": "Tavanic",
-      "principioAtivo": "Levofloxacino",
-      "observacao": ""
-    },
-    {
-      "marca": "Tegretol",
-      "principioAtivo": "Carbamazepina",
-      "observacao": ""
-    },
-    {
-      "marca": "Tolrest",
-      "principioAtivo": "Sertralina",
-      "observacao": ""
-    },
-    {
-      "marca": "Topamax",
-      "principioAtivo": "Topiramato",
-      "observacao": ""
-    },
-    {
-      "marca": "Tramal",
-      "principioAtivo": "Tramadol",
-      "observacao": ""
-    },
-    {
-      "marca": "Transamin",
-      "principioAtivo": "Acido Tranexamico",
-      "observacao": ""
-    },
-    {
-      "marca": "Triaxon",
-      "principioAtivo": "Ceftriaxona",
-      "observacao": ""
-    },
-    {
-      "marca": "Tryptanol",
-      "principioAtivo": "Amitriptilina",
-      "observacao": ""
-    },
-    {
-      "marca": "Tylenol",
-      "principioAtivo": "Paracetamol",
-      "observacao": ""
-    },
-    {
-      "marca": "Uroxacin",
-      "principioAtivo": "Norfloxacino",
-      "observacao": ""
-    },
-    {
-      "marca": "Valium",
-      "principioAtivo": "Diazepam",
-      "observacao": ""
-    },
-    {
-      "marca": "Valproico",
-      "principioAtivo": "Valproato",
-      "observacao": ""
-    },
-    {
-      "marca": "Valtrex",
-      "principioAtivo": "Valaciclovir",
-      "observacao": ""
-    },
-    {
-      "marca": "Viagra",
-      "principioAtivo": "Sildenafila",
-      "observacao": ""
-    },
-    {
-      "marca": "Vibramicina",
-      "principioAtivo": "Doxiciclina",
-      "observacao": ""
-    },
-    {
-      "marca": "Vitamina K",
-      "principioAtivo": "Fitomenadiona",
-      "observacao": ""
-    },
-    {
-      "marca": "Voltaren",
-      "principioAtivo": "Diclofenaco",
-      "observacao": ""
-    },
-    {
-      "marca": "Vonau",
-      "principioAtivo": "Ondansetrona",
-      "observacao": ""
-    },
-    {
-      "marca": "Xarelto",
-      "principioAtivo": "Rivaroxabana",
-      "observacao": ""
-    },
-    {
-      "marca": "Xylocaina",
-      "principioAtivo": "Lidocaina",
-      "observacao": ""
-    },
-    {
-      "marca": "Zitromax",
-      "principioAtivo": "Azitromicina",
-      "observacao": ""
-    },
-    {
-      "marca": "Zocor",
-      "principioAtivo": "Sinvastatina",
-      "observacao": ""
-    },
-    {
-      "marca": "Zofran",
-      "principioAtivo": "Ondansetrona",
-      "observacao": ""
-    },
-    {
-      "marca": "Zoloft",
-      "principioAtivo": "Sertralina",
-      "observacao": ""
-    },
-    {
-      "marca": "Zoltec",
-      "principioAtivo": "Fluconazol",
-      "observacao": ""
-    },
-    {
-      "marca": "Zovirax",
-      "principioAtivo": "Aciclovir",
-      "observacao": ""
-    },
-    {
-      "marca": "Zyprexa",
-      "principioAtivo": "Olanzapina",
-      "observacao": ""
-    },
-    {
-      "marca": "Zyrtec",
-      "principioAtivo": "Cetirizina",
-      "observacao": ""
-    }
-  ]
+  {
+   "marca": "Acetaminofeno",
+   "principioAtivo": "Paracetamol",
+   "observacao": "Outro nome do mesmo princípio ativo."
+  },
+  {
+   "marca": "Acfol",
+   "principioAtivo": "Acido Folico",
+   "observacao": ""
+  },
+  {
+   "marca": "Actilyse",
+   "principioAtivo": "Alteplase",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Adalat",
+   "principioAtivo": "Nifedipino",
+   "observacao": ""
+  },
+  {
+   "marca": "Adalat Oros",
+   "principioAtivo": "Nifedipina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Addera",
+   "principioAtivo": "Colecalciferol",
+   "observacao": ""
+  },
+  {
+   "marca": "Adenocard",
+   "principioAtivo": "Adenosina",
+   "observacao": ""
+  },
+  {
+   "marca": "Advil",
+   "principioAtivo": "Ibuprofeno",
+   "observacao": ""
+  },
+  {
+   "marca": "Aerolin",
+   "principioAtivo": "Salbutamol",
+   "observacao": ""
+  },
+  {
+   "marca": "Akineton",
+   "principioAtivo": "Biperideno",
+   "observacao": ""
+  },
+  {
+   "marca": "Aldactone",
+   "principioAtivo": "Espironolactona",
+   "observacao": ""
+  },
+  {
+   "marca": "Aldomet",
+   "principioAtivo": "Metildopa",
+   "observacao": ""
+  },
+  {
+   "marca": "Alivium",
+   "principioAtivo": "Ibuprofeno",
+   "observacao": ""
+  },
+  {
+   "marca": "Allegra",
+   "principioAtivo": "Fexofenadina",
+   "observacao": ""
+  },
+  {
+   "marca": "Amox",
+   "principioAtivo": "Amoxicilina",
+   "observacao": ""
+  },
+  {
+   "marca": "Amoxil",
+   "principioAtivo": "Amoxicilina",
+   "observacao": ""
+  },
+  {
+   "marca": "Amplictil",
+   "principioAtivo": "Clorpromazina",
+   "observacao": ""
+  },
+  {
+   "marca": "Amytril",
+   "principioAtivo": "Amitriptilina",
+   "observacao": ""
+  },
+  {
+   "marca": "Ancoron",
+   "principioAtivo": "Amiodarona",
+   "observacao": ""
+  },
+  {
+   "marca": "Angipress",
+   "principioAtivo": "Atenolol",
+   "observacao": ""
+  },
+  {
+   "marca": "Antak",
+   "principioAtivo": "Ranitidina",
+   "observacao": ""
+  },
+  {
+   "marca": "Apresolina",
+   "principioAtivo": "Hidralazina",
+   "observacao": ""
+  },
+  {
+   "marca": "Apressolina",
+   "principioAtivo": "Hidralazina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Aprovel",
+   "principioAtivo": "Irbesartana",
+   "observacao": ""
+  },
+  {
+   "marca": "Aradois",
+   "principioAtivo": "Losartana",
+   "observacao": ""
+  },
+  {
+   "marca": "Asmafen",
+   "principioAtivo": "Aminofilina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Aspirina",
+   "principioAtivo": "Ácido acetilsalicílico",
+   "observacao": ""
+  },
+  {
+   "marca": "Astromicin",
+   "principioAtivo": "Azitromicina",
+   "observacao": ""
+  },
+  {
+   "marca": "Atensina",
+   "principioAtivo": "Clonidina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Atlansil",
+   "principioAtivo": "Amiodarona",
+   "observacao": ""
+  },
+  {
+   "marca": "Atrovent",
+   "principioAtivo": "Ipratropio",
+   "observacao": ""
+  },
+  {
+   "marca": "Bactrim",
+   "principioAtivo": "Sulfametoxazol",
+   "observacao": ""
+  },
+  {
+   "marca": "Bactroban",
+   "principioAtivo": "Mupirocina",
+   "observacao": ""
+  },
+  {
+   "marca": "Balcor",
+   "principioAtivo": "Diltiazem",
+   "observacao": ""
+  },
+  {
+   "marca": "Benerva",
+   "principioAtivo": "Tiamina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Benzetacil",
+   "principioAtivo": "Penicilina",
+   "observacao": ""
+  },
+  {
+   "marca": "Buscopam Composto",
+   "principioAtivo": "Escopolamina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Buscopan",
+   "principioAtivo": "Escopolamina",
+   "observacao": ""
+  },
+  {
+   "marca": "Buscopan",
+   "principioAtivo": "Butilbrometo",
+   "observacao": ""
+  },
+  {
+   "marca": "Buscopan Composto",
+   "principioAtivo": "Escopolamina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Buscopan Simples",
+   "principioAtivo": "Escopolamina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Busonid",
+   "principioAtivo": "Budesonida",
+   "observacao": ""
+  },
+  {
+   "marca": "Capoten",
+   "principioAtivo": "Captopril",
+   "observacao": ""
+  },
+  {
+   "marca": "Cardilol",
+   "principioAtivo": "Carvedilol",
+   "observacao": ""
+  },
+  {
+   "marca": "Cardizem",
+   "principioAtivo": "Diltiazem",
+   "observacao": ""
+  },
+  {
+   "marca": "Cataflam",
+   "principioAtivo": "Diclofenaco",
+   "observacao": ""
+  },
+  {
+   "marca": "Cimetidan",
+   "principioAtivo": "Cimetidina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Cipramil",
+   "principioAtivo": "Citalopram",
+   "observacao": ""
+  },
+  {
+   "marca": "Cipro",
+   "principioAtivo": "Ciprofloxacino",
+   "observacao": ""
+  },
+  {
+   "marca": "Ciproxin",
+   "principioAtivo": "Ciprofloxacino",
+   "observacao": ""
+  },
+  {
+   "marca": "Citalor",
+   "principioAtivo": "Atorvastatina",
+   "observacao": ""
+  },
+  {
+   "marca": "Citoneurin",
+   "principioAtivo": "Complexo B",
+   "observacao": ""
+  },
+  {
+   "marca": "Claritine",
+   "principioAtivo": "Loratadina",
+   "observacao": ""
+  },
+  {
+   "marca": "Clavulin",
+   "principioAtivo": "Clavulanato",
+   "observacao": ""
+  },
+  {
+   "marca": "Clenil",
+   "principioAtivo": "Beclometasona",
+   "observacao": ""
+  },
+  {
+   "marca": "Clexane",
+   "principioAtivo": "Enoxaparina",
+   "observacao": ""
+  },
+  {
+   "marca": "Clisterol",
+   "principioAtivo": "Glicerina Clister",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Clorana",
+   "principioAtivo": "Hidroclorotiazida",
+   "observacao": ""
+  },
+  {
+   "marca": "Combiron",
+   "principioAtivo": "Sulfato Ferroso",
+   "observacao": ""
+  },
+  {
+   "marca": "Coreg",
+   "principioAtivo": "Carvedilol",
+   "observacao": ""
+  },
+  {
+   "marca": "Coumadin",
+   "principioAtivo": "Varfarina",
+   "observacao": ""
+  },
+  {
+   "marca": "Cozaar",
+   "principioAtivo": "Losartana",
+   "observacao": ""
+  },
+  {
+   "marca": "Crestor",
+   "principioAtivo": "Rosuvastatina",
+   "observacao": ""
+  },
+  {
+   "marca": "Cymbalta",
+   "principioAtivo": "Duloxetina",
+   "observacao": ""
+  },
+  {
+   "marca": "Cytotec",
+   "principioAtivo": "Misoprostol",
+   "observacao": ""
+  },
+  {
+   "marca": "Daforin",
+   "principioAtivo": "Fluoxetina",
+   "observacao": ""
+  },
+  {
+   "marca": "Daktarin",
+   "principioAtivo": "Miconazol",
+   "observacao": ""
+  },
+  {
+   "marca": "Dalacin",
+   "principioAtivo": "Clindamicina",
+   "observacao": ""
+  },
+  {
+   "marca": "Dalacin C",
+   "principioAtivo": "Clindamicina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Daonil",
+   "principioAtivo": "Glibenclamida",
+   "observacao": ""
+  },
+  {
+   "marca": "Decadron",
+   "principioAtivo": "Dexametasona",
+   "observacao": ""
+  },
+  {
+   "marca": "Depakene",
+   "principioAtivo": "Valproato",
+   "observacao": ""
+  },
+  {
+   "marca": "Depakote",
+   "principioAtivo": "Valproato",
+   "observacao": ""
+  },
+  {
+   "marca": "Dermazine",
+   "principioAtivo": "Sulfadiazina Prata",
+   "observacao": ""
+  },
+  {
+   "marca": "Desalex",
+   "principioAtivo": "Desloratadina",
+   "observacao": ""
+  },
+  {
+   "marca": "Deslanol",
+   "principioAtivo": "Deslanosídeo",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Despacilina",
+   "principioAtivo": "Benzilpenicilina Potássica",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Diamicron",
+   "principioAtivo": "Gliclazida",
+   "observacao": ""
+  },
+  {
+   "marca": "Digesan",
+   "principioAtivo": "Bromoprida",
+   "observacao": ""
+  },
+  {
+   "marca": "Dimorf",
+   "principioAtivo": "Morfina",
+   "observacao": ""
+  },
+  {
+   "marca": "Diovan",
+   "principioAtivo": "Valsartana",
+   "observacao": ""
+  },
+  {
+   "marca": "Diprivan",
+   "principioAtivo": "Propofol",
+   "observacao": ""
+  },
+  {
+   "marca": "Diprospan",
+   "principioAtivo": "Betametasona",
+   "observacao": ""
+  },
+  {
+   "marca": "Dobutrex",
+   "principioAtivo": "Dobutamina",
+   "observacao": ""
+  },
+  {
+   "marca": "Dormonid",
+   "principioAtivo": "Midazolam",
+   "observacao": ""
+  },
+  {
+   "marca": "Dulcolax",
+   "principioAtivo": "Bisacodil",
+   "observacao": ""
+  },
+  {
+   "marca": "Efexor",
+   "principioAtivo": "Venlafaxina",
+   "observacao": ""
+  },
+  {
+   "marca": "Efortil",
+   "principioAtivo": "Etilefrina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Eliquis",
+   "principioAtivo": "Apixabana",
+   "observacao": ""
+  },
+  {
+   "marca": "Elocom",
+   "principioAtivo": "Mometasona",
+   "observacao": ""
+  },
+  {
+   "marca": "Epinefrina",
+   "principioAtivo": "Adrenalina",
+   "observacao": "Outro nome do mesmo princípio ativo."
+  },
+  {
+   "marca": "Esmeron",
+   "principioAtivo": "Rocurônio",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Euthyrox",
+   "principioAtivo": "Levotiroxina",
+   "observacao": ""
+  },
+  {
+   "marca": "Fenergan",
+   "principioAtivo": "Prometazina",
+   "observacao": ""
+  },
+  {
+   "marca": "Fenocris",
+   "principioAtivo": "Fenobarbital Sódico",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Fentanil",
+   "principioAtivo": "Fentanila",
+   "observacao": ""
+  },
+  {
+   "marca": "Flagyl",
+   "principioAtivo": "Metronidazol",
+   "observacao": ""
+  },
+  {
+   "marca": "Flixotide",
+   "principioAtivo": "Fluticasona",
+   "observacao": ""
+  },
+  {
+   "marca": "Fluconal",
+   "principioAtivo": "Fluconazol",
+   "observacao": ""
+  },
+  {
+   "marca": "Folacin",
+   "principioAtivo": "Acido Folico",
+   "observacao": ""
+  },
+  {
+   "marca": "Franol",
+   "principioAtivo": "Efedrina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Garamicina",
+   "principioAtivo": "Gentamicina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Gardenal",
+   "principioAtivo": "Fenobarbital",
+   "observacao": ""
+  },
+  {
+   "marca": "Gentamisan",
+   "principioAtivo": "Gentamicina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Glifage",
+   "principioAtivo": "Metformina",
+   "observacao": ""
+  },
+  {
+   "marca": "Glucoformin",
+   "principioAtivo": "Metformina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Haldol",
+   "principioAtivo": "Haloperidol",
+   "observacao": ""
+  },
+  {
+   "marca": "Hctz",
+   "principioAtivo": "Hidroclorotiazida",
+   "observacao": ""
+  },
+  {
+   "marca": "Hidantal",
+   "principioAtivo": "Fenitoina",
+   "observacao": ""
+  },
+  {
+   "marca": "Hidraplex",
+   "principioAtivo": "Sais para reidratação oral",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Higroton",
+   "principioAtivo": "Clortalidona",
+   "observacao": ""
+  },
+  {
+   "marca": "Hixizine",
+   "principioAtivo": "Hidroxizina",
+   "observacao": ""
+  },
+  {
+   "marca": "Humulin",
+   "principioAtivo": "Insulina",
+   "observacao": ""
+  },
+  {
+   "marca": "Hypnomidate",
+   "principioAtivo": "Etomidato",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Imosec",
+   "principioAtivo": "Loperamida",
+   "observacao": ""
+  },
+  {
+   "marca": "Inderal",
+   "principioAtivo": "Propranolol",
+   "observacao": ""
+  },
+  {
+   "marca": "Insunorm",
+   "principioAtivo": "Insulina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Iruxol",
+   "principioAtivo": "Colagenase",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Kanakion",
+   "principioAtivo": "Fitomenadiona",
+   "observacao": ""
+  },
+  {
+   "marca": "Kanakion Im/sc",
+   "principioAtivo": "Fitomenadiona",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Kcl",
+   "principioAtivo": "Cloreto de potássio",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Keflex",
+   "principioAtivo": "Cefalexina",
+   "observacao": ""
+  },
+  {
+   "marca": "Keppra",
+   "principioAtivo": "Levetiracetam",
+   "observacao": ""
+  },
+  {
+   "marca": "Ketamin",
+   "principioAtivo": "Escetamina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Klaricid",
+   "principioAtivo": "Claritromicina",
+   "observacao": ""
+  },
+  {
+   "marca": "Label",
+   "principioAtivo": "Ranitidina",
+   "observacao": ""
+  },
+  {
+   "marca": "Lactulona",
+   "principioAtivo": "Lactulose",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Lamisil",
+   "principioAtivo": "Terbinafina",
+   "observacao": ""
+  },
+  {
+   "marca": "Lanexat",
+   "principioAtivo": "Flumazenil",
+   "observacao": ""
+  },
+  {
+   "marca": "Lasix",
+   "principioAtivo": "Furosemida",
+   "observacao": ""
+  },
+  {
+   "marca": "Levaquin",
+   "principioAtivo": "Levofloxacino",
+   "observacao": ""
+  },
+  {
+   "marca": "Lexapro",
+   "principioAtivo": "Escitalopram",
+   "observacao": ""
+  },
+  {
+   "marca": "Lexotan",
+   "principioAtivo": "Bromazepam",
+   "observacao": ""
+  },
+  {
+   "marca": "Lioresal",
+   "principioAtivo": "Baclofeno",
+   "observacao": ""
+  },
+  {
+   "marca": "Lipitor",
+   "principioAtivo": "Atorvastatina",
+   "observacao": ""
+  },
+  {
+   "marca": "Liquemine",
+   "principioAtivo": "Heparina",
+   "observacao": ""
+  },
+  {
+   "marca": "Liquemine EV",
+   "principioAtivo": "Heparina Sódica",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Liquemine Sc",
+   "principioAtivo": "Heparina Sódica",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Lopressor",
+   "principioAtivo": "Metoprolol",
+   "observacao": ""
+  },
+  {
+   "marca": "Loranil",
+   "principioAtivo": "Loratadina",
+   "observacao": ""
+  },
+  {
+   "marca": "Lorax",
+   "principioAtivo": "Lorazepam",
+   "observacao": ""
+  },
+  {
+   "marca": "Losec",
+   "principioAtivo": "Omeprazol",
+   "observacao": ""
+  },
+  {
+   "marca": "Luftal",
+   "principioAtivo": "Simeticona",
+   "observacao": ""
+  },
+  {
+   "marca": "Lyrica",
+   "principioAtivo": "Pregabalina",
+   "observacao": ""
+  },
+  {
+   "marca": "Macrodantina",
+   "principioAtivo": "Nitrofurantoina",
+   "observacao": ""
+  },
+  {
+   "marca": "Manitol 20%",
+   "principioAtivo": "Manitol",
+   "observacao": ""
+  },
+  {
+   "marca": "Marcaina",
+   "principioAtivo": "Bupivacaina",
+   "observacao": ""
+  },
+  {
+   "marca": "Marevan",
+   "principioAtivo": "Varfarina",
+   "observacao": ""
+  },
+  {
+   "marca": "Metamizol",
+   "principioAtivo": "Dipirona",
+   "observacao": "Outro nome do mesmo princípio ativo."
+  },
+  {
+   "marca": "Meticorten",
+   "principioAtivo": "Prednisona",
+   "observacao": ""
+  },
+  {
+   "marca": "Micardis",
+   "principioAtivo": "Telmisartana",
+   "observacao": ""
+  },
+  {
+   "marca": "Micostatin",
+   "principioAtivo": "Nistatina",
+   "observacao": ""
+  },
+  {
+   "marca": "Miosan",
+   "principioAtivo": "Ciclobenzaprina",
+   "observacao": ""
+  },
+  {
+   "marca": "Motilium",
+   "principioAtivo": "Domperidona",
+   "observacao": ""
+  },
+  {
+   "marca": "Movatec",
+   "principioAtivo": "Meloxicam",
+   "observacao": ""
+  },
+  {
+   "marca": "Nacl 0,9%.",
+   "principioAtivo": "Cloreto de Sódio",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Nacl 20%.",
+   "principioAtivo": "Cloreto de Sódio",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Narcan",
+   "principioAtivo": "Naloxona",
+   "observacao": ""
+  },
+  {
+   "marca": "Naropin",
+   "principioAtivo": "Ropivacaina",
+   "observacao": ""
+  },
+  {
+   "marca": "Nasonex",
+   "principioAtivo": "Mometasona",
+   "observacao": ""
+  },
+  {
+   "marca": "Natrilix",
+   "principioAtivo": "Indapamida",
+   "observacao": ""
+  },
+  {
+   "marca": "Nebacetin",
+   "principioAtivo": "Neomicina + bacitracina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Neocaina",
+   "principioAtivo": "Bupivacaina",
+   "observacao": ""
+  },
+  {
+   "marca": "Neozine",
+   "principioAtivo": "Levomepromazina",
+   "observacao": ""
+  },
+  {
+   "marca": "Nepresol",
+   "principioAtivo": "Hidralazina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Neurontin",
+   "principioAtivo": "Gabapentina",
+   "observacao": ""
+  },
+  {
+   "marca": "Nexium",
+   "principioAtivo": "Esomeprazol",
+   "observacao": ""
+  },
+  {
+   "marca": "Nipride",
+   "principioAtivo": "Nitroprusseto de Sódio",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Nisulid",
+   "principioAtivo": "Nimesulida",
+   "observacao": ""
+  },
+  {
+   "marca": "Nizoral",
+   "principioAtivo": "Cetoconazol",
+   "observacao": ""
+  },
+  {
+   "marca": "Noradrenalina",
+   "principioAtivo": "Norepinefrina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Norepinefrina",
+   "principioAtivo": "Noradrenalina",
+   "observacao": "Outro nome do mesmo princípio ativo."
+  },
+  {
+   "marca": "Norvasc",
+   "principioAtivo": "Anlodipino",
+   "observacao": ""
+  },
+  {
+   "marca": "Novalgina",
+   "principioAtivo": "Dipirona",
+   "observacao": ""
+  },
+  {
+   "marca": "Novolin",
+   "principioAtivo": "Insulina",
+   "observacao": ""
+  },
+  {
+   "marca": "Pantoc",
+   "principioAtivo": "Pantoprazol",
+   "observacao": ""
+  },
+  {
+   "marca": "Pantozol",
+   "principioAtivo": "Pantoprazol",
+   "observacao": ""
+  },
+  {
+   "marca": "Peprazol",
+   "principioAtivo": "Omeprazol",
+   "observacao": ""
+  },
+  {
+   "marca": "Plasil",
+   "principioAtivo": "Metoclopramida",
+   "observacao": ""
+  },
+  {
+   "marca": "Plavix",
+   "principioAtivo": "Clopidogrel",
+   "observacao": ""
+  },
+  {
+   "marca": "Polaramine",
+   "principioAtivo": "Dexclorfeniramina",
+   "observacao": ""
+  },
+  {
+   "marca": "Pradaxa",
+   "principioAtivo": "Dabigatrana",
+   "observacao": ""
+  },
+  {
+   "marca": "Prazol",
+   "principioAtivo": "Lansoprazol",
+   "observacao": ""
+  },
+  {
+   "marca": "Predi-medrol",
+   "principioAtivo": "Metilprednisolona",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Prelone",
+   "principioAtivo": "Prednisolona",
+   "observacao": ""
+  },
+  {
+   "marca": "Profenid",
+   "principioAtivo": "Cetoprofeno",
+   "observacao": ""
+  },
+  {
+   "marca": "Prolopa",
+   "principioAtivo": "Levodopa",
+   "observacao": ""
+  },
+  {
+   "marca": "Propecia",
+   "principioAtivo": "Finasterida",
+   "observacao": ""
+  },
+  {
+   "marca": "Propovan",
+   "principioAtivo": "Propofol",
+   "observacao": ""
+  },
+  {
+   "marca": "Proscar",
+   "principioAtivo": "Finasterida",
+   "observacao": ""
+  },
+  {
+   "marca": "Prostigmine",
+   "principioAtivo": "Neostigmina",
+   "observacao": ""
+  },
+  {
+   "marca": "Prostokos",
+   "principioAtivo": "Misoprostol",
+   "observacao": ""
+  },
+  {
+   "marca": "Prozac",
+   "principioAtivo": "Fluoxetina",
+   "observacao": ""
+  },
+  {
+   "marca": "Pulmicort",
+   "principioAtivo": "Budesonida",
+   "observacao": ""
+  },
+  {
+   "marca": "Puran T4",
+   "principioAtivo": "Levotiroxina",
+   "observacao": ""
+  },
+  {
+   "marca": "Renitec",
+   "principioAtivo": "Enalapril",
+   "observacao": ""
+  },
+  {
+   "marca": "Revivan",
+   "principioAtivo": "Dopamina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Ringer Lactato",
+   "principioAtivo": "Ringer",
+   "observacao": ""
+  },
+  {
+   "marca": "Risperdal",
+   "principioAtivo": "Risperidona",
+   "observacao": ""
+  },
+  {
+   "marca": "Rivotril",
+   "principioAtivo": "Clonazepam",
+   "observacao": ""
+  },
+  {
+   "marca": "Rocefin",
+   "principioAtivo": "Ceftriaxona",
+   "observacao": ""
+  },
+  {
+   "marca": "Scabin",
+   "principioAtivo": "Permetrina",
+   "observacao": ""
+  },
+  {
+   "marca": "Secotex",
+   "principioAtivo": "Tansulosina",
+   "observacao": ""
+  },
+  {
+   "marca": "Seloken",
+   "principioAtivo": "Metoprolol",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Selozok",
+   "principioAtivo": "Metoprolol",
+   "observacao": ""
+  },
+  {
+   "marca": "Seroquel",
+   "principioAtivo": "Quetiapina",
+   "observacao": ""
+  },
+  {
+   "marca": "Sevorane",
+   "principioAtivo": "Sevoflurano",
+   "observacao": ""
+  },
+  {
+   "marca": "Sf 0.9%",
+   "principioAtivo": "Soro Fisiologico",
+   "observacao": ""
+  },
+  {
+   "marca": "Sg 5%",
+   "principioAtivo": "Glicose",
+   "observacao": ""
+  },
+  {
+   "marca": "Singulair",
+   "principioAtivo": "Montelucaste",
+   "observacao": ""
+  },
+  {
+   "marca": "Sinvatrox",
+   "principioAtivo": "Sinvastatina",
+   "observacao": ""
+  },
+  {
+   "marca": "Solucortef",
+   "principioAtivo": "Hidrocortisona",
+   "observacao": ""
+  },
+  {
+   "marca": "Solumedrol",
+   "principioAtivo": "Metilprednisolona",
+   "observacao": ""
+  },
+  {
+   "marca": "Sorcal",
+   "principioAtivo": "Poliestirenossulfonato de Calcio",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Soro Glicosado",
+   "principioAtivo": "Glicose",
+   "observacao": ""
+  },
+  {
+   "marca": "Staficilin",
+   "principioAtivo": "Oxacilina sódica",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Succinil Colin",
+   "principioAtivo": "Suxametonio",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Synthroid",
+   "principioAtivo": "Levotiroxina",
+   "observacao": ""
+  },
+  {
+   "marca": "Syntocinon",
+   "principioAtivo": "Ocitocina",
+   "observacao": ""
+  },
+  {
+   "marca": "Tamiflu",
+   "principioAtivo": "Oseltamivir",
+   "observacao": ""
+  },
+  {
+   "marca": "Tavanic",
+   "principioAtivo": "Levofloxacino",
+   "observacao": ""
+  },
+  {
+   "marca": "Tegretol",
+   "principioAtivo": "Carbamazepina",
+   "observacao": ""
+  },
+  {
+   "marca": "Tolrest",
+   "principioAtivo": "Sertralina",
+   "observacao": ""
+  },
+  {
+   "marca": "Topamax",
+   "principioAtivo": "Topiramato",
+   "observacao": ""
+  },
+  {
+   "marca": "Tramal",
+   "principioAtivo": "Tramadol",
+   "observacao": ""
+  },
+  {
+   "marca": "Transamin",
+   "principioAtivo": "Acido Tranexamico",
+   "observacao": ""
+  },
+  {
+   "marca": "Triaxon",
+   "principioAtivo": "Ceftriaxona",
+   "observacao": ""
+  },
+  {
+   "marca": "Tridil",
+   "principioAtivo": "Nitroglicerina",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Tryptanol",
+   "principioAtivo": "Amitriptilina",
+   "observacao": ""
+  },
+  {
+   "marca": "Tylenol",
+   "principioAtivo": "Paracetamol",
+   "observacao": ""
+  },
+  {
+   "marca": "Uroxacin",
+   "principioAtivo": "Norfloxacino",
+   "observacao": ""
+  },
+  {
+   "marca": "Valium",
+   "principioAtivo": "Diazepam",
+   "observacao": ""
+  },
+  {
+   "marca": "Valproico",
+   "principioAtivo": "Valproato",
+   "observacao": ""
+  },
+  {
+   "marca": "Valtrex",
+   "principioAtivo": "Valaciclovir",
+   "observacao": ""
+  },
+  {
+   "marca": "Viagra",
+   "principioAtivo": "Sildenafila",
+   "observacao": ""
+  },
+  {
+   "marca": "Vibramicina",
+   "principioAtivo": "Doxiciclina",
+   "observacao": ""
+  },
+  {
+   "marca": "Vitamina K",
+   "principioAtivo": "Fitomenadiona",
+   "observacao": ""
+  },
+  {
+   "marca": "Voltaren",
+   "principioAtivo": "Diclofenaco",
+   "observacao": ""
+  },
+  {
+   "marca": "Vonau",
+   "principioAtivo": "Ondansetrona",
+   "observacao": ""
+  },
+  {
+   "marca": "Xarelto",
+   "principioAtivo": "Rivaroxabana",
+   "observacao": ""
+  },
+  {
+   "marca": "Xylocaina",
+   "principioAtivo": "Lidocaina",
+   "observacao": ""
+  },
+  {
+   "marca": "Xylocaina 2% com",
+   "principioAtivo": "Lidocaína",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Xylocaina 2% Sem",
+   "principioAtivo": "Lidocaína",
+   "observacao": "Padronizada na UPA de Barbacena."
+  },
+  {
+   "marca": "Zitromax",
+   "principioAtivo": "Azitromicina",
+   "observacao": ""
+  },
+  {
+   "marca": "Zocor",
+   "principioAtivo": "Sinvastatina",
+   "observacao": ""
+  },
+  {
+   "marca": "Zofran",
+   "principioAtivo": "Ondansetrona",
+   "observacao": ""
+  },
+  {
+   "marca": "Zoloft",
+   "principioAtivo": "Sertralina",
+   "observacao": ""
+  },
+  {
+   "marca": "Zoltec",
+   "principioAtivo": "Fluconazol",
+   "observacao": ""
+  },
+  {
+   "marca": "Zovirax",
+   "principioAtivo": "Aciclovir",
+   "observacao": ""
+  },
+  {
+   "marca": "Zyprexa",
+   "principioAtivo": "Olanzapina",
+   "observacao": ""
+  },
+  {
+   "marca": "Zyrtec",
+   "principioAtivo": "Cetirizina",
+   "observacao": ""
+  }
+ ]
 }

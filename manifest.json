@@ -1,144 +1,144 @@
 {
-  "nome": "Assistente Meeds",
-  "versao": "2.16.0",
-  "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
-  "repositorio": "https://github.com/sodelfino/meeds-suite",
-  "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
-  "saida": "dist/meeds-suite.user.js",
-  "_comentario_carregamento": "O pacote distribuido e AUTOCONTIDO: o build embute nucleo e modulos no .user.js final. Este manifesto e a fonte de verdade do build (ordem de concatenacao e versoes) e tambem o inventario que o painel de gerenciamento exibe. Carregamento REMOTO DE CODIGO esta desligado por padrao (ver docs/ARQUITETURA.md, decisao D1): buscar e executar JS remoto num sistema com dado de paciente seria uma superficie de execucao remota de codigo que nao se justifica. O que e atualizavel sem redeploy sao DADOS: seletores.json e modules/remume/remumes.json.",
-  "carregamentoRemotoDeCodigo": false,
-  "nucleo": [
-    "core/storage.js",
-    "core/auth.js",
-    "core/dock.js",
-    "core/network-hub.js",
-    "core/dom-reader.js",
-    "core/decision-engine.js",
-    "core/formatos.js",
-    "core/busca.js",
-    "core/mensagens.js",
-    "core/cadastro.js",
-    "core/historico.js",
-    "core/diagnostico.js",
-    "core/novidades.js",
-    "core/feedback.js",
-    "core/manager.js",
-    "core/core.user.js"
-  ],
-  "dadosRemotos": {
-    "seletores": "seletores.json",
-    "remumes": "modules/remume/remumes.json",
-    "cid10": "dados/cid10.json",
-    "changelog": "dados/changelog.json",
-    "marcas": "dados/marcas-medicamentos.json"
+ "nome": "Assistente Meeds",
+ "versao": "2.17.0",
+ "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
+ "repositorio": "https://github.com/sodelfino/meeds-suite",
+ "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
+ "saida": "dist/meeds-suite.user.js",
+ "_comentario_carregamento": "O pacote distribuido e AUTOCONTIDO: o build embute nucleo e modulos no .user.js final. Este manifesto e a fonte de verdade do build (ordem de concatenacao e versoes) e tambem o inventario que o painel de gerenciamento exibe. Carregamento REMOTO DE CODIGO esta desligado por padrao (ver docs/ARQUITETURA.md, decisao D1): buscar e executar JS remoto num sistema com dado de paciente seria uma superficie de execucao remota de codigo que nao se justifica. O que e atualizavel sem redeploy sao DADOS: seletores.json e modules/remume/remumes.json.",
+ "carregamentoRemotoDeCodigo": false,
+ "nucleo": [
+  "core/storage.js",
+  "core/auth.js",
+  "core/dock.js",
+  "core/network-hub.js",
+  "core/dom-reader.js",
+  "core/decision-engine.js",
+  "core/formatos.js",
+  "core/busca.js",
+  "core/mensagens.js",
+  "core/cadastro.js",
+  "core/historico.js",
+  "core/diagnostico.js",
+  "core/novidades.js",
+  "core/feedback.js",
+  "core/manager.js",
+  "core/core.user.js"
+ ],
+ "dadosRemotos": {
+  "seletores": "seletores.json",
+  "remumes": "modules/remume/remumes.json",
+  "cid10": "dados/cid10.json",
+  "changelog": "dados/changelog.json",
+  "marcas": "dados/marcas-medicamentos.json"
+ },
+ "modulos": [
+  {
+   "id": "alarme-fila",
+   "nome": "Alarme de Fila",
+   "descricao": "Avisa com som e aviso na tela quando um paciente entra na fila do Pronto Atendimento, ou quando alguém espera além do tempo que você definir. Para sozinho quando a fila esvazia.",
+   "versao": "2.0.0",
+   "arquivo": "modules/alarme-fila/index.js",
+   "origem": "sodelfino/meeds-alarme-fila",
+   "prioridadeBotao": 10
   },
+  {
+   "id": "apac-itauna",
+   "nome": "APAC — Itaúna",
+   "descricao": "Gera a APAC de Itaúna já preenchida com os dados do paciente que estão na tela e leva você direto para a assinatura no gov.br.",
+   "versao": "2.3.0",
+   "arquivo": "modules/apac-itauna/index.js",
+   "origem": "sodelfino/apac-itauna-meeds",
+   "prioridadeBotao": 20,
+   "requer": [
+    "jspdf"
+   ]
+  },
+  {
+   "id": "cid10",
+   "nome": "Busca de CID-10 nos laudos",
+   "descricao": "Liga a tabela completa da CID-10 ao campo CID dos laudos: digite o código ou o nome da doença e escolha na própria linha do formulário.",
+   "versao": "1.2.0",
+   "arquivo": "modules/cid10/index.js",
+   "assets": [
+    "modules/cid10/assets/fallback.js"
+   ],
+   "semBotao": true
+  },
+  {
+   "id": "lme-sete-lagoas",
+   "nome": "Laudo — Sete Lagoas",
+   "descricao": "Preenche o Laudo Médico de Alto Custo de Sete Lagoas no formulário oficial da prefeitura, com os dados lidos da tela do atendimento.",
+   "versao": "2.1.0",
+   "arquivo": "modules/lme-sete-lagoas/index.js",
+   "origem": "sodelfino/lme-sete-lagoas-gerador",
+   "prioridadeBotao": 30,
+   "requer": [
+    "pdf-lib"
+   ],
+   "assets": [
+    "modules/lme-sete-lagoas/assets/base-pdf.js"
+   ]
+  },
+  {
+   "id": "cmd",
+   "nome": "Laudo — Conceição do Mato Dentro",
+   "descricao": "Preenche o Laudo Médico de Alto Custo de Conceição do Mato Dentro no formulário oficial da prefeitura, com os dados lidos da tela do atendimento.",
+   "versao": "2.1.0",
+   "arquivo": "modules/cmd/index.js",
+   "origem": "sodelfino/laudo-cmd-meeds",
+   "prioridadeBotao": 40,
+   "requer": [
+    "pdf-lib"
+   ],
+   "assets": [
+    "modules/cmd/assets/base-pdf.js"
+   ]
+  },
+  {
+   "id": "remume",
+   "nome": "Assistente REMUME",
+   "descricao": "Consulta a lista de medicamentos do município do atendimento. Aceita erro de digitação e nome comercial: “buscopan” encontra escopolamina.",
+   "versao": "2.6.1",
+   "arquivo": "modules/remume/index.js",
+   "origem": "sodelfino/meeds-remume-assistant",
+   "prioridadeBotao": 50,
+   "assets": [
+    "modules/remume/assets/fallback.js"
+   ]
+  },
+  {
+   "id": "preview-pdf",
+   "nome": "Prévia do documento",
+   "descricao": "Mostra o PDF ao lado do formulário enquanto você preenche, nos geradores de APAC e de laudo. É o mesmo arquivo que será baixado.",
+   "versao": "1.0.0",
+   "arquivo": "modules/preview-pdf/index.js",
+   "semBotao": true
+  }
+ ],
+ "autor": "Marcelo",
+ "_comentario_textos": "Os campos nome e descricao de cada modulo sao o que o medico LE no painel da engrenagem. Editar aqui e rodar 'npm run build' muda o texto na tela sem tocar em codigo. Ver docs/MANUAL-ADMIN.md.",
+ "_modulosEmStandby": {
+  "_leia_me": "Modulos prontos, porem FORA da distribuicao. O codigo continua no repositorio e o build NAO os empacota — o build so olha a lista 'modulos'. Para reativar: mova o bloco de volta para 'modulos' e rode 'npm run build'. Nada mais precisa ser feito; nenhum outro modulo depende deles.",
   "modulos": [
-    {
-      "id": "alarme-fila",
-      "nome": "Alarme de Fila",
-      "descricao": "Avisa com som e aviso na tela quando um paciente entra na fila do Pronto Atendimento, ou quando alguém espera além do tempo que você definir. Para sozinho quando a fila esvazia.",
-      "versao": "2.0.0",
-      "arquivo": "modules/alarme-fila/index.js",
-      "origem": "sodelfino/meeds-alarme-fila",
-      "prioridadeBotao": 10
-    },
-    {
-      "id": "apac-itauna",
-      "nome": "APAC — Itaúna",
-      "descricao": "Gera a APAC de Itaúna já preenchida com os dados do paciente que estão na tela e leva você direto para a assinatura no gov.br.",
-      "versao": "2.3.0",
-      "arquivo": "modules/apac-itauna/index.js",
-      "origem": "sodelfino/apac-itauna-meeds",
-      "prioridadeBotao": 20,
-      "requer": [
-        "jspdf"
-      ]
-    },
-    {
-      "id": "cid10",
-      "nome": "Busca de CID-10 nos laudos",
-      "descricao": "Liga a tabela completa da CID-10 ao campo CID dos laudos: digite o código ou o nome da doença e escolha na própria linha do formulário.",
-      "versao": "1.2.0",
-      "arquivo": "modules/cid10/index.js",
-      "assets": [
-        "modules/cid10/assets/fallback.js"
-      ],
-      "semBotao": true
-    },
-    {
-      "id": "lme-sete-lagoas",
-      "nome": "Laudo — Sete Lagoas",
-      "descricao": "Preenche o Laudo Médico de Alto Custo de Sete Lagoas no formulário oficial da prefeitura, com os dados lidos da tela do atendimento.",
-      "versao": "2.1.0",
-      "arquivo": "modules/lme-sete-lagoas/index.js",
-      "origem": "sodelfino/lme-sete-lagoas-gerador",
-      "prioridadeBotao": 30,
-      "requer": [
-        "pdf-lib"
-      ],
-      "assets": [
-        "modules/lme-sete-lagoas/assets/base-pdf.js"
-      ]
-    },
-    {
-      "id": "cmd",
-      "nome": "Laudo — Conceição do Mato Dentro",
-      "descricao": "Preenche o Laudo Médico de Alto Custo de Conceição do Mato Dentro no formulário oficial da prefeitura, com os dados lidos da tela do atendimento.",
-      "versao": "2.1.0",
-      "arquivo": "modules/cmd/index.js",
-      "origem": "sodelfino/laudo-cmd-meeds",
-      "prioridadeBotao": 40,
-      "requer": [
-        "pdf-lib"
-      ],
-      "assets": [
-        "modules/cmd/assets/base-pdf.js"
-      ]
-    },
-    {
-      "id": "remume",
-      "nome": "Assistente REMUME",
-      "descricao": "Consulta a lista de medicamentos do município do atendimento. Aceita erro de digitação e nome comercial: “buscopan” encontra escopolamina.",
-      "versao": "2.6.0",
-      "arquivo": "modules/remume/index.js",
-      "origem": "sodelfino/meeds-remume-assistant",
-      "prioridadeBotao": 50,
-      "assets": [
-        "modules/remume/assets/fallback.js"
-      ]
-    },
-    {
-      "id": "preview-pdf",
-      "nome": "Prévia do documento",
-      "descricao": "Mostra o PDF ao lado do formulário enquanto você preenche, nos geradores de APAC e de laudo. É o mesmo arquivo que será baixado.",
-      "versao": "1.0.0",
-      "arquivo": "modules/preview-pdf/index.js",
-      "semBotao": true
-    }
-  ],
-  "autor": "Marcelo",
-  "_comentario_textos": "Os campos nome e descricao de cada modulo sao o que o medico LE no painel da engrenagem. Editar aqui e rodar 'npm run build' muda o texto na tela sem tocar em codigo. Ver docs/MANUAL-ADMIN.md.",
-  "_modulosEmStandby": {
-    "_leia_me": "Modulos prontos, porem FORA da distribuicao. O codigo continua no repositorio e o build NAO os empacota — o build so olha a lista 'modulos'. Para reativar: mova o bloco de volta para 'modulos' e rode 'npm run build'. Nada mais precisa ser feito; nenhum outro modulo depende deles.",
-    "modulos": [
-      {
-        "id": "sala-espera",
-        "nome": "Sala de Espera",
-        "descricao": "Avisa quando um paciente de consulta agendada chega na sala de espera, sem som, e mostra quem está aguardando.",
-        "versao": "1.1.0",
-        "arquivo": "modules/sala-espera/index.js",
-        "origem": "novo — endpoint /api/v1/Atendimento com Agendado=true",
-        "prioridadeBotao": 15,
-        "assets": [
-          "modules/sala-espera/diagnostico.js"
-        ],
-        "motivoStandby": "Suspenso na v2.11.0 a pedido, para amadurecer antes de chegar ao medico. Precisa de validacao em plantao real: o ProfissionalId e descoberto ouvindo a rede, e o intervalo de 30s ainda nao foi medido em uso."
-      }
-    ]
-  },
-  "contato": {
-    "_leia_me": "Para onde vai o feedback do medico. O botao 'Enviar feedback' abre o programa de e-mail dele com esta mensagem ja escrita — nao ha servidor nem servico de terceiro no caminho. Troque o e-mail aqui se quem cuida do Assistente mudar.",
-    "email": "marcelonovetech@gmail.com"
-  },
-  "saidaSafari": "dist/meeds-suite.safari.user.js"
+   {
+    "id": "sala-espera",
+    "nome": "Sala de Espera",
+    "descricao": "Avisa quando um paciente de consulta agendada chega na sala de espera, sem som, e mostra quem está aguardando.",
+    "versao": "1.1.0",
+    "arquivo": "modules/sala-espera/index.js",
+    "origem": "novo — endpoint /api/v1/Atendimento com Agendado=true",
+    "prioridadeBotao": 15,
+    "assets": [
+     "modules/sala-espera/diagnostico.js"
+    ],
+    "motivoStandby": "Suspenso na v2.11.0 a pedido, para amadurecer antes de chegar ao medico. Precisa de validacao em plantao real: o ProfissionalId e descoberto ouvindo a rede, e o intervalo de 30s ainda nao foi medido em uso."
+   }
+  ]
+ },
+ "contato": {
+  "_leia_me": "Para onde vai o feedback do medico. O botao 'Enviar feedback' abre o programa de e-mail dele com esta mensagem ja escrita — nao ha servidor nem servico de terceiro no caminho. Troque o e-mail aqui se quem cuida do Assistente mudar.",
+  "email": "marcelonovetech@gmail.com"
+ },
+ "saidaSafari": "dist/meeds-suite.safari.user.js"
 }
