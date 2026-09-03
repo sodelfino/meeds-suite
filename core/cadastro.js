@@ -329,12 +329,32 @@
    * primeira execucao ela e copiada para ca, e a partir dai quem manda e
    * o que o medico cadastrou.
    * ------------------------------------------------------------------ */
+  /* O estabelecimento ganhou MUNICIPIO na v2.19.0. Sem ele nao da para
+   * separar as unidades de Itauna das de Betim numa lista so — e usar o
+   * CNES de outro municipio faz a APAC ser glosada. Cadastro antigo, sem
+   * municipio, continua valendo: aparece como "sem municipio" e o medico
+   * completa quando quiser. */
   function normalizarEstabelecimento(item) {
     if (!item || typeof item !== "object") return null;
     return {
       nome: String(item.nome || "").trim(),
       cnes: String(item.cnes || "").replace(/\D/g, "").trim(),
+      municipio: String(item.municipio || "").trim(),
     };
+  }
+
+  function mesmoMunicipio(a, b) {
+    return chaveDeIdentidade({ nome: a || "" }) === chaveDeIdentidade({ nome: b || "" });
+  }
+
+  /* Estabelecimentos de um municipio. Sem municipio informado, devolve
+   * todos — e o caso de quem cadastrou antes desta versao. */
+  function listarEstabelecimentosDe(municipio) {
+    var todos = listarEstabelecimentos();
+    if (!municipio) return todos;
+    return todos.filter(function (e) {
+      return !e.municipio || mesmoMunicipio(e.municipio, municipio);
+    });
   }
 
   function listarEstabelecimentos() {
@@ -359,7 +379,13 @@
     for (var i = 0; i < lista.length; i++) {
       if (lista[i].nome.toLowerCase() === id) existente = i;
     }
-    if (existente >= 0) lista[existente] = { nome: novo.nome, cnes: novo.cnes || lista[existente].cnes };
+    if (existente >= 0) {
+      lista[existente] = {
+        nome: novo.nome,
+        cnes: novo.cnes || lista[existente].cnes,
+        municipio: novo.municipio || lista[existente].municipio || "",
+      };
+    }
     else lista.push(novo);
     gravarEstabelecimentos(lista);
     return { ok: true, atualizou: existente >= 0 };
@@ -401,6 +427,7 @@
     normalizarFicha: normalizarFicha,
     montarSelect: montarSelect,
     listarEstabelecimentos: listarEstabelecimentos,
+    listarEstabelecimentosDe: listarEstabelecimentosDe,
     adicionarEstabelecimento: adicionarEstabelecimento,
     removerEstabelecimento: removerEstabelecimento,
     semearEstabelecimentos: semearEstabelecimentos,

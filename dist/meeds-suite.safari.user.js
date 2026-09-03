@@ -2908,12 +2908,32 @@
    * primeira execucao ela e copiada para ca, e a partir dai quem manda e
    * o que o medico cadastrou.
    * ------------------------------------------------------------------ */
+  /* O estabelecimento ganhou MUNICIPIO na v2.19.0. Sem ele nao da para
+   * separar as unidades de Itauna das de Betim numa lista so — e usar o
+   * CNES de outro municipio faz a APAC ser glosada. Cadastro antigo, sem
+   * municipio, continua valendo: aparece como "sem municipio" e o medico
+   * completa quando quiser. */
   function normalizarEstabelecimento(item) {
     if (!item || typeof item !== "object") return null;
     return {
       nome: String(item.nome || "").trim(),
       cnes: String(item.cnes || "").replace(/\D/g, "").trim(),
+      municipio: String(item.municipio || "").trim(),
     };
+  }
+
+  function mesmoMunicipio(a, b) {
+    return chaveDeIdentidade({ nome: a || "" }) === chaveDeIdentidade({ nome: b || "" });
+  }
+
+  /* Estabelecimentos de um municipio. Sem municipio informado, devolve
+   * todos — e o caso de quem cadastrou antes desta versao. */
+  function listarEstabelecimentosDe(municipio) {
+    var todos = listarEstabelecimentos();
+    if (!municipio) return todos;
+    return todos.filter(function (e) {
+      return !e.municipio || mesmoMunicipio(e.municipio, municipio);
+    });
   }
 
   function listarEstabelecimentos() {
@@ -2938,7 +2958,13 @@
     for (var i = 0; i < lista.length; i++) {
       if (lista[i].nome.toLowerCase() === id) existente = i;
     }
-    if (existente >= 0) lista[existente] = { nome: novo.nome, cnes: novo.cnes || lista[existente].cnes };
+    if (existente >= 0) {
+      lista[existente] = {
+        nome: novo.nome,
+        cnes: novo.cnes || lista[existente].cnes,
+        municipio: novo.municipio || lista[existente].municipio || "",
+      };
+    }
     else lista.push(novo);
     gravarEstabelecimentos(lista);
     return { ok: true, atualizou: existente >= 0 };
@@ -2980,6 +3006,7 @@
     normalizarFicha: normalizarFicha,
     montarSelect: montarSelect,
     listarEstabelecimentos: listarEstabelecimentos,
+    listarEstabelecimentosDe: listarEstabelecimentosDe,
     adicionarEstabelecimento: adicionarEstabelecimento,
     removerEstabelecimento: removerEstabelecimento,
     semearEstabelecimentos: semearEstabelecimentos,
@@ -4342,6 +4369,10 @@
         '            <input id="msm-estab-nome" placeholder="como deve aparecer no laudo" autocomplete="off"></div>' +
         '          <div class="msm-largo"><label for="msm-estab-cnes">CNES</label>' +
         '            <input id="msm-estab-cnes" placeholder="somente números" inputmode="numeric" autocomplete="off"></div>' +
+        '          <div class="msm-largo"><label for="msm-estab-municipio">Município</label>' +
+        '            <select id="msm-estab-municipio"></select>' +
+        '            <div class="msm-dica-campo">É o município que separa as unidades na hora de gerar a APAC. ' +
+        'Usar o CNES de outro município faz o pedido ser glosado.</div></div>' +
         "        </div>" +
         '        <div class="msm-form-acoes">' +
         '          <button type="button" class="msm-btn" id="msm-estab-add">Salvar unidade</button>' +
@@ -4428,6 +4459,7 @@
     /* --- unidades --- */
     alternarForm("#msm-estab-abrir", "#msm-estab-form", "#msm-estab-nome", "#msm-estab-cancelar");
     overlay.$("#msm-estab-add").addEventListener("click", salvarEstabelecimento);
+    montarMunicipiosDaUnidade();
     overlay.$("#msm-estab-cnes").addEventListener("input", function () {
       var el = overlay.$("#msm-estab-cnes");
       el.value = el.value.replace(/\D/g, "").slice(0, 12);
@@ -4751,6 +4783,30 @@
     caixa.innerHTML = texto ? '<div class="msm-' + (tipo || "ok") + '">' + escapeHtml(texto) + "</div>" : "";
   }
 
+  /* Os municipios vem de dados/apac.json, injetado no pacote. Assim o
+   * administrador acrescenta um municipio editando dados e ele ja aparece
+   * aqui, sem tocar em codigo. */
+  function municipiosConhecidos() {
+    var d = raiz.MEEDS_DADOS_APAC;
+    return d && d.municipios ? Object.keys(d.municipios) : [];
+  }
+
+  function montarMunicipiosDaUnidade() {
+    var sel = overlay.$("#msm-estab-municipio");
+    if (!sel) return;
+    sel.innerHTML = "";
+    var ph = document.createElement("option");
+    ph.value = "";
+    ph.textContent = "Selecione o município…";
+    sel.appendChild(ph);
+    municipiosConhecidos().forEach(function (m) {
+      var o = document.createElement("option");
+      o.value = m;
+      o.textContent = m;
+      sel.appendChild(o);
+    });
+  }
+
   function renderizarEstabelecimentos() {
     var lista = Cadastro.listarEstabelecimentos();
     var box = overlay.$("#msm-estab-lista");
@@ -4766,7 +4822,11 @@
           '<div class="msm-ficha">' +
           '  <div class="msm-ficha-dados">' +
           '    <div class="msm-ficha-nome">' + escapeHtml(e.nome) + "</div>" +
-          '    <div class="msm-ficha-doc">' + escapeHtml(e.cnes ? "CNES " + e.cnes : "sem CNES cadastrado") + "</div>" +
+          '    <div class="msm-ficha-doc">' +
+          escapeHtml(
+            [e.cnes ? "CNES " + e.cnes : "sem CNES cadastrado", e.municipio || "sem município"].join("  ·  ")
+          ) +
+          "</div>" +
           "  </div>" +
           '  <button type="button" class="msm-remover" data-e="' + i + '">remover</button>' +
           "</div>"
@@ -4803,6 +4863,7 @@
     }
     overlay.$("#msm-estab-nome").value = "";
     overlay.$("#msm-estab-cnes").value = "";
+    overlay.$("#msm-estab-municipio").value = "";
     fecharFormulario("#msm-estab-abrir", "#msm-estab-form");
     renderizarEstabelecimentos();
     mostrarMensagemEstab(
