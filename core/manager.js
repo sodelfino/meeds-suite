@@ -61,6 +61,7 @@
     ".msm-item-ver { font-size:10px; color:#9aa5b1; font-family:ui-monospace,Menlo,monospace; margin-top:4px; }",
     ".msm-fixos { font-size:11px; color:#8a97a4; line-height:1.5; padding:10px 0 2px; border-top:1px solid #f3f6f9; margin-top:4px; }",
     ".msm-fixos b { color:#5b6672; font-weight:600; }",
+    ".msm-aparencia { border-top:1px solid #f3f6f9; margin-top:6px; padding-top:12px; }",
     ".msm-ajustes { background:none; border:none; color:#1a4fa0; cursor:pointer; font-size:10px; font-family:inherit; font-weight:700; padding:0; text-decoration:underline; }",
     ".msm-ajustes:hover { color:#123a7a; }",
 
@@ -454,6 +455,30 @@
         '<div class="msm-fixos">Sempre ativas, porque melhoram o próprio formulário: <b>' +
         fixos.map(function (m) { return escapeHtml(m.nome); }).join("</b> e <b>") +
         "</b>.</div>";
+    }
+
+    /* Aparencia do dock. Nao e um modulo — e como o Assistente se
+     * comporta na tela — entao mora aqui embaixo, separado das chaves
+     * de funcao, e nao no meio delas. */
+    if (typeof ctx.dockTranslucido === "function") {
+      lista.innerHTML +=
+        '<div class="msm-item msm-aparencia">' +
+        '  <div class="msm-item-txt">' +
+        '    <div class="msm-item-nome">Botões discretos quando parados</div>' +
+        '    <div class="msm-item-desc">Os botões ficam translúcidos depois de alguns segundos sem uso e voltam ao normal quando você aproxima o mouse. O alarme de fila nunca fica translúcido.</div>' +
+        "  </div>" +
+        '  <label class="msm-switch">' +
+        '    <input type="checkbox" id="msm-translucido" ' + (ctx.dockTranslucido() ? "checked" : "") + " />" +
+        '    <span class="msm-slider"></span>' +
+        "  </label>" +
+        "</div>";
+    }
+
+    var chaveTransl = overlay.$("#msm-translucido");
+    if (chaveTransl) {
+      chaveTransl.addEventListener("change", function () {
+        ctx.dockTranslucido(chaveTransl.checked);
+      });
     }
 
     overlay.$$("button[data-ajustes]").forEach(function (btn) {

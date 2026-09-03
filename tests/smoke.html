@@ -122,7 +122,12 @@ window.__smokeLog = log;
      GM_setValue nem unsafeWindow, que e exatamente o ambiente do app
      Userscripts com @grant none. Testar por aqui cobre os dois alvos —
      o corpo dos dois arquivos e identico byte a byte. -->
-<script src="../dist/meeds-suite.safari.user.js"></script>
+<!-- O ?v= vem da hora do carregamento: sem ele o navegador serve o
+     pacote em cache e voce testa a versao anterior sem perceber. Ja
+     custou um diagnostico errado. -->
+<script>
+  document.write('<script src="../dist/meeds-suite.safari.user.js?v=' + Date.now() + '"><\/script>');
+</script>
 
 <script>
 (function () {

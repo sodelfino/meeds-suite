@@ -1,276 +1,289 @@
 {
- "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
- "versoes": [
-  {
-   "versao": "2.19.1",
-   "data": "2026-09-03",
-   "novidades": [
-    "A APAC de Betim e a de Sete Lagoas já vêm com os estabelecimentos cadastrados: em Betim, o Centro R e Especialidades Divino Ferreira Braga; em Sete Lagoas, Saúde Auditiva, UBS Cidade de Deus e UBS Belo Vale — as mesmas do laudo de Sete Lagoas. Não é preciso digitar o CNES."
-   ],
-   "melhorias": [],
-   "correcoes": [
-    "Quando o município tinha mais de uma unidade, a primeira da lista aparecia escolhida sozinha e o CNES dela ia para a APAC sem você ter selecionado nada. Agora, com duas ou mais unidades, nenhuma vem marcada — e trocar de município limpa a escolha."
-   ]
-  },
-  {
-   "versao": "2.19.0",
-   "data": "2026-09-03",
-   "novidades": [
-    "O gerador de APAC deixou de ser exclusivo de Itaúna. Agora o primeiro campo do formulário é o Município, e a mesma tela atende Itaúna, Betim e Sete Lagoas. Quando o atendimento identifica a cidade, ela já vem escolhida."
-   ],
-   "melhorias": [
-    "O estabelecimento e o CNES passaram a ser guardados por município: ao trocar de cidade, a lista mostra só as unidades daquela cidade. Isso impede uma APAC sair com o CNES de outro município, que é motivo de devolução pela regulação.",
-    "As APACs que você já tinha gerado continuam no histórico e podem ser reabertas normalmente."
-   ],
-   "correcoes": [
-    "Na tela de erro, o campo do médico solicitante era chamado de “Selecionar”. Agora aparece pelo nome."
-   ]
-  },
-  {
-   "versao": "2.18.0",
-   "data": "2026-09-01",
-   "novidades": [],
-   "melhorias": [
-    "A busca de CID-10 dentro dos laudos e a prévia do documento passam a ficar sempre ligadas. Elas não são funções separadas — são melhorias do próprio formulário —, então saíram da lista de liga/desliga do painel."
-   ],
-   "correcoes": []
-  },
-  {
-   "versao": "2.17.1",
-   "data": "2026-09-01",
-   "novidades": [
-    "A REMUME de Barbacena agora inclui os 161 medicamentos padronizados da UPA, com o selo “UPA” ao lado de cada um. Os itens das UBS, CTA/CEM e CAF continuam como estavam."
-   ],
-   "melhorias": [
-    "47 nomes comerciais novos na busca: procurar por “Atensina”, “Buscopan Composto”, “Lactulona” ou “Nipride” já encontra o princípio ativo."
-   ],
-   "correcoes": []
-  },
-  {
-   "versao": "2.16.0",
-   "data": "2026-09-01",
-   "novidades": [],
-   "melhorias": [
-    "A busca de medicamentos ficou muito mais direta. Procurar \"acetilcisteína comprimido\" devolvia 159 itens; agora devolve os 2 certos. Palavras como \"comprimido\", \"solução\" ou a sigla da unidade agora servem para ordenar o resultado, não para inchar a lista. Em Macaé, dois itens com dipirona que ficavam escondidos no fim da lista voltaram a aparecer."
-   ],
-   "correcoes": [
-    "A sugestão \"você quis dizer\" mostrava nomes cortados no meio, como \"Piridoxina (Vitamina B\" em vez de \"Piridoxina (Vitamina B6)\". Corrigido em todos os municípios."
-   ]
-  },
-  {
-   "versao": "2.15.0",
-   "data": "2026-09-01",
-   "novidades": [
-    "Os botões agora recolhem. O ✕ no canto guarda todos e libera a tela; no computador basta aproximar o mouse do canto para eles voltarem, e no iPad é um toque no ☰. Se a fila de espera encher, o alarme aparece sozinho mesmo com tudo recolhido."
-   ],
-   "melhorias": [
-    "O painel Sobre agora informa se suas configurações estão sendo salvas de forma permanente neste navegador."
-   ],
-   "correcoes": [
-    "No iPad, o cadastro de médicos, o histórico de laudos e as configurações se perdiam toda vez que você saía do Meeds. Agora ficam guardados de verdade."
-   ]
-  },
-  {
-   "versao": "2.14.0",
-   "data": "2026-09-01",
-   "novidades": [],
-   "melhorias": [
-    "A checagem de atualização ficou muito mais leve: o Tampermonkey passa a baixar 1 KB para saber se há versão nova, em vez de mais de 1 MB."
-   ],
-   "correcoes": [
-    "Correções internas na Sala de Espera, que está em standby: a consulta de confirmação não estava sendo executada."
-   ]
-  },
-  {
-   "versao": "2.14.0",
-   "data": "2026-09-01",
-   "novidades": [],
-   "melhorias": [],
-   "correcoes": [
-    "As funções que você desliga continuam desligadas depois do logout. Antes, o Meeds apagava a configuração ao sair e todos os botões voltavam no acesso seguinte. O que você já tinha configurado é aproveitado, não precisa remarcar nada."
-   ]
-  },
-  {
-   "versao": "2.13.1",
-   "data": "2026-08-31",
-   "novidades": [],
-   "melhorias": [],
-   "correcoes": [
-    "No iPad, o Assistente aparecia instalado e mesmo assim não fazia nada: a proteção de conteúdo do Meeds bloqueava a execução. Corrigido. Se o navegador precisar isolar o Assistente, o alarme de fila passa a decidir só pelo que aparece na tela, e o painel Sobre avisa quando isso acontece."
-   ]
-  },
-  {
-   "versao": "2.13.0",
-   "data": "2026-08-31",
-   "novidades": [
-    "Agora dá para usar o Assistente no iPad e no iPhone, pelo Safari, com o app gratuito Userscripts. O passo a passo está no guia do iPad."
-   ],
-   "melhorias": [],
-   "correcoes": []
-  },
-  {
-   "versao": "2.12.0",
-   "data": "2026-08-31",
-   "novidades": [
-    "Nova função “Prévia do documento”: veja o PDF ao lado do formulário enquanto preenche, nos geradores de APAC e de laudo. É o mesmo arquivo que será baixado — nada de aproximação."
-   ],
-   "melhorias": [
-    "A prévia vem desligada; abra pelo botão 👁 Prévia no alto do gerador. O tamanho do painel fica do jeito que você deixar."
-   ],
-   "correcoes": []
-  },
-  {
-   "versao": "2.11.0",
-   "data": "2026-08-31",
-   "novidades": [
-    "Agora dá para enviar feedback direto do painel: conte um problema ou uma ideia, e a mensagem vai pronta para quem cuida do Assistente."
-   ],
-   "melhorias": [
-    "O painel da engrenagem foi reorganizado em abas — Funções, Médicos, Unidades e Sobre. Antes era tudo numa rolagem só.",
-    "Os formulários de cadastro começam fechados: a lista fica limpa, e o formulário abre quando você pede."
-   ],
-   "correcoes": []
-  },
-  {
-   "versao": "2.10.0",
-   "data": "2026-08-31",
-   "novidades": [],
-   "melhorias": [
-    "O contador da Sala de Espera passou a mostrar só quem realmente chegou — antes contava também quem tinha consulta marcada e ainda não tinha aparecido."
-   ],
-   "correcoes": [
-    "A Sala de Espera não avisava quando o paciente agendado chegava. O aviso agora sai na hora em que a chegada é marcada na tela nativa.",
-    "Se a internet oscilasse, a fila podia parecer vazia por um instante. Agora a última leitura válida é mantida até a próxima tentativa."
-   ]
-  },
-  {
-   "versao": "2.10.0",
-   "data": "2026-08-31",
-   "novidades": [],
-   "melhorias": [
-    "A busca de CID passou a funcionar também nos campos de CID secundário e associados da APAC — antes só o principal tinha."
-   ],
-   "correcoes": []
-  },
-  {
-   "versao": "2.9.0",
-   "data": "2026-08-31",
-   "novidades": [],
-   "melhorias": [
-    "A busca de CID-10 agora vive dentro do próprio campo do laudo. O botão separado saiu: havia dois caminhos para a mesma coisa.",
-    "Digitar o código sem o ponto funciona: “J069” encontra J06.9."
-   ],
-   "correcoes": [
-    "O campo CID mostrava duas listas de sugestão ao mesmo tempo, uma por cima da outra.",
-    "Depois de escolher um CID, a lista de sugestões reaparecia sozinha."
-   ]
-  },
-  {
-   "versao": "2.8.0",
-   "data": "2026-08-31",
-   "novidades": [
-    "O CID-10 agora fica dentro do próprio laudo: clique no campo CID, digite o nome da doença ou o código, escolha — o código e a descrição entram sozinhos. Vale nos três geradores."
-   ],
-   "melhorias": [
-    "A busca de CID-10 ficou muito mais rápida e não trava mais a tela: buscas comuns que levavam mais de um segundo agora respondem quase na hora.",
-    "A lista de resultados mostra os 50 mais relevantes e diz quantos ficaram de fora, em vez de tentar desenhar milhares de linhas."
-   ],
-   "correcoes": [
-    "A apresentação “Bem-vindo ao Assistente Meeds” aparecia toda vez que você abria o Meeds. Agora aparece uma vez só."
-   ]
-  },
-  {
-   "versao": "2.7.0",
-   "data": "2026-08-31",
-   "novidades": [
-    "Nova função “Sala de Espera”: avisa, sem som, quando um paciente de consulta agendada chega — com o nome, a hora marcada e há quanto tempo espera.",
-    "O botão da Sala de Espera mostra quantos pacientes estão aguardando, e abre a lista completa."
-   ],
-   "melhorias": [
-    "Vários pacientes chegando ao mesmo tempo viram um aviso só, que conta quantos são."
-   ],
-   "correcoes": []
-  },
-  {
-   "versao": "2.6.0",
-   "data": "2026-08-30",
-   "novidades": [
-    "A consulta REMUME passou a entender nome comercial: digite “Tylenol” e ela mostra o paracetamol do seu município.",
-    "Quando o remédio procurado não é padronizado no município, o Assistente diz isso com todas as letras, em vez de mostrar uma lista vazia."
-   ],
-   "melhorias": [
-    "A busca ficou mais tolerante a erro de digitação em português: “dipironá” encontra Dipirona e “cimvastatina” encontra Sinvastatina.",
-    "A lista de nomes comerciais saiu do código e virou um arquivo que o administrador edita sozinho."
-   ],
-   "correcoes": []
-  },
-  {
-   "versao": "2.5.0",
-   "data": "2026-08-30",
-   "novidades": [
-    "Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.",
-    "O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."
-   ],
-   "melhorias": [
-    "Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."
-   ],
-   "correcoes": [
-    "O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."
-   ]
-  },
-  {
-   "versao": "2.4.0",
-   "data": "2026-08-30",
-   "novidades": [
-    "Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.",
-    "O código escolhido na busca entra sozinho no laudo que estiver aberto.",
-    "Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.",
-    "Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."
-   ],
-   "melhorias": [
-    "O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.",
-    "O CPF se formata sozinho enquanto você digita.",
-    "Com um único médico cadastrado, ele já vem selecionado nos laudos.",
-    "As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.",
-    "O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."
-   ],
-   "correcoes": [
-    "O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.",
-    "Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."
-   ]
-  },
-  {
-   "versao": "2.3.0",
-   "data": "2026-08-30",
-   "novidades": [
-    "Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."
-   ],
-   "melhorias": [
-    "Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."
-   ],
-   "correcoes": []
-  },
-  {
-   "versao": "2.2.0",
-   "data": "2026-08-30",
-   "novidades": [
-    "Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."
-   ],
-   "melhorias": [
-    "Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."
-   ],
-   "correcoes": [
-    "Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."
-   ]
-  },
-  {
-   "versao": "2.0.0",
-   "data": "2026-08-30",
-   "novidades": [
-    "Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."
-   ],
-   "melhorias": [],
-   "correcoes": []
-  }
- ]
+  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
+  "versoes": [
+    {
+      "versao": "2.20.0",
+      "data": "2026-09-03",
+      "novidades": [
+        "Os botões agora ficam translúcidos quando você não está usando, e voltam ao normal assim que você aproxima o mouse (ou toca, no iPad). Assim eles param de atrapalhar a leitura da tela. Dá para desligar em ⚙️ → Funções."
+      ],
+      "melhorias": [
+        "Minimizar e expandir voltou a ser só no clique da alça. A caixa não abre mais sozinha quando o mouse passa perto do canto, nem fecha no meio do caminho quando você vai clicar num botão. O ícone virou ⌄ em vez de ✕, porque ele tira do caminho e não fecha nada."
+      ],
+      "correcoes": [
+        "O alarme de fila nunca fica translúcido: se a fila encher, ele aparece inteiro mesmo com a caixa minimizada."
+      ]
+    },
+    {
+      "versao": "2.19.1",
+      "data": "2026-09-03",
+      "novidades": [
+        "A APAC de Betim e a de Sete Lagoas já vêm com os estabelecimentos cadastrados: em Betim, o Centro R e Especialidades Divino Ferreira Braga; em Sete Lagoas, Saúde Auditiva, UBS Cidade de Deus e UBS Belo Vale — as mesmas do laudo de Sete Lagoas. Não é preciso digitar o CNES."
+      ],
+      "melhorias": [],
+      "correcoes": [
+        "Quando o município tinha mais de uma unidade, a primeira da lista aparecia escolhida sozinha e o CNES dela ia para a APAC sem você ter selecionado nada. Agora, com duas ou mais unidades, nenhuma vem marcada — e trocar de município limpa a escolha."
+      ]
+    },
+    {
+      "versao": "2.19.0",
+      "data": "2026-09-03",
+      "novidades": [
+        "O gerador de APAC deixou de ser exclusivo de Itaúna. Agora o primeiro campo do formulário é o Município, e a mesma tela atende Itaúna, Betim e Sete Lagoas. Quando o atendimento identifica a cidade, ela já vem escolhida."
+      ],
+      "melhorias": [
+        "O estabelecimento e o CNES passaram a ser guardados por município: ao trocar de cidade, a lista mostra só as unidades daquela cidade. Isso impede uma APAC sair com o CNES de outro município, que é motivo de devolução pela regulação.",
+        "As APACs que você já tinha gerado continuam no histórico e podem ser reabertas normalmente."
+      ],
+      "correcoes": [
+        "Na tela de erro, o campo do médico solicitante era chamado de “Selecionar”. Agora aparece pelo nome."
+      ]
+    },
+    {
+      "versao": "2.18.0",
+      "data": "2026-09-01",
+      "novidades": [],
+      "melhorias": [
+        "A busca de CID-10 dentro dos laudos e a prévia do documento passam a ficar sempre ligadas. Elas não são funções separadas — são melhorias do próprio formulário —, então saíram da lista de liga/desliga do painel."
+      ],
+      "correcoes": []
+    },
+    {
+      "versao": "2.17.1",
+      "data": "2026-09-01",
+      "novidades": [
+        "A REMUME de Barbacena agora inclui os 161 medicamentos padronizados da UPA, com o selo “UPA” ao lado de cada um. Os itens das UBS, CTA/CEM e CAF continuam como estavam."
+      ],
+      "melhorias": [
+        "47 nomes comerciais novos na busca: procurar por “Atensina”, “Buscopan Composto”, “Lactulona” ou “Nipride” já encontra o princípio ativo."
+      ],
+      "correcoes": []
+    },
+    {
+      "versao": "2.16.0",
+      "data": "2026-09-01",
+      "novidades": [],
+      "melhorias": [
+        "A busca de medicamentos ficou muito mais direta. Procurar \"acetilcisteína comprimido\" devolvia 159 itens; agora devolve os 2 certos. Palavras como \"comprimido\", \"solução\" ou a sigla da unidade agora servem para ordenar o resultado, não para inchar a lista. Em Macaé, dois itens com dipirona que ficavam escondidos no fim da lista voltaram a aparecer."
+      ],
+      "correcoes": [
+        "A sugestão \"você quis dizer\" mostrava nomes cortados no meio, como \"Piridoxina (Vitamina B\" em vez de \"Piridoxina (Vitamina B6)\". Corrigido em todos os municípios."
+      ]
+    },
+    {
+      "versao": "2.15.0",
+      "data": "2026-09-01",
+      "novidades": [
+        "Os botões agora recolhem. O ✕ no canto guarda todos e libera a tela; no computador basta aproximar o mouse do canto para eles voltarem, e no iPad é um toque no ☰. Se a fila de espera encher, o alarme aparece sozinho mesmo com tudo recolhido."
+      ],
+      "melhorias": [
+        "O painel Sobre agora informa se suas configurações estão sendo salvas de forma permanente neste navegador."
+      ],
+      "correcoes": [
+        "No iPad, o cadastro de médicos, o histórico de laudos e as configurações se perdiam toda vez que você saía do Meeds. Agora ficam guardados de verdade."
+      ]
+    },
+    {
+      "versao": "2.14.0",
+      "data": "2026-09-01",
+      "novidades": [],
+      "melhorias": [
+        "A checagem de atualização ficou muito mais leve: o Tampermonkey passa a baixar 1 KB para saber se há versão nova, em vez de mais de 1 MB."
+      ],
+      "correcoes": [
+        "Correções internas na Sala de Espera, que está em standby: a consulta de confirmação não estava sendo executada."
+      ]
+    },
+    {
+      "versao": "2.14.0",
+      "data": "2026-09-01",
+      "novidades": [],
+      "melhorias": [],
+      "correcoes": [
+        "As funções que você desliga continuam desligadas depois do logout. Antes, o Meeds apagava a configuração ao sair e todos os botões voltavam no acesso seguinte. O que você já tinha configurado é aproveitado, não precisa remarcar nada."
+      ]
+    },
+    {
+      "versao": "2.13.1",
+      "data": "2026-08-31",
+      "novidades": [],
+      "melhorias": [],
+      "correcoes": [
+        "No iPad, o Assistente aparecia instalado e mesmo assim não fazia nada: a proteção de conteúdo do Meeds bloqueava a execução. Corrigido. Se o navegador precisar isolar o Assistente, o alarme de fila passa a decidir só pelo que aparece na tela, e o painel Sobre avisa quando isso acontece."
+      ]
+    },
+    {
+      "versao": "2.13.0",
+      "data": "2026-08-31",
+      "novidades": [
+        "Agora dá para usar o Assistente no iPad e no iPhone, pelo Safari, com o app gratuito Userscripts. O passo a passo está no guia do iPad."
+      ],
+      "melhorias": [],
+      "correcoes": []
+    },
+    {
+      "versao": "2.12.0",
+      "data": "2026-08-31",
+      "novidades": [
+        "Nova função “Prévia do documento”: veja o PDF ao lado do formulário enquanto preenche, nos geradores de APAC e de laudo. É o mesmo arquivo que será baixado — nada de aproximação."
+      ],
+      "melhorias": [
+        "A prévia vem desligada; abra pelo botão 👁 Prévia no alto do gerador. O tamanho do painel fica do jeito que você deixar."
+      ],
+      "correcoes": []
+    },
+    {
+      "versao": "2.11.0",
+      "data": "2026-08-31",
+      "novidades": [
+        "Agora dá para enviar feedback direto do painel: conte um problema ou uma ideia, e a mensagem vai pronta para quem cuida do Assistente."
+      ],
+      "melhorias": [
+        "O painel da engrenagem foi reorganizado em abas — Funções, Médicos, Unidades e Sobre. Antes era tudo numa rolagem só.",
+        "Os formulários de cadastro começam fechados: a lista fica limpa, e o formulário abre quando você pede."
+      ],
+      "correcoes": []
+    },
+    {
+      "versao": "2.10.0",
+      "data": "2026-08-31",
+      "novidades": [],
+      "melhorias": [
+        "O contador da Sala de Espera passou a mostrar só quem realmente chegou — antes contava também quem tinha consulta marcada e ainda não tinha aparecido."
+      ],
+      "correcoes": [
+        "A Sala de Espera não avisava quando o paciente agendado chegava. O aviso agora sai na hora em que a chegada é marcada na tela nativa.",
+        "Se a internet oscilasse, a fila podia parecer vazia por um instante. Agora a última leitura válida é mantida até a próxima tentativa."
+      ]
+    },
+    {
+      "versao": "2.10.0",
+      "data": "2026-08-31",
+      "novidades": [],
+      "melhorias": [
+        "A busca de CID passou a funcionar também nos campos de CID secundário e associados da APAC — antes só o principal tinha."
+      ],
+      "correcoes": []
+    },
+    {
+      "versao": "2.9.0",
+      "data": "2026-08-31",
+      "novidades": [],
+      "melhorias": [
+        "A busca de CID-10 agora vive dentro do próprio campo do laudo. O botão separado saiu: havia dois caminhos para a mesma coisa.",
+        "Digitar o código sem o ponto funciona: “J069” encontra J06.9."
+      ],
+      "correcoes": [
+        "O campo CID mostrava duas listas de sugestão ao mesmo tempo, uma por cima da outra.",
+        "Depois de escolher um CID, a lista de sugestões reaparecia sozinha."
+      ]
+    },
+    {
+      "versao": "2.8.0",
+      "data": "2026-08-31",
+      "novidades": [
+        "O CID-10 agora fica dentro do próprio laudo: clique no campo CID, digite o nome da doença ou o código, escolha — o código e a descrição entram sozinhos. Vale nos três geradores."
+      ],
+      "melhorias": [
+        "A busca de CID-10 ficou muito mais rápida e não trava mais a tela: buscas comuns que levavam mais de um segundo agora respondem quase na hora.",
+        "A lista de resultados mostra os 50 mais relevantes e diz quantos ficaram de fora, em vez de tentar desenhar milhares de linhas."
+      ],
+      "correcoes": [
+        "A apresentação “Bem-vindo ao Assistente Meeds” aparecia toda vez que você abria o Meeds. Agora aparece uma vez só."
+      ]
+    },
+    {
+      "versao": "2.7.0",
+      "data": "2026-08-31",
+      "novidades": [
+        "Nova função “Sala de Espera”: avisa, sem som, quando um paciente de consulta agendada chega — com o nome, a hora marcada e há quanto tempo espera.",
+        "O botão da Sala de Espera mostra quantos pacientes estão aguardando, e abre a lista completa."
+      ],
+      "melhorias": [
+        "Vários pacientes chegando ao mesmo tempo viram um aviso só, que conta quantos são."
+      ],
+      "correcoes": []
+    },
+    {
+      "versao": "2.6.0",
+      "data": "2026-08-30",
+      "novidades": [
+        "A consulta REMUME passou a entender nome comercial: digite “Tylenol” e ela mostra o paracetamol do seu município.",
+        "Quando o remédio procurado não é padronizado no município, o Assistente diz isso com todas as letras, em vez de mostrar uma lista vazia."
+      ],
+      "melhorias": [
+        "A busca ficou mais tolerante a erro de digitação em português: “dipironá” encontra Dipirona e “cimvastatina” encontra Sinvastatina.",
+        "A lista de nomes comerciais saiu do código e virou um arquivo que o administrador edita sozinho."
+      ],
+      "correcoes": []
+    },
+    {
+      "versao": "2.5.0",
+      "data": "2026-08-30",
+      "novidades": [
+        "Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.",
+        "O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."
+      ],
+      "melhorias": [
+        "Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."
+      ],
+      "correcoes": [
+        "O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."
+      ]
+    },
+    {
+      "versao": "2.4.0",
+      "data": "2026-08-30",
+      "novidades": [
+        "Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.",
+        "O código escolhido na busca entra sozinho no laudo que estiver aberto.",
+        "Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.",
+        "Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."
+      ],
+      "melhorias": [
+        "O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.",
+        "O CPF se formata sozinho enquanto você digita.",
+        "Com um único médico cadastrado, ele já vem selecionado nos laudos.",
+        "As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.",
+        "O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."
+      ],
+      "correcoes": [
+        "O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.",
+        "Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."
+      ]
+    },
+    {
+      "versao": "2.3.0",
+      "data": "2026-08-30",
+      "novidades": [
+        "Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."
+      ],
+      "melhorias": [
+        "Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."
+      ],
+      "correcoes": []
+    },
+    {
+      "versao": "2.2.0",
+      "data": "2026-08-30",
+      "novidades": [
+        "Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."
+      ],
+      "melhorias": [
+        "Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."
+      ],
+      "correcoes": [
+        "Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."
+      ]
+    },
+    {
+      "versao": "2.0.0",
+      "data": "2026-08-30",
+      "novidades": [
+        "Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."
+      ],
+      "melhorias": [],
+      "correcoes": []
+    }
+  ]
 }

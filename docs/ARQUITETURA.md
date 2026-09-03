@@ -855,6 +855,62 @@ documentos. Ambas rodam na subida do núcleo.
 
 Regressão coberta por `tests/apac-municipio.test.js`.
 
+**D48 — Hover pode mudar opacidade; não pode mudar layout.**
+A caixa de botões abria no hover. Na prática isso falhou de dois jeitos, e o
+médico sentiu os dois:
+
+1. **Abria sem ninguém pedir.** O canto inferior direito é rota de passagem, não
+   destino. Atravessar a região fazia a pilha inteira saltar sobre o conteúdo.
+2. **Fechava sem ninguém pedir.** Como só ficava aberta enquanto o ponteiro
+   estivesse dentro, cortar caminho na diagonal para alcançar um botão fechava a
+   caixa no meio do movimento.
+
+E havia um terceiro, mais silencioso: **não existia o estado "quero isso
+aberto"**. Hover é sempre temporário; não dá para olhar a lista com calma.
+
+O hover não foi banido — foi movido de propriedade. Agora mexe **só na
+opacidade**: em repouso a pilha fica a 28%, e volta a 100% ao primeiro sinal de
+intenção (ponteiro, foco de teclado ou toque), voltando ao repouso 2,5s depois.
+A distinção é o ponto da decisão: opacidade não desloca nada, não cobre conteúdo
+novo e não muda área clicável — não há como "sair sem querer" de algo que não
+mudou de lugar. **Layout no hover é armadilha; opacidade no hover é conforto.**
+
+Minimizar e expandir voltaram a ser decisão explícita, pela alça, com o estado
+guardado. O ícone deixou de ser `✕` (que significa fechar/descartar) e virou `⌄`,
+que mostra o movimento real — a pilha se recolhe em direção ao canto.
+
+Três regras que não são preferência:
+
+- **Alerta nunca fica translúcido.** Se a fila encheu, o alarme é o único motivo
+  para olhar o canto; apagá-lo seria desligar o aviso pela metade.
+- **Foco de teclado acorda.** Quem navega de Tab não gera hover nenhum, e uma
+  pilha a 28% seria invisível para essa pessoa.
+- **No toque o repouso é 50%, não 28%.** Sem hover não dá para "espiar antes", e
+  um botão apagado demais vira adivinhação.
+
+A transição é assimétrica de propósito: some em .45s, volta em .12s. Sumir é
+enfeite e pode ser suave; reaparecer é resposta a uma intenção e precisa parecer
+instantâneo.
+
+A translucidez é preferência, com chave no painel. Ela mora na API do **núcleo**,
+não nas dependências do módulo: como o módulo não decide posição de botão,
+também não decide opacidade da pilha inteira.
+
+**D49 — O que foi recusado, e por quê.**
+Antes de chegar na translucidez foram considerados três caminhos. Vale registrar
+os recusados, porque a razão pode mudar:
+
+- **Filtrar por município** (mostrar só o gerador que serve ao paciente da tela).
+  Ataca a causa — cinco botões viram dois — e a detecção já existe no módulo
+  REMUME. Recusado *por ora*: o médico preferiu manter todos conforme a
+  configuração, e o dock mudando de conteúdo entre pacientes pode parecer
+  instável. A porta fica aberta.
+- **Um botão que abre um cartão ao clicar.** Previsível, mas custa um clique a
+  mais sempre — e menos cliques é premissa do projeto, não desejo.
+- **Barra só de ícones.** Esbarra em `📄` aparecer duas vezes (Sete Lagoas e
+  CMD): dois ícones idênticos é ambiguidade real. Só ficaria viável junto com o
+  filtro por município, que resolveria o par.
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público
