@@ -2,6 +2,17 @@
  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
  "versoes": [
   {
+   "versao": "2.23.0",
+   "data": "2026-09-04",
+   "novidades": [],
+   "melhorias": [
+    "Saíram três chaves de liga/desliga que não precisavam existir. Os botões discretos em repouso, o aviso pelo sistema e a tela que não apaga passaram a ser simplesmente como o Assistente funciona.",
+    "O aviso pelo sistema não é mais uma chave: a tela mostra o estado dele. Se o navegador ainda não autorizou, aparece um botão para autorizar; se as notificações estiverem bloqueadas, a tela diz onde liberar.",
+    "No painel da engrenagem, o antigo link “Ajustes” virou um botão que diz o que abre — “⚙️ Configurar Alarme de Fila”. Antes não ficava claro que a função tinha configuração própria."
+   ],
+   "correcoes": []
+  },
+  {
    "versao": "2.22.0",
    "data": "2026-09-04",
    "novidades": [

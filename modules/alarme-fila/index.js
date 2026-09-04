@@ -137,6 +137,10 @@
     ".af-body input[type=range] { width:100%; }",
     "#af-testar-som { width:100%; padding:10px; border-radius:10px; border:none; background:linear-gradient(135deg,#f97316,#dc2626); color:#fff; font-size:13.5px; font-weight:700; cursor:pointer; }",
     "#af-testar-som:hover { opacity:.92; }",
+    ".af-estado { font-size:11.5px; color:#475569; line-height:1.5; }",
+    "#af-liberar-aviso { margin-top:8px; padding:8px 14px; border-radius:9px; border:1.5px solid #1a4fa0; background:#fff; color:#1a4fa0; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer; }",
+    "#af-liberar-aviso:hover { background:#eef4ff; }",
+    "#af-liberar-aviso[hidden] { display:none; }",
   ].join("\n");
 
   var CONFIG_PADRAO = {
@@ -145,8 +149,6 @@
     tempoEsperaMin: 5,
     som: "sirene-classica",
     volume: 70,
-    avisarForaDaAba: true,   // notificacao do sistema quando ele nao esta na aba
-    manterTelaAcesa: false,  // Wake Lock — util no iPad, por isso nao vem ligado
   };
 
   /* --- estado do modulo (recriado a cada start, zerado a cada stop) --- */
@@ -434,7 +436,7 @@
    * nao atender de fato o alarme volta em cinco minutos. */
   function avisarForaDaAba() {
     var A = atencao();
-    if (!A || !config.avisarForaDaAba) return;
+    if (!A) return;
     if (A.ondeEstaOMedico() !== "fora") return;
     var r = resumoDaFila();
     A.marcar({
@@ -556,10 +558,8 @@
         '    <button type="button" id="af-testar-som">🔊 Testar som</button>' +
         "    <div>" +
         "      <label>Quando você não está na aba do Meeds</label>" +
-        '      <label class="af-radio-linha"><input type="checkbox" id="af-avisar-fora" /> Avisar pelo sistema (notificação clicável)</label>' +
-        '      <div class="af-hint" id="af-avisar-fora-hint"></div>' +
-        '      <label class="af-radio-linha"><input type="checkbox" id="af-tela-acesa" /> Impedir a tela de apagar durante o plantão</label>' +
-        '      <div class="af-hint" id="af-tela-acesa-hint"></div>' +
+        '      <div class="af-estado" id="af-avisar-estado"></div>' +
+        '      <button type="button" id="af-liberar-aviso" hidden>Ativar avisos do sistema</button>' +
         "    </div>" +
         "  </div>" +
         "</div>",
@@ -595,73 +595,50 @@
 
     /* A permissao de notificacao SO pode ser pedida a partir de um clique
      * do medico — navegador ignora (e alguns punem) pedido sem gesto do
-     * usuario. Por isso ela e pedida aqui, e nao na subida do modulo. */
-    painel.$("#af-avisar-fora").addEventListener("change", function () {
-      var quer = painel.$("#af-avisar-fora").checked;
-      if (!quer) {
-        config.avisarForaDaAba = false;
-        salvar();
-        refletirEstadoDosAvisos();
-        return;
-      }
+     * usuario. Por isso existe este botao, e ele so aparece enquanto a
+     * permissao nao foi dada: nao e uma chave de liga/desliga, e o unico
+     * passo que o navegador exige uma vez. */
+    painel.$("#af-liberar-aviso").addEventListener("click", function () {
       var A = atencao();
-      if (!A || !A.suportaNotificacao()) {
-        config.avisarForaDaAba = false;
-        salvar();
-        refletirEstadoDosAvisos();
-        return;
-      }
-      A.pedirPermissaoDeNotificacao().then(function (liberou) {
-        config.avisarForaDaAba = liberou;
-        salvar();
-        refletirEstadoDosAvisos();
-      });
-    });
-
-    painel.$("#af-tela-acesa").addEventListener("change", function () {
-      config.manterTelaAcesa = painel.$("#af-tela-acesa").checked;
-      salvar();
-      if (atencao()) atencao().manterTelaAcesa(config.manterTelaAcesa);
-      refletirEstadoDosAvisos();
+      if (!A) return;
+      A.pedirPermissaoDeNotificacao().then(refletirEstadoDosAvisos);
     });
   }
 
-  /* Estas duas opcoes dependem do navegador, entao a tela precisa dizer
-   * a verdade sobre o que esta disponivel — em vez de oferecer uma chave
-   * que nao faz nada. E o caso do Safari no iPad, que nao tem
-   * notificacao fora de app instalado. */
+  /* O aviso do sistema e como o alarme funciona, nao uma opcao — mas ele
+   * depende de uma permissao que o navegador pode nao ter dado, ou ter
+   * bloqueado. Entao a tela nao oferece uma chave: ela diz o ESTADO, e
+   * oferece o unico passo que resolve, quando ha um. */
   function refletirEstadoDosAvisos() {
     if (!painel) return;
     var A = atencao();
-    var chaveAviso = painel.$("#af-avisar-fora");
-    var dicaAviso = painel.$("#af-avisar-fora-hint");
-    var chaveTela = painel.$("#af-tela-acesa");
-    var dicaTela = painel.$("#af-tela-acesa-hint");
-    if (!chaveAviso || !chaveTela) return;
+    var estado = painel.$("#af-avisar-estado");
+    var botao = painel.$("#af-liberar-aviso");
+    if (!estado || !botao) return;
 
-    var temNotificacao = !!(A && A.suportaNotificacao());
-    chaveAviso.disabled = !temNotificacao;
-    chaveAviso.checked = !!config.avisarForaDaAba && temNotificacao;
-    if (dicaAviso) {
-      if (!temNotificacao) {
-        dicaAviso.textContent =
-          "Este navegador não oferece notificação do sistema. O alarme continua tocando na aba do Meeds.";
-      } else if (A.permissaoDeNotificacao() === "denied") {
-        dicaAviso.textContent =
-          "As notificações estão bloqueadas para este site. Libere no cadeado da barra de endereço para usar.";
-      } else {
-        dicaAviso.textContent =
-          "Aparece mesmo com o navegador minimizado. Clicar traz a aba para frente e silencia; se você não atender, o alarme volta em 5 minutos.";
-      }
+    var permissao = A ? A.permissaoDeNotificacao() : "indisponivel";
+    botao.hidden = permissao !== "default";
+
+    if (permissao === "granted") {
+      estado.textContent =
+        "Avisos do sistema ligados. Aparecem com o navegador minimizado; clicar traz a aba " +
+        "para frente e silencia — se você não atender, o alarme volta em 5 minutos.";
+    } else if (permissao === "denied") {
+      estado.textContent =
+        "As notificações estão bloqueadas para este site. Libere no cadeado da barra de " +
+        "endereço para ser avisado fora da aba. O alarme continua tocando aqui dentro.";
+    } else if (permissao === "indisponivel") {
+      estado.textContent =
+        "Este navegador não oferece notificação do sistema. O alarme continua tocando na " +
+        "aba do Meeds.";
+    } else {
+      estado.textContent =
+        "Você pode ser avisado mesmo com o navegador minimizado. O navegador pede sua " +
+        "autorização uma vez.";
     }
 
-    var temTelaAcesa = !!(A && A.suportaTelaAcesa());
-    chaveTela.disabled = !temTelaAcesa;
-    chaveTela.checked = !!config.manterTelaAcesa && temTelaAcesa;
-    if (dicaTela) {
-      dicaTela.textContent = temTelaAcesa
-        ? "Útil no iPad: alarme que toca com a tela apagada é alarme perdido."
-        : "Este navegador não permite segurar a tela acesa.";
+    if (A && A.suportaTelaAcesa()) {
+      estado.textContent += " A tela não apaga enquanto o Meeds estiver aberto.";
     }
   }
 
@@ -764,15 +741,13 @@
       );
       config.volume = Math.min(100, Math.max(0, parseInt(config.volume, 10) || 0));
       if (!TIPOS_DE_SOM[config.som]) config.som = CONFIG_PADRAO.som;
-      config.avisarForaDaAba = config.avisarForaDaAba !== false;
-      config.manterTelaAcesa = !!config.manterTelaAcesa;
-      /* Quem ja tinha marcado "avisar fora da aba" antes pode ter perdido
-       * a permissao (trocou de maquina, limpou o site). Sem permissao a
-       * chave nao vale nada, e a tela precisa mostrar isso. */
-      if (config.avisarForaDaAba && atencao() && atencao().permissaoDeNotificacao() !== "granted") {
-        config.avisarForaDaAba = false;
-      }
-      if (config.manterTelaAcesa && atencao()) atencao().manterTelaAcesa(true);
+      /* Avisar fora da aba e manter a tela acesa deixaram de ser chaves:
+       * sao como o alarme funciona. O que limita o aviso do sistema nao e
+       * preferencia, e PERMISSAO do navegador — e permissao nao se
+       * resolve com uma chave, se resolve pedindo. Ver D30. */
+      if (atencao()) atencao().manterTelaAcesa(true);
+      delete config.avisarForaDaAba;
+      delete config.manterTelaAcesa;
 
       decisorFila = deps.decisao.criarDecisor({
         limiar: 0.6,                    // um voto de DOM sozinho ja decide

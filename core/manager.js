@@ -61,9 +61,8 @@
     ".msm-item-ver { font-size:10px; color:#9aa5b1; font-family:ui-monospace,Menlo,monospace; margin-top:4px; }",
     ".msm-fixos { font-size:11px; color:#8a97a4; line-height:1.5; padding:10px 0 2px; border-top:1px solid #f3f6f9; margin-top:4px; }",
     ".msm-fixos b { color:#5b6672; font-weight:600; }",
-    ".msm-aparencia { border-top:1px solid #f3f6f9; margin-top:6px; padding-top:12px; }",
-    ".msm-ajustes { background:none; border:none; color:#1a4fa0; cursor:pointer; font-size:10px; font-family:inherit; font-weight:700; padding:0; text-decoration:underline; }",
-    ".msm-ajustes:hover { color:#123a7a; }",
+    ".msm-ajustes { margin-top:7px; background:#fff; border:1.4px solid #c3d4ee; color:#1a4fa0; cursor:pointer; font-size:11.5px; font-family:inherit; font-weight:700; padding:6px 11px; border-radius:8px; }",
+    ".msm-ajustes:hover { background:#eef4ff; border-color:#1a4fa0; }",
 
     ".msm-switch { position:relative; width:44px; height:25px; flex-shrink:0; cursor:pointer; }",
     ".msm-switch input { opacity:0; width:0; height:0; }",
@@ -435,9 +434,12 @@
           '  <div class="msm-item-txt">' +
           '    <div class="msm-item-nome">' + escapeHtml(m.nome) + "</div>" +
           '    <div class="msm-item-desc">' + escapeHtml(m.descricao) + "</div>" +
+          /* "Ajustes" sublinhado em 10px nao parecia clicavel nem dizia o
+             que abria. Vira botao, com cara de botao, nomeando a funcao
+             que vai configurar. */
           (m.temAjustes && m.habilitado
             ? '    <div class="msm-item-ver"><button type="button" class="msm-ajustes" data-ajustes="' +
-              escapeHtml(m.id) + '">Ajustes</button></div>'
+              escapeHtml(m.id) + '">⚙️ Configurar ' + escapeHtml(m.nome) + "</button></div>"
             : "") +
           "  </div>" +
           '  <label class="msm-switch">' +
@@ -456,29 +458,11 @@
         "</b>.</div>";
     }
 
-    /* Aparencia do dock. Nao e um modulo — e como o Assistente se
-     * comporta na tela — entao mora aqui embaixo, separado das chaves
-     * de funcao, e nao no meio delas. */
-    if (typeof ctx.dockTranslucido === "function") {
-      lista.innerHTML +=
-        '<div class="msm-item msm-aparencia">' +
-        '  <div class="msm-item-txt">' +
-        '    <div class="msm-item-nome">Botões discretos quando parados</div>' +
-        '    <div class="msm-item-desc">Ficam translúcidos sem uso e voltam ao normal quando você aproxima o mouse. O alarme nunca fica translúcido.</div>' +
-        "  </div>" +
-        '  <label class="msm-switch">' +
-        '    <input type="checkbox" id="msm-translucido" ' + (ctx.dockTranslucido() ? "checked" : "") + " />" +
-        '    <span class="msm-slider"></span>' +
-        "  </label>" +
-        "</div>";
-    }
-
-    var chaveTransl = overlay.$("#msm-translucido");
-    if (chaveTransl) {
-      chaveTransl.addEventListener("change", function () {
-        ctx.dockTranslucido(chaveTransl.checked);
-      });
-    }
+    /* A translucidez em repouso deixou de ter chave: e como o Assistente
+     * se comporta na tela, nao uma funcao que o medico escolhe usar. Uma
+     * chave ali so oferecia um jeito de deixar a tela mais poluida — e o
+     * alarme, que e o unico que nao pode passar despercebido, ja e
+     * excecao e nunca fica translucido. Mesmo raciocinio da D26. */
 
     overlay.$$("button[data-ajustes]").forEach(function (btn) {
       btn.addEventListener("click", function () {

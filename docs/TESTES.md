@@ -786,6 +786,30 @@ Executado em 04/09/2026. **136 verificações sem navegador** (23 novas em
 > ⚙️ › Alarme de fila, **clique em outra janela** e só então simule a chegada de
 > um paciente. Com a aba em foco ela não dispara — de propósito.
 
+### Três chaves a menos *(v2.23.0)*
+
+Executado em 04/09/2026. **136 verificações sem navegador + 9 no navegador**,
+todas passando.
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 149 | A chave "Botões discretos" sumiu do painel, texto incluído | ✅ |
+| 150 | Quem tinha desligado a translucidez: ela volta ligada | ✅ |
+| 151 | E a preferência antiga é apagada do armazenamento durável | ✅ |
+| 152 | O alarme não tem mais chaves de aviso nem de tela acesa | ✅ |
+| 153 | No lugar delas, a tela mostra o **estado** do aviso | ✅ |
+| 154 | Com a permissão bloqueada, a tela diz onde liberar | ✅ |
+| 155 | O botão "Ativar avisos" só aparece com a permissão pendente | ✅ |
+| 156 | "Ajustes" virou "⚙️ Configurar Alarme de Fila", com cara de botão | ✅ |
+| 157 | E continua abrindo a configuração do módulo | ✅ |
+
+> **Semear estado antigo tem ordem.** Duas verificações deram falso negativo
+> porque eu gravei a preferência antiga **depois** de a página carregar — o
+> núcleo já tinha rodado a migração. O estado pré-atualização precisa ir para o
+> armazenamento **durável** (pela API, não pelo `localStorage`) e só então
+> recarregar. Mesmo tropeço da migração da APAC; vale reler o box de reset acima
+> antes de montar qualquer teste de atualização.
+
 ### Extensibilidade
 
 Verificado à parte: criei um sexto módulo a partir de `modules/_template`,

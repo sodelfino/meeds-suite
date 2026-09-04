@@ -968,6 +968,36 @@ regra é prefixada pelo container do módulo (`#apac-body`, `#lme-body`,
 `display` ou `visibility` esconderia um campo obrigatório de outro laudo sem
 ninguém notar.
 
+
+**D30 — Chave só existe para escolha real; permissão não é preferência.**
+Extensão da D26, agora aplicada a três casos que tinham chave sem precisar:
+
+- **Botões discretos em repouso.** Não é uma função que o médico escolhe usar — é
+  como o Assistente se comporta na tela, e nasceu do pedido "que não atrapalhe a
+  visualização". A chave só oferecia um jeito de deixar a tela mais poluída. O
+  alarme, único que não pode passar despercebido, já era exceção e nunca fica
+  translúcido. A preferência antiga deixa de valer e é apagada na subida.
+- **Manter a tela acesa.** Passa a ser padrão. O Wake Lock só é mantido enquanto
+  a aba está visível e cai sozinho quando ela vai para o fundo, então o alcance
+  é exatamente o do plantão aberto na tela.
+- **Avisar pelo sistema.** Este é o interessante: o que limita o aviso fora da
+  aba **não é preferência, é permissão do navegador** — e permissão não se
+  resolve com uma chave, se resolve pedindo. Uma chave ali mentia duas vezes:
+  ligada sem permissão não avisava nada, e desligada parecia escolha do médico
+  quando podia ser bloqueio do navegador.
+
+No lugar da chave, a tela mostra o **estado** e oferece o único passo que
+resolve, quando existe um: botão "Ativar avisos do sistema" enquanto a permissão
+está pendente; instrução sobre o cadeado da barra de endereço quando está
+bloqueada; e a constatação de que o navegador não oferece o recurso, no Safari do
+iPad. A permissão continua sendo pedida só a partir de um clique, pela mesma
+razão de sempre.
+
+Regra geral que fica: **antes de criar uma chave, perguntar se existe um médico
+que escolheria o outro lado.** Se a resposta for não, é comportamento, não
+opção — e uma chave a mais é uma decisão a mais para quem já decide o dia
+inteiro.
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público

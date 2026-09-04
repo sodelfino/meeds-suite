@@ -490,10 +490,13 @@
       storageNucleo.gravar("dock_recolhido", !!valor);
     });
 
-    /* Translucidez em repouso. Ligada de fabrica: o pedido que originou
-     * isto foi justamente "que nao atrapalhe a visualizacao da tela".
-     * Quem preferir os botoes sempre solidos desliga na engrenagem. */
-    Dock.definirTranslucidez(storageNucleo.ler("dock_translucido", true) !== false);
+    /* Translucidez em repouso: comportamento padrao, sem chave. O pedido
+     * que originou isto foi "que nao atrapalhe a visualizacao da tela",
+     * e o alarme — o unico que nao pode passar despercebido — ja e
+     * excecao e nunca fica translucido. A preferencia antiga deixa de
+     * valer, e a chave saiu do painel (ver D30). */
+    Dock.definirTranslucidez(true);
+    storageNucleo.remover("dock_translucido");
 
     // engrenagem: SEMPRE presente, mesmo com todos os modulos desligados
     /* MIGRACAO DO CADASTRO — roda antes de qualquer modulo subir, para
