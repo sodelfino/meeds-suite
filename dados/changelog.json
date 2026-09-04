@@ -2,6 +2,23 @@
  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
  "versoes": [
   {
+   "versao": "2.22.0",
+   "data": "2026-09-04",
+   "novidades": [
+    "O alarme de fila agora avisa mesmo quando você não está na aba do Meeds: aparece uma notificação do sistema, com o navegador minimizado inclusive. Clicar nela traz o Meeds para frente e silencia — se você não atender, o alarme volta em 5 minutos. Ative em ⚙️ › Alarme de fila.",
+    "A aba do navegador passa a mostrar quantos estão esperando, no título e no ícone: “(3) Meeds”. O número continua ali depois de você silenciar, porque os pacientes continuam na fila, e some sozinho quando a fila esvazia.",
+    "Nova opção para impedir a tela de apagar durante o plantão — feita para o iPad, onde alarme que toca com a tela apagada é alarme perdido."
+   ],
+   "melhorias": [
+    "O banner do alarme agora diz por que está tocando: “3 aguardando · o mais antigo há pelo menos 12 min”.",
+    "O título da aba não pisca mais “NOVO PACIENTE NA FILA”. Piscar disputa sua atenção a cada segundo e sumia quando você trocava de tela; o contador fica parado e é legível de relance.",
+    "Quem usa “reduzir movimento” no computador ou no iPad não vê mais nada pulsando. O alarme continua igual: som, vermelho e texto."
+   ],
+   "correcoes": [
+    "No painel do alarme, as bolinhas de escolha e as caixas de seleção apareciam acima do texto, em vez de ao lado."
+   ]
+  },
+  {
    "versao": "2.21.0",
    "data": "2026-09-03",
    "novidades": [

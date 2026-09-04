@@ -747,6 +747,45 @@ ficam mais no código do programa" — história do repositório, não do médic
 lista de funções deixou de estampar cinco números de versão diferentes, que não
 dizem nada ao médico e ainda conflitavam com a versão do pacote na aba Sobre.
 
+### Escada de atenção do alarme *(v2.22.0)*
+
+Executado em 04/09/2026. **136 verificações sem navegador** (23 novas em
+`tests/atencao.test.js`) **+ 19 no navegador**, todas passando.
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 134 | Aba visível **e** com foco = "aqui"; qualquer outra combinação = "fora" | ✅ |
+| 135 | Notificação **só** dispara com o médico fora da aba | ✅ |
+| 136 | A notificação usa `tag`: substitui a anterior em vez de empilhar | ✅ |
+| 137 | Ela é silenciosa — o som é do módulo, com o volume que o médico escolheu | ✅ |
+| 138 | Título ganha `(3)` e volta exatamente como estava | ✅ |
+| 139 | O contador sobrevive à navegação da SPA e limpa o título **novo** | ✅ |
+| 140 | Favicone vira contador e o do Meeds volta | ✅ |
+| 141 | Silenciar mantém o distintivo (os pacientes continuam na fila) | ✅ |
+| 142 | Fila vazia limpa título e favicone | ✅ |
+| 143 | Desligar o módulo devolve a aba como estava | ✅ |
+| 144 | Banner diz o motivo: "2 aguardando" | ✅ |
+| 145 | Sem `Notification` nem Wake Lock (Safari/iPad), nada quebra | ✅ |
+| 146 | Com notificação bloqueada, o painel **diz** que está bloqueada | ✅ |
+| 147 | CSS respeita `prefers-reduced-motion`; nenhuma animação acima de 3 Hz | ✅ |
+| 148 | APAC, LME e CMD seguem com campos e rótulos corretos | ✅ |
+
+> **Um defeito de CSS que atravessava módulos.** As bolinhas de escolha do painel
+> do alarme apareciam **acima** do texto, e a bolinha esticava até 344 px. A
+> causa não estava no alarme: APAC, LME e CMD declaravam
+> `input,select,textarea{width:100%}` e `label{display:block}` sem escopo, e
+> todos os módulos dividem o mesmo shadow root. As regras foram escopadas ao
+> container de cada módulo (ver D29). Aqui o efeito era cosmético — o mesmo
+> vazamento numa regra de `display` esconderia um campo obrigatório de outro
+> laudo sem ninguém notar.
+
+> **Como testar a notificação de verdade.** A página de fumaça roda em
+> `localhost` com a permissão negada por padrão, então o caminho da notificação
+> é coberto pelo teste sem navegador (com `Notification` de mentira). Para ver na
+> mão: libere a notificação no cadeado da barra de endereço, ligue a opção em
+> ⚙️ › Alarme de fila, **clique em outra janela** e só então simule a chegada de
+> um paciente. Com a aba em foco ela não dispara — de propósito.
+
 ### Extensibilidade
 
 Verificado à parte: criei um sexto módulo a partir de `modules/_template`,

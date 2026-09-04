@@ -911,6 +911,63 @@ os recusados, porque a razão pode mudar:
   CMD): dois ícones idênticos é ambiguidade real. Só ficaria viável junto com o
   filtro por município, que resolveria o par.
 
+
+**D28 — Um aviso escolhe o CANAL pela atenção do médico, não pelo volume.**
+O alarme de fila tinha banner, moldura pulsante e título piscando — três
+sinais, todos **dentro** da aba do Meeds. As gravações mostram o médico dentro
+do Memed, em outra tela, esperando 13 s por uma prescrição: exatamente quando o
+alarme mais importa, nenhum dos três é visto por ninguém.
+
+A saída **não** foi piscar mais forte, por duas razões que não são estéticas.
+A WCAG 2.3.1 limita qualquer coisa a menos de três flashes por segundo, por
+risco de crise fotossensível. E fadiga de alarme é o problema clássico da
+categoria em saúde: alarme demais faz o profissional ignorar o alarme —
+inclusive o que importava. Um alarme que incomoda é um alarme que o médico
+desliga, e aí não há alarme nenhum.
+
+Ficou uma **escada**, em `core/atencao.js`, onde cada degrau muda de canal:
+
+| onde ele está | canal |
+|---|---|
+| na aba, olhando | som + banner + moldura (o que já existia) |
+| na aba, de fundo | contador no título e no favicone: `(3) Meeds` |
+| fora da aba ou do navegador | notificação do sistema, **clicável** |
+| ninguém reagiu | o reengate de 5 min que já existia renotifica |
+
+Três decisões dentro disso merecem registro:
+
+- **A notificação só dispara com o médico fora da aba.** Dentro dela o banner já
+  grita, e o mesmo aviso duas vezes é a definição de fadiga de alarme.
+- **O distintivo acompanha a fila, não o alarme.** Ele continua depois de
+  silenciar, porque os pacientes continuam ali; some quando a fila esvazia.
+- **Clicar na notificação equivale a "estou indo"**: traz a aba para frente e
+  silencia com reengate. Se o médico não atender de fato, o alarme volta — que é
+  o `acknowledge` do plantão de software, e não um `dismiss`.
+
+O núcleo é dono da tela (D3), então favicone, título, notificação e Wake Lock
+moram em `core/atencao.js` e não no módulo: qualquer módulo pode precisar avisar
+alguém que não está olhando. A permissão de notificação só é pedida a partir de
+um clique do médico, no painel — navegador ignora (e alguns punem) pedido sem
+gesto do usuário. Onde o recurso não existe — Safari do iPad não tem notificação
+fora de app instalado — a tela **diz isso**, em vez de oferecer uma chave que não
+faz nada.
+
+Regressão em `tests/atencao.test.js`.
+
+
+**D29 — CSS de módulo é escopado; o shadow root é compartilhado.**
+Encontrado ao montar o painel do alarme: as bolinhas de escolha apareciam
+**acima** do texto, e a bolinha esticava até 344 px. A causa não estava no
+alarme. APAC, LME‑Sete Lagoas e CMD declaravam `input,select,textarea{width:100%}`
+e `label{display:block}` **sem escopo**, e como todos os módulos dividem o mesmo
+shadow root, essas regras alcançavam a interface de todos os outros.
+
+Regra: **seletor de elemento sem escopo é proibido no CSS de módulo.** Toda
+regra é prefixada pelo container do módulo (`#apac-body`, `#lme-body`,
+`#cmd-body`). O sintoma aqui foi cosmético; o mesmo vazamento numa regra de
+`display` ou `visibility` esconderia um campo obrigatório de outro laudo sem
+ninguém notar.
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público

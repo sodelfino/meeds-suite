@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Assistente Meeds - Por: Marcelo
 // @namespace    novetech-meeds-suite
-// @version      2.21.0
+// @version      2.22.0
 // @description  Assistente Meeds - Por: Marcelo. Alarme de fila, APAC de Itauna, laudos de Sete Lagoas e Conceicao do Mato Dentro e consulta a REMUME, numa instalacao unica. Cada funcao liga e desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
 // @author       Marcelo
 // @match        *://*.meeds.com.br/*
@@ -842,6 +842,15 @@
     "  padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer;",
     "}",
     ".ms-banner button:hover { background: rgba(255,255,255,.35); }",
+    ".ms-banner .ms-banner-motivo { font-weight: 500; opacity: .95; font-size: 14px; }",
+
+    /* Quem pediu menos animacao no sistema operacional nao esta pedindo
+       menos alarme: o vermelho, o texto e o som continuam. So para de
+       pulsar. Vale para enjoo de movimento e para quem simplesmente nao
+       aguenta uma tela piscando um plantao inteiro. */
+    "@media (prefers-reduced-motion: reduce) {",
+    "  .ms-moldura-alerta, .ms-banner, .ms-btn { animation: none !important; }",
+    "}",
   ].join("\n");
 
   function garantirHost() {
@@ -1369,6 +1378,353 @@
     criarAviso: criarAviso,
     adicionarEstilo: adicionarEstilo,
     _reposicionarToast: reposicionarToast,
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== core/atencao.js ===== */
+/* ------------------------------------------------------------------
+ * core/atencao.js — para onde mandar um aviso, e por onde
+ * ------------------------------------------------------------------
+ * PARA QUE SERVE
+ * Um aviso so serve se chegar onde o medico esta olhando. O alarme de
+ * fila tinha banner, moldura e titulo piscando — tres sinais bonitos,
+ * todos DENTRO da aba do Meeds. Quando o medico esta no Memed, no
+ * prontuario ou em outra janela, que e justamente quando o alarme mais
+ * importa, nenhum dos tres e visto por ninguem.
+ *
+ * Este arquivo nao decide QUANDO avisar (isso e do modulo). Ele decide
+ * POR ONDE, e oferece os canais que funcionam fora da aba:
+ *   - contador no titulo   ("(3) Meeds", como Gmail e Slack)
+ *   - contador no favicone (desenhado no canvas, visivel na aba)
+ *   - notificacao do sistema (aparece com o navegador minimizado, e
+ *     CLICAVEL: traz a aba para frente)
+ *
+ * POR QUE NAO "PISCAR MAIS FORTE"
+ * Duas razoes, e nenhuma e estetica:
+ *   1. A WCAG 2.3.1 limita qualquer coisa a menos de tres flashes por
+ *      segundo, por risco de crise fotossensivel. As animacoes daqui
+ *      ficam perto de 1 Hz e somem inteiras com prefers-reduced-motion.
+ *   2. Fadiga de alarme. Alarme demais faz o profissional ignorar o
+ *      alarme — inclusive o que importava. A saida do setor nao foi
+ *      volume, foi ESCADA: cada degrau muda de canal, e so escala se
+ *      ninguem reagiu.
+ *
+ * PRIVACIDADE: nenhum texto de aviso deve conter dado de paciente. Quem
+ * chama passa contagem e tempo de espera — nunca nome, nunca CPF. Uma
+ * notificacao do sistema aparece na tela de bloqueio e no historico de
+ * notificacoes do computador, fora do navegador e fora do nosso
+ * controle: e o pior lugar possivel para um dado de paciente.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  var doc = typeof document !== "undefined" ? document : null;
+
+  /* ------------------------------------------------------------------
+   * ONDE ESTA A ATENCAO DO MEDICO
+   * ------------------------------------------------------------------
+   * "aqui" = aba visivel E janela em foco. Qualquer outra combinacao e
+   * "fora": aba de fundo, outra janela, outro app, tela bloqueada.
+   * Nao ha meio-termo confiavel — "visivel mas sem foco" e uma janela
+   * atras de outra, que na pratica e fora.
+   * ------------------------------------------------------------------ */
+  function ondeEstaOMedico() {
+    if (!doc) return "fora";
+    if (doc.visibilityState === "hidden") return "fora";
+    if (typeof doc.hasFocus === "function" && !doc.hasFocus()) return "fora";
+    return "aqui";
+  }
+
+  function aoMudarAtencao(fn) {
+    if (!doc || typeof fn !== "function") return function () {};
+    var mao = function () { fn(ondeEstaOMedico()); };
+    doc.addEventListener("visibilitychange", mao);
+    raiz.addEventListener("focus", mao);
+    raiz.addEventListener("blur", mao);
+    return function cancelar() {
+      doc.removeEventListener("visibilitychange", mao);
+      raiz.removeEventListener("focus", mao);
+      raiz.removeEventListener("blur", mao);
+    };
+  }
+
+  /* ------------------------------------------------------------------
+   * CONTADOR NO TITULO DA ABA
+   * ------------------------------------------------------------------
+   * Substitui o titulo piscando. Piscar disputa atencao a cada segundo e
+   * some quando o medico olha; "(3)" fica parado, e some sozinho quando
+   * a fila esvazia. O reaplicador existe porque o Meeds e uma SPA e
+   * reescreve o titulo ao navegar — sem ele, o contador sumiria na
+   * primeira troca de tela.
+   * ------------------------------------------------------------------ */
+  var PREFIXO_RX = /^\((\d+)\)\s+/;
+  var tituloLimpo = null;
+  var contagemNoTitulo = 0;
+  var reaplicador = null;
+
+  function semPrefixo(texto) {
+    return String(texto || "").replace(PREFIXO_RX, "");
+  }
+
+  function aplicarTitulo() {
+    if (!doc) return;
+    var desejado = contagemNoTitulo > 0 ? "(" + contagemNoTitulo + ") " + tituloLimpo : tituloLimpo;
+    if (doc.title !== desejado) doc.title = desejado;
+  }
+
+  function marcarTitulo(contagem) {
+    if (!doc) return;
+    if (tituloLimpo === null) tituloLimpo = semPrefixo(doc.title);
+    /* Se a SPA trocou o titulo por conta propria, o novo titulo e que
+     * vale — so tiramos o nosso prefixo antes de guardar. */
+    var atualSemPrefixo = semPrefixo(doc.title);
+    if (atualSemPrefixo && atualSemPrefixo !== tituloLimpo) tituloLimpo = atualSemPrefixo;
+
+    contagemNoTitulo = contagem > 0 ? contagem : 0;
+    aplicarTitulo();
+
+    if (contagemNoTitulo > 0 && !reaplicador) {
+      reaplicador = setInterval(aplicarTitulo, 2000);
+    } else if (contagemNoTitulo === 0 && reaplicador) {
+      clearInterval(reaplicador);
+      reaplicador = null;
+    }
+  }
+
+  function limparTitulo() {
+    marcarTitulo(0);
+  }
+
+  /* ------------------------------------------------------------------
+   * CONTADOR NO FAVICONE
+   * ------------------------------------------------------------------
+   * Desenhado no canvas. A aba do Meeds costuma estar de fundo, e o
+   * favicone e a unica parte dela que continua visivel na barra de abas.
+   * ------------------------------------------------------------------ */
+  var faviconeOriginal = null;
+  var linkFavicone = null;
+
+  function acharOuCriarLinkFavicone() {
+    if (!doc) return null;
+    var link = doc.querySelector('link[rel~="icon"]');
+    if (!link) {
+      link = doc.createElement("link");
+      link.rel = "icon";
+      (doc.head || doc.documentElement).appendChild(link);
+    }
+    return link;
+  }
+
+  function desenharFavicone(contagem) {
+    try {
+      var lado = 64;
+      var canvas = doc.createElement("canvas");
+      canvas.width = lado;
+      canvas.height = lado;
+      var ctx = canvas.getContext("2d");
+      if (!ctx) return null;
+
+      /* Fundo neutro: nao tentamos redesenhar o favicone do Meeds por
+       * cima porque carregar a imagem original e assincrono e pode
+       * falhar (origem cruzada, cache). Um quadrado solido com o numero
+       * cumpre o papel e nunca falha pela metade. */
+      ctx.fillStyle = "#0f172a";
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(0, 0, lado, lado, 14);
+      else ctx.rect(0, 0, lado, lado);
+      ctx.fill();
+
+      ctx.fillStyle = "#dc2626";
+      ctx.beginPath();
+      ctx.arc(lado / 2, lado / 2, lado / 2 - 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      var texto = contagem > 99 ? "99+" : String(contagem);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold " + (texto.length > 2 ? 26 : 38) + "px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(texto, lado / 2, lado / 2 + 2);
+
+      return canvas.toDataURL("image/png");
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function marcarFavicone(contagem) {
+    if (!doc) return;
+    try {
+      linkFavicone = linkFavicone || acharOuCriarLinkFavicone();
+      if (!linkFavicone) return;
+      if (faviconeOriginal === null) faviconeOriginal = linkFavicone.getAttribute("href") || "";
+      var url = desenharFavicone(contagem);
+      if (url) linkFavicone.setAttribute("href", url);
+    } catch (e) {
+      /* silencioso: favicone e reforco, nunca pode quebrar a pagina */
+    }
+  }
+
+  function limparFavicone() {
+    if (!linkFavicone || faviconeOriginal === null) return;
+    try {
+      if (faviconeOriginal) linkFavicone.setAttribute("href", faviconeOriginal);
+      else linkFavicone.removeAttribute("href");
+    } catch (e) {
+      /* silencioso */
+    }
+  }
+
+  /* ------------------------------------------------------------------
+   * NOTIFICACAO DO SISTEMA
+   * ------------------------------------------------------------------
+   * O unico canal que atravessa o navegador. Duas regras:
+   *   - permissao SO se pede a partir de um clique do medico (navegador
+   *     ignora, e alguns punem, pedido sem gesto do usuario);
+   *   - sempre com `tag`: uma notificacao SUBSTITUI a anterior em vez de
+   *     empilhar. Vinte avisos parados no canto da tela sao a definicao
+   *     de fadiga de alarme.
+   * No Safari do iPad isto nao existe fora de app instalado — por isso
+   * cada funcao degrada em silencio, e o alarme na tela continua sendo o
+   * canal principal.
+   * ------------------------------------------------------------------ */
+  var TAG_PADRAO = "meeds-suite";
+
+  function suportaNotificacao() {
+    return typeof raiz.Notification === "function";
+  }
+
+  function permissaoDeNotificacao() {
+    if (!suportaNotificacao()) return "indisponivel";
+    return raiz.Notification.permission;
+  }
+
+  function pedirPermissaoDeNotificacao() {
+    if (!suportaNotificacao()) return Promise.resolve(false);
+    if (raiz.Notification.permission === "granted") return Promise.resolve(true);
+    if (raiz.Notification.permission === "denied") return Promise.resolve(false);
+    try {
+      var r = raiz.Notification.requestPermission();
+      /* Safari antigo usa callback em vez de promessa. */
+      if (r && typeof r.then === "function") {
+        return r.then(function (p) { return p === "granted"; }).catch(function () { return false; });
+      }
+      return new Promise(function (ok) {
+        raiz.Notification.requestPermission(function (p) { ok(p === "granted"); });
+      });
+    } catch (e) {
+      return Promise.resolve(false);
+    }
+  }
+
+  function notificar(opcoes) {
+    var o = opcoes || {};
+    if (permissaoDeNotificacao() !== "granted") return null;
+    try {
+      var n = new raiz.Notification(o.titulo || "Assistente Meeds", {
+        body: o.corpo || "",
+        tag: o.tag || TAG_PADRAO,
+        renotify: true,
+        requireInteraction: !!o.exigeInteracao,
+        silent: true, // o som e do modulo, com o tipo e volume que o medico escolheu
+      });
+      n.onclick = function () {
+        try { raiz.focus(); } catch (e) {}
+        try { n.close(); } catch (e) {}
+        if (typeof o.aoClicar === "function") o.aoClicar();
+      };
+      return n;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /* ------------------------------------------------------------------
+   * MANTER A TELA ACESA (Wake Lock)
+   * ------------------------------------------------------------------
+   * Para o plantao no iPad: alarme que toca com a tela apagada e alarme
+   * perdido. O bloqueio cai sozinho quando a aba vai para o fundo, entao
+   * ele e reconquistado quando ela volta.
+   * ------------------------------------------------------------------ */
+  var travaTela = null;
+  var querTelaAcesa = false;
+  var vigiaTela = null;
+
+  function suportaTelaAcesa() {
+    return !!(raiz.navigator && raiz.navigator.wakeLock && raiz.navigator.wakeLock.request);
+  }
+
+  function conquistarTrava() {
+    if (!querTelaAcesa || !suportaTelaAcesa() || travaTela) return Promise.resolve(false);
+    if (doc && doc.visibilityState !== "visible") return Promise.resolve(false);
+    return raiz.navigator.wakeLock
+      .request("screen")
+      .then(function (t) {
+        travaTela = t;
+        t.addEventListener("release", function () { travaTela = null; });
+        return true;
+      })
+      .catch(function () { return false; });
+  }
+
+  function manterTelaAcesa(ligar) {
+    querTelaAcesa = !!ligar;
+    if (!querTelaAcesa) {
+      if (vigiaTela) { doc.removeEventListener("visibilitychange", vigiaTela); vigiaTela = null; }
+      if (travaTela) {
+        try { travaTela.release(); } catch (e) {}
+        travaTela = null;
+      }
+      return Promise.resolve(false);
+    }
+    if (doc && !vigiaTela) {
+      vigiaTela = function () { if (doc.visibilityState === "visible") conquistarTrava(); };
+      doc.addEventListener("visibilitychange", vigiaTela);
+    }
+    return conquistarTrava();
+  }
+
+  /* ------------------------------------------------------------------
+   * MARCAR / LIMPAR — os dois unicos que um modulo costuma chamar
+   * ------------------------------------------------------------------ */
+  function marcar(opcoes) {
+    var o = opcoes || {};
+    var contagem = parseInt(o.contagem, 10) || 0;
+    marcarTitulo(contagem);
+    if (contagem > 0) marcarFavicone(contagem);
+    else limparFavicone();
+    if (o.notificar && ondeEstaOMedico() === "fora") {
+      return notificar({
+        titulo: o.titulo,
+        corpo: o.corpo,
+        tag: o.tag,
+        exigeInteracao: o.exigeInteracao,
+        aoClicar: o.aoClicar,
+      });
+    }
+    return null;
+  }
+
+  function limpar() {
+    limparTitulo();
+    limparFavicone();
+  }
+
+  raiz.MeedsSuiteAtencao = {
+    ondeEstaOMedico: ondeEstaOMedico,
+    aoMudarAtencao: aoMudarAtencao,
+    marcar: marcar,
+    limpar: limpar,
+    notificar: notificar,
+    suportaNotificacao: suportaNotificacao,
+    permissaoDeNotificacao: permissaoDeNotificacao,
+    pedirPermissaoDeNotificacao: pedirPermissaoDeNotificacao,
+    suportaTelaAcesa: suportaTelaAcesa,
+    manterTelaAcesa: manterTelaAcesa,
+    /* expostos para teste */
+    _marcarTitulo: marcarTitulo,
+    _limparTitulo: limparTitulo,
   };
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
@@ -5244,7 +5600,7 @@
    * versao aqui nem no bootloader — so no manifest.
    * O valor de reserva existe para o arquivo continuar rodavel solto,
    * fora do pacote (por exemplo num teste unitario). */
-  var VERSAO_NUCLEO = "2.21.0" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.21.0";
+  var VERSAO_NUCLEO = "2.22.0" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.22.0";
 
   var Auth = raiz.MeedsSuiteAuth;
   var Dock = raiz.MeedsSuiteDock;
@@ -5869,10 +6225,10 @@
   raiz.MEEDS_MARCAS = {"_leia_me":"TRADUTOR de nome comercial para principio ativo. ATENCAO: esta tabela NUNCA e fonte de medicamento. Ela so ajuda a ENCONTRAR o item dentro da REMUME do municipio — a REMUME (modules/remume/remumes.json) e a unica fonte de verdade. Se o principio ativo traduzido nao estiver na REMUME daquele municipio, o Assistente avisa que nao consta e NAO oferece o item. Para acrescentar uma marca, copie um bloco abaixo e rode 'npm run build'. Ver docs/MANUAL-ADMIN.md.","_campos":{"marca":"O que o medico digita (nome comercial, sigla ou nome alternativo).","principioAtivo":"O nome que se procura dentro da REMUME.","observacao":"Opcional. Aparece so na documentacao, nao na tela."},"_total":252,"marcas":[{"marca":"AAS","principioAtivo":"Ácido acetilsalicílico","observacao":"Sigla de uso corrente."},{"marca":"Acetaminofeno","principioAtivo":"Paracetamol","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Acfol","principioAtivo":"Acido Folico","observacao":""},{"marca":"Actilyse","principioAtivo":"Alteplase","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Adalat","principioAtivo":"Nifedipino","observacao":""},{"marca":"Adalat Oros","principioAtivo":"Nifedipina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Addera","principioAtivo":"Colecalciferol","observacao":""},{"marca":"Adenocard","principioAtivo":"Adenosina","observacao":""},{"marca":"Advil","principioAtivo":"Ibuprofeno","observacao":""},{"marca":"Aerolin","principioAtivo":"Salbutamol","observacao":""},{"marca":"Akineton","principioAtivo":"Biperideno","observacao":""},{"marca":"Aldactone","principioAtivo":"Espironolactona","observacao":""},{"marca":"Aldomet","principioAtivo":"Metildopa","observacao":""},{"marca":"Alivium","principioAtivo":"Ibuprofeno","observacao":""},{"marca":"Allegra","principioAtivo":"Fexofenadina","observacao":""},{"marca":"Amox","principioAtivo":"Amoxicilina","observacao":""},{"marca":"Amoxil","principioAtivo":"Amoxicilina","observacao":""},{"marca":"Amplictil","principioAtivo":"Clorpromazina","observacao":""},{"marca":"Amytril","principioAtivo":"Amitriptilina","observacao":""},{"marca":"Ancoron","principioAtivo":"Amiodarona","observacao":""},{"marca":"Angipress","principioAtivo":"Atenolol","observacao":""},{"marca":"Antak","principioAtivo":"Ranitidina","observacao":""},{"marca":"Apresolina","principioAtivo":"Hidralazina","observacao":""},{"marca":"Apressolina","principioAtivo":"Hidralazina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Aprovel","principioAtivo":"Irbesartana","observacao":""},{"marca":"Aradois","principioAtivo":"Losartana","observacao":""},{"marca":"Asmafen","principioAtivo":"Aminofilina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Aspirina","principioAtivo":"Ácido acetilsalicílico","observacao":""},{"marca":"Astromicin","principioAtivo":"Azitromicina","observacao":""},{"marca":"Atensina","principioAtivo":"Clonidina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Atlansil","principioAtivo":"Amiodarona","observacao":""},{"marca":"Atrovent","principioAtivo":"Ipratropio","observacao":""},{"marca":"Bactrim","principioAtivo":"Sulfametoxazol","observacao":""},{"marca":"Bactroban","principioAtivo":"Mupirocina","observacao":""},{"marca":"Balcor","principioAtivo":"Diltiazem","observacao":""},{"marca":"Benerva","principioAtivo":"Tiamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Benzetacil","principioAtivo":"Penicilina","observacao":""},{"marca":"Buscopam Composto","principioAtivo":"Escopolamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Buscopan","principioAtivo":"Escopolamina","observacao":""},{"marca":"Buscopan","principioAtivo":"Butilbrometo","observacao":""},{"marca":"Buscopan Composto","principioAtivo":"Escopolamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Buscopan Simples","principioAtivo":"Escopolamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Busonid","principioAtivo":"Budesonida","observacao":""},{"marca":"Capoten","principioAtivo":"Captopril","observacao":""},{"marca":"Cardilol","principioAtivo":"Carvedilol","observacao":""},{"marca":"Cardizem","principioAtivo":"Diltiazem","observacao":""},{"marca":"Cataflam","principioAtivo":"Diclofenaco","observacao":""},{"marca":"Cimetidan","principioAtivo":"Cimetidina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Cipramil","principioAtivo":"Citalopram","observacao":""},{"marca":"Cipro","principioAtivo":"Ciprofloxacino","observacao":""},{"marca":"Ciproxin","principioAtivo":"Ciprofloxacino","observacao":""},{"marca":"Citalor","principioAtivo":"Atorvastatina","observacao":""},{"marca":"Citoneurin","principioAtivo":"Complexo B","observacao":""},{"marca":"Claritine","principioAtivo":"Loratadina","observacao":""},{"marca":"Clavulin","principioAtivo":"Clavulanato","observacao":""},{"marca":"Clenil","principioAtivo":"Beclometasona","observacao":""},{"marca":"Clexane","principioAtivo":"Enoxaparina","observacao":""},{"marca":"Clisterol","principioAtivo":"Glicerina Clister","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Clorana","principioAtivo":"Hidroclorotiazida","observacao":""},{"marca":"Combiron","principioAtivo":"Sulfato Ferroso","observacao":""},{"marca":"Coreg","principioAtivo":"Carvedilol","observacao":""},{"marca":"Coumadin","principioAtivo":"Varfarina","observacao":""},{"marca":"Cozaar","principioAtivo":"Losartana","observacao":""},{"marca":"Crestor","principioAtivo":"Rosuvastatina","observacao":""},{"marca":"Cymbalta","principioAtivo":"Duloxetina","observacao":""},{"marca":"Cytotec","principioAtivo":"Misoprostol","observacao":""},{"marca":"Daforin","principioAtivo":"Fluoxetina","observacao":""},{"marca":"Daktarin","principioAtivo":"Miconazol","observacao":""},{"marca":"Dalacin","principioAtivo":"Clindamicina","observacao":""},{"marca":"Dalacin C","principioAtivo":"Clindamicina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Daonil","principioAtivo":"Glibenclamida","observacao":""},{"marca":"Decadron","principioAtivo":"Dexametasona","observacao":""},{"marca":"Depakene","principioAtivo":"Valproato","observacao":""},{"marca":"Depakote","principioAtivo":"Valproato","observacao":""},{"marca":"Dermazine","principioAtivo":"Sulfadiazina Prata","observacao":""},{"marca":"Desalex","principioAtivo":"Desloratadina","observacao":""},{"marca":"Deslanol","principioAtivo":"Deslanosídeo","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Despacilina","principioAtivo":"Benzilpenicilina Potássica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Diamicron","principioAtivo":"Gliclazida","observacao":""},{"marca":"Digesan","principioAtivo":"Bromoprida","observacao":""},{"marca":"Dimorf","principioAtivo":"Morfina","observacao":""},{"marca":"Diovan","principioAtivo":"Valsartana","observacao":""},{"marca":"Diprivan","principioAtivo":"Propofol","observacao":""},{"marca":"Diprospan","principioAtivo":"Betametasona","observacao":""},{"marca":"Dobutrex","principioAtivo":"Dobutamina","observacao":""},{"marca":"Dormonid","principioAtivo":"Midazolam","observacao":""},{"marca":"Dulcolax","principioAtivo":"Bisacodil","observacao":""},{"marca":"Efexor","principioAtivo":"Venlafaxina","observacao":""},{"marca":"Efortil","principioAtivo":"Etilefrina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Eliquis","principioAtivo":"Apixabana","observacao":""},{"marca":"Elocom","principioAtivo":"Mometasona","observacao":""},{"marca":"Epinefrina","principioAtivo":"Adrenalina","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Esmeron","principioAtivo":"Rocurônio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Euthyrox","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Fenergan","principioAtivo":"Prometazina","observacao":""},{"marca":"Fenocris","principioAtivo":"Fenobarbital Sódico","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Fentanil","principioAtivo":"Fentanila","observacao":""},{"marca":"Flagyl","principioAtivo":"Metronidazol","observacao":""},{"marca":"Flixotide","principioAtivo":"Fluticasona","observacao":""},{"marca":"Fluconal","principioAtivo":"Fluconazol","observacao":""},{"marca":"Folacin","principioAtivo":"Acido Folico","observacao":""},{"marca":"Franol","principioAtivo":"Efedrina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Garamicina","principioAtivo":"Gentamicina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Gardenal","principioAtivo":"Fenobarbital","observacao":""},{"marca":"Gentamisan","principioAtivo":"Gentamicina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Glifage","principioAtivo":"Metformina","observacao":""},{"marca":"Glucoformin","principioAtivo":"Metformina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Haldol","principioAtivo":"Haloperidol","observacao":""},{"marca":"Hctz","principioAtivo":"Hidroclorotiazida","observacao":""},{"marca":"Hidantal","principioAtivo":"Fenitoina","observacao":""},{"marca":"Hidraplex","principioAtivo":"Sais para reidratação oral","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Higroton","principioAtivo":"Clortalidona","observacao":""},{"marca":"Hixizine","principioAtivo":"Hidroxizina","observacao":""},{"marca":"Humulin","principioAtivo":"Insulina","observacao":""},{"marca":"Hypnomidate","principioAtivo":"Etomidato","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Imosec","principioAtivo":"Loperamida","observacao":""},{"marca":"Inderal","principioAtivo":"Propranolol","observacao":""},{"marca":"Insunorm","principioAtivo":"Insulina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Iruxol","principioAtivo":"Colagenase","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Kanakion","principioAtivo":"Fitomenadiona","observacao":""},{"marca":"Kanakion Im/sc","principioAtivo":"Fitomenadiona","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Kcl","principioAtivo":"Cloreto de potássio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Keflex","principioAtivo":"Cefalexina","observacao":""},{"marca":"Keppra","principioAtivo":"Levetiracetam","observacao":""},{"marca":"Ketamin","principioAtivo":"Escetamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Klaricid","principioAtivo":"Claritromicina","observacao":""},{"marca":"Label","principioAtivo":"Ranitidina","observacao":""},{"marca":"Lactulona","principioAtivo":"Lactulose","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Lamisil","principioAtivo":"Terbinafina","observacao":""},{"marca":"Lanexat","principioAtivo":"Flumazenil","observacao":""},{"marca":"Lasix","principioAtivo":"Furosemida","observacao":""},{"marca":"Levaquin","principioAtivo":"Levofloxacino","observacao":""},{"marca":"Lexapro","principioAtivo":"Escitalopram","observacao":""},{"marca":"Lexotan","principioAtivo":"Bromazepam","observacao":""},{"marca":"Lioresal","principioAtivo":"Baclofeno","observacao":""},{"marca":"Lipitor","principioAtivo":"Atorvastatina","observacao":""},{"marca":"Liquemine","principioAtivo":"Heparina","observacao":""},{"marca":"Liquemine EV","principioAtivo":"Heparina Sódica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Liquemine Sc","principioAtivo":"Heparina Sódica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Lopressor","principioAtivo":"Metoprolol","observacao":""},{"marca":"Loranil","principioAtivo":"Loratadina","observacao":""},{"marca":"Lorax","principioAtivo":"Lorazepam","observacao":""},{"marca":"Losec","principioAtivo":"Omeprazol","observacao":""},{"marca":"Luftal","principioAtivo":"Simeticona","observacao":""},{"marca":"Lyrica","principioAtivo":"Pregabalina","observacao":""},{"marca":"Macrodantina","principioAtivo":"Nitrofurantoina","observacao":""},{"marca":"Manitol 20%","principioAtivo":"Manitol","observacao":""},{"marca":"Marcaina","principioAtivo":"Bupivacaina","observacao":""},{"marca":"Marevan","principioAtivo":"Varfarina","observacao":""},{"marca":"Metamizol","principioAtivo":"Dipirona","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Meticorten","principioAtivo":"Prednisona","observacao":""},{"marca":"Micardis","principioAtivo":"Telmisartana","observacao":""},{"marca":"Micostatin","principioAtivo":"Nistatina","observacao":""},{"marca":"Miosan","principioAtivo":"Ciclobenzaprina","observacao":""},{"marca":"Motilium","principioAtivo":"Domperidona","observacao":""},{"marca":"Movatec","principioAtivo":"Meloxicam","observacao":""},{"marca":"Nacl 0,9%.","principioAtivo":"Cloreto de Sódio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Nacl 20%.","principioAtivo":"Cloreto de Sódio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Narcan","principioAtivo":"Naloxona","observacao":""},{"marca":"Naropin","principioAtivo":"Ropivacaina","observacao":""},{"marca":"Nasonex","principioAtivo":"Mometasona","observacao":""},{"marca":"Natrilix","principioAtivo":"Indapamida","observacao":""},{"marca":"Nebacetin","principioAtivo":"Neomicina + bacitracina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Neocaina","principioAtivo":"Bupivacaina","observacao":""},{"marca":"Neozine","principioAtivo":"Levomepromazina","observacao":""},{"marca":"Nepresol","principioAtivo":"Hidralazina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Neurontin","principioAtivo":"Gabapentina","observacao":""},{"marca":"Nexium","principioAtivo":"Esomeprazol","observacao":""},{"marca":"Nipride","principioAtivo":"Nitroprusseto de Sódio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Nisulid","principioAtivo":"Nimesulida","observacao":""},{"marca":"Nizoral","principioAtivo":"Cetoconazol","observacao":""},{"marca":"Noradrenalina","principioAtivo":"Norepinefrina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Norepinefrina","principioAtivo":"Noradrenalina","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Norvasc","principioAtivo":"Anlodipino","observacao":""},{"marca":"Novalgina","principioAtivo":"Dipirona","observacao":""},{"marca":"Novolin","principioAtivo":"Insulina","observacao":""},{"marca":"Pantoc","principioAtivo":"Pantoprazol","observacao":""},{"marca":"Pantozol","principioAtivo":"Pantoprazol","observacao":""},{"marca":"Peprazol","principioAtivo":"Omeprazol","observacao":""},{"marca":"Plasil","principioAtivo":"Metoclopramida","observacao":""},{"marca":"Plavix","principioAtivo":"Clopidogrel","observacao":""},{"marca":"Polaramine","principioAtivo":"Dexclorfeniramina","observacao":""},{"marca":"Pradaxa","principioAtivo":"Dabigatrana","observacao":""},{"marca":"Prazol","principioAtivo":"Lansoprazol","observacao":""},{"marca":"Predi-medrol","principioAtivo":"Metilprednisolona","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Prelone","principioAtivo":"Prednisolona","observacao":""},{"marca":"Profenid","principioAtivo":"Cetoprofeno","observacao":""},{"marca":"Prolopa","principioAtivo":"Levodopa","observacao":""},{"marca":"Propecia","principioAtivo":"Finasterida","observacao":""},{"marca":"Propovan","principioAtivo":"Propofol","observacao":""},{"marca":"Proscar","principioAtivo":"Finasterida","observacao":""},{"marca":"Prostigmine","principioAtivo":"Neostigmina","observacao":""},{"marca":"Prostokos","principioAtivo":"Misoprostol","observacao":""},{"marca":"Prozac","principioAtivo":"Fluoxetina","observacao":""},{"marca":"Pulmicort","principioAtivo":"Budesonida","observacao":""},{"marca":"Puran T4","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Renitec","principioAtivo":"Enalapril","observacao":""},{"marca":"Revivan","principioAtivo":"Dopamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Ringer Lactato","principioAtivo":"Ringer","observacao":""},{"marca":"Risperdal","principioAtivo":"Risperidona","observacao":""},{"marca":"Rivotril","principioAtivo":"Clonazepam","observacao":""},{"marca":"Rocefin","principioAtivo":"Ceftriaxona","observacao":""},{"marca":"Scabin","principioAtivo":"Permetrina","observacao":""},{"marca":"Secotex","principioAtivo":"Tansulosina","observacao":""},{"marca":"Seloken","principioAtivo":"Metoprolol","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Selozok","principioAtivo":"Metoprolol","observacao":""},{"marca":"Seroquel","principioAtivo":"Quetiapina","observacao":""},{"marca":"Sevorane","principioAtivo":"Sevoflurano","observacao":""},{"marca":"Sf 0.9%","principioAtivo":"Soro Fisiologico","observacao":""},{"marca":"Sg 5%","principioAtivo":"Glicose","observacao":""},{"marca":"Singulair","principioAtivo":"Montelucaste","observacao":""},{"marca":"Sinvatrox","principioAtivo":"Sinvastatina","observacao":""},{"marca":"Solucortef","principioAtivo":"Hidrocortisona","observacao":""},{"marca":"Solumedrol","principioAtivo":"Metilprednisolona","observacao":""},{"marca":"Sorcal","principioAtivo":"Poliestirenossulfonato de Calcio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Soro Glicosado","principioAtivo":"Glicose","observacao":""},{"marca":"Staficilin","principioAtivo":"Oxacilina sódica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Succinil Colin","principioAtivo":"Suxametonio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Synthroid","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Syntocinon","principioAtivo":"Ocitocina","observacao":""},{"marca":"Tamiflu","principioAtivo":"Oseltamivir","observacao":""},{"marca":"Tavanic","principioAtivo":"Levofloxacino","observacao":""},{"marca":"Tegretol","principioAtivo":"Carbamazepina","observacao":""},{"marca":"Tolrest","principioAtivo":"Sertralina","observacao":""},{"marca":"Topamax","principioAtivo":"Topiramato","observacao":""},{"marca":"Tramal","principioAtivo":"Tramadol","observacao":""},{"marca":"Transamin","principioAtivo":"Acido Tranexamico","observacao":""},{"marca":"Triaxon","principioAtivo":"Ceftriaxona","observacao":""},{"marca":"Tridil","principioAtivo":"Nitroglicerina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Tryptanol","principioAtivo":"Amitriptilina","observacao":""},{"marca":"Tylenol","principioAtivo":"Paracetamol","observacao":""},{"marca":"Uroxacin","principioAtivo":"Norfloxacino","observacao":""},{"marca":"Valium","principioAtivo":"Diazepam","observacao":""},{"marca":"Valproico","principioAtivo":"Valproato","observacao":""},{"marca":"Valtrex","principioAtivo":"Valaciclovir","observacao":""},{"marca":"Viagra","principioAtivo":"Sildenafila","observacao":""},{"marca":"Vibramicina","principioAtivo":"Doxiciclina","observacao":""},{"marca":"Vitamina K","principioAtivo":"Fitomenadiona","observacao":""},{"marca":"Voltaren","principioAtivo":"Diclofenaco","observacao":""},{"marca":"Vonau","principioAtivo":"Ondansetrona","observacao":""},{"marca":"Xarelto","principioAtivo":"Rivaroxabana","observacao":""},{"marca":"Xylocaina","principioAtivo":"Lidocaina","observacao":""},{"marca":"Xylocaina 2% com","principioAtivo":"Lidocaína","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Xylocaina 2% Sem","principioAtivo":"Lidocaína","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Zitromax","principioAtivo":"Azitromicina","observacao":""},{"marca":"Zocor","principioAtivo":"Sinvastatina","observacao":""},{"marca":"Zofran","principioAtivo":"Ondansetrona","observacao":""},{"marca":"Zoloft","principioAtivo":"Sertralina","observacao":""},{"marca":"Zoltec","principioAtivo":"Fluconazol","observacao":""},{"marca":"Zovirax","principioAtivo":"Aciclovir","observacao":""},{"marca":"Zyprexa","principioAtivo":"Olanzapina","observacao":""},{"marca":"Zyrtec","principioAtivo":"Cetirizina","observacao":""}]};
 
   /* ===== dados/changelog.json ===== */
-  raiz.MEEDS_CHANGELOG = {"_leia_me":"Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.","versoes":[{"versao":"2.21.0","data":"2026-09-03","novidades":["O backup agora salva também as unidades cadastradas, não só os médicos. Quem troca de computador não perde mais a unidade que digitou à mão."],"melhorias":["Telas mais curtas: a de boas-vindas caiu de cinco parágrafos para dois, e o painel da engrenagem perdeu os textos que se repetiam.","A lista de funções não mostra mais um número de versão para cada uma. A versão do Assistente continua na aba Sobre.","Na aba Unidades, quando não há nenhuma cadastrada, a tela agora explica que elas aparecem sozinhas ao escolher o município na APAC — antes parecia que era preciso digitar tudo à mão."],"correcoes":["A tela de boas-vindas mandava usar o botão ✕ para recolher os botões, mas ele passou a ser o ⌄.","Na Consulta REMUME, o cabeçalho dizia “município não identificado” mesmo depois de você escolher o município na lista logo abaixo. Agora ele só aparece quando o município vem do próprio atendimento."]},{"versao":"2.20.0","data":"2026-09-03","novidades":["Os botões agora ficam translúcidos quando você não está usando, e voltam ao normal assim que você aproxima o mouse (ou toca, no iPad). Assim eles param de atrapalhar a leitura da tela. Dá para desligar em ⚙️ → Funções."],"melhorias":["Minimizar e expandir voltou a ser só no clique da alça. A caixa não abre mais sozinha quando o mouse passa perto do canto, nem fecha no meio do caminho quando você vai clicar num botão. O ícone virou ⌄ em vez de ✕, porque ele tira do caminho e não fecha nada."],"correcoes":["O alarme de fila nunca fica translúcido: se a fila encher, ele aparece inteiro mesmo com a caixa minimizada."]},{"versao":"2.19.1","data":"2026-09-03","novidades":["A APAC de Betim e a de Sete Lagoas já vêm com os estabelecimentos cadastrados: em Betim, o Centro R e Especialidades Divino Ferreira Braga; em Sete Lagoas, Saúde Auditiva, UBS Cidade de Deus e UBS Belo Vale — as mesmas do laudo de Sete Lagoas. Não é preciso digitar o CNES."],"melhorias":[],"correcoes":["Quando o município tinha mais de uma unidade, a primeira da lista aparecia escolhida sozinha e o CNES dela ia para a APAC sem você ter selecionado nada. Agora, com duas ou mais unidades, nenhuma vem marcada — e trocar de município limpa a escolha."]},{"versao":"2.19.0","data":"2026-09-03","novidades":["O gerador de APAC deixou de ser exclusivo de Itaúna. Agora o primeiro campo do formulário é o Município, e a mesma tela atende Itaúna, Betim e Sete Lagoas. Quando o atendimento identifica a cidade, ela já vem escolhida."],"melhorias":["O estabelecimento e o CNES passaram a ser guardados por município: ao trocar de cidade, a lista mostra só as unidades daquela cidade. Isso impede uma APAC sair com o CNES de outro município, que é motivo de devolução pela regulação.","As APACs que você já tinha gerado continuam no histórico e podem ser reabertas normalmente."],"correcoes":["Na tela de erro, o campo do médico solicitante era chamado de “Selecionar”. Agora aparece pelo nome."]},{"versao":"2.18.0","data":"2026-09-01","novidades":[],"melhorias":["A busca de CID-10 dentro dos laudos e a prévia do documento passam a ficar sempre ligadas. Elas não são funções separadas — são melhorias do próprio formulário —, então saíram da lista de liga/desliga do painel."],"correcoes":[]},{"versao":"2.17.1","data":"2026-09-01","novidades":["A REMUME de Barbacena agora inclui os 161 medicamentos padronizados da UPA, com o selo “UPA” ao lado de cada um. Os itens das UBS, CTA/CEM e CAF continuam como estavam."],"melhorias":["47 nomes comerciais novos na busca: procurar por “Atensina”, “Buscopan Composto”, “Lactulona” ou “Nipride” já encontra o princípio ativo."],"correcoes":[]},{"versao":"2.16.0","data":"2026-09-01","novidades":[],"melhorias":["A busca de medicamentos ficou muito mais direta. Procurar \"acetilcisteína comprimido\" devolvia 159 itens; agora devolve os 2 certos. Palavras como \"comprimido\", \"solução\" ou a sigla da unidade agora servem para ordenar o resultado, não para inchar a lista. Em Macaé, dois itens com dipirona que ficavam escondidos no fim da lista voltaram a aparecer."],"correcoes":["A sugestão \"você quis dizer\" mostrava nomes cortados no meio, como \"Piridoxina (Vitamina B\" em vez de \"Piridoxina (Vitamina B6)\". Corrigido em todos os municípios."]},{"versao":"2.15.0","data":"2026-09-01","novidades":["Os botões agora recolhem. O ✕ no canto guarda todos e libera a tela; no computador basta aproximar o mouse do canto para eles voltarem, e no iPad é um toque no ☰. Se a fila de espera encher, o alarme aparece sozinho mesmo com tudo recolhido."],"melhorias":["O painel Sobre agora informa se suas configurações estão sendo salvas de forma permanente neste navegador."],"correcoes":["No iPad, o cadastro de médicos, o histórico de laudos e as configurações se perdiam toda vez que você saía do Meeds. Agora ficam guardados de verdade."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":["A checagem de atualização ficou muito mais leve: o Tampermonkey passa a baixar 1 KB para saber se há versão nova, em vez de mais de 1 MB."],"correcoes":["Correções internas na Sala de Espera, que está em standby: a consulta de confirmação não estava sendo executada."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":[],"correcoes":["As funções que você desliga continuam desligadas depois do logout. Antes, o Meeds apagava a configuração ao sair e todos os botões voltavam no acesso seguinte. O que você já tinha configurado é aproveitado, não precisa remarcar nada."]},{"versao":"2.13.1","data":"2026-08-31","novidades":[],"melhorias":[],"correcoes":["No iPad, o Assistente aparecia instalado e mesmo assim não fazia nada: a proteção de conteúdo do Meeds bloqueava a execução. Corrigido. Se o navegador precisar isolar o Assistente, o alarme de fila passa a decidir só pelo que aparece na tela, e o painel Sobre avisa quando isso acontece."]},{"versao":"2.13.0","data":"2026-08-31","novidades":["Agora dá para usar o Assistente no iPad e no iPhone, pelo Safari, com o app gratuito Userscripts. O passo a passo está no guia do iPad."],"melhorias":[],"correcoes":[]},{"versao":"2.12.0","data":"2026-08-31","novidades":["Nova função “Prévia do documento”: veja o PDF ao lado do formulário enquanto preenche, nos geradores de APAC e de laudo. É o mesmo arquivo que será baixado — nada de aproximação."],"melhorias":["A prévia vem desligada; abra pelo botão 👁 Prévia no alto do gerador. O tamanho do painel fica do jeito que você deixar."],"correcoes":[]},{"versao":"2.11.0","data":"2026-08-31","novidades":["Agora dá para enviar feedback direto do painel: conte um problema ou uma ideia, e a mensagem vai pronta para quem cuida do Assistente."],"melhorias":["O painel da engrenagem foi reorganizado em abas — Funções, Médicos, Unidades e Sobre. Antes era tudo numa rolagem só.","Os formulários de cadastro começam fechados: a lista fica limpa, e o formulário abre quando você pede."],"correcoes":[]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["O contador da Sala de Espera passou a mostrar só quem realmente chegou — antes contava também quem tinha consulta marcada e ainda não tinha aparecido."],"correcoes":["A Sala de Espera não avisava quando o paciente agendado chegava. O aviso agora sai na hora em que a chegada é marcada na tela nativa.","Se a internet oscilasse, a fila podia parecer vazia por um instante. Agora a última leitura válida é mantida até a próxima tentativa."]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID passou a funcionar também nos campos de CID secundário e associados da APAC — antes só o principal tinha."],"correcoes":[]},{"versao":"2.9.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID-10 agora vive dentro do próprio campo do laudo. O botão separado saiu: havia dois caminhos para a mesma coisa.","Digitar o código sem o ponto funciona: “J069” encontra J06.9."],"correcoes":["O campo CID mostrava duas listas de sugestão ao mesmo tempo, uma por cima da outra.","Depois de escolher um CID, a lista de sugestões reaparecia sozinha."]},{"versao":"2.8.0","data":"2026-08-31","novidades":["O CID-10 agora fica dentro do próprio laudo: clique no campo CID, digite o nome da doença ou o código, escolha — o código e a descrição entram sozinhos. Vale nos três geradores."],"melhorias":["A busca de CID-10 ficou muito mais rápida e não trava mais a tela: buscas comuns que levavam mais de um segundo agora respondem quase na hora.","A lista de resultados mostra os 50 mais relevantes e diz quantos ficaram de fora, em vez de tentar desenhar milhares de linhas."],"correcoes":["A apresentação “Bem-vindo ao Assistente Meeds” aparecia toda vez que você abria o Meeds. Agora aparece uma vez só."]},{"versao":"2.7.0","data":"2026-08-31","novidades":["Nova função “Sala de Espera”: avisa, sem som, quando um paciente de consulta agendada chega — com o nome, a hora marcada e há quanto tempo espera.","O botão da Sala de Espera mostra quantos pacientes estão aguardando, e abre a lista completa."],"melhorias":["Vários pacientes chegando ao mesmo tempo viram um aviso só, que conta quantos são."],"correcoes":[]},{"versao":"2.6.0","data":"2026-08-30","novidades":["A consulta REMUME passou a entender nome comercial: digite “Tylenol” e ela mostra o paracetamol do seu município.","Quando o remédio procurado não é padronizado no município, o Assistente diz isso com todas as letras, em vez de mostrar uma lista vazia."],"melhorias":["A busca ficou mais tolerante a erro de digitação em português: “dipironá” encontra Dipirona e “cimvastatina” encontra Sinvastatina.","A lista de nomes comerciais saiu do código e virou um arquivo que o administrador edita sozinho."],"correcoes":[]},{"versao":"2.5.0","data":"2026-08-30","novidades":["Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.","O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."],"melhorias":["Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."],"correcoes":["O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."]},{"versao":"2.4.0","data":"2026-08-30","novidades":["Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.","O código escolhido na busca entra sozinho no laudo que estiver aberto.","Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.","Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."],"melhorias":["O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.","O CPF se formata sozinho enquanto você digita.","Com um único médico cadastrado, ele já vem selecionado nos laudos.","As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.","O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."],"correcoes":["O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.","Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."]},{"versao":"2.3.0","data":"2026-08-30","novidades":["Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."],"melhorias":["Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."],"correcoes":[]},{"versao":"2.2.0","data":"2026-08-30","novidades":["Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."],"melhorias":["Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."],"correcoes":["Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."]},{"versao":"2.0.0","data":"2026-08-30","novidades":["Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."],"melhorias":[],"correcoes":[]}]};
+  raiz.MEEDS_CHANGELOG = {"_leia_me":"Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.","versoes":[{"versao":"2.22.0","data":"2026-09-04","novidades":["O alarme de fila agora avisa mesmo quando você não está na aba do Meeds: aparece uma notificação do sistema, com o navegador minimizado inclusive. Clicar nela traz o Meeds para frente e silencia — se você não atender, o alarme volta em 5 minutos. Ative em ⚙️ › Alarme de fila.","A aba do navegador passa a mostrar quantos estão esperando, no título e no ícone: “(3) Meeds”. O número continua ali depois de você silenciar, porque os pacientes continuam na fila, e some sozinho quando a fila esvazia.","Nova opção para impedir a tela de apagar durante o plantão — feita para o iPad, onde alarme que toca com a tela apagada é alarme perdido."],"melhorias":["O banner do alarme agora diz por que está tocando: “3 aguardando · o mais antigo há pelo menos 12 min”.","O título da aba não pisca mais “NOVO PACIENTE NA FILA”. Piscar disputa sua atenção a cada segundo e sumia quando você trocava de tela; o contador fica parado e é legível de relance.","Quem usa “reduzir movimento” no computador ou no iPad não vê mais nada pulsando. O alarme continua igual: som, vermelho e texto."],"correcoes":["No painel do alarme, as bolinhas de escolha e as caixas de seleção apareciam acima do texto, em vez de ao lado."]},{"versao":"2.21.0","data":"2026-09-03","novidades":["O backup agora salva também as unidades cadastradas, não só os médicos. Quem troca de computador não perde mais a unidade que digitou à mão."],"melhorias":["Telas mais curtas: a de boas-vindas caiu de cinco parágrafos para dois, e o painel da engrenagem perdeu os textos que se repetiam.","A lista de funções não mostra mais um número de versão para cada uma. A versão do Assistente continua na aba Sobre.","Na aba Unidades, quando não há nenhuma cadastrada, a tela agora explica que elas aparecem sozinhas ao escolher o município na APAC — antes parecia que era preciso digitar tudo à mão."],"correcoes":["A tela de boas-vindas mandava usar o botão ✕ para recolher os botões, mas ele passou a ser o ⌄.","Na Consulta REMUME, o cabeçalho dizia “município não identificado” mesmo depois de você escolher o município na lista logo abaixo. Agora ele só aparece quando o município vem do próprio atendimento."]},{"versao":"2.20.0","data":"2026-09-03","novidades":["Os botões agora ficam translúcidos quando você não está usando, e voltam ao normal assim que você aproxima o mouse (ou toca, no iPad). Assim eles param de atrapalhar a leitura da tela. Dá para desligar em ⚙️ → Funções."],"melhorias":["Minimizar e expandir voltou a ser só no clique da alça. A caixa não abre mais sozinha quando o mouse passa perto do canto, nem fecha no meio do caminho quando você vai clicar num botão. O ícone virou ⌄ em vez de ✕, porque ele tira do caminho e não fecha nada."],"correcoes":["O alarme de fila nunca fica translúcido: se a fila encher, ele aparece inteiro mesmo com a caixa minimizada."]},{"versao":"2.19.1","data":"2026-09-03","novidades":["A APAC de Betim e a de Sete Lagoas já vêm com os estabelecimentos cadastrados: em Betim, o Centro R e Especialidades Divino Ferreira Braga; em Sete Lagoas, Saúde Auditiva, UBS Cidade de Deus e UBS Belo Vale — as mesmas do laudo de Sete Lagoas. Não é preciso digitar o CNES."],"melhorias":[],"correcoes":["Quando o município tinha mais de uma unidade, a primeira da lista aparecia escolhida sozinha e o CNES dela ia para a APAC sem você ter selecionado nada. Agora, com duas ou mais unidades, nenhuma vem marcada — e trocar de município limpa a escolha."]},{"versao":"2.19.0","data":"2026-09-03","novidades":["O gerador de APAC deixou de ser exclusivo de Itaúna. Agora o primeiro campo do formulário é o Município, e a mesma tela atende Itaúna, Betim e Sete Lagoas. Quando o atendimento identifica a cidade, ela já vem escolhida."],"melhorias":["O estabelecimento e o CNES passaram a ser guardados por município: ao trocar de cidade, a lista mostra só as unidades daquela cidade. Isso impede uma APAC sair com o CNES de outro município, que é motivo de devolução pela regulação.","As APACs que você já tinha gerado continuam no histórico e podem ser reabertas normalmente."],"correcoes":["Na tela de erro, o campo do médico solicitante era chamado de “Selecionar”. Agora aparece pelo nome."]},{"versao":"2.18.0","data":"2026-09-01","novidades":[],"melhorias":["A busca de CID-10 dentro dos laudos e a prévia do documento passam a ficar sempre ligadas. Elas não são funções separadas — são melhorias do próprio formulário —, então saíram da lista de liga/desliga do painel."],"correcoes":[]},{"versao":"2.17.1","data":"2026-09-01","novidades":["A REMUME de Barbacena agora inclui os 161 medicamentos padronizados da UPA, com o selo “UPA” ao lado de cada um. Os itens das UBS, CTA/CEM e CAF continuam como estavam."],"melhorias":["47 nomes comerciais novos na busca: procurar por “Atensina”, “Buscopan Composto”, “Lactulona” ou “Nipride” já encontra o princípio ativo."],"correcoes":[]},{"versao":"2.16.0","data":"2026-09-01","novidades":[],"melhorias":["A busca de medicamentos ficou muito mais direta. Procurar \"acetilcisteína comprimido\" devolvia 159 itens; agora devolve os 2 certos. Palavras como \"comprimido\", \"solução\" ou a sigla da unidade agora servem para ordenar o resultado, não para inchar a lista. Em Macaé, dois itens com dipirona que ficavam escondidos no fim da lista voltaram a aparecer."],"correcoes":["A sugestão \"você quis dizer\" mostrava nomes cortados no meio, como \"Piridoxina (Vitamina B\" em vez de \"Piridoxina (Vitamina B6)\". Corrigido em todos os municípios."]},{"versao":"2.15.0","data":"2026-09-01","novidades":["Os botões agora recolhem. O ✕ no canto guarda todos e libera a tela; no computador basta aproximar o mouse do canto para eles voltarem, e no iPad é um toque no ☰. Se a fila de espera encher, o alarme aparece sozinho mesmo com tudo recolhido."],"melhorias":["O painel Sobre agora informa se suas configurações estão sendo salvas de forma permanente neste navegador."],"correcoes":["No iPad, o cadastro de médicos, o histórico de laudos e as configurações se perdiam toda vez que você saía do Meeds. Agora ficam guardados de verdade."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":["A checagem de atualização ficou muito mais leve: o Tampermonkey passa a baixar 1 KB para saber se há versão nova, em vez de mais de 1 MB."],"correcoes":["Correções internas na Sala de Espera, que está em standby: a consulta de confirmação não estava sendo executada."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":[],"correcoes":["As funções que você desliga continuam desligadas depois do logout. Antes, o Meeds apagava a configuração ao sair e todos os botões voltavam no acesso seguinte. O que você já tinha configurado é aproveitado, não precisa remarcar nada."]},{"versao":"2.13.1","data":"2026-08-31","novidades":[],"melhorias":[],"correcoes":["No iPad, o Assistente aparecia instalado e mesmo assim não fazia nada: a proteção de conteúdo do Meeds bloqueava a execução. Corrigido. Se o navegador precisar isolar o Assistente, o alarme de fila passa a decidir só pelo que aparece na tela, e o painel Sobre avisa quando isso acontece."]},{"versao":"2.13.0","data":"2026-08-31","novidades":["Agora dá para usar o Assistente no iPad e no iPhone, pelo Safari, com o app gratuito Userscripts. O passo a passo está no guia do iPad."],"melhorias":[],"correcoes":[]},{"versao":"2.12.0","data":"2026-08-31","novidades":["Nova função “Prévia do documento”: veja o PDF ao lado do formulário enquanto preenche, nos geradores de APAC e de laudo. É o mesmo arquivo que será baixado — nada de aproximação."],"melhorias":["A prévia vem desligada; abra pelo botão 👁 Prévia no alto do gerador. O tamanho do painel fica do jeito que você deixar."],"correcoes":[]},{"versao":"2.11.0","data":"2026-08-31","novidades":["Agora dá para enviar feedback direto do painel: conte um problema ou uma ideia, e a mensagem vai pronta para quem cuida do Assistente."],"melhorias":["O painel da engrenagem foi reorganizado em abas — Funções, Médicos, Unidades e Sobre. Antes era tudo numa rolagem só.","Os formulários de cadastro começam fechados: a lista fica limpa, e o formulário abre quando você pede."],"correcoes":[]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["O contador da Sala de Espera passou a mostrar só quem realmente chegou — antes contava também quem tinha consulta marcada e ainda não tinha aparecido."],"correcoes":["A Sala de Espera não avisava quando o paciente agendado chegava. O aviso agora sai na hora em que a chegada é marcada na tela nativa.","Se a internet oscilasse, a fila podia parecer vazia por um instante. Agora a última leitura válida é mantida até a próxima tentativa."]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID passou a funcionar também nos campos de CID secundário e associados da APAC — antes só o principal tinha."],"correcoes":[]},{"versao":"2.9.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID-10 agora vive dentro do próprio campo do laudo. O botão separado saiu: havia dois caminhos para a mesma coisa.","Digitar o código sem o ponto funciona: “J069” encontra J06.9."],"correcoes":["O campo CID mostrava duas listas de sugestão ao mesmo tempo, uma por cima da outra.","Depois de escolher um CID, a lista de sugestões reaparecia sozinha."]},{"versao":"2.8.0","data":"2026-08-31","novidades":["O CID-10 agora fica dentro do próprio laudo: clique no campo CID, digite o nome da doença ou o código, escolha — o código e a descrição entram sozinhos. Vale nos três geradores."],"melhorias":["A busca de CID-10 ficou muito mais rápida e não trava mais a tela: buscas comuns que levavam mais de um segundo agora respondem quase na hora.","A lista de resultados mostra os 50 mais relevantes e diz quantos ficaram de fora, em vez de tentar desenhar milhares de linhas."],"correcoes":["A apresentação “Bem-vindo ao Assistente Meeds” aparecia toda vez que você abria o Meeds. Agora aparece uma vez só."]},{"versao":"2.7.0","data":"2026-08-31","novidades":["Nova função “Sala de Espera”: avisa, sem som, quando um paciente de consulta agendada chega — com o nome, a hora marcada e há quanto tempo espera.","O botão da Sala de Espera mostra quantos pacientes estão aguardando, e abre a lista completa."],"melhorias":["Vários pacientes chegando ao mesmo tempo viram um aviso só, que conta quantos são."],"correcoes":[]},{"versao":"2.6.0","data":"2026-08-30","novidades":["A consulta REMUME passou a entender nome comercial: digite “Tylenol” e ela mostra o paracetamol do seu município.","Quando o remédio procurado não é padronizado no município, o Assistente diz isso com todas as letras, em vez de mostrar uma lista vazia."],"melhorias":["A busca ficou mais tolerante a erro de digitação em português: “dipironá” encontra Dipirona e “cimvastatina” encontra Sinvastatina.","A lista de nomes comerciais saiu do código e virou um arquivo que o administrador edita sozinho."],"correcoes":[]},{"versao":"2.5.0","data":"2026-08-30","novidades":["Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.","O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."],"melhorias":["Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."],"correcoes":["O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."]},{"versao":"2.4.0","data":"2026-08-30","novidades":["Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.","O código escolhido na busca entra sozinho no laudo que estiver aberto.","Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.","Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."],"melhorias":["O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.","O CPF se formata sozinho enquanto você digita.","Com um único médico cadastrado, ele já vem selecionado nos laudos.","As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.","O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."],"correcoes":["O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.","Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."]},{"versao":"2.3.0","data":"2026-08-30","novidades":["Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."],"melhorias":["Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."],"correcoes":[]},{"versao":"2.2.0","data":"2026-08-30","novidades":["Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."],"melhorias":["Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."],"correcoes":["Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."]},{"versao":"2.0.0","data":"2026-08-30","novidades":["Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."],"melhorias":[],"correcoes":[]}]};
 
   var __inv = {
-  "versao": "2.21.0",
+  "versao": "2.22.0",
   "contato": {
     "_leia_me": "Para onde vai o feedback do medico. O botao 'Enviar feedback' abre o programa de e-mail dele com esta mensagem ja escrita — nao ha servidor nem servico de terceiro no caminho. Troque o e-mail aqui se quem cuida do Assistente mudar.",
     "email": "marcelonovetech@gmail.com"
@@ -5881,8 +6237,8 @@
     {
       "id": "alarme-fila",
       "nome": "Alarme de Fila",
-      "descricao": "Avisa com som quando um paciente entra na fila do Pronto Atendimento, ou quando alguém espera além do tempo que você definir. Para sozinho quando a fila esvazia.",
-      "versao": "2.0.0",
+      "descricao": "Avisa com som quando um paciente entra na fila do Pronto Atendimento, ou quando alguém espera além do tempo que você definir. Se você não estiver na aba do Meeds, avisa pelo sistema — e a notificação é clicável. Para sozinho quando a fila esvazia.",
+      "versao": "2.1.0",
       "origem": "sodelfino/meeds-alarme-fila",
       "sempreAtivo": false
     },
@@ -5941,14 +6297,14 @@
    * cobre o resto: duas copias instaladas no Tampermonkey, ou uma
    * reexecucao do script numa navegacao da SPA. Sem ela, apareciam dois
    * docks sobrepostos e o alarme tocava duas vezes. */
-  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.21.0")) return;
+  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.22.0")) return;
 
   /* 2) O hook de rede precisa existir ANTES de qualquer chamada da
    * aplicacao — por isso e instalado aqui, em document-start, e nao
    * dentro do iniciar() que espera o DOM. */
   raiz.MeedsSuiteNetwork.instalar();
 
-  /* ===== modules/alarme-fila/index.js (v2.0.0) ===== */
+  /* ===== modules/alarme-fila/index.js (v2.1.0) ===== */
 /* ------------------------------------------------------------------
  * modules/alarme-fila/index.js
  * Origem: sodelfino/meeds-alarme-fila -> meeds-alarme-fila.user.js v1.4.0
@@ -6072,7 +6428,15 @@
     ".af-body { padding:16px 18px 20px; display:flex; flex-direction:column; gap:16px; }",
     ".af-body label { font-size:12.5px; font-weight:600; color:#334155; display:block; margin-bottom:6px; }",
     ".af-hint { font-size:11px; color:#94a3b8; margin-top:4px; font-weight:400; line-height:1.45; }",
-    ".af-radio-linha { display:flex; align-items:center; gap:8px; font-size:13.5px; color:#1e293b; font-weight:400; margin-bottom:8px; cursor:pointer; }",
+    /* `.af-body label` (classe + elemento) tem especificidade maior que
+       `.af-radio-linha` (so classe) e forcava display:block — a bolinha
+       do radio ficava ACIMA do texto, em vez de ao lado. Por isso o
+       seletor daqui precisa casar o elemento tambem. */
+    ".af-body label.af-radio-linha { display:flex; align-items:center; gap:8px; font-size:13.5px; color:#1e293b; font-weight:400; margin-bottom:8px; cursor:pointer; }",
+        /* Defesa: o shadow root e compartilhado por todos os modulos, entao
+       uma regra larga de outro modulo ja esticou este radio para 100%
+       uma vez. Aqui a largura e explicita. */
+    ".af-body label.af-radio-linha input { width:auto; flex:0 0 auto; margin:0; }",
     ".af-radio-linha input { cursor:pointer; }",
     "#af-tempo-espera-linha { display:flex; align-items:center; gap:8px; margin-left:24px; }",
     "#af-tempo-espera-linha input[type=number] { width:60px; padding:6px 8px; border-radius:8px; border:1.5px solid #cbd5e1; font-size:13px; }",
@@ -6088,6 +6452,8 @@
     tempoEsperaMin: 5,
     som: "sirene-classica",
     volume: 70,
+    avisarForaDaAba: true,   // notificacao do sistema quando ele nao esta na aba
+    manterTelaAcesa: false,  // Wake Lock — util no iPad, por isso nao vem ligado
   };
 
   /* --- estado do modulo (recriado a cada start, zerado a cada stop) --- */
@@ -6116,8 +6482,6 @@
   var tocando = false;
   var intervaloSirene = null;
   var timeoutLimiteSirene = null;
-  var intervaloPiscaTitulo = null;
-  var tituloOriginal = "";
   var timeoutReengate = null;
 
   /* ----------------------------------------------------------------
@@ -6229,9 +6593,47 @@
 
       limparIdsAlertadosQueSairamDaFila();
       checarSeDeveSilenciarPorFilaVazia();
+      atualizarDistintivo();
+      if (tocando) atualizarTextoDoBanner();
     } catch (e) {
       /* silencioso: sinal de reforco, nunca deve quebrar a pagina */
     }
+  }
+
+  /* ------------------------------------------------------------------
+   * RESUMO DA FILA — para o aviso dizer POR QUE esta tocando
+   * ------------------------------------------------------------------
+   * Um alarme que so grita vira ruido; um que diz "3 aguardando, o mais
+   * antigo ha 12 min" e uma informacao. O tempo aqui e contado desde que
+   * o Assistente VIU o paciente na fila, nao desde a entrada real dele —
+   * por isso o texto diz "ha pelo menos", que e o que sabemos de fato.
+   * ------------------------------------------------------------------ */
+  function resumoDaFila() {
+    var quantos = 0;
+    var maisAntigo = null;
+    idsFilaPorAssinatura.forEach(function (mapa) {
+      quantos += mapa.size;
+      mapa.forEach(function (registro) {
+        if (maisAntigo === null || registro.primeiraVezVistoEm < maisAntigo) {
+          maisAntigo = registro.primeiraVezVistoEm;
+        }
+      });
+    });
+    return {
+      quantos: quantos,
+      esperaMs: maisAntigo === null ? 0 : Date.now() - maisAntigo,
+    };
+  }
+
+  function textoDoMotivo() {
+    var r = resumoDaFila();
+    if (!r.quantos) return "Novo paciente na fila";
+    var partes = [r.quantos + (r.quantos === 1 ? " aguardando" : " aguardando")];
+    var min = Math.floor(r.esperaMs / 60000);
+    if (min >= 1) {
+      partes.push((r.quantos === 1 ? "há pelo menos " : "o mais antigo há pelo menos ") + min + " min");
+    }
+    return partes.join(" · ");
   }
 
   /* --- SINAL C: contador "Aguardando" no DOM ---------------------- */
@@ -6308,22 +6710,49 @@
     }
   }
 
-  function iniciarPiscaTitulo() {
-    if (intervaloPiscaTitulo) return;
-    tituloOriginal = document.title;
-    var ligado = false;
-    intervaloPiscaTitulo = setInterval(function () {
-      document.title = ligado ? tituloOriginal : "🚨 NOVO PACIENTE NA FILA";
-      ligado = !ligado;
-    }, 1000);
+  /* ------------------------------------------------------------------
+   * ESCADA DE ATENCAO
+   * ------------------------------------------------------------------
+   * O titulo piscando "🚨 NOVO PACIENTE NA FILA" saiu. Piscar disputa a
+   * atencao a cada segundo e nao sobrevive a uma troca de tela da SPA;
+   * "(3) Meeds" fica parado, e legivel de relance na barra de abas e e o
+   * mesmo padrao que o medico ja le sem pensar no Gmail e no Slack.
+   *
+   * O distintivo acompanha a FILA, nao o alarme: ele continua ali depois
+   * de silenciar, porque os pacientes continuam ali. Quem some quando a
+   * fila esvazia e ele mesmo.
+   * ------------------------------------------------------------------ */
+  function atencao() {
+    return raiz.MeedsSuiteAtencao || null;
   }
 
-  function pararPiscaTitulo() {
-    if (intervaloPiscaTitulo) {
-      clearInterval(intervaloPiscaTitulo);
-      intervaloPiscaTitulo = null;
-    }
-    if (tituloOriginal) document.title = tituloOriginal;
+  function atualizarDistintivo() {
+    var A = atencao();
+    if (!A) return;
+    var r = resumoDaFila();
+    if (r.quantos > 0) A.marcar({ contagem: r.quantos });
+    else A.limpar();
+  }
+
+  /* O degrau que atravessa o navegador. So dispara com o medico FORA da
+   * aba — dentro dela o banner e a moldura ja gritam, e uma notificacao
+   * por cima seria o mesmo aviso duas vezes. Clicar equivale a "estou
+   * indo": traz a aba para frente e silencia com reengate, entao se ele
+   * nao atender de fato o alarme volta em cinco minutos. */
+  function avisarForaDaAba() {
+    var A = atencao();
+    if (!A || !config.avisarForaDaAba) return;
+    if (A.ondeEstaOMedico() !== "fora") return;
+    var r = resumoDaFila();
+    A.marcar({
+      contagem: r.quantos || 1,
+      notificar: true,
+      titulo: "Paciente na fila",
+      corpo: textoDoMotivo(),
+      tag: "meeds-alarme-fila",
+      exigeInteracao: true,
+      aoClicar: silenciarComReengate,
+    });
   }
 
   function pararSom() {
@@ -6340,9 +6769,11 @@
   function dispararAlarme() {
     if (tocando) return;
     tocando = true;
+    atualizarTextoDoBanner();
     if (banner) banner.mostrar();
     if (moldura) moldura.mostrar();
-    iniciarPiscaTitulo();
+    atualizarDistintivo();
+    avisarForaDaAba();
     var tipo = TIPOS_DE_SOM[config.som] || TIPOS_DE_SOM[CONFIG_PADRAO.som];
     tocarSomAtual();
     intervaloSirene = setInterval(tocarSomAtual, tipo.intervaloMs);
@@ -6357,9 +6788,11 @@
     cancelarReengateAgendado();
     pararSom();
     tocando = false;
-    pararPiscaTitulo();
     if (banner) banner.esconder();
     if (moldura) moldura.esconder();
+    /* O distintivo NAO e limpo aqui: silenciar o som nao faz o paciente
+     * sair da fila. Ele so some quando a fila esvazia. */
+    atualizarDistintivo();
   }
 
   function cancelarReengateAgendado() {
@@ -6428,6 +6861,13 @@
         '    <div><label for="af-som">Som do alarme</label><select id="af-som">' + opcoesSom + "</select></div>" +
         '    <div><label for="af-volume">Volume</label><input type="range" id="af-volume" min="0" max="100" step="5" /></div>' +
         '    <button type="button" id="af-testar-som">🔊 Testar som</button>' +
+        "    <div>" +
+        "      <label>Quando você não está na aba do Meeds</label>" +
+        '      <label class="af-radio-linha"><input type="checkbox" id="af-avisar-fora" /> Avisar pelo sistema (notificação clicável)</label>' +
+        '      <div class="af-hint" id="af-avisar-fora-hint"></div>' +
+        '      <label class="af-radio-linha"><input type="checkbox" id="af-tela-acesa" /> Impedir a tela de apagar durante o plantão</label>' +
+        '      <div class="af-hint" id="af-tela-acesa-hint"></div>' +
+        "    </div>" +
         "  </div>" +
         "</div>",
     });
@@ -6459,14 +6899,95 @@
       obterAudioContext();
       tocarSomAtual();
     });
+
+    /* A permissao de notificacao SO pode ser pedida a partir de um clique
+     * do medico — navegador ignora (e alguns punem) pedido sem gesto do
+     * usuario. Por isso ela e pedida aqui, e nao na subida do modulo. */
+    painel.$("#af-avisar-fora").addEventListener("change", function () {
+      var quer = painel.$("#af-avisar-fora").checked;
+      if (!quer) {
+        config.avisarForaDaAba = false;
+        salvar();
+        refletirEstadoDosAvisos();
+        return;
+      }
+      var A = atencao();
+      if (!A || !A.suportaNotificacao()) {
+        config.avisarForaDaAba = false;
+        salvar();
+        refletirEstadoDosAvisos();
+        return;
+      }
+      A.pedirPermissaoDeNotificacao().then(function (liberou) {
+        config.avisarForaDaAba = liberou;
+        salvar();
+        refletirEstadoDosAvisos();
+      });
+    });
+
+    painel.$("#af-tela-acesa").addEventListener("change", function () {
+      config.manterTelaAcesa = painel.$("#af-tela-acesa").checked;
+      salvar();
+      if (atencao()) atencao().manterTelaAcesa(config.manterTelaAcesa);
+      refletirEstadoDosAvisos();
+    });
+  }
+
+  /* Estas duas opcoes dependem do navegador, entao a tela precisa dizer
+   * a verdade sobre o que esta disponivel — em vez de oferecer uma chave
+   * que nao faz nada. E o caso do Safari no iPad, que nao tem
+   * notificacao fora de app instalado. */
+  function refletirEstadoDosAvisos() {
+    if (!painel) return;
+    var A = atencao();
+    var chaveAviso = painel.$("#af-avisar-fora");
+    var dicaAviso = painel.$("#af-avisar-fora-hint");
+    var chaveTela = painel.$("#af-tela-acesa");
+    var dicaTela = painel.$("#af-tela-acesa-hint");
+    if (!chaveAviso || !chaveTela) return;
+
+    var temNotificacao = !!(A && A.suportaNotificacao());
+    chaveAviso.disabled = !temNotificacao;
+    chaveAviso.checked = !!config.avisarForaDaAba && temNotificacao;
+    if (dicaAviso) {
+      if (!temNotificacao) {
+        dicaAviso.textContent =
+          "Este navegador não oferece notificação do sistema. O alarme continua tocando na aba do Meeds.";
+      } else if (A.permissaoDeNotificacao() === "denied") {
+        dicaAviso.textContent =
+          "As notificações estão bloqueadas para este site. Libere no cadeado da barra de endereço para usar.";
+      } else {
+        dicaAviso.textContent =
+          "Aparece mesmo com o navegador minimizado. Clicar traz a aba para frente e silencia; se você não atender, o alarme volta em 5 minutos.";
+      }
+    }
+
+    var temTelaAcesa = !!(A && A.suportaTelaAcesa());
+    chaveTela.disabled = !temTelaAcesa;
+    chaveTela.checked = !!config.manterTelaAcesa && temTelaAcesa;
+    if (dicaTela) {
+      dicaTela.textContent = temTelaAcesa
+        ? "Útil no iPad: alarme que toca com a tela apagada é alarme perdido."
+        : "Este navegador não permite segurar a tela acesa.";
+    }
   }
 
   function montarBanner() {
     moldura = d.dock.criarMolduraAlerta();
     banner = d.dock.criarBanner(
-      '<span>🚨 Novo paciente na fila!</span><button type="button" id="af-silenciar">Silenciar alarme</button>'
+      '<span>🚨 Novo paciente na fila!</span>' +
+        '<span class="ms-banner-motivo" id="af-motivo"></span>' +
+        '<button type="button" id="af-silenciar">Silenciar alarme</button>'
     );
     banner.$("#af-silenciar").addEventListener("click", silenciarComReengate);
+  }
+
+  /* Um alarme que diz POR QUE esta tocando e informacao; um que so grita
+   * vira ruido, e ruido o medico desliga. */
+  function atualizarTextoDoBanner() {
+    if (!banner) return;
+    var el = banner.$("#af-motivo");
+    if (el) el.textContent = textoDoMotivo();
   }
 
   function salvar() {
@@ -6490,6 +7011,7 @@
     painel.$("#af-tempo-espera").disabled = config.modo !== "espera";
     painel.$("#af-som").value = config.som;
     painel.$("#af-volume").value = config.volume;
+    refletirEstadoDosAvisos();
   }
 
   function alternarAtivo() {
@@ -6549,6 +7071,15 @@
       );
       config.volume = Math.min(100, Math.max(0, parseInt(config.volume, 10) || 0));
       if (!TIPOS_DE_SOM[config.som]) config.som = CONFIG_PADRAO.som;
+      config.avisarForaDaAba = config.avisarForaDaAba !== false;
+      config.manterTelaAcesa = !!config.manterTelaAcesa;
+      /* Quem ja tinha marcado "avisar fora da aba" antes pode ter perdido
+       * a permissao (trocou de maquina, limpou o site). Sem permissao a
+       * chave nao vale nada, e a tela precisa mostrar isso. */
+      if (config.avisarForaDaAba && atencao() && atencao().permissaoDeNotificacao() !== "granted") {
+        config.avisarForaDaAba = false;
+      }
+      if (config.manterTelaAcesa && atencao()) atencao().manterTelaAcesa(true);
 
       decisorFila = deps.decisao.criarDecisor({
         limiar: 0.6,                    // um voto de DOM sozinho ja decide
@@ -6625,6 +7156,13 @@
       if (moldura) {
         moldura.remover();
         moldura = null;
+      }
+      /* Desligar o modulo tem que devolver a aba como estava: sem
+       * contador no titulo, com o favicone do Meeds de volta, e sem
+       * segurar a tela acesa. */
+      if (atencao()) {
+        atencao().limpar();
+        atencao().manterTelaAcesa(false);
       }
       idsFilaPorAssinatura.clear();
       idsJaAlertadosPorEspera.clear();
@@ -6922,7 +7460,7 @@
 
 
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
-  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#apac-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #apac-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #apac-modal-head h2{ margin:0; font-size:15px; }\n    #apac-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #apac-body{ padding:18px 20px; }\n    .apac-sec{ margin-bottom:16px; }\n    .apac-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .apac-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .apac-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6c68; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8e6e3; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:56px; resize:vertical; }\n    .apac-proc-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }\n    .apac-proc-btn{ border:1.4px solid #d8e6e3; border-radius:9px; padding:9px; cursor:pointer; }\n    .apac-proc-btn:hover{ border-color:#17ab9e; }\n    .apac-proc-btn.sel{ border-color:#12958a; background:#e3f5f3; }\n    .apac-proc-btn .t{ font-size:11.5px; font-weight:700; }\n    .apac-proc-btn .c{ font-size:9.5px; color:#0e7a70; font-family:monospace; }\n    #apac-territorio-wrap{ display:none; margin-top:8px; }\n    #apac-territorio-wrap.show{ display:block; }\n    #apac-eco-variante-wrap{ display:none; margin-top:8px; }\n    #apac-eco-variante-wrap.show{ display:block; }\n    #apac-outro-wrap{ display:none; margin-top:8px; }\n    #apac-outro-wrap.show{ display:block; }\n    #apac-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    #apac-sec-assinatura{ border:1.5px dashed #17ab9e; border-radius:12px; padding:14px; background:#f9fdfc; }\n    .apac-opcoes-assinatura{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }\n    button.apac-primary{ background:#12958a; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.apac-primary:hover{ background:#0b6a62; }\n    button.apac-primary:disabled{ background:#a0c9c4; cursor:not-allowed; }\n    button.apac-secondary{ background:#fff; color:#0e7a70; border:1.4px solid #17ab9e; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.apac-secondary:hover{ background:#e3f5f3; }\n    button.apac-tertiary{ background:#f0f4f3; color:#0e7a70; border:1px solid #d8e6e3; border-radius:9px; padding:9px 14px; font-size:12px; font-weight:700; cursor:pointer; }\n    button.apac-tertiary:hover{ background:#e3f5f3; }\n    #apac-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #apac-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }\n    .apac-info-box{ background:#e8f4f8; color:#0e7a70; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:10px; line-height:1.4; }";
+  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#apac-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #apac-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #apac-modal-head h2{ margin:0; font-size:15px; }\n    #apac-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #apac-body{ padding:18px 20px; }\n    .apac-sec{ margin-bottom:16px; }\n    .apac-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .apac-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .apac-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    #apac-body label{ display:block; font-size:10.5px; font-weight:700; color:#5b6c68; margin-bottom:4px; }\n    #apac-body input,#apac-body select,#apac-body textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8e6e3; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    #apac-body textarea{ min-height:56px; resize:vertical; }\n    .apac-proc-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }\n    .apac-proc-btn{ border:1.4px solid #d8e6e3; border-radius:9px; padding:9px; cursor:pointer; }\n    .apac-proc-btn:hover{ border-color:#17ab9e; }\n    .apac-proc-btn.sel{ border-color:#12958a; background:#e3f5f3; }\n    .apac-proc-btn .t{ font-size:11.5px; font-weight:700; }\n    .apac-proc-btn .c{ font-size:9.5px; color:#0e7a70; font-family:monospace; }\n    #apac-territorio-wrap{ display:none; margin-top:8px; }\n    #apac-territorio-wrap.show{ display:block; }\n    #apac-eco-variante-wrap{ display:none; margin-top:8px; }\n    #apac-eco-variante-wrap.show{ display:block; }\n    #apac-outro-wrap{ display:none; margin-top:8px; }\n    #apac-outro-wrap.show{ display:block; }\n    #apac-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    #apac-sec-assinatura{ border:1.5px dashed #17ab9e; border-radius:12px; padding:14px; background:#f9fdfc; }\n    .apac-opcoes-assinatura{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }\n    button.apac-primary{ background:#12958a; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.apac-primary:hover{ background:#0b6a62; }\n    button.apac-primary:disabled{ background:#a0c9c4; cursor:not-allowed; }\n    button.apac-secondary{ background:#fff; color:#0e7a70; border:1.4px solid #17ab9e; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.apac-secondary:hover{ background:#e3f5f3; }\n    button.apac-tertiary{ background:#f0f4f3; color:#0e7a70; border:1px solid #d8e6e3; border-radius:9px; padding:9px 14px; font-size:12px; font-weight:700; cursor:pointer; }\n    button.apac-tertiary:hover{ background:#e3f5f3; }\n    #apac-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #apac-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }\n    .apac-info-box{ background:#e8f4f8; color:#0e7a70; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:10px; line-height:1.4; }";
 
   var HTML = "<div id=\"apac-modal\">\n      <div id=\"apac-modal-head\"><h2>Gerador de APAC</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"apac-refresh-modal\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"apac-historico-abrir\" title=\"Últimas APACs geradas nesta máquina\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"apac-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"apac-body\">\n        <div id=\"apac-auto-aviso\"></div>\n\n        <div id=\"apac-historico-painel\"></div>\n\n        <div class=\"apac-sec\">\n          <h3>Município *</h3>\n          <select id=\"apac-municipio-sel\"></select>\n          <div id=\"apac-municipio-dica\" style=\"font-size:10.5px;color:#5b6c68;margin-top:4px;\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Estabelecimento</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome *</label><select id=\"apac-estab-sel\"></select></div>\n            <div><label>CNES *</label><input id=\"apac-estab-cnes\" readonly style=\"background:#f1f5f9;\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Médico solicitante</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Selecionar *</label><select id=\"apac-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"apac-medico-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-medico-cpf\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Paciente</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome completo *</label><input id=\"apac-pac-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-pac-cpf\"></div>\n          </div>\n          <div class=\"apac-grid3\" style=\"margin-top:8px;\">\n            <div><label>Nascimento *</label><input type=\"date\" id=\"apac-pac-nasc\"></div>\n            <div><label>Sexo *</label><select id=\"apac-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"M\">Masculino</option><option value=\"F\">Feminino</option></select></div>\n            <div><label>Nome da mãe *</label><input id=\"apac-pac-mae\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Procedimento *</h3>\n          <div class=\"apac-proc-grid\" id=\"apac-proc-grid\"></div>\n          <div id=\"apac-territorio-wrap\">\n            <label>Território vascular (obrigatório para Doppler)</label>\n            <select id=\"apac-territorio-sel\"></select>\n          </div>\n          <div id=\"apac-eco-variante-wrap\">\n            <label>Variante do ecocardiograma</label>\n            <select id=\"apac-eco-variante-sel\">\n              <option value=\"REPOUSO\">Transtorácica de repouso (padrão)</option>\n              <option value=\"ESTRESSE\">Com estresse (farmacológico/Dobutamina)</option>\n              <option value=\"TRANSESOFAGICO\">Transesofágico</option>\n            </select>\n          </div>\n          <div id=\"apac-outro-wrap\">\n            <label>Código SIGTAP *</label>\n            <input id=\"apac-outro-codigo\" placeholder=\"ex: 02.11.02.001-0\" style=\"margin-bottom:8px;\">\n            <label>Nome do procedimento *</label>\n            <input id=\"apac-outro-nome\" placeholder=\"como deve aparecer no campo 19\">\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>CID-10 *</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Principal *</label><input id=\"apac-cid1\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Secundário</label><input id=\"apac-cid2\" autocomplete=\"off\"></div>\n            <div><label>Associados</label><input id=\"apac-cid3\" autocomplete=\"off\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Descrição (campo 36) *</label><input id=\"apac-cid-desc\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Texto do pedido (campo 40) *</h3>\n          <textarea id=\"apac-obs\"></textarea>\n        </div>\n\n        <!-- ETAPA 2 — Assinatura -->\n        <div class=\"apac-sec\" id=\"apac-sec-assinatura\" style=\"display:none;\">\n          <h3>Etapa 2 — Assinatura</h3>\n          <div class=\"apac-info-box\">\n            ✅ <b>APAC gerada.</b> Ela já ficou registrada no 📜 Histórico. Escolha como quer finalizar:\n          </div>\n\n          <div class=\"apac-opcoes-assinatura\">\n            <button id=\"apac-assinar-govbr\" class=\"apac-primary\">\n              🏛️ Assinar via gov.br<br><small style=\"font-weight:400;opacity:.9;\">Baixa PDF e abre o portal</small>\n            </button>\n            <button id=\"apac-baixar-sem\" class=\"apac-tertiary\">\n              💾 Baixar sem assinar<br><small style=\"font-weight:400;opacity:.8;\">PDF simples</small>\n            </button>\n          </div>\n        </div>\n\n        <div id=\"apac-erro\"></div>\n        \n      </div>\n      <div id=\"apac-footer\">\n        <button class=\"apac-secondary\" id=\"apac-limpar\">Limpar</button>\n        <button class=\"apac-primary\" id=\"apac-gerar\">Gerar PDF</button>\n      </div>\n    </div>";
 
@@ -8416,7 +8954,7 @@
   var CATALOGO_PROCEDIMENTOS = DADOS.procedimentos || {};
 
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
-  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#lme-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #lme-sucesso b{ color:#08574f; }\n" + "#lme-modal{\n      background:#fff; border-radius:16px; max-width:680px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #lme-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #lme-modal-head h2{ margin:0; font-size:15px; }\n    #lme-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #lme-body{ padding:18px 20px; }\n    .lme-sec{ margin-bottom:16px; }\n    .lme-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .lme-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .lme-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:70px; resize:vertical; }\n    #lme-origem-outro-wrap{ display:none; margin-top:8px; }\n    #lme-origem-outro-wrap.show{ display:block; }\n    #lme-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .lme-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    button.lme-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.lme-primary:hover{ background:#123a7a; }\n    button.lme-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.lme-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.lme-secondary:hover{ background:#e8f0f8; }\n    #lme-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #lme-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
+  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#lme-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #lme-sucesso b{ color:#08574f; }\n" + "#lme-modal{\n      background:#fff; border-radius:16px; max-width:680px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #lme-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #lme-modal-head h2{ margin:0; font-size:15px; }\n    #lme-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #lme-body{ padding:18px 20px; }\n    .lme-sec{ margin-bottom:16px; }\n    .lme-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .lme-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .lme-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    #lme-body label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    #lme-body input,#lme-body select,#lme-body textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    #lme-body textarea{ min-height:70px; resize:vertical; }\n    #lme-origem-outro-wrap{ display:none; margin-top:8px; }\n    #lme-origem-outro-wrap.show{ display:block; }\n    #lme-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .lme-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    button.lme-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.lme-primary:hover{ background:#123a7a; }\n    button.lme-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.lme-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.lme-secondary:hover{ background:#e8f0f8; }\n    #lme-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #lme-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
 
   var HTML = "<div id=\"lme-modal\">\n      <div id=\"lme-modal-head\"><h2>Laudo Procedimento Médico — Sete Lagoas</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"lme-historico-abrir\" title=\"Documentos gerados neste computador\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"lme-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"lme-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"lme-body\">\n        <div class=\"lme-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Sete Lagoas (mesmo PDF da prefeitura, logo e layout intactos). Município fixo: <b>SETE LAGOAS</b>. O Cartão Nacional do SUS é preenchido com o CPF do paciente.\n        </div>\n        <div id=\"lme-historico-painel\"></div>\n        <div id=\"lme-auto-aviso\"></div>\n\n        <div class=\"lme-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"lme-grid3\">\n            <div><label>Selecionar *</label><select id=\"lme-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"lme-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"lme-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"lme-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Unidade de origem</h3>\n          <select id=\"lme-origem-sel\"></select>\n          <div id=\"lme-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"lme-origem-outro\" placeholder=\"ex: UBS ITAPOÃ\"></div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Paciente</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome completo *</label><input id=\"lme-pac-nome\"></div>\n            <div><label>CPF (usado como Cartão do SUS) *</label><input id=\"lme-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"lme-grid2\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"lme-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"lme-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n          </div>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"lme-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"lme-proc-nome\" list=\"lme-proc-list\" placeholder=\"digite e busque, ou digite algo novo\" autocomplete=\"off\"></div>\n            <div><label>Código SIGTAP *</label><input id=\"lme-proc-codigo\" placeholder=\"preenche sozinho se reconhecido\"></div>\n          </div>\n          <datalist id=\"lme-proc-list\"></datalist>\n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"lme-grid2\">\n            <div><label>CID-10</label><input id=\"lme-cid\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"lme-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          \n        </div>\n\n        <div class=\"lme-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"lme-justificativa\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado\"></textarea>\n        </div>\n\n        <div id=\"lme-sucesso\" style=\"display:none;\"></div>\n        <div id=\"lme-erro\"></div>\n      </div>\n      <div id=\"lme-footer\">\n        <button class=\"lme-secondary\" id=\"lme-limpar\">Limpar</button>\n        <button class=\"lme-primary\" id=\"lme-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
 
@@ -9151,7 +9689,7 @@
   var CATALOGO_PROCEDIMENTOS = DADOS.procedimentos || {};
 
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
-  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#cmd-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #cmd-sucesso b{ color:#08574f; }\n" + "#cmd-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #cmd-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #cmd-modal-head h2{ margin:0; font-size:15px; }\n    #cmd-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #cmd-body{ padding:18px 20px; }\n    .cmd-sec{ margin-bottom:16px; }\n    .cmd-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .cmd-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .cmd-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    .cmd-grid4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }\n    label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    input,select,textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    textarea{ min-height:90px; resize:vertical; }\n    #cmd-origem-outro-wrap{ display:none; margin-top:8px; }\n    #cmd-origem-outro-wrap.show{ display:block; }\n    #cmd-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .cmd-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    .cmd-contador{ text-align:right; font-size:10.5px; color:#8a97a4; margin-top:4px; }\n    button.cmd-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.cmd-primary:hover{ background:#123a7a; }\n    button.cmd-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.cmd-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.cmd-secondary:hover{ background:#e8f0f8; }\n    #cmd-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #cmd-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
+  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#cmd-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #cmd-sucesso b{ color:#08574f; }\n" + "#cmd-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #cmd-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #cmd-modal-head h2{ margin:0; font-size:15px; }\n    #cmd-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #cmd-body{ padding:18px 20px; }\n    .cmd-sec{ margin-bottom:16px; }\n    .cmd-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .cmd-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .cmd-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    .cmd-grid4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }\n    #cmd-body label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    #cmd-body input,#cmd-body select,#cmd-body textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    #cmd-body textarea{ min-height:90px; resize:vertical; }\n    #cmd-origem-outro-wrap{ display:none; margin-top:8px; }\n    #cmd-origem-outro-wrap.show{ display:block; }\n    #cmd-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .cmd-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    .cmd-contador{ text-align:right; font-size:10.5px; color:#8a97a4; margin-top:4px; }\n    button.cmd-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.cmd-primary:hover{ background:#123a7a; }\n    button.cmd-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.cmd-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.cmd-secondary:hover{ background:#e8f0f8; }\n    #cmd-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #cmd-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
 
   var HTML = "<div id=\"cmd-modal\">\n      <div id=\"cmd-modal-head\"><h2>Laudo Médico de Alto Custo — Conceição do Mato Dentro</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"cmd-historico-abrir\" title=\"Documentos gerados neste computador\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"cmd-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"cmd-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"cmd-body\">\n        <div class=\"cmd-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Conceição do Mato Dentro (mesmo PDF da prefeitura, preenchido pelos campos reais do formulário). A seção 04 (Junta de Autorização) não é preenchida — é reservada para a regulação.\n        </div>\n        <div id=\"cmd-historico-painel\"></div>\n        <div id=\"cmd-auto-aviso\"></div>\n\n        <div class=\"cmd-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"cmd-grid3\">\n            <div><label>Selecionar *</label><select id=\"cmd-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"cmd-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"cmd-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"cmd-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Dados do atendimento</h3>\n          <div>\n            <label>Unidade de origem *</label>\n            <select id=\"cmd-origem-sel\"></select>\n            <div id=\"cmd-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"cmd-origem-outro\"></div>\n          </div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Paciente</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome completo *</label><input id=\"cmd-pac-nome\"></div>\n            <div><label>CPF</label><input id=\"cmd-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"cmd-grid3\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"cmd-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"cmd-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n            <div><label>Telefone</label><input id=\"cmd-pac-telefone\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Nome da mãe</label><input id=\"cmd-pac-mae\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"cmd-proc-nome\" list=\"cmd-proc-list\" placeholder=\"digite o exame\" autocomplete=\"off\"></div>\n            <div><label>Código do procedimento</label><input id=\"cmd-proc-codigo\" placeholder=\"ex: 41101170\"></div>\n          </div>\n          <datalist id=\"cmd-proc-list\"></datalist>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>CID-10</label><input id=\"cmd-cid\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"cmd-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          \n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"cmd-justificativa\" maxlength=\"700\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado (até 700 caracteres)\"></textarea>\n          <div class=\"cmd-contador\" id=\"cmd-justificativa-contador\">0/700</div>\n        </div>\n\n        <div id=\"cmd-sucesso\" style=\"display:none;\"></div>\n        <div id=\"cmd-erro\"></div>\n      </div>\n      <div id=\"cmd-footer\">\n        <button class=\"cmd-secondary\" id=\"cmd-limpar\">Limpar</button>\n        <button class=\"cmd-primary\" id=\"cmd-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
 

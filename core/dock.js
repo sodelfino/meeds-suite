@@ -242,6 +242,15 @@
     "  padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer;",
     "}",
     ".ms-banner button:hover { background: rgba(255,255,255,.35); }",
+    ".ms-banner .ms-banner-motivo { font-weight: 500; opacity: .95; font-size: 14px; }",
+
+    /* Quem pediu menos animacao no sistema operacional nao esta pedindo
+       menos alarme: o vermelho, o texto e o som continuam. So para de
+       pulsar. Vale para enjoo de movimento e para quem simplesmente nao
+       aguenta uma tela piscando um plantao inteiro. */
+    "@media (prefers-reduced-motion: reduce) {",
+    "  .ms-moldura-alerta, .ms-banner, .ms-btn { animation: none !important; }",
+    "}",
   ].join("\n");
 
   function garantirHost() {

@@ -121,7 +121,15 @@
     ".af-body { padding:16px 18px 20px; display:flex; flex-direction:column; gap:16px; }",
     ".af-body label { font-size:12.5px; font-weight:600; color:#334155; display:block; margin-bottom:6px; }",
     ".af-hint { font-size:11px; color:#94a3b8; margin-top:4px; font-weight:400; line-height:1.45; }",
-    ".af-radio-linha { display:flex; align-items:center; gap:8px; font-size:13.5px; color:#1e293b; font-weight:400; margin-bottom:8px; cursor:pointer; }",
+    /* `.af-body label` (classe + elemento) tem especificidade maior que
+       `.af-radio-linha` (so classe) e forcava display:block — a bolinha
+       do radio ficava ACIMA do texto, em vez de ao lado. Por isso o
+       seletor daqui precisa casar o elemento tambem. */
+    ".af-body label.af-radio-linha { display:flex; align-items:center; gap:8px; font-size:13.5px; color:#1e293b; font-weight:400; margin-bottom:8px; cursor:pointer; }",
+        /* Defesa: o shadow root e compartilhado por todos os modulos, entao
+       uma regra larga de outro modulo ja esticou este radio para 100%
+       uma vez. Aqui a largura e explicita. */
+    ".af-body label.af-radio-linha input { width:auto; flex:0 0 auto; margin:0; }",
     ".af-radio-linha input { cursor:pointer; }",
     "#af-tempo-espera-linha { display:flex; align-items:center; gap:8px; margin-left:24px; }",
     "#af-tempo-espera-linha input[type=number] { width:60px; padding:6px 8px; border-radius:8px; border:1.5px solid #cbd5e1; font-size:13px; }",
@@ -137,6 +145,8 @@
     tempoEsperaMin: 5,
     som: "sirene-classica",
     volume: 70,
+    avisarForaDaAba: true,   // notificacao do sistema quando ele nao esta na aba
+    manterTelaAcesa: false,  // Wake Lock — util no iPad, por isso nao vem ligado
   };
 
   /* --- estado do modulo (recriado a cada start, zerado a cada stop) --- */
@@ -165,8 +175,6 @@
   var tocando = false;
   var intervaloSirene = null;
   var timeoutLimiteSirene = null;
-  var intervaloPiscaTitulo = null;
-  var tituloOriginal = "";
   var timeoutReengate = null;
 
   /* ----------------------------------------------------------------
@@ -278,9 +286,47 @@
 
       limparIdsAlertadosQueSairamDaFila();
       checarSeDeveSilenciarPorFilaVazia();
+      atualizarDistintivo();
+      if (tocando) atualizarTextoDoBanner();
     } catch (e) {
       /* silencioso: sinal de reforco, nunca deve quebrar a pagina */
     }
+  }
+
+  /* ------------------------------------------------------------------
+   * RESUMO DA FILA — para o aviso dizer POR QUE esta tocando
+   * ------------------------------------------------------------------
+   * Um alarme que so grita vira ruido; um que diz "3 aguardando, o mais
+   * antigo ha 12 min" e uma informacao. O tempo aqui e contado desde que
+   * o Assistente VIU o paciente na fila, nao desde a entrada real dele —
+   * por isso o texto diz "ha pelo menos", que e o que sabemos de fato.
+   * ------------------------------------------------------------------ */
+  function resumoDaFila() {
+    var quantos = 0;
+    var maisAntigo = null;
+    idsFilaPorAssinatura.forEach(function (mapa) {
+      quantos += mapa.size;
+      mapa.forEach(function (registro) {
+        if (maisAntigo === null || registro.primeiraVezVistoEm < maisAntigo) {
+          maisAntigo = registro.primeiraVezVistoEm;
+        }
+      });
+    });
+    return {
+      quantos: quantos,
+      esperaMs: maisAntigo === null ? 0 : Date.now() - maisAntigo,
+    };
+  }
+
+  function textoDoMotivo() {
+    var r = resumoDaFila();
+    if (!r.quantos) return "Novo paciente na fila";
+    var partes = [r.quantos + (r.quantos === 1 ? " aguardando" : " aguardando")];
+    var min = Math.floor(r.esperaMs / 60000);
+    if (min >= 1) {
+      partes.push((r.quantos === 1 ? "há pelo menos " : "o mais antigo há pelo menos ") + min + " min");
+    }
+    return partes.join(" · ");
   }
 
   /* --- SINAL C: contador "Aguardando" no DOM ---------------------- */
@@ -357,22 +403,49 @@
     }
   }
 
-  function iniciarPiscaTitulo() {
-    if (intervaloPiscaTitulo) return;
-    tituloOriginal = document.title;
-    var ligado = false;
-    intervaloPiscaTitulo = setInterval(function () {
-      document.title = ligado ? tituloOriginal : "🚨 NOVO PACIENTE NA FILA";
-      ligado = !ligado;
-    }, 1000);
+  /* ------------------------------------------------------------------
+   * ESCADA DE ATENCAO
+   * ------------------------------------------------------------------
+   * O titulo piscando "🚨 NOVO PACIENTE NA FILA" saiu. Piscar disputa a
+   * atencao a cada segundo e nao sobrevive a uma troca de tela da SPA;
+   * "(3) Meeds" fica parado, e legivel de relance na barra de abas e e o
+   * mesmo padrao que o medico ja le sem pensar no Gmail e no Slack.
+   *
+   * O distintivo acompanha a FILA, nao o alarme: ele continua ali depois
+   * de silenciar, porque os pacientes continuam ali. Quem some quando a
+   * fila esvazia e ele mesmo.
+   * ------------------------------------------------------------------ */
+  function atencao() {
+    return raiz.MeedsSuiteAtencao || null;
   }
 
-  function pararPiscaTitulo() {
-    if (intervaloPiscaTitulo) {
-      clearInterval(intervaloPiscaTitulo);
-      intervaloPiscaTitulo = null;
-    }
-    if (tituloOriginal) document.title = tituloOriginal;
+  function atualizarDistintivo() {
+    var A = atencao();
+    if (!A) return;
+    var r = resumoDaFila();
+    if (r.quantos > 0) A.marcar({ contagem: r.quantos });
+    else A.limpar();
+  }
+
+  /* O degrau que atravessa o navegador. So dispara com o medico FORA da
+   * aba — dentro dela o banner e a moldura ja gritam, e uma notificacao
+   * por cima seria o mesmo aviso duas vezes. Clicar equivale a "estou
+   * indo": traz a aba para frente e silencia com reengate, entao se ele
+   * nao atender de fato o alarme volta em cinco minutos. */
+  function avisarForaDaAba() {
+    var A = atencao();
+    if (!A || !config.avisarForaDaAba) return;
+    if (A.ondeEstaOMedico() !== "fora") return;
+    var r = resumoDaFila();
+    A.marcar({
+      contagem: r.quantos || 1,
+      notificar: true,
+      titulo: "Paciente na fila",
+      corpo: textoDoMotivo(),
+      tag: "meeds-alarme-fila",
+      exigeInteracao: true,
+      aoClicar: silenciarComReengate,
+    });
   }
 
   function pararSom() {
@@ -389,9 +462,11 @@
   function dispararAlarme() {
     if (tocando) return;
     tocando = true;
+    atualizarTextoDoBanner();
     if (banner) banner.mostrar();
     if (moldura) moldura.mostrar();
-    iniciarPiscaTitulo();
+    atualizarDistintivo();
+    avisarForaDaAba();
     var tipo = TIPOS_DE_SOM[config.som] || TIPOS_DE_SOM[CONFIG_PADRAO.som];
     tocarSomAtual();
     intervaloSirene = setInterval(tocarSomAtual, tipo.intervaloMs);
@@ -406,9 +481,11 @@
     cancelarReengateAgendado();
     pararSom();
     tocando = false;
-    pararPiscaTitulo();
     if (banner) banner.esconder();
     if (moldura) moldura.esconder();
+    /* O distintivo NAO e limpo aqui: silenciar o som nao faz o paciente
+     * sair da fila. Ele so some quando a fila esvazia. */
+    atualizarDistintivo();
   }
 
   function cancelarReengateAgendado() {
@@ -477,6 +554,13 @@
         '    <div><label for="af-som">Som do alarme</label><select id="af-som">' + opcoesSom + "</select></div>" +
         '    <div><label for="af-volume">Volume</label><input type="range" id="af-volume" min="0" max="100" step="5" /></div>' +
         '    <button type="button" id="af-testar-som">🔊 Testar som</button>' +
+        "    <div>" +
+        "      <label>Quando você não está na aba do Meeds</label>" +
+        '      <label class="af-radio-linha"><input type="checkbox" id="af-avisar-fora" /> Avisar pelo sistema (notificação clicável)</label>' +
+        '      <div class="af-hint" id="af-avisar-fora-hint"></div>' +
+        '      <label class="af-radio-linha"><input type="checkbox" id="af-tela-acesa" /> Impedir a tela de apagar durante o plantão</label>' +
+        '      <div class="af-hint" id="af-tela-acesa-hint"></div>' +
+        "    </div>" +
         "  </div>" +
         "</div>",
     });
@@ -508,14 +592,95 @@
       obterAudioContext();
       tocarSomAtual();
     });
+
+    /* A permissao de notificacao SO pode ser pedida a partir de um clique
+     * do medico — navegador ignora (e alguns punem) pedido sem gesto do
+     * usuario. Por isso ela e pedida aqui, e nao na subida do modulo. */
+    painel.$("#af-avisar-fora").addEventListener("change", function () {
+      var quer = painel.$("#af-avisar-fora").checked;
+      if (!quer) {
+        config.avisarForaDaAba = false;
+        salvar();
+        refletirEstadoDosAvisos();
+        return;
+      }
+      var A = atencao();
+      if (!A || !A.suportaNotificacao()) {
+        config.avisarForaDaAba = false;
+        salvar();
+        refletirEstadoDosAvisos();
+        return;
+      }
+      A.pedirPermissaoDeNotificacao().then(function (liberou) {
+        config.avisarForaDaAba = liberou;
+        salvar();
+        refletirEstadoDosAvisos();
+      });
+    });
+
+    painel.$("#af-tela-acesa").addEventListener("change", function () {
+      config.manterTelaAcesa = painel.$("#af-tela-acesa").checked;
+      salvar();
+      if (atencao()) atencao().manterTelaAcesa(config.manterTelaAcesa);
+      refletirEstadoDosAvisos();
+    });
+  }
+
+  /* Estas duas opcoes dependem do navegador, entao a tela precisa dizer
+   * a verdade sobre o que esta disponivel — em vez de oferecer uma chave
+   * que nao faz nada. E o caso do Safari no iPad, que nao tem
+   * notificacao fora de app instalado. */
+  function refletirEstadoDosAvisos() {
+    if (!painel) return;
+    var A = atencao();
+    var chaveAviso = painel.$("#af-avisar-fora");
+    var dicaAviso = painel.$("#af-avisar-fora-hint");
+    var chaveTela = painel.$("#af-tela-acesa");
+    var dicaTela = painel.$("#af-tela-acesa-hint");
+    if (!chaveAviso || !chaveTela) return;
+
+    var temNotificacao = !!(A && A.suportaNotificacao());
+    chaveAviso.disabled = !temNotificacao;
+    chaveAviso.checked = !!config.avisarForaDaAba && temNotificacao;
+    if (dicaAviso) {
+      if (!temNotificacao) {
+        dicaAviso.textContent =
+          "Este navegador não oferece notificação do sistema. O alarme continua tocando na aba do Meeds.";
+      } else if (A.permissaoDeNotificacao() === "denied") {
+        dicaAviso.textContent =
+          "As notificações estão bloqueadas para este site. Libere no cadeado da barra de endereço para usar.";
+      } else {
+        dicaAviso.textContent =
+          "Aparece mesmo com o navegador minimizado. Clicar traz a aba para frente e silencia; se você não atender, o alarme volta em 5 minutos.";
+      }
+    }
+
+    var temTelaAcesa = !!(A && A.suportaTelaAcesa());
+    chaveTela.disabled = !temTelaAcesa;
+    chaveTela.checked = !!config.manterTelaAcesa && temTelaAcesa;
+    if (dicaTela) {
+      dicaTela.textContent = temTelaAcesa
+        ? "Útil no iPad: alarme que toca com a tela apagada é alarme perdido."
+        : "Este navegador não permite segurar a tela acesa.";
+    }
   }
 
   function montarBanner() {
     moldura = d.dock.criarMolduraAlerta();
     banner = d.dock.criarBanner(
-      '<span>🚨 Novo paciente na fila!</span><button type="button" id="af-silenciar">Silenciar alarme</button>'
+      '<span>🚨 Novo paciente na fila!</span>' +
+        '<span class="ms-banner-motivo" id="af-motivo"></span>' +
+        '<button type="button" id="af-silenciar">Silenciar alarme</button>'
     );
     banner.$("#af-silenciar").addEventListener("click", silenciarComReengate);
+  }
+
+  /* Um alarme que diz POR QUE esta tocando e informacao; um que so grita
+   * vira ruido, e ruido o medico desliga. */
+  function atualizarTextoDoBanner() {
+    if (!banner) return;
+    var el = banner.$("#af-motivo");
+    if (el) el.textContent = textoDoMotivo();
   }
 
   function salvar() {
@@ -539,6 +704,7 @@
     painel.$("#af-tempo-espera").disabled = config.modo !== "espera";
     painel.$("#af-som").value = config.som;
     painel.$("#af-volume").value = config.volume;
+    refletirEstadoDosAvisos();
   }
 
   function alternarAtivo() {
@@ -598,6 +764,15 @@
       );
       config.volume = Math.min(100, Math.max(0, parseInt(config.volume, 10) || 0));
       if (!TIPOS_DE_SOM[config.som]) config.som = CONFIG_PADRAO.som;
+      config.avisarForaDaAba = config.avisarForaDaAba !== false;
+      config.manterTelaAcesa = !!config.manterTelaAcesa;
+      /* Quem ja tinha marcado "avisar fora da aba" antes pode ter perdido
+       * a permissao (trocou de maquina, limpou o site). Sem permissao a
+       * chave nao vale nada, e a tela precisa mostrar isso. */
+      if (config.avisarForaDaAba && atencao() && atencao().permissaoDeNotificacao() !== "granted") {
+        config.avisarForaDaAba = false;
+      }
+      if (config.manterTelaAcesa && atencao()) atencao().manterTelaAcesa(true);
 
       decisorFila = deps.decisao.criarDecisor({
         limiar: 0.6,                    // um voto de DOM sozinho ja decide
@@ -674,6 +849,13 @@
       if (moldura) {
         moldura.remover();
         moldura = null;
+      }
+      /* Desligar o modulo tem que devolver a aba como estava: sem
+       * contador no titulo, com o favicone do Meeds de volta, e sem
+       * segurar a tela acesa. */
+      if (atencao()) {
+        atencao().limpar();
+        atencao().manterTelaAcesa(false);
       }
       idsFilaPorAssinatura.clear();
       idsJaAlertadosPorEspera.clear();
