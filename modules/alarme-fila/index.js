@@ -601,7 +601,21 @@
     painel.$("#af-liberar-aviso").addEventListener("click", function () {
       var A = atencao();
       if (!A) return;
-      A.pedirPermissaoDeNotificacao().then(refletirEstadoDosAvisos);
+      A.pedirPermissaoDeNotificacao().then(function (liberou) {
+        refletirEstadoDosAvisos();
+        /* O Edge vem com "solicitacoes de notificacao silenciosas" LIGADO:
+         * ele engole o pedido e so pisca um sininho na barra de endereco.
+         * Sem esta linha, o medico clica no botao e parece que nada
+         * aconteceu — e ele conclui, com razao, que esta quebrado. */
+        if (!liberou && A.permissaoDeNotificacao() === "default") {
+          var estado = painel.$("#af-avisar-estado");
+          if (estado) {
+            estado.textContent =
+              "O navegador não mostrou a pergunta — ele silencia esse pedido por padrão. " +
+              "Procure o ícone de sino na barra de endereço e escolha permitir.";
+          }
+        }
+      });
     });
   }
 
@@ -640,6 +654,32 @@
     if (A && A.suportaTelaAcesa()) {
       estado.textContent += " A tela não apaga enquanto o Meeds estiver aberto.";
     }
+  }
+
+  /* O Edge suspende guias de fundo de fabrica, e o Chrome congela as
+   * ociosas. Aba suspensa para os timers: o Meeds deixa de consultar a
+   * fila e o alarme nao toca — sem erro, sem aviso. Nao da para impedir
+   * pela pagina, entao o minimo honesto e CONTAR ao medico que houve um
+   * periodo sem vigilancia, em vez de deixa-lo achar que ninguem chegou. */
+  var cancelarVigiaSuspensao = null;
+
+  function vigiarSuspensaoDaAba() {
+    var A = atencao();
+    if (!A || !A.aoAcordarDeSuspensao) return;
+    cancelarVigiaSuspensao = A.aoAcordarDeSuspensao(function (atrasoMs) {
+      if (!config.ativo) return; // alarme desligado: nao havia o que vigiar
+      var min = Math.round(atrasoMs / 60000);
+      if (min < 2) return;
+      d.dock.criarAviso({
+        titulo: "O alarme ficou parado",
+        corpo:
+          "Esta aba ficou suspensa pelo navegador por cerca de " + min +
+          " min e o alarme não pôde tocar nesse período. Confira a fila. " +
+          "Para evitar, no Edge: Configurações › Sistema › “Nunca colocar estes sites " +
+          "em suspensão” e acrescente meeds.com.br.",
+        autoFecharMs: 0,
+      });
+    });
   }
 
   function montarBanner() {
@@ -757,6 +797,7 @@
 
       montarBanner();
       montarPainel();
+      vigiarSuspensaoDaAba();
       deps.aoClicarBotao(alternarAtivo);
       /* A configuracao tambem abre pelo painel da engrenagem, em
        * "Ajustes". O clique direito continua valendo como atalho, mas
@@ -828,6 +869,10 @@
       /* Desligar o modulo tem que devolver a aba como estava: sem
        * contador no titulo, com o favicone do Meeds de volta, e sem
        * segurar a tela acesa. */
+      if (cancelarVigiaSuspensao) {
+        cancelarVigiaSuspensao();
+        cancelarVigiaSuspensao = null;
+      }
       if (atencao()) {
         atencao().limpar();
         atencao().manterTelaAcesa(false);

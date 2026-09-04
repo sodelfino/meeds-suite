@@ -810,6 +810,46 @@ todas passando.
 > recarregar. Mesmo tropeço da migração da APAC; vale reler o box de reset acima
 > antes de montar qualquer teste de atualização.
 
+### Compatibilidade com o Edge *(v2.24.0)*
+
+Revisão feita em 04/09/2026. **Não foi possível executar no Edge**: ele não está
+instalado na máquina de desenvolvimento. O que segue é análise do código
+mais os dois ajustes que ela produziu — a execução no Edge continua pendente e
+precisa ser feita numa máquina que o tenha.
+
+**Piso de versão.** Nada no pacote é exclusivo do Chrome. As APIs com requisito
+maior estão todas protegidas por teste de existência: `canvas.roundRect` cai para
+`rect`, `navigator.wakeLock` e `Notification` são checados antes de usar, e
+`requestIdleCallback` só adianta trabalho quando existe. Quem define o piso é o
+CSS: `gap` em flexbox (Chromium 84) e `inset` (Chromium 87). **Edge 87+**,
+portanto — o Edge atual está na casa dos 130.
+
+O `feedback.js` já identifica o Edge corretamente, testando `Edg/` **antes** de
+`Chrome/` — a ordem importa, porque o user-agent do Edge contém as duas.
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 158 | Nenhuma API sem proteção acima do piso declarado | ✅ |
+| 159 | `roundRect` tem alternativa; `wakeLock`/`Notification` são checados | ✅ |
+| 160 | Copiar tem alternativa quando não há Clipboard API | ✅ |
+| 161 | Detecção de iOS não classifica Edge/Windows como iPad | ✅ |
+| 162 | Aba congelada é detectada e informada (4 verificações novas) | ✅ |
+| 163 | Afunilamento normal de aba de fundo não gera falso alarme | ✅ |
+
+**Dois riscos que são de comportamento do Edge, não de API:**
+
+1. **Guias em suspensão, ligado de fábrica.** Aba suspensa para os timers: o
+   Meeds deixa de consultar a fila e **o alarme não toca** — sem erro, sem aviso.
+   É o pior modo de falha possível para um alarme, porque é silencioso. Não dá
+   para impedir pela página; passou a ser detectado (pulso de 30 s, tolerância de
+   3×, que cobre o afunilamento normal sem falso positivo) e informado ao médico
+   quando a aba acorda. **A instrução para o plantonista é acrescentar
+   `meeds.com.br` em Configurações › Sistema e desempenho › "Nunca colocar estes
+   sites em suspensão".**
+2. **Solicitações de notificação silenciosas, ligado de fábrica.** O Edge engole o
+   pedido de permissão e só pisca um sino na barra de endereço. O médico clicava
+   em "Ativar avisos do sistema" e nada acontecia. A tela agora diz onde olhar.
+
 ### Extensibilidade
 
 Verificado à parte: criei um sexto módulo a partir de `modules/_template`,

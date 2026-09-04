@@ -2,6 +2,17 @@
  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
  "versoes": [
   {
+   "versao": "2.24.0",
+   "data": "2026-09-04",
+   "novidades": [
+    "Se o navegador suspender a aba do Meeds — o Edge faz isso de fábrica com abas de fundo —, o Assistente passa a avisar quando ela acorda: “esta aba ficou suspensa por X min e o alarme não pôde tocar”. Antes o alarme simplesmente ficava mudo e você não tinha como saber."
+   ],
+   "melhorias": [
+    "No Edge, o pedido de permissão para avisar pelo sistema costuma ser silenciado pelo navegador, e o botão parecia não fazer nada. Agora a tela avisa para procurar o ícone de sino na barra de endereço."
+   ],
+   "correcoes": []
+  },
+  {
    "versao": "2.23.0",
    "data": "2026-09-04",
    "novidades": [],

@@ -54,8 +54,13 @@ function ambiente(opcoes) {
   };
 
   const notificacoes = [];
+  const tiques = [];
   const ctx = {
-    console, setInterval, clearInterval, setTimeout, clearTimeout, Promise, Math, JSON, String, Date,
+    console, clearInterval, setTimeout, clearTimeout, Promise, Math, JSON, String, Date,
+    /* setInterval de mentira: guarda o tique para o teste dispara-lo na
+       hora que quiser, em vez de esperar 30 s de verdade. */
+    setInterval: (fn) => { tiques.push(fn); return tiques.length; },
+    _tiques: tiques,
     document: doc,
     addEventListener(ev, fn) { (ouvintes[ev] = ouvintes[ev] || []).push(fn); },
     removeEventListener(ev, fn) { ouvintes[ev] = (ouvintes[ev] || []).filter((f) => f !== fn); },
@@ -64,6 +69,7 @@ function ambiente(opcoes) {
       wakeLock: { request: () => Promise.resolve({ release() { ctx._travaSolta = true; }, addEventListener() {} }) },
     },
     _notificacoes: notificacoes,
+    _tiquesRef: tiques,
     _link: link,
     _doc: doc,
   };
@@ -169,6 +175,40 @@ function ambiente(opcoes) {
     A.limpar();
   } catch (e) { quebrou = true; }
   ok("marcar/limpar nao quebram sem os recursos", !quebrou);
+}
+
+/* 9. aba suspensa pelo navegador — o pior modo de falha de um alarme,
+ *    porque e silencioso. O Edge tem "guias em suspensao" ligado de
+ *    fabrica; o Chrome congela guias de fundo ociosas. Em ambos os casos
+ *    os timers param, o Meeds deixa de consultar a fila e o alarme nao
+ *    toca. Nao da para impedir pela pagina; da para PERCEBER. */
+{
+  const c = ambiente({});
+  const A = c.MeedsSuiteAtencao;
+  const avisos = [];
+  A.aoAcordarDeSuspensao((ms) => avisos.push(ms));
+
+  /* O pulso e de 30 s e a tolerancia, 3x. Um relogio que avancou 12 min
+   * entre dois pulsos so pode ter sido congelado. */
+  const relogioReal = Date.now;
+  let deslocamento = 0;
+  Date.now = () => relogioReal.call(Date) + deslocamento;
+
+  const tique = c._tiques[0];
+  ok("registrou o pulso de vigilancia", typeof tique === "function");
+
+  deslocamento = 40 * 1000;   // atraso normal de aba de fundo afunilada
+  tique();
+  ok("afunilamento normal de aba de fundo NAO acusa", avisos.length === 0, avisos.join(","));
+
+  deslocamento += 12 * 60 * 1000;  // 12 min congelada
+  tique();
+  ok("congelamento longo acusa", avisos.length === 1, avisos.join(","));
+  ok("e informa quanto tempo ficou parada",
+     avisos[0] >= 11 * 60 * 1000 && avisos[0] <= 13 * 60 * 1000,
+     Math.round(avisos[0] / 60000) + " min");
+
+  Date.now = relogioReal;
 }
 
 /* 8. pedir permissao devolve booleano, inclusive quando o medico recusa */

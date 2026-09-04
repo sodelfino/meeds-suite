@@ -301,6 +301,50 @@
   }
 
   /* ------------------------------------------------------------------
+   * A ABA FOI SUSPENSA?
+   * ------------------------------------------------------------------
+   * O Edge tem "guias em suspensao" LIGADO de fabrica, e o Chrome tem o
+   * congelamento de guias de fundo. Uma aba suspensa para os timers: o
+   * Meeds deixa de consultar a fila e o alarme simplesmente NAO TOCA —
+   * sem erro, sem aviso, sem nada. Para um alarme de plantao esse e o
+   * pior modo de falha possivel, porque e silencioso.
+   *
+   * Nao da para impedir pela pagina. Da para PERCEBER: um pulso de 30 s
+   * que demorou muito mais que isso so pode ter sido congelado. O limite
+   * de 3x cobre com folga o afunilamento normal de aba de fundo (que no
+   * Chromium vai a um disparo por minuto) sem acusar falso positivo.
+   * ------------------------------------------------------------------ */
+  var INTERVALO_PULSO_MS = 30000;
+  var TOLERANCIA_PULSO = 3;
+  var ultimoPulso = 0;
+  var pulso = null;
+  var ouvintesSuspensao = [];
+
+  function aoAcordarDeSuspensao(fn) {
+    if (typeof fn !== "function") return function () {};
+    ouvintesSuspensao.push(fn);
+    if (!pulso) {
+      ultimoPulso = Date.now();
+      pulso = setInterval(function () {
+        var agora = Date.now();
+        var atraso = agora - ultimoPulso;
+        ultimoPulso = agora;
+        if (atraso <= INTERVALO_PULSO_MS * TOLERANCIA_PULSO) return;
+        ouvintesSuspensao.forEach(function (o) {
+          try { o(atraso); } catch (e) {}
+        });
+      }, INTERVALO_PULSO_MS);
+    }
+    return function cancelar() {
+      ouvintesSuspensao = ouvintesSuspensao.filter(function (o) { return o !== fn; });
+      if (!ouvintesSuspensao.length && pulso) {
+        clearInterval(pulso);
+        pulso = null;
+      }
+    };
+  }
+
+  /* ------------------------------------------------------------------
    * MARCAR / LIMPAR — os dois unicos que um modulo costuma chamar
    * ------------------------------------------------------------------ */
   function marcar(opcoes) {
@@ -329,6 +373,7 @@
   raiz.MeedsSuiteAtencao = {
     ondeEstaOMedico: ondeEstaOMedico,
     aoMudarAtencao: aoMudarAtencao,
+    aoAcordarDeSuspensao: aoAcordarDeSuspensao,
     marcar: marcar,
     limpar: limpar,
     notificar: notificar,

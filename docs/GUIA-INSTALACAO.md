@@ -8,6 +8,13 @@ tela do Meeds, e você liga ou desliga cada uma pelo botão ⚙️.
 ## 1. Instalar
 
 1. Tenha a extensão **Tampermonkey** no navegador (Chrome, Edge ou Firefox).
+
+   > **Usa Edge?** Faça mais um ajuste, uma vez só: em **Configurações › Sistema
+   > e desempenho**, procure *"Nunca colocar estes sites em suspensão"* e
+   > acrescente `meeds.com.br`. O Edge coloca abas de fundo para dormir de
+   > fábrica, e uma aba dormindo não consulta a fila — o alarme fica mudo sem
+   > avisar. O Assistente detecta e conta depois que aconteceu, mas o certo é
+   > não deixar acontecer.
    Se ainda não tiver: <https://www.tampermonkey.net>
 2. Abra este link:
 
