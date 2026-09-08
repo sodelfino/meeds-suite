@@ -532,6 +532,11 @@
      * cidades — inofensivo enquanto so existia Itauna, mas agora isso
      * deixaria o CNES de Itauna a um clique de sair numa APAC de Betim.
      * O municipio e preenchido pelo CNES, que consta em dados/apac.json. */
+    /* Modelos salvos sob o id antigo da APAC seguem o mesmo caminho da
+     * preferencia e do historico — quem renomeia um modulo herda a
+     * obrigacao de levar junto o que o medico guardou nele. */
+    if (raiz.MeedsSuiteModelos) raiz.MeedsSuiteModelos.migrarId("apac-itauna", "apac");
+
     (function carimbarMunicipioPeloCnes() {
       var dados = raiz.MEEDS_DADOS_APAC;
       if (!dados || !dados.municipios || !Cadastro || !Cadastro.preencherMunicipioPeloCnes) return;

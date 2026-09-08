@@ -174,9 +174,9 @@
   var CATALOGO_PROCEDIMENTOS = DADOS.procedimentos || {};
 
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
-  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + "#cmd-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #cmd-sucesso b{ color:#08574f; }\n" + "#cmd-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #cmd-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #cmd-modal-head h2{ margin:0; font-size:15px; }\n    #cmd-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #cmd-body{ padding:18px 20px; }\n    .cmd-sec{ margin-bottom:16px; }\n    .cmd-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .cmd-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .cmd-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    .cmd-grid4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }\n    #cmd-body label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    #cmd-body input,#cmd-body select,#cmd-body textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    #cmd-body textarea{ min-height:90px; resize:vertical; }\n    #cmd-origem-outro-wrap{ display:none; margin-top:8px; }\n    #cmd-origem-outro-wrap.show{ display:block; }\n    #cmd-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .cmd-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    .cmd-contador{ text-align:right; font-size:10.5px; color:#8a97a4; margin-top:4px; }\n    button.cmd-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.cmd-primary:hover{ background:#123a7a; }\n    button.cmd-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.cmd-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.cmd-secondary:hover{ background:#e8f0f8; }\n    #cmd-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #cmd-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
+  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + raiz.MeedsSuiteModelos.CSS + "\n" + "#cmd-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #cmd-sucesso b{ color:#08574f; }\n" + "#cmd-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #cmd-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #cmd-modal-head h2{ margin:0; font-size:15px; }\n    #cmd-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #cmd-body{ padding:18px 20px; }\n    .cmd-sec{ margin-bottom:16px; }\n    .cmd-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .cmd-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .cmd-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    .cmd-grid4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }\n    #cmd-body label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    #cmd-body input,#cmd-body select,#cmd-body textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    #cmd-body textarea{ min-height:90px; resize:vertical; }\n    #cmd-origem-outro-wrap{ display:none; margin-top:8px; }\n    #cmd-origem-outro-wrap.show{ display:block; }\n    #cmd-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .cmd-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    .cmd-contador{ text-align:right; font-size:10.5px; color:#8a97a4; margin-top:4px; }\n    button.cmd-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.cmd-primary:hover{ background:#123a7a; }\n    button.cmd-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.cmd-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.cmd-secondary:hover{ background:#e8f0f8; }\n    #cmd-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #cmd-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
 
-  var HTML = "<div id=\"cmd-modal\">\n      <div id=\"cmd-modal-head\"><h2>Laudo Médico de Alto Custo — Conceição do Mato Dentro</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"cmd-historico-abrir\" title=\"Documentos gerados neste computador\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"cmd-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"cmd-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"cmd-body\">\n        <div class=\"cmd-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Conceição do Mato Dentro (mesmo PDF da prefeitura, preenchido pelos campos reais do formulário). A seção 04 (Junta de Autorização) não é preenchida — é reservada para a regulação.\n        </div>\n        <div id=\"cmd-historico-painel\"></div>\n        <div id=\"cmd-auto-aviso\"></div>\n\n        <div class=\"cmd-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"cmd-grid3\">\n            <div><label>Selecionar *</label><select id=\"cmd-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"cmd-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"cmd-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"cmd-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Dados do atendimento</h3>\n          <div>\n            <label>Unidade de origem *</label>\n            <select id=\"cmd-origem-sel\"></select>\n            <div id=\"cmd-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"cmd-origem-outro\"></div>\n          </div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Paciente</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome completo *</label><input id=\"cmd-pac-nome\"></div>\n            <div><label>CPF</label><input id=\"cmd-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"cmd-grid3\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"cmd-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"cmd-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n            <div><label>Telefone</label><input id=\"cmd-pac-telefone\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Nome da mãe</label><input id=\"cmd-pac-mae\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"cmd-proc-nome\" list=\"cmd-proc-list\" placeholder=\"digite o exame\" autocomplete=\"off\"></div>\n            <div><label>Código do procedimento</label><input id=\"cmd-proc-codigo\" placeholder=\"ex: 41101170\"></div>\n          </div>\n          <datalist id=\"cmd-proc-list\"></datalist>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>CID-10</label><input id=\"cmd-cid\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"cmd-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          \n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"cmd-justificativa\" maxlength=\"700\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado (até 700 caracteres)\"></textarea>\n          <div class=\"cmd-contador\" id=\"cmd-justificativa-contador\">0/700</div>\n        </div>\n\n        <div id=\"cmd-sucesso\" style=\"display:none;\"></div>\n        <div id=\"cmd-erro\"></div>\n      </div>\n      <div id=\"cmd-footer\">\n        <button class=\"cmd-secondary\" id=\"cmd-limpar\">Limpar</button>\n        <button class=\"cmd-primary\" id=\"cmd-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
+  var HTML = "<div id=\"cmd-modal\">\n      <div id=\"cmd-modal-head\"><h2>Laudo Médico de Alto Custo — Conceição do Mato Dentro</h2>\n        <div style=\"display:flex; gap:8px; align-items:center;\">\n          <button id=\"cmd-historico-abrir\" title=\"Documentos gerados neste computador\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">📜 Histórico</button>\n          <button id=\"cmd-refresh\" title=\"Lê a tela do atendimento e busca os dados do paciente atual\" style=\"background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:14px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;\">🔄 Atualizar paciente</button>\n          <button id=\"cmd-close\">✕</button>\n        </div>\n      </div>\n      <div id=\"cmd-body\">\n        <div class=\"cmd-info-box\">\n          Gera o LAUDO MÉDICO DE ALTO CUSTO oficial de Conceição do Mato Dentro (mesmo PDF da prefeitura, preenchido pelos campos reais do formulário). A seção 04 (Junta de Autorização) não é preenchida — é reservada para a regulação.\n        </div>\n        <div id=\"cmd-historico-painel\"></div>\n        <div id=\"cmd-auto-aviso\"></div>\n\n        <div class=\"msmod\">\n          <div class=\"msmod-rot\">Modelos salvos</div>\n          <div class=\"msmod-linha\">\n            <select id=\"cmd-modelo-sel\"></select>\n            <button type=\"button\" class=\"msmod-btn\" id=\"cmd-modelo-salvar\">\ud83d\udcbe Salvar atual</button>\n            <button type=\"button\" class=\"msmod-btn\" id=\"cmd-modelo-padrao\">\u2605 Padrao</button>\n            <button type=\"button\" class=\"msmod-btn perigo\" id=\"cmd-modelo-excluir\">Apagar</button>\n          </div>\n          <div class=\"msmod-dica\" id=\"cmd-modelo-dica\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Médico solicitante *</h3>\n          <div class=\"cmd-grid3\">\n            <div><label>Selecionar *</label><select id=\"cmd-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"cmd-medico-nome\"></div>\n            <div><label>CRM *</label><input id=\"cmd-medico-crm\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>CPF *</label><input id=\"cmd-medico-cpf\" placeholder=\"000.000.000-00\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Dados do atendimento</h3>\n          <div>\n            <label>Unidade de origem *</label>\n            <select id=\"cmd-origem-sel\"></select>\n            <div id=\"cmd-origem-outro-wrap\"><label>Nome da unidade</label><input id=\"cmd-origem-outro\"></div>\n          </div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Paciente</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome completo *</label><input id=\"cmd-pac-nome\"></div>\n            <div><label>CPF</label><input id=\"cmd-pac-cpf\" placeholder=\"000.000.000-00\"></div>\n          </div>\n          <div class=\"cmd-grid3\" style=\"margin-top:8px;\">\n            <div><label>Data de nascimento</label><input id=\"cmd-pac-nasc\" placeholder=\"dd/mm/aaaa\" inputmode=\"numeric\" maxlength=\"10\"></div>\n            <div><label>Sexo *</label><select id=\"cmd-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"FEM\">Feminino</option><option value=\"MASC\">Masculino</option></select></div>\n            <div><label>Telefone</label><input id=\"cmd-pac-telefone\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Nome da mãe</label><input id=\"cmd-pac-mae\"></div>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Procedimento solicitado *</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>Nome do procedimento *</label><input id=\"cmd-proc-nome\" list=\"cmd-proc-list\" placeholder=\"digite o exame\" autocomplete=\"off\"></div>\n            <div><label>Código do procedimento</label><input id=\"cmd-proc-codigo\" placeholder=\"ex: 41101170\"></div>\n          </div>\n          <datalist id=\"cmd-proc-list\"></datalist>\n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Diagnóstico</h3>\n          <div class=\"cmd-grid2\">\n            <div><label>CID-10</label><input id=\"cmd-cid\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Diagnóstico inicial</label><input id=\"cmd-diagnostico\" placeholder=\"preenche sozinho a partir do CID conhecido\"></div>\n          </div>\n          \n        </div>\n\n        <div class=\"cmd-sec\">\n          <h3>Justificativa clínica *</h3>\n          <textarea id=\"cmd-justificativa\" maxlength=\"700\" placeholder=\"história da moléstia, exames prévios e objetivo do exame solicitado (até 700 caracteres)\"></textarea>\n          <div class=\"cmd-contador\" id=\"cmd-justificativa-contador\">0/700</div>\n        </div>\n\n        <div id=\"cmd-sucesso\" style=\"display:none;\"></div>\n        <div id=\"cmd-erro\"></div>\n      </div>\n      <div id=\"cmd-footer\">\n        <button class=\"cmd-secondary\" id=\"cmd-limpar\">Limpar</button>\n        <button class=\"cmd-primary\" id=\"cmd-gerar\">Gerar e baixar PDF</button>\n      </div>\n    </div>";
 
   /* ---- extraidas do original sem alteracao ---- */
   /* ---- validacao dos campos obrigatorios ----
@@ -556,6 +556,7 @@
     var dadosTela = d.dom.lerPaciente();
     if (trocouDePaciente(dadosTela) || !shadow.getElementById("cmd-pac-cpf").value.trim()) limparForm();
     aplicarLeituraDaTela(dadosTela);
+    aplicarModeloPadraoSeVazio();
     overlay.abrir();
   }
 
@@ -637,6 +638,175 @@
   /* ----------------------------------------------------------------
    * CONTRATO DE MODULO
    * ---------------------------------------------------------------- */
+
+  /* ------------------------------------------------------------------
+   * MODELOS SALVOS
+   * ------------------------------------------------------------------
+   * A parte que se repete laudo a laudo — procedimento, codigo, CID,
+   * justificativa — guardada uma vez e reposta com um clique. Nada de
+   * paciente entra: ver core/modelos.js, que recusa esses campos por
+   * duas travas independentes.
+   *
+   * CAMPOS_DO_MODELO e a MESMA lista que alimenta o historico, de
+   * proposito: se as duas divergirem, um campo passa a ser "clinico" num
+   * lugar e "de paciente" no outro, e a fronteira deixa de valer.
+   * ------------------------------------------------------------------ */
+  var CAMPOS_DO_MODELO = [
+    "cmd-proc-nome",
+    "cmd-proc-codigo",
+    "cmd-cid",
+    "cmd-diagnostico",
+    "cmd-justificativa",
+    "cmd-origem-outro",
+    "cmd-origem-sel"
+  ];
+
+  function Modelos() { return raiz.MeedsSuiteModelos; }
+
+  /* Este laudo nao tem grid de procedimento — o procedimento e um campo
+   * de texto comum, ja coberto por CAMPOS_DO_MODELO. As duas portas
+   * existem so para o formato do modelo ser o mesmo nos tres geradores. */
+  function procedimentoDoModelo() { return null; }
+  function aplicarProcedimentoDoModelo() { return false; }
+
+  function lerCamposDoFormulario() {
+    var fora = {};
+    CAMPOS_DO_MODELO.forEach(function (id) {
+      if (id === "procedimento") {
+        var p = procedimentoDoModelo();
+        if (p) fora.procedimento = p;
+        return;
+      }
+      var el = shadow.getElementById(id);
+      if (el && el.value) fora[id] = el.value;
+    });
+    return fora;
+  }
+
+  function aplicarModelo(clinico) {
+    if (!clinico) return 0;
+    var n = 0;
+    Object.keys(clinico).forEach(function (id) {
+      if (id === "procedimento") { if (aplicarProcedimentoDoModelo(clinico[id])) n++; return; }
+      var el = shadow.getElementById(id);
+      if (!el) return;
+      el.value = clinico[id];
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+      n++;
+    });
+    return n;
+  }
+
+  function montarModelos() {
+    var sel = shadow.getElementById("cmd-modelo-sel");
+    if (!sel) return;
+    var lista = Modelos().listar("cmd");
+    var escolhido = sel.value;
+    sel.innerHTML = "";
+    var ph = document.createElement("option");
+    ph.value = "";
+    ph.textContent = lista.length ? "Escolha um modelo…" : "Nenhum modelo salvo ainda";
+    sel.appendChild(ph);
+    lista.forEach(function (m) {
+      var o = document.createElement("option");
+      o.value = m.nome;
+      o.textContent = (m.padrao ? "\u2605 " : "") + m.nome;
+      sel.appendChild(o);
+    });
+    if (escolhido) sel.value = escolhido;
+    var dica = shadow.getElementById("cmd-modelo-dica");
+    if (dica) {
+      var padrao = Modelos().padraoDe("cmd");
+      dica.textContent = padrao
+        ? "\u2605 " + padrao.nome + " entra sozinho quando voce abre o gerador com os campos clinicos vazios."
+        : "Salve o procedimento, o CID e a justificativa que voce mais repete. Marque um com \u2605 para ele vir preenchido sozinho.";
+    }
+  }
+
+  function ligarModelos() {
+    var sel = shadow.getElementById("cmd-modelo-sel");
+    if (!sel) return;
+
+    sel.addEventListener("change", function () {
+      if (!sel.value) return;
+      var m = Modelos().obter("cmd", sel.value);
+      if (!m) return;
+      var n = aplicarModelo(m.clinico);
+      toast("Modelo \u201c" + m.nome + "\u201d aplicado (" + n + " campo" + (n > 1 ? "s" : "") + "). Confira antes de gerar.", 4000);
+    });
+
+    shadow.getElementById("cmd-modelo-salvar").addEventListener("click", function () {
+      var nome = raiz.prompt("Nome do modelo (para voce reconhecer depois):", sel.value || "");
+      if (nome === null) return;
+      var r = Modelos().salvar("cmd", nome, lerCamposDoFormulario(), CAMPOS_DO_MODELO);
+      if (!r.ok) { toast(r.erro, 6000); return; }
+      montarModelos();
+      sel.value = r.nome;
+      toast(r.substituiu ? "Modelo \u201c" + r.nome + "\u201d atualizado." : "Modelo \u201c" + r.nome + "\u201d salvo.", 3500);
+    });
+
+    shadow.getElementById("cmd-modelo-padrao").addEventListener("click", function () {
+      if (!sel.value) { toast("Escolha um modelo na lista para marcar como padrao.", 4000); return; }
+      Modelos().definirPadrao("cmd", sel.value);
+      montarModelos();
+      var padrao = Modelos().padraoDe("cmd");
+      toast(padrao && padrao.nome === sel.value
+        ? "\u201c" + sel.value + "\u201d agora vem preenchido sozinho."
+        : "\u201c" + sel.value + "\u201d deixou de vir preenchido sozinho.", 3500);
+    });
+
+    shadow.getElementById("cmd-modelo-excluir").addEventListener("click", function () {
+      if (!sel.value) { toast("Escolha um modelo na lista para apagar.", 4000); return; }
+      if (!raiz.confirm("Apagar o modelo \u201c" + sel.value + "\u201d?")) return;
+      Modelos().remover("cmd", sel.value);
+      montarModelos();
+      toast("Modelo apagado.", 3000);
+    });
+
+    montarModelos();
+  }
+
+  /* ------------------------------------------------------------------
+   * "VAZIO" NAO E "SEM VALOR NENHUM"
+   * ------------------------------------------------------------------
+   * Alguns <select> deste formulario ja nascem com uma opcao escolhida
+   * (a variante do eco vem em "REPOUSO", a origem vem na primeira
+   * unidade). Se contassem como preenchimento, o formulario nunca
+   * pareceria vazio e o modelo padrao jamais entraria — que foi
+   * exatamente o que aconteceu no primeiro teste desta funcao.
+   *
+   * Entao um select so conta se o medico o tirou do valor inicial.
+   * ------------------------------------------------------------------ */
+  function campoFoiPreenchido(id) {
+    var el = shadow.getElementById(id);
+    if (!el || !el.value) return false;
+    if (el.tagName === "SELECT") {
+      var primeira = el.options && el.options.length ? el.options[0].value : "";
+      return el.value !== primeira;
+    }
+    return true;
+  }
+
+  function formularioClinicoVazio() {
+    if (procedimentoDoModelo()) return false;
+    for (var i = 0; i < CAMPOS_DO_MODELO.length; i++) {
+      var id = CAMPOS_DO_MODELO[i];
+      if (id === "procedimento") continue;
+      if (campoFoiPreenchido(id)) return false;
+    }
+    return true;
+  }
+
+  /* O modelo padrao so entra com a parte clinica VAZIA. Ele existe para
+   * poupar digitacao, nunca para apagar o que o medico ja escreveu. */
+  function aplicarModeloPadraoSeVazio() {
+    var padrao = Modelos().padraoDe("cmd");
+    if (!padrao) return;
+    if (!formularioClinicoVazio()) return;
+    aplicarModelo(padrao.clinico);
+  }
+
   raiz.MeedsSuite.registerModule({
     id: "cmd",
     nome: "Laudo — Conceição do Mato Dentro",
@@ -658,6 +828,7 @@
     start: function (deps) {
       d = deps;
       montarUI();
+      ligarModelos();
 
       /* Quando o medico e cadastrado ou removido no painel da engrenagem,
        * o <select> se redesenha sozinho — sem precisar fechar e reabrir

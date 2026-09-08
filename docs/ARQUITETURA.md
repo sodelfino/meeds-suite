@@ -998,6 +998,42 @@ que escolheria o outro lado.** Se a resposta for não, é comportamento, não
 opção — e uma chave a mais é uma decisão a mais para quem já decide o dia
 inteiro.
 
+
+**D31 — Modelo é a parte que se repete; paciente nunca se repete.**
+Um cardiologista que pede Holter o dia inteiro redigita o mesmo
+procedimento, o mesmo código, o mesmo CID e a mesma justificativa em cada laudo.
+Isso não é decisão clínica, é datilografia. `core/modelos.js` guarda essa parte
+uma vez e devolve com um clique, nos três geradores.
+
+O risco da funcionalidade é um só, e ele **sai em papel timbrado**: um modelo é
+feito para ser aplicado a **outro** paciente. Se guardasse o nome ou o CPF de
+quem estava na tela quando foi criado, todo laudo gerado a partir dele sairia com
+o dado da pessoa errada — e ninguém perceberia, porque o campo pareceria
+preenchido.
+
+Por isso a fronteira tem **duas travas independentes**: só entra o que o módulo
+declarou como clínico, e mesmo dentro dessa lista qualquer chave com cara de
+campo de paciente (`pac`, `cpf`, `nasc`, `mae`, `sexo`…) é recusada e registrada
+no console. Duas travas para o mesmo erro, porque o custo dele é um documento
+oficial errado.
+
+`CAMPOS_DO_MODELO` é a **mesma** lista que alimenta o histórico, deliberadamente:
+se as duas divergirem, um campo passa a ser "clínico" num lugar e "de paciente"
+no outro, e a fronteira deixa de valer.
+
+Duas decisões de comportamento:
+
+- **O modelo padrão (★) só entra com a parte clínica vazia.** Ele existe para
+  poupar digitação, nunca para apagar o que o médico já escreveu.
+- **"Vazio" não é "sem valor nenhum".** Alguns `<select>` nascem com opção
+  escolhida — a variante do eco vem em "REPOUSO". Contá-los como preenchimento
+  fazia o formulário nunca parecer vazio e o modelo padrão jamais entrar, que foi
+  exatamente o que aconteceu no primeiro teste. Um select só conta se o médico o
+  tirou do valor inicial.
+
+Regressão em `tests/modelos.test.js`, onde a maior parte dos casos prova a
+fronteira e não a funcionalidade.
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público

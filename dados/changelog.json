@@ -2,6 +2,18 @@
  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
  "versoes": [
   {
+   "versao": "2.28.0",
+   "data": "2026-09-08",
+   "novidades": [
+    "Modelos salvos na APAC, no laudo de Sete Lagoas e no de Conceição do Mato Dentro. Preencha o procedimento, o CID e a justificativa que você mais repete, clique em 💾 Salvar atual e dê um nome. Da próxima vez, escolha na lista e tudo volta preenchido.",
+    "Marque um modelo com ★ Padrão e ele entra sozinho toda vez que você abrir o gerador — sem clicar em nada. Ele só preenche campo vazio: o que você já escreveu nunca é apagado."
+   ],
+   "melhorias": [
+    "Os modelos ficam no seu navegador e sobrevivem a logout, limpeza do site e atualização do Assistente. Nenhum dado de paciente entra num modelo — nome, CPF, nascimento, mãe e sexo ficam de fora, porque um modelo é feito para ser usado com outra pessoa."
+   ],
+   "correcoes": []
+  },
+  {
    "versao": "2.27.0",
    "data": "2026-09-04",
    "novidades": [],
