@@ -74,14 +74,24 @@
   /* ------------------------------------------------------------------
    * ESTADO LEMBRADO (aberto/fechado e largura), por gerador
    * ------------------------------------------------------------------
-   * DESLIGADO por padrão na primeira execução: quem abre um laudo pela
-   * primeira vez quer preencher, não olhar um documento em branco.
+   * LIGADA por padrão. A regra anterior era o contrário — "quem abre um
+   * laudo pela primeira vez quer preencher, não olhar um documento em
+   * branco" —, e ela estava errada sobre o que custa caro. O documento
+   * em branco incomoda por dois segundos; o erro que só aparece no PDF
+   * assinado custa o laudo inteiro, e a prévia é justamente o que mostra
+   * o campo trocado ANTES de virar papel.
+   *
+   * Continua sendo escolha do médico: fechar uma vez fica fechado
+   * naquele gerador, para sempre. O que mudou foi de que lado ele começa
+   * — e começar vendo o documento é o que serve a quem ainda não conhece
+   * o formulário de cor.
    * ------------------------------------------------------------------ */
   function lerPreferencia(id) {
     var todas = d.storage.ler("paineis", {}) || {};
     var p = todas[id] || {};
     return {
-      aberto: p.aberto === true,
+      /* `!== false` e nao `=== true`: sem preferencia gravada, abre. */
+      aberto: p.aberto !== false,
       largura: Math.min(LARGURA_MAX, Math.max(LARGURA_MIN, Number(p.largura) || LARGURA_PADRAO)),
       zoom: p.zoom || "page-width",
     };
