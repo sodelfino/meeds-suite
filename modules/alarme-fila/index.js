@@ -321,6 +321,7 @@
     som: "sirene-classica",      // modo completo: repete ate silenciar
     somCurto: "toque-duplo",     // modo discreto: toca uma vez
     volume: 70,
+    janelaDeAviso: false,        // pop-up do navegador; nasce desligado
     intensidade: "completo", // "silencioso" | "discreto" | "completo"
   };
 
@@ -765,6 +766,15 @@
     if (!A) return;
     if (A.ondeEstaOMedico() !== "fora") return;
     var r = resumoDaFila();
+
+    /* A janela e o degrau mais barulhento e o unico opcional: ela FICA na
+     * barra de tarefas ate alguem fechar, enquanto a notificacao some
+     * sozinha. Quem trabalha com muitas janelas abertas perde a
+     * notificacao no canto e nao perde esta. */
+    if (config.janelaDeAviso && A.abrirJanelaDeAviso) {
+      A.abrirJanelaDeAviso({ titulo: "Paciente na fila", corpo: textoDoMotivo() });
+    }
+
     A.marcar({
       contagem: r.quantos || 1,
       notificar: true,
@@ -875,6 +885,9 @@
     /* O distintivo NAO e limpo aqui: silenciar o som nao faz o paciente
      * sair da fila. Ele so some quando a fila esvazia. */
     atualizarDistintivo();
+    /* A janela, sim, fecha: o medico ja viu. Deixa-la aberta na barra de
+     * tarefas depois de silenciado e lixo que ele fecha na mao. */
+    if (atencao() && atencao().fecharJanelaDeAviso) atencao().fecharJanelaDeAviso();
   }
 
   function cancelarReengateAgendado() {
@@ -963,6 +976,8 @@
         "      <label>Quando você não está na aba do Meeds</label>" +
         '      <div class="af-estado" id="af-avisar-estado"></div>' +
         '      <button type="button" id="af-liberar-aviso" hidden>Ativar avisos do sistema</button>' +
+        '      <label class="af-radio-linha" style="margin-top:10px;"><input type="checkbox" id="af-janela" /> Abrir também uma janela de aviso</label>' +
+        '      <div class="af-hint" id="af-janela-hint"></div>' +
         "    </div>" +
         "  </div>" +
         "</div>",
@@ -1018,6 +1033,25 @@
      * usuario. Por isso existe este botao, e ele so aparece enquanto a
      * permissao nao foi dada: nao e uma chave de liga/desliga, e o unico
      * passo que o navegador exige uma vez. */
+    painel.$("#af-janela").addEventListener("change", function () {
+      config.janelaDeAviso = painel.$("#af-janela").checked;
+      salvar();
+      if (!config.janelaDeAviso) {
+        if (atencao() && atencao().fecharJanelaDeAviso) atencao().fecharJanelaDeAviso();
+        refletirEstadoDosAvisos();
+        return;
+      }
+      /* Abre uma de amostra AGORA, no gesto de clique: e o unico momento
+       * em que o Chrome deixa abrir sem permissao previa, e serve de
+       * teste — se for bloqueada, o medico descobre aqui e nao na
+       * primeira chegada de paciente. */
+      var A = atencao();
+      if (A && A.abrirJanelaDeAviso) {
+        A.abrirJanelaDeAviso({ titulo: "Assim que ela vai aparecer", corpo: "Esta é a janela de aviso. Feche-a quando quiser." });
+      }
+      refletirEstadoDosAvisos();
+    });
+
     painel.$("#af-liberar-aviso").addEventListener("click", function () {
       var A = atencao();
       if (!A) return;
@@ -1073,6 +1107,31 @@
 
     if (A && A.suportaTelaAcesa()) {
       estado.textContent += " A tela não apaga enquanto o Meeds estiver aberto.";
+    }
+
+    var chaveJanela = painel.$("#af-janela");
+    var dicaJanela = painel.$("#af-janela-hint");
+    if (!chaveJanela || !dicaJanela) return;
+
+    var temJanela = !!(A && A.suportaJanela());
+    chaveJanela.disabled = !temJanela;
+    chaveJanela.checked = !!config.janelaDeAviso && temJanela;
+
+    if (!temJanela) {
+      dicaJanela.textContent = "Este navegador não permite abrir janelas.";
+    } else if (config.janelaDeAviso && A.janelaBloqueada()) {
+      /* Dizer a verdade: sem isto o medico marca a opcao, nao ve janela
+       * nenhuma e conclui que esta quebrada — com razao. */
+      dicaJanela.textContent =
+        "O navegador bloqueou a janela. Clique no ícone de pop-up bloqueado na barra de endereço " +
+        "e escolha permitir para este site.";
+    } else if (config.janelaDeAviso) {
+      dicaJanela.textContent =
+        "Uma janela pequena aparece na barra de tarefas quando chega paciente e você não está no Meeds. " +
+        "Ela fica lá até ser fechada — ao contrário da notificação, que some sozinha.";
+    } else {
+      dicaJanela.textContent =
+        "Para quem trabalha com muitas janelas abertas e perde a notificação no canto da tela.";
     }
   }
 
@@ -1224,6 +1283,7 @@
       if (!TIPOS_DE_SOM[config.somCurto] || !TIPOS_DE_SOM[config.somCurto].curto) {
         config.somCurto = CONFIG_PADRAO.somCurto;
       }
+      config.janelaDeAviso = !!config.janelaDeAviso;
       if (!INTENSIDADES[config.intensidade]) config.intensidade = CONFIG_PADRAO.intensidade;
       /* Avisar fora da aba e manter a tela acesa deixaram de ser chaves:
        * sao como o alarme funciona. O que limita o aviso do sistema nao e

@@ -256,6 +256,101 @@
   }
 
   /* ------------------------------------------------------------------
+   * JANELA DE AVISO (pop-up do navegador)
+   * ------------------------------------------------------------------
+   * Terceiro canal, e o mais barulhento dos tres. A notificacao do
+   * sistema aparece e some; a janela FICA na barra de tarefas ate alguem
+   * fechar. Para quem trabalha com varias janelas abertas e perde a
+   * notificacao no canto, e a diferenca entre ver e nao ver.
+   *
+   * DUAS RAZOES PARA ELA NAO SER PADRAO:
+   *   1. o Chrome bloqueia pop-up nao pedido por clique, e este e
+   *      disparado por chegada de paciente, nao por gesto do medico —
+   *      so funciona depois que o site ganha a permissao de pop-up;
+   *   2. uma janela que rouba o foco no meio de uma teleconsulta e pior
+   *      que o problema que resolve.
+   * Por isso ela e opcional, nasce desligada, e nunca chama focus().
+   *
+   * PRIVACIDADE: mesma regra da notificacao — quantidade e tempo, nunca
+   * nome de paciente. A janela pode ficar aberta atras de outras e
+   * aparecer em compartilhamento de tela.
+   * ------------------------------------------------------------------ */
+  var NOME_DA_JANELA = "meeds-aviso-fila";
+  var janelaAviso = null;
+
+  function suportaJanela() {
+    return typeof raiz.open === "function";
+  }
+
+  function janelaBloqueada() {
+    /* Chrome devolve null quando bloqueia. Guardamos o resultado para a
+     * tela poder dizer ao medico o que aconteceu, em vez de ele achar
+     * que a opcao nao faz nada. */
+    return janelaAviso === false;
+  }
+
+  function abrirJanelaDeAviso(opcoes) {
+    var o = opcoes || {};
+    if (!suportaJanela()) return null;
+    var largura = 400, altura = 230;
+    var esq = Math.max(0, (raiz.screen && raiz.screen.width ? raiz.screen.width - largura - 30 : 40));
+    var topo = 60;
+
+    var j;
+    try {
+      j = raiz.open(
+        "",
+        NOME_DA_JANELA,
+        "width=" + largura + ",height=" + altura + ",left=" + esq + ",top=" + topo +
+          ",menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=no"
+      );
+    } catch (e) {
+      j = null;
+    }
+
+    if (!j) { janelaAviso = false; return null; }
+    janelaAviso = j;
+
+    try {
+      j.document.open();
+      j.document.write(
+        "<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'>" +
+          "<title>" + escapar(o.titulo || "Paciente na fila") + "</title>" +
+          "<style>" +
+          "html,body{margin:0;height:100%;font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;}" +
+          "body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;" +
+          "background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;text-align:center;padding:20px;}" +
+          "h1{margin:0;font-size:20px;}p{margin:0;font-size:15px;opacity:.95;}" +
+          "small{opacity:.8;font-size:12px;}" +
+          "</style></head><body>" +
+          "<h1>" + escapar(o.titulo || "Paciente na fila") + "</h1>" +
+          "<p>" + escapar(o.corpo || "") + "</p>" +
+          "<small>Volte ao Meeds para atender. Esta janela pode ser fechada.</small>" +
+          "</body></html>"
+      );
+      j.document.close();
+    } catch (e) {
+      /* silencioso: a janela abriu, so nao deu para escrever nela */
+    }
+    return j;
+  }
+
+  function escapar(txt) {
+    return String(txt || "").replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function fecharJanelaDeAviso() {
+    try {
+      if (janelaAviso && janelaAviso !== false && !janelaAviso.closed) janelaAviso.close();
+    } catch (e) {
+      /* silencioso */
+    }
+    if (janelaAviso !== false) janelaAviso = null;
+  }
+
+  /* ------------------------------------------------------------------
    * MANTER A TELA ACESA (Wake Lock)
    * ------------------------------------------------------------------
    * Para o plantao no iPad: alarme que toca com a tela apagada e alarme
@@ -380,6 +475,10 @@
     suportaNotificacao: suportaNotificacao,
     permissaoDeNotificacao: permissaoDeNotificacao,
     pedirPermissaoDeNotificacao: pedirPermissaoDeNotificacao,
+    suportaJanela: suportaJanela,
+    janelaBloqueada: janelaBloqueada,
+    abrirJanelaDeAviso: abrirJanelaDeAviso,
+    fecharJanelaDeAviso: fecharJanelaDeAviso,
     suportaTelaAcesa: suportaTelaAcesa,
     manterTelaAcesa: manterTelaAcesa,
     /* expostos para teste */

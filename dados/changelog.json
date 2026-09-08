@@ -2,6 +2,15 @@
  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
  "versoes": [
   {
+   "versao": "2.32.0",
+   "data": "2026-09-08",
+   "novidades": [
+    "Nova opção “Abrir também uma janela de aviso”, em ⚙️ › Alarme de fila. Quando chega paciente e você não está no Meeds, uma janela pequena aparece na barra de tarefas — e fica lá até você fechar, ao contrário da notificação, que some sozinha. Feita para quem trabalha com muitas janelas abertas. Ela nasce desligada; ao ligar, uma janela de amostra abre na hora para você ver como fica — e se o navegador bloquear, a tela diz onde liberar."
+   ],
+   "melhorias": [],
+   "correcoes": []
+  },
+  {
    "versao": "2.31.0",
    "data": "2026-09-08",
    "novidades": [
