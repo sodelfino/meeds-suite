@@ -145,5 +145,48 @@ const corpo = (ids) => ({ data: ids.map((id) => ({ id: id })) });
   ok("resposta vazia continua zero", m._resumoDaFila().quantos === 0, m._resumoDaFila().quantos);
 }
 
+/* 5. QUAL CHAMADA E A FILA — conferido contra gravacoes dos dois perfis.
+ *    O medico usa /emergency-care e o operador
+ *    /administrator/monitoring/emergency-care; as telas sao diferentes e
+ *    as consultas tambem. Um alarme que le a lista errada conta gente
+ *    que nao esta esperando — ou nao conta quem esta. */
+{
+  const m = carregar();
+  const eh = m._ehChamadaFilaDeEspera;
+  const base = "https://api-calltech.meeds.com.br/api/v1/Atendimento?sort=createdAt&AtendimentoTipoIds=1";
+
+  /* Gravacao do perfil MEDICO (08/09), filtrada por especialidade. */
+  ok("medico: a fila de espera dele e reconhecida",
+     eh(base + "&EmpresasId=46df&StatusAtendimentoId=2&Agendado=false&EspecialidadeId=4fcab7e8&skip=1&take=5&version=1"));
+
+  /* Gravacao do perfil OPERADOR (08/09), a fila cheia. */
+  ok("operador: a fila de espera dele e reconhecida",
+     eh(base + "&DataInicialCreated=2026-09-08&StatusAtendimentoId=2&Active=true&Agendado=false&take=100"));
+
+  /* O DEFEITO: o operador tem uma chamada que pede DOIS status de uma
+   * vez. Contar status 1 como "aguardando" enche a fila de gente que
+   * nao esta esperando, e pode disparar o alarme por ela. */
+  ok("lista que mistura status 1 e 2 NAO e a fila",
+     !eh(base + "&StatusAtendimentoId=1&StatusAtendimentoId=2&CreatedAt=2026-09-08&skip=1&take=5"),
+     "era aceita antes desta versao");
+
+  /* "Meus atendimentos" nunca e a fila de espera: nos dois perfis, o
+   * ProfissionalId so aparece nas listas do proprio medico. */
+  ok("com ProfissionalId, nao e a fila",
+     !eh(base + "&StatusAtendimentoId=2&ProfissionalId=b92ad1f5"));
+
+  ok("outros status nao sao a fila",
+     !eh(base + "&StatusAtendimentoId=3&StatusAtendimentoId=7&ProfissionalId=b92ad1f5") &&
+     !eh(base + "&StatusAtendimentoId=5") && !eh(base + "&StatusAtendimentoId=6"));
+
+  ok("sem status nenhum, nao e a fila", !eh(base + "&Agendado=false"));
+  ok("outro endereco nao e a fila",
+     !eh("https://api-calltech.meeds.com.br/api/v1/Queixa/atendimento/56180076?StatusAtendimentoId=2"));
+
+  /* "=2" tem que ser o valor inteiro, nao um pedaco de "=20" ou "=12". */
+  ok("nao confunde status 2 com 12 ou 20",
+     !eh(base + "&StatusAtendimentoId=12") && !eh(base + "&StatusAtendimentoId=20"));
+}
+
 console.log(falhas ? `\n${falhas} FALHA(S)` : "\ntodos passaram");
 process.exit(falhas ? 1 : 0);

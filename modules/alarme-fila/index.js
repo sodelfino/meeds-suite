@@ -446,11 +446,38 @@
   /* --- SINAL B: rede (fila de espera geral) ----------------------- */
   var REGEX_ATENDIMENTO_LISTA = /\/api\/v1\/Atendimento\?/i;
 
+  /* ------------------------------------------------------------------
+   * QUAL CHAMADA E "A FILA DE ESPERA"
+   * ------------------------------------------------------------------
+   * Verificado contra gravacoes dos DOIS perfis (medico e operador), que
+   * usam telas e rotas diferentes:
+   *
+   *   medico   /emergency-care
+   *            ...&StatusAtendimentoId=2&EspecialidadeId=...&take=5
+   *   operador /administrator/monitoring/emergency-care
+   *            ...&StatusAtendimentoId=2&Active=true&take=100
+   *            ...&StatusAtendimentoId=1&StatusAtendimentoId=2&take=5
+   *
+   * Duas licoes vieram dai:
+   *
+   * 1. `ProfissionalId` NAO aparece na fila de espera de nenhum dos dois
+   *    perfis — so nas listas de "meus atendimentos" (status 3, 5, 6, 7).
+   *    A exclusao estava certa e continua.
+   *
+   * 2. O operador tem uma chamada com DOIS status ao mesmo tempo
+   *    (`StatusAtendimentoId=1&StatusAtendimentoId=2`). O teste antigo
+   *    aceitava, porque so procurava "=2" em qualquer lugar da URL — e
+   *    ai pacientes em status 1 entravam na conta de "aguardando" e
+   *    podiam disparar o alarme. Agora o 2 precisa ser o UNICO status
+   *    pedido: uma lista que mistura status nao e a fila de espera.
+   * ------------------------------------------------------------------ */
   function ehChamadaFilaDeEspera(url) {
     if (!REGEX_ATENDIMENTO_LISTA.test(url)) return false;
-    if (!/[?&]StatusAtendimentoId=2(?:&|$)/i.test(url)) return false;
-    if (/[?&]ProfissionalId=/i.test(url)) return false; // exclui "meus atendimentos"
-    return true;
+    if (/[?&]ProfissionalId=/i.test(url)) return false; // "meus atendimentos"
+
+    var status = String(url).match(/[?&]StatusAtendimentoId=([^&]*)/gi) || [];
+    if (status.length !== 1) return false;          // lista mista: nao e a fila
+    return /=2$/.test(status[0]);
   }
 
   function assinaturaDaChamada(url) {
@@ -1394,5 +1421,6 @@
     _resumoDaFila: function () { return resumoDaFila(); },
     _lerRespostaDeFila: function (url, json) { processarRespostaFilaDeEspera(url, json); },
     _definirContadorDaTela: function (n) { ultimoValorAguardandoDOM = n; },
+    _ehChamadaFilaDeEspera: function (url) { return ehChamadaFilaDeEspera(url); },
   });
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);

@@ -884,6 +884,47 @@ no navegador**, todas passando.
 > **descarte primeiro o IndexedDB envenenado**: feche todas as abas da origem e
 > abra uma janela nova.
 
+### Revisão de rotas e perfis *(v2.32.1)*
+
+Feita em 08/09/2026 a partir de duas gravações — uma do perfil **médico**, outra
+do **operador** —, comparando as chamadas de rede reais de cada um. Os dois usam
+telas e rotas diferentes:
+
+| perfil | rota | consulta da fila |
+|---|---|---|
+| médico | `/emergency-care` | `StatusAtendimentoId=2` + `EspecialidadeId` + `take=5` |
+| operador | `/administrator/monitoring/emergency-care` | `StatusAtendimentoId=2` + `Active=true` + `take=100` |
+| operador | (mesma tela) | `StatusAtendimentoId=1&StatusAtendimentoId=2` + `take=5` |
+
+**Um defeito encontrado.** Aquela última consulta pede **dois estados ao mesmo
+tempo**. O teste antigo procurava `StatusAtendimentoId=2` em qualquer lugar da
+URL e a aceitava — então pacientes em estado 1 entravam na contagem de
+"aguardando" e podiam disparar o alarme. Agora o `2` precisa ser o **único**
+estado pedido: uma lista que mistura estados não é a fila de espera.
+
+**Duas confirmações**, que valem tanto quanto a correção:
+
+- **`ProfissionalId` não aparece na fila de espera de nenhum dos dois perfis** —
+  só nas listas de "meus atendimentos" (estados 3, 5, 6 e 7). A exclusão que
+  existia estava certa. Era a hipótese mais provável de defeito e não era um.
+- **A APAC continua recebendo o paciente no perfil médico**: `/api/v1/Atendimento/{uuid}`
+  é chamada em `/emergency-care`, e é a captura de rede que alimenta o
+  preenchimento. Vale notar que `location.href` **nunca** carrega o UUID nessa
+  rota (é SPA), então `idAtualDaUrl()` devolve `null` para o médico — a segunda
+  camada (varredura de URL) não vale para ele, e o botão "Atualizar paciente" cai
+  na leitura de tela. Nenhum dos dois é falha: a captura de rede cobre.
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 175 | A fila do **médico** é reconhecida (com `EspecialidadeId`) | ✅ |
+| 176 | A fila do **operador** é reconhecida (com `take=100`) | ✅ |
+| 177 | Lista que mistura estado 1 e 2 **não** é tratada como fila | ✅ |
+| 178 | `ProfissionalId` continua excluindo "meus atendimentos" | ✅ |
+| 179 | Estados 3, 5, 6 e 7 não são a fila | ✅ |
+| 180 | `=2` não casa com `=12` nem `=20` | ✅ |
+
+As URLs dos testes são as **reais**, copiadas das gravações — não inventadas.
+
 ### Extensibilidade
 
 Verificado à parte: criei um sexto módulo a partir de `modules/_template`,
