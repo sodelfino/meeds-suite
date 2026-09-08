@@ -1074,6 +1074,34 @@ interessa.
 
 ---
 
+**D33 — Recurso que existe no objeto e não existe no aparelho: a janela de aviso no iPad.**
+`window.open` **existe** no Safari do iOS. Testar por ele — que é o que o
+código fazia — dá "suportado", a opção "Abrir também uma janela de aviso"
+aparece marcável, e o médico a liga. Só que ali não há janela nenhuma: o iOS
+abre uma **aba**, por cima do Meeds, e apenas a partir de um gesto — e este
+aviso é disparado por chegada de paciente, não por clique. O resultado é ou
+nada acontecer, ou o Meeds sair da frente sozinho no meio do plantão.
+
+O dano maior não era a função faltar; era **o que a tela dizia**. Com a opção
+ligada e a janela recusada, o painel mandava "clicar no ícone de pop-up
+bloqueado na barra de endereço" — que no iPad não existe. Uma instrução que não
+pode ser seguida gasta o plantão e ensina a desconfiar do resto do painel, que
+está certo.
+
+Então: `suportaJanela()` passou a checar o aparelho antes da API, com a **mesma**
+detecção que a prévia do PDF já usava (iPadOS 13+ se diz Macintosh; o que separa
+os dois é ter mais de um ponto de toque). A opção aparece desligada, e a
+explicação toma o lugar da instrução impossível — dizendo também que o som e a
+notificação continuam valendo, para a leitura não virar "o alarme é mais fraco
+no tablet". Não é: falta um degrau dos três.
+
+**A regra geral, que vale além deste caso:** num navegador móvel, *a API
+responder* não é o mesmo que *o recurso existir*. Onde os dois divergem, quem
+decide é o aparelho — e a tela diz a verdade sobre ele em vez de repetir uma
+instrução de desktop.
+
+---
+
 ## 7. Risco aberto: CPF e CNS em repositório público
 
 Os repositórios de origem `lme-sete-lagoas-gerador` e `laudo-cmd-meeds` são

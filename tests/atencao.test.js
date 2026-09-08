@@ -65,9 +65,15 @@ function ambiente(opcoes) {
     addEventListener(ev, fn) { (ouvintes[ev] = ouvintes[ev] || []).push(fn); },
     removeEventListener(ev, fn) { ouvintes[ev] = (ouvintes[ev] || []).filter((f) => f !== fn); },
     focus() { ctx._focado = true; },
-    navigator: o.semWakeLock ? {} : {
-      wakeLock: { request: () => Promise.resolve({ release() { ctx._travaSolta = true; }, addEventListener() {} }) },
-    },
+    /* `open` EXISTE no Safari do iPad — por isso o teste tem que dar um
+       aqui tambem, senao o iPad passaria pelo motivo errado. */
+    open: () => ({ document: { write() {}, close() {} }, closed: false, close() {} }),
+    navigator: Object.assign(
+      { userAgent: o.ua || "Mozilla/5.0 (Windows NT 10.0) Chrome/120", maxTouchPoints: o.toques || 0 },
+      o.semWakeLock ? {} : {
+        wakeLock: { request: () => Promise.resolve({ release() { ctx._travaSolta = true; }, addEventListener() {} }) },
+      }
+    ),
     _notificacoes: notificacoes,
     _tiquesRef: tiques,
     _link: link,
@@ -211,7 +217,32 @@ function ambiente(opcoes) {
   Date.now = relogioReal;
 }
 
-/* 8. pedir permissao devolve booleano, inclusive quando o medico recusa */
+/* 8. iPad: a janela de aviso nao e oferecida
+ *
+ * `raiz.open` existe no Safari do iOS, entao a checagem ingenua daria
+ * "suportado" e o painel deixaria o medico marcar uma opcao que nunca
+ * abre janela nenhuma — o iOS abre uma ABA, por cima do Meeds, e so a
+ * partir de um gesto. Os outros dois degraus do alarme continuam. */
+{
+  const UA_IPAD = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/17.0 Safari/605.1.15";
+  const ipad = ambiente({ ua: UA_IPAD, toques: 5 });
+  const mac = ambiente({ ua: UA_IPAD, toques: 0 });   /* Mac de verdade: mesmo UA, sem toque */
+  const win = ambiente({});
+
+  ok("iPad e reconhecido mesmo se dizendo Macintosh", ipad.MeedsSuiteAtencao.ehIOS() === true);
+  ok("Mac com o mesmo userAgent nao e iPad", mac.MeedsSuiteAtencao.ehIOS() === false);
+  ok("Windows nao e iPad", win.MeedsSuiteAtencao.ehIOS() === false);
+
+  ok("iPad nao oferece a janela de aviso", ipad.MeedsSuiteAtencao.suportaJanela() === false);
+  ok("Mac oferece a janela de aviso", mac.MeedsSuiteAtencao.suportaJanela() === true);
+  ok("iPad nao abre janela nem se pedirem",
+     ipad.MeedsSuiteAtencao.abrirJanelaDeAviso({ titulo: "x", corpo: "y" }) === null);
+  /* E o mais importante: recusar a janela nao pode derrubar o resto. */
+  ok("o titulo continua funcionando no iPad",
+     (function () { ipad.MeedsSuiteAtencao.marcar({ contagem: 2 }); return ipad._doc.title.indexOf("(2) ") === 0; })());
+}
+
+/* 9. pedir permissao devolve booleano, inclusive quando o medico recusa */
 (async () => {
   const sim = ambiente({ permissao: "default", aoPedir: "granted" });
   const nao = ambiente({ permissao: "default", aoPedir: "denied" });

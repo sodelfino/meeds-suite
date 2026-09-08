@@ -1145,7 +1145,13 @@
     chaveJanela.checked = !!config.janelaDeAviso && temJanela;
 
     if (!temJanela) {
-      dicaJanela.textContent = "Este navegador não permite abrir janelas.";
+      /* No iPad a frase generica nao serve: o medico procuraria a
+       * configuracao de pop-up que ali nao existe. Dizer que os outros
+       * dois avisos continuam valendo evita a leitura de que o alarme
+       * inteiro e mais fraco no tablet — nao e, so este degrau falta. */
+      dicaJanela.textContent = A && A.ehIOS()
+        ? "No iPad e no iPhone o Safari não abre janela separada. O som e a notificação continuam funcionando normalmente."
+        : "Este navegador não permite abrir janelas.";
     } else if (config.janelaDeAviso && A.janelaBloqueada()) {
       /* Dizer a verdade: sem isto o medico marca a opcao, nao ve janela
        * nenhuma e conclui que esta quebrada — com razao. */

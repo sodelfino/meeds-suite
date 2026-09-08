@@ -278,7 +278,32 @@
   var NOME_DA_JANELA = "meeds-aviso-fila";
   var janelaAviso = null;
 
+  /* ------------------------------------------------------------------
+   * iPad / iPhone: a janela nao existe, e nao adianta pedir permissao
+   * ------------------------------------------------------------------
+   * `raiz.open` EXISTE no Safari do iOS, entao testar por ele daria
+   * "suportado" e a opcao apareceria ligavel. So que ali nao ha janela
+   * nenhuma: o iOS abre uma ABA nova, em cima do Meeds, e so a partir de
+   * um gesto do medico — este aviso e disparado por chegada de paciente.
+   * Na pratica: ou nao acontece nada, ou o Meeds sai da frente sozinho.
+   *
+   * Pior que a funcao nao funcionar era o que a tela dizia antes: mandava
+   * o medico "clicar no icone de pop-up bloqueado na barra de endereco",
+   * que no iPad nao existe. Instrucao que nao pode ser seguida gasta o
+   * plantao e ensina a desconfiar do resto do painel.
+   *
+   * iPadOS 13+ se identifica como Mac; o que separa os dois e ter mais de
+   * um ponto de toque — mesma deteccao que a previa do PDF ja usa.
+   * ------------------------------------------------------------------ */
+  function ehIOS() {
+    var ua = (raiz.navigator && raiz.navigator.userAgent) || "";
+    if (/Windows|Android/.test(ua)) return false;
+    var pareceApple = /iPad|iPhone|iPod|Macintosh/.test(ua);
+    return pareceApple && ((raiz.navigator && raiz.navigator.maxTouchPoints) || 0) > 1;
+  }
+
   function suportaJanela() {
+    if (ehIOS()) return false;
     return typeof raiz.open === "function";
   }
 
@@ -477,6 +502,7 @@
     pedirPermissaoDeNotificacao: pedirPermissaoDeNotificacao,
     suportaJanela: suportaJanela,
     janelaBloqueada: janelaBloqueada,
+    ehIOS: ehIOS,
     abrirJanelaDeAviso: abrirJanelaDeAviso,
     fecharJanelaDeAviso: fecharJanelaDeAviso,
     suportaTelaAcesa: suportaTelaAcesa,

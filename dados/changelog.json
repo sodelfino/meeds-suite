@@ -2,6 +2,15 @@
  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
  "versoes": [
   {
+   "versao": "2.33.1",
+   "data": "2026-09-08",
+   "novidades": [],
+   "melhorias": [],
+   "correcoes": [
+    "No iPad e no iPhone, a opção “Abrir também uma janela de aviso” aparecia como se funcionasse, e a tela chegava a mandar você liberar o pop-up na barra de endereço — que ali não existe. O Safari do iOS não abre janela separada. Agora a opção aparece desligada, com a explicação no lugar da instrução impossível. O som e a notificação do alarme continuam funcionando normalmente no tablet."
+   ]
+  },
+  {
    "versao": "2.33.0",
    "data": "2026-09-08",
    "novidades": [],
