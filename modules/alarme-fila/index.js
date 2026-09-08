@@ -149,7 +149,54 @@
     tempoEsperaMin: 5,
     som: "sirene-classica",
     volume: 70,
+    intensidade: "completo", // "silencioso" | "discreto" | "completo"
   };
+
+  /* ------------------------------------------------------------------
+   * AS TRES INTENSIDADES (o botao de som do Waze)
+   * ------------------------------------------------------------------
+   * Um alarme so tem duas posicoes — berrando ou mudo — obriga o medico
+   * a escolher entre ser interrompido no meio de uma consulta e nao
+   * ficar sabendo que chegou gente. Com tres, ele escolhe o quanto de
+   * interrupcao cabe no momento, e nao precisa desligar tudo:
+   *
+   *   silencioso  so o contador na aba e no favicone. Nada de som, nada
+   *               na tela. Para quem esta em consulta e nao pode ser
+   *               interrompido, mas quer ver a fila crescer.
+   *   discreto    um cartao no canto com quem chegou e de onde, e UM som
+   *               curto. Aparece e sai sozinho. Nao bloqueia nada.
+   *   completo    o de hoje: sirene repetindo, faixa no topo e moldura
+   *               na borda da tela, ate alguem silenciar.
+   *
+   * A escada de atencao (titulo, favicone, notificacao do sistema) vale
+   * nos tres — ela e sobre ONDE avisar, nao sobre o quanto incomodar.
+   * ------------------------------------------------------------------ */
+  var INTENSIDADES = {
+    silencioso: {
+      rotulo: "Silencioso",
+      icone: "🔕",
+      resumo: "Só o contador na aba. Nada de som nem de aviso na tela.",
+      som: false, cartao: false, banner: false,
+    },
+    discreto: {
+      rotulo: "Discreto",
+      icone: "🔉",
+      resumo: "Um cartão no canto com quem chegou e de onde, e um som curto.",
+      som: "curto", cartao: true, banner: false,
+    },
+    completo: {
+      rotulo: "Completo",
+      icone: "🔔",
+      resumo: "Sirene repetindo, faixa no topo e moldura na tela até você silenciar.",
+      som: "repetido", cartao: false, banner: true,
+    },
+  };
+
+  var ORDEM_INTENSIDADE = ["completo", "discreto", "silencioso"];
+
+  function intensidadeAtual() {
+    return INTENSIDADES[config.intensidade] || INTENSIDADES.completo;
+  }
 
   /* --- estado do modulo (recriado a cada start, zerado a cada stop) --- */
   var d = null;          // deps do nucleo
@@ -165,6 +212,7 @@
   var idsJaAlertadosPorEspera = new Set();
   var decisorFila = null; // fusao dos sinais sobre "tem gente esperando?"
   var ultimoDisparoTs = 0;
+  var ultimaChegada = null;   // ficha de quem chegou, so para o cartao discreto
 
   var DEBOUNCE_MS = 2500;
   var DURACAO_MAX_SOM_MS = 120000;      // trava de seguranca do som (2 min)
@@ -264,27 +312,27 @@
         if (!id) return;
         var jaVistoEm =
           mapaAnterior && mapaAnterior.has(id) ? mapaAnterior.get(id).primeiraVezVistoEm : agora;
-        mapaAtual.set(id, { primeiraVezVistoEm: jaVistoEm });
+        mapaAtual.set(id, { primeiraVezVistoEm: jaVistoEm, ficha: fichaDaChegada(item) });
       });
 
       // A PRIMEIRA leitura de cada assinatura so define a base — nunca
       // dispara, para nao soar por quem ja estava esperando antes de o
       // medico ligar o alarme.
       if (mapaAnterior) {
-        var apareceuIdNovo = Array.from(mapaAtual.keys()).some(function (id) {
+        var novos = Array.from(mapaAtual.keys()).filter(function (id) {
           return !mapaAnterior.has(id);
         });
-        if (apareceuIdNovo) sinalizarNovoPaciente("rede-fila-espera");
+        if (novos.length) {
+          ultimaChegada = mapaAtual.get(novos[novos.length - 1]).ficha;
+          sinalizarNovoPaciente("rede-fila-espera");
+        }
       }
 
+      mapaAtual.atualizadoEm = agora;
       idsFilaPorAssinatura.set(assinatura, mapaAtual);
 
-      // voto de rede sobre "quantos estao esperando"
-      var total = 0;
-      idsFilaPorAssinatura.forEach(function (mapa) {
-        total += mapa.size;
-      });
-      decisorFila.votar("rede", total > 0);
+      /* Voto de rede: usa a UNIAO, nunca a soma das vistas. */
+      decisorFila.votar("rede", resumoDaFila().porRede > 0);
 
       limparIdsAlertadosQueSairamDaFila();
       checarSeDeveSilenciarPorFilaVazia();
@@ -303,19 +351,114 @@
    * o Assistente VIU o paciente na fila, nao desde a entrada real dele —
    * por isso o texto diz "ha pelo menos", que e o que sabemos de fato.
    * ------------------------------------------------------------------ */
+  /* Quanto tempo uma "vista" de fila continua valendo depois da ultima
+   * vez que a tela a consultou. Existe por causa da tela de monitoramento
+   * do administrador, que troca de aba e de periodo (Hoje, Ontem,
+   * Ultimos 30 dias): cada filtro vira uma assinatura, e a que o medico
+   * abandonou nao pode continuar somando gente para sempre. */
+  var VALIDADE_ASSINATURA_MS = 120000;
+
+  function esquecerAssinaturasVelhas() {
+    var limite = Date.now() - VALIDADE_ASSINATURA_MS;
+    var mortas = [];
+    idsFilaPorAssinatura.forEach(function (mapa, assinatura) {
+      if ((mapa.atualizadoEm || 0) < limite) mortas.push(assinatura);
+    });
+    mortas.forEach(function (a) { idsFilaPorAssinatura.delete(a); });
+  }
+
+  /* ------------------------------------------------------------------
+   * QUEM CHEGOU, E DE ONDE — so para o cartao discreto
+   * ------------------------------------------------------------------
+   * O MUNICIPIO e conhecido: no Meeds, `cliente.razaoSocialNome` e a
+   * prefeitura contratante, e e o mesmo campo que a deteccao de
+   * municipio ja usa ha versoes.
+   *
+   * O NOME DO PACIENTE nao tem campo confirmado nesta resposta — nenhuma
+   * gravacao guardou o corpo dela. Entao a busca abaixo tenta os
+   * caminhos plausiveis e, se nao achar, o cartao sai SEM nome, em vez
+   * de inventar um. Um cartao que mostra o nome errado no plantao e pior
+   * que um cartao sem nome.
+   *
+   * PRIVACIDADE: esta ficha vive em memoria e so alimenta o cartao NA
+   * TELA do proprio medico — que ja esta autorizado a ver aquele
+   * paciente, e cujo nome ja esta na tela dele. Ela nunca vai para o
+   * disco, e nunca entra na notificacao do sistema: a notificacao sai do
+   * navegador e para na central de notificacoes e na tela de bloqueio do
+   * computador, que e o pior lugar possivel para nome de paciente.
+   * ------------------------------------------------------------------ */
+  var CAMINHOS_DE_NOME = [
+    ["paciente", "nome"],
+    ["paciente", "nomeCompleto"],
+    ["paciente", "cliente", "razaoSocialNome"],
+    ["nomePaciente"],
+    ["pacienteNome"],
+  ];
+
+  function porCaminho(objeto, caminho) {
+    var atual = objeto;
+    for (var i = 0; i < caminho.length; i++) {
+      if (!atual || typeof atual !== "object") return null;
+      atual = atual[caminho[i]];
+    }
+    return typeof atual === "string" && atual.trim() ? atual.trim() : null;
+  }
+
+  function fichaDaChegada(item) {
+    var ficha = { nome: null, municipio: null };
+    if (!item || typeof item !== "object") return ficha;
+
+    for (var i = 0; i < CAMINHOS_DE_NOME.length; i++) {
+      ficha.nome = porCaminho(item, CAMINHOS_DE_NOME[i]);
+      if (ficha.nome) break;
+    }
+    ficha.municipio = porCaminho(item, ["cliente", "razaoSocialNome"]);
+    return ficha;
+  }
+
+  /* ------------------------------------------------------------------
+   * QUANTOS ESTAO ESPERANDO — de verdade
+   * ------------------------------------------------------------------
+   * Isto ja esteve errado, e o erro aparecia na tela: o contador da aba
+   * mostrava um numero diferente do total da fila.
+   *
+   * A causa eram tres coisas somadas, todas visiveis na tela de
+   * monitoramento do administrador:
+   *   1. o mesmo paciente aparece em mais de uma "vista" da fila (uma
+   *      por aba, uma por periodo), e nos SOMAVAMOS as vistas — a mesma
+   *      pessoa contava duas, tres vezes;
+   *   2. cada filtro de periodo abre uma assinatura nova, e as antigas
+   *      nunca eram esquecidas: o numero so crescia;
+   *   3. o numero que o medico ve na tela e o do cartao "Aguardando", e
+   *      nos ignoravamos esse cartao ao contar.
+   *
+   * Agora: uniao dos ids (uma pessoa e uma pessoa), assinatura velha e
+   * descartada, e o cartao da tela MANDA quando esta visivel. Se os dois
+   * discordarem, quem ganha e o que o medico esta lendo — discordar do
+   * numero na frente dele destroi a confianca no alarme inteiro.
+   * ------------------------------------------------------------------ */
   function resumoDaFila() {
-    var quantos = 0;
+    esquecerAssinaturasVelhas();
+
+    var unicos = new Set();
     var maisAntigo = null;
     idsFilaPorAssinatura.forEach(function (mapa) {
-      quantos += mapa.size;
-      mapa.forEach(function (registro) {
+      mapa.forEach(function (registro, id) {
+        unicos.add(id);
         if (maisAntigo === null || registro.primeiraVezVistoEm < maisAntigo) {
           maisAntigo = registro.primeiraVezVistoEm;
         }
       });
     });
+
+    var porRede = unicos.size;
+    var naTela = ultimoValorAguardandoDOM;
+    var quantos = naTela === null ? porRede : naTela;
+
     return {
       quantos: quantos,
+      porRede: porRede,
+      naTela: naTela,
       esperaMs: maisAntigo === null ? 0 : Date.now() - maisAntigo,
     };
   }
@@ -424,6 +567,11 @@
   function atualizarDistintivo() {
     var A = atencao();
     if (!A) return;
+    /* Le o cartao da tela AGORA. A resposta de rede chega antes do proximo
+     * ciclo de leitura do DOM, entao sem isto o distintivo seria pintado
+     * com o numero anterior — tipicamente zero — e sumiria por alguns
+     * segundos bem no momento em que o paciente chegou. */
+    atualizarLeituraContadorAguardando();
     var r = resumoDaFila();
     if (r.quantos > 0) A.marcar({ contagem: r.quantos });
     else A.limpar();
@@ -463,20 +611,57 @@
 
   function dispararAlarme() {
     if (tocando) return;
-    tocando = true;
-    atualizarTextoDoBanner();
-    if (banner) banner.mostrar();
-    if (moldura) moldura.mostrar();
+    var forma = intensidadeAtual();
+
+    /* O distintivo e a notificacao valem nos TRES modos: eles sao sobre
+     * onde avisar, nao sobre o quanto incomodar. O que a intensidade
+     * escolhe e o que acontece DENTRO da tela. */
     atualizarDistintivo();
     avisarForaDaAba();
-    var tipo = TIPOS_DE_SOM[config.som] || TIPOS_DE_SOM[CONFIG_PADRAO.som];
-    tocarSomAtual();
-    intervaloSirene = setInterval(tocarSomAtual, tipo.intervaloMs);
-    // BUG JA CORRIGIDO NO ORIGINAL v1.4.0 E PRESERVADO AQUI: o limite de
-    // seguranca faz uma parada COMPLETA (que reseta `tocando`), senao o
-    // alarme ficava travado em silencio para sempre depois da primeira
-    // vez que ninguem clicasse em "Silenciar" a tempo.
-    timeoutLimiteSirene = setTimeout(silenciarComReengate, DURACAO_MAX_SOM_MS);
+
+    if (forma.cartao) mostrarCartaoDeChegada();
+
+    if (forma.som === "curto") {
+      tocarSomAtual(); // uma vez so, e acabou
+    } else if (forma.som === "repetido") {
+      tocando = true;
+      atualizarTextoDoBanner();
+      if (banner) banner.mostrar();
+      if (moldura) moldura.mostrar();
+      var tipo = TIPOS_DE_SOM[config.som] || TIPOS_DE_SOM[CONFIG_PADRAO.som];
+      tocarSomAtual();
+      intervaloSirene = setInterval(tocarSomAtual, tipo.intervaloMs);
+      // BUG JA CORRIGIDO NO ORIGINAL v1.4.0 E PRESERVADO AQUI: o limite de
+      // seguranca faz uma parada COMPLETA (que reseta `tocando`), senao o
+      // alarme ficava travado em silencio para sempre depois da primeira
+      // vez que ninguem clicasse em "Silenciar" a tempo.
+      timeoutLimiteSirene = setTimeout(silenciarComReengate, DURACAO_MAX_SOM_MS);
+    }
+  }
+
+  /* ------------------------------------------------------------------
+   * O CARTAO DISCRETO
+   * ------------------------------------------------------------------
+   * Aparece no canto, diz quem chegou e de onde, e sai sozinho. Nao
+   * bloqueia nada e nao repete som — e o meio-termo que faltava entre
+   * "sirene" e "nao fico sabendo".
+   * ------------------------------------------------------------------ */
+  function mostrarCartaoDeChegada() {
+    if (!d || !d.dock || typeof d.dock.criarAviso !== "function") return;
+    var ficha = ultimaChegada || {};
+    var linhas = [];
+    if (ficha.nome) linhas.push(ficha.nome);
+    if (ficha.municipio) linhas.push(ficha.municipio);
+    linhas.push(textoDoMotivo());
+
+    d.dock.criarAviso({
+      titulo: "🔔 Novo paciente na fila",
+      corpo: linhas,
+      autoFecharMs: 12000,
+      acoes: [
+        { rotulo: "Ok", primario: true, aoClicar: function () {} },
+      ],
+    });
   }
 
   function silenciarAlarme() {
@@ -547,6 +732,13 @@
         '  <button type="button" class="af-fechar" aria-label="Fechar">&#10005;</button></header>' +
         '  <div class="af-body">' +
         "    <div>" +
+        "      <label>Como avisar</label>" +
+        '      <label class="af-radio-linha"><input type="radio" name="af-intensidade" value="completo" /> 🔔 Completo — sirene, faixa e moldura</label>' +
+        '      <label class="af-radio-linha"><input type="radio" name="af-intensidade" value="discreto" /> 🔉 Discreto — cartão no canto e um som curto</label>' +
+        '      <label class="af-radio-linha"><input type="radio" name="af-intensidade" value="silencioso" /> 🔕 Silencioso — só o contador na aba</label>' +
+        '      <div class="af-hint" id="af-intensidade-dica"></div>' +
+        "    </div>" +
+        "    <div>" +
         "      <label>Quando alertar</label>" +
         '      <label class="af-radio-linha"><input type="radio" name="af-modo" value="imediato" /> Assim que um paciente entra na fila</label>' +
         '      <label class="af-radio-linha"><input type="radio" name="af-modo" value="espera" /> Quando um paciente ultrapassar um tempo de espera</label>' +
@@ -566,6 +758,15 @@
     });
 
     painel.$(".af-fechar").addEventListener("click", painel.fechar);
+
+    painel.$$('input[name="af-intensidade"]').forEach(function (radio) {
+      radio.addEventListener("change", function () {
+        config.intensidade = radio.value;
+        if (config.intensidade === "silencioso" && tocando) silenciarAlarme();
+        salvar();
+        refletirEstado();
+      });
+    });
 
     painel.$$('input[name="af-modo"]').forEach(function (radio) {
       radio.addEventListener("change", function () {
@@ -706,11 +907,12 @@
 
   function refletirEstado() {
     if (d.botao) {
-      d.botao.definirTexto(config.ativo ? "🔔" : "🔕");
-      d.botao.definirClasse("ms-ativo", config.ativo);
-      d.botao.definirClasse("ms-neutro", !config.ativo);
+      var forma = intensidadeAtual();
+      d.botao.definirTexto(forma.icone);
+      d.botao.definirClasse("ms-ativo", config.intensidade === "completo");
+      d.botao.definirClasse("ms-neutro", config.intensidade !== "completo");
       d.botao.definirTitulo(
-        (config.ativo ? "Alarme LIGADO" : "Alarme desligado") + " — clique para alternar, ⚙️ para configurar"
+        "Alarme: " + forma.rotulo + " — " + forma.resumo + " Clique para trocar; ⚙️ para configurar."
       );
     }
     if (!painel) return;
@@ -721,23 +923,33 @@
     painel.$("#af-tempo-espera").disabled = config.modo !== "espera";
     painel.$("#af-som").value = config.som;
     painel.$("#af-volume").value = config.volume;
+    painel.$$('input[name="af-intensidade"]').forEach(function (r) {
+      r.checked = r.value === config.intensidade;
+    });
+    var dica = painel.$("#af-intensidade-dica");
+    if (dica) dica.textContent = intensidadeAtual().resumo;
     refletirEstadoDosAvisos();
   }
 
-  function alternarAtivo() {
-    config.ativo = !config.ativo;
+  /* Como o botao de som do Waze: um toque cicla entre as intensidades,
+   * em vez de so ligar e desligar. Desligar de vez continua sendo a
+   * chave da funcao no painel da engrenagem — aqui a escolha e "quanto",
+   * nao "se". */
+  function ciclarIntensidade() {
+    /* Aproveita o gesto de clique para destravar o audio: o navegador so
+     * deixa tocar som depois de uma interacao do usuario. */
+    obterAudioContext();
+    var i = ORDEM_INTENSIDADE.indexOf(config.intensidade);
+    config.intensidade = ORDEM_INTENSIDADE[(i + 1) % ORDEM_INTENSIDADE.length];
+    if (config.intensidade === "silencioso" && tocando) silenciarAlarme();
     salvar();
     refletirEstado();
-    if (config.ativo) {
-      // desbloqueia o audio no mesmo gesto de clique (politica do navegador)
-      obterAudioContext();
-      // recalibra a base agora: so alarma por quem chegar/exceder DEPOIS
-      atualizarLeituraContadorAguardando();
-      idsJaAlertadosPorEspera.clear();
-      d.core.toast("Alarme de fila ligado.", 2500);
-    } else {
-      silenciarAlarme();
-      d.core.toast("Alarme de fila desligado.", 2500);
+    if (d && d.dock && d.dock.criarAviso) {
+      d.dock.criarAviso({
+        titulo: intensidadeAtual().icone + " " + intensidadeAtual().rotulo,
+        corpo: intensidadeAtual().resumo,
+        autoFecharMs: 3500,
+      });
     }
   }
 
@@ -773,7 +985,12 @@
       d = deps;
       config = deps.config;
       // saneia a config carregada, como o carregarConfig() original fazia
-      config.ativo = !!config.ativo;
+      /* O alarme deixou de ter liga/desliga proprio: a funcao estar
+       * ligada JA e o alarme ativo, e o quanto ele incomoda e a
+       * intensidade. Um medico que abre o painel, liga "Alarme de fila"
+       * e nao ouve nada porque havia um segundo interruptor escondido no
+       * botao e um medico que conclui, com razao, que esta quebrado. */
+      config.ativo = true;
       config.modo = config.modo === "espera" ? "espera" : "imediato";
       config.tempoEsperaMin = Math.min(
         120,
@@ -781,6 +998,7 @@
       );
       config.volume = Math.min(100, Math.max(0, parseInt(config.volume, 10) || 0));
       if (!TIPOS_DE_SOM[config.som]) config.som = CONFIG_PADRAO.som;
+      if (!INTENSIDADES[config.intensidade]) config.intensidade = CONFIG_PADRAO.intensidade;
       /* Avisar fora da aba e manter a tela acesa deixaram de ser chaves:
        * sao como o alarme funciona. O que limita o aviso do sistema nao e
        * preferencia, e PERMISSAO do navegador — e permissao nao se
@@ -798,7 +1016,7 @@
       montarBanner();
       montarPainel();
       vigiarSuspensaoDaAba();
-      deps.aoClicarBotao(alternarAtivo);
+      deps.aoClicarBotao(ciclarIntensidade);
       /* A configuracao tambem abre pelo painel da engrenagem, em
        * "Ajustes". O clique direito continua valendo como atalho, mas
        * deixou de ser o UNICO caminho — ninguem descobre clique direito
@@ -885,5 +1103,10 @@
     },
 
     _TIPOS_DE_SOM: TIPOS_DE_SOM, // exposto so para o teste de fumaca
+    /* Exposto para o teste da contagem: e o numero que aparece no
+     * contador da aba, e ele ja saiu errado uma vez. */
+    _resumoDaFila: function () { return resumoDaFila(); },
+    _lerRespostaDeFila: function (url, json) { processarRespostaFilaDeEspera(url, json); },
+    _definirContadorDaTela: function (n) { ultimoValorAguardandoDOM = n; },
   });
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);

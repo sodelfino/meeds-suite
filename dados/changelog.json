@@ -2,6 +2,19 @@
  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
  "versoes": [
   {
+   "versao": "2.25.0",
+   "data": "2026-09-04",
+   "novidades": [
+    "O botão do alarme agora tem três posições, como o botão de som do Waze. 🔔 Completo é o de sempre: sirene, faixa no topo e moldura. 🔉 Discreto mostra um cartão no canto com quem chegou e de onde, com um som curto — some sozinho e não bloqueia nada. 🔕 Silencioso deixa só o contador na aba. Um clique no botão troca entre eles."
+   ],
+   "melhorias": [
+    "O alarme não tem mais um liga/desliga próprio escondido no botão: a função ligada já é o alarme ativo, e o quanto ele incomoda é a intensidade. Para desligar de vez, use a chave da função no painel da engrenagem."
+   ],
+   "correcoes": [
+    "O contador da aba mostrava um número diferente do total da fila, principalmente na tela de monitoramento. Ele somava o mesmo paciente uma vez para cada aba e cada filtro de período abertos, e nunca esquecia os filtros que você tinha deixado para trás. Agora conta cada pessoa uma vez, esquece a aba abandonada e, acima de tudo, respeita o número que está no cartão “Aguardando” da sua tela."
+   ]
+  },
+  {
    "versao": "2.24.0",
    "data": "2026-09-04",
    "novidades": [
