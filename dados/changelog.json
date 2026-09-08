@@ -2,6 +2,18 @@
  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
  "versoes": [
   {
+   "versao": "2.31.0",
+   "data": "2026-09-08",
+   "novidades": [
+    "Sete sons novos no alarme, e agora são duas listas separadas: uma para o modo completo (que repete) e outra para o modo discreto (que toca uma vez). As sirenes foram feitas para repetir e soavam truncadas quando tocadas uma vez só. Entre os curtos: Toque duplo, Sino curto, Gota, Acorde suave e Dois cliques — este último para quem divide a sala. Entre os que repetem: Pulso grave, pensado para a madrugada, e Sirene lenta, menos estridente.",
+    "Escolher um som já toca uma amostra na hora, em vez de você ter que clicar em “Testar” depois."
+   ],
+   "melhorias": [],
+   "correcoes": [
+    "O botão “Ver a fila” no aviso de novo paciente nunca funcionou: em vez de abrir o Pronto Atendimento, respondia sempre “não mudei de tela porque você tem um documento aberto pela metade”. Ele foi removido. Clicar na notificação continua trazendo o Meeds para frente e silenciando."
+   ]
+  },
+  {
    "versao": "2.30.0",
    "data": "2026-09-08",
    "novidades": [

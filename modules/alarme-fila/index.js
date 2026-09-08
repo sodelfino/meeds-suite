@@ -32,6 +32,7 @@
   var TIPOS_DE_SOM = {
     "sirene-classica": {
       nome: "Sirene clássica (2 notas)",
+      curto: false,
       intervaloMs: 1100,
       tocar: function (ctx, volume) {
         var agora = ctx.currentTime;
@@ -52,6 +53,7 @@
     },
     "sirene-ambulancia": {
       nome: "Sirene rápida (estilo ambulância)",
+      curto: false,
       intervaloMs: 1050,
       tocar: function (ctx, volume) {
         var agora = ctx.currentTime;
@@ -71,6 +73,7 @@
     },
     "alarme-incendio": {
       nome: "Alarme (bipes curtos repetidos)",
+      curto: false,
       intervaloMs: 700,
       tocar: function (ctx, volume) {
         var base = ctx.currentTime;
@@ -90,6 +93,7 @@
     },
     campainha: {
       nome: "Campainha (mais suave)",
+      curto: false,
       intervaloMs: 2000,
       tocar: function (ctx, volume) {
         var agora = ctx.currentTime;
@@ -110,7 +114,174 @@
         });
       },
     },
-  };
+  
+    /* ----------------------------------------------------------------
+     * SONS DE TOQUE UNICO (modo discreto)
+     * ----------------------------------------------------------------
+     * As quatro sirenes acima foram feitas para REPETIR: tocadas uma vez
+     * so, soam truncadas — comecam e param no meio da ideia. Estas tem
+     * comeco, meio e fim em menos de um segundo, e terminam decaindo em
+     * vez de cortar.
+     *
+     * Todas sobem o ganho a partir de ZERO em alguns milissegundos e
+     * descem quase a zero antes de parar o oscilador. Sem essa rampa o
+     * navegador produz um estalo no inicio e no fim — audivel, feio, e
+     * pior ainda num fone de plantao noturno.
+     * ---------------------------------------------------------------- */
+    "toque-duplo": {
+      nome: "Toque duplo (dois tons)",
+      curto: true,
+      intervaloMs: 1200,
+      tocar: function (ctx, volume) {
+        var agora = ctx.currentTime;
+        [{ f: 880, t: 0 }, { f: 1174.7, t: 0.13 }].forEach(function (n) {
+          var osc = ctx.createOscillator();
+          var g = ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(n.f, agora + n.t);
+          g.gain.setValueAtTime(0.0001, agora + n.t);
+          g.gain.linearRampToValueAtTime(0.32 * volume, agora + n.t + 0.012);
+          g.gain.exponentialRampToValueAtTime(0.0008, agora + n.t + 0.34);
+          osc.connect(g).connect(ctx.destination);
+          osc.start(agora + n.t);
+          osc.stop(agora + n.t + 0.36);
+        });
+      },
+    },
+    "sino-curto": {
+      nome: "Sino curto",
+      curto: true,
+      intervaloMs: 1400,
+      tocar: function (ctx, volume) {
+        var agora = ctx.currentTime;
+        /* Um sino e a fundamental MAIS um parcial agudo que morre antes
+         * dela — e o que separa "sino" de "bipe". */
+        [{ f: 1568, v: 0.3, d: 0.9 }, { f: 2350, v: 0.12, d: 0.35 }].forEach(function (n) {
+          var osc = ctx.createOscillator();
+          var g = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(n.f, agora);
+          g.gain.setValueAtTime(0.0001, agora);
+          g.gain.linearRampToValueAtTime(n.v * volume, agora + 0.008);
+          g.gain.exponentialRampToValueAtTime(0.0006, agora + n.d);
+          osc.connect(g).connect(ctx.destination);
+          osc.start(agora);
+          osc.stop(agora + n.d + 0.02);
+        });
+      },
+    },
+    "gota": {
+      nome: "Gota (bem discreto)",
+      curto: true,
+      intervaloMs: 900,
+      tocar: function (ctx, volume) {
+        var agora = ctx.currentTime;
+        var osc = ctx.createOscillator();
+        var g = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(1250, agora);
+        osc.frequency.exponentialRampToValueAtTime(620, agora + 0.14);
+        g.gain.setValueAtTime(0.0001, agora);
+        g.gain.linearRampToValueAtTime(0.3 * volume, agora + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0007, agora + 0.28);
+        osc.connect(g).connect(ctx.destination);
+        osc.start(agora);
+        osc.stop(agora + 0.3);
+      },
+    },
+    "acorde-suave": {
+      nome: "Acorde suave (três notas)",
+      curto: true,
+      intervaloMs: 1600,
+      tocar: function (ctx, volume) {
+        var agora = ctx.currentTime;
+        [523.25, 659.25, 783.99].forEach(function (f, i) {
+          var t = i * 0.075;
+          var osc = ctx.createOscillator();
+          var g = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(f, agora + t);
+          g.gain.setValueAtTime(0.0001, agora + t);
+          g.gain.linearRampToValueAtTime(0.22 * volume, agora + t + 0.015);
+          g.gain.exponentialRampToValueAtTime(0.0006, agora + t + 0.55);
+          osc.connect(g).connect(ctx.destination);
+          osc.start(agora + t);
+          osc.stop(agora + t + 0.58);
+        });
+      },
+    },
+    "dois-cliques": {
+      nome: "Dois cliques (quase mudo)",
+      curto: true,
+      intervaloMs: 800,
+      tocar: function (ctx, volume) {
+        var agora = ctx.currentTime;
+        /* Para quem divide a sala com outro profissional e nao quer que o
+         * alarme vire assunto da consulta ao lado. */
+        [0, 0.09].forEach(function (t) {
+          var osc = ctx.createOscillator();
+          var g = ctx.createGain();
+          osc.type = "square";
+          osc.frequency.setValueAtTime(2100, agora + t);
+          g.gain.setValueAtTime(0.0001, agora + t);
+          g.gain.linearRampToValueAtTime(0.12 * volume, agora + t + 0.004);
+          g.gain.exponentialRampToValueAtTime(0.0005, agora + t + 0.035);
+          osc.connect(g).connect(ctx.destination);
+          osc.start(agora + t);
+          osc.stop(agora + t + 0.04);
+        });
+      },
+    },
+
+    /* ----------------------------------------------------------------
+     * MAIS DUAS PARA O MODO COMPLETO
+     * ---------------------------------------------------------------- */
+    "pulso-grave": {
+      nome: "Pulso grave (plantão noturno)",
+      curto: false,
+      intervaloMs: 1300,
+      tocar: function (ctx, volume) {
+        var agora = ctx.currentTime;
+        /* Grave atravessa parede e cansa menos que agudo. Pensado para a
+         * madrugada, quando o estridente e justamente o que faz o medico
+         * desligar o alarme — e perder o paciente seguinte. */
+        [0, 0.42].forEach(function (t) {
+          var osc = ctx.createOscillator();
+          var g = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(196, agora + t);
+          osc.frequency.linearRampToValueAtTime(233, agora + t + 0.3);
+          g.gain.setValueAtTime(0.0001, agora + t);
+          g.gain.linearRampToValueAtTime(0.42 * volume, agora + t + 0.03);
+          g.gain.exponentialRampToValueAtTime(0.0008, agora + t + 0.34);
+          osc.connect(g).connect(ctx.destination);
+          osc.start(agora + t);
+          osc.stop(agora + t + 0.36);
+        });
+      },
+    },
+    "sirene-lenta": {
+      nome: "Sirene lenta (menos estridente)",
+      curto: false,
+      intervaloMs: 1500,
+      tocar: function (ctx, volume) {
+        var agora = ctx.currentTime;
+        var osc = ctx.createOscillator();
+        var g = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(560, agora);
+        osc.frequency.linearRampToValueAtTime(760, agora + 0.55);
+        osc.frequency.linearRampToValueAtTime(560, agora + 1.1);
+        g.gain.setValueAtTime(0.0001, agora);
+        g.gain.linearRampToValueAtTime(0.34 * volume, agora + 0.06);
+        g.gain.setValueAtTime(0.34 * volume, agora + 1.0);
+        g.gain.linearRampToValueAtTime(0.0001, agora + 1.12);
+        osc.connect(g).connect(ctx.destination);
+        osc.start(agora);
+        osc.stop(agora + 1.15);
+      },
+    },
+};
 
   var CSS_PAINEL = [
     ".af-modal { width: 100%; max-width: 380px; background: #fff; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden; }",
@@ -147,7 +318,8 @@
     ativo: false,
     modo: "imediato", // "imediato" | "espera"
     tempoEsperaMin: 5,
-    som: "sirene-classica",
+    som: "sirene-classica",      // modo completo: repete ate silenciar
+    somCurto: "toque-duplo",     // modo discreto: toca uma vez
     volume: 70,
     intensidade: "completo", // "silencioso" | "discreto" | "completo"
   };
@@ -537,12 +709,18 @@
     return audioCtx;
   }
 
-  function tocarSomAtual() {
+  function somDoModo(curto) {
+    var id = curto ? config.somCurto : config.som;
+    var tipo = TIPOS_DE_SOM[id];
+    if (tipo && !!tipo.curto === !!curto) return tipo;
+    return TIPOS_DE_SOM[curto ? CONFIG_PADRAO.somCurto : CONFIG_PADRAO.som];
+  }
+
+  function tocarSomAtual(curto) {
     try {
       var ctx = obterAudioContext();
       if (!ctx) return;
-      var tipo = TIPOS_DE_SOM[config.som] || TIPOS_DE_SOM[CONFIG_PADRAO.som];
-      tipo.tocar(ctx, config.volume / 100);
+      somDoModo(curto).tocar(ctx, config.volume / 100);
     } catch (e) {
       /* silencioso */
     }
@@ -594,10 +772,9 @@
       corpo: textoDoMotivo(),
       tag: "meeds-alarme-fila",
       exigeInteracao: true,
-      /* Clicar na notificacao nao e so "ja vi": e "estou indo". Ela traz
-       * a aba para frente E abre a fila, que e o unico lugar onde o
-       * clique tem serventia. */
-      aoClicar: irParaFila,
+      /* Clicar equivale a "estou indo": traz a aba para frente e silencia
+       * com reengate — se ele nao atender de fato, o alarme volta. */
+      aoClicar: silenciarComReengate,
     });
   }
 
@@ -625,15 +802,15 @@
     if (forma.cartao) mostrarCartaoDeChegada();
 
     if (forma.som === "curto") {
-      tocarSomAtual(); // uma vez so, e acabou
+      tocarSomAtual(true); // uma vez so, e acabou
     } else if (forma.som === "repetido") {
       tocando = true;
       atualizarTextoDoBanner();
       if (banner) banner.mostrar();
       if (moldura) moldura.mostrar();
-      var tipo = TIPOS_DE_SOM[config.som] || TIPOS_DE_SOM[CONFIG_PADRAO.som];
-      tocarSomAtual();
-      intervaloSirene = setInterval(tocarSomAtual, tipo.intervaloMs);
+      var tipo = somDoModo(false);
+      tocarSomAtual(false);
+      intervaloSirene = setInterval(function () { tocarSomAtual(false); }, tipo.intervaloMs);
       // BUG JA CORRIGIDO NO ORIGINAL v1.4.0 E PRESERVADO AQUI: o limite de
       // seguranca faz uma parada COMPLETA (que reseta `tocando`), senao o
       // alarme ficava travado em silencio para sempre depois da primeira
@@ -665,86 +842,29 @@
       titulo: "🔔 Novo paciente na fila",
       corpo: linhas,
       autoFecharMs: 12000,
-      acoes: [
-        { rotulo: "Ver a fila", primario: true, aoClicar: irParaFila },
-        { rotulo: "Depois", aoClicar: function () {} },
-      ],
+      acoes: [{ rotulo: "Ok", primario: true, aoClicar: function () {} }],
     });
   }
 
   /* ------------------------------------------------------------------
-   * O ATALHO — levar o medico ate a fila
+   * O ATALHO "VER A FILA" FOI REMOVIDO — e por que
    * ------------------------------------------------------------------
-   * Um aviso que so grita ainda deixa o trabalho de PROCURAR o paciente
-   * com quem ja esta ocupado. Este atalho fecha isso.
+   * Ele existiu entre a v2.26 e a v2.30 e nunca funcionou: em vez de
+   * levar o medico ate o Pronto Atendimento, respondia sempre "nao mudei
+   * de tela porque voce tem um documento aberto pela metade".
    *
-   * Ele NAO navega por URL. Duas razoes: a rota da fila ja mudou entre
-   * as telas que conhecemos (/ e /administrator/monitoring/...), e um
-   * endereco chutado leva o medico para uma pagina em branco. Em vez
-   * disso ele clica no PROPRIO item de menu do Meeds — quem sabe a rota
-   * e o Meeds.
+   * A causa era uma linha. A guarda perguntava se havia
+   * `[id$="-modal"]:not([hidden])` no shadow — mas quem recebe `hidden` e
+   * o OVERLAY, nunca o modal de dentro dele. O seletor casava com os
+   * geradores montados na subida, abertos ou nao, e a guarda respondia
+   * "sim" sempre.
    *
-   * E ele nunca navega por cima de trabalho em andamento: com uma APAC
-   * ou um laudo abertos, sair da tela perderia o formulario pela metade.
-   * Nesse caso ele so traz a aba para frente e explica.
+   * Corrigir era trocar o alvo da guarda. A REMOCAO foi decisao de
+   * produto, tomada depois de o defeito aparecer em uso: um atalho que
+   * mente sobre o motivo de nao funcionar gasta mais confianca do que
+   * economiza cliques. O aviso continua fazendo o que importa — trazer a
+   * aba para frente e silenciar com reengate.
    * ------------------------------------------------------------------ */
-  var ROTULOS_DA_FILA = ["pronto atendimento", "pronto-atendimento", "atendimentos", "fila"];
-
-  function haFormularioAberto() {
-    /* Os geradores abrem overlay no shadow do dock. Se algum estiver
-     * aberto, ha texto digitado que ninguem quer perder. */
-    var host = document.getElementById("meeds-suite-dock-host");
-    if (!host || !host.shadowRoot) return false;
-    return !!host.shadowRoot.querySelector("[id$='-modal']:not([hidden])");
-  }
-
-  function acharItemDeMenuDaFila() {
-    var candidatos = document.querySelectorAll("a, button, span, li, div[role='button']");
-    for (var i = 0; i < candidatos.length; i++) {
-      var el = candidatos[i];
-      if (el.children.length > 2) continue;
-      var texto = d.dom.normalizarTexto(el.textContent || "");
-      if (!texto || texto.length > 30) continue;
-      for (var j = 0; j < ROTULOS_DA_FILA.length; j++) {
-        if (texto === ROTULOS_DA_FILA[j]) return el;
-      }
-    }
-    return null;
-  }
-
-  function irParaFila() {
-    try { raiz.focus(); } catch (e) {}
-    silenciarComReengate();
-
-    if (haFormularioAberto()) {
-      d.dock.criarAviso({
-        titulo: "Fila esperando",
-        corpo: "Não mudei de tela porque você tem um documento aberto pela metade. Termine ou feche, e a fila continua ali.",
-        autoFecharMs: 8000,
-      });
-      return;
-    }
-
-    /* Se o cartao da fila ja esta nesta tela, nao ha para onde ir: basta
-     * levar o olho ate ele. */
-    var contador = d.dom.lerContadorPorRotulo(d.seletor("rotulos", "contadorFila"));
-    if (contador !== null) {
-      var alvo = acharItemDeMenuDaFila();
-      if (alvo && alvo.scrollIntoView) alvo.scrollIntoView({ block: "center", behavior: "smooth" });
-      return;
-    }
-
-    var item = acharItemDeMenuDaFila();
-    if (item) {
-      item.click();
-      return;
-    }
-    d.dock.criarAviso({
-      titulo: "Fila esperando",
-      corpo: "Não encontrei o atalho para o Pronto Atendimento nesta tela. Abra pelo menu do Meeds.",
-      autoFecharMs: 8000,
-    });
-  }
 
   function silenciarAlarme() {
     cancelarReengateAgendado();
@@ -800,11 +920,19 @@
    * overlay e banner vem prontos do dock do nucleo.
    * ---------------------------------------------------------------- */
   function montarPainel() {
-    var opcoesSom = Object.keys(TIPOS_DE_SOM)
-      .map(function (chave) {
-        return '<option value="' + chave + '">' + TIPOS_DE_SOM[chave].nome + "</option>";
-      })
-      .join("");
+    /* Duas listas, nao uma. Um som so servindo os dois modos serve mal
+     * aos dois: sirene tocada uma vez soa truncada, e sino repetindo a
+     * cada segundo por dois minutos e outra tortura. */
+    function opcoesDe(curto) {
+      return Object.keys(TIPOS_DE_SOM)
+        .filter(function (chave) { return !!TIPOS_DE_SOM[chave].curto === curto; })
+        .map(function (chave) {
+          return '<option value="' + chave + '">' + TIPOS_DE_SOM[chave].nome + "</option>";
+        })
+        .join("");
+    }
+    var opcoesSom = opcoesDe(false);
+    var opcoesSomCurto = opcoesDe(true);
 
     painel = d.dock.criarOverlay({
       estilo: CSS_PAINEL,
@@ -827,7 +955,8 @@
         '      <div id="af-tempo-espera-linha"><input type="number" id="af-tempo-espera" min="1" max="120" step="1" /><span>minutos</span></div>' +
         '      <div class="af-hint">No modo "tempo de espera", o alarme soa uma vez por paciente que ultrapassar o limite — contado a partir de quando este script viu o paciente na fila pela primeira vez.</div>' +
         "    </div>" +
-        '    <div><label for="af-som">Som do alarme</label><select id="af-som">' + opcoesSom + "</select></div>" +
+        '    <div><label for="af-som">Som do modo completo (repete)</label><select id="af-som">' + opcoesSom + "</select></div>" +
+        '    <div><label for="af-som-curto">Som do modo discreto (toca uma vez)</label><select id="af-som-curto">' + opcoesSomCurto + "</select></div>" +
         '    <div><label for="af-volume">Volume</label><input type="range" id="af-volume" min="0" max="100" step="5" /></div>' +
         '    <button type="button" id="af-testar-som">🔊 Testar som</button>' +
         "    <div>" +
@@ -866,6 +995,14 @@
     painel.$("#af-som").addEventListener("change", function () {
       config.som = painel.$("#af-som").value;
       salvar();
+      obterAudioContext();
+      tocarSomAtual(false); // ouvir na hora de escolher, nao depois
+    });
+    painel.$("#af-som-curto").addEventListener("change", function () {
+      config.somCurto = painel.$("#af-som-curto").value;
+      salvar();
+      obterAudioContext();
+      tocarSomAtual(true);
     });
     painel.$("#af-volume").addEventListener("input", function () {
       config.volume = parseInt(painel.$("#af-volume").value, 10);
@@ -873,7 +1010,7 @@
     });
     painel.$("#af-testar-som").addEventListener("click", function () {
       obterAudioContext();
-      tocarSomAtual();
+      tocarSomAtual(config.intensidade === "discreto");
     });
 
     /* A permissao de notificacao SO pode ser pedida a partir de um clique
@@ -970,11 +1107,9 @@
     banner = d.dock.criarBanner(
       '<span>🚨 Novo paciente na fila!</span>' +
         '<span class="ms-banner-motivo" id="af-motivo"></span>' +
-        '<button type="button" id="af-ir-fila">Ver a fila</button>' +
         '<button type="button" id="af-silenciar">Silenciar alarme</button>'
     );
     banner.$("#af-silenciar").addEventListener("click", silenciarComReengate);
-    banner.$("#af-ir-fila").addEventListener("click", irParaFila);
   }
 
   /* Um alarme que diz POR QUE esta tocando e informacao; um que so grita
@@ -1006,6 +1141,7 @@
     painel.$("#af-tempo-espera").value = config.tempoEsperaMin;
     painel.$("#af-tempo-espera").disabled = config.modo !== "espera";
     painel.$("#af-som").value = config.som;
+    painel.$("#af-som-curto").value = config.somCurto;
     painel.$("#af-volume").value = config.volume;
     painel.$$('input[name="af-intensidade"]').forEach(function (r) {
       r.checked = r.value === config.intensidade;
@@ -1081,7 +1217,13 @@
         Math.max(1, parseInt(config.tempoEsperaMin, 10) || CONFIG_PADRAO.tempoEsperaMin)
       );
       config.volume = Math.min(100, Math.max(0, parseInt(config.volume, 10) || 0));
-      if (!TIPOS_DE_SOM[config.som]) config.som = CONFIG_PADRAO.som;
+      /* Um som da familia errada em qualquer dos dois campos volta ao
+       * padrao: e o que acontece com quem atualiza vindo de uma versao
+       * que tinha uma lista so. */
+      if (!TIPOS_DE_SOM[config.som] || TIPOS_DE_SOM[config.som].curto) config.som = CONFIG_PADRAO.som;
+      if (!TIPOS_DE_SOM[config.somCurto] || !TIPOS_DE_SOM[config.somCurto].curto) {
+        config.somCurto = CONFIG_PADRAO.somCurto;
+      }
       if (!INTENSIDADES[config.intensidade]) config.intensidade = CONFIG_PADRAO.intensidade;
       /* Avisar fora da aba e manter a tela acesa deixaram de ser chaves:
        * sao como o alarme funciona. O que limita o aviso do sistema nao e

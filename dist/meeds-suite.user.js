@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Assistente Meeds - Por: Marcelo
 // @namespace    novetech-meeds-suite
-// @version      2.30.0
+// @version      2.31.0
 // @description  Assistente Meeds - Por: Marcelo. Alarme de fila, APAC de Itauna, laudos de Sete Lagoas e Conceicao do Mato Dentro e consulta a REMUME, numa instalacao unica. Cada funcao liga e desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
 // @author       Marcelo
 // @match        *://*.meeds.com.br/*
@@ -6027,7 +6027,7 @@
    * versao aqui nem no bootloader — so no manifest.
    * O valor de reserva existe para o arquivo continuar rodavel solto,
    * fora do pacote (por exemplo num teste unitario). */
-  var VERSAO_NUCLEO = "2.30.0" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.30.0";
+  var VERSAO_NUCLEO = "2.31.0" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.31.0";
 
   var Auth = raiz.MeedsSuiteAuth;
   var Dock = raiz.MeedsSuiteDock;
@@ -6660,10 +6660,10 @@
   raiz.MEEDS_MARCAS = {"_leia_me":"TRADUTOR de nome comercial para principio ativo. ATENCAO: esta tabela NUNCA e fonte de medicamento. Ela so ajuda a ENCONTRAR o item dentro da REMUME do municipio — a REMUME (modules/remume/remumes.json) e a unica fonte de verdade. Se o principio ativo traduzido nao estiver na REMUME daquele municipio, o Assistente avisa que nao consta e NAO oferece o item. Para acrescentar uma marca, copie um bloco abaixo e rode 'npm run build'. Ver docs/MANUAL-ADMIN.md.","_campos":{"marca":"O que o medico digita (nome comercial, sigla ou nome alternativo).","principioAtivo":"O nome que se procura dentro da REMUME.","observacao":"Opcional. Aparece so na documentacao, nao na tela."},"_total":252,"marcas":[{"marca":"AAS","principioAtivo":"Ácido acetilsalicílico","observacao":"Sigla de uso corrente."},{"marca":"Acetaminofeno","principioAtivo":"Paracetamol","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Acfol","principioAtivo":"Acido Folico","observacao":""},{"marca":"Actilyse","principioAtivo":"Alteplase","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Adalat","principioAtivo":"Nifedipino","observacao":""},{"marca":"Adalat Oros","principioAtivo":"Nifedipina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Addera","principioAtivo":"Colecalciferol","observacao":""},{"marca":"Adenocard","principioAtivo":"Adenosina","observacao":""},{"marca":"Advil","principioAtivo":"Ibuprofeno","observacao":""},{"marca":"Aerolin","principioAtivo":"Salbutamol","observacao":""},{"marca":"Akineton","principioAtivo":"Biperideno","observacao":""},{"marca":"Aldactone","principioAtivo":"Espironolactona","observacao":""},{"marca":"Aldomet","principioAtivo":"Metildopa","observacao":""},{"marca":"Alivium","principioAtivo":"Ibuprofeno","observacao":""},{"marca":"Allegra","principioAtivo":"Fexofenadina","observacao":""},{"marca":"Amox","principioAtivo":"Amoxicilina","observacao":""},{"marca":"Amoxil","principioAtivo":"Amoxicilina","observacao":""},{"marca":"Amplictil","principioAtivo":"Clorpromazina","observacao":""},{"marca":"Amytril","principioAtivo":"Amitriptilina","observacao":""},{"marca":"Ancoron","principioAtivo":"Amiodarona","observacao":""},{"marca":"Angipress","principioAtivo":"Atenolol","observacao":""},{"marca":"Antak","principioAtivo":"Ranitidina","observacao":""},{"marca":"Apresolina","principioAtivo":"Hidralazina","observacao":""},{"marca":"Apressolina","principioAtivo":"Hidralazina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Aprovel","principioAtivo":"Irbesartana","observacao":""},{"marca":"Aradois","principioAtivo":"Losartana","observacao":""},{"marca":"Asmafen","principioAtivo":"Aminofilina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Aspirina","principioAtivo":"Ácido acetilsalicílico","observacao":""},{"marca":"Astromicin","principioAtivo":"Azitromicina","observacao":""},{"marca":"Atensina","principioAtivo":"Clonidina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Atlansil","principioAtivo":"Amiodarona","observacao":""},{"marca":"Atrovent","principioAtivo":"Ipratropio","observacao":""},{"marca":"Bactrim","principioAtivo":"Sulfametoxazol","observacao":""},{"marca":"Bactroban","principioAtivo":"Mupirocina","observacao":""},{"marca":"Balcor","principioAtivo":"Diltiazem","observacao":""},{"marca":"Benerva","principioAtivo":"Tiamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Benzetacil","principioAtivo":"Penicilina","observacao":""},{"marca":"Buscopam Composto","principioAtivo":"Escopolamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Buscopan","principioAtivo":"Escopolamina","observacao":""},{"marca":"Buscopan","principioAtivo":"Butilbrometo","observacao":""},{"marca":"Buscopan Composto","principioAtivo":"Escopolamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Buscopan Simples","principioAtivo":"Escopolamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Busonid","principioAtivo":"Budesonida","observacao":""},{"marca":"Capoten","principioAtivo":"Captopril","observacao":""},{"marca":"Cardilol","principioAtivo":"Carvedilol","observacao":""},{"marca":"Cardizem","principioAtivo":"Diltiazem","observacao":""},{"marca":"Cataflam","principioAtivo":"Diclofenaco","observacao":""},{"marca":"Cimetidan","principioAtivo":"Cimetidina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Cipramil","principioAtivo":"Citalopram","observacao":""},{"marca":"Cipro","principioAtivo":"Ciprofloxacino","observacao":""},{"marca":"Ciproxin","principioAtivo":"Ciprofloxacino","observacao":""},{"marca":"Citalor","principioAtivo":"Atorvastatina","observacao":""},{"marca":"Citoneurin","principioAtivo":"Complexo B","observacao":""},{"marca":"Claritine","principioAtivo":"Loratadina","observacao":""},{"marca":"Clavulin","principioAtivo":"Clavulanato","observacao":""},{"marca":"Clenil","principioAtivo":"Beclometasona","observacao":""},{"marca":"Clexane","principioAtivo":"Enoxaparina","observacao":""},{"marca":"Clisterol","principioAtivo":"Glicerina Clister","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Clorana","principioAtivo":"Hidroclorotiazida","observacao":""},{"marca":"Combiron","principioAtivo":"Sulfato Ferroso","observacao":""},{"marca":"Coreg","principioAtivo":"Carvedilol","observacao":""},{"marca":"Coumadin","principioAtivo":"Varfarina","observacao":""},{"marca":"Cozaar","principioAtivo":"Losartana","observacao":""},{"marca":"Crestor","principioAtivo":"Rosuvastatina","observacao":""},{"marca":"Cymbalta","principioAtivo":"Duloxetina","observacao":""},{"marca":"Cytotec","principioAtivo":"Misoprostol","observacao":""},{"marca":"Daforin","principioAtivo":"Fluoxetina","observacao":""},{"marca":"Daktarin","principioAtivo":"Miconazol","observacao":""},{"marca":"Dalacin","principioAtivo":"Clindamicina","observacao":""},{"marca":"Dalacin C","principioAtivo":"Clindamicina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Daonil","principioAtivo":"Glibenclamida","observacao":""},{"marca":"Decadron","principioAtivo":"Dexametasona","observacao":""},{"marca":"Depakene","principioAtivo":"Valproato","observacao":""},{"marca":"Depakote","principioAtivo":"Valproato","observacao":""},{"marca":"Dermazine","principioAtivo":"Sulfadiazina Prata","observacao":""},{"marca":"Desalex","principioAtivo":"Desloratadina","observacao":""},{"marca":"Deslanol","principioAtivo":"Deslanosídeo","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Despacilina","principioAtivo":"Benzilpenicilina Potássica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Diamicron","principioAtivo":"Gliclazida","observacao":""},{"marca":"Digesan","principioAtivo":"Bromoprida","observacao":""},{"marca":"Dimorf","principioAtivo":"Morfina","observacao":""},{"marca":"Diovan","principioAtivo":"Valsartana","observacao":""},{"marca":"Diprivan","principioAtivo":"Propofol","observacao":""},{"marca":"Diprospan","principioAtivo":"Betametasona","observacao":""},{"marca":"Dobutrex","principioAtivo":"Dobutamina","observacao":""},{"marca":"Dormonid","principioAtivo":"Midazolam","observacao":""},{"marca":"Dulcolax","principioAtivo":"Bisacodil","observacao":""},{"marca":"Efexor","principioAtivo":"Venlafaxina","observacao":""},{"marca":"Efortil","principioAtivo":"Etilefrina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Eliquis","principioAtivo":"Apixabana","observacao":""},{"marca":"Elocom","principioAtivo":"Mometasona","observacao":""},{"marca":"Epinefrina","principioAtivo":"Adrenalina","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Esmeron","principioAtivo":"Rocurônio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Euthyrox","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Fenergan","principioAtivo":"Prometazina","observacao":""},{"marca":"Fenocris","principioAtivo":"Fenobarbital Sódico","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Fentanil","principioAtivo":"Fentanila","observacao":""},{"marca":"Flagyl","principioAtivo":"Metronidazol","observacao":""},{"marca":"Flixotide","principioAtivo":"Fluticasona","observacao":""},{"marca":"Fluconal","principioAtivo":"Fluconazol","observacao":""},{"marca":"Folacin","principioAtivo":"Acido Folico","observacao":""},{"marca":"Franol","principioAtivo":"Efedrina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Garamicina","principioAtivo":"Gentamicina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Gardenal","principioAtivo":"Fenobarbital","observacao":""},{"marca":"Gentamisan","principioAtivo":"Gentamicina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Glifage","principioAtivo":"Metformina","observacao":""},{"marca":"Glucoformin","principioAtivo":"Metformina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Haldol","principioAtivo":"Haloperidol","observacao":""},{"marca":"Hctz","principioAtivo":"Hidroclorotiazida","observacao":""},{"marca":"Hidantal","principioAtivo":"Fenitoina","observacao":""},{"marca":"Hidraplex","principioAtivo":"Sais para reidratação oral","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Higroton","principioAtivo":"Clortalidona","observacao":""},{"marca":"Hixizine","principioAtivo":"Hidroxizina","observacao":""},{"marca":"Humulin","principioAtivo":"Insulina","observacao":""},{"marca":"Hypnomidate","principioAtivo":"Etomidato","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Imosec","principioAtivo":"Loperamida","observacao":""},{"marca":"Inderal","principioAtivo":"Propranolol","observacao":""},{"marca":"Insunorm","principioAtivo":"Insulina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Iruxol","principioAtivo":"Colagenase","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Kanakion","principioAtivo":"Fitomenadiona","observacao":""},{"marca":"Kanakion Im/sc","principioAtivo":"Fitomenadiona","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Kcl","principioAtivo":"Cloreto de potássio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Keflex","principioAtivo":"Cefalexina","observacao":""},{"marca":"Keppra","principioAtivo":"Levetiracetam","observacao":""},{"marca":"Ketamin","principioAtivo":"Escetamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Klaricid","principioAtivo":"Claritromicina","observacao":""},{"marca":"Label","principioAtivo":"Ranitidina","observacao":""},{"marca":"Lactulona","principioAtivo":"Lactulose","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Lamisil","principioAtivo":"Terbinafina","observacao":""},{"marca":"Lanexat","principioAtivo":"Flumazenil","observacao":""},{"marca":"Lasix","principioAtivo":"Furosemida","observacao":""},{"marca":"Levaquin","principioAtivo":"Levofloxacino","observacao":""},{"marca":"Lexapro","principioAtivo":"Escitalopram","observacao":""},{"marca":"Lexotan","principioAtivo":"Bromazepam","observacao":""},{"marca":"Lioresal","principioAtivo":"Baclofeno","observacao":""},{"marca":"Lipitor","principioAtivo":"Atorvastatina","observacao":""},{"marca":"Liquemine","principioAtivo":"Heparina","observacao":""},{"marca":"Liquemine EV","principioAtivo":"Heparina Sódica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Liquemine Sc","principioAtivo":"Heparina Sódica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Lopressor","principioAtivo":"Metoprolol","observacao":""},{"marca":"Loranil","principioAtivo":"Loratadina","observacao":""},{"marca":"Lorax","principioAtivo":"Lorazepam","observacao":""},{"marca":"Losec","principioAtivo":"Omeprazol","observacao":""},{"marca":"Luftal","principioAtivo":"Simeticona","observacao":""},{"marca":"Lyrica","principioAtivo":"Pregabalina","observacao":""},{"marca":"Macrodantina","principioAtivo":"Nitrofurantoina","observacao":""},{"marca":"Manitol 20%","principioAtivo":"Manitol","observacao":""},{"marca":"Marcaina","principioAtivo":"Bupivacaina","observacao":""},{"marca":"Marevan","principioAtivo":"Varfarina","observacao":""},{"marca":"Metamizol","principioAtivo":"Dipirona","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Meticorten","principioAtivo":"Prednisona","observacao":""},{"marca":"Micardis","principioAtivo":"Telmisartana","observacao":""},{"marca":"Micostatin","principioAtivo":"Nistatina","observacao":""},{"marca":"Miosan","principioAtivo":"Ciclobenzaprina","observacao":""},{"marca":"Motilium","principioAtivo":"Domperidona","observacao":""},{"marca":"Movatec","principioAtivo":"Meloxicam","observacao":""},{"marca":"Nacl 0,9%.","principioAtivo":"Cloreto de Sódio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Nacl 20%.","principioAtivo":"Cloreto de Sódio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Narcan","principioAtivo":"Naloxona","observacao":""},{"marca":"Naropin","principioAtivo":"Ropivacaina","observacao":""},{"marca":"Nasonex","principioAtivo":"Mometasona","observacao":""},{"marca":"Natrilix","principioAtivo":"Indapamida","observacao":""},{"marca":"Nebacetin","principioAtivo":"Neomicina + bacitracina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Neocaina","principioAtivo":"Bupivacaina","observacao":""},{"marca":"Neozine","principioAtivo":"Levomepromazina","observacao":""},{"marca":"Nepresol","principioAtivo":"Hidralazina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Neurontin","principioAtivo":"Gabapentina","observacao":""},{"marca":"Nexium","principioAtivo":"Esomeprazol","observacao":""},{"marca":"Nipride","principioAtivo":"Nitroprusseto de Sódio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Nisulid","principioAtivo":"Nimesulida","observacao":""},{"marca":"Nizoral","principioAtivo":"Cetoconazol","observacao":""},{"marca":"Noradrenalina","principioAtivo":"Norepinefrina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Norepinefrina","principioAtivo":"Noradrenalina","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Norvasc","principioAtivo":"Anlodipino","observacao":""},{"marca":"Novalgina","principioAtivo":"Dipirona","observacao":""},{"marca":"Novolin","principioAtivo":"Insulina","observacao":""},{"marca":"Pantoc","principioAtivo":"Pantoprazol","observacao":""},{"marca":"Pantozol","principioAtivo":"Pantoprazol","observacao":""},{"marca":"Peprazol","principioAtivo":"Omeprazol","observacao":""},{"marca":"Plasil","principioAtivo":"Metoclopramida","observacao":""},{"marca":"Plavix","principioAtivo":"Clopidogrel","observacao":""},{"marca":"Polaramine","principioAtivo":"Dexclorfeniramina","observacao":""},{"marca":"Pradaxa","principioAtivo":"Dabigatrana","observacao":""},{"marca":"Prazol","principioAtivo":"Lansoprazol","observacao":""},{"marca":"Predi-medrol","principioAtivo":"Metilprednisolona","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Prelone","principioAtivo":"Prednisolona","observacao":""},{"marca":"Profenid","principioAtivo":"Cetoprofeno","observacao":""},{"marca":"Prolopa","principioAtivo":"Levodopa","observacao":""},{"marca":"Propecia","principioAtivo":"Finasterida","observacao":""},{"marca":"Propovan","principioAtivo":"Propofol","observacao":""},{"marca":"Proscar","principioAtivo":"Finasterida","observacao":""},{"marca":"Prostigmine","principioAtivo":"Neostigmina","observacao":""},{"marca":"Prostokos","principioAtivo":"Misoprostol","observacao":""},{"marca":"Prozac","principioAtivo":"Fluoxetina","observacao":""},{"marca":"Pulmicort","principioAtivo":"Budesonida","observacao":""},{"marca":"Puran T4","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Renitec","principioAtivo":"Enalapril","observacao":""},{"marca":"Revivan","principioAtivo":"Dopamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Ringer Lactato","principioAtivo":"Ringer","observacao":""},{"marca":"Risperdal","principioAtivo":"Risperidona","observacao":""},{"marca":"Rivotril","principioAtivo":"Clonazepam","observacao":""},{"marca":"Rocefin","principioAtivo":"Ceftriaxona","observacao":""},{"marca":"Scabin","principioAtivo":"Permetrina","observacao":""},{"marca":"Secotex","principioAtivo":"Tansulosina","observacao":""},{"marca":"Seloken","principioAtivo":"Metoprolol","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Selozok","principioAtivo":"Metoprolol","observacao":""},{"marca":"Seroquel","principioAtivo":"Quetiapina","observacao":""},{"marca":"Sevorane","principioAtivo":"Sevoflurano","observacao":""},{"marca":"Sf 0.9%","principioAtivo":"Soro Fisiologico","observacao":""},{"marca":"Sg 5%","principioAtivo":"Glicose","observacao":""},{"marca":"Singulair","principioAtivo":"Montelucaste","observacao":""},{"marca":"Sinvatrox","principioAtivo":"Sinvastatina","observacao":""},{"marca":"Solucortef","principioAtivo":"Hidrocortisona","observacao":""},{"marca":"Solumedrol","principioAtivo":"Metilprednisolona","observacao":""},{"marca":"Sorcal","principioAtivo":"Poliestirenossulfonato de Calcio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Soro Glicosado","principioAtivo":"Glicose","observacao":""},{"marca":"Staficilin","principioAtivo":"Oxacilina sódica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Succinil Colin","principioAtivo":"Suxametonio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Synthroid","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Syntocinon","principioAtivo":"Ocitocina","observacao":""},{"marca":"Tamiflu","principioAtivo":"Oseltamivir","observacao":""},{"marca":"Tavanic","principioAtivo":"Levofloxacino","observacao":""},{"marca":"Tegretol","principioAtivo":"Carbamazepina","observacao":""},{"marca":"Tolrest","principioAtivo":"Sertralina","observacao":""},{"marca":"Topamax","principioAtivo":"Topiramato","observacao":""},{"marca":"Tramal","principioAtivo":"Tramadol","observacao":""},{"marca":"Transamin","principioAtivo":"Acido Tranexamico","observacao":""},{"marca":"Triaxon","principioAtivo":"Ceftriaxona","observacao":""},{"marca":"Tridil","principioAtivo":"Nitroglicerina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Tryptanol","principioAtivo":"Amitriptilina","observacao":""},{"marca":"Tylenol","principioAtivo":"Paracetamol","observacao":""},{"marca":"Uroxacin","principioAtivo":"Norfloxacino","observacao":""},{"marca":"Valium","principioAtivo":"Diazepam","observacao":""},{"marca":"Valproico","principioAtivo":"Valproato","observacao":""},{"marca":"Valtrex","principioAtivo":"Valaciclovir","observacao":""},{"marca":"Viagra","principioAtivo":"Sildenafila","observacao":""},{"marca":"Vibramicina","principioAtivo":"Doxiciclina","observacao":""},{"marca":"Vitamina K","principioAtivo":"Fitomenadiona","observacao":""},{"marca":"Voltaren","principioAtivo":"Diclofenaco","observacao":""},{"marca":"Vonau","principioAtivo":"Ondansetrona","observacao":""},{"marca":"Xarelto","principioAtivo":"Rivaroxabana","observacao":""},{"marca":"Xylocaina","principioAtivo":"Lidocaina","observacao":""},{"marca":"Xylocaina 2% com","principioAtivo":"Lidocaína","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Xylocaina 2% Sem","principioAtivo":"Lidocaína","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Zitromax","principioAtivo":"Azitromicina","observacao":""},{"marca":"Zocor","principioAtivo":"Sinvastatina","observacao":""},{"marca":"Zofran","principioAtivo":"Ondansetrona","observacao":""},{"marca":"Zoloft","principioAtivo":"Sertralina","observacao":""},{"marca":"Zoltec","principioAtivo":"Fluconazol","observacao":""},{"marca":"Zovirax","principioAtivo":"Aciclovir","observacao":""},{"marca":"Zyprexa","principioAtivo":"Olanzapina","observacao":""},{"marca":"Zyrtec","principioAtivo":"Cetirizina","observacao":""}]};
 
   /* ===== dados/changelog.json ===== */
-  raiz.MEEDS_CHANGELOG = {"_leia_me":"Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.","versoes":[{"versao":"2.30.0","data":"2026-09-08","novidades":["Guia de preenchimento no topo da APAC e dos dois laudos: uma barra mostra quanto falta e o texto ao lado diz qual é o próximo campo pendente. Clique nele e a tela leva você até lá.","Quando a emissão é recusada por falta de campo, o Assistente agora leva você até o primeiro que falta, em vez de só listar os nomes.","A tela que aparece depois de uma atualização ganhou um botão “⚙️ Abrir configurações”, para você experimentar a novidade na hora em que está lendo sobre ela."],"melhorias":["Os campos continuam todos liberados o tempo todo. Você preenche na ordem que quiser — o guia mostra o caminho, não fecha a porta."],"correcoes":[]},{"versao":"2.29.0","data":"2026-09-08","novidades":[],"melhorias":["A prévia do documento passa a abrir sozinha nos três geradores. Se você fechar, ela fica fechada naquele gerador — a escolha continua sendo sua, mudou só de que lado ela começa. Em tela estreita e no iPad ela continua não abrindo, porque não caberia."],"correcoes":[]},{"versao":"2.28.1","data":"2026-09-08","novidades":[],"melhorias":["Ficou claro como criar um modelo. Agora existe um campo de nome na própria tela, ao lado do botão “Salvar como modelo” — antes o nome era pedido numa janelinha do navegador que passava despercebida. Enquanto você não tem nenhum modelo, a lista de escolha nem aparece: fica só o convite para criar o primeiro, explicando o que fazer."],"correcoes":[]},{"versao":"2.28.0","data":"2026-09-08","novidades":["Modelos salvos na APAC, no laudo de Sete Lagoas e no de Conceição do Mato Dentro. Preencha o procedimento, o CID e a justificativa que você mais repete, clique em 💾 Salvar atual e dê um nome. Da próxima vez, escolha na lista e tudo volta preenchido.","Marque um modelo com ★ Padrão e ele entra sozinho toda vez que você abrir o gerador — sem clicar em nada. Ele só preenche campo vazio: o que você já escreveu nunca é apagado."],"melhorias":["Os modelos ficam no seu navegador e sobrevivem a logout, limpeza do site e atualização do Assistente. Nenhum dado de paciente entra num modelo — nome, CPF, nascimento, mãe e sexo ficam de fora, porque um modelo é feito para ser usado com outra pessoa."],"correcoes":[]},{"versao":"2.27.0","data":"2026-09-04","novidades":[],"melhorias":[],"correcoes":["A APAC trocava o paciente sozinha enquanto você preenchia. Se a tela do Meeds carregasse outro atendimento, o formulário era reescrito por baixo — e o PDF saía com o nome errado sem você ver. Agora o paciente só troca se você mandar: o Assistente avisa que a tela mudou, diz quem entrou e deixa você escolher entre trocar ou continuar. Vale também ao reabrir o gerador depois de fechá-lo sem querer. O botão “🔄 Atualizar paciente” continua trocando na hora, porque aí a decisão é sua."]},{"versao":"2.26.0","data":"2026-09-04","novidades":["O aviso de novo paciente agora tem um atalho “Ver a fila”, tanto no cartão discreto quanto na faixa vermelha. E clicar na notificação do sistema faz o mesmo: traz o Meeds para frente e abre o Pronto Atendimento."],"melhorias":["O cartão discreto mostra o município do atendimento, e não o nome do paciente. O município é o que muda a sua decisão — é ele que diz qual REMUME e qual laudo valem.","O atalho nunca troca de tela por cima de um documento aberto: com uma APAC ou um laudo pela metade, ele avisa em vez de fazer você perder o que já digitou."],"correcoes":[]},{"versao":"2.25.0","data":"2026-09-04","novidades":["O botão do alarme agora tem três posições, como o botão de som do Waze. 🔔 Completo é o de sempre: sirene, faixa no topo e moldura. 🔉 Discreto mostra um cartão no canto com quem chegou e de onde, com um som curto — some sozinho e não bloqueia nada. 🔕 Silencioso deixa só o contador na aba. Um clique no botão troca entre eles."],"melhorias":["O alarme não tem mais um liga/desliga próprio escondido no botão: a função ligada já é o alarme ativo, e o quanto ele incomoda é a intensidade. Para desligar de vez, use a chave da função no painel da engrenagem."],"correcoes":["O contador da aba mostrava um número diferente do total da fila, principalmente na tela de monitoramento. Ele somava o mesmo paciente uma vez para cada aba e cada filtro de período abertos, e nunca esquecia os filtros que você tinha deixado para trás. Agora conta cada pessoa uma vez, esquece a aba abandonada e, acima de tudo, respeita o número que está no cartão “Aguardando” da sua tela."]},{"versao":"2.24.0","data":"2026-09-04","novidades":["Se o navegador suspender a aba do Meeds — o Edge faz isso de fábrica com abas de fundo —, o Assistente passa a avisar quando ela acorda: “esta aba ficou suspensa por X min e o alarme não pôde tocar”. Antes o alarme simplesmente ficava mudo e você não tinha como saber."],"melhorias":["No Edge, o pedido de permissão para avisar pelo sistema costuma ser silenciado pelo navegador, e o botão parecia não fazer nada. Agora a tela avisa para procurar o ícone de sino na barra de endereço."],"correcoes":[]},{"versao":"2.23.0","data":"2026-09-04","novidades":[],"melhorias":["Saíram três chaves de liga/desliga que não precisavam existir. Os botões discretos em repouso, o aviso pelo sistema e a tela que não apaga passaram a ser simplesmente como o Assistente funciona.","O aviso pelo sistema não é mais uma chave: a tela mostra o estado dele. Se o navegador ainda não autorizou, aparece um botão para autorizar; se as notificações estiverem bloqueadas, a tela diz onde liberar.","No painel da engrenagem, o antigo link “Ajustes” virou um botão que diz o que abre — “⚙️ Configurar Alarme de Fila”. Antes não ficava claro que a função tinha configuração própria."],"correcoes":[]},{"versao":"2.22.0","data":"2026-09-04","novidades":["O alarme de fila agora avisa mesmo quando você não está na aba do Meeds: aparece uma notificação do sistema, com o navegador minimizado inclusive. Clicar nela traz o Meeds para frente e silencia — se você não atender, o alarme volta em 5 minutos. Ative em ⚙️ › Alarme de fila.","A aba do navegador passa a mostrar quantos estão esperando, no título e no ícone: “(3) Meeds”. O número continua ali depois de você silenciar, porque os pacientes continuam na fila, e some sozinho quando a fila esvazia.","Nova opção para impedir a tela de apagar durante o plantão — feita para o iPad, onde alarme que toca com a tela apagada é alarme perdido."],"melhorias":["O banner do alarme agora diz por que está tocando: “3 aguardando · o mais antigo há pelo menos 12 min”.","O título da aba não pisca mais “NOVO PACIENTE NA FILA”. Piscar disputa sua atenção a cada segundo e sumia quando você trocava de tela; o contador fica parado e é legível de relance.","Quem usa “reduzir movimento” no computador ou no iPad não vê mais nada pulsando. O alarme continua igual: som, vermelho e texto."],"correcoes":["No painel do alarme, as bolinhas de escolha e as caixas de seleção apareciam acima do texto, em vez de ao lado."]},{"versao":"2.21.0","data":"2026-09-03","novidades":["O backup agora salva também as unidades cadastradas, não só os médicos. Quem troca de computador não perde mais a unidade que digitou à mão."],"melhorias":["Telas mais curtas: a de boas-vindas caiu de cinco parágrafos para dois, e o painel da engrenagem perdeu os textos que se repetiam.","A lista de funções não mostra mais um número de versão para cada uma. A versão do Assistente continua na aba Sobre.","Na aba Unidades, quando não há nenhuma cadastrada, a tela agora explica que elas aparecem sozinhas ao escolher o município na APAC — antes parecia que era preciso digitar tudo à mão."],"correcoes":["A tela de boas-vindas mandava usar o botão ✕ para recolher os botões, mas ele passou a ser o ⌄.","Na Consulta REMUME, o cabeçalho dizia “município não identificado” mesmo depois de você escolher o município na lista logo abaixo. Agora ele só aparece quando o município vem do próprio atendimento."]},{"versao":"2.20.0","data":"2026-09-03","novidades":["Os botões agora ficam translúcidos quando você não está usando, e voltam ao normal assim que você aproxima o mouse (ou toca, no iPad). Assim eles param de atrapalhar a leitura da tela. Dá para desligar em ⚙️ → Funções."],"melhorias":["Minimizar e expandir voltou a ser só no clique da alça. A caixa não abre mais sozinha quando o mouse passa perto do canto, nem fecha no meio do caminho quando você vai clicar num botão. O ícone virou ⌄ em vez de ✕, porque ele tira do caminho e não fecha nada."],"correcoes":["O alarme de fila nunca fica translúcido: se a fila encher, ele aparece inteiro mesmo com a caixa minimizada."]},{"versao":"2.19.1","data":"2026-09-03","novidades":["A APAC de Betim e a de Sete Lagoas já vêm com os estabelecimentos cadastrados: em Betim, o Centro R e Especialidades Divino Ferreira Braga; em Sete Lagoas, Saúde Auditiva, UBS Cidade de Deus e UBS Belo Vale — as mesmas do laudo de Sete Lagoas. Não é preciso digitar o CNES."],"melhorias":[],"correcoes":["Quando o município tinha mais de uma unidade, a primeira da lista aparecia escolhida sozinha e o CNES dela ia para a APAC sem você ter selecionado nada. Agora, com duas ou mais unidades, nenhuma vem marcada — e trocar de município limpa a escolha."]},{"versao":"2.19.0","data":"2026-09-03","novidades":["O gerador de APAC deixou de ser exclusivo de Itaúna. Agora o primeiro campo do formulário é o Município, e a mesma tela atende Itaúna, Betim e Sete Lagoas. Quando o atendimento identifica a cidade, ela já vem escolhida."],"melhorias":["O estabelecimento e o CNES passaram a ser guardados por município: ao trocar de cidade, a lista mostra só as unidades daquela cidade. Isso impede uma APAC sair com o CNES de outro município, que é motivo de devolução pela regulação.","As APACs que você já tinha gerado continuam no histórico e podem ser reabertas normalmente."],"correcoes":["Na tela de erro, o campo do médico solicitante era chamado de “Selecionar”. Agora aparece pelo nome."]},{"versao":"2.18.0","data":"2026-09-01","novidades":[],"melhorias":["A busca de CID-10 dentro dos laudos e a prévia do documento passam a ficar sempre ligadas. Elas não são funções separadas — são melhorias do próprio formulário —, então saíram da lista de liga/desliga do painel."],"correcoes":[]},{"versao":"2.17.1","data":"2026-09-01","novidades":["A REMUME de Barbacena agora inclui os 161 medicamentos padronizados da UPA, com o selo “UPA” ao lado de cada um. Os itens das UBS, CTA/CEM e CAF continuam como estavam."],"melhorias":["47 nomes comerciais novos na busca: procurar por “Atensina”, “Buscopan Composto”, “Lactulona” ou “Nipride” já encontra o princípio ativo."],"correcoes":[]},{"versao":"2.16.0","data":"2026-09-01","novidades":[],"melhorias":["A busca de medicamentos ficou muito mais direta. Procurar \"acetilcisteína comprimido\" devolvia 159 itens; agora devolve os 2 certos. Palavras como \"comprimido\", \"solução\" ou a sigla da unidade agora servem para ordenar o resultado, não para inchar a lista. Em Macaé, dois itens com dipirona que ficavam escondidos no fim da lista voltaram a aparecer."],"correcoes":["A sugestão \"você quis dizer\" mostrava nomes cortados no meio, como \"Piridoxina (Vitamina B\" em vez de \"Piridoxina (Vitamina B6)\". Corrigido em todos os municípios."]},{"versao":"2.15.0","data":"2026-09-01","novidades":["Os botões agora recolhem. O ✕ no canto guarda todos e libera a tela; no computador basta aproximar o mouse do canto para eles voltarem, e no iPad é um toque no ☰. Se a fila de espera encher, o alarme aparece sozinho mesmo com tudo recolhido."],"melhorias":["O painel Sobre agora informa se suas configurações estão sendo salvas de forma permanente neste navegador."],"correcoes":["No iPad, o cadastro de médicos, o histórico de laudos e as configurações se perdiam toda vez que você saía do Meeds. Agora ficam guardados de verdade."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":["A checagem de atualização ficou muito mais leve: o Tampermonkey passa a baixar 1 KB para saber se há versão nova, em vez de mais de 1 MB."],"correcoes":["Correções internas na Sala de Espera, que está em standby: a consulta de confirmação não estava sendo executada."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":[],"correcoes":["As funções que você desliga continuam desligadas depois do logout. Antes, o Meeds apagava a configuração ao sair e todos os botões voltavam no acesso seguinte. O que você já tinha configurado é aproveitado, não precisa remarcar nada."]},{"versao":"2.13.1","data":"2026-08-31","novidades":[],"melhorias":[],"correcoes":["No iPad, o Assistente aparecia instalado e mesmo assim não fazia nada: a proteção de conteúdo do Meeds bloqueava a execução. Corrigido. Se o navegador precisar isolar o Assistente, o alarme de fila passa a decidir só pelo que aparece na tela, e o painel Sobre avisa quando isso acontece."]},{"versao":"2.13.0","data":"2026-08-31","novidades":["Agora dá para usar o Assistente no iPad e no iPhone, pelo Safari, com o app gratuito Userscripts. O passo a passo está no guia do iPad."],"melhorias":[],"correcoes":[]},{"versao":"2.12.0","data":"2026-08-31","novidades":["Nova função “Prévia do documento”: veja o PDF ao lado do formulário enquanto preenche, nos geradores de APAC e de laudo. É o mesmo arquivo que será baixado — nada de aproximação."],"melhorias":["A prévia vem desligada; abra pelo botão 👁 Prévia no alto do gerador. O tamanho do painel fica do jeito que você deixar."],"correcoes":[]},{"versao":"2.11.0","data":"2026-08-31","novidades":["Agora dá para enviar feedback direto do painel: conte um problema ou uma ideia, e a mensagem vai pronta para quem cuida do Assistente."],"melhorias":["O painel da engrenagem foi reorganizado em abas — Funções, Médicos, Unidades e Sobre. Antes era tudo numa rolagem só.","Os formulários de cadastro começam fechados: a lista fica limpa, e o formulário abre quando você pede."],"correcoes":[]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["O contador da Sala de Espera passou a mostrar só quem realmente chegou — antes contava também quem tinha consulta marcada e ainda não tinha aparecido."],"correcoes":["A Sala de Espera não avisava quando o paciente agendado chegava. O aviso agora sai na hora em que a chegada é marcada na tela nativa.","Se a internet oscilasse, a fila podia parecer vazia por um instante. Agora a última leitura válida é mantida até a próxima tentativa."]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID passou a funcionar também nos campos de CID secundário e associados da APAC — antes só o principal tinha."],"correcoes":[]},{"versao":"2.9.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID-10 agora vive dentro do próprio campo do laudo. O botão separado saiu: havia dois caminhos para a mesma coisa.","Digitar o código sem o ponto funciona: “J069” encontra J06.9."],"correcoes":["O campo CID mostrava duas listas de sugestão ao mesmo tempo, uma por cima da outra.","Depois de escolher um CID, a lista de sugestões reaparecia sozinha."]},{"versao":"2.8.0","data":"2026-08-31","novidades":["O CID-10 agora fica dentro do próprio laudo: clique no campo CID, digite o nome da doença ou o código, escolha — o código e a descrição entram sozinhos. Vale nos três geradores."],"melhorias":["A busca de CID-10 ficou muito mais rápida e não trava mais a tela: buscas comuns que levavam mais de um segundo agora respondem quase na hora.","A lista de resultados mostra os 50 mais relevantes e diz quantos ficaram de fora, em vez de tentar desenhar milhares de linhas."],"correcoes":["A apresentação “Bem-vindo ao Assistente Meeds” aparecia toda vez que você abria o Meeds. Agora aparece uma vez só."]},{"versao":"2.7.0","data":"2026-08-31","novidades":["Nova função “Sala de Espera”: avisa, sem som, quando um paciente de consulta agendada chega — com o nome, a hora marcada e há quanto tempo espera.","O botão da Sala de Espera mostra quantos pacientes estão aguardando, e abre a lista completa."],"melhorias":["Vários pacientes chegando ao mesmo tempo viram um aviso só, que conta quantos são."],"correcoes":[]},{"versao":"2.6.0","data":"2026-08-30","novidades":["A consulta REMUME passou a entender nome comercial: digite “Tylenol” e ela mostra o paracetamol do seu município.","Quando o remédio procurado não é padronizado no município, o Assistente diz isso com todas as letras, em vez de mostrar uma lista vazia."],"melhorias":["A busca ficou mais tolerante a erro de digitação em português: “dipironá” encontra Dipirona e “cimvastatina” encontra Sinvastatina.","A lista de nomes comerciais saiu do código e virou um arquivo que o administrador edita sozinho."],"correcoes":[]},{"versao":"2.5.0","data":"2026-08-30","novidades":["Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.","O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."],"melhorias":["Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."],"correcoes":["O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."]},{"versao":"2.4.0","data":"2026-08-30","novidades":["Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.","O código escolhido na busca entra sozinho no laudo que estiver aberto.","Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.","Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."],"melhorias":["O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.","O CPF se formata sozinho enquanto você digita.","Com um único médico cadastrado, ele já vem selecionado nos laudos.","As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.","O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."],"correcoes":["O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.","Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."]},{"versao":"2.3.0","data":"2026-08-30","novidades":["Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."],"melhorias":["Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."],"correcoes":[]},{"versao":"2.2.0","data":"2026-08-30","novidades":["Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."],"melhorias":["Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."],"correcoes":["Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."]},{"versao":"2.0.0","data":"2026-08-30","novidades":["Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."],"melhorias":[],"correcoes":[]}]};
+  raiz.MEEDS_CHANGELOG = {"_leia_me":"Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.","versoes":[{"versao":"2.31.0","data":"2026-09-08","novidades":["Sete sons novos no alarme, e agora são duas listas separadas: uma para o modo completo (que repete) e outra para o modo discreto (que toca uma vez). As sirenes foram feitas para repetir e soavam truncadas quando tocadas uma vez só. Entre os curtos: Toque duplo, Sino curto, Gota, Acorde suave e Dois cliques — este último para quem divide a sala. Entre os que repetem: Pulso grave, pensado para a madrugada, e Sirene lenta, menos estridente.","Escolher um som já toca uma amostra na hora, em vez de você ter que clicar em “Testar” depois."],"melhorias":[],"correcoes":["O botão “Ver a fila” no aviso de novo paciente nunca funcionou: em vez de abrir o Pronto Atendimento, respondia sempre “não mudei de tela porque você tem um documento aberto pela metade”. Ele foi removido. Clicar na notificação continua trazendo o Meeds para frente e silenciando."]},{"versao":"2.30.0","data":"2026-09-08","novidades":["Guia de preenchimento no topo da APAC e dos dois laudos: uma barra mostra quanto falta e o texto ao lado diz qual é o próximo campo pendente. Clique nele e a tela leva você até lá.","Quando a emissão é recusada por falta de campo, o Assistente agora leva você até o primeiro que falta, em vez de só listar os nomes.","A tela que aparece depois de uma atualização ganhou um botão “⚙️ Abrir configurações”, para você experimentar a novidade na hora em que está lendo sobre ela."],"melhorias":["Os campos continuam todos liberados o tempo todo. Você preenche na ordem que quiser — o guia mostra o caminho, não fecha a porta."],"correcoes":[]},{"versao":"2.29.0","data":"2026-09-08","novidades":[],"melhorias":["A prévia do documento passa a abrir sozinha nos três geradores. Se você fechar, ela fica fechada naquele gerador — a escolha continua sendo sua, mudou só de que lado ela começa. Em tela estreita e no iPad ela continua não abrindo, porque não caberia."],"correcoes":[]},{"versao":"2.28.1","data":"2026-09-08","novidades":[],"melhorias":["Ficou claro como criar um modelo. Agora existe um campo de nome na própria tela, ao lado do botão “Salvar como modelo” — antes o nome era pedido numa janelinha do navegador que passava despercebida. Enquanto você não tem nenhum modelo, a lista de escolha nem aparece: fica só o convite para criar o primeiro, explicando o que fazer."],"correcoes":[]},{"versao":"2.28.0","data":"2026-09-08","novidades":["Modelos salvos na APAC, no laudo de Sete Lagoas e no de Conceição do Mato Dentro. Preencha o procedimento, o CID e a justificativa que você mais repete, clique em 💾 Salvar atual e dê um nome. Da próxima vez, escolha na lista e tudo volta preenchido.","Marque um modelo com ★ Padrão e ele entra sozinho toda vez que você abrir o gerador — sem clicar em nada. Ele só preenche campo vazio: o que você já escreveu nunca é apagado."],"melhorias":["Os modelos ficam no seu navegador e sobrevivem a logout, limpeza do site e atualização do Assistente. Nenhum dado de paciente entra num modelo — nome, CPF, nascimento, mãe e sexo ficam de fora, porque um modelo é feito para ser usado com outra pessoa."],"correcoes":[]},{"versao":"2.27.0","data":"2026-09-04","novidades":[],"melhorias":[],"correcoes":["A APAC trocava o paciente sozinha enquanto você preenchia. Se a tela do Meeds carregasse outro atendimento, o formulário era reescrito por baixo — e o PDF saía com o nome errado sem você ver. Agora o paciente só troca se você mandar: o Assistente avisa que a tela mudou, diz quem entrou e deixa você escolher entre trocar ou continuar. Vale também ao reabrir o gerador depois de fechá-lo sem querer. O botão “🔄 Atualizar paciente” continua trocando na hora, porque aí a decisão é sua."]},{"versao":"2.26.0","data":"2026-09-04","novidades":["O aviso de novo paciente agora tem um atalho “Ver a fila”, tanto no cartão discreto quanto na faixa vermelha. E clicar na notificação do sistema faz o mesmo: traz o Meeds para frente e abre o Pronto Atendimento."],"melhorias":["O cartão discreto mostra o município do atendimento, e não o nome do paciente. O município é o que muda a sua decisão — é ele que diz qual REMUME e qual laudo valem.","O atalho nunca troca de tela por cima de um documento aberto: com uma APAC ou um laudo pela metade, ele avisa em vez de fazer você perder o que já digitou."],"correcoes":[]},{"versao":"2.25.0","data":"2026-09-04","novidades":["O botão do alarme agora tem três posições, como o botão de som do Waze. 🔔 Completo é o de sempre: sirene, faixa no topo e moldura. 🔉 Discreto mostra um cartão no canto com quem chegou e de onde, com um som curto — some sozinho e não bloqueia nada. 🔕 Silencioso deixa só o contador na aba. Um clique no botão troca entre eles."],"melhorias":["O alarme não tem mais um liga/desliga próprio escondido no botão: a função ligada já é o alarme ativo, e o quanto ele incomoda é a intensidade. Para desligar de vez, use a chave da função no painel da engrenagem."],"correcoes":["O contador da aba mostrava um número diferente do total da fila, principalmente na tela de monitoramento. Ele somava o mesmo paciente uma vez para cada aba e cada filtro de período abertos, e nunca esquecia os filtros que você tinha deixado para trás. Agora conta cada pessoa uma vez, esquece a aba abandonada e, acima de tudo, respeita o número que está no cartão “Aguardando” da sua tela."]},{"versao":"2.24.0","data":"2026-09-04","novidades":["Se o navegador suspender a aba do Meeds — o Edge faz isso de fábrica com abas de fundo —, o Assistente passa a avisar quando ela acorda: “esta aba ficou suspensa por X min e o alarme não pôde tocar”. Antes o alarme simplesmente ficava mudo e você não tinha como saber."],"melhorias":["No Edge, o pedido de permissão para avisar pelo sistema costuma ser silenciado pelo navegador, e o botão parecia não fazer nada. Agora a tela avisa para procurar o ícone de sino na barra de endereço."],"correcoes":[]},{"versao":"2.23.0","data":"2026-09-04","novidades":[],"melhorias":["Saíram três chaves de liga/desliga que não precisavam existir. Os botões discretos em repouso, o aviso pelo sistema e a tela que não apaga passaram a ser simplesmente como o Assistente funciona.","O aviso pelo sistema não é mais uma chave: a tela mostra o estado dele. Se o navegador ainda não autorizou, aparece um botão para autorizar; se as notificações estiverem bloqueadas, a tela diz onde liberar.","No painel da engrenagem, o antigo link “Ajustes” virou um botão que diz o que abre — “⚙️ Configurar Alarme de Fila”. Antes não ficava claro que a função tinha configuração própria."],"correcoes":[]},{"versao":"2.22.0","data":"2026-09-04","novidades":["O alarme de fila agora avisa mesmo quando você não está na aba do Meeds: aparece uma notificação do sistema, com o navegador minimizado inclusive. Clicar nela traz o Meeds para frente e silencia — se você não atender, o alarme volta em 5 minutos. Ative em ⚙️ › Alarme de fila.","A aba do navegador passa a mostrar quantos estão esperando, no título e no ícone: “(3) Meeds”. O número continua ali depois de você silenciar, porque os pacientes continuam na fila, e some sozinho quando a fila esvazia.","Nova opção para impedir a tela de apagar durante o plantão — feita para o iPad, onde alarme que toca com a tela apagada é alarme perdido."],"melhorias":["O banner do alarme agora diz por que está tocando: “3 aguardando · o mais antigo há pelo menos 12 min”.","O título da aba não pisca mais “NOVO PACIENTE NA FILA”. Piscar disputa sua atenção a cada segundo e sumia quando você trocava de tela; o contador fica parado e é legível de relance.","Quem usa “reduzir movimento” no computador ou no iPad não vê mais nada pulsando. O alarme continua igual: som, vermelho e texto."],"correcoes":["No painel do alarme, as bolinhas de escolha e as caixas de seleção apareciam acima do texto, em vez de ao lado."]},{"versao":"2.21.0","data":"2026-09-03","novidades":["O backup agora salva também as unidades cadastradas, não só os médicos. Quem troca de computador não perde mais a unidade que digitou à mão."],"melhorias":["Telas mais curtas: a de boas-vindas caiu de cinco parágrafos para dois, e o painel da engrenagem perdeu os textos que se repetiam.","A lista de funções não mostra mais um número de versão para cada uma. A versão do Assistente continua na aba Sobre.","Na aba Unidades, quando não há nenhuma cadastrada, a tela agora explica que elas aparecem sozinhas ao escolher o município na APAC — antes parecia que era preciso digitar tudo à mão."],"correcoes":["A tela de boas-vindas mandava usar o botão ✕ para recolher os botões, mas ele passou a ser o ⌄.","Na Consulta REMUME, o cabeçalho dizia “município não identificado” mesmo depois de você escolher o município na lista logo abaixo. Agora ele só aparece quando o município vem do próprio atendimento."]},{"versao":"2.20.0","data":"2026-09-03","novidades":["Os botões agora ficam translúcidos quando você não está usando, e voltam ao normal assim que você aproxima o mouse (ou toca, no iPad). Assim eles param de atrapalhar a leitura da tela. Dá para desligar em ⚙️ → Funções."],"melhorias":["Minimizar e expandir voltou a ser só no clique da alça. A caixa não abre mais sozinha quando o mouse passa perto do canto, nem fecha no meio do caminho quando você vai clicar num botão. O ícone virou ⌄ em vez de ✕, porque ele tira do caminho e não fecha nada."],"correcoes":["O alarme de fila nunca fica translúcido: se a fila encher, ele aparece inteiro mesmo com a caixa minimizada."]},{"versao":"2.19.1","data":"2026-09-03","novidades":["A APAC de Betim e a de Sete Lagoas já vêm com os estabelecimentos cadastrados: em Betim, o Centro R e Especialidades Divino Ferreira Braga; em Sete Lagoas, Saúde Auditiva, UBS Cidade de Deus e UBS Belo Vale — as mesmas do laudo de Sete Lagoas. Não é preciso digitar o CNES."],"melhorias":[],"correcoes":["Quando o município tinha mais de uma unidade, a primeira da lista aparecia escolhida sozinha e o CNES dela ia para a APAC sem você ter selecionado nada. Agora, com duas ou mais unidades, nenhuma vem marcada — e trocar de município limpa a escolha."]},{"versao":"2.19.0","data":"2026-09-03","novidades":["O gerador de APAC deixou de ser exclusivo de Itaúna. Agora o primeiro campo do formulário é o Município, e a mesma tela atende Itaúna, Betim e Sete Lagoas. Quando o atendimento identifica a cidade, ela já vem escolhida."],"melhorias":["O estabelecimento e o CNES passaram a ser guardados por município: ao trocar de cidade, a lista mostra só as unidades daquela cidade. Isso impede uma APAC sair com o CNES de outro município, que é motivo de devolução pela regulação.","As APACs que você já tinha gerado continuam no histórico e podem ser reabertas normalmente."],"correcoes":["Na tela de erro, o campo do médico solicitante era chamado de “Selecionar”. Agora aparece pelo nome."]},{"versao":"2.18.0","data":"2026-09-01","novidades":[],"melhorias":["A busca de CID-10 dentro dos laudos e a prévia do documento passam a ficar sempre ligadas. Elas não são funções separadas — são melhorias do próprio formulário —, então saíram da lista de liga/desliga do painel."],"correcoes":[]},{"versao":"2.17.1","data":"2026-09-01","novidades":["A REMUME de Barbacena agora inclui os 161 medicamentos padronizados da UPA, com o selo “UPA” ao lado de cada um. Os itens das UBS, CTA/CEM e CAF continuam como estavam."],"melhorias":["47 nomes comerciais novos na busca: procurar por “Atensina”, “Buscopan Composto”, “Lactulona” ou “Nipride” já encontra o princípio ativo."],"correcoes":[]},{"versao":"2.16.0","data":"2026-09-01","novidades":[],"melhorias":["A busca de medicamentos ficou muito mais direta. Procurar \"acetilcisteína comprimido\" devolvia 159 itens; agora devolve os 2 certos. Palavras como \"comprimido\", \"solução\" ou a sigla da unidade agora servem para ordenar o resultado, não para inchar a lista. Em Macaé, dois itens com dipirona que ficavam escondidos no fim da lista voltaram a aparecer."],"correcoes":["A sugestão \"você quis dizer\" mostrava nomes cortados no meio, como \"Piridoxina (Vitamina B\" em vez de \"Piridoxina (Vitamina B6)\". Corrigido em todos os municípios."]},{"versao":"2.15.0","data":"2026-09-01","novidades":["Os botões agora recolhem. O ✕ no canto guarda todos e libera a tela; no computador basta aproximar o mouse do canto para eles voltarem, e no iPad é um toque no ☰. Se a fila de espera encher, o alarme aparece sozinho mesmo com tudo recolhido."],"melhorias":["O painel Sobre agora informa se suas configurações estão sendo salvas de forma permanente neste navegador."],"correcoes":["No iPad, o cadastro de médicos, o histórico de laudos e as configurações se perdiam toda vez que você saía do Meeds. Agora ficam guardados de verdade."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":["A checagem de atualização ficou muito mais leve: o Tampermonkey passa a baixar 1 KB para saber se há versão nova, em vez de mais de 1 MB."],"correcoes":["Correções internas na Sala de Espera, que está em standby: a consulta de confirmação não estava sendo executada."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":[],"correcoes":["As funções que você desliga continuam desligadas depois do logout. Antes, o Meeds apagava a configuração ao sair e todos os botões voltavam no acesso seguinte. O que você já tinha configurado é aproveitado, não precisa remarcar nada."]},{"versao":"2.13.1","data":"2026-08-31","novidades":[],"melhorias":[],"correcoes":["No iPad, o Assistente aparecia instalado e mesmo assim não fazia nada: a proteção de conteúdo do Meeds bloqueava a execução. Corrigido. Se o navegador precisar isolar o Assistente, o alarme de fila passa a decidir só pelo que aparece na tela, e o painel Sobre avisa quando isso acontece."]},{"versao":"2.13.0","data":"2026-08-31","novidades":["Agora dá para usar o Assistente no iPad e no iPhone, pelo Safari, com o app gratuito Userscripts. O passo a passo está no guia do iPad."],"melhorias":[],"correcoes":[]},{"versao":"2.12.0","data":"2026-08-31","novidades":["Nova função “Prévia do documento”: veja o PDF ao lado do formulário enquanto preenche, nos geradores de APAC e de laudo. É o mesmo arquivo que será baixado — nada de aproximação."],"melhorias":["A prévia vem desligada; abra pelo botão 👁 Prévia no alto do gerador. O tamanho do painel fica do jeito que você deixar."],"correcoes":[]},{"versao":"2.11.0","data":"2026-08-31","novidades":["Agora dá para enviar feedback direto do painel: conte um problema ou uma ideia, e a mensagem vai pronta para quem cuida do Assistente."],"melhorias":["O painel da engrenagem foi reorganizado em abas — Funções, Médicos, Unidades e Sobre. Antes era tudo numa rolagem só.","Os formulários de cadastro começam fechados: a lista fica limpa, e o formulário abre quando você pede."],"correcoes":[]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["O contador da Sala de Espera passou a mostrar só quem realmente chegou — antes contava também quem tinha consulta marcada e ainda não tinha aparecido."],"correcoes":["A Sala de Espera não avisava quando o paciente agendado chegava. O aviso agora sai na hora em que a chegada é marcada na tela nativa.","Se a internet oscilasse, a fila podia parecer vazia por um instante. Agora a última leitura válida é mantida até a próxima tentativa."]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID passou a funcionar também nos campos de CID secundário e associados da APAC — antes só o principal tinha."],"correcoes":[]},{"versao":"2.9.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID-10 agora vive dentro do próprio campo do laudo. O botão separado saiu: havia dois caminhos para a mesma coisa.","Digitar o código sem o ponto funciona: “J069” encontra J06.9."],"correcoes":["O campo CID mostrava duas listas de sugestão ao mesmo tempo, uma por cima da outra.","Depois de escolher um CID, a lista de sugestões reaparecia sozinha."]},{"versao":"2.8.0","data":"2026-08-31","novidades":["O CID-10 agora fica dentro do próprio laudo: clique no campo CID, digite o nome da doença ou o código, escolha — o código e a descrição entram sozinhos. Vale nos três geradores."],"melhorias":["A busca de CID-10 ficou muito mais rápida e não trava mais a tela: buscas comuns que levavam mais de um segundo agora respondem quase na hora.","A lista de resultados mostra os 50 mais relevantes e diz quantos ficaram de fora, em vez de tentar desenhar milhares de linhas."],"correcoes":["A apresentação “Bem-vindo ao Assistente Meeds” aparecia toda vez que você abria o Meeds. Agora aparece uma vez só."]},{"versao":"2.7.0","data":"2026-08-31","novidades":["Nova função “Sala de Espera”: avisa, sem som, quando um paciente de consulta agendada chega — com o nome, a hora marcada e há quanto tempo espera.","O botão da Sala de Espera mostra quantos pacientes estão aguardando, e abre a lista completa."],"melhorias":["Vários pacientes chegando ao mesmo tempo viram um aviso só, que conta quantos são."],"correcoes":[]},{"versao":"2.6.0","data":"2026-08-30","novidades":["A consulta REMUME passou a entender nome comercial: digite “Tylenol” e ela mostra o paracetamol do seu município.","Quando o remédio procurado não é padronizado no município, o Assistente diz isso com todas as letras, em vez de mostrar uma lista vazia."],"melhorias":["A busca ficou mais tolerante a erro de digitação em português: “dipironá” encontra Dipirona e “cimvastatina” encontra Sinvastatina.","A lista de nomes comerciais saiu do código e virou um arquivo que o administrador edita sozinho."],"correcoes":[]},{"versao":"2.5.0","data":"2026-08-30","novidades":["Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.","O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."],"melhorias":["Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."],"correcoes":["O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."]},{"versao":"2.4.0","data":"2026-08-30","novidades":["Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.","O código escolhido na busca entra sozinho no laudo que estiver aberto.","Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.","Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."],"melhorias":["O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.","O CPF se formata sozinho enquanto você digita.","Com um único médico cadastrado, ele já vem selecionado nos laudos.","As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.","O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."],"correcoes":["O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.","Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."]},{"versao":"2.3.0","data":"2026-08-30","novidades":["Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."],"melhorias":["Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."],"correcoes":[]},{"versao":"2.2.0","data":"2026-08-30","novidades":["Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."],"melhorias":["Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."],"correcoes":["Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."]},{"versao":"2.0.0","data":"2026-08-30","novidades":["Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."],"melhorias":[],"correcoes":[]}]};
 
   var __inv = {
-  "versao": "2.30.0",
+  "versao": "2.31.0",
   "contato": {
     "_leia_me": "Para onde vai o feedback do medico. O botao 'Enviar feedback' abre o programa de e-mail dele com esta mensagem ja escrita — nao ha servidor nem servico de terceiro no caminho. Troque o e-mail aqui se quem cuida do Assistente mudar.",
     "email": "marcelonovetech@gmail.com"
@@ -6732,7 +6732,7 @@
    * cobre o resto: duas copias instaladas no Tampermonkey, ou uma
    * reexecucao do script numa navegacao da SPA. Sem ela, apareciam dois
    * docks sobrepostos e o alarme tocava duas vezes. */
-  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.30.0")) return;
+  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.31.0")) return;
 
   /* 2) O hook de rede precisa existir ANTES de qualquer chamada da
    * aplicacao — por isso e instalado aqui, em document-start, e nao
@@ -6774,6 +6774,7 @@
   var TIPOS_DE_SOM = {
     "sirene-classica": {
       nome: "Sirene clássica (2 notas)",
+      curto: false,
       intervaloMs: 1100,
       tocar: function (ctx, volume) {
         var agora = ctx.currentTime;
@@ -6794,6 +6795,7 @@
     },
     "sirene-ambulancia": {
       nome: "Sirene rápida (estilo ambulância)",
+      curto: false,
       intervaloMs: 1050,
       tocar: function (ctx, volume) {
         var agora = ctx.currentTime;
@@ -6813,6 +6815,7 @@
     },
     "alarme-incendio": {
       nome: "Alarme (bipes curtos repetidos)",
+      curto: false,
       intervaloMs: 700,
       tocar: function (ctx, volume) {
         var base = ctx.currentTime;
@@ -6832,6 +6835,7 @@
     },
     campainha: {
       nome: "Campainha (mais suave)",
+      curto: false,
       intervaloMs: 2000,
       tocar: function (ctx, volume) {
         var agora = ctx.currentTime;
@@ -6852,7 +6856,174 @@
         });
       },
     },
-  };
+  
+    /* ----------------------------------------------------------------
+     * SONS DE TOQUE UNICO (modo discreto)
+     * ----------------------------------------------------------------
+     * As quatro sirenes acima foram feitas para REPETIR: tocadas uma vez
+     * so, soam truncadas — comecam e param no meio da ideia. Estas tem
+     * comeco, meio e fim em menos de um segundo, e terminam decaindo em
+     * vez de cortar.
+     *
+     * Todas sobem o ganho a partir de ZERO em alguns milissegundos e
+     * descem quase a zero antes de parar o oscilador. Sem essa rampa o
+     * navegador produz um estalo no inicio e no fim — audivel, feio, e
+     * pior ainda num fone de plantao noturno.
+     * ---------------------------------------------------------------- */
+    "toque-duplo": {
+      nome: "Toque duplo (dois tons)",
+      curto: true,
+      intervaloMs: 1200,
+      tocar: function (ctx, volume) {
+        var agora = ctx.currentTime;
+        [{ f: 880, t: 0 }, { f: 1174.7, t: 0.13 }].forEach(function (n) {
+          var osc = ctx.createOscillator();
+          var g = ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(n.f, agora + n.t);
+          g.gain.setValueAtTime(0.0001, agora + n.t);
+          g.gain.linearRampToValueAtTime(0.32 * volume, agora + n.t + 0.012);
+          g.gain.exponentialRampToValueAtTime(0.0008, agora + n.t + 0.34);
+          osc.connect(g).connect(ctx.destination);
+          osc.start(agora + n.t);
+          osc.stop(agora + n.t + 0.36);
+        });
+      },
+    },
+    "sino-curto": {
+      nome: "Sino curto",
+      curto: true,
+      intervaloMs: 1400,
+      tocar: function (ctx, volume) {
+        var agora = ctx.currentTime;
+        /* Um sino e a fundamental MAIS um parcial agudo que morre antes
+         * dela — e o que separa "sino" de "bipe". */
+        [{ f: 1568, v: 0.3, d: 0.9 }, { f: 2350, v: 0.12, d: 0.35 }].forEach(function (n) {
+          var osc = ctx.createOscillator();
+          var g = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(n.f, agora);
+          g.gain.setValueAtTime(0.0001, agora);
+          g.gain.linearRampToValueAtTime(n.v * volume, agora + 0.008);
+          g.gain.exponentialRampToValueAtTime(0.0006, agora + n.d);
+          osc.connect(g).connect(ctx.destination);
+          osc.start(agora);
+          osc.stop(agora + n.d + 0.02);
+        });
+      },
+    },
+    "gota": {
+      nome: "Gota (bem discreto)",
+      curto: true,
+      intervaloMs: 900,
+      tocar: function (ctx, volume) {
+        var agora = ctx.currentTime;
+        var osc = ctx.createOscillator();
+        var g = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(1250, agora);
+        osc.frequency.exponentialRampToValueAtTime(620, agora + 0.14);
+        g.gain.setValueAtTime(0.0001, agora);
+        g.gain.linearRampToValueAtTime(0.3 * volume, agora + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0007, agora + 0.28);
+        osc.connect(g).connect(ctx.destination);
+        osc.start(agora);
+        osc.stop(agora + 0.3);
+      },
+    },
+    "acorde-suave": {
+      nome: "Acorde suave (três notas)",
+      curto: true,
+      intervaloMs: 1600,
+      tocar: function (ctx, volume) {
+        var agora = ctx.currentTime;
+        [523.25, 659.25, 783.99].forEach(function (f, i) {
+          var t = i * 0.075;
+          var osc = ctx.createOscillator();
+          var g = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(f, agora + t);
+          g.gain.setValueAtTime(0.0001, agora + t);
+          g.gain.linearRampToValueAtTime(0.22 * volume, agora + t + 0.015);
+          g.gain.exponentialRampToValueAtTime(0.0006, agora + t + 0.55);
+          osc.connect(g).connect(ctx.destination);
+          osc.start(agora + t);
+          osc.stop(agora + t + 0.58);
+        });
+      },
+    },
+    "dois-cliques": {
+      nome: "Dois cliques (quase mudo)",
+      curto: true,
+      intervaloMs: 800,
+      tocar: function (ctx, volume) {
+        var agora = ctx.currentTime;
+        /* Para quem divide a sala com outro profissional e nao quer que o
+         * alarme vire assunto da consulta ao lado. */
+        [0, 0.09].forEach(function (t) {
+          var osc = ctx.createOscillator();
+          var g = ctx.createGain();
+          osc.type = "square";
+          osc.frequency.setValueAtTime(2100, agora + t);
+          g.gain.setValueAtTime(0.0001, agora + t);
+          g.gain.linearRampToValueAtTime(0.12 * volume, agora + t + 0.004);
+          g.gain.exponentialRampToValueAtTime(0.0005, agora + t + 0.035);
+          osc.connect(g).connect(ctx.destination);
+          osc.start(agora + t);
+          osc.stop(agora + t + 0.04);
+        });
+      },
+    },
+
+    /* ----------------------------------------------------------------
+     * MAIS DUAS PARA O MODO COMPLETO
+     * ---------------------------------------------------------------- */
+    "pulso-grave": {
+      nome: "Pulso grave (plantão noturno)",
+      curto: false,
+      intervaloMs: 1300,
+      tocar: function (ctx, volume) {
+        var agora = ctx.currentTime;
+        /* Grave atravessa parede e cansa menos que agudo. Pensado para a
+         * madrugada, quando o estridente e justamente o que faz o medico
+         * desligar o alarme — e perder o paciente seguinte. */
+        [0, 0.42].forEach(function (t) {
+          var osc = ctx.createOscillator();
+          var g = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(196, agora + t);
+          osc.frequency.linearRampToValueAtTime(233, agora + t + 0.3);
+          g.gain.setValueAtTime(0.0001, agora + t);
+          g.gain.linearRampToValueAtTime(0.42 * volume, agora + t + 0.03);
+          g.gain.exponentialRampToValueAtTime(0.0008, agora + t + 0.34);
+          osc.connect(g).connect(ctx.destination);
+          osc.start(agora + t);
+          osc.stop(agora + t + 0.36);
+        });
+      },
+    },
+    "sirene-lenta": {
+      nome: "Sirene lenta (menos estridente)",
+      curto: false,
+      intervaloMs: 1500,
+      tocar: function (ctx, volume) {
+        var agora = ctx.currentTime;
+        var osc = ctx.createOscillator();
+        var g = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(560, agora);
+        osc.frequency.linearRampToValueAtTime(760, agora + 0.55);
+        osc.frequency.linearRampToValueAtTime(560, agora + 1.1);
+        g.gain.setValueAtTime(0.0001, agora);
+        g.gain.linearRampToValueAtTime(0.34 * volume, agora + 0.06);
+        g.gain.setValueAtTime(0.34 * volume, agora + 1.0);
+        g.gain.linearRampToValueAtTime(0.0001, agora + 1.12);
+        osc.connect(g).connect(ctx.destination);
+        osc.start(agora);
+        osc.stop(agora + 1.15);
+      },
+    },
+};
 
   var CSS_PAINEL = [
     ".af-modal { width: 100%; max-width: 380px; background: #fff; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden; }",
@@ -6889,7 +7060,8 @@
     ativo: false,
     modo: "imediato", // "imediato" | "espera"
     tempoEsperaMin: 5,
-    som: "sirene-classica",
+    som: "sirene-classica",      // modo completo: repete ate silenciar
+    somCurto: "toque-duplo",     // modo discreto: toca uma vez
     volume: 70,
     intensidade: "completo", // "silencioso" | "discreto" | "completo"
   };
@@ -7279,12 +7451,18 @@
     return audioCtx;
   }
 
-  function tocarSomAtual() {
+  function somDoModo(curto) {
+    var id = curto ? config.somCurto : config.som;
+    var tipo = TIPOS_DE_SOM[id];
+    if (tipo && !!tipo.curto === !!curto) return tipo;
+    return TIPOS_DE_SOM[curto ? CONFIG_PADRAO.somCurto : CONFIG_PADRAO.som];
+  }
+
+  function tocarSomAtual(curto) {
     try {
       var ctx = obterAudioContext();
       if (!ctx) return;
-      var tipo = TIPOS_DE_SOM[config.som] || TIPOS_DE_SOM[CONFIG_PADRAO.som];
-      tipo.tocar(ctx, config.volume / 100);
+      somDoModo(curto).tocar(ctx, config.volume / 100);
     } catch (e) {
       /* silencioso */
     }
@@ -7336,10 +7514,9 @@
       corpo: textoDoMotivo(),
       tag: "meeds-alarme-fila",
       exigeInteracao: true,
-      /* Clicar na notificacao nao e so "ja vi": e "estou indo". Ela traz
-       * a aba para frente E abre a fila, que e o unico lugar onde o
-       * clique tem serventia. */
-      aoClicar: irParaFila,
+      /* Clicar equivale a "estou indo": traz a aba para frente e silencia
+       * com reengate — se ele nao atender de fato, o alarme volta. */
+      aoClicar: silenciarComReengate,
     });
   }
 
@@ -7367,15 +7544,15 @@
     if (forma.cartao) mostrarCartaoDeChegada();
 
     if (forma.som === "curto") {
-      tocarSomAtual(); // uma vez so, e acabou
+      tocarSomAtual(true); // uma vez so, e acabou
     } else if (forma.som === "repetido") {
       tocando = true;
       atualizarTextoDoBanner();
       if (banner) banner.mostrar();
       if (moldura) moldura.mostrar();
-      var tipo = TIPOS_DE_SOM[config.som] || TIPOS_DE_SOM[CONFIG_PADRAO.som];
-      tocarSomAtual();
-      intervaloSirene = setInterval(tocarSomAtual, tipo.intervaloMs);
+      var tipo = somDoModo(false);
+      tocarSomAtual(false);
+      intervaloSirene = setInterval(function () { tocarSomAtual(false); }, tipo.intervaloMs);
       // BUG JA CORRIGIDO NO ORIGINAL v1.4.0 E PRESERVADO AQUI: o limite de
       // seguranca faz uma parada COMPLETA (que reseta `tocando`), senao o
       // alarme ficava travado em silencio para sempre depois da primeira
@@ -7407,86 +7584,29 @@
       titulo: "🔔 Novo paciente na fila",
       corpo: linhas,
       autoFecharMs: 12000,
-      acoes: [
-        { rotulo: "Ver a fila", primario: true, aoClicar: irParaFila },
-        { rotulo: "Depois", aoClicar: function () {} },
-      ],
+      acoes: [{ rotulo: "Ok", primario: true, aoClicar: function () {} }],
     });
   }
 
   /* ------------------------------------------------------------------
-   * O ATALHO — levar o medico ate a fila
+   * O ATALHO "VER A FILA" FOI REMOVIDO — e por que
    * ------------------------------------------------------------------
-   * Um aviso que so grita ainda deixa o trabalho de PROCURAR o paciente
-   * com quem ja esta ocupado. Este atalho fecha isso.
+   * Ele existiu entre a v2.26 e a v2.30 e nunca funcionou: em vez de
+   * levar o medico ate o Pronto Atendimento, respondia sempre "nao mudei
+   * de tela porque voce tem um documento aberto pela metade".
    *
-   * Ele NAO navega por URL. Duas razoes: a rota da fila ja mudou entre
-   * as telas que conhecemos (/ e /administrator/monitoring/...), e um
-   * endereco chutado leva o medico para uma pagina em branco. Em vez
-   * disso ele clica no PROPRIO item de menu do Meeds — quem sabe a rota
-   * e o Meeds.
+   * A causa era uma linha. A guarda perguntava se havia
+   * `[id$="-modal"]:not([hidden])` no shadow — mas quem recebe `hidden` e
+   * o OVERLAY, nunca o modal de dentro dele. O seletor casava com os
+   * geradores montados na subida, abertos ou nao, e a guarda respondia
+   * "sim" sempre.
    *
-   * E ele nunca navega por cima de trabalho em andamento: com uma APAC
-   * ou um laudo abertos, sair da tela perderia o formulario pela metade.
-   * Nesse caso ele so traz a aba para frente e explica.
+   * Corrigir era trocar o alvo da guarda. A REMOCAO foi decisao de
+   * produto, tomada depois de o defeito aparecer em uso: um atalho que
+   * mente sobre o motivo de nao funcionar gasta mais confianca do que
+   * economiza cliques. O aviso continua fazendo o que importa — trazer a
+   * aba para frente e silenciar com reengate.
    * ------------------------------------------------------------------ */
-  var ROTULOS_DA_FILA = ["pronto atendimento", "pronto-atendimento", "atendimentos", "fila"];
-
-  function haFormularioAberto() {
-    /* Os geradores abrem overlay no shadow do dock. Se algum estiver
-     * aberto, ha texto digitado que ninguem quer perder. */
-    var host = document.getElementById("meeds-suite-dock-host");
-    if (!host || !host.shadowRoot) return false;
-    return !!host.shadowRoot.querySelector("[id$='-modal']:not([hidden])");
-  }
-
-  function acharItemDeMenuDaFila() {
-    var candidatos = document.querySelectorAll("a, button, span, li, div[role='button']");
-    for (var i = 0; i < candidatos.length; i++) {
-      var el = candidatos[i];
-      if (el.children.length > 2) continue;
-      var texto = d.dom.normalizarTexto(el.textContent || "");
-      if (!texto || texto.length > 30) continue;
-      for (var j = 0; j < ROTULOS_DA_FILA.length; j++) {
-        if (texto === ROTULOS_DA_FILA[j]) return el;
-      }
-    }
-    return null;
-  }
-
-  function irParaFila() {
-    try { raiz.focus(); } catch (e) {}
-    silenciarComReengate();
-
-    if (haFormularioAberto()) {
-      d.dock.criarAviso({
-        titulo: "Fila esperando",
-        corpo: "Não mudei de tela porque você tem um documento aberto pela metade. Termine ou feche, e a fila continua ali.",
-        autoFecharMs: 8000,
-      });
-      return;
-    }
-
-    /* Se o cartao da fila ja esta nesta tela, nao ha para onde ir: basta
-     * levar o olho ate ele. */
-    var contador = d.dom.lerContadorPorRotulo(d.seletor("rotulos", "contadorFila"));
-    if (contador !== null) {
-      var alvo = acharItemDeMenuDaFila();
-      if (alvo && alvo.scrollIntoView) alvo.scrollIntoView({ block: "center", behavior: "smooth" });
-      return;
-    }
-
-    var item = acharItemDeMenuDaFila();
-    if (item) {
-      item.click();
-      return;
-    }
-    d.dock.criarAviso({
-      titulo: "Fila esperando",
-      corpo: "Não encontrei o atalho para o Pronto Atendimento nesta tela. Abra pelo menu do Meeds.",
-      autoFecharMs: 8000,
-    });
-  }
 
   function silenciarAlarme() {
     cancelarReengateAgendado();
@@ -7542,11 +7662,19 @@
    * overlay e banner vem prontos do dock do nucleo.
    * ---------------------------------------------------------------- */
   function montarPainel() {
-    var opcoesSom = Object.keys(TIPOS_DE_SOM)
-      .map(function (chave) {
-        return '<option value="' + chave + '">' + TIPOS_DE_SOM[chave].nome + "</option>";
-      })
-      .join("");
+    /* Duas listas, nao uma. Um som so servindo os dois modos serve mal
+     * aos dois: sirene tocada uma vez soa truncada, e sino repetindo a
+     * cada segundo por dois minutos e outra tortura. */
+    function opcoesDe(curto) {
+      return Object.keys(TIPOS_DE_SOM)
+        .filter(function (chave) { return !!TIPOS_DE_SOM[chave].curto === curto; })
+        .map(function (chave) {
+          return '<option value="' + chave + '">' + TIPOS_DE_SOM[chave].nome + "</option>";
+        })
+        .join("");
+    }
+    var opcoesSom = opcoesDe(false);
+    var opcoesSomCurto = opcoesDe(true);
 
     painel = d.dock.criarOverlay({
       estilo: CSS_PAINEL,
@@ -7569,7 +7697,8 @@
         '      <div id="af-tempo-espera-linha"><input type="number" id="af-tempo-espera" min="1" max="120" step="1" /><span>minutos</span></div>' +
         '      <div class="af-hint">No modo "tempo de espera", o alarme soa uma vez por paciente que ultrapassar o limite — contado a partir de quando este script viu o paciente na fila pela primeira vez.</div>' +
         "    </div>" +
-        '    <div><label for="af-som">Som do alarme</label><select id="af-som">' + opcoesSom + "</select></div>" +
+        '    <div><label for="af-som">Som do modo completo (repete)</label><select id="af-som">' + opcoesSom + "</select></div>" +
+        '    <div><label for="af-som-curto">Som do modo discreto (toca uma vez)</label><select id="af-som-curto">' + opcoesSomCurto + "</select></div>" +
         '    <div><label for="af-volume">Volume</label><input type="range" id="af-volume" min="0" max="100" step="5" /></div>' +
         '    <button type="button" id="af-testar-som">🔊 Testar som</button>' +
         "    <div>" +
@@ -7608,6 +7737,14 @@
     painel.$("#af-som").addEventListener("change", function () {
       config.som = painel.$("#af-som").value;
       salvar();
+      obterAudioContext();
+      tocarSomAtual(false); // ouvir na hora de escolher, nao depois
+    });
+    painel.$("#af-som-curto").addEventListener("change", function () {
+      config.somCurto = painel.$("#af-som-curto").value;
+      salvar();
+      obterAudioContext();
+      tocarSomAtual(true);
     });
     painel.$("#af-volume").addEventListener("input", function () {
       config.volume = parseInt(painel.$("#af-volume").value, 10);
@@ -7615,7 +7752,7 @@
     });
     painel.$("#af-testar-som").addEventListener("click", function () {
       obterAudioContext();
-      tocarSomAtual();
+      tocarSomAtual(config.intensidade === "discreto");
     });
 
     /* A permissao de notificacao SO pode ser pedida a partir de um clique
@@ -7712,11 +7849,9 @@
     banner = d.dock.criarBanner(
       '<span>🚨 Novo paciente na fila!</span>' +
         '<span class="ms-banner-motivo" id="af-motivo"></span>' +
-        '<button type="button" id="af-ir-fila">Ver a fila</button>' +
         '<button type="button" id="af-silenciar">Silenciar alarme</button>'
     );
     banner.$("#af-silenciar").addEventListener("click", silenciarComReengate);
-    banner.$("#af-ir-fila").addEventListener("click", irParaFila);
   }
 
   /* Um alarme que diz POR QUE esta tocando e informacao; um que so grita
@@ -7748,6 +7883,7 @@
     painel.$("#af-tempo-espera").value = config.tempoEsperaMin;
     painel.$("#af-tempo-espera").disabled = config.modo !== "espera";
     painel.$("#af-som").value = config.som;
+    painel.$("#af-som-curto").value = config.somCurto;
     painel.$("#af-volume").value = config.volume;
     painel.$$('input[name="af-intensidade"]').forEach(function (r) {
       r.checked = r.value === config.intensidade;
@@ -7823,7 +7959,13 @@
         Math.max(1, parseInt(config.tempoEsperaMin, 10) || CONFIG_PADRAO.tempoEsperaMin)
       );
       config.volume = Math.min(100, Math.max(0, parseInt(config.volume, 10) || 0));
-      if (!TIPOS_DE_SOM[config.som]) config.som = CONFIG_PADRAO.som;
+      /* Um som da familia errada em qualquer dos dois campos volta ao
+       * padrao: e o que acontece com quem atualiza vindo de uma versao
+       * que tinha uma lista so. */
+      if (!TIPOS_DE_SOM[config.som] || TIPOS_DE_SOM[config.som].curto) config.som = CONFIG_PADRAO.som;
+      if (!TIPOS_DE_SOM[config.somCurto] || !TIPOS_DE_SOM[config.somCurto].curto) {
+        config.somCurto = CONFIG_PADRAO.somCurto;
+      }
       if (!INTENSIDADES[config.intensidade]) config.intensidade = CONFIG_PADRAO.intensidade;
       /* Avisar fora da aba e manter a tela acesa deixaram de ser chaves:
        * sao como o alarme funciona. O que limita o aviso do sistema nao e
