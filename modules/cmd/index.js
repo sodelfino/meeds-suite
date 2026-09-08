@@ -755,7 +755,13 @@
       var m = Modelos().obter("cmd", sel.value);
       if (!m) return;
       var n = aplicarModelo(m.clinico);
-      nome.value = m.nome; // deixa pronto para corrigir e regravar
+      /* O campo de NOME nao e preenchido aqui — e essa linha, que existia
+       * "para facilitar corrigir", fazia o medico perder modelo: ele
+       * aplicava um, montava OUTRO procedimento, clicava em salvar e o
+       * antigo era sobrescrito em silencio. Para ele, so dava para ter um
+       * modelo. Substituir agora e um ato deliberado: o botao muda de
+       * texto quando o nome digitado ja existe. */
+      atualizarBotaoDeSalvar();
       toast("Modelo \u201c" + m.nome + "\u201d aplicado (" + n + " campo" + (n > 1 ? "s" : "") + "). Confira antes de gerar.", 4000);
     });
 
@@ -767,18 +773,36 @@
       if (!r.ok) { toast(r.erro, 6000); nome.focus(); return; }
       montarModelos();
       sel.value = r.nome;
+      /* Limpar depois de CRIAR e o que deixa o proximo salvar ser um
+       * modelo novo por padrao, em vez de uma substituicao por acidente. */
+      if (!r.substituiu) nome.value = "";
+      atualizarBotaoDeSalvar();
+      var quantos = Modelos().listar("cmd").length;
       toast(
         r.substituiu
-          ? "Modelo \u201c" + r.nome + "\u201d atualizado."
-          : "Modelo \u201c" + r.nome + "\u201d salvo. Ele já está na lista acima.",
+          ? "Modelo \u201c" + r.nome + "\u201d substituído."
+          : "Modelo \u201c" + r.nome + "\u201d salvo. Você tem " + quantos + " modelo" + (quantos > 1 ? "s" : "") + ".",
         4000
       );
+    }
+
+    /* O botao anuncia o que vai acontecer ANTES do clique. Sem isto,
+     * criar e substituir sao o mesmo gesto — e o medico so descobre qual
+     * dos dois aconteceu quando o modelo antigo ja se foi. */
+    function atualizarBotaoDeSalvar() {
+      var botao = shadow.getElementById("cmd-modelo-criar");
+      if (!botao) return;
+      var digitado = (nome.value || "").trim();
+      var existe = digitado && Modelos().obter("cmd", digitado);
+      botao.textContent = existe ? "\u21bb Substituir \u201c" + digitado + "\u201d" : "\uff0b Salvar como modelo";
+      botao.classList.toggle("substituir", !!existe);
     }
 
     shadow.getElementById("cmd-modelo-criar").addEventListener("click", criar);
     nome.addEventListener("keydown", function (ev) {
       if (ev.key === "Enter") { ev.preventDefault(); criar(); }
     });
+    nome.addEventListener("input", atualizarBotaoDeSalvar);
 
     shadow.getElementById("cmd-modelo-padrao").addEventListener("click", function () {
       if (!sel.value) { toast("Escolha um modelo na lista para ele vir preenchido sozinho.", 4000); return; }
@@ -798,11 +822,13 @@
       if (!raiz.confirm("Apagar o modelo \u201c" + sel.value + "\u201d?")) return;
       Modelos().remover("cmd", sel.value);
       nome.value = "";
+      atualizarBotaoDeSalvar();
       montarModelos();
       toast("Modelo apagado.", 3000);
     });
 
     montarModelos();
+    atualizarBotaoDeSalvar();
   }
 
   /* O modelo padrao so entra com a parte clinica VAZIA. Ele existe para

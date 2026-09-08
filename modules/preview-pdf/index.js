@@ -86,6 +86,33 @@
    * — e começar vendo o documento é o que serve a quem ainda não conhece
    * o formulário de cor.
    * ------------------------------------------------------------------ */
+  /* ------------------------------------------------------------------
+   * VIRADA DO PADRAO (uma vez so)
+   * ------------------------------------------------------------------
+   * Inverter o padrao na v2.29 nao bastou: quem ja tinha fechado a
+   * previa alguma vez tinha `aberto:false` gravado, e continuava vendo o
+   * comportamento antigo — inclusive quem fechou por engano, ou fechou
+   * numa tela estreita meses atras. Do lado de fora parecia que a
+   * mudanca nao tinha saido.
+   *
+   * Esta migracao apaga UMA VEZ a preferencia de aberto/fechado, para
+   * todo mundo comecar do padrao novo. Largura e zoom nao sao tocados —
+   * esses o medico ajustou de proposito. Depois disso, fechar volta a
+   * valer para sempre.
+   * ------------------------------------------------------------------ */
+  var MARCA_VIRADA = "previa_padrao_invertido";
+
+  function virarPadraoUmaVez() {
+    if (d.storage.ler(MARCA_VIRADA, false) === true) return;
+    var todas = d.storage.ler("paineis", {}) || {};
+    Object.keys(todas).forEach(function (id) {
+      if (todas[id] && typeof todas[id] === "object") delete todas[id].aberto;
+    });
+    d.storage.gravar("paineis", todas);
+    d.storage.gravar(MARCA_VIRADA, true);
+    console.debug("[Assistente Meeds] previa: preferencia antiga de aberto/fechado zerada uma vez.");
+  }
+
   function lerPreferencia(id) {
     var todas = d.storage.ler("paineis", {}) || {};
     var p = todas[id] || {};
@@ -492,6 +519,7 @@
       d = deps;
       geradores = {};
       estiloGlobal = d.dock.adicionarEstilo(CSS);
+      virarPadraoUmaVez();
 
       deps.assinarEvento("preview:registrar-gerador", function (ficha) {
         return registrarGerador(ficha);

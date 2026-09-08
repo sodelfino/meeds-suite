@@ -198,6 +198,10 @@
     ".msmod-btn:hover { background:#e3f5f3; border-color:#17ab9e; }",
     ".msmod-btn.principal { background:#12958a; border-color:#12958a; color:#fff; }",
     ".msmod-btn.principal:hover { background:#0b6a62; border-color:#0b6a62; }",
+    /* Substituir tem cor propria: a diferenca entre criar e sobrescrever
+       precisa ser visivel ANTES do clique, nao descoberta depois. */
+    ".msmod-btn.principal.substituir { background:#a15c00; border-color:#a15c00; }",
+    ".msmod-btn.principal.substituir:hover { background:#7d4700; border-color:#7d4700; }",
     ".msmod-btn.perigo { color:#a12626; border-color:#e6c3c3; }",
     ".msmod-btn.perigo:hover { background:#fdeaea; border-color:#c96b6b; }",
     ".msmod-dica { font-size:10.5px; color:#7c8c88; margin-top:7px; line-height:1.45; }",

@@ -2,6 +2,17 @@
  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
  "versoes": [
   {
+   "versao": "2.33.0",
+   "data": "2026-09-08",
+   "novidades": [],
+   "melhorias": [
+    "A prévia do documento agora abre mesmo para quem já a tinha fechado alguma vez: a preferência antiga foi zerada uma vez só, para todo mundo começar do padrão novo. Sua largura e seu zoom foram preservados. Depois disso, fechar volta a valer para sempre."
+   ],
+   "correcoes": [
+    "Você só conseguia manter um modelo salvo por gerador. Ao escolher um modelo da lista, o nome dele ia para o campo de nome — então, quando você montava outro procedimento e clicava em salvar, o modelo anterior era substituído em silêncio e você perdia o antigo. Agora escolher um modelo não mexe no campo de nome, o campo se limpa depois de salvar, e o botão avisa antes: ele diz “Salvar como modelo” para nome novo e “↻ Substituir «X»”, em outra cor, quando o nome já existe."
+   ]
+  },
+  {
    "versao": "2.32.1",
    "data": "2026-09-08",
    "novidades": [],
