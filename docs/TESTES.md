@@ -925,6 +925,31 @@ estado pedido: uma lista que mistura estados não é a fila de espera.
 
 As URLs dos testes são as **reais**, copiadas das gravações — não inventadas.
 
+### Manual de treinamento *(v2.33.0)*
+
+`docs/manual/Assistente-Meeds-Manual.pdf` — 18 páginas, uma função por assunto,
+com 11 telas reais do produto.
+
+As imagens **não são capturadas à mão**. `tests/smoke.html` ganhou um roteiro de
+cenas (`?cena=`), e `scripts/capturar-telas.sh` roda cada uma no Chrome sem
+janela. `scripts/gerar-manual.sh` monta o PDF. Os dois devem rodar sempre que a
+interface mudar: manual com print velho ensina o que o produto não faz mais, e o
+médico confia no manual, não na tela.
+
+Três coisas que a montagem exigiu e valem para quem for mexer:
+
+- **A página de teste não pode aparecer no manual.** No modo cena o andaime
+  (seções numeradas, botões de simulação, console) some e fica um fundo neutro.
+  O fundo é neutro de propósito, não uma imitação da tela do Meeds — um print que
+  finge ser o produto de outra pessoa ensina errado.
+- **Congelar antes de fotografar.** O Chrome sem janela tira a foto quando o
+  tempo virtual acaba, e a página tem timers que nunca param — o poll da fila, o
+  relógio do distintivo. Sob tempo virtual eles disparam em rajada e comem o
+  orçamento antes de a cena ficar pronta. A cena limpa todos os timers no fim.
+- **Limite por cena.** Mesmo assim o Chrome às vezes não encerra sozinho (cena
+  com animação contínua segura o compositor). O script mata o processo após 35 s
+  — a imagem já foi escrita a essa altura.
+
 ### Extensibilidade
 
 Verificado à parte: criei um sexto módulo a partir de `modules/_template`,

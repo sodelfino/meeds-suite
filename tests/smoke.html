@@ -225,5 +225,221 @@ window.__smokeLog = log;
   });
 })();
 </script>
+
+<!-- ------------------------------------------------------------------
+     ROTEIRO DE CENAS — para o manual de treinamento
+     ------------------------------------------------------------------
+     Abrir esta pagina com ?cena=<nome> deixa a interface num estado
+     conhecido e marca <html data-pronto="1"> quando terminar. O
+     scripts/capturar-telas.sh usa isso com o Chrome sem janela para
+     gerar as imagens do manual.
+
+     Existe para o manual poder ser REGERADO quando a interface mudar.
+     Manual com print velho ensina o que o produto nao faz mais — e o
+     medico confia no manual, nao na tela.
+     ------------------------------------------------------------------ -->
+<script>
+(function () {
+  var cena = new URLSearchParams(location.search).get("cena");
+  if (!cena) return;
+
+  var esperar = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  var shadow = function () {
+    var h = document.getElementById("meeds-suite-dock-host");
+    return h && h.shadowRoot;
+  };
+  var botao = function (texto) {
+    return Array.from(shadow().querySelectorAll(".ms-btn")).find(function (b) {
+      return b.textContent.indexOf(texto) !== -1;
+    });
+  };
+  var q = function (sel) { return shadow().querySelector(sel); };
+  var digitar = function (sel, valor) {
+    var e = q(sel);
+    if (!e) return;
+    e.value = valor;
+    e.dispatchEvent(new Event("input", { bubbles: true }));
+    e.dispatchEvent(new Event("change", { bubbles: true }));
+  };
+  var simular = function (rotulo) {
+    var b = Array.from(document.querySelectorAll("button")).find(function (x) {
+      return new RegExp(rotulo).test(x.textContent);
+    });
+    if (b) b.click();
+  };
+
+  var CENAS = {
+    dock: async function () {},
+
+    painel: async function () {
+      botao("⚙️").click();
+      await esperar(900);
+    },
+
+    "alarme-ajustes": async function () {
+      botao("🔔").dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
+      await esperar(900);
+    },
+
+    "alarme-completo": async function () {
+      simular("\\+1 na fila");
+      await esperar(2600);
+      simular("\\+1 na fila");
+      await esperar(2600);
+    },
+
+    "alarme-discreto": async function () {
+      var b = botao("🔔");
+      b.click();                 // completo -> discreto
+      await esperar(700);
+      shadow().querySelectorAll(".ms-aviso .ms-aviso-fechar").forEach(function (x) { x.click(); });
+      simular("\\+1 na fila");
+      await esperar(2600);
+    },
+
+    apac: async function () {
+      botao("APAC").click();
+      await esperar(1600);
+      digitar("#apac-municipio-sel", "Itaúna");
+      await esperar(700);
+      q("#apac-proc-HOLTER").click();
+      digitar("#apac-cid1", "I48");
+      digitar("#apac-cid-desc", "Flutter e fibrilação atrial");
+      digitar("#apac-obs", "Paciente com palpitações recorrentes. Solicito Holter 24h.");
+      digitar("#apac-modelo-nome", "Holter rotina");
+      await esperar(600);
+    },
+
+    "apac-modelos": async function () {
+      botao("APAC").click();
+      await esperar(1600);
+      digitar("#apac-municipio-sel", "Itaúna");
+      await esperar(500);
+      q("#apac-proc-HOLTER").click();
+      digitar("#apac-cid1", "I48");
+      digitar("#apac-obs", "Solicito Holter 24h.");
+      digitar("#apac-modelo-nome", "Holter rotina");
+      q("#apac-modelo-criar").click();
+      await esperar(800);
+      q("#apac-proc-MAPA").click();
+      digitar("#apac-cid1", "I10");
+      digitar("#apac-obs", "Solicito MAPA 24h.");
+      digitar("#apac-modelo-nome", "MAPA rotina");
+      q("#apac-modelo-criar").click();
+      await esperar(900);
+    },
+
+    remume: async function () {
+      botao("💊").click();
+      await esperar(1400);
+      digitar("input[placeholder*='amoxicilina']", "buscopan");
+      await esperar(900);
+    },
+
+    laudo: async function () {
+      botao("Sete Lagoas").click();
+      await esperar(1600);
+      digitar("#lme-proc-nome", "Fonoaudiologia");
+      digitar("#lme-cid", "F80");
+      digitar("#lme-justificativa", "Atraso de linguagem; necessita acompanhamento.");
+      await esperar(500);
+    },
+
+    historico: async function () {
+      botao("APAC").click();
+      await esperar(1400);
+      q("#apac-historico-abrir").click();
+      await esperar(800);
+    },
+
+    novidades: async function () {
+      var N = window.MeedsSuiteNovidades;
+      window.MeedsSuiteStorage
+        .duravel(N.CHAVE_VERSAO_VISTA, "meeds-suite:" + N.CHAVE_VERSAO_VISTA)
+        .gravar("2.20.0");
+      N.verificar({ dock: window.MeedsSuiteDock, versaoAtual: window.MeedsSuite.versao });
+      await esperar(1200);
+    },
+  };
+
+  /* A pagina de fumaca e cheia de andaime de teste — secoes numeradas,
+   * botoes de simulacao, console de log. Num manual para o medico isso
+   * so confunde: ele procura na tela dele algo que nunca vai achar.
+   * No modo cena o andaime some e fica um fundo neutro, para as imagens
+   * mostrarem SO o Assistente.
+   *
+   * O fundo e neutro de proposito, e nao uma imitacao da tela do Meeds:
+   * um print que finge ser o produto de outra pessoa ensina errado e
+   * envelhece pior. */
+  function prepararPalco() {
+    var estilo = document.createElement("style");
+    estilo.textContent =
+      "body > h1, body > p, body > section, body > .bloco, body > pre, #log { display: none !important; }" +
+      "body { background: #eef1f5 !important; min-height: 100vh; }";
+    document.head.appendChild(estilo);
+
+    var palco = document.createElement("div");
+    palco.setAttribute("aria-hidden", "true");
+    palco.style.cssText =
+      "position:fixed; inset:0; z-index:0; background:" +
+      "linear-gradient(#f7f9fc,#e9edf3);";
+    palco.innerHTML =
+      "<div style=\"position:absolute;top:0;left:0;right:0;height:56px;" +
+      "background:#123a7a;\"></div>" +
+      "<div style=\"position:absolute;top:56px;left:0;bottom:0;width:210px;" +
+      "background:#fff;border-right:1px solid #e2e8f0;\"></div>";
+    document.body.insertBefore(palco, document.body.firstChild);
+  }
+
+  /* O Chrome sem janela tira a foto quando o "tempo virtual" acaba. A
+   * pagina tem timers que nunca param — o poll da fila, o relogio do
+   * distintivo, o adormecer dos botoes — e sob tempo virtual eles
+   * disparam em rajada e comem o orcamento antes da cena ficar pronta.
+   * Congelar tudo depois de montada resolve, e ainda garante que a
+   * imagem nao mude entre montar e fotografar. */
+  function congelar() {
+    var maior = setTimeout(function () {}, 0);
+    for (var i = 0; i <= maior; i++) { clearTimeout(i); clearInterval(i); }
+  }
+
+  function esperarSuite() {
+    return new Promise(function (pronto) {
+      var tentativas = 0;
+      (function olhar() {
+        if (window.MeedsSuite && shadow()) return pronto();
+        if (++tentativas > 120) return pronto();
+        setTimeout(olhar, 100);
+      })();
+    });
+  }
+
+  (async function () {
+    var campo = document.getElementById("senha");
+    if (campo) campo.style.display = "none";     // entra "logado"
+    await esperarSuite();
+    await esperar(800);
+    prepararPalco();
+
+    var sh = shadow();
+    if (sh) sh.querySelectorAll(".ms-overlay").forEach(function (o) { o.hidden = true; });
+
+    var monta = CENAS[cena];
+    if (monta) { try { await monta(); } catch (e) { console.warn("cena falhou:", e); } }
+
+    /* As boas-vindas sobem alguns segundos depois do boot e caem por cima
+     * da cena. Some com elas AQUI, no fim, e nao so no comeco. */
+    var sh2 = shadow();
+    if (sh2) {
+      sh2.querySelectorAll(".ms-overlay").forEach(function (o) {
+        if (/Bem-vindo/i.test(o.textContent || "")) o.hidden = true;
+      });
+    }
+
+    await esperar(600);
+    congelar();
+    document.documentElement.setAttribute("data-pronto", "1");
+  })();
+})();
+</script>
 </body>
 </html>

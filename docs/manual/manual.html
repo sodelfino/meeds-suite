@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Assistente Meeds — Manual de bolso</title>
+<style>
+  /* ------------------------------------------------------------------
+     Feito para virar PDF (Chrome --print-to-pdf) e para ser LIDO NO
+     MEIO DO PLANTAO: cada funcao cabe numa pagina, com a imagem em cima
+     e o texto embaixo. Ninguem lê manual de cabo a rabo — se lê a página
+     da coisa que quebrou, com o paciente esperando.
+     ------------------------------------------------------------------ */
+  @page { size: A4; margin: 14mm 14mm 16mm; }
+
+  :root {
+    --tinta: #16221f;
+    --tinta-fraca: #5b6c68;
+    --tinta-clara: #8a9793;
+    --linha: #dce5e3;
+    --agua: #f2f7f6;
+    --verde: #0b6a62;
+    --verde-claro: #e3f5f3;
+    --alerta: #a15c00;
+    --alerta-claro: #fff4e2;
+    --perigo: #a12626;
+    --perigo-claro: #fdeaea;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font: 10.5pt/1.5 "Helvetica Neue", Arial, sans-serif;
+    color: var(--tinta);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  h1, h2, h3 { margin: 0; }
+
+  /* ---------- capa ---------- */
+  .capa {
+    height: 250mm;
+    display: flex; flex-direction: column; justify-content: center;
+    page-break-after: always;
+  }
+  .capa .selo {
+    font-size: 8.5pt; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--verde); font-weight: 700; margin-bottom: 10mm;
+  }
+  .capa h1 { font-size: 34pt; line-height: 1.05; letter-spacing: -.02em; }
+  .capa .sub { font-size: 13pt; color: var(--tinta-fraca); margin-top: 6mm; max-width: 120mm; }
+  .capa .rodape {
+    margin-top: 16mm; padding-top: 6mm; border-top: 2px solid var(--tinta);
+    font-size: 9pt; color: var(--tinta-fraca);
+  }
+  .capa .rodape b { color: var(--tinta); }
+
+  /* ---------- sumário ---------- */
+  .sumario { page-break-after: always; }
+  .sumario h2 { font-size: 18pt; margin-bottom: 6mm; }
+  .sumario ol { margin: 0; padding-left: 6mm; }
+  .sumario li { margin-bottom: 3mm; font-size: 11pt; }
+  .sumario li span { color: var(--tinta-fraca); font-size: 9.5pt; display: block; }
+
+  /* ---------- páginas de função ---------- */
+  .func { page-break-before: always; }
+  .func header {
+    display: flex; align-items: baseline; gap: 4mm;
+    border-bottom: 2px solid var(--tinta); padding-bottom: 2.5mm; margin-bottom: 5mm;
+  }
+  .func .num {
+    font-size: 9pt; font-weight: 700; color: var(--verde); letter-spacing: .1em;
+  }
+  .func h2 { font-size: 17pt; letter-spacing: -.01em; }
+  .func .onde {
+    margin-left: auto; font-size: 8.5pt; color: var(--tinta-fraca);
+    background: var(--agua); border: 1px solid var(--linha);
+    padding: 1mm 3mm; border-radius: 2mm; white-space: nowrap;
+  }
+
+  figure { margin: 0 0 5mm; }
+  figure img {
+    width: 100%; display: block;
+    border: 1px solid var(--linha); border-radius: 2mm;
+  }
+  figcaption {
+    font-size: 8.5pt; color: var(--tinta-clara); margin-top: 1.5mm;
+  }
+
+  .func p { margin: 0 0 3mm; }
+  .func h3 {
+    font-size: 10.5pt; margin: 5mm 0 2mm; color: var(--verde);
+    text-transform: uppercase; letter-spacing: .05em; font-size: 8.5pt;
+  }
+
+  ol.passos { margin: 0 0 4mm; padding-left: 6mm; }
+  ol.passos li { margin-bottom: 1.5mm; }
+
+  .caixa {
+    border-left: 3px solid var(--alerta); background: var(--alerta-claro);
+    padding: 3mm 4mm; margin: 4mm 0; font-size: 9.5pt; line-height: 1.45;
+  }
+  .caixa.ok { border-left-color: var(--verde); background: var(--verde-claro); }
+  .caixa.nao { border-left-color: var(--perigo); background: var(--perigo-claro); }
+  .caixa b { display: block; margin-bottom: 1mm; }
+
+  table.ref { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin: 3mm 0; }
+  table.ref th {
+    text-align: left; font-size: 8pt; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--tinta-clara); font-weight: 700; padding: 0 3mm 1.5mm 0;
+    border-bottom: 1px solid var(--linha);
+  }
+  table.ref td { padding: 2mm 3mm 2mm 0; border-bottom: 1px solid var(--agua); vertical-align: top; }
+  table.ref td.chave { font-weight: 700; white-space: nowrap; }
+
+  .icone { font-size: 12pt; }
+
+  /* ---------- página final ---------- */
+  .final { page-break-before: always; }
+  .final h2 { font-size: 17pt; border-bottom: 2px solid var(--tinta); padding-bottom: 2.5mm; margin-bottom: 5mm; }
+</style>
+</head>
+<body>
+
+<!-- ============================== CAPA ============================== -->
+<section class="capa">
+  <div class="selo">Callmed · Novetech</div>
+  <h1>Assistente Meeds<br>Manual de bolso</h1>
+  <p class="sub">O que cada função faz, onde ela fica e o que fazer quando ela
+     não se comporta como você espera. Feito para ser consultado no meio do
+     plantão, uma página por assunto.</p>
+  <div class="rodape">
+    <b>Versão do Assistente: 2.33.0</b> · setembro de 2026<br>
+    As imagens mostram o Assistente sobre um fundo neutro — o que aparece
+    nelas é exatamente o que você vê por cima da tela do Meeds.
+  </div>
+</section>
+
+<!-- ============================= SUMÁRIO ============================= -->
+<section class="sumario">
+  <h2>O que tem aqui</h2>
+  <ol>
+    <li>Os botões e onde eles ficam <span>A pilha no canto, e como recolher</span></li>
+    <li>O painel da engrenagem <span>Ligar e desligar funções, cadastrar-se</span></li>
+    <li>Alarme de fila — as três intensidades <span>Completo, discreto e silencioso</span></li>
+    <li>Alarme — quando você não está na aba <span>Notificação do sistema e janela de aviso</span></li>
+    <li>Ajustes do alarme <span>Som, volume e avisos</span></li>
+    <li>Gerador de APAC <span>Município, guia de preenchimento e prévia</span></li>
+    <li>Modelos salvos <span>Criar, aplicar e substituir — nos três geradores</span></li>
+    <li>Consulta REMUME <span>Buscar medicamento por nome comercial ou errado</span></li>
+    <li>Laudos de Sete Lagoas e Conceição do Mato Dentro <span>Mesma lógica da APAC</span></li>
+    <li>Histórico de documentos <span>Reabrir a parte clínica de um laudo anterior</span></li>
+    <li>Quando o Assistente é atualizado <span>A tela de novidades</span></li>
+    <li>Privacidade — o que fica salvo e o que não fica <span>Leia se alguém perguntar</span></li>
+  </ol>
+</section>
+
+<!-- =============================== 1 =============================== -->
+<section class="func">
+  <header>
+    <span class="num">01</span>
+    <h2>Os botões e onde eles ficam</h2>
+    <span class="onde">canto inferior direito</span>
+  </header>
+
+  <figure>
+    <img src="telas/dock.png" alt="A pilha de botões do Assistente no canto inferior direito da tela">
+    <figcaption>A pilha aparece depois que você entra no Meeds. Nunca antes.</figcaption>
+  </figure>
+
+  <p>Cada botão é uma função. Eles só aparecem depois do login — com a tela de
+     senha visível, o Assistente inteiro some.</p>
+
+  <table class="ref">
+    <tr><td class="chave"><span class="icone">🔔</span> / 🔉 / 🔕</td><td>Alarme de fila. O ícone mostra a intensidade atual; um clique troca.</td></tr>
+    <tr><td class="chave"><span class="icone">📋</span> APAC</td><td>Gerador de APAC — Itaúna, Betim e Sete Lagoas.</td></tr>
+    <tr><td class="chave"><span class="icone">📄</span> Laudo</td><td>Laudo de Alto Custo de Sete Lagoas e de Conceição do Mato Dentro.</td></tr>
+    <tr><td class="chave"><span class="icone">💊</span></td><td>Consulta à REMUME do município do atendimento.</td></tr>
+    <tr><td class="chave"><span class="icone">⚙️</span></td><td>Configurações, cadastro e histórico de versões.</td></tr>
+    <tr><td class="chave"><span class="icone">⌄</span></td><td>Recolhe todos. Aproxime o mouse do canto para eles voltarem.</td></tr>
+  </table>
+
+  <div class="caixa ok">
+    <b>Eles ficam translúcidos sozinhos</b>
+    Depois de alguns segundos parados, os botões ficam apagados para não
+    atrapalhar a tela. Voltam ao normal quando você chega perto com o mouse.
+    O alarme nunca fica translúcido.
+  </div>
+</section>
+
+<!-- =============================== 2 =============================== -->
+<section class="func">
+  <header>
+    <span class="num">02</span>
+    <h2>O painel da engrenagem</h2>
+    <span class="onde">botão ⚙️</span>
+  </header>
+
+  <figure>
+    <img src="telas/painel.png" alt="Painel de configurações, aba Funções">
+    <figcaption>Aba <b>Funções</b>: cada chave liga e desliga um recurso.</figcaption>
+  </figure>
+
+  <h3>As quatro abas</h3>
+  <table class="ref">
+    <tr><td class="chave">Funções</td><td>Liga e desliga cada recurso. Desligar tira o botão da tela na hora; nada é desinstalado.</td></tr>
+    <tr><td class="chave">Médicos</td><td>Seu nome, CRM e CPF. Cadastre uma vez — vale para todos os laudos.</td></tr>
+    <tr><td class="chave">Unidades</td><td>Estabelecimentos e CNES usados na APAC. As unidades conhecidas aparecem sozinhas quando você escolhe o município.</td></tr>
+    <tr><td class="chave">Sobre</td><td>Versão, o que mudou em cada atualização, e o canal de feedback.</td></tr>
+  </table>
+
+  <div class="caixa">
+    <b>Duas funções não têm chave</b>
+    A busca de CID-10 dentro dos laudos e a prévia do documento estão sempre
+    ligadas. Elas não são funções separadas — são melhorias do próprio
+    formulário, e desligá-las só pioraria o preenchimento.
+  </div>
+
+  <div class="caixa ok">
+    <b>Trocando de computador?</b>
+    Na aba Médicos, use <b>Fazer backup</b>. O arquivo leva seus médicos e suas
+    unidades cadastradas. No computador novo, use <b>restaurar um arquivo</b>.
+  </div>
+</section>
+
+<!-- =============================== 3 =============================== -->
+<section class="func">
+  <header>
+    <span class="num">03</span>
+    <h2>Alarme de fila — as três intensidades</h2>
+    <span class="onde">clique no botão do sino</span>
+  </header>
+
+  <p>O botão funciona como o de som do Waze: <b>um clique troca a intensidade</b>.
+     Você escolhe o quanto quer ser interrompido, sem precisar desligar o alarme.</p>
+
+  <table class="ref">
+    <tr>
+      <td class="chave">🔔 Completo</td>
+      <td>Sirene repetindo, faixa vermelha no topo e moldura na borda da tela, até você silenciar.</td>
+    </tr>
+    <tr>
+      <td class="chave">🔉 Discreto</td>
+      <td>Um cartão no canto dizendo quem chegou e de qual município, e um som curto. Some sozinho.</td>
+    </tr>
+    <tr>
+      <td class="chave">🔕 Silencioso</td>
+      <td>Só o contador na aba do navegador. Nada de som, nada na tela.</td>
+    </tr>
+  </table>
+
+  <figure>
+    <img src="telas/alarme-completo.png" alt="Modo completo: faixa vermelha no topo e moldura na tela">
+    <figcaption>Modo <b>completo</b>. A faixa diz por que está tocando: <i>2 aguardando</i>.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="telas/alarme-discreto.png" alt="Modo discreto: cartão no canto superior direito">
+    <figcaption>Modo <b>discreto</b>. O cartão traz o município, nunca o nome do paciente.</figcaption>
+  </figure>
+
+  <div class="caixa ok">
+    <b>Silenciar não é ignorar</b>
+    Ao silenciar, se ainda houver gente esperando, o alarme volta em 5 minutos.
+    Ele só para de vez quando a fila esvazia.
+  </div>
+
+  <div class="caixa">
+    <b>Para desligar o alarme por completo</b>
+    Use a chave <b>Alarme de Fila</b> no painel da engrenagem. O botão do sino
+    escolhe <i>quanto</i> ele incomoda, não <i>se</i> ele existe.
+  </div>
+</section>
+
+<!-- =============================== 4 =============================== -->
+<section class="func">
+  <header>
+    <span class="num">04</span>
+    <h2>Quando você não está na aba do Meeds</h2>
+    <span class="onde">alarme de fila</span>
+  </header>
+
+  <p>É aí que o alarme mais importa e menos funcionaria: uma faixa vermelha na
+     aba do Meeds não serve para quem está no Memed ou em outra janela. Por isso
+     o aviso muda de canal conforme onde você está.</p>
+
+  <table class="ref">
+    <tr><th style="width:38%">Onde você está</th><th>Como é avisado</th></tr>
+    <tr><td class="chave">Na aba, olhando</td><td>Som, faixa e moldura — conforme a intensidade escolhida.</td></tr>
+    <tr><td class="chave">Na aba, mas de fundo</td><td>Contador no título e no ícone da aba: <b>(3) Meeds</b>.</td></tr>
+    <tr><td class="chave">Fora do navegador</td><td>Notificação do sistema. Clicar traz o Meeds para frente e silencia.</td></tr>
+    <tr><td class="chave">Ninguém reagiu</td><td>Volta em 5 minutos e notifica de novo.</td></tr>
+  </table>
+
+  <h3>Autorizar a notificação — uma vez só</h3>
+  <ol class="passos">
+    <li>Clique com o botão direito no sino para abrir os ajustes.</li>
+    <li>Em <b>Quando você não está na aba do Meeds</b>, clique em <b>Ativar avisos do sistema</b>.</li>
+    <li>O navegador pergunta uma vez. Escolha permitir.</li>
+  </ol>
+
+  <div class="caixa">
+    <b>Clicou e não aconteceu nada?</b>
+    Alguns navegadores — o Edge por padrão — silenciam esse pedido e só piscam
+    um <b>ícone de sino na barra de endereço</b>. Clique nele e escolha permitir.
+    Se a tela disser que está bloqueado, clique no <b>cadeado</b> ao lado do
+    endereço do site e libere as notificações.
+  </div>
+
+  <div class="caixa ok">
+    <b>Janela de aviso (opcional)</b>
+    Nos ajustes há <b>Abrir também uma janela de aviso</b>. Ela abre uma janelinha
+    na barra de tarefas que <i>fica lá até você fechar</i> — ao contrário da
+    notificação, que some sozinha. Útil para quem trabalha com muitas janelas.
+  </div>
+
+  <div class="caixa nao">
+    <b>Usa Edge? Faça este ajuste uma vez</b>
+    Em <b>Configurações › Sistema e desempenho</b>, procure <i>"Nunca colocar estes
+    sites em suspensão"</i> e acrescente o endereço do Meeds. O Edge coloca abas de
+    fundo para dormir, e <b>aba dormindo não consulta a fila</b> — o alarme fica
+    mudo. O Assistente percebe e avisa depois, mas o certo é não deixar acontecer.
+  </div>
+</section>
+
+<!-- =============================== 5 =============================== -->
+<section class="func">
+  <header>
+    <span class="num">05</span>
+    <h2>Ajustes do alarme</h2>
+    <span class="onde">botão direito no sino</span>
+  </header>
+
+  <figure>
+    <img src="telas/alarme-ajustes.png" alt="Painel de ajustes do alarme de fila">
+    <figcaption>Intensidade, quando alertar, sons e avisos fora da aba.</figcaption>
+  </figure>
+
+  <h3>Quando alertar</h3>
+  <table class="ref">
+    <tr><td class="chave">Assim que entra</td><td>Toca a cada paciente novo na fila.</td></tr>
+    <tr><td class="chave">Por tempo de espera</td><td>Toca uma vez por paciente que ultrapassar o limite que você definir.</td></tr>
+  </table>
+
+  <h3>Dois sons, um para cada modo</h3>
+  <p>As sirenes foram feitas para <b>repetir</b>; tocadas uma vez só, soam
+     truncadas. Por isso a lista é separada:</p>
+  <table class="ref">
+    <tr><td class="chave">Modo completo</td><td>Sirene clássica, ambulância, alarme, campainha, <b>pulso grave</b> (pensado para a madrugada) e <b>sirene lenta</b>.</td></tr>
+    <tr><td class="chave">Modo discreto</td><td>Toque duplo, sino curto, gota, acorde suave e <b>dois cliques</b> — este para quem divide a sala.</td></tr>
+  </table>
+
+  <div class="caixa ok">
+    <b>Escolher já toca</b>
+    Ao selecionar um som, ele toca na hora. Não precisa clicar em "Testar".
+  </div>
+</section>
+
+<!-- =============================== 6 =============================== -->
+<section class="func">
+  <header>
+    <span class="num">06</span>
+    <h2>Gerador de APAC</h2>
+    <span class="onde">botão 📋 APAC</span>
+  </header>
+
+  <figure>
+    <img src="telas/apac.png" alt="Gerador de APAC com guia de preenchimento, modelos e município">
+    <figcaption>Guia de preenchimento no topo, modelos logo abaixo, e a prévia do documento ao lado.</figcaption>
+  </figure>
+
+  <h3>A ordem que importa</h3>
+  <ol class="passos">
+    <li><b>Município</b> é o primeiro campo. Ele libera as unidades daquela cidade — e trocar de município <b>zera o estabelecimento</b>, de propósito.</li>
+    <li>Os dados do paciente vêm sozinhos da tela do atendimento.</li>
+    <li>Procedimento, CID e texto do pedido são a parte clínica — a que os modelos guardam.</li>
+  </ol>
+
+  <div class="caixa nao">
+    <b>Por que trocar de município apaga o estabelecimento</b>
+    Uma APAC emitida com o CNES de outra cidade é devolvida pela regulação e o
+    paciente perde a vaga. O incômodo de escolher de novo é proposital.
+  </div>
+
+  <h3>O guia de preenchimento</h3>
+  <p>A barra no topo mostra quanto falta, e o texto ao lado diz qual é o próximo
+     campo pendente — <b>clique nele e a tela leva você até lá</b>. Se você tentar
+     gerar com campo faltando, o Assistente também leva até o primeiro.</p>
+  <p>Todos os campos ficam liberados o tempo todo. Preencha na ordem que quiser.</p>
+
+  <h3>A prévia do documento</h3>
+  <p>Abre sozinha ao lado do formulário e vai se montando enquanto você digita.
+     É o que mostra o campo trocado <b>antes</b> de virar papel. Se preferir sem
+     ela, clique em <b>👁 Prévia</b> — fica fechada naquele gerador para sempre.</p>
+
+  <div class="caixa">
+    <b>A tela mudou de paciente?</b>
+    Se o Meeds carregar outro atendimento enquanto você preenche, o formulário
+    <b>não troca sozinho</b>. Aparece um aviso dizendo quem entrou, e você escolhe
+    entre <b>Trocar para o paciente da tela</b> e <b>Continuar com este</b>.
+  </div>
+</section>
+
+<!-- =============================== 7 =============================== -->
+<section class="func">
+  <header>
+    <span class="num">07</span>
+    <h2>Modelos salvos</h2>
+    <span class="onde">APAC e os dois laudos</span>
+  </header>
+
+  <figure>
+    <img src="telas/apac-modelos.png" alt="Painel de modelos salvos com dois modelos criados">
+    <figcaption>Dois modelos criados. O botão diz o que vai fazer antes de você clicar.</figcaption>
+  </figure>
+
+  <p>Se você pede o mesmo exame o dia inteiro, o modelo guarda a parte que se
+     repete — procedimento, código, CID e justificativa — e devolve com um clique.</p>
+
+  <h3>Criar um modelo</h3>
+  <ol class="passos">
+    <li>Preencha o procedimento, o CID e a justificativa que você mais repete.</li>
+    <li>Escreva um nome no campo <b>Nome do novo modelo</b>.</li>
+    <li>Clique em <b>＋ Salvar como modelo</b>. O campo se limpa: o próximo salvar cria outro.</li>
+  </ol>
+
+  <h3>Usar, substituir e apagar</h3>
+  <table class="ref">
+    <tr><td class="chave">Usar</td><td>Escolha na lista. Os campos são preenchidos na hora.</td></tr>
+    <tr><td class="chave">Vir preenchido sozinho</td><td>Escolha na lista e clique em <b>★ Usar sempre</b>. Ele entra ao abrir o gerador, se a parte clínica estiver vazia.</td></tr>
+    <tr><td class="chave">Substituir</td><td>Digite o <b>mesmo nome</b> de um modelo existente. O botão muda para <b>↻ Substituir "nome"</b>, em laranja.</td></tr>
+    <tr><td class="chave">Apagar</td><td>Escolha na lista e clique em <b>Apagar</b>.</td></tr>
+  </table>
+
+  <div class="caixa ok">
+    <b>Nenhum dado de paciente entra num modelo</b>
+    Nome, CPF, nascimento, mãe e sexo ficam sempre de fora — um modelo é feito
+    para ser usado com <i>outra</i> pessoa.
+  </div>
+
+  <div class="caixa">
+    <b>Cada gerador tem os seus</b>
+    Os modelos da APAC não aparecem no laudo de Sete Lagoas, e vice-versa. Eles
+    ficam no seu navegador e sobrevivem a logout e atualização.
+  </div>
+</section>
+
+<!-- =============================== 8 =============================== -->
+<section class="func">
+  <header>
+    <span class="num">08</span>
+    <h2>Consulta REMUME</h2>
+    <span class="onde">botão 💊</span>
+  </header>
+
+  <figure>
+    <img src="telas/remume.png" alt="Consulta REMUME com busca por nome comercial">
+    <figcaption>Busca por <i>buscopan</i> encontrando escopolamina.</figcaption>
+  </figure>
+
+  <p>Mostra a lista de medicamentos padronizados do município do atendimento. O
+     município é reconhecido sozinho; se não for, escolha na lista.</p>
+
+  <h3>A busca perdoa</h3>
+  <table class="ref">
+    <tr><td class="chave">Nome comercial</td><td><i>buscopan</i> encontra escopolamina; <i>lactulona</i> encontra lactulose.</td></tr>
+    <tr><td class="chave">Erro de digitação</td><td><i>cimvastatina</i> encontra sinvastatina.</td></tr>
+    <tr><td class="chave">Selo do local</td><td>Cada item mostra onde é dispensado — UBS, UPA, CTA/CEM, CAF.</td></tr>
+  </table>
+
+  <div class="caixa ok">
+    <b>Para que serve na prática</b>
+    Conferir <i>antes</i> de prescrever se o município tem aquele medicamento.
+    Receita do que a farmácia não tem é paciente voltando.
+  </div>
+</section>
+
+<!-- =============================== 9 =============================== -->
+<section class="func">
+  <header>
+    <span class="num">09</span>
+    <h2>Laudos de Alto Custo</h2>
+    <span class="onde">botões 📄</span>
+  </header>
+
+  <figure>
+    <img src="telas/laudo.png" alt="Laudo de Alto Custo de Sete Lagoas">
+    <figcaption>Sete Lagoas. Conceição do Mato Dentro funciona igual, no formulário da prefeitura de lá.</figcaption>
+  </figure>
+
+  <p>Preenchem o formulário oficial da prefeitura com os dados lidos da tela do
+     atendimento. Valem aqui as mesmas coisas da APAC:</p>
+
+  <ol class="passos">
+    <li>Guia de preenchimento no topo, apontando o próximo campo pendente.</li>
+    <li>Modelos salvos — independentes dos da APAC.</li>
+    <li>Prévia do documento aberta ao lado.</li>
+    <li>Busca de CID-10 dentro do campo: digite o código ou o nome da doença.</li>
+  </ol>
+
+  <div class="caixa">
+    <b>Estes dois são exclusivos do município</b>
+    O formulário de Sete Lagoas e o de Conceição do Mato Dentro são próprios de
+    cada prefeitura. Só a APAC é nacional e atende vários municípios na mesma tela.
+  </div>
+</section>
+
+<!-- =============================== 10 =============================== -->
+<section class="func">
+  <header>
+    <span class="num">10</span>
+    <h2>Histórico de documentos</h2>
+    <span class="onde">📜 Histórico, dentro de cada gerador</span>
+  </header>
+
+  <figure>
+    <img src="telas/historico.png" alt="Painel de histórico dentro do gerador de APAC">
+    <figcaption>Os últimos documentos emitidos nesta máquina.</figcaption>
+  </figure>
+
+  <p>Guarda os últimos documentos que você emitiu, para você não redigitar a
+     parte clínica quando precisar de um parecido. <b>Reabrir</b> repõe
+     procedimento, CID, diagnóstico e justificativa.</p>
+
+  <div class="caixa ok">
+    <b>O paciente não é reposto</b>
+    Reabrir traz só a parte clínica. A identificação continua vindo fresca da
+    tela do atendimento — é o que impede o dado de um paciente vazar para o
+    laudo de outro.
+  </div>
+
+  <div class="caixa">
+    <b>O que aparece no histórico</b>
+    Data, procedimento e uma referência que só você reconhece: iniciais e os três
+    últimos dígitos do CPF, como <i>M.A.S. · •••890</i>. Nome completo não é guardado.
+  </div>
+</section>
+
+<!-- =============================== 11 =============================== -->
+<section class="func">
+  <header>
+    <span class="num">11</span>
+    <h2>Quando o Assistente é atualizado</h2>
+    <span class="onde">aparece sozinho</span>
+  </header>
+
+  <figure>
+    <img src="telas/novidades.png" alt="Tela de novidades depois de uma atualização">
+    <figcaption>O que mudou, escrito para o dia a dia — não para o programador.</figcaption>
+  </figure>
+
+  <p>A atualização é automática: você não precisa reinstalar nada. Quando ela
+     chega, esta tela mostra o que mudou desde a última vez que você usou.</p>
+
+  <ol class="passos">
+    <li><b>⚙️ Abrir configurações</b> leva direto ao painel, para experimentar a novidade na hora.</li>
+    <li><b>Entendi</b> fecha. Ela não volta a aparecer para a mesma versão.</li>
+    <li>Para reler depois: ⚙️ › aba <b>Sobre</b> › <i>ver o que mudou</i>.</li>
+  </ol>
+
+  <div class="caixa">
+    <b>Achou um problema? Tem uma ideia?</b>
+    Na aba <b>Sobre</b> há um campo de feedback. Escreva em duas linhas o que
+    aconteceu ou o que faria sua rotina render mais — é dali que saem as próximas
+    versões.
+  </div>
+</section>
+
+<!-- =============================== 12 =============================== -->
+<section class="func">
+  <header>
+    <span class="num">12</span>
+    <h2>Privacidade</h2>
+    <span class="onde">leia se alguém perguntar</span>
+  </header>
+
+  <p>Esta página existe para você poder responder a um paciente, a um colega ou
+     à gestão sem precisar procurar ninguém.</p>
+
+  <h3>O que NÃO é gravado, em lugar nenhum</h3>
+  <ol class="passos">
+    <li>Nome completo, CPF, data de nascimento, nome da mãe e telefone de paciente.</li>
+    <li>O conteúdo dos PDFs emitidos.</li>
+    <li>Nada disso vai para servidor nenhum — não existe servidor do Assistente.</li>
+  </ol>
+
+  <h3>O que fica salvo no seu navegador</h3>
+  <table class="ref">
+    <tr><td class="chave">Seu cadastro</td><td>Nome, CRM e CPF do médico, e as unidades com CNES.</td></tr>
+    <tr><td class="chave">Suas preferências</td><td>Funções ligadas, som e volume do alarme, largura da prévia.</td></tr>
+    <tr><td class="chave">Seus modelos</td><td>Só a parte clínica — nunca dado de paciente.</td></tr>
+    <tr><td class="chave">Histórico</td><td>Data, procedimento e a referência não identificável do paciente.</td></tr>
+  </table>
+
+  <div class="caixa ok">
+    <b>A regra de ouro</b>
+    O Assistente <b>lê</b> a tela do atendimento para preencher formulário, usa
+    naquele instante e esquece. Ele não grava prontuário, não grava tela e não
+    envia dado de paciente para lugar nenhum.
+  </div>
+
+  <div class="caixa">
+    <b>Duas coisas que aparecem na tela e você deve saber</b>
+    A <b>prévia</b> mostra os dados do paciente por mais tempo na tela — se você
+    divide a sala, feche-a ao levantar. E a <b>notificação do sistema</b> nunca
+    traz nome de paciente, só a quantidade de gente esperando, justamente porque
+    ela sai do navegador.
+  </div>
+</section>
+
+<!-- ============================== FINAL ============================== -->
+<section class="final">
+  <h2>Se algo não estiver funcionando</h2>
+
+  <table class="ref">
+    <tr><th style="width:42%">O que você vê</th><th>O que fazer</th></tr>
+    <tr>
+      <td class="chave">Os botões não aparecem</td>
+      <td>Confira se você já entrou no Meeds. Com a tela de senha visível, o Assistente some de propósito.</td>
+    </tr>
+    <tr>
+      <td class="chave">O alarme não toca</td>
+      <td>Veja o ícone do sino: em 🔕 ele só conta na aba. Confira também se a função está ligada no ⚙️.</td>
+    </tr>
+    <tr>
+      <td class="chave">Não recebo aviso fora da aba</td>
+      <td>Ajustes do alarme › <b>Ativar avisos do sistema</b>. Se disser bloqueado, libere no cadeado da barra de endereço.</td>
+    </tr>
+    <tr>
+      <td class="chave">A prévia não abre</td>
+      <td>Ela precisa de tela larga e não abre no iPad. Se a sua tela é larga, clique em <b>👁 Prévia</b>.</td>
+    </tr>
+    <tr>
+      <td class="chave">A APAC não preenche o paciente</td>
+      <td>Clique em <b>🔄 Atualizar paciente</b> com o atendimento aberto na tela.</td>
+    </tr>
+    <tr>
+      <td class="chave">Perdi meus modelos ou meu cadastro</td>
+      <td>Eles ficam no navegador daquele computador. Se você trocou de máquina, restaure o backup em ⚙️ › Médicos.</td>
+    </tr>
+    <tr>
+      <td class="chave">Qualquer outra coisa</td>
+      <td>⚙️ › aba <b>Sobre</b> › campo de feedback. Descreva em duas linhas o que aconteceu.</td>
+    </tr>
+  </table>
+
+  <div class="caixa ok" style="margin-top:8mm">
+    <b>Uma frase para levar</b>
+    O Assistente trabalha para você, e não o contrário. Se alguma função estiver
+    atrapalhando em vez de ajudar, desligue-a no ⚙️ e conte no feedback — é assim
+    que ela melhora.
+  </div>
+</section>
+
+</body>
+</html>
