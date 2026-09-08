@@ -1034,6 +1034,44 @@ Duas decisões de comportamento:
 Regressão em `tests/modelos.test.js`, onde a maior parte dos casos prova a
 fronteira e não a funcionalidade.
 
+
+**D32 — Guiar, não trancar: o formulário mostra o caminho sem fechar a porta.**
+O pedido era travar os campos e ir liberando conforme o médico preenche, como o
+município já libera o estabelecimento. A intenção — dar senso de caminho a quem
+não conhece o formulário — é boa. Generalizar a trava, não: a revisão
+cross-functional encontrou quatro custos, e nenhum é hipotético.
+
+1. **O médico não preenche em ordem.** Os dados do paciente entram sozinhos pela
+   tela, a parte clínica vem de um modelo salvo, e o CID muitas vezes é o
+   primeiro que ele sabe. Travar impõe uma ordem que o trabalho não tem.
+2. **Colide com os modelos salvos (D31).** Um modelo preenche procedimento, CID e
+   justificativa de uma vez. Com esses campos travados, ou o modelo não aplica,
+   ou ele destrava — e aí a trava é mentira.
+3. **Campo cinza não se explica sozinho.** O usuário conclui "quebrou" e abre
+   chamado. Já aconteceu nesta suíte, com o botão de avisos do sistema.
+4. **`disabled` tira o campo do teclado e do leitor de tela.** Quem preenche por
+   Tab perde a referência.
+
+E o argumento decisivo: **o documento incompleto já não sai.** "Gerar" recusa e
+nomeia cada campo que falta. O cascateamento resolveria um problema que a
+validação de emissão já resolve, cobrando os quatro custos acima.
+
+Ficou `core/guia.js`: barra de progresso, "falta: X" clicável, e a recusa da
+emissão levando ao primeiro campo pendente em vez de só listá-lo. O médico novo
+ganha o mesmo senso de caminho; o plantonista que faz quarenta laudos não perde
+um clique.
+
+**A regra que sustenta isso:** o guia não decide o que falta — ele pergunta ao
+gerador, pela **mesma** `camposFaltando()` que recusa a emissão. Uma barra que
+chega a 100% enquanto o botão ainda recusa é pior que não ter barra: ensina o
+médico a não confiar no que a tela diz.
+
+A trava continua **onde há dependência real de dado**: município libera
+estabelecimento, procedimento libera território vascular e variante do eco. Ali o
+campo não pode ser preenchido corretamente antes, e a trava informa em vez de
+atrapalhar. A diferença entre os dois casos é essa, e é a única linha que
+interessa.
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público

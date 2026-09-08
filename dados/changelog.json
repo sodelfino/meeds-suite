@@ -2,6 +2,19 @@
  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
  "versoes": [
   {
+   "versao": "2.30.0",
+   "data": "2026-09-08",
+   "novidades": [
+    "Guia de preenchimento no topo da APAC e dos dois laudos: uma barra mostra quanto falta e o texto ao lado diz qual é o próximo campo pendente. Clique nele e a tela leva você até lá.",
+    "Quando a emissão é recusada por falta de campo, o Assistente agora leva você até o primeiro que falta, em vez de só listar os nomes.",
+    "A tela que aparece depois de uma atualização ganhou um botão “⚙️ Abrir configurações”, para você experimentar a novidade na hora em que está lendo sobre ela."
+   ],
+   "melhorias": [
+    "Os campos continuam todos liberados o tempo todo. Você preenche na ordem que quiser — o guia mostra o caminho, não fecha a porta."
+   ],
+   "correcoes": []
+  },
+  {
    "versao": "2.29.0",
    "data": "2026-09-08",
    "novidades": [],

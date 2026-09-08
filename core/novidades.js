@@ -104,9 +104,11 @@
     ".msn-bloco-versao { border-bottom:1px solid #eef2f6; padding-bottom:12px; margin-bottom:12px; }",
     ".msn-bloco-versao:last-child { border-bottom:none; padding-bottom:0; margin-bottom:0; }",
     ".msn-bloco-titulo { font-size:12px; font-weight:700; color:#5b6672; margin-bottom:8px; }",
-    ".msn-rodape { display:flex; justify-content:flex-end; padding:12px 18px; border-top:1px solid #eef2f6; }",
+    ".msn-rodape { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 18px; border-top:1px solid #eef2f6; }",
     ".msn-btn { background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:700; cursor:pointer; }",
     ".msn-btn:hover { background:#123a7a; }",
+    ".msn-btn-sec { background:#fff; color:#1a4fa0; border:1.4px solid #c3d4ee; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; }",
+    ".msn-btn-sec:hover { background:#eef4ff; border-color:#1a4fa0; }",
     ".msn-vazio { font-size:12.5px; color:#8a97a4; font-style:italic; }",
   ].join("\n");
 
@@ -175,11 +177,31 @@
       '  <div class="msn-corpo">' +
       versoes.map(function (v) { return htmlDeUmaVersao(v, varias); }).join("") +
       "  </div>" +
-      '  <div class="msn-rodape"><button type="button" class="msn-btn" id="msn-entendi">Entendi</button></div>' +
+      '  <div class="msn-rodape">' +
+      '    <button type="button" class="msn-btn-sec" id="msn-configurar">\u2699\ufe0f Abrir configurações</button>' +
+      '    <button type="button" class="msn-btn" id="msn-entendi">Entendi</button>' +
+      "  </div>" +
       "</div>";
 
     overlay.$(".msn-fechar").addEventListener("click", overlay.fechar);
     overlay.$("#msn-entendi").addEventListener("click", overlay.fechar);
+
+    /* Atalho para a engrenagem. A tela de novidades e o unico momento em
+     * que o medico esta lendo sobre uma funcao nova; mandar ele procurar
+     * o botao depois e perder a metade que ia experimentar agora. */
+    var irConfigurar = overlay.$("#msn-configurar");
+    if (irConfigurar) {
+      irConfigurar.addEventListener("click", function () {
+        overlay.fechar();
+        try {
+          if (raiz.MeedsSuiteManager && typeof raiz.MeedsSuiteManager.abrir === "function") {
+            raiz.MeedsSuiteManager.abrir("funcoes");
+          }
+        } catch (e) {
+          /* silencioso: um atalho que falha nao pode derrubar o aviso */
+        }
+      });
+    }
     overlay.abrir();
   }
 
