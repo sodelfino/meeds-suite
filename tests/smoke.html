@@ -92,9 +92,30 @@ window.__agendados = {
   },
 };
 
+/* Dois atendimentos com UUID, para exercitar a troca de paciente com o
+   gerador de APAC aberto — o defeito em que o medico comecava a APAC de
+   um paciente e o documento saia com outro. */
+var UUID_A = "aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa";
+var UUID_B = "bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb";
+var atendimentosMock = {};
+atendimentosMock[UUID_A] = { prontuario: { individuo: {
+  nome: "PACIENTE A DA SILVA", cpf: "12345678909", dataNascimento: "1970-05-10T00:00:00",
+  fichaIndividual: { nomeDaMae: "MAE DO A", sexo: 1 } } } };
+atendimentosMock[UUID_B] = { prontuario: { individuo: {
+  nome: "PACIENTE B DE SOUZA", cpf: "98765432100", dataNascimento: "1985-03-15T00:00:00",
+  fichaIndividual: { nomeDaMae: "MAE DO B", sexo: 0 } } } };
+window.__UUID_A = UUID_A;
+window.__UUID_B = UUID_B;
+
 var fetchDeVerdade = window.fetch.bind(window);
 window.fetch = function (url, init) {
   var u = String(url);
+  var mAtend = u.match(/\/api\/v1\/Atendimento\/([0-9a-fA-F-]{36})/);
+  if (mAtend && atendimentosMock[mAtend[1]]) {
+    return Promise.resolve(new Response(JSON.stringify(atendimentosMock[mAtend[1]]), {
+      status: 200, headers: { "Content-Type": "application/json" },
+    }));
+  }
   if (u.indexOf("/api/v1/Atendimento") === 0) {
     if (u.indexOf("Agendado=true") !== -1) {
       var corpoAg = JSON.stringify({ items: agendadosMock, count: agendadosMock.length, totalPages: 1 });

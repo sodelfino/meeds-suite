@@ -1,6 +1,6 @@
 {
  "nome": "Assistente Meeds",
- "versao": "2.26.0",
+ "versao": "2.27.0",
  "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
  "repositorio": "https://github.com/sodelfino/meeds-suite",
  "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -49,7 +49,7 @@
    "id": "apac",
    "nome": "APAC",
    "descricao": "Gera a APAC (Autorização de Procedimento Ambulatorial) já preenchida com os dados do paciente que estão na tela e leva direto para a assinatura no gov.br. Atende Itaúna, Betim e Sete Lagoas.",
-   "versao": "3.0.0",
+   "versao": "3.1.0",
    "arquivo": "modules/apac/index.js",
    "origem": "sodelfino/apac-itauna-meeds",
    "prioridadeBotao": 20,

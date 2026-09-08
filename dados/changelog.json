@@ -2,6 +2,15 @@
  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
  "versoes": [
   {
+   "versao": "2.27.0",
+   "data": "2026-09-04",
+   "novidades": [],
+   "melhorias": [],
+   "correcoes": [
+    "A APAC trocava o paciente sozinha enquanto você preenchia. Se a tela do Meeds carregasse outro atendimento, o formulário era reescrito por baixo — e o PDF saía com o nome errado sem você ver. Agora o paciente só troca se você mandar: o Assistente avisa que a tela mudou, diz quem entrou e deixa você escolher entre trocar ou continuar. Vale também ao reabrir o gerador depois de fechá-lo sem querer. O botão “🔄 Atualizar paciente” continua trocando na hora, porque aí a decisão é sua."
+   ]
+  },
+  {
    "versao": "2.26.0",
    "data": "2026-09-04",
    "novidades": [

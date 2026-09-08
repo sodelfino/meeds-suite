@@ -128,13 +128,115 @@
   var ATEND_RE = /\/api\/v1\/Atendimento\/([0-9a-fA-F-]{36})(\?|$)/i;
   var UUID_RE = /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/;
 
-  function aplicarPayload(id, dados) {
+  /* ------------------------------------------------------------------
+   * TROCA DE PACIENTE COM O FORMULARIO ABERTO
+   * ------------------------------------------------------------------
+   * Isto ja foi um defeito grave: o modal reescrevia os campos toda vez
+   * que a tela do Meeds carregava OUTRO atendimento. O medico comecava a
+   * APAC de um paciente, a SPA trocava por conta propria, e na hora de
+   * gerar o PDF o documento saia com outro nome — sem ele ver.
+   *
+   * A regra agora e uma so: com o formulario aberto e ja identificado, o
+   * paciente NUNCA troca sozinho. A leitura nova fica esperando num
+   * canto, o medico e avisado, e a troca so acontece se ELE mandar.
+   *
+   * Enquanto ele nao decide, `cache` continua sendo o paciente do
+   * formulario — nao o da tela. Isso importa: e `cache` que alimenta o
+   * PDF, e trocar so o rotulo deixaria o documento com um nome e os
+   * dados de outro, que e pior que o defeito original.
+   * ------------------------------------------------------------------ */
+  var pendente = null; // { id, dados } — leitura nova, ainda nao aplicada
+
+  function formularioIdentificado() {
+    if (!shadow) return false;
+    var nome = shadow.getElementById("apac-pac-nome");
+    var cpf = shadow.getElementById("apac-pac-cpf");
+    return !!((nome && nome.value.trim()) || (cpf && cpf.value.trim()));
+  }
+
+  function aplicarPayload(id, dados, aPedidoDoMedico) {
     if (!dados || !dados.prontuario) return false;
+
+    var abertoEIdentificado = overlay && overlay.estaAberto() && formularioIdentificado();
+    var trocouDePaciente = !!(cacheId && id && id !== cacheId);
+
+    /* `aPedidoDoMedico` e a porta de saida: o botao "🔄 Atualizar
+     * paciente" atravessa a protecao, porque ai a troca foi decidida por
+     * ele. A protecao existe contra a troca que ele NAO pediu. */
+    if (!aPedidoDoMedico && abertoEIdentificado && trocouDePaciente) {
+      pendente = { id: id, dados: dados };
+      avisarTrocaDePaciente();
+      return true;
+    }
+
     cache = dados;
     cacheId = id || cacheId;
-    // se o modal ja estiver aberto, atualiza na hora
+    pendente = null;
+    /* Formulario aberto e ainda sem paciente: pode preencher — e o que o
+     * medico espera ao abrir o gerador durante um atendimento. */
     if (overlay && overlay.estaAberto()) preencherDoCache();
     return true;
+  }
+
+  function nomeDoPayload(dados) {
+    try {
+      return (dados.prontuario.individuo && dados.prontuario.individuo.nome) || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function avisarTrocaDePaciente() {
+    var aviso = shadow && shadow.getElementById("apac-auto-aviso");
+    if (!aviso) return;
+    var nomeNovo = nomeDoPayload(pendente.dados);
+    aviso.style.display = "block";
+    aviso.innerHTML = "";
+
+    var texto = document.createElement("div");
+    /* textContent, nunca innerHTML: aqui entra nome de paciente. */
+    texto.textContent =
+      "A tela do Meeds mudou para outro paciente" +
+      (nomeNovo ? " (" + nomeNovo + ")" : "") +
+      ". Este formulário continua com o paciente que você começou — confira antes de gerar.";
+    aviso.appendChild(texto);
+
+    var acoes = document.createElement("div");
+    acoes.style.cssText = "display:flex; gap:8px; margin-top:8px;";
+
+    var trocar = document.createElement("button");
+    trocar.type = "button";
+    trocar.className = "apac-secondary";
+    trocar.textContent = "Trocar para o paciente da tela";
+    trocar.addEventListener("click", assumirPendente);
+
+    var manter = document.createElement("button");
+    manter.type = "button";
+    manter.className = "apac-tertiary";
+    manter.textContent = "Continuar com este";
+    manter.addEventListener("click", function () {
+      pendente = null;
+      aviso.style.display = "none";
+      aviso.textContent = "";
+    });
+
+    acoes.appendChild(trocar);
+    acoes.appendChild(manter);
+    aviso.appendChild(acoes);
+  }
+
+  function assumirPendente() {
+    if (!pendente) return;
+    cache = pendente.dados;
+    cacheId = pendente.id;
+    pendente = null;
+    preencherDoCache();
+    var aviso = shadow.getElementById("apac-auto-aviso");
+    if (aviso) {
+      aviso.style.display = "block";
+      aviso.textContent = "Paciente trocado. Os dados clínicos que você já tinha digitado continuam aí — confira.";
+    }
+    toast("Paciente atualizado a seu pedido.", 3000);
   }
 
   function idAtualDaUrl() {
@@ -142,14 +244,14 @@
     return m ? m[0] : null;
   }
 
-  function buscarAtendimento(id) {
+  function buscarAtendimento(id, aPedidoDoMedico) {
     return fetch("/api/v1/Atendimento/" + id, { credentials: "include" })
       .then(function (res) {
         if (!res.ok) throw new Error("HTTP " + res.status);
         return res.json();
       })
       .then(function (dados) {
-        if (!aplicarPayload(id, dados)) throw new Error("Sem dados.");
+        if (!aplicarPayload(id, dados, aPedidoDoMedico)) throw new Error("Sem dados.");
         return dados;
       });
   }
@@ -220,7 +322,7 @@
       btn.disabled = false;
       return;
     }
-    buscarAtendimento(id)
+    buscarAtendimento(id, true)
       .then(function (dd) {
         toast(dd.prontuario.individuo.nome ? "Atualizado: " + dd.prontuario.individuo.nome : "OK");
       })
@@ -797,10 +899,25 @@
     // outra aba, restauracao de backup)
     if (seletorMedico) seletorMedico.atualizar();
     detectarMunicipio();
-    preencherDoCache();
-    // reforco: ao abrir, tambem le a tela na hora — cobre o caso do cache
-    // (API) estar vazio ou desatualizado quando o medico clica.
-    aplicarLeituraDaTela(lerDadosDaTela());
+
+    /* Fechar o modal NAO limpa o formulario. Entao reabrir com outro
+     * paciente na tela trocaria os dados em silencio — o mesmo defeito
+     * que a protecao de cima resolve, so que pela porta dos fundos. Um
+     * fechamento sem querer nao pode custar o paciente do documento.
+     *
+     * Com o formulario ja identificado, reabrir nao mexe em nada: se a
+     * tela estiver noutro paciente, o medico e avisado e decide. */
+    if (!formularioIdentificado()) {
+      preencherDoCache();
+      // reforco: ao abrir, tambem le a tela na hora — cobre o caso do cache
+      // (API) estar vazio ou desatualizado quando o medico clica.
+      aplicarLeituraDaTela(lerDadosDaTela());
+    } else {
+      var idTela = idAtualDaUrl();
+      if (idTela && cacheId && idTela !== cacheId) {
+        buscarAtendimento(idTela).catch(function () {});
+      }
+    }
     overlay.abrir();
   }
 
