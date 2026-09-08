@@ -1100,6 +1100,59 @@ responder* não é o mesmo que *o recurso existir*. Onde os dois divergem, quem
 decide é o aparelho — e a tela diz a verdade sobre ele em vez de repetir uma
 instrução de desktop.
 
+**D50 — A lista de exames herda a regra de ouro do REMUME, e pelo mesmo motivo.**
+O módulo de exames nasceu com a mesma restrição: a lista de cada município é a
+única fonte de verdade do que ele oferece. Não há lista geral que complete a de
+um município, não há exame copiado entre municípios, e a ambiguidade filtra para
+fora em vez de acrescentar.
+
+A assimetria do erro é o que justifica: errar para menos custa uma consulta ao
+portal da prefeitura; errar para mais custa um pedido que o paciente carrega até
+uma unidade que não realiza aquilo, e o médico só descobre pelo retorno.
+
+Por isso a mensagem de vazio é **"não consta na lista de X"**, e não "nenhum
+resultado". As duas frases levam a condutas diferentes: a primeira manda o médico
+para o fluxo de encaminhamento; a segunda o faz conferir a digitação.
+
+**D51 — Campos opcionais porque as fontes são desiguais, não por descuido.**
+As três primeiras fontes não têm o mesmo formato, e forçar um esquema único
+perderia informação:
+
+| Município | Código | Local | Sigla | Observações |
+|---|---|---|---|---|
+| Betim (contrato laboratorial) | sim | não | não | não |
+| Macaé (PDF da UPA Barra) | não | sim | não | **duas regras clínicas** |
+| Congonhas (procedimentos APAC) | SIGTAP | não | APAC | não |
+
+Campo vazio significa **"o município não publicou"**, nunca "faltou preencher" —
+a mesma leitura da planilha-modelo de REMUME. Completar por dedução colocaria no
+sistema informação que a prefeitura não deu.
+
+As `observacoes` de Macaé são o caso que mais importa: consentimento assinado
+para sorologia de HIV e data de nascimento obrigatória na requisição. São regras
+que mudam o que o médico precisa fazer, e existiam apenas dentro de um PDF.
+
+**D52 — A base é gerada por script, e as fontes ficam fora do repositório.**
+Betim sozinho tem 2.002 linhas. Transcrever à mão garante erro, e o erro aqui não
+é cosmético: um nome torto some da busca e o médico conclui que o município não
+oferece.
+
+`scripts/montar-exames.js` lê os documentos das prefeituras (que ficam fora do
+repositório, porque são documentos delas) e gera `dados/exames.json`. Se um
+documento não estiver na máquina, o script **preserva a lista anterior daquele
+município** em vez de apagá-la — transformar um problema de ambiente em perda de
+dado daria um sintoma ("Betim não tem exames") que não aponta para a causa.
+
+Duas armadilhas encontradas na primeira carga:
+
+- A planilha quebra nomes longos dentro da célula. Sem colapsar o espaço em
+  branco, o mesmo exame aparece duas vezes com quebras em posições diferentes, e
+  a busca por duas palavras que a quebra separou não casa. São **19 duplicatas**
+  em 2.002 linhas, todas com código e nome idênticos.
+- Duas entradas de Betim compartilham o código `28040481` com grafias diferentes
+  (`ERITOGRAMA` e `ERITROGRAMA`). É erro da fonte. **Não foi corrigido**: a lista
+  é do município, e o código copiado é o mesmo nos dois casos.
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público
