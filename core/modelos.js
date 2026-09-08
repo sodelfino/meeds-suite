@@ -185,15 +185,24 @@
   }
 
   var CSS = [
-    ".msmod { background:#f6f9f8; border:1px solid #dfe9e7; border-radius:9px; padding:9px 11px; margin-bottom:12px; }",
+    ".msmod { background:#f6f9f8; border:1px solid #dfe9e7; border-radius:9px; padding:10px 12px; margin-bottom:12px; }",
+    ".msmod-rot { font-size:10.5px; font-weight:700; color:#5b6c68; text-transform:uppercase; letter-spacing:.04em; margin-bottom:7px; }",
     ".msmod-linha { display:flex; gap:7px; align-items:center; flex-wrap:wrap; }",
-    ".msmod-linha > select { flex:1; min-width:150px; }",
-    ".msmod-rot { font-size:10.5px; font-weight:700; color:#5b6c68; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px; }",
-    ".msmod-btn { background:#fff; border:1.3px solid #c9d8d5; color:#0e7a70; border-radius:8px; padding:7px 11px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; }",
+    ".msmod-linha + .msmod-linha { margin-top:8px; padding-top:8px; border-top:1px dashed #dfe9e7; }",
+    ".msmod-linha > select, .msmod-linha > input { flex:1; min-width:160px; }",
+    /* Estes dois sobrescrevem a regra generica de campo do gerador, que
+       e mais larga. Sem isto o input de nome ocuparia a linha inteira e
+       jogaria o botao de criar para baixo. */
+    ".msmod input[type=text] { padding:8px 9px; border:1px solid #cddad7; border-radius:7px; font-size:12.5px; font-family:inherit; }",
+    ".msmod-btn { background:#fff; border:1.3px solid #c9d8d5; color:#0e7a70; border-radius:8px; padding:8px 12px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; }",
     ".msmod-btn:hover { background:#e3f5f3; border-color:#17ab9e; }",
+    ".msmod-btn.principal { background:#12958a; border-color:#12958a; color:#fff; }",
+    ".msmod-btn.principal:hover { background:#0b6a62; border-color:#0b6a62; }",
     ".msmod-btn.perigo { color:#a12626; border-color:#e6c3c3; }",
     ".msmod-btn.perigo:hover { background:#fdeaea; border-color:#c96b6b; }",
-    ".msmod-dica { font-size:10.5px; color:#7c8c88; margin-top:6px; line-height:1.45; }",
+    ".msmod-dica { font-size:10.5px; color:#7c8c88; margin-top:7px; line-height:1.45; }",
+    ".msmod-vazio { font-size:11.5px; color:#5b6c68; line-height:1.5; margin-bottom:8px; }",
+    ".msmod-salvos[hidden] { display:none; }",
   ].join("\n");
 
   raiz.MeedsSuiteModelos = {

@@ -850,6 +850,40 @@ O `feedback.js` já identifica o Edge corretamente, testando `Edg/` **antes** de
    pedido de permissão e só pisca um sino na barra de endereço. O médico clicava
    em "Ativar avisos do sistema" e nada acontecia. A tela agora diz onde olhar.
 
+### Modelos salvos *(v2.28.0 / 2.28.1)*
+
+**182 verificações sem navegador** (33 novas em `tests/modelos.test.js`) **+ 21
+no navegador**, todas passando.
+
+| # | O que verifica | Resultado |
+|---|---|---|
+| 164 | Nenhum dado de paciente entra no modelo, por dois caminhos | ✅ |
+| 165 | Campo de paciente incluído por engano na lista ainda assim é recusado | ✅ |
+| 166 | Cada gerador tem os seus modelos; um não vê o do outro | ✅ |
+| 167 | Mesmo nome corrige, não duplica — e preserva a ★ | ✅ |
+| 168 | Só existe **um** modelo padrão por gerador | ✅ |
+| 169 | O padrão entra sozinho ao abrir, e só com os campos clínicos vazios | ✅ |
+| 170 | Nunca sobrescreve o que o médico já escreveu | ✅ |
+| 171 | Persiste com Tampermonkey **e** sem (Safari/iPad, só IndexedDB) | ✅ |
+| 172 | Sobrevive ao logout que limpa o `localStorage` | ✅ |
+| 173 | Sem nenhum modelo, a lista de escolha não aparece — só o convite | ✅ |
+| 174 | Salvar faz a lista aparecer, já com o modelo selecionado | ✅ |
+
+> **"Vazio" não é "sem valor nenhum".** O modelo padrão não entrava, e a causa
+> era a variante do eco nascer em "REPOUSO": o formulário nunca parecia vazio.
+> Um `<select>` só conta como preenchido se o médico o tirou do valor inicial.
+
+> **A verificação de persistência no navegador ficou inconclusiva, e a culpa foi
+> do teste.** Depois de vários `indexedDB.deleteDatabase("meeds-suite")` com
+> conexões abertas, o IndexedDB da origem travou — `indexedDB.open` deixou de
+> responder e nada mais persistia, nem o histórico nem o cadastro. É exatamente a
+> armadilha descrita no box de reset acima, e foi a segunda vez nesta série.
+> A persistência foi então provada **sem navegador**, com o `core/storage.js` de
+> verdade e os dois caminhos de campo (com e sem `GM_setValue`), que é
+> reproduzível e não depende do estado da aba. Ao investigar "não persiste",
+> **descarte primeiro o IndexedDB envenenado**: feche todas as abas da origem e
+> abra uma janela nova.
+
 ### Extensibilidade
 
 Verificado à parte: criei um sexto módulo a partir de `modules/_template`,

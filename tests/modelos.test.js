@@ -142,6 +142,119 @@ const CLINICOS_APAC = [
   ok("gravou no armazenamento duravel", M.listar("apac").length === 1);
 }
 
+/* 6. PERSISTENCIA DE VERDADE — pelos dois caminhos de armazenamento
+ * ------------------------------------------------------------------
+ * Um modelo que some quando o medico fecha o navegador nao serve para
+ * nada, e o teste acima usa uma porta de mentira que nao prova isso.
+ * Aqui os modelos passam pelo core/storage.js DE VERDADE, com os dois
+ * caminhos que existem em campo:
+ *   - com GM_setValue: Chrome e Edge com Tampermonkey (a maioria);
+ *   - sem GM, so IndexedDB: Safari/iPad, app Userscripts com @grant none.
+ * "Recarregar" e montar um contexto novo sobre o MESMO disco.
+ * ------------------------------------------------------------------ */
+function fakeIndexedDB(disco) {
+  function tx() {
+    return {
+      objectStore: () => ({
+        put: (v, k) => disco.set(k, JSON.parse(JSON.stringify(v))),
+        delete: (k) => disco.delete(k),
+        openCursor: () => {
+          const req = {};
+          const chaves = [...disco.keys()];
+          let i = 0;
+          setImmediate(function passo() {
+            if (i >= chaves.length) { req.result = null; req.onsuccess && req.onsuccess(); return; }
+            const k = chaves[i++];
+            req.result = { key: k, value: disco.get(k), continue: () => setImmediate(passo) };
+            req.onsuccess && req.onsuccess();
+          });
+          return req;
+        },
+      }),
+    };
+  }
+  return {
+    open: () => {
+      const req = { result: { objectStoreNames: { contains: () => true }, transaction: tx } };
+      setImmediate(() => req.onsuccess && req.onsuccess());
+      return req;
+    },
+  };
+}
+
+function comStorageDeVerdade(comGM, gm, disco) {
+  const ls = new Map();
+  const ctx = {
+    console: { warn() {}, debug() {}, log() {} },
+    setTimeout, setImmediate, clearTimeout, Promise,
+    JSON, Object, Array, String, Number, Date, parseInt, RegExp, Math,
+    indexedDB: comGM ? undefined : fakeIndexedDB(disco),
+    localStorage: {
+      getItem: (k) => (ls.has(k) ? ls.get(k) : null),
+      setItem: (k, v) => ls.set(k, String(v)),
+      removeItem: (k) => ls.delete(k),
+      clear: () => ls.clear(),
+      get length() { return ls.size; },
+      key: (i) => [...ls.keys()][i],
+    },
+  };
+  if (comGM) {
+    ctx.GM_getValue = (k, d) => (gm.has(k) ? gm.get(k) : d);
+    ctx.GM_setValue = (k, v) => gm.set(k, JSON.parse(JSON.stringify(v)));
+    ctx.GM_deleteValue = (k) => gm.delete(k);
+  }
+  ctx.window = ctx; ctx.globalThis = ctx;
+  vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync("core/storage.js", "utf8"), ctx);
+  vm.runInContext(fs.readFileSync("core/modelos.js", "utf8"), ctx);
+  return ctx;
+}
+
+const descansar = () => new Promise((r) => setImmediate(() => setImmediate(r)));
+
+(async () => {
+  /* Chrome/Edge com Tampermonkey */
+  {
+    const gm = new Map();
+    const antes = comStorageDeVerdade(true, gm, null);
+    antes.MeedsSuiteModelos.salvar("apac", "Holter rotina",
+      { procedimento: "HOLTER", "apac-cid1": "I48" }, CLINICOS_APAC);
+    antes.MeedsSuiteModelos.definirPadrao("apac", "Holter rotina");
+
+    const depois = comStorageDeVerdade(true, gm, null); // "recarregou"
+    const lista = depois.MeedsSuiteModelos.listar("apac");
+    ok("com Tampermonkey: o modelo sobrevive ao recarregamento", lista.length === 1, JSON.stringify(lista.map((m) => m.nome)));
+    ok("com Tampermonkey: a estrela sobrevive", !!depois.MeedsSuiteModelos.padraoDe("apac"));
+    ok("com Tampermonkey: o conteudo clinico sobrevive",
+       lista[0] && lista[0].clinico["apac-cid1"] === "I48");
+  }
+
+  /* Safari / iPad, sem GM: so IndexedDB */
+  {
+    const disco = new Map();
+    const antes = comStorageDeVerdade(false, null, disco);
+    await antes.MeedsSuiteStorage.carregar();
+    antes.MeedsSuiteModelos.salvar("cmd", "Fisio", { "cmd-proc-nome": "Fisioterapia" }, ["cmd-proc-nome"]);
+    await descansar();
+
+    const depois = comStorageDeVerdade(false, null, disco); // "recarregou"
+    await depois.MeedsSuiteStorage.carregar();
+    const lista = depois.MeedsSuiteModelos.listar("cmd");
+    ok("sem Tampermonkey (iPad): o modelo sobrevive ao recarregamento", lista.length === 1, JSON.stringify(lista.map((m) => m.nome)));
+    ok("sem Tampermonkey: o conteudo sobrevive",
+       lista[0] && lista[0].clinico["cmd-proc-nome"] === "Fisioterapia");
+
+    /* O caso que motivou o armazenamento duravel: o Meeds limpa o
+     * localStorage no logout, e o modelo nao pode ir junto. */
+    depois.localStorage.clear();
+    ok("sobrevive ao logout que limpa o localStorage",
+       depois.MeedsSuiteModelos.listar("cmd").length === 1);
+  }
+
+  console.log(falhas ? `\n${falhas} FALHA(S)` : "\ntodos passaram");
+  process.exit(falhas ? 1 : 0);
+})();
+
 /* 6. renomear modulo nao perde os modelos do medico */
 {
   const M = ambiente();
@@ -150,5 +263,3 @@ const CLINICOS_APAC = [
   ok("chegou no id novo", M.listar("apac").length === 1 && M.listar("apac-itauna").length === 0);
 }
 
-console.log(falhas ? `\n${falhas} FALHA(S)` : "\ntodos passaram");
-process.exit(falhas ? 1 : 0);

@@ -2,6 +2,15 @@
  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
  "versoes": [
   {
+   "versao": "2.28.1",
+   "data": "2026-09-08",
+   "novidades": [],
+   "melhorias": [
+    "Ficou claro como criar um modelo. Agora existe um campo de nome na própria tela, ao lado do botão “Salvar como modelo” — antes o nome era pedido numa janelinha do navegador que passava despercebida. Enquanto você não tem nenhum modelo, a lista de escolha nem aparece: fica só o convite para criar o primeiro, explicando o que fazer."
+   ],
+   "correcoes": []
+  },
+  {
    "versao": "2.28.0",
    "data": "2026-09-08",
    "novidades": [
