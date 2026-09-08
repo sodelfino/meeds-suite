@@ -594,7 +594,10 @@
       corpo: textoDoMotivo(),
       tag: "meeds-alarme-fila",
       exigeInteracao: true,
-      aoClicar: silenciarComReengate,
+      /* Clicar na notificacao nao e so "ja vi": e "estou indo". Ela traz
+       * a aba para frente E abre a fila, que e o unico lugar onde o
+       * clique tem serventia. */
+      aoClicar: irParaFila,
     });
   }
 
@@ -650,7 +653,11 @@
     if (!d || !d.dock || typeof d.dock.criarAviso !== "function") return;
     var ficha = ultimaChegada || {};
     var linhas = [];
-    if (ficha.nome) linhas.push(ficha.nome);
+    /* So o MUNICIPIO. Nome de paciente nao entra aqui: o cartao fica na
+     * tela por 12 s, atravessa troca de aba e aparece em qualquer print
+     * que o medico tire — e nao acrescenta nada a decisao dele, que e
+     * "vou atender agora ou nao". O municipio acrescenta: e o que diz
+     * qual REMUME e qual laudo valem para aquele atendimento. */
     if (ficha.municipio) linhas.push(ficha.municipio);
     linhas.push(textoDoMotivo());
 
@@ -659,8 +666,83 @@
       corpo: linhas,
       autoFecharMs: 12000,
       acoes: [
-        { rotulo: "Ok", primario: true, aoClicar: function () {} },
+        { rotulo: "Ver a fila", primario: true, aoClicar: irParaFila },
+        { rotulo: "Depois", aoClicar: function () {} },
       ],
+    });
+  }
+
+  /* ------------------------------------------------------------------
+   * O ATALHO — levar o medico ate a fila
+   * ------------------------------------------------------------------
+   * Um aviso que so grita ainda deixa o trabalho de PROCURAR o paciente
+   * com quem ja esta ocupado. Este atalho fecha isso.
+   *
+   * Ele NAO navega por URL. Duas razoes: a rota da fila ja mudou entre
+   * as telas que conhecemos (/ e /administrator/monitoring/...), e um
+   * endereco chutado leva o medico para uma pagina em branco. Em vez
+   * disso ele clica no PROPRIO item de menu do Meeds — quem sabe a rota
+   * e o Meeds.
+   *
+   * E ele nunca navega por cima de trabalho em andamento: com uma APAC
+   * ou um laudo abertos, sair da tela perderia o formulario pela metade.
+   * Nesse caso ele so traz a aba para frente e explica.
+   * ------------------------------------------------------------------ */
+  var ROTULOS_DA_FILA = ["pronto atendimento", "pronto-atendimento", "atendimentos", "fila"];
+
+  function haFormularioAberto() {
+    /* Os geradores abrem overlay no shadow do dock. Se algum estiver
+     * aberto, ha texto digitado que ninguem quer perder. */
+    var host = document.getElementById("meeds-suite-dock-host");
+    if (!host || !host.shadowRoot) return false;
+    return !!host.shadowRoot.querySelector("[id$='-modal']:not([hidden])");
+  }
+
+  function acharItemDeMenuDaFila() {
+    var candidatos = document.querySelectorAll("a, button, span, li, div[role='button']");
+    for (var i = 0; i < candidatos.length; i++) {
+      var el = candidatos[i];
+      if (el.children.length > 2) continue;
+      var texto = d.dom.normalizarTexto(el.textContent || "");
+      if (!texto || texto.length > 30) continue;
+      for (var j = 0; j < ROTULOS_DA_FILA.length; j++) {
+        if (texto === ROTULOS_DA_FILA[j]) return el;
+      }
+    }
+    return null;
+  }
+
+  function irParaFila() {
+    try { raiz.focus(); } catch (e) {}
+    silenciarComReengate();
+
+    if (haFormularioAberto()) {
+      d.dock.criarAviso({
+        titulo: "Fila esperando",
+        corpo: "Não mudei de tela porque você tem um documento aberto pela metade. Termine ou feche, e a fila continua ali.",
+        autoFecharMs: 8000,
+      });
+      return;
+    }
+
+    /* Se o cartao da fila ja esta nesta tela, nao ha para onde ir: basta
+     * levar o olho ate ele. */
+    var contador = d.dom.lerContadorPorRotulo(d.seletor("rotulos", "contadorFila"));
+    if (contador !== null) {
+      var alvo = acharItemDeMenuDaFila();
+      if (alvo && alvo.scrollIntoView) alvo.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
+
+    var item = acharItemDeMenuDaFila();
+    if (item) {
+      item.click();
+      return;
+    }
+    d.dock.criarAviso({
+      titulo: "Fila esperando",
+      corpo: "Não encontrei o atalho para o Pronto Atendimento nesta tela. Abra pelo menu do Meeds.",
+      autoFecharMs: 8000,
     });
   }
 
@@ -888,9 +970,11 @@
     banner = d.dock.criarBanner(
       '<span>🚨 Novo paciente na fila!</span>' +
         '<span class="ms-banner-motivo" id="af-motivo"></span>' +
+        '<button type="button" id="af-ir-fila">Ver a fila</button>' +
         '<button type="button" id="af-silenciar">Silenciar alarme</button>'
     );
     banner.$("#af-silenciar").addEventListener("click", silenciarComReengate);
+    banner.$("#af-ir-fila").addEventListener("click", irParaFila);
   }
 
   /* Um alarme que diz POR QUE esta tocando e informacao; um que so grita
