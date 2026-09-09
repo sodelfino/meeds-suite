@@ -1199,6 +1199,38 @@ município") esconderia que o documento a preencher é outro. 23 dos 65 exames d
 Sete Lagoas exigem Alto Custo — majoritariamente exames de imagem de maior
 complexidade (ressonância, angiotomografia, cintilografias, densitometria).
 
+**D56 — Um município pode ter mais de uma fonte, e a junção é medida, não
+suposta.**
+Sete Lagoas ganhou um segundo documento: o contrato de exames laboratoriais
+(Apêndice I — Lotes I a III da tabela SIGTAP), ~450 itens de bancada
+(bioquímica, hematologia, sorologia, urina, hormônios, toxicologia,
+microbiologia, genética, triagem neonatal, imunohematologia) que não passam
+pela Central de Marcação — diferente dos exames de imagem/procedimento das
+"orientações" já carregadas. Para o médico é um município só; a divisão em dois
+documentos é um acidente de como a prefeitura organiza os próprios papéis, não
+algo que deva aparecer na tela.
+
+`juntarFontesDoMesmoMunicipio()` (`scripts/montar-exames.js`) formaliza esse
+caso: concatena os `exames` das fontes, junta a `fonte` de cada uma (a
+procedência de cada metade continua rastreável — "Orientações da Central... +
+Tabela SIGTAP...") e fica com a data mais recente como `atualizadoEm`. Ela
+também **mede** a ausência de colisão de código entre as fontes, em vez de
+supor: um código repetido entre documentos diferentes do mesmo município geraria
+duas linhas para o mesmo exame na busca, e a função avisa no terminal se isso
+acontecer (não aconteceu nesta carga).
+
+Fonte escaneada sem camada de texto (`pdftotext` devolve 0 linhas): testei
+`tesseract` (OCR) antes de decidir — a qualidade saiu pior que a leitura visual
+direta mesmo a 500dpi (linhas somem, código sai trocado), então os ~450 itens
+foram transcritos lendo cada página como imagem, igual ao `lerSeteLagoas()`
+original. Um código veio impresso fora de ordem
+(`0020203792` em vez do `0202...` que todo o resto segue) — conferido em zoom de
+600dpi contra as linhas vizinhas antes de aceitar que é erro do documento, não
+de leitura, e preservado como impresso.
+
+A coluna de preço ("Valor Unit.") não entrou: é dado de contrato entre a
+prefeitura e o laboratório, sem uso para o médico que pede o exame.
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público

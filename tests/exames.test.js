@@ -205,19 +205,35 @@ const municipios = Object.keys(BASE.municipios).filter((k) => k.indexOf("_") !==
 
   const sl = BASE.municipios["Sete Lagoas"];
   if (sl) {
-    /* Fonte diferente das outras: tabela de 7 colunas, sem codigo de
-     * procedimento em lugar nenhum. Nao ha "codigo" para exigir aqui —
-     * exigir seria inventar um dado que a Central de Marcacao nao
-     * publica. */
-    ok("Sete Lagoas nao inventa codigo (a fonte nao traz)",
-       sl.exames.every((e) => !e.codigo));
+    /* Sete Lagoas e o primeiro municipio com DUAS fontes na mesma
+     * lista: as "orientacoes" da Central (sem codigo — o documento nao
+     * traz numero de procedimento nenhum) e a tabela SIGTAP de exames
+     * laboratoriais (codigo em todo item). As duas continuam
+     * distinguiveis pela presenca de `codigo`, mesmo depois da juncao. */
+    const semCodigo = sl.exames.filter((e) => !e.codigo);
+    const comCodigo = sl.exames.filter((e) => e.codigo);
+    ok("Sete Lagoas tem os itens sem codigo da fonte de orientacoes (65)",
+       semCodigo.length === 65, "achou " + semCodigo.length);
+    ok("Sete Lagoas tem os itens com codigo da fonte laboratorial (456)",
+       comCodigo.length === 456, "achou " + comCodigo.length);
+    ok("nenhum codigo laboratorial se repete",
+       new Set(comCodigo.map((e) => e.codigo)).size === comCodigo.length);
+    /* Lote I/II usam 10 digitos (prefixo "02..."); Lote III imprime 9,
+     * sem o zero a esquerda. Os dois formatos sao os que a fonte traz —
+     * nao ha um terceiro formato que denunciaria erro de transcricao. */
+    ok("todo codigo laboratorial tem 9 ou 10 digitos",
+       comCodigo.every((e) => /^\d{9,10}$/.test(e.codigo)),
+       comCodigo.filter((e) => !/^\d{9,10}$/.test(e.codigo)).map((e) => e.codigo).join(", "));
     ok("Sete Lagoas mantem as duas regras da Central (GMUS/CADWEB, carimbo/contato)",
        Array.isArray(sl.observacoes) && sl.observacoes.length === 2);
-    ok("quase todo exame de Sete Lagoas traz o local de realizacao",
-       sl.exames.filter((e) => e.local).length >= sl.exames.length - 1,
+    ok("a fonte combinada menciona as duas origens",
+       /orienta/i.test(sl.fonte) && /SIGTAP/i.test(sl.fonte));
+    ok("quase todo item da fonte de orientacoes traz o local de realizacao",
+       semCodigo.filter((e) => e.local).length >= semCodigo.length - 1,
        "so 1 pode ficar sem local: a celula da fonte estava mesmo vazia");
-    /* ALTO_CUSTO e a sigla que esta fonte introduziu — categoria
-     * burocratica do SUS distinta de APAC, tao real quanto ela. */
+    /* ALTO_CUSTO e a sigla que a fonte de orientacoes introduziu —
+     * categoria burocratica do SUS distinta de APAC, tao real quanto
+     * ela. */
     ok("Sete Lagoas usa a sigla ALTO_CUSTO em algum exame",
        sl.exames.some((e) => e.exige === "ALTO_CUSTO"));
     ok("nenhum exame de Sete Lagoas fica com nome de medico ou de funcionario",

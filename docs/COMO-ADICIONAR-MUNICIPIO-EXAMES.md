@@ -73,7 +73,7 @@ Cada município é um bloco em `dados/exames.json`:
 | Betim | sim (contrato) | não | não | não |
 | Macaé | não (o PDF não tem) | sim | não | não |
 | Congonhas | sim (SIGTAP) | não | APAC | não |
-| Sete Lagoas | não (a fonte não traz) | quase todos | APAC / LAUDO / Alto Custo | 36 de 65 |
+| Sete Lagoas | 456 de 521 (só na fonte laboratorial) | 64 de 521 (só na fonte de orientações) | APAC / LAUDO / Alto Custo | 36 de 521 |
 
 **Campo vazio significa "o município não publicou", nunca "faltou preencher".**
 Completar por dedução colocaria no sistema informação que a prefeitura não deu —
@@ -158,6 +158,33 @@ por quê.
 
 ---
 
+## Um município, duas fontes
+
+Sete Lagoas foi o primeiro caso: as "orientações" da Central de Marcação
+(`lerSeteLagoas()`) cobrem exame de imagem e procedimento agendado, e chegou
+depois um segundo documento — o contrato de exames **laboratoriais**
+(`lerSeteLagoasLaboratorio()`), com ~450 itens de bancada (bioquímica,
+hematologia, sorologia, urina, hormônios...). Para o médico é um município só;
+ele não precisa saber que são dois arquivos.
+
+`juntarFontesDoMesmoMunicipio()`, em `scripts/montar-exames.js`, faz essa junção:
+concatena os `exames` das duas fontes numa lista só, junta a `fonte` de cada
+bloco (a procedência de cada metade continua rastreável na tela — "Orientações
+da Central... + Tabela SIGTAP..."), e fica com a data **mais recente** entre as
+duas como `atualizadoEm`.
+
+Ela também **mede** — não supõe — que os códigos das duas fontes não colidem: se
+algum dia um exame aparecer nos dois documentos com o mesmo código, o script
+avisa no terminal em vez de silenciosamente duplicar a linha na busca.
+
+Um segundo município com o mesmo padrão usa a mesma função:
+
+```js
+"Nome do Município": juntarFontesDoMesmoMunicipio([lerFonteA(), lerFonteB()]),
+```
+
+---
+
 ## Duas armadilhas que já custaram caro
 
 **Duplicata que não parece duplicata.** A planilha de Betim quebra nomes longos
@@ -172,6 +199,15 @@ Editar só o primeiro faz quem cai no fallback ver a lista antiga. Foi o que
 aconteceu no REMUME quando Barbacena entrou só na fonte remota — por isso
 `npm run verificar` barra a divergência, e `npm run montar-exames` já roda os
 dois passos.
+
+**Código impresso fora de ordem, e a tentação de "corrigir".** Na tabela
+laboratorial de Sete Lagoas, o código de "Pesquisa de Anticorpos IgG contra
+Arbovirus" está impresso `0020203792` — com os dígitos fora da sequência que
+todo o resto da tabela segue (`0202...`). Zoom em 600dpi contra as linhas
+vizinhas (que leem limpo) confirmou: não é erro de leitura, é o que está
+impresso. Ficou exatamente assim — corrigir para o que "parece óbvio" seria
+inventar o que a prefeitura quis dizer, a mesma disciplina do
+`ERITOGRAMA`/`ERITROGRAMA` de Betim.
 
 ---
 

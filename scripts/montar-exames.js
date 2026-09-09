@@ -493,6 +493,606 @@ function lerSeteLagoas() {
   };
 }
 
+/* ------------------------------------------------------------------
+ * SETE LAGOAS — tabela SIGTAP de exames laboratoriais (Apêndice I)
+ * ------------------------------------------------------------------
+ * SEGUNDA FONTE DO MESMO MUNICIPIO, POR ISSO E UMA FUNCAO SEPARADA
+ * As "orientacoes" (lerSeteLagoas, acima) cobrem exame de imagem e
+ * procedimento que passa pela Central de Marcacao. Este documento e
+ * outro: o contrato de exames LABORATORIAIS (bioquimica, hematologia,
+ * sorologia/imunologia, urina, hormonios, toxicologia, microbiologia,
+ * outros liquidos, genetica, triagem neonatal, imunohematologia) —
+ * coleta de sangue/urina que nao passa por agendamento central. Os dois
+ * resultados sao concatenados na MESMA lista de "Sete Lagoas" em
+ * main(), porque para o medico e um municipio so.
+ *
+ * FONTE ESCANEADA (CamScanner), SEM CAMADA DE TEXTO
+ * `pdftotext` devolve 0 linhas — e imagem, nao PDF com texto. Testei
+ * `tesseract` (OCR) antes de transcrever a mao: a qualidade saiu ruim
+ * mesmo a 500dpi (linhas inteiras somem, codigo sai trocado) — pior que
+ * a leitura visual direta. Por isso os ~350 itens abaixo foram
+ * transcritos lendo cada pagina como imagem, na ordem em que aparecem.
+ *
+ * SO CODIGO E NOME. O documento nao traz local nem exige nada alem do
+ * pedido comum — e exame de bancada, nao procedimento agendado. A
+ * coluna de preco ("Valor Unit.") NAO entra: e informacao de contrato
+ * entre a prefeitura e o laboratorio, sem uso para o medico que pede o
+ * exame — mesmo raciocinio que tirou nome de funcionario da outra
+ * fonte.
+ *
+ * DOIS ERROS DO PROPRIO DOCUMENTO, PRESERVADOS COMO ESTAO
+ * A regra de ouro vale para o que a fonte publica, erro incluido — a
+ * mesma disciplina do ERITOGRAMA/ERITROGRAMA de Betim:
+ *   - o codigo de "PESQUISA DE ANTICORPOS IGG CONTRA ARBOVIRUS" esta
+ *     impresso "0020203792", com os digitos fora da ordem que todo o
+ *     resto da tabela segue ("0202..."). Conferido em zoom alto (600dpi)
+ *     contra as linhas vizinhas, que leem limpo. Nao e erro de leitura
+ *     meu — e o que esta impresso. Corrigir para "0202030792" seria
+ *     inventar o que a prefeitura quis dizer, nao transcrever o que ela
+ *     escreveu;
+ *   - a linha de "PESQUISA DE ANTICORPOS IGM CONTRA O VIRUS DA HEPATITE
+ *     A" traz o rotulo "(HAV-IGG)" entre parenteses — igual ao da linha
+ *     IGG logo acima, quando o esperado seria "(HAV-IGM)". Preservado
+ *     como impresso.
+ *
+ * O LOTE III muda o formato do codigo (9 digitos, sem o zero a
+ * esquerda: "202100235" em vez de "0202100235") — e assim que esta
+ * impresso nessa parte da tabela, entao e assim que fica aqui.
+ * ------------------------------------------------------------------ */
+function lerSeteLagoasLaboratorio() {
+  /* [codigo, nome], na ordem em que aparecem no documento. */
+  const linhas = [
+    // --- pág. 13 ---
+    ["0202010015", "Clearance Osmolar"],
+    ["0202010023", "Determinação de Capacidade de Fixação do Ferro"],
+    ["0202010031", "Determinação de Cromatografia de Aminoácidos"],
+    ["0202010040", "Determinação de Curva Glicêmica (2 Dosagens)"],
+    ["0202010058", "Determinação de Curva Glicêmica c/ Indução por Cortizona (5 Dosagens)"],
+    ["0202010066", "Determinação de Curva Glicêmica c/ Indução por Cortisona (4 Dosagens)"],
+    ["0202010074", "Determinação de Curva Glicêmica Clássica (5 Dosagens)"],
+    ["0202010082", "Determinação de Osmolaridade"],
+    ["0202010090", "Dosagem de 5-Nucleotidase"],
+    ["0202010104", "Dosagem de Acetona"],
+    ["0202010112", "Dosagem de Ácido Ascórbico"],
+    ["0202010120", "Dosagem de Ácido Úrico"],
+    ["0202010139", "Dosagem de Ácido Vanilmandélico"],
+    ["0202010147", "Dosagem de Aldolase"],
+    ["0202010155", "Dosagem de Alfa-1-Antitripsina"],
+    ["0202010163", "Dosagem de Alfa-1-Glicoproteína Ácida"],
+    ["0202010171", "Dosagem de Alfa-2-Macroglobulina"],
+    ["0202010180", "Dosagem de Amilase"],
+    ["0202010198", "Dosagem de Amônia"],
+    ["0202010201", "Dosagem de Bilirrubina Total e Frações"],
+    ["0202010210", "Dosagem de Cálcio"],
+    ["0202010228", "Dosagem de Cálcio Ionizável"],
+    ["0202010236", "Dosagem de Caroteno"],
+    ["0202010252", "Dosagem de Ceruloplasmina"],
+    ["0202010260", "Dosagem de Cloreto"],
+    // --- pág. 14 ---
+    ["0202010279", "Dosagem de Colesterol HDL"],
+    ["0202010287", "Dosagem de Colesterol LDL"],
+    ["0202010295", "Dosagem de Colesterol Total"],
+    ["0202010309", "Dosagem de Colinesterase"],
+    ["0202010317", "Dosagem de Creatinina"],
+    ["0202010325", "Dosagem de Creatinofosfoquinase (CPK)"],
+    ["0202010333", "Dosagem de Creatinofosfoquinase Fração MB"],
+    ["0202010341", "Dosagem de Desidrogenase Alfa-Hidroxibutírica"],
+    ["0202010350", "Dosagem de Desidrogenase Glutâmica"],
+    ["0202010368", "Dosagem de Desidrogenase Lática"],
+    ["0202010376", "Dosagem de Desidrogenase Lática (Isoenzimas Fracionadas)"],
+    ["0202010384", "Dosagem de Ferritina"],
+    ["0202010392", "Dosagem de Ferro Sérico"],
+    ["0202010406", "Dosagem de Folato"],
+    ["0202010414", "Dosagem de Fosfatase Ácida Total"],
+    ["0202010422", "Dosagem de Fosfatase Alcalina"],
+    ["0202010430", "Dosagem de Fósforo"],
+    ["0202010449", "Dosagem de Fração Prostática da Fosfatase Ácida"],
+    ["0202010457", "Dosagem de Galactose"],
+    ["0202010465", "Dosagem de Gama-Glutamil-Transferase (Gama GT)"],
+    ["0202010473", "Dosagem de Glicose"],
+    ["0202010481", "Dosagem de Glicose-6-Fosfato Desidrogenase"],
+    ["0202010490", "Dosagem de Haptoglobina"],
+    ["0202010503", "Dosagem de Hemoglobina Glicosilada"],
+    ["0202010511", "Dosagem de Hidroxiprolina"],
+    ["0202010520", "Dosagem de Isomerase-Fosfohexose"],
+    ["0202010538", "Dosagem de Lactato"],
+    ["0202010546", "Dosagem de Leucino-Aminopeptidase"],
+    ["0202010554", "Dosagem de Lipase"],
+    ["0202010562", "Dosagem de Magnésio"],
+    ["0202010570", "Dosagem de Muco-Proteínas"],
+    ["0202010589", "Dosagem de Piruvato"],
+    ["0202010597", "Dosagem de Porfirinas"],
+    ["0202010600", "Dosagem de Potássio"],
+    ["0202010619", "Dosagem de Proteínas Totais"],
+    ["0202010627", "Dosagem de Proteínas Totais e Frações"],
+    ["0202010635", "Dosagem de Sódio"],
+    ["0202010643", "Dosagem de Transaminase Glutâmico-Oxalacética (TGO)"],
+    ["0202010651", "Dosagem de Transaminase Glutâmico-Pirúvica (TGP)"],
+    // --- pág. 15 ---
+    ["0202010660", "Dosagem de Transferrina"],
+    ["0202010678", "Dosagem de Triglicerídeos"],
+    ["0202010686", "Dosagem de Triptofano"],
+    ["0202010694", "Dosagem de Ureia"],
+    ["0202010708", "Dosagem de Vitamina B12"],
+    ["0202010716", "Eletroforese de Lipoproteínas"],
+    ["0202010724", "Eletroforese de Proteínas"],
+    ["0202010732", "Gasometria (PH PCO2 PO2 Bicarbonato AS2 (Exceto Base))"],
+    ["0202010740", "Prova da D-Xilose"],
+    ["0202010759", "Teste de Tolerância à Insulina / Hipoglicemiantes Orais"],
+    ["0202010767", "Dosagem de 25 Hidroxivitamina D"],
+    ["0202010775", "Determinação de Crematócrito no Leite Humano Ordenhado"],
+    ["0202010783", "Acidez Titulável no Leite Humano (Dornic)"],
+    ["0202010791", "Dosagem de Peptídeos Natriuréticos Tipo B (BNP e NT-proBNP)"],
+    ["0202020010", "Citoquímica Hematológica"],
+    ["0202020029", "Contagem de Plaquetas"],
+    ["0202020037", "Contagem de Reticulócitos"],
+    ["0202020045", "Determinação de Curva de Resistência Globular"],
+    ["0202020053", "Determinação de Enzimas Eritrocitárias (cada)"],
+    ["0202020061", "Determinação de Sulfo-Hemoglobina"],
+    ["0202020070", "Determinação de Tempo de Coagulação"],
+    ["0202020088", "Determinação de Tempo de Lise da Euglobulina"],
+    ["0202020096", "Determinação de Tempo de Sangramento - Duke"],
+    ["0202020100", "Determinação de Tempo de Sangramento de Ivy"],
+    ["0202020118", "Determinação de Tempo de Sobrevida de Hemácias"],
+    ["0202020126", "Determinação de Tempo de Trombina"],
+    ["0202020134", "Determinação de Tempo de Tromboplastina Parcial Ativada (TTP Ativada)"],
+    ["0202020142", "Determinação de Tempo e Atividade da Protrombina (TAP)"],
+    ["0202020150", "Determinação de Velocidade de Hemossedimentação (VHS)"],
+    ["0202020169", "Dosagem de Anticoagulante Circulante"],
+    ["0202020177", "Dosagem de Antitrombina III"],
+    ["0202020185", "Dosagem de Fator II"],
+    ["0202020193", "Dosagem de Fator IX"],
+    ["0202020207", "Dosagem de Fator V"],
+    ["0202020215", "Dosagem de Fator VII"],
+    ["0202020223", "Dosagem de Fator VIII"],
+    ["0202020231", "Dosagem de Fator VIII (Inibidor)"],
+    ["0202020240", "Dosagem de Fator Von Willebrand (Antígeno)"],
+    // --- pág. 16 ---
+    ["0202020258", "Dosagem de Fator X"],
+    ["0202020266", "Dosagem de Fator XI"],
+    ["0202020274", "Dosagem de Fator XII"],
+    ["0202020282", "Dosagem de Fator XIII"],
+    ["0202020290", "Dosagem de Fibrinogênio"],
+    ["0202020304", "Dosagem de Hemoglobina"],
+    ["0202020312", "Dosagem de Hemoglobina - Instabilidade a 37°C"],
+    ["0202020320", "Dosagem de Hemoglobina Fetal"],
+    ["0202020339", "Dosagem de Hemossiderina"],
+    ["0202020347", "Dosagem de Plasminogênio"],
+    ["0202020355", "Eletroforese de Hemoglobina"],
+    ["0202020363", "Eritrograma (Eritrócitos, Hemoglobina, Hematócrito)"],
+    ["0202020371", "Hematócrito"],
+    ["0202020380", "Hemograma Completo"],
+    ["0202020398", "Leucograma"],
+    ["0202020401", "Pesquisa de Atividade do Cofator de Ristocetina"],
+    ["0202020410", "Pesquisa de Células LE"],
+    ["0202020428", "Pesquisa de Corpúsculos de Heinz"],
+    ["0202020436", "Pesquisa de Filária"],
+    ["0202020444", "Pesquisa de Hemoglobina S"],
+    ["0202020460", "Pesquisa de Tripanossoma"],
+    ["0202020487", "Prova de Consumo de Protrombina"],
+    ["0202020495", "Prova de Retração do Coágulo"],
+    ["0202020509", "Prova do Laço"],
+    ["0202020517", "Rastreio p/ Deficiência de Enzimas Eritrocitárias"],
+    ["0202020525", "Teste de Agregação de Plaquetas"],
+    ["0202020533", "Teste de Ham (Hemólise Ácida)"],
+    ["0202020541", "Teste Direto de Antiglobulina Humana (TAD)"],
+    ["0202020550", "Dosagem de Proteína C Funcional"],
+    ["0202020576", "Pesquisa de Anticoagulante Lúpico"],
+    ["0202020568", "Dosagem de Proteína S Funcional"],
+    ["0202030016", "Contagem de Linfócitos B"],
+    ["0202030024", "Contagem de Linfócitos CD4/CD8"],
+    ["0202030032", "Contagem de Linfócitos T Totais"],
+    ["0202030040", "Detecção de Ácidos Nucleicos do HIV-1 (Qualitativo)"],
+    ["0202030059", "Detecção de RNA do Vírus da Hepatite C (Qualitativo)"],
+    ["0202030067", "Determinação de Complemento (CH50)"],
+    ["0202030075", "Determinação de Fator Reumatoide"],
+    ["0202030083", "Determinação Quantitativa de Proteína C Reativa"],
+    // --- pág. 17 ---
+    ["0202030091", "Dosagem de Alfa-Fetoproteína"],
+    ["0202030105", "Dosagem de Antígeno Prostático Específico (PSA)"],
+    ["0202030113", "Dosagem de Beta-2-Microglobulina"],
+    ["0202030121", "Dosagem de Complemento C3"],
+    ["0202030130", "Dosagem de Complemento C4"],
+    ["0202030148", "Dosagem de Crioaglutinina"],
+    ["0202030156", "Dosagem de Imunoglobulina A (IgA)"],
+    ["0202030164", "Dosagem de Imunoglobulina E (IgE)"],
+    ["0202030180", "Dosagem de Imunoglobulina M (IgM)"],
+    ["0202030199", "Dosagem de Inibidor de C1-Esterase"],
+    ["0202030202", "Dosagem de Proteína C Reativa"],
+    ["0202030210", "Genotipagem de Vírus da Hepatite C"],
+    ["0202030229", "Imunoeletroforese de Proteínas"],
+    ["0202030237", "Imunofenotipagem de Hemopatias Malignas (por marcador)"],
+    ["0202030253", "Pesquisa de Anticorpo IgG Anticardiolipina"],
+    ["0202030261", "Pesquisa de Anticorpo IgM Anticardiolipina"],
+    ["0202030270", "Pesquisa de Anticorpos Anti-DNA"],
+    ["0202030288", "Pesquisa de Anticorpos Anti-Heliobacter Pylori"],
+    ["0202030296", "Pesquisa de Anticorpos Anti-HIV-1 (Western Blot)"],
+    ["0202030300", "Pesquisa de Anticorpos Anti-HIV-1 + HIV-2 (Elisa)"],
+    ["0202030318", "Pesquisa de Anticorpos Anti-HTLV-1 + HTLV-2"],
+    ["0202030326", "Pesquisa de Anticorpos Anti-Ribonucleoproteína (RNP)"],
+    ["0202030334", "Pesquisa de Anticorpos Anti-Schistosomas"],
+    ["0202030342", "Pesquisa de Anticorpos Anti-SM"],
+    ["0202030350", "Pesquisa de Anticorpos Anti-SS-A (RO)"],
+    ["0202030369", "Pesquisa de Anticorpos Anti-SS-B (LA)"],
+    ["0202030377", "Pesquisa de Anticorpos Antiadenovirus"],
+    ["0202030385", "Pesquisa de Anticorpos Antiamebas"],
+    ["0202030393", "Pesquisa de Anticorpos Antiaspergillus"],
+    ["0202030407", "Pesquisa de Anticorpos Antibrucelas"],
+    ["0202030415", "Pesquisa de Anticorpos Anticisticerco"],
+    ["0202030423", "Pesquisa de Anticorpos Anticlamídia (por Imunofluorescência)"],
+    ["0202030431", "Pesquisa de Anticorpos Anticortex Suprarenal"],
+    ["0202030440", "Pesquisa de Anticorpos Antiequinococos"],
+    ["0202030458", "Pesquisa de Anticorpos Antiescleroderma (SCL 70)"],
+    ["0202030466", "Pesquisa de Anticorpos Antiespermatozoides"],
+    ["0202030474", "Pesquisa de Anticorpos Antiestreptolisina O (ASLO)"],
+    ["0202030482", "Pesquisa de Anticorpos Antifígado"],
+    // --- pág. 18 ---
+    ["0202030504", "Pesquisa de Anticorpos Antiglomérulo"],
+    ["0202030512", "Pesquisa de Anticorpos Antilhota de Langerhans"],
+    ["0202030520", "Pesquisa de Anticorpos Antiinsulina"],
+    ["0202030539", "Pesquisa de Anticorpos Antileptospiras"],
+    ["0202030547", "Pesquisa de Anticorpos Antilisteria"],
+    ["0202030555", "Pesquisa de Anticorpos Antimicrossomas"],
+    ["0202030563", "Pesquisa de Anticorpos Antimitocôndria"],
+    ["0202030571", "Pesquisa de Anticorpos Antimúsculo Estriado"],
+    ["0202030580", "Pesquisa de Anticorpos Antimúsculo Liso"],
+    ["0202030598", "Pesquisa de Anticorpos Antinúcleo"],
+    ["0202030601", "Pesquisa de Anticorpos Antiparietais"],
+    ["0202030610", "Pesquisa de Anticorpos Antiplasmódios"],
+    ["0202030628", "Pesquisa de Anticorpos Antitireoglobulina"],
+    ["0202030636", "Pesquisa de Anticorpos contra Antígeno de Superfície do Vírus da Hepatite B (Anti HBS)"],
+    ["0202030644", "Pesquisa de Anticorpos contra Antígeno E do Vírus da Hepatite B (Anti HBE)"],
+    ["0202030652", "Pesquisa de Anticorpos contra Histoplasma"],
+    ["0202030660", "Pesquisa de Anticorpos contra o Sporotrix Schenkii"],
+    ["0202030679", "Pesquisa de Anticorpos contra o Vírus da Hepatite C (Anti HCV)"],
+    ["0202030687", "Pesquisa de Anticorpos contra o Vírus da Hepatite D (Anti HDV)"],
+    ["0202030695", "Pesquisa de Anticorpos contra o Vírus do Sarampo"],
+    ["0202030709", "Pesquisa de Anticorpos contra Paracoccidioides Brasiliensis"],
+    ["0202030717", "Pesquisa de Anticorpos e/ou Antígeno do Vírus Sincicial Respiratório"],
+    ["0202030725", "Pesquisa de Anticorpos EIE Anticlamídia"],
+    ["0202030733", "Pesquisa de Anticorpos Heterófilos contra o Vírus Epstein-Barr"],
+    ["0202030741", "Pesquisa de Anticorpos IgG Anticitomegalovirus"],
+    ["0202030750", "Pesquisa de Anticorpos IgG Antileishmanias"],
+    ["0202030768", "Pesquisa de Anticorpos IgG Antitoxoplasma"],
+    ["0202030776", "Pesquisa de Anticorpos IgG Antitrypanosoma Cruzi"],
+    ["0202030784", "Pesquisa de Anticorpos IgG contra Antígeno Central do Vírus da Hepatite B (Anti-HBC-IgG)"],
+    /* Codigo impresso fora de ordem — ver o cabecalho desta funcao. */
+    ["0020203792", "Pesquisa de Anticorpos IgG contra Arbovirus"],
+    ["0202030806", "Pesquisa de Anticorpos IgG contra o Vírus da Hepatite A (HAV-IgG)"],
+    ["0202030814", "Pesquisa de Anticorpos IgG contra o Vírus da Rubéola"],
+    ["0202030822", "Pesquisa de Anticorpos IgG contra o Vírus da Varicela-Herpes Zoster"],
+    ["0202030830", "Pesquisa de Anticorpos IgG contra o Vírus Epstein-Barr"],
+    ["0202030849", "Pesquisa de Anticorpos IgG contra o Vírus Herpes Simples"],
+    // --- pág. 19 ---
+    ["0202030857", "Pesquisa de Anticorpos IgM Anticitomegalovirus"],
+    ["0202030865", "Pesquisa de Anticorpos IgM Antileishmanias"],
+    ["0202030873", "Pesquisa de Anticorpos IgM Antitoxoplasma"],
+    ["0202030881", "Pesquisa de Anticorpos IgM Antitrypanosoma Cruzi"],
+    ["0202030890", "Pesquisa de Anticorpos IgM contra Antígeno Central do Vírus da Hepatite B (Anti-HBC-IgM)"],
+    ["0202030903", "Pesquisa de Anticorpos IgM contra Arbovirus"],
+    /* O rotulo "(HAV-IgG)" esta impresso tambem nesta linha IgM — ver o
+     * cabecalho desta funcao. */
+    ["0202030911", "Pesquisa de Anticorpos IgM contra o Vírus da Hepatite A (HAV-IgG)"],
+    ["0202030920", "Pesquisa de Anticorpos IgM contra o Vírus da Rubéola"],
+    ["0202030938", "Pesquisa de Anticorpos IgM contra o Vírus da Varicela-Herpes Zoster"],
+    ["0202030946", "Pesquisa de Anticorpos IgM contra o Vírus Epstein-Barr"],
+    ["0202030954", "Pesquisa de Anticorpos IgM contra o Vírus Herpes Simples"],
+    ["0202030962", "Pesquisa de Antígeno Carcinoembrionário (CEA)"],
+    ["0202030970", "Pesquisa de Antígeno de Superfície do Vírus da Hepatite B (HBsAg)"],
+    ["0202030989", "Pesquisa de Antígeno E do Vírus da Hepatite B (HBeAg)"],
+    ["0202030997", "Pesquisa de Clamídia (por Captura Híbrida)"],
+    ["0202031004", "Pesquisa de Crioglobulinas"],
+    ["0202031012", "Pesquisa de Fator Reumatoide (Waaler-Rose)"],
+    ["0202031020", "Pesquisa de HIV-1 por Imunofluorescência"],
+    ["0202031039", "Pesquisa de Imunoglobulina E (IgE) Alergeno-Específica"],
+    ["0202031047", "Pesquisa de Trypanosoma Cruzi (por Imunofluorescência)"],
+    ["0202031055", "Provas de Prausnitz-Kustner (PK)"],
+    ["0202031063", "Provas Imuno-Alérgicas Bacterianas"],
+    ["0202031071", "Quantificação de RNA do HIV-1"],
+    ["0202031080", "Quantificação de RNA do Vírus da Hepatite C"],
+    ["0202031098", "Reação de Hemaglutinação (TPHA) p/ Diagnóstico da Sífilis"],
+    ["0202031101", "Reação de Montenegro ID"],
+    ["0202031110", "Teste de VDRL p/ Detecção de Sífilis"],
+    ["0202031128", "Teste FTA-ABS IgG p/ Diagnóstico da Sífilis"],
+    ["0202031136", "Teste FTA-ABS IgM p/ Diagnóstico da Sífilis"],
+    ["0202031144", "Testes Alérgicos de Contato"],
+    ["0202031152", "Testes Cutâneos de Leitura Imediata"],
+    ["0202031179", "VDRL p/ Detecção de Sífilis em Gestante"],
+    ["0202031187", "Dosagem de Anticorpos Antitransglutaminase Recombinante Humano IgA"],
+    ["0202031195", "Dosagem da Fração C1q do Complemento"],
+    ["0202031209", "Dosagem de Troponina"],
+    // --- pág. 20 ---
+    ["0202031217", "Dosagem do Antígeno CA 125"],
+    ["0202031225", "Exame Laboratorial para Doença de Gaucher I"],
+    ["0202031233", "Exame Laboratorial para Doença de Gaucher II"],
+    ["0202031250", "Detecção de RNA do HTLV-1"],
+    ["0202031268", "Pesquisa de Anticorpos Anti-HTLV-1 (Western-Blot)"],
+    ["0202031276", "Dosagem de Adenosina-Desaminase (ADA)"],
+    ["0202031284", "Antibeta 2 Glicoproteína I IgG"],
+    ["0202031292", "Dosagem de Anti-Beta-2-Glicoproteína I IgM"],
+    ["0202031306", "Diagnóstico e Reavaliação de Hemoglobinúria Paroxística Noturna"],
+    ["0202031314", "Dosagem de Anticorpo Anti-AChR"],
+    ["0202040011", "Dosagem de Estercobilinogênio Fecal"],
+    ["0202040020", "Dosagem de Gordura Fecal"],
+    ["0202040038", "Exame Coprológico Funcional"],
+    ["0202040046", "Identificação de Fragmentos de Helmintos"],
+    ["0202040054", "Pesquisa de Enterobius Vermiculares (Oxiurus Oxiura)"],
+    ["0202040062", "Pesquisa de Eosinófilos"],
+    ["0202040070", "Pesquisa de Gordura Fecal"],
+    ["0202040089", "Pesquisa de Larvas nas Fezes EPF"],
+    ["0202040097", "Pesquisa de Leucócitos nas Fezes"],
+    ["0202040100", "Pesquisa de Leveduras nas Fezes"],
+    ["0202040119", "Pesquisa de Ovos de Schistosomas (em Fragmento de Mucosa)"],
+    ["0202040127", "Pesquisa de Ovos e Cistos de Parasitas"],
+    ["0202040135", "Pesquisa de Rotavírus nas Fezes"],
+    ["0202040143", "Pesquisa de Sangue Oculto nas Fezes"],
+    ["0202040151", "Pesquisa de Substâncias Redutoras nas Fezes"],
+    ["0202040160", "Pesquisa de Tripsina nas Fezes"],
+    ["0202040178", "Pesquisa de Trofozoítas nas Fezes"],
+    ["0202050017", "Análise de Caracteres Físicos, Elementos e Sedimento da Urina"],
+    ["0202050025", "Clearance de Creatinina"],
+    ["0202050033", "Clearance de Fosfato"],
+    ["0202050041", "Clearance de Ureia"],
+    ["0202050050", "Contagem de Addis"],
+    ["0202050068", "Determinação de Osmolalidade"],
+    ["0202050076", "Dosagem de Açúcares (por Cromatografia)"],
+    ["0202050084", "Dosagem de Citrato"],
+    ["0202050092", "Dosagem de Microalbumina na Urina"],
+    ["0202050106", "Dosagem de Oxalato"],
+    // --- pág. 21 ---
+    ["0202050114", "Dosagem de Proteínas (Urina de 24 horas)"],
+    ["0202050122", "Dosagem e/ou Fracionamento de Ácidos Orgânicos"],
+    ["0202050130", "Exame Qualitativo de Cálculos Urinários"],
+    ["0202050149", "Pesquisa/Dosagem de Aminoácidos (por Cromatografia)"],
+    ["0202050157", "Pesquisa de Alcaptona na Urina"],
+    ["0202050165", "Pesquisa de Aminoácidos na Urina"],
+    ["0202050173", "Pesquisa de Beta-Mercapto-Lactato-Dissulfidúria"],
+    ["0202050181", "Pesquisa de Cadeias Leves Kappa e Lambda"],
+    ["0202050190", "Pesquisa de Cistina na Urina"],
+    ["0202050203", "Pesquisa de Coproporfirina na Urina"],
+    ["0202050211", "Pesquisa de Erros Inatos do Metabolismo na Urina"],
+    ["0202050220", "Pesquisa de Fenil-Cetona na Urina"],
+    ["0202050238", "Pesquisa de Frutose na Urina"],
+    ["0202050246", "Pesquisa de Galactose na Urina"],
+    ["0202050262", "Pesquisa de Homocistina na Urina"],
+    ["0202050270", "Pesquisa de Lactose na Urina"],
+    ["0202050289", "Pesquisa de Mucopolissacarídeos na Urina"],
+    ["0202050297", "Pesquisa de Porfobilinogênio na Urina"],
+    ["0202050300", "Pesquisa de Proteínas Urinárias (por Eletroforese)"],
+    ["0202050319", "Pesquisa de Tirosina na Urina"],
+    ["0202050327", "Prova de Diluição (Urina)"],
+    ["0202060012", "Determinação de Índice de Tiroxina Livre"],
+    ["0202060020", "Determinação de Retenção de T3"],
+    ["0202060039", "Determinação de T3 Reverso"],
+    ["0202060047", "Dosagem de 17-Alfa-Hidroxiprogesterona"],
+    ["0202060055", "Dosagem de 17-Cetosteroides Totais"],
+    ["0202060063", "Dosagem de 17-Hidroxicorticosteroides"],
+    ["0202060071", "Dosagem de Ácido 5-Hidroxi-Indol-Acético (Serotonina)"],
+    ["0202060080", "Dosagem de Adrenocorticotrófico (ACTH)"],
+    ["0202060098", "Dosagem de Aldosterona"],
+    ["0202060101", "Dosagem de AMP Cíclico"],
+    ["0202060110", "Dosagem de Androstenediona"],
+    ["0202060128", "Dosagem de Calcitonina"],
+    ["0202060136", "Dosagem de Cortisol"],
+    ["0202060144", "Dosagem de Dehidroepiandrosterona (DHEA)"],
+    ["0202060152", "Dosagem de Dihidrotestosterona (DHT)"],
+    ["0202060160", "Dosagem de Estradiol"],
+    ["0202060179", "Dosagem de Estriol"],
+    ["0202060187", "Dosagem de Estrona"],
+    // --- pág. 22 ---
+    ["0202060195", "Dosagem de Gastrina"],
+    ["0202060209", "Dosagem de Globulina Transportadora de Tiroxina"],
+    ["0202060217", "Dosagem de Gonadotrofina Coriônica Humana (HCG, Beta HCG)"],
+    ["0202060225", "Dosagem de Hormônio de Crescimento (HGH)"],
+    ["0202060233", "Dosagem de Hormônio Folículo-Estimulante (FSH)"],
+    ["0202060241", "Dosagem de Hormônio Luteinizante (LH)"],
+    ["0202060250", "Dosagem de Hormônio Tireoestimulante (TSH)"],
+    ["0202060268", "Dosagem de Insulina"],
+    ["0202060276", "Dosagem de Paratormônio"],
+    ["0202060284", "Dosagem de Peptídeo C"],
+    ["0202060292", "Dosagem de Progesterona"],
+    ["0202060306", "Dosagem de Prolactina"],
+    ["0202060314", "Dosagem de Renina"],
+    ["0202060322", "Dosagem de Somatomedina C (IGF1)"],
+    ["0202060330", "Dosagem de Sulfato de Hidroepiandrosterona (DHEAS)"],
+    ["0202060349", "Dosagem de Testosterona"],
+    ["0202060357", "Dosagem de Testosterona Livre"],
+    ["0202060365", "Dosagem de Tireoglobulina"],
+    ["0202060373", "Dosagem de Tiroxina (T4)"],
+    ["0202060381", "Dosagem de Tiroxina Livre (T4 Livre)"],
+    ["0202060390", "Dosagem de Triiodotironina (T3)"],
+    ["0202060403", "Teste de Estímulo da Prolactina/TSH após TRH"],
+    ["0202060411", "Teste de Estímulo da Prolactina após Clopromazina"],
+    ["0202060420", "Teste de Estímulo com GnRH ou com Agonista GnRH"],
+    ["0202060438", "Teste de Estímulo do HGH após Glucagon"],
+    ["0202060446", "Teste de Supressão do Cortisol após Dexametasona"],
+    ["0202060454", "Teste de Supressão do HGH após Glicose"],
+    ["0202060462", "Teste p/ Investigação do Diabetes Insipidus"],
+    ["0202060470", "Pesquisa de Macroprolactina"],
+    ["0202070018", "Dosagem de Ácido Delta-Aminolevulínico"],
+    ["0202070026", "Dosagem de Ácido Hipúrico"],
+    // --- pág. 23 ---
+    ["0202070034", "Dosagem de Ácido Mandélico"],
+    ["0202070042", "Dosagem de Ácido Metil-Hipúrico"],
+    ["0202070050", "Dosagem de Ácido Valproico"],
+    ["0202070069", "Dosagem de ALA-Desidratase"],
+    ["0202070077", "Dosagem de Álcool Etílico"],
+    ["0202070085", "Dosagem de Alumínio"],
+    ["0202070093", "Dosagem de Aminoglicosídeos"],
+    ["0202070107", "Dosagem de Anfetaminas"],
+    ["0202070115", "Dosagem de Antidepressivos Tricíclicos"],
+    ["0202070123", "Dosagem de Barbitúricos"],
+    ["0202070131", "Dosagem de Benzodiazepínicos"],
+    ["0202070140", "Dosagem de Cádmio"],
+    ["0202070158", "Dosagem de Carbamazepina"],
+    ["0202070166", "Dosagem de Carboxi-Hemoglobina"],
+    ["0202070174", "Dosagem de Chumbo"],
+    ["0202070182", "Dosagem de Ciclosporina"],
+    ["0202070190", "Dosagem de Cobre"],
+    ["0202070204", "Dosagem de Digitálicos (Digoxina, Digitoxina)"],
+    ["0202070212", "Dosagem de Etossuximida"],
+    ["0202070220", "Dosagem de Fenitoína"],
+    ["0202070239", "Dosagem de Fenol"],
+    ["0202070247", "Dosagem de Formaldeído"],
+    ["0202070255", "Dosagem de Lítio"],
+    ["0202070263", "Dosagem de Mercúrio"],
+    ["0202070271", "Dosagem de Meta-Hemoglobina"],
+    ["0202070280", "Dosagem de Metabólitos da Cocaína"],
+    ["0202070298", "Dosagem de Metotrexato"],
+    ["0202070301", "Dosagem de Quinidina"],
+    ["0202070310", "Dosagem de Salicilatos"],
+    ["0202070328", "Dosagem de Sulfatos"],
+    ["0202070336", "Dosagem de Teofilina"],
+    ["0202070344", "Dosagem de Tiocianato"],
+    ["0202070352", "Dosagem de Zinco"],
+    ["0202080013", "Antibiograma"],
+    ["0202080021", "Antibiograma c/ Concentração Inibitória Mínima"],
+    ["0202080030", "Antibiograma p/ Micobactérias"],
+    ["0202080048", "Baciloscopia Direta p/ BAAR Tuberculose (Diagnóstica)"],
+    ["0202080056", "Baciloscopia Direta p/ BAAR (Hanseníase)"],
+    ["0202080064", "Baciloscopia Direta p/ BAAR Tuberculose (Controle)"],
+    // --- pág. 24 ---
+    ["0202080072", "Bacteroscopia (Gram)"],
+    ["0202080080", "Cultura de Bactérias p/ Identificação"],
+    ["0202080099", "Cultura do Leite Humano (pós-pasteurização)"],
+    ["0202080102", "Cultura p/ Herpesvírus"],
+    ["0202080110", "Cultura para BAAR"],
+    ["0202080129", "Cultura para Bactérias Anaeróbicas"],
+    ["0202080137", "Cultura para Identificação de Fungos"],
+    ["0202080145", "Exame Microbiológico a Fresco (Direto)"],
+    ["0202080153", "Hemocultura"],
+    ["0202080161", "Identificação Automatizada de Microorganismos"],
+    ["0202080170", "Pesquisa de Pneumocystis Carinii"],
+    ["0202080188", "Pesquisa de Bacilo Diftérico"],
+    ["0202080196", "Pesquisa de Estreptococos Beta-Hemolíticos do Grupo A"],
+    ["0202080200", "Pesquisa de Haemophilus Ducrey"],
+    ["0202080218", "Pesquisa de Helicobacter Pylori"],
+    ["0202080226", "Pesquisa de Leptospiras"],
+    ["0202080234", "Pesquisa de Treponema Pallidum"],
+    ["0202080242", "Prova Confirmatória da Presença de Micro-organismos Coliformes"],
+    ["0202090019", "Ácido Úrico Líquido no Sinovial e Derrames"],
+    ["0202090027", "Adenograma"],
+    ["0202090035", "Citologia p/ Clamídia"],
+    ["0202090043", "Citologia p/ Herpesvírus"],
+    ["0202090051", "Contagem Específica de Células no Líquor"],
+    ["0202090060", "Contagem Global de Células no Líquor"],
+    ["0202090078", "Determinação de Fosfolipídeos Relação Lecitina-Esfingomielina no Líquido Amniótico"],
+    ["0202090086", "Dosagem de Creatinina no Líquido Amniótico"],
+    ["0202090094", "Dosagem de Fosfatase Alcalina no Esperma"],
+    ["0202090108", "Dosagem de Frutose"],
+    ["0202090116", "Dosagem de Frutose no Esperma"],
+    ["0202090124", "Dosagem de Glicose no Líquido Sinovial e Derrames"],
+    ["0202090132", "Dosagem de Proteínas no Líquido Sinovial e Derrames"],
+    ["0202090159", "Eletroforese de Proteínas c/ Concentração no Líquor"],
+    ["0202090167", "Espectrofotometria no Líquido Amniótico"],
+    ["0202090175", "Esplenograma"],
+    ["0202090183", "Exame de Caracteres Físicos, Contagem Global e Específica de Células"],
+    ["0202090191", "Mielograma"],
+    ["0202090213", "Pesquisa de Anticorpos Antiespermatozoides (Elisa)"],
+    ["0202090221", "Dosagem de Fosfatase Ácida no Esperma"],
+    // --- pág. 25 ---
+    ["0202090230", "Pesquisa de Caracteres Físicos no Líquor"],
+    ["0202090248", "Pesquisa de Células Orangiófilas"],
+    ["0202090256", "Pesquisa de Cristais c/ Luz Polarizada"],
+    ["0202090264", "Pesquisa de Espermatozoides (após Vasectomia)"],
+    ["0202090272", "Pesquisa de Ragócitos no Líquido Sinovial e Derrames"],
+    ["0202090280", "Prova de Progressão Espermática (cada)"],
+    ["0202090299", "Prova do Látex p/ Haemophilus Influenzae, Streptococcus Pneumoniae, Neisseria Meningitidis (Sorotipos A, B, C)"],
+    ["0202090302", "Prova do Látex p/ Pesquisa do Fator Reumatoide"],
+    ["0202090310", "Reação de Pandy"],
+    ["0202090329", "Reação de Rivalta no Líquido Sinovial e Derrames"],
+    ["0202090337", "Teste de Clements"],
+    ["0202090345", "Teste de Gastroacidograma - Secreção Basal por 60min em 4 Amostras"],
+    ["0202090353", "Teste de Hollander no Suco Gástrico"],
+    /* LOTE III muda o formato do codigo — 9 digitos, sem zero a
+     * esquerda. Preservado como impresso. */
+    ["202100235", "Pesquisa de Mutação do Gene da Protrombina"],
+    ["202110087", "Dosagem de TSH e T4 Livre (Controle / Diagnóstico Tardio)"],
+    ["202120023", "Determinação Direta e Reversa de Grupo ABO"],
+    ["202120031", "Fenotipagem de Sistema RH - HR"],
+    ["202120058", "Pesquisa de Anticorpos Irregulares pelo Método da Eluição"],
+    ["202120066", "Pesquisa de Anticorpos Séricos Irregulares 37°C"],
+    ["202120074", "Pesquisa de Anticorpos Séricos Irregulares a Frio"],
+    ["202120082", "Pesquisa de Fator RH (inclui D Fraco)"],
+    ["202120090", "Teste Indireto de Antiglobulina Humana (TIA)"],
+    ["202120104", "Titulação de Anticorpos Anti A e/ou Anti B"],
+  ];
+
+  const exames = linhas.map(([codigo, nome]) => ({ nome, codigo }));
+
+  return {
+    _leia_me:
+      "Transcrito de 'PREFEITURA MUNICIPAL DE SETE LAGOAS — APÊNDICE I, Lotes I a III — Procedimentos da " +
+      "tabela SIGTAP' (contrato de exames laboratoriais, documento escaneado sem camada de texto — pdftotext " +
+      "devolve 0 linhas, e o OCR testado saiu pior que a leitura visual). Só código e nome; a coluna de preço " +
+      "(\"Valor Unit.\") não entra — é dado de contrato entre a prefeitura e o laboratório, sem uso para o " +
+      "médico que pede o exame.",
+    fonte: "Tabela SIGTAP de exames laboratoriais (Apêndice I) — SL",
+    /* Data do arquivo escaneado (nome original: 'CamScanner
+     * 28-05-2026'), nao necessariamente a data de assinatura do
+     * contrato — e a evidencia mais concreta disponivel sobre quando
+     * esta lista foi capturada. */
+    atualizadoEm: "2026-05-28",
+    exames,
+  };
+}
+
+/* ------------------------------------------------------------------
+ * JUNTAR DUAS FONTES DO MESMO MUNICIPIO
+ * ------------------------------------------------------------------
+ * Sete Lagoas e o primeiro caso de municipio com mais de um documento.
+ * Para o medico e uma lista so — ele nao quer saber que "orientacoes"
+ * e "tabela SIGTAP" sao arquivos diferentes, quer ver o que aquele
+ * municipio oferece. Esta funcao junta os `exames` num array so,
+ * concatena a `fonte` de cada bloco (para a procedencia continuar
+ * rastreavel na tela) e fica com a data MAIS RECENTE entre as fontes —
+ * e a resposta honesta para "desde quando esta lista esta valendo".
+ * ------------------------------------------------------------------ */
+function juntarFontesDoMesmoMunicipio(blocos) {
+  const validos = blocos.filter(Boolean);
+  if (!validos.length) return null;
+  if (validos.length === 1) return validos[0];
+
+  /* Codigo repetido entre as duas fontes seria o mesmo tipo de erro que
+   * a duplicata de Betim: duas linhas para o mesmo exame, uma delas
+   * supérflua. As fontes aqui cobrem categorias diferentes de exame
+   * (imagem/procedimento agendado x bancada laboratorial), entao nao
+   * era esperado cruzamento — mas medir e mais seguro que supor. */
+  const codigosVistos = new Map();
+  const exames = [];
+  let colisoes = 0;
+  validos.forEach((b) => {
+    b.exames.forEach((e) => {
+      if (e.codigo) {
+        if (codigosVistos.has(e.codigo)) {
+          colisoes++;
+          console.warn(
+            "  ! codigo " + e.codigo + " repetido entre fontes de Sete Lagoas: \"" +
+            codigosVistos.get(e.codigo) + "\" e \"" + e.nome + "\""
+          );
+        } else {
+          codigosVistos.set(e.codigo, e.nome);
+        }
+      }
+      exames.push(e);
+    });
+  });
+
+  if (colisoes) {
+    console.warn("  ! " + colisoes + " codigo(s) repetido(s) entre as fontes de Sete Lagoas — ver acima");
+  }
+
+  const observacoes = validos.reduce((acc, b) => acc.concat(b.observacoes || []), []);
+
+  return {
+    _leia_me: validos.map((b) => b._leia_me).join(" | "),
+    fonte: validos.map((b) => b.fonte).join(" + "),
+    atualizadoEm: validos.map((b) => b.atualizadoEm).sort().pop(), // a mais recente
+    ...(observacoes.length ? { observacoes } : {}),
+    exames,
+  };
+}
+
 /* ------------------------------------------------------------------ */
 
 async function main() {
@@ -504,7 +1104,7 @@ async function main() {
     Betim: await lerBetim(),
     "Macaé": lerMacae(),
     Congonhas: lerCongonhas(),
-    "Sete Lagoas": lerSeteLagoas(),
+    "Sete Lagoas": juntarFontesDoMesmoMunicipio([lerSeteLagoas(), lerSeteLagoasLaboratorio()]),
   };
 
   const saida = {
