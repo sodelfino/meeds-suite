@@ -188,5 +188,58 @@ const corpo = (ids) => ({ data: ids.map((id) => ({ id: id })) });
      !eh(base + "&StatusAtendimentoId=12") && !eh(base + "&StatusAtendimentoId=20"));
 }
 
+/* ------------------------------------------------------------------
+ * PRIVACIDADE: nome de paciente nao entra no modulo
+ * ------------------------------------------------------------------
+ * Ate a v2.33.1 o alarme procurava o nome do paciente em cinco caminhos
+ * e o guardava em `ultimaChegada`, ainda que o cartao mostrasse apenas o
+ * municipio. Era leitura sem uso — e dado de paciente sem uso continua
+ * aparecendo em despejo de memoria, em depurador e em relatorio de erro.
+ *
+ * Este teste alimenta a fila com uma resposta que traz o nome em TODOS
+ * os caminhos que o modulo ja tentou, e depois varre o que ele reteve
+ * atras dessa string. A varredura e recursiva de proposito: um `nome`
+ * reintroduzido em qualquer nivel da ficha derruba o teste.
+ * ------------------------------------------------------------------ */
+{
+  const api = carregar();
+  const NOME = "MARIA DAS DORES TESTE";
+  const url =
+    "https://api-calltech.meeds.com.br/api/v1/Atendimento?StatusAtendimentoId=2&take=100";
+
+  const paciente = (id) => ({
+    id: id,
+    nomePaciente: NOME,
+    pacienteNome: NOME,
+    paciente: { nome: NOME, nomeCompleto: NOME, cliente: { razaoSocialNome: NOME } },
+    cliente: { razaoSocialNome: "PREFEITURA MUNICIPAL DE ITAUNA" },
+  });
+
+  /* Primeira leitura so define a base; a segunda e que traz "novos". */
+  api._lerRespostaDeFila(url, { items: [paciente("p1")] });
+  api._lerRespostaDeFila(url, { items: [paciente("p1"), paciente("p2")] });
+
+  function contemONome(valor, profundidade) {
+    if (profundidade > 8 || valor === null || valor === undefined) return false;
+    if (typeof valor === "string") return valor.indexOf(NOME) !== -1;
+    if (typeof valor !== "object") return false;
+    return Object.keys(valor).some((k) => contemONome(valor[k], profundidade + 1));
+  }
+
+  const retido = api._ultimaChegada();
+  ok("o modulo registrou a chegada", !!retido, JSON.stringify(retido));
+  ok("nao retem o nome do paciente em nenhum nivel da ficha",
+     !contemONome(retido, 0), JSON.stringify(retido));
+  ok("mas continua retendo o municipio, que sustenta decisao clinica",
+     !!(retido && retido.municipio), retido && retido.municipio);
+  ok("o campo `nome` nao existe mais na ficha",
+     !(retido && Object.prototype.hasOwnProperty.call(retido, "nome")));
+
+  /* A contagem nao pode ter sido afetada pela remocao. */
+  api._definirContadorDaTela(null);
+  ok("a contagem continua correta apos a remocao",
+     api._resumoDaFila().porRede === 2, api._resumoDaFila().porRede);
+}
+
 console.log(falhas ? `\n${falhas} FALHA(S)` : "\ntodos passaram");
 process.exit(falhas ? 1 : 0);

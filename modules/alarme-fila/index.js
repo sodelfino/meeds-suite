@@ -568,33 +568,28 @@
   }
 
   /* ------------------------------------------------------------------
-   * QUEM CHEGOU, E DE ONDE — so para o cartao discreto
+   * DE ONDE VEIO QUEM CHEGOU — so o municipio, e so isso
    * ------------------------------------------------------------------
-   * O MUNICIPIO e conhecido: no Meeds, `cliente.razaoSocialNome` e a
-   * prefeitura contratante, e e o mesmo campo que a deteccao de
-   * municipio ja usa ha versoes.
+   * No Meeds, `cliente.razaoSocialNome` e a prefeitura contratante: e o
+   * mesmo campo que a deteccao de municipio ja usa ha versoes, e e o
+   * unico dado da chegada que este modulo le.
    *
-   * O NOME DO PACIENTE nao tem campo confirmado nesta resposta — nenhuma
-   * gravacao guardou o corpo dela. Entao a busca abaixo tenta os
-   * caminhos plausiveis e, se nao achar, o cartao sai SEM nome, em vez
-   * de inventar um. Um cartao que mostra o nome errado no plantao e pior
-   * que um cartao sem nome.
+   * O NOME DO PACIENTE NAO E MAIS LIDO — e a remocao foi deliberada.
+   * Ate a v2.33.1 este modulo procurava o nome em cinco caminhos
+   * plausiveis e o guardava em `ultimaChegada`, embora o cartao nunca o
+   * exibisse: a decisao de mostrar so o municipio veio depois, e a
+   * leitura ficou para tras, sem uso.
    *
-   * PRIVACIDADE: esta ficha vive em memoria e so alimenta o cartao NA
-   * TELA do proprio medico — que ja esta autorizado a ver aquele
-   * paciente, e cujo nome ja esta na tela dele. Ela nunca vai para o
-   * disco, e nunca entra na notificacao do sistema: a notificacao sai do
-   * navegador e para na central de notificacoes e na tela de bloqueio do
-   * computador, que e o pior lugar possivel para nome de paciente.
+   * Dado de paciente que ninguem exibe ainda assim custa: ele vive numa
+   * variavel de modulo enquanto a aba estiver aberta, e reaparece em
+   * despejo de memoria, em depurador e em relatorio de erro. A regra
+   * desta suite e a mesma do historico e dos modelos — nao guardar o que
+   * nao se usa —, e "esta em memoria, nao em disco" nao e cumprimento
+   * dela, e uma atenuante.
+   *
+   * O municipio, ao contrario, sustenta uma decisao real do medico: e
+   * ele que diz qual REMUME e qual laudo valem para aquele atendimento.
    * ------------------------------------------------------------------ */
-  var CAMINHOS_DE_NOME = [
-    ["paciente", "nome"],
-    ["paciente", "nomeCompleto"],
-    ["paciente", "cliente", "razaoSocialNome"],
-    ["nomePaciente"],
-    ["pacienteNome"],
-  ];
-
   function porCaminho(objeto, caminho) {
     var atual = objeto;
     for (var i = 0; i < caminho.length; i++) {
@@ -605,13 +600,8 @@
   }
 
   function fichaDaChegada(item) {
-    var ficha = { nome: null, municipio: null };
+    var ficha = { municipio: null };
     if (!item || typeof item !== "object") return ficha;
-
-    for (var i = 0; i < CAMINHOS_DE_NOME.length; i++) {
-      ficha.nome = porCaminho(item, CAMINHOS_DE_NOME[i]);
-      if (ficha.nome) break;
-    }
     ficha.municipio = porCaminho(item, ["cliente", "razaoSocialNome"]);
     return ficha;
   }
@@ -867,11 +857,11 @@
     if (!d || !d.dock || typeof d.dock.criarAviso !== "function") return;
     var ficha = ultimaChegada || {};
     var linhas = [];
-    /* So o MUNICIPIO. Nome de paciente nao entra aqui: o cartao fica na
-     * tela por 12 s, atravessa troca de aba e aparece em qualquer print
-     * que o medico tire — e nao acrescenta nada a decisao dele, que e
-     * "vou atender agora ou nao". O municipio acrescenta: e o que diz
-     * qual REMUME e qual laudo valem para aquele atendimento. */
+    /* So o MUNICIPIO — e desde a v2.33.2 e o unico dado que o modulo
+     * chega a ler. O cartao fica na tela por 12 s, atravessa troca de
+     * aba e aparece em qualquer print que o medico tire; nome de
+     * paciente nao acrescenta nada a decisao dele, que e "vou atender
+     * agora ou nao". O municipio acrescenta. */
     if (ficha.municipio) linhas.push(ficha.municipio);
     linhas.push(textoDoMotivo());
 
@@ -1428,5 +1418,9 @@
     _lerRespostaDeFila: function (url, json) { processarRespostaFilaDeEspera(url, json); },
     _definirContadorDaTela: function (n) { ultimoValorAguardandoDOM = n; },
     _ehChamadaFilaDeEspera: function (url) { return ehChamadaFilaDeEspera(url); },
+    /* Exposto para o teste de privacidade: o que o modulo RETEM de quem
+     * chegou. Se um dia voltar a haver nome de paciente aqui, o teste
+     * quebra — que e exatamente o ponto. */
+    _ultimaChegada: function () { return ultimaChegada; },
   });
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
