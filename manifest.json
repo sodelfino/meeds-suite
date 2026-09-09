@@ -25,6 +25,7 @@
     "core/guia.js",
     "core/diagnostico.js",
     "core/novidades.js",
+    "core/tutorial.js",
     "core/feedback.js",
     "core/manager.js",
     "core/core.user.js"

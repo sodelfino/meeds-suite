@@ -63,6 +63,11 @@
     ".msm-fixos b { color:#5b6672; font-weight:600; }",
     ".msm-ajustes { margin-top:7px; background:#fff; border:1.4px solid #c3d4ee; color:#1a4fa0; cursor:pointer; font-size:11.5px; font-family:inherit; font-weight:700; padding:6px 11px; border-radius:8px; }",
     ".msm-ajustes:hover { background:#eef4ff; border-color:#1a4fa0; }",
+    /* Mesma forma do botao de Ajustes, paleta verde-agua (a cor do
+       tutorial em core/tutorial.js) para diferenciar as duas acoes
+       sem depender so do texto/icone. */
+    ".msm-tutorial { margin-top:7px; background:#fff; border:1.4px solid #a7e0da; color:#0f766e; cursor:pointer; font-size:11.5px; font-family:inherit; font-weight:700; padding:6px 11px; border-radius:8px; }",
+    ".msm-tutorial:hover { background:#effbf9; border-color:#0f766e; }",
 
     ".msm-switch { position:relative; width:44px; height:25px; flex-shrink:0; cursor:pointer; }",
     ".msm-switch input { opacity:0; width:0; height:0; }",
@@ -441,6 +446,14 @@
             ? '    <div class="msm-item-ver"><button type="button" class="msm-ajustes" data-ajustes="' +
               escapeHtml(m.id) + '">⚙️ Configurar ' + escapeHtml(m.nome) + "</button></div>"
             : "") +
+          /* Mesmo padrao do botao de Ajustes, um por cima do outro
+             quando os dois existem — nunca lado a lado (ficaria
+             apertado no mobile, e "Configurar" e a acao mais provavel
+             de ser clicada primeiro). */
+          (m.temTutorial && m.habilitado
+            ? '    <div class="msm-item-ver"><button type="button" class="msm-tutorial" data-tutorial="' +
+              escapeHtml(m.id) + '">🎓 Ver tutorial</button></div>'
+            : "") +
           "  </div>" +
           '  <label class="msm-switch">' +
           '    <input type="checkbox" data-id="' + escapeHtml(m.id) + '" ' + (m.habilitado ? "checked" : "") + " />" +
@@ -468,6 +481,13 @@
       btn.addEventListener("click", function () {
         overlay.fechar();
         ctx.abrirAjustesDe(btn.getAttribute("data-ajustes"));
+      });
+    });
+
+    overlay.$$("button[data-tutorial]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        overlay.fechar();
+        ctx.abrirTutorialDe(btn.getAttribute("data-tutorial"));
       });
     });
 

@@ -1239,6 +1239,40 @@ de leitura, e preservado como impresso.
 A coluna de preço ("Valor Unit.") não entrou: é dado de contrato entre a
 prefeitura e o laboratório, sem uso para o médico que pede o exame.
 
+**D57 — Tutorial guiado: mecanismo genérico no núcleo, roteiro por módulo.**
+`core/tutorial.js` é um carrossel de passos (título + texto), aberto no mesmo
+`d.dock.criarOverlay()` que todo módulo já usa — não um "spotlight" que
+ilumina elemento vivo por trás de um overlay escuro. Essa forma mais simples
+foi deliberada: apontar para um elemento específico exigiria coordenar dois
+overlays abertos ao mesmo tempo com recorte, frágil a mudança de layout,
+rolagem e tamanho de tela — o tutorial *explica* em texto o que a tela mostra,
+não precisa apontar o dedo para cada botão. Reaproveita a mesma metáfora
+visual de barra de progresso já usada em `core/guia.js`, para o médico não
+reaprender um padrão novo.
+
+Cada módulo registra seu próprio roteiro (`MeedsSuiteTutorial.registrar(id,
+{titulo, passos})`, estático, independente de o módulo estar rodando) e
+declara o callback de abertura dentro de `start(d)` com `d.aoIniciarTutorial(fn)`
+— mesmo padrão já existente de `d.aoAbrirAjustes(fn)` para a tela de Ajustes.
+O núcleo detecta a função (`temTutorial`, em `listarModulos()`) e o painel da
+engrenagem mostra "🎓 Ver tutorial" ao lado de "⚙️ Configurar", só quando o
+módulo está ligado.
+
+"Já visto" é dado de **experiência de uso do núcleo**, não do módulo — o
+médico não perde a marca de "já vi o tutorial de Exames" se desligar e
+religar o módulo. Fica em `MeedsSuiteStorage.storageDoNucleo()` (mesma
+categoria de `CHAVE_VERSAO_VISTA` em `novidades.js`), então já herda GM_* no
+Tampermonkey e IndexedDB no Safari/iPad sem código extra. Marcado como visto
+já na ABERTURA (não só ao concluir/fechar): senão `iniciarSePrimeiraVez()`
+voltaria a oferecer toda vez que o painel reabrisse antes do médico decidir
+fechar o tutorial — um pop-up insistente. O botão explícito "Ver tutorial"
+sempre reabre, mesmo depois de "visto": só a OFERTA automática é bloqueada.
+
+Implementado como referência funcionando de ponta a ponta só para "Exames do
+Município" nesta leva — os outros 7 módulos da suíte não têm roteiro escrito
+ainda; o mecanismo é genérico e qualquer um pode adotar (ver comentário de
+cabeçalho em `core/tutorial.js` para o passo a passo de três linhas).
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público

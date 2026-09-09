@@ -229,6 +229,7 @@
       return {
         id: e.def.id,
         temAjustes: typeof e.abrirAjustes === "function",
+        temTutorial: typeof e.iniciarTutorial === "function",
         nome: m.nome || e.def.nome || e.def.id,
         descricao: m.descricao || e.def.descricao || "",
         versao: m.versao || e.def.versao || "?",
@@ -364,6 +365,12 @@
         aoAbrirAjustes: function (fn) {
           entrada.abrirAjustes = fn;
         },
+        /* Mesma ideia de aoAbrirAjustes, para o tutorial guiado. Registrar
+         * aqui faz aparecer o botao "🎓 Ver tutorial" ao lado de
+         * "⚙️ Configurar" no painel da engrenagem. */
+        aoIniciarTutorial: function (fn) {
+          entrada.iniciarTutorial = fn;
+        },
         /* Cadastro de medicos: unico e compartilhado. O modulo so LE a
          * lista e manda abrir o painel; quem edita e o nucleo. */
         cadastro: Cadastro,
@@ -428,6 +435,7 @@
     }
     entrada.aoClicarBotao = null;
     entrada.abrirAjustes = null;
+    entrada.iniciarTutorial = null;
     entrada.rodando = false;
     if (!silencioso) console.debug("[Assistente Meeds] modulo parado:", def.id);
   }
@@ -563,6 +571,9 @@
       contato: (manifesto && manifesto.contato) || null,
       abrirAjustesDe: function (id) {
         if (porId[id] && typeof porId[id].abrirAjustes === "function") porId[id].abrirAjustes();
+      },
+      abrirTutorialDe: function (id) {
+        if (porId[id] && typeof porId[id].iniciarTutorial === "function") porId[id].iniciarTutorial();
       },
       aoMudarCadastro: function () {
         ouvintesCadastro.forEach(function (o) {

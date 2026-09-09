@@ -842,6 +842,14 @@
     carregarMunicipio();
     overlay.abrir();
     setTimeout(function () { refs.busca.focus(); }, 60);
+    /* So faz alguma coisa na primeira vez (ou se o tutorial nunca foi
+     * registrado) — seguro chamar em toda abertura do painel. Abre por
+     * CIMA do painel de exames, mesmo empilhamento que qualquer overlay
+     * aberto a partir de outro (ver comentario em criarOverlay(),
+     * core/dock.js). */
+    if (raiz.MeedsSuiteTutorial) {
+      raiz.MeedsSuiteTutorial.iniciarSePrimeiraVez("exames", { dock: d.dock });
+    }
   }
 
   function montarPainel() {
@@ -930,6 +938,64 @@
     aplicarMunicipio(M.detectarNaTela(municipios()));
   }
 
+  /* ------------------------------------------------------------------
+   * TUTORIAL GUIADO — ver core/tutorial.js para o mecanismo.
+   * Registro estatico, independente de o modulo estar rodando: pode
+   * ser chamado mesmo antes de start(). O roteiro cobre, nessa ordem,
+   * exatamente o que foi construido nas ultimas levas — codigo/local
+   * (Betim/Sete Lagoas), especialidade (Macae), o bloco de atencao ao
+   * encaminhar, a justificativa obrigatoria, e a secao separada de
+   * encaminhamentos (tambem Macae).
+   * ------------------------------------------------------------------ */
+  if (raiz.MeedsSuiteTutorial) {
+    raiz.MeedsSuiteTutorial.registrar("exames", {
+      titulo: "Exames do município",
+      passos: [
+        {
+          icone: "🧪",
+          titulo: "O que esta função faz",
+          texto:
+            "Mostra os exames que o município do paciente oferece de verdade — nunca uma lista geral. " +
+            "Se um exame não estiver na lista daquele município, a tela avisa \"não consta\": pode ser erro " +
+            "de digitação, ou pode ser que aquele lugar simplesmente não ofereça o exame.",
+        },
+        {
+          icone: "🔎",
+          titulo: "Busca e selos",
+          texto:
+            "Digite parte do nome, do código ou do local — aceita acento e erro de digitação. Cada exame " +
+            "mostra o que existe para ele: código do procedimento, local de realização, especialidade (um " +
+            "exame pode pertencer a mais de uma), e um selo roxo quando exige APAC, Laudo ou Alto Custo.",
+        },
+        {
+          icone: "⚠️",
+          titulo: "\"Atenção ao encaminhar\"",
+          texto:
+            "Quando o exame tem uma pegadinha real — idade mínima, documento a anexar, pré-requisito, ou " +
+            "por qual canal o pedido entra na regulação (SISREG, Central Municipal, regulação estadual) — " +
+            "aparece um bloco amarelo com o aviso, junto do exame. E se a justificativa médica é " +
+            "obrigatória no pedido, aparece um aviso específico para isso.",
+        },
+        {
+          icone: "📋",
+          titulo: "Encaminhamentos (quando existir)",
+          texto:
+            "Alguns municípios têm serviços de referência além dos exames — hoje, Macaé, com Casa da " +
+            "Criança, CRA, Núcleo de Saúde Mental, Clínica do Autista e GAN. Aparecem numa seção própria, " +
+            "acima da lista de exames, com público-alvo e fluxo de cada serviço — não são exame, então " +
+            "ficam separados.",
+        },
+        {
+          icone: "💡",
+          titulo: "Pronto para usar",
+          texto:
+            "Escolha o município no topo do painel e comece a digitar. Esse tutorial fica disponível a " +
+            "qualquer momento no painel da engrenagem, ao lado do botão de ligar/desligar esta função.",
+        },
+      ],
+    });
+  }
+
   /* ------------------------------------------------------------------ */
 
   raiz.MeedsSuite.registerModule({
@@ -955,6 +1021,11 @@
     start: function (deps) {
       d = deps;
       deps.aoClicarBotao(abrirPainel);
+      if (typeof deps.aoIniciarTutorial === "function") {
+        deps.aoIniciarTutorial(function () {
+          if (raiz.MeedsSuiteTutorial) raiz.MeedsSuiteTutorial.iniciar("exames", { dock: d.dock });
+        });
+      }
 
       cancelarRede = d.network.assinar(
         { regex: /\/api\/v1\/Atendimento\/[^/?]+(?:[?#].*)?$/i, metodos: ["GET"] },
