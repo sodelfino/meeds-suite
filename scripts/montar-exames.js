@@ -60,7 +60,7 @@ const FONTES = {
  *      conteudo, nunca com "" ou [] sobrando;
  *   3. valida `fluxo` contra o vocabulario fixo (falha o build se vier
  *      algo fora dele — mesmo espirito da validacao de `codigo` em
- *      Congonhas: erro de digitacao vira erro de build, nao vira dado
+ *      Sete Lagoas: erro de digitacao vira erro de build, nao vira dado
  *      errado em producao);
  *   4. devolve `undefined` quando, depois da limpeza, nao sobrou nada —
  *      assim quem monta o exame nunca deixa um `orientacao: {}` pendurado,
@@ -283,7 +283,7 @@ function lerMacae() {
  * exatamente a regra de "usar o que tiver" combinada para esta leva.
  *
  * NORMALIZACAO DE NOME: REGRA DIFERENTE DA TRANSCRICAO DE CODIGO
- * Para exame de Betim/Sete Lagoas/Congonhas, erro do documento fica
+ * Para exame de Betim/Sete Lagoas, erro do documento fica
  * como esta (ex.: "ERITOGRAMA" de Betim). Para o NOME deste bloco a
  * regra combinada foi outra: corrigir erro obvio de digitacao e
  * padronizar acento/caixa/abreviacao, porque o objetivo aqui e o exame
@@ -571,63 +571,6 @@ function lerMacaeEspecialidades() {
       "(mesmo padrão 'um município, duas fontes' já usado em Sete Lagoas).",
     fonte: "Exames por especialidade (SEMUSA Macaé) — DOCX (lista) + XLSX (fluxo e direcionamento)",
     atualizadoEm: "2026-09-09",
-    exames,
-  };
-}
-
-/* ------------------------------------------------------------------
- * CONGONHAS — os procedimentos que exigem APAC
- * ------------------------------------------------------------------
- * Vem de dados/apac.json, que ja era a fonte desses codigos SIGTAP no
- * gerador de APAC. Ler de la em vez de repetir aqui evita o pior tipo de
- * divergencia: dois arquivos com o mesmo codigo, um deles desatualizado.
- *
- * O Doppler e o Eco viram VARIAS linhas, uma por territorio e por
- * variante. O medico procura "doppler carotida", nao "doppler" — e uma
- * linha generica o obrigaria a saber de cor que aquele exame se desdobra.
- * ------------------------------------------------------------------ */
-function lerCongonhas() {
-  const apac = JSON.parse(fs.readFileSync(path.join(RAIZ, "dados/apac.json"), "utf8"));
-  const proc = apac._comum.procedimentos;
-  const exames = [];
-
-  Object.keys(proc).forEach((chave) => {
-    const p = proc[chave];
-    /* "OUTRO" e uma saida de emergencia do formulario da APAC ("digite
-     * outro procedimento"), nao um exame que o municipio oferece. Numa
-     * lista de busca ele so faria ruido. */
-    if (chave === "OUTRO" || !p.codigo) return;
-
-    if (chave === "DOPPLER" && Array.isArray(apac._comum.territorios)) {
-      apac._comum.territorios.forEach(function (t) {
-        exames.push({ nome: t, codigo: p.codigo, exige: "APAC" });
-      });
-      return;
-    }
-
-    if (chave === "ECO" && apac._comum.ecoVariantes) {
-      Object.keys(apac._comum.ecoVariantes).forEach(function (v) {
-        const e = apac._comum.ecoVariantes[v];
-        exames.push({ nome: e.nome, codigo: e.codigo, exige: "APAC" });
-      });
-      return;
-    }
-
-    exames.push({
-      nome: p.label || p.nome,
-      codigo: p.codigo,
-      exige: "APAC",
-      /* O nome curto ajuda quem digita "holter" a achar
-       * "MONITORAMENTO PELO SISTEMA HOLTER 24 HS". */
-      apelido: p.label && p.nome !== p.label ? p.nome : undefined,
-    });
-  });
-
-  return {
-    _leia_me:
-      "Procedimentos que exigem APAC em Congonhas. Os codigos vem de dados/apac.json — nao repita codigo SIGTAP aqui.",
-    fonte: "Procedimentos com APAC",
-    atualizadoEm: "2026-09-08",
     exames,
   };
 }
@@ -1587,7 +1530,12 @@ async function main() {
   const novos = {
     Betim: await lerBetim(),
     "Macaé": juntarFontesDoMesmoMunicipio([lerMacae(), lerMacaeEspecialidades()]),
-    Congonhas: lerCongonhas(),
+    /* "Congonhas" existiu aqui como 16 procedimentos de dados/apac.json
+     * (o catalogo COMUM de APAC, o mesmo usado por Itaúna/Betim/Sete
+     * Lagoas) — nunca foi uma lista real de Congonhas, foi um erro de
+     * rotulo desde a primeira vez que este municipio foi pedido.
+     * Removido; a lista real de Congonhas (exames de laboratorio da
+     * UPA) entra quando o documento certo for transcrito. */
     "Sete Lagoas": juntarFontesDoMesmoMunicipio([lerSeteLagoas(), lerSeteLagoasLaboratorio()]),
   };
 

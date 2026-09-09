@@ -29,12 +29,12 @@
  * As fontes nao sao homogeneas, e forcar um formato unico perderia
  * informacao:
  *
- *   Betim      1.999 exames laboratoriais COM codigo do contrato.
+ *   Betim      1.983 exames laboratoriais COM codigo do contrato.
  *              Sem local (o contrato nao diz onde), sem sigla.
- *   Macae         28 exames da UPA Barra, COM local e SEM codigo —
- *              o PDF nao traz codigo. Traz duas REGRAS clinicas que
- *              aparecem no topo do painel.
- *   Congonhas     16 procedimentos que exigem APAC, com codigo SIGTAP.
+ *   Macae         94 exames de duas fontes: 28 da UPA Barra (COM local,
+ *              SEM codigo) e 66 por especialidade da SEMUSA (COM
+ *              especialidade e, em parte, canalEncaminhamento — tambem
+ *              sem codigo, nenhuma das duas fontes traz).
  *
  * Por isso codigo, local, sigla e observacoes sao todos OPCIONAIS. Uma
  * celula vazia significa "o municipio nao publicou", nunca "faltou

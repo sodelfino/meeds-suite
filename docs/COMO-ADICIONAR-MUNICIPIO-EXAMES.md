@@ -73,8 +73,14 @@ desiguais sem inventar dado:
 |---|---|---|---|---|---|
 | Betim | sim (contrato) | não | não | não | não |
 | Macaé | não (nenhuma das 2 fontes tem) | 28 de 94 (só na fonte UPA Barra) | não | 21 de 94 com `orientacao` (fonte SEMUSA) | 28 de 94 (fonte SEMUSA) |
-| Congonhas | sim (SIGTAP) | não | APAC | não | não |
 | Sete Lagoas | 456 de 521 (só na fonte laboratorial) | 64 de 521 (só na fonte de orientações) | APAC / LAUDO / Alto Custo | 34 com `nota`, 2 já com `orientacao` | não |
+
+> Um "Congonhas" existiu nesta tabela até setembro de 2026 — na verdade era o
+> catálogo `_comum` de `dados/apac.json` (procedimentos APAC, compartilhados por
+> Itaúna/Betim/Sete Lagoas no gerador de APAC) sob um nome de município que
+> nunca teve fonte própria — erro de rótulo desde o pedido original, não dado
+> real de Congonhas. Removido; a lista real de Congonhas (exames de laboratório
+> da UPA) entra quando o documento correto for transcrito.
 
 **Campo vazio significa "o município não publicou", nunca "faltou preencher".**
 Completar por dedução colocaria no sistema informação que a prefeitura não deu —
@@ -318,11 +324,13 @@ mais específico forçado:
 
 ## Quando um exame se desdobra
 
-O Doppler de Congonhas vira **oito** linhas, uma por território; o Eco vira três,
-uma por variante. O médico procura "doppler carótida", não "doppler" — uma linha
-genérica o obrigaria a saber de cor que aquele exame tem variantes.
-
-Ver `lerCongonhas()` em `scripts/montar-exames.js`.
+Não há exemplo ativo disso hoje (o antigo, um "Congonhas" que na verdade era o
+catálogo de APAC, foi removido — ver nota acima). Mas o princípio continua
+valendo para quando aparecer de novo: se a fonte descreve um exame que se
+desdobra em variantes ou territórios (Doppler por região do corpo, Eco por
+protocolo), cada variante vira **uma linha própria** na lista, não uma linha
+genérica. O médico procura "doppler carótida", não "doppler" — uma linha só o
+obrigaria a saber de cor que aquele exame tem variantes.
 
 ---
 
@@ -418,9 +426,13 @@ inventar o que a prefeitura quis dizer, a mesma disciplina do
 
 - **Betim não tem local.** O contrato não diz onde cada exame é feito. Quando a
   prefeitura mandar essa informação, é acrescentar `local` em cada item.
-- **Congonhas não tem `nota` nem `orientacao`.** Os dois campos existem e a tela
+- **Betim não tem `nota` nem `orientacao`.** Os dois campos existem e a tela
   sabe pintá-los (Sete Lagoas e Macaé usam, por enquanto); se um exame de outro
   município precisar de um aviso específico, é só acrescentar.
+- **A lista real de Congonhas ainda não existe.** O que havia aqui com esse nome
+  era, na verdade, o catálogo de procedimentos APAC (removido — ver nota na
+  seção "O formato"). A lista real (exames de laboratório da UPA de Congonhas)
+  entra quando o documento correto for transcrito.
 - **`especialidade` e `canalEncaminhamento` só existem em Macaé, por enquanto.**
   Nada nos dois campos é "específico de Macaé" — qualquer município organizado
   por especialidade ou com canal de entrada explícito pode usar os dois valores

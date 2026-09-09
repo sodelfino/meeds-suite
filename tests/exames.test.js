@@ -154,12 +154,12 @@ const municipios = Object.keys(BASE.municipios).filter((k) => k.indexOf("_") !==
    * municipio TEM que devolver vazio, e nao o item mais parecido de
    * outro lugar. */
   const holterEmBetim = B.buscar("holter", indices["Betim"]);
-  ok('"holter" nao aparece em Betim (e da lista de Congonhas)',
+  ok('"holter" nao aparece em Betim (e da lista de Macae/Cardiologia)',
      (holterEmBetim.itens || []).length === 0);
 
-  const hemogramaEmCongonhas = B.buscar("hemograma", indices["Congonhas"]);
-  ok('"hemograma" nao aparece em Congonhas (la so ha procedimentos com APAC)',
-     (hemogramaEmCongonhas.itens || []).length === 0);
+  const cateterismoEmBetim = B.buscar("cateterismo", indices["Betim"]);
+  ok('"cateterismo" nao aparece em Betim (e da lista de Macae/Cardiologia)',
+     (cateterismoEmBetim.itens || []).length === 0);
 
   ok("termo inexistente nao inventa resultado",
      (B.buscar("xyzabcexame", indices["Betim"]).itens || []).length === 0);
@@ -197,19 +197,14 @@ const municipios = Object.keys(BASE.municipios).filter((k) => k.indexOf("_") !==
            .includes(e.orientacao.canalEncaminhamento)));
   }
 
-  const congonhas = BASE.municipios["Congonhas"];
-  if (congonhas) {
-    ok("todo exame de Congonhas exige APAC",
-       congonhas.exames.every((e) => e.exige === "APAC"));
-    ok("todo exame de Congonhas tem codigo SIGTAP",
-       congonhas.exames.every((e) => /^\d{2}\.\d{2}\.\d{2}\.\d{3}-\d$/.test(e.codigo || "")),
-       congonhas.exames.filter((e) => !/^\d{2}\.\d{2}\.\d{2}\.\d{3}-\d$/.test(e.codigo || ""))
-         .map((e) => e.nome).join(", "));
-    /* O Doppler se desdobra em territorios: uma linha generica obrigaria
-     * o medico a saber de cor que aquele exame tem oito variantes. */
-    ok("o Doppler aparece desdobrado por territorio",
-       congonhas.exames.filter((e) => /^DOPPLER/i.test(e.nome)).length >= 8);
-  }
+  /* "Congonhas" nao existe mais aqui: os 16 itens que tinham esse nome
+   * eram, na verdade, o catalogo `_comum` de dados/apac.json (o mesmo
+   * compartilhado por Itaúna/Betim/Sete Lagoas no gerador de APAC) sob
+   * um rotulo que nunca teve fonte propria — erro de rotulo desde o
+   * pedido original, nao dado real de Congonhas. Ver
+   * docs/COMO-ADICIONAR-MUNICIPIO-EXAMES.md. */
+  ok('"Congonhas" nao existe mais como municipio (era o catalogo APAC mal rotulado)',
+     !BASE.municipios["Congonhas"]);
 
   const betim = BASE.municipios["Betim"];
   if (betim) {

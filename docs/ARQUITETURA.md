@@ -1115,14 +1115,22 @@ resultado". As duas frases levam a condutas diferentes: a primeira manda o médi
 para o fluxo de encaminhamento; a segunda o faz conferir a digitação.
 
 **D51 — Campos opcionais porque as fontes são desiguais, não por descuido.**
-As três primeiras fontes não têm o mesmo formato, e forçar um esquema único
-perderia informação:
+As fontes não têm o mesmo formato, e forçar um esquema único perderia
+informação:
 
-| Município | Código | Local | Sigla | Observações |
-|---|---|---|---|---|
-| Betim (contrato laboratorial) | sim | não | não | não |
-| Macaé (PDF da UPA Barra) | não | sim | não | **duas regras clínicas** |
-| Congonhas (procedimentos APAC) | SIGTAP | não | APAC | não |
+| Município | Código | Local | Sigla | Especialidade | Orientação por exame |
+|---|---|---|---|---|---|
+| Betim (contrato laboratorial) | sim | não | não | não | não |
+| Macaé (UPA Barra + SEMUSA por especialidade) | não (nenhuma das 2 fontes tem) | 28/94 (UPA Barra) | não | 28/94 (SEMUSA) | 21/94 (SEMUSA) |
+| Sete Lagoas (orientações + SIGTAP laboratorial) | 456/521 (laboratorial) | 64/521 (orientações) | APAC / LAUDO / Alto Custo | não | 34 com `nota`, 2 com `orientacao` |
+
+Um "Congonhas" existiu aqui até setembro de 2026 — 16 procedimentos que exigem
+APAC. Era, na verdade, o catálogo `_comum` de `dados/apac.json` (o mesmo
+compartilhado por Itaúna/Betim/Sete Lagoas no gerador de APAC) rotulado sob um
+nome de município que nunca teve uma fonte própria — um erro de rótulo desde a
+primeira vez que o município foi pedido, não um dado real de Congonhas. Removido;
+a lista real de Congonhas (exames de laboratório da UPA) entra quando o
+documento correto for transcrito.
 
 Campo vazio significa **"o município não publicou"**, nunca "faltou preencher" —
 a mesma leitura da planilha-modelo de REMUME. Completar por dedução colocaria no
