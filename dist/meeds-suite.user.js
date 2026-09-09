@@ -16292,6 +16292,13 @@ function moverFocoResultado(delta) {
     setTimeout(function () {
       refs.search.focus();
     }, 50);
+    /* So faz alguma coisa na primeira vez (ou se o tutorial nunca foi
+     * registrado) — seguro chamar sempre. Abre por CIMA do modal do
+     * REMUME, mesmo empilhamento de qualquer overlay aberto a partir de
+     * outro (ver comentario em criarOverlay(), core/dock.js). */
+    if (raiz.MeedsSuiteTutorial) {
+      raiz.MeedsSuiteTutorial.iniciarSePrimeiraVez("remume", { dock: d.dock });
+    }
   }
 
   function renderizarResultados() {
@@ -16392,6 +16399,61 @@ function moverFocoResultado(delta) {
   }
 
   /* ----------------------------------------------------------------
+   * TUTORIAL GUIADO — ver core/tutorial.js para o mecanismo.
+   * Registro estatico, independente de o modulo estar rodando. O
+   * roteiro cobre, nessa ordem: o que a funcao faz, a busca tolerante
+   * a erro de digitacao, o reconhecimento de nome comercial, o aviso
+   * de "nao consta" (marca reconhecida mas fora da REMUME daquele
+   * municipio), e como trocar de municipio/copiar o resultado.
+   * ---------------------------------------------------------------- */
+  if (raiz.MeedsSuiteTutorial) {
+    raiz.MeedsSuiteTutorial.registrar("remume", {
+      titulo: "Assistente REMUME",
+      passos: [
+        {
+          icone: "💊",
+          titulo: "O que esta função faz",
+          texto:
+            "Consulta a Relação Municipal de Medicamentos (REMUME) do município do atendimento — detectado " +
+            "sozinho pela tela ou pela rede, sem precisar escolher toda vez. Mostra só o que aquele município " +
+            "padroniza de verdade, nunca uma lista geral de medicamentos.",
+        },
+        {
+          icone: "🔎",
+          titulo: "Busca tolerante a erro de digitação",
+          texto:
+            "Digite parte do nome, mesmo com acento errado ou letra trocada — a busca corrige e mostra qual " +
+            "termo foi usado (\"Mostrando resultados para...\"), para você conferir que entendeu certo.",
+        },
+        {
+          icone: "🏷️",
+          titulo: "Nome comercial também funciona",
+          texto:
+            "Digitar o nome comercial de um medicamento (não o princípio ativo) funciona: o Assistente " +
+            "reconhece a marca e traduz sozinho, avisando de onde veio (\"Mostrando [princípio ativo] — " +
+            "princípio ativo de [marca]\").",
+        },
+        {
+          icone: "⚠️",
+          titulo: "Quando a marca existe, mas não consta",
+          texto:
+            "Se a marca foi reconhecida mas o princípio ativo dela não está na REMUME daquele município, o " +
+            "aviso diz isso claramente, e a lista sugere considerar uma alternativa que esteja padronizada — " +
+            "nunca mostra o que não existe na lista daquele lugar.",
+        },
+        {
+          icone: "📋",
+          titulo: "Trocar de município e copiar",
+          texto:
+            "O seletor no topo do painel troca de município a qualquer momento, sem fechar a busca. Cada " +
+            "resultado tem um botão para copiar o nome do medicamento — útil na hora de colar no pedido ou " +
+            "na receita.",
+        },
+      ],
+    });
+  }
+
+  /* ----------------------------------------------------------------
    * CONTRATO DE MODULO
    * ---------------------------------------------------------------- */
   raiz.MeedsSuite.registerModule({
@@ -16421,6 +16483,11 @@ function moverFocoResultado(delta) {
       d = deps;
       montarUI();
       deps.aoClicarBotao(abrirModal);
+      if (typeof deps.aoIniciarTutorial === "function") {
+        deps.aoIniciarTutorial(function () {
+          if (raiz.MeedsSuiteTutorial) raiz.MeedsSuiteTutorial.iniciar("remume", { dock: d.dock });
+        });
+      }
       atualizarRemumesRemoto();
       tentarAtualizarMunicipioViaDOM();
       timers.push(setInterval(tentarAtualizarMunicipioViaDOM, 1500));
