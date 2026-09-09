@@ -65,15 +65,16 @@ Cada município é um bloco em `dados/exames.json`:
 
 ### Só `nome` é obrigatório
 
-`codigo`, `local`, `exige`, `nota` e `observacoes` são **opcionais**, e isso não
-é descuido — é o que permite representar fontes desiguais sem inventar dado:
+`codigo`, `local`, `exige`, `nota`, `orientacao` e `observacoes` são
+**opcionais**, e isso não é descuido — é o que permite representar fontes
+desiguais sem inventar dado:
 
-| Município | Traz código | Traz local | Traz sigla | Traz nota por exame |
+| Município | Traz código | Traz local | Traz sigla | Traz nota/orientação por exame |
 |---|---|---|---|---|
 | Betim | sim (contrato) | não | não | não |
 | Macaé | não (o PDF não tem) | sim | não | não |
 | Congonhas | sim (SIGTAP) | não | APAC | não |
-| Sete Lagoas | 456 de 521 (só na fonte laboratorial) | 64 de 521 (só na fonte de orientações) | APAC / LAUDO / Alto Custo | 36 de 521 |
+| Sete Lagoas | 456 de 521 (só na fonte laboratorial) | 64 de 521 (só na fonte de orientações) | APAC / LAUDO / Alto Custo | 34 com `nota`, 2 já com `orientacao` |
 
 **Campo vazio significa "o município não publicou", nunca "faltou preencher".**
 Completar por dedução colocaria no sistema informação que a prefeitura não deu —
@@ -116,6 +117,126 @@ Aparece como um aviso `ℹ️` dentro do próprio item, na tela.
 As duas existem porque uma informação assim, escondida dentro de um PDF de
 gaveta, vale menos que nada — e cada uma tem o alcance certo: município inteiro,
 ou um exame só.
+
+### `orientacao`: a evolução tipada do `nota`
+
+`nota` é um parágrafo só. Funciona, mas mistura tudo — idade, documento a
+anexar, prazo de validade, pra onde vai o pedido — numa frase corrida que só se
+lê inteira, nunca se filtra nem se destaca por tipo. `orientacao` é o mesmo
+conteúdo, decomposto em campos com nome, para virar o bloco **⚠️ Atenção ao
+encaminhar** na tela — as "pegadinhas" que fazem o encaminhamento voltar.
+
+Os dois **convivem por enquanto**: só alguns exames de Sete Lagoas já foram
+reclassificados de `nota` para `orientacao`; os demais continuam com `nota`
+até a próxima leva de transcrição. Um exame nunca precisa ter os dois.
+
+```json
+{
+  "nome": "Estudo Urodinâmico",
+  "local": "prestador terceirizado",
+  "orientacao": {
+    "faixaEtaria": "Não realiza em menores de 18 anos.",
+    "preRequisitos": [
+      "Resultado de urina rotina atual (até 15 dias), já avaliado pelo médico da unidade, anexado em PDF."
+    ],
+    "restricoes": ["Exame de urina alterado (infecção) contraindica o procedimento."],
+    "fluxo": "FICA_NA_UNIDADE",
+    "observacoes": "Solicitar via e-mail (agendacentralmarcacao2.saude@setelagoas.mg.gov.br) com nome completo, data de nascimento e contato do paciente."
+  }
+}
+```
+
+**Todo campo é opcional, e `orientacao` inteiro também é.** Um exame sem
+pegadinha nenhuma simplesmente não tem a chave — nunca `"orientacao": {}`. É por
+isso que a tela pode confiar em "existe" para decidir se desenha o bloco, sem
+precisar checar "existe, mas será que tem algo dentro?".
+
+| Campo | Tipo | Para que serve |
+|---|---|---|
+| `faixaEtaria` | string | Restrição de idade. Só idade — o resto de contraindicação vai em `restricoes`. |
+| `preparo` | string | O que o **paciente** faz com o próprio corpo antes (jejum, suspender remédio). Boilerplate ("preparo conforme orientação do prestador") nunca entra — ver abaixo. |
+| `documentos` | array | Papel de identificação **específico deste exame**, além do de rotina (CPF/CNS já é regra do município inteiro, em `observacoes`). |
+| `preRequisitos` | array | Exame ou avaliação clínica anterior que precisa existir e ser anexada. |
+| `restricoes` | array | Contraindicação que não é idade. |
+| `comoCadastrar` | string | Peculiaridade de como lançar o pedido no sistema (GMUS/CADWEB) — não é requisito clínico, é comportamento de tela. |
+| `validade` | string | Só quando é **um** prazo simples sobre o próprio exame. Quando cada pré-requisito tem sua própria validade (a Biópsia Renal de Sete Lagoas pede seis, cada um com prazo diferente), a validade fica embutida no texto do próprio item de `preRequisitos` — forçar um resumo aqui inventaria uma frase que a fonte não escreveu. |
+| `fluxo` | enum | Onde o pedido fica depois de emitido. Ver tabela abaixo. |
+| `observacoes` | string | Catch-all: o que é real, mas não cabe limpo em nenhum campo acima. |
+
+`fluxo` só aceita três valores — um quarto valor **falha o build**, de propósito,
+para um erro de digitação virar erro no terminal e não virar selo estranho na
+tela:
+
+| Valor | Quando usar |
+|---|---|
+| `FICA_NA_UNIDADE` | O pedido é cadastrado e resolvido ali mesmo, sem passar pela Central. |
+| `VAI_PARA_CENTRAL` | O pedido segue para a Central de Marcação. |
+| `OUTRO` | Nenhum dos dois — não force um encaixe que a fonte não pede. |
+
+### Como preencher: o construtor `orientacao(...)`
+
+Não escreva o objeto à mão. `scripts/montar-exames.js` exporta um construtor —
+`orientacao({ ...campos })` — que você chama depois de já ter **decidido**, lendo
+o documento, em qual campo cada frase cabe:
+
+```js
+orientacao: orientacao({
+  faixaEtaria: "A partir de 13 anos.",
+  preRequisitos: ["Resultado de US de tireoide."],
+}),
+```
+
+Ele cuida de três coisas por você:
+
+- **Recusa `preparo` boilerplate.** "Preparo conforme orientação do prestador"
+  não é informação — é a prefeitura dizendo "pergunte ao laboratório". Mesmo que
+  você cole isso sem querer, o construtor descarta.
+- **Limpa vazio.** String em branco e array vazio nunca sobram no JSON final —
+  o campo fica simplesmente ausente.
+- **Valida `fluxo`.** Um valor fora da tabela acima derruba
+  `npm run montar-exames` na hora, com o nome do exame no erro.
+
+**O que o construtor NÃO faz — e por que isso é proposital:** ele não lê o PDF,
+não separa frase por regex, não tenta adivinhar sozinho se um trecho é
+`faixaEtaria` ou `preRequisitos`. Um classificador automático **erra em
+silêncio**, e é exatamente esse tipo de erro que a regra de ouro proíbe. Quem
+decide em qual campo cada informação cabe é **você**, lendo o documento — o
+construtor só organiza e valida o que você já decidiu.
+
+Regras de transcrição, as mesmas de sempre, agora com um lugar tipado para cada
+uma:
+
+- **Só campo tipado quando o documento afirma sem ambiguidade.** Qualquer coisa
+  que exigisse sua interpretação para caber num campo fica em `observacoes`, como
+  texto o mais fiel possível ao original.
+- **Erro do documento se transcreve como está.** Um código fora de ordem, um
+  rótulo trocado — não se conserta, nem dentro de `orientacao`. Mesma disciplina
+  do `ERITOGRAMA`/`ERITROGRAMA` de Betim.
+- **Nome de pessoa nunca entra — em campo nenhum.** Médico "aberto a agenda",
+  responsável pelo agendamento, telefone ou e-mail de alguém específico: fora.
+  Um **e-mail institucional** (sem nome de pessoa, o único canal para de fato
+  enviar o pedido) pode entrar em `observacoes` — é dado operacional, não dado
+  pessoal de quem trabalha na Central. Na dúvida entre incluir ou não um contato,
+  prefira não incluir.
+- **`fluxo` entra; o nome do responsável, não.** "Fica na unidade" ou "vai para a
+  Central" é informação sobre o **exame**. O nome de quem cuida daquele
+  agendamento é informação sobre uma **pessoa**, e essa é a linha.
+
+### Quando a única coisa que sobra é `observacoes`
+
+Nem toda pegadinha decompõe limpo. "Informar na observação quando for com
+Doppler" não é idade, documento, pré-requisito, restrição ou cadastro — é
+instrução sobre o que **escrever no próprio pedido**. Fica ambíguo entre
+`observacoes` e `comoCadastrar`; na dúvida, o catch-all genérico, nunca um campo
+mais específico forçado:
+
+```json
+{
+  "nome": "Ultrassonografia de Aparelho Urinário",
+  "local": "HM",
+  "orientacao": { "observacoes": "Informar na observação do pedido quando for com Doppler." }
+}
+```
 
 ---
 
@@ -215,9 +336,14 @@ inventar o que a prefeitura quis dizer, a mesma disciplina do
 
 - **Betim não tem local.** O contrato não diz onde cada exame é feito. Quando a
   prefeitura mandar essa informação, é acrescentar `local` em cada item.
-- **Macaé e Congonhas não têm `nota`.** O campo existe e a tela sabe pintá-lo (só
-  Sete Lagoas usa, por enquanto); se um exame de outro município precisar de um
-  aviso específico, é só acrescentar.
+- **Macaé e Congonhas não têm `nota` nem `orientacao`.** Os dois campos existem e
+  a tela sabe pintá-los (só Sete Lagoas usa, por enquanto); se um exame de outro
+  município precisar de um aviso específico, é só acrescentar.
+- **34 dos 65 exames de "orientações" de Sete Lagoas ainda estão em `nota`, não
+  em `orientacao`.** Só os dois exemplos deste guia foram reclassificados. A
+  migração é releitura item a item, com a mesma dupla conferência de sempre —
+  não um script automático (ver "Como preencher: o construtor `orientacao(...)`",
+  acima, sobre por que não existe um classificador automático aqui).
 - **As consultas/encaminhamentos de Sete Lagoas ficaram de fora.** O mesmo PDF
   tem uma segunda seção ("Consultas agendadas pela Central de Marcação") com
   encaminhamento para especialista — outra categoria, não "exame", e fora do
