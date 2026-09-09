@@ -253,12 +253,6 @@ function lerMacae() {
       "Extraido de 'Exames realizados na UPA .pdf' (UPA Barra). O PDF nao traz codigo de procedimento.",
     fonte: "Exames realizados na unidade — UPA Barra",
     atualizadoEm: "2026-09-08",
-    /* Regras que o medico precisa saber ANTES de pedir. Aparecem no topo
-     * do painel quando Macae esta selecionado. */
-    observacoes: [
-      "Sorologia para HIV exige consentimento livre e esclarecido do paciente, assinado no pedido ou em termo de anuência.",
-      "A data de nascimento é obrigatória na requisição de exames laboratoriais — é o que identifica o paciente sem ambiguidade e define os valores de referência por faixa etária.",
-    ],
     exames,
   };
 }
@@ -967,12 +961,6 @@ function lerSeteLagoas() {
       "são escala interna e nome de funcionário, não informação sobre o exame.",
     fonte: "Orientações da Central de Marcação — SL",
     atualizadoEm: "2026-08-01",
-    /* A mesma regra de Macae: informacao que muda a conduta ANTES de
-     * pedir, valida para o municipio inteiro. */
-    observacoes: [
-      "Os cadastros dos pacientes devem estar atualizados no sistema GMUS e no CADWEB.",
-      "Documentos enviados por malote devem estar com o carimbo da unidade, os xerox anexados legíveis, e sempre conter o contato telefônico atualizado do paciente.",
-    ],
     exames,
   };
 }

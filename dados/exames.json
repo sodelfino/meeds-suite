@@ -7959,10 +7959,6 @@
       "_leia_me": "Extraido de 'Exames realizados na UPA .pdf' (UPA Barra). O PDF nao traz codigo de procedimento. | Lista de nomes extraida de 'EXAMES REALIZADOS PELO SUS NO MUNICIPIO DE MACAÉ.docx' (fonte da lista); enriquecida com especialidade/canal/documentos a partir de 'Fluxo SUS Macae.xlsx', aba 'Especialidades Médicas' (fonte oficial: SEMUSA Macaé). Nomes tiveram grafia/acentuação corrigida em relação ao documento original — regra diferente da transcrição de código, aqui o objetivo é o exame ser encontrável na busca. A aba 'Serviços e Programas' do XLSX e a aba 'Índice' não entram — não são 'exames'. Exames laboratoriais de bancada (hemograma, glicemia, TSH, sorologia...) NÃO estão nesta lista: nenhuma das duas fontes os lista, e serão a SEGUNDA fonte deste município quando fornecidos (mesmo padrão 'um município, duas fontes' já usado em Sete Lagoas).",
       "fonte": "Exames realizados na unidade — UPA Barra + Exames por especialidade (SEMUSA Macaé) — DOCX (lista) + XLSX (fluxo e direcionamento)",
       "atualizadoEm": "2026-09-09",
-      "observacoes": [
-        "Sorologia para HIV exige consentimento livre e esclarecido do paciente, assinado no pedido ou em termo de anuência.",
-        "A data de nascimento é obrigatória na requisição de exames laboratoriais — é o que identifica o paciente sem ambiguidade e define os valores de referência por faixa etária."
-      ],
       "exames": [
         {
           "nome": "HEMOGRAMA COMPLETO",
@@ -8551,10 +8547,6 @@
       "_leia_me": "Transcrito de 'ORIENTAÇÕES SOBRE EXAMES E ESPECIALIDADES AGENDADOS PELA CENTRAL DE MARCAÇÃO - SL - MG (ATUALIZAÇÃO AGOSTO/2026)', só a seção de exames (a de consultas/encaminhamento a especialista ficou de fora — é outra categoria). Nome do médico aberto à agenda e responsável pelo agendamento foram omitidos: são escala interna e nome de funcionário, não informação sobre o exame. | Transcrito de 'PREFEITURA MUNICIPAL DE SETE LAGOAS — APÊNDICE I, Lotes I a III — Procedimentos da tabela SIGTAP' (contrato de exames laboratoriais, documento escaneado sem camada de texto — pdftotext devolve 0 linhas, e o OCR testado saiu pior que a leitura visual). Só código e nome; a coluna de preço (\"Valor Unit.\") não entra — é dado de contrato entre a prefeitura e o laboratório, sem uso para o médico que pede o exame.",
       "fonte": "Orientações da Central de Marcação — SL + Tabela SIGTAP de exames laboratoriais (Apêndice I) — SL",
       "atualizadoEm": "2026-08-01",
-      "observacoes": [
-        "Os cadastros dos pacientes devem estar atualizados no sistema GMUS e no CADWEB.",
-        "Documentos enviados por malote devem estar com o carimbo da unidade, os xerox anexados legíveis, e sempre conter o contato telefônico atualizado do paciente."
-      ],
       "exames": [
         {
           "nome": "Mapeamento de Retina",

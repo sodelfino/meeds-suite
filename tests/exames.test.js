@@ -195,10 +195,6 @@ const municipios = Object.keys(BASE.municipios).filter((k) => k.indexOf("_") !==
          !e.orientacao || !e.orientacao.canalEncaminhamento ||
          ["SISREG", "CENTRAL_MUNICIPAL", "REGULACAO_ESTADUAL", "DIRETO_AO_SERVICO", "OUTRO"]
            .includes(e.orientacao.canalEncaminhamento)));
-    ok("Macae mantem as duas regras clinicas do PDF da UPA Barra",
-       Array.isArray(macae.observacoes) && macae.observacoes.length === 2);
-    ok("uma das regras e o consentimento para HIV",
-       (macae.observacoes || []).some((o) => /HIV/i.test(o) && /consentimento/i.test(o)));
   }
 
   const congonhas = BASE.municipios["Congonhas"];
@@ -244,8 +240,6 @@ const municipios = Object.keys(BASE.municipios).filter((k) => k.indexOf("_") !==
     ok("todo codigo laboratorial tem 9 ou 10 digitos",
        comCodigo.every((e) => /^\d{9,10}$/.test(e.codigo)),
        comCodigo.filter((e) => !/^\d{9,10}$/.test(e.codigo)).map((e) => e.codigo).join(", "));
-    ok("Sete Lagoas mantem as duas regras da Central (GMUS/CADWEB, carimbo/contato)",
-       Array.isArray(sl.observacoes) && sl.observacoes.length === 2);
     ok("a fonte combinada menciona as duas origens",
        /orienta/i.test(sl.fonte) && /SIGTAP/i.test(sl.fonte));
     ok("quase todo item da fonte de orientacoes traz o local de realizacao",
