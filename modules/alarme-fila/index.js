@@ -1256,6 +1256,65 @@
   }
 
   /* ----------------------------------------------------------------
+   * TUTORIAL GUIADO — ver core/tutorial.js para o mecanismo.
+   * Registro estatico, independente de o modulo estar rodando. O
+   * roteiro cobre, nessa ordem: o que a funcao faz, as tres
+   * intensidades e o atalho de clique no botao, os dois modos (chegada
+   * x tempo de espera), onde configurar som/volume, e as tres travas de
+   * seguranca que evitam alarme travado ou esquecido.
+   * ---------------------------------------------------------------- */
+  if (raiz.MeedsSuiteTutorial) {
+    raiz.MeedsSuiteTutorial.registrar("alarme-fila", {
+      titulo: "Alarme de Fila",
+      passos: [
+        {
+          icone: "🔔",
+          titulo: "O que esta função faz",
+          texto:
+            "Avisa com som e aviso na tela quando um paciente entra na fila do Pronto Atendimento — ou, se " +
+            "você preferir, quando alguém ultrapassa um tempo de espera. Para sozinho quando a fila esvazia; " +
+            "não precisa lembrar de desligar.",
+        },
+        {
+          icone: "🔔🔉🔕",
+          titulo: "As três intensidades",
+          texto:
+            "Clique no ícone do alarme, na barra de funções, para alternar entre Completo (sirene repetindo, " +
+            "faixa no topo e moldura na borda até alguém silenciar), Discreto (um cartão no canto com quem " +
+            "chegou e um som curto, some sozinho) e Silencioso (só o contador na aba, sem som nem aviso). " +
+            "Um aviso na tela confirma qual ficou ativa. Não precisa escolher entre ser interrompido ou não " +
+            "saber que chegou gente — dá para ajustar o quanto de interrupção cabe no momento.",
+        },
+        {
+          icone: "⏱️",
+          titulo: "Dois jeitos de disparar",
+          texto:
+            "Nos Ajustes (clique direito no ícone do alarme, ou pelo painel da engrenagem), escolha entre " +
+            "\"assim que um paciente entra na fila\" ou \"quando um paciente ultrapassar um tempo de espera\" " +
+            "— nesse segundo modo, o alarme toca uma vez por paciente que passar do limite que você definir.",
+        },
+        {
+          icone: "🔊",
+          titulo: "Som, volume e janela de aviso",
+          texto:
+            "Os mesmos Ajustes deixam escolher o som (um para o alarme completo, outro — mais curto — para o " +
+            "aviso discreto), o volume, e se quer abrir também uma janela de aviso do navegador. O que limita " +
+            "o aviso fora da aba é permissão do navegador, não uma chave — se pedir, o navegador pergunta.",
+        },
+        {
+          icone: "🛡️",
+          titulo: "Travas de segurança",
+          texto:
+            "O alarme completo nunca fica tocando para sempre: silencia sozinho depois de 2 minutos, mesmo " +
+            "que ninguém toque nele. Se a fila continuar com gente esperando, ele volta a tocar depois de 5 " +
+            "minutos — não deixa esquecido, mas também não fica insistindo sem parar. E se a leitura da fila " +
+            "ficar ambígua (rede e tela discordando), ele prefere não decidir a disparar um alarme errado.",
+        },
+      ],
+    });
+  }
+
+  /* ----------------------------------------------------------------
    * CONTRATO DE MODULO
    * ---------------------------------------------------------------- */
   raiz.MeedsSuite.registerModule({
@@ -1332,7 +1391,19 @@
        * sozinho. */
       deps.aoAbrirAjustes(function () {
         painel.abrir();
+        /* So faz alguma coisa na primeira vez (ou se o tutorial nunca
+         * foi registrado) — seguro chamar sempre. Abre por CIMA dos
+         * Ajustes, mesmo empilhamento de qualquer overlay aberto a
+         * partir de outro (ver comentario em criarOverlay(), core/dock.js). */
+        if (raiz.MeedsSuiteTutorial) {
+          raiz.MeedsSuiteTutorial.iniciarSePrimeiraVez("alarme-fila", { dock: d.dock });
+        }
       });
+      if (typeof deps.aoIniciarTutorial === "function") {
+        deps.aoIniciarTutorial(function () {
+          if (raiz.MeedsSuiteTutorial) raiz.MeedsSuiteTutorial.iniciar("alarme-fila", { dock: d.dock });
+        });
+      }
 
       // clique com Shift, ou clique direito, abre a configuracao do modulo
       if (deps.botao) {
