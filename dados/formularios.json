@@ -148,6 +148,62 @@
    "RETOSSIGMOIDOSCOPIA": {
     "nome": "Retossigmoidoscopia (diagnóstica)",
     "codigo": "02.09.01.005-3"
+   },
+   "COLANGIORRESSONANCIA": {
+    "nome": "Ressonância magnética de vias biliares (colangiorressonância)",
+    "codigo": "02.07.03.004-9"
+   },
+   "CINTILOGRAFIA_OSSEA": {
+    "nome": "Cintilografia de ossos com ou sem fluxo sanguíneo (corpo inteiro)",
+    "codigo": "02.08.05.003-5"
+   },
+   "CINTILOGRAFIA_RENAL": {
+    "nome": "Cintilografia renal/renograma (qualitativa e/ou quantitativa)",
+    "codigo": "02.08.04.005-6"
+   },
+   "CINTILOGRAFIA_PULMONAR": {
+    "nome": "Cintilografia de pulmão por perfusão (mínimo 4 projeções)",
+    "codigo": "02.08.07.004-4"
+   },
+   "CINTILOGRAFIA_TIREOIDE": {
+    "nome": "Cintilografia de tireoide com ou sem captação",
+    "codigo": "02.08.03.002-6"
+   },
+   "CINTILOGRAFIA_PARATIREOIDE": {
+    "nome": "Cintilografia de paratireoides",
+    "codigo": "02.08.03.001-8"
+   },
+   "LINFOCINTILOGRAFIA": {
+    "nome": "Linfocintilografia",
+    "codigo": "02.08.08.004-0"
+   },
+   "CISTOCINTILOGRAFIA_DIRETA": {
+    "nome": "Cistocintilografia direta",
+    "codigo": "02.08.04.006-4"
+   },
+   "ANGIOGRAFIA_CEREBRAL": {
+    "nome": "Angiografia cerebral (4 vasos)",
+    "codigo": "02.10.01.001-0"
+   },
+   "ARTERIOGRAFIA_MEMBRO": {
+    "nome": "Arteriografia de membro",
+    "codigo": "02.10.01.007-0"
+   },
+   "PAAF_TIREOIDE": {
+    "nome": "Biópsia de tireoide ou paratireoide guiada por US (PAAF)",
+    "codigo": "02.01.01.047-0"
+   },
+   "IODOTERAPIA_ABLATIVA": {
+    "nome": "Iodoterapia (dose ablativa) de carcinoma diferenciado da tireoide — 150 mCi",
+    "codigo": "03.04.09.001-8"
+   },
+   "ECOCARDIOGRAFIA_ESTRESSE": {
+    "nome": "Ecocardiografia de estresse (físico ou farmacológico)",
+    "codigo": "02.05.01.001-6"
+   },
+   "SEDACAO_TC_RM": {
+    "nome": "Sedação para exame (usar junto com o código da tomografia/ressonância)",
+    "codigo": "04.17.01.006-0"
    }
   },
   "cids": {
