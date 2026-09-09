@@ -60,6 +60,18 @@ const municipios = Object.keys(BASE.municipios).filter((k) => k.indexOf("_") !==
   });
   ok("nenhum nome tem quebra de linha ou espaco duplo", comQuebra.length === 0,
      comQuebra.slice(0, 3).join(" | "));
+
+  /* `nota` e texto livre — a unica higiene que cabe cobrar e a mesma do
+   * nome: sem quebra de linha crua nem espaco duplo, que denunciam texto
+   * colado direto de um PDF sem passar por limpeza. */
+  const notaSuja = [];
+  municipios.forEach((m) => {
+    BASE.municipios[m].exames.forEach((e) => {
+      if (e.nota && /[\n\r]|\s{2,}/.test(e.nota)) notaSuja.push(m + ": " + e.nome);
+    });
+  });
+  ok("nenhuma nota tem quebra de linha ou espaco duplo", notaSuja.length === 0,
+     notaSuja.slice(0, 3).join(" | "));
 }
 
 /* --- 2. a procedencia esta declarada --- */
@@ -189,6 +201,28 @@ const municipios = Object.keys(BASE.municipios).filter((k) => k.indexOf("_") !==
        betim.exames.every((e) => !!e.codigo));
     ok("Betim nao traz sigla (o contrato laboratorial nao exige APAC)",
        betim.exames.every((e) => !e.exige));
+  }
+
+  const sl = BASE.municipios["Sete Lagoas"];
+  if (sl) {
+    /* Fonte diferente das outras: tabela de 7 colunas, sem codigo de
+     * procedimento em lugar nenhum. Nao ha "codigo" para exigir aqui —
+     * exigir seria inventar um dado que a Central de Marcacao nao
+     * publica. */
+    ok("Sete Lagoas nao inventa codigo (a fonte nao traz)",
+       sl.exames.every((e) => !e.codigo));
+    ok("Sete Lagoas mantem as duas regras da Central (GMUS/CADWEB, carimbo/contato)",
+       Array.isArray(sl.observacoes) && sl.observacoes.length === 2);
+    ok("quase todo exame de Sete Lagoas traz o local de realizacao",
+       sl.exames.filter((e) => e.local).length >= sl.exames.length - 1,
+       "so 1 pode ficar sem local: a celula da fonte estava mesmo vazia");
+    /* ALTO_CUSTO e a sigla que esta fonte introduziu — categoria
+     * burocratica do SUS distinta de APAC, tao real quanto ela. */
+    ok("Sete Lagoas usa a sigla ALTO_CUSTO em algum exame",
+       sl.exames.some((e) => e.exige === "ALTO_CUSTO"));
+    ok("nenhum exame de Sete Lagoas fica com nome de medico ou de funcionario",
+       sl.exames.every((e) => !/Dr\.|Dra\.|DANIEL|BRENO|FONSECA/i.test(e.nome)),
+       "nome de pessoa vazou para dentro do campo nome — era para ter ficado de fora");
   }
 }
 

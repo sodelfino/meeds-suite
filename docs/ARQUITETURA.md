@@ -1153,6 +1153,52 @@ Duas armadilhas encontradas na primeira carga:
   (`ERITOGRAMA` e `ERITROGRAMA`). É erro da fonte. **Não foi corrigido**: a lista
   é do município, e o código copiado é o mesmo nos dois casos.
 
+**D53 — Sete Lagoas: transcrição manual em vez de parser, e por quê.**
+Betim e Macaé têm fonte regular (duas colunas; lista com marcador) e por isso
+`lerBetim()`/`lerMacae()` leem o arquivo em tempo de execução — rodar
+`npm run montar-exames` de novo já traz uma lista nova sozinho.
+
+Sete Lagoas quebrou esse padrão: é uma tabela de 7 colunas por exame, com
+células que quebram em várias linhas. `pdftotext -layout` foi testado antes de
+decidir, e o resultado mostrou o problema — a posição horizontal de cada coluna
+muda conforme a altura da célula anterior, então um parser por posição
+arriscaria trocar o conteúdo de uma coluna pela de outra **em silêncio**. Esse é
+o tipo de erro mais caro que existe aqui: passa no build, passa no teste
+automático (a regra de ouro continua batendo — o item ainda pertence ao
+município certo, só o *conteúdo* de um campo estaria errado), e só aparece
+quando um médico lê um local ou uma instrução que não bate com a realidade.
+
+A decisão foi transcrever à mão, com **dupla conferência** — uma leitura pela
+imagem da página, outra pelo texto extraído via `pdftotext -layout` — e as duas
+bateram nos pontos verificados. `lerSeteLagoas()` documenta no próprio cabeçalho
+o que ficou de fora e por quê: nome do médico aberto à agenda e responsável pelo
+agendamento (escala interna e nome de funcionário, não informação sobre o
+exame); a linha "Clínicas de BH" (é um roteiro de encaminhamento, não um exame);
+e a seção de consultas/especialidades do mesmo PDF (categoria diferente —
+encaminhar para especialista não é pedir exame — fora do escopo deste módulo).
+
+**D54 — `nota` por exame, separada de `observacoes` por município.**
+Boa parte do valor da fonte de Sete Lagoas não cabia em nome/local/exige:
+"Endoscopia a partir de 13 anos", "PET-CT: anexar resultado de biópsia
+obrigatoriamente", "Raio-X: cadastrar o paciente uma vez por membro/lado" mudam
+o que o médico faz antes de pedir *aquele* exame — e só existiam dentro do PDF.
+
+Isso é diferente de `observacoes`, que vale para o município inteiro (as regras
+de HIV e data de nascimento de Macaé). `nota` é a mesma ideia com alcance menor:
+por exame, opcional, texto livre, renderizada como aviso `ℹ️` dentro do próprio
+item. Em Sete Lagoas, 36 dos 65 exames têm `nota` — mais da metade da fonte era
+exatamente esse tipo de informação que "PREPARO CONFORME ORIENTAÇÃO DO
+PRESTADOR" (o texto padrão da maioria das linhas, sem ação nenhuma) escondia
+quando *não* era padrão.
+
+**D55 — `ALTO_CUSTO`: terceira sigla no vocabulário de `exige`.**
+A coluna "Impresso a ser utilizado" de Sete Lagoas distingue pedido de exame
+comum de **Alto Custo** — categoria burocrática do SUS tão real quanto APAC, com
+formulário próprio. Forçá-la dentro de `LAUDO` ("laudo médico específico do
+município") esconderia que o documento a preencher é outro. 23 dos 65 exames de
+Sete Lagoas exigem Alto Custo — majoritariamente exames de imagem de maior
+complexidade (ressonância, angiotomografia, cintilografias, densitometria).
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público

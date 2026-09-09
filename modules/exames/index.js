@@ -313,6 +313,7 @@
     ".ex-nome { font-size:13.5px; color:#0f172a; font-weight:600; line-height:1.4; }",
     ".ex-meta { font-size:11.5px; color:#64748b; margin-top:3px; display:flex; gap:10px; flex-wrap:wrap; }",
     ".ex-selo { display:inline-flex; align-items:center; gap:4px; }",
+    ".ex-nota { font-size:11.5px; color:#78350f; background:#fffbeb; border:1px solid #fde68a; border-radius:7px; padding:5px 8px; margin-top:5px; line-height:1.5; }",
     ".ex-sigla { flex-shrink:0; background:#7c3aed; color:#fff; font-size:10.5px; font-weight:800; padding:3px 8px; border-radius:999px; letter-spacing:.03em; white-space:nowrap; }",
     ".ex-copiar { flex-shrink:0; background:#f1f5f9; border:none; color:#475569; border-radius:7px; padding:6px 9px; font-size:11.5px; font-weight:700; cursor:pointer; }",
     ".ex-copiar:hover { background:#e2e8f0; }",
@@ -445,6 +446,12 @@
       '<div class="ex-item-txt">' +
       '  <div class="ex-nome">' + escapar(e.nome) + "</div>" +
       (meta.length ? '  <div class="ex-meta">' + meta.join("") + "</div>" : "") +
+      /* `nota`: aviso ANTES de pedir (idade minima, documento a
+       * anexar, como cadastrar). Vem de Sete Lagoas, cuja fonte mistura
+       * "impresso" com regra pratica na mesma celula. Fica separada do
+       * `.ex-meta` porque nao e dado do exame (codigo, local) — e
+       * instrucao de conduta, e precisa ler como aviso, nao como selo. */
+      (e.nota ? '  <div class="ex-nota">ℹ️ ' + escapar(e.nota) + "</div>" : "") +
       "</div>" +
       (sigla
         ? '<span class="ex-sigla" title="' + escapar(sigla.titulo) + '">' + escapar(sigla.rotulo) + "</span>"

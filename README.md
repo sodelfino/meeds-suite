@@ -28,7 +28,7 @@ desliga num painel, sem reinstalar nada.
 | 📄 **Laudo — Sete Lagoas** | Preenche o Laudo Médico de Alto Custo no formulário oficial da prefeitura. |
 | 📄 **Laudo — Conceição do Mato Dentro** | Idem, no formulário oficial de CMD. |
 | 🔎 **Buscar CID-10** | Procura o código pelo nome da doença, na tabela completa (14.233 códigos), e preenche no laudo aberto. |
-| 🧪 **Exames do município** | Mostra os exames que aquele município oferece, com o código do procedimento, o local de realização e a marca de quem exige APAC. O que não está na lista aparece como "não consta" — nunca como exame de outra cidade. |
+| 🧪 **Exames do município** | Mostra os exames que aquele município oferece — Betim, Macaé, Congonhas e Sete Lagoas — com código, local de realização, a marca de quem exige APAC/Laudo/Alto Custo, e um aviso quando há uma regra específica daquele exame (idade mínima, documento a anexar). O que não está na lista aparece como "não consta" — nunca como exame de outra cidade. |
 | 💊 **Assistente REMUME** | Consulta os medicamentos do município do atendimento. Aceita erro de digitação e nome comercial. |
 
 ---
