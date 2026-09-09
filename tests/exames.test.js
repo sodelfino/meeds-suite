@@ -105,6 +105,41 @@ const municipios = Object.keys(BASE.municipios).filter((k) => k.indexOf("_") !==
   );
   ok("toda sigla tem rotulo e explicacao", siglasSemRotulo.length === 0,
      siglasSemRotulo.join(", "));
+
+  ok("ALTO_CUSTO tem icone proprio (pedido explicitamente)",
+     BASE.siglas.ALTO_CUSTO && BASE.siglas.ALTO_CUSTO.icone === "💰");
+  ok("APAC e LAUDO continuam sem icone (nao pedido para eles)",
+     !BASE.siglas.APAC.icone && !BASE.siglas.LAUDO.icone);
+
+  /* Os 16 exames de Alto Custo e o 1 de APAC, listados pela Central de
+   * Regulacao da SMS de Sete Lagoas — conferidos aqui um a um contra a
+   * base, para o selo (e agora o icone) aparecerem certos na tela. */
+  const sl = BASE.municipios["Sete Lagoas"];
+  if (sl) {
+    const ALTO_CUSTO_ESPERADOS = [
+      "Tomografia com Sedação", "Tomografia", "Tomografia com Protocolo de Enterografia",
+      "Angiotomografia", "Ressonância Magnética", "Angioressonância", "Colangiorressonância",
+      "Densitometria Óssea", "Cintilografia Óssea",
+      "Cintilografia Renal / Pulmonar / Miocárdica / Tireoide / Paratireoide / Linfocintilografia / Cistocintilografia Direta",
+      "Arteriografia Cerebral / Angiografia Cerebral / Arteriografia de Membros",
+      "Litotripsia", "PAAF de Tireoide Guiado por US (Biópsia)", "Terapia Ablativa de Iodo",
+      "Ecodopplercardiograma Transtorácico com Stress Farmacológico", "Ecodopplercardiograma Transtorácico",
+    ];
+    const semAltoCusto = ALTO_CUSTO_ESPERADOS.filter((nome) => {
+      const e = sl.exames.find((x) => x.nome === nome);
+      return !e || e.exige !== "ALTO_CUSTO";
+    });
+    ok("os 16 exames de Alto Custo da notificação da Central estão marcados",
+       semAltoCusto.length === 0, semAltoCusto.join(", "));
+
+    const cateterismo = sl.exames.find((e) => e.nome === "Cateterismo Cardíaco Adulto - Cineangiocoronariografia");
+    ok("Cateterismo Cardíaco Adulto - Cineangiocoronariografia está marcado como APAC",
+       !!cateterismo && cateterismo.exige === "APAC");
+
+    ok("Sete Lagoas reativa a observação municipal (Alto Custo/APAC precisa de formulário próprio)",
+       Array.isArray(sl.observacoes) && sl.observacoes.length === 1 &&
+       /formul[aá]rio pr[oó]prio/i.test(sl.observacoes[0]));
+  }
 }
 
 /* --- 4. A REGRA DE OURO: nada vaza entre municipios --- */

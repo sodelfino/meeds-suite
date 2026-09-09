@@ -1207,6 +1207,20 @@ function lerSeteLagoas() {
       "são escala interna e nome de funcionário, não informação sobre o exame.",
     fonte: "Orientações da Central de Marcação — SL",
     atualizadoEm: "2026-08-01",
+    /* Reativa a observacao municipal (mecanismo existe desde
+     * Macae/Sete Lagoas, ficou sem uso depois que as duas primeiras
+     * foram removidas a pedido — ver historico em git log deste
+     * arquivo). Texto pedido pela Central de Regulacao da SMS de Sete
+     * Lagoas: os exames com selo Alto Custo/APAC precisam do
+     * formulario proprio, nao do pedido comum, para o cadastro seguir
+     * adiante — e a mesma informacao que o selo `exige` ja da por
+     * exame, aqui em destaque no topo do painel porque e a causa mais
+     * comum de pedido devolvido/perdido na Central. */
+    observacoes: [
+      "Alguns exames exigem formulário próprio (selo 💰 Alto Custo ou APAC, ao lado do exame) para dar " +
+        "entrada na Central de Regulação da Secretaria Municipal de Saúde. Preencher o formulário comum " +
+        "nesses casos atrasa o cadastro e pode gerar transcrição perdida.",
+    ],
     /* Toda esta fonte e exame de imagem/procedimento agendado (oftalmo,
      * tomografia, endoscopia, US, cateterismo...) — nenhum item de
      * bancada. `justificativaObrigatoria: true` aplicado ao BLOCO
@@ -1865,6 +1879,13 @@ async function main() {
       ALTO_CUSTO: {
         rotulo: "Alto Custo",
         titulo: "Exige o formulário de Procedimento de Alto Custo/Complexidade, e não o pedido de exame comum",
+        /* Icone proprio, pedido explicitamente: distingue visualmente
+         * de APAC/LAUDO (que continuam so com o selo de texto), porque
+         * Alto Custo e o formulario que mais aparece na lista de Sete
+         * Lagoas e o que a Central mais cobra ser preenchido certo —
+         * um pedido nesse formulario errado e transcricao perdida e
+         * atraso real para o paciente. */
+        icone: "💰",
       },
     },
     municipios: {},

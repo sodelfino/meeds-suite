@@ -726,8 +726,13 @@
       blocoDeOrientacao(e.orientacao) +
       linhaJustificativaObrigatoria(e) +
       "</div>" +
+      /* `icone`, por sigla, e opcional — hoje so ALTO_CUSTO tem. APAC e
+       * LAUDO continuam so com o selo de texto, sem quebrar nada: o
+       * icone e um prefixo extra dentro do MESMO selo, nao um elemento
+       * novo. */
       (sigla
-        ? '<span class="ex-sigla" title="' + escapar(sigla.titulo) + '">' + escapar(sigla.rotulo) + "</span>"
+        ? '<span class="ex-sigla" title="' + escapar(sigla.titulo) + '">' +
+          (sigla.icone ? escapar(sigla.icone) + " " : "") + escapar(sigla.rotulo) + "</span>"
         : "") +
       '<button type="button" class="ex-copiar" aria-label="Copiar ' + escapar(e.nome) + '">Copiar</button>';
 

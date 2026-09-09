@@ -12,7 +12,8 @@
     },
     "ALTO_CUSTO": {
       "rotulo": "Alto Custo",
-      "titulo": "Exige o formulário de Procedimento de Alto Custo/Complexidade, e não o pedido de exame comum"
+      "titulo": "Exige o formulário de Procedimento de Alto Custo/Complexidade, e não o pedido de exame comum",
+      "icone": "💰"
     }
   },
   "municipios": {
@@ -8829,6 +8830,9 @@
       "_leia_me": "Transcrito de 'ORIENTAÇÕES SOBRE EXAMES E ESPECIALIDADES AGENDADOS PELA CENTRAL DE MARCAÇÃO - SL - MG (ATUALIZAÇÃO AGOSTO/2026)', só a seção de exames (a de consultas/encaminhamento a especialista ficou de fora — é outra categoria). Nome do médico aberto à agenda e responsável pelo agendamento foram omitidos: são escala interna e nome de funcionário, não informação sobre o exame. | Transcrito de 'PREFEITURA MUNICIPAL DE SETE LAGOAS — APÊNDICE I, Lotes I a III — Procedimentos da tabela SIGTAP' (contrato de exames laboratoriais, documento escaneado sem camada de texto — pdftotext devolve 0 linhas, e o OCR testado saiu pior que a leitura visual). Só código e nome; a coluna de preço (\"Valor Unit.\") não entra — é dado de contrato entre a prefeitura e o laboratório, sem uso para o médico que pede o exame.",
       "fonte": "Orientações da Central de Marcação — SL + Tabela SIGTAP de exames laboratoriais (Apêndice I) — SL",
       "atualizadoEm": "2026-08-01",
+      "observacoes": [
+        "Alguns exames exigem formulário próprio (selo 💰 Alto Custo ou APAC, ao lado do exame) para dar entrada na Central de Regulação da Secretaria Municipal de Saúde. Preencher o formulário comum nesses casos atrasa o cadastro e pode gerar transcrição perdida."
+      ],
       "exames": [
         {
           "nome": "Mapeamento de Retina",
