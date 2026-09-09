@@ -317,6 +317,10 @@
      * (roxo suave) so para diferenciar visualmente de codigo/local, que
      * sao dado bruto — especialidade e categoria clinica. */
     ".ex-especialidade { background:#f5f3ff; color:#5b21b6; border:1px solid #ddd6fe; border-radius:999px; padding:1px 8px; }",
+    /* Badge de `status: SUSPENSO` — vermelho, nao ambar: e a unica
+     * marca de alerta do modulo que nao usa a paleta padrao, de
+     * proposito (ver comentario em elementoDoExame()). */
+    ".ex-suspenso { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; border-radius:999px; padding:1px 8px; font-weight:700; }",
     ".ex-nota { font-size:11.5px; color:#78350f; background:#fffbeb; border:1px solid #fde68a; border-radius:7px; padding:5px 8px; margin-top:5px; line-height:1.5; }",
 
     /* --- ex-orientacao: bloco "⚠️ Atenção ao encaminhar" ---
@@ -492,6 +496,7 @@
     CENTRAL_MUNICIPAL: "🏛️",
     REGULACAO_ESTADUAL: "🗺️",
     DIRETO_AO_SERVICO: "➡️",
+    LABORATORIO_UPA: "🧪",
     OUTRO: "🔀",
   };
   var ROTULO_CANAL = {
@@ -499,6 +504,7 @@
     CENTRAL_MUNICIPAL: "Via Central de Regulação do Município",
     REGULACAO_ESTADUAL: "Via regulação estadual",
     DIRETO_AO_SERVICO: "Direto ao serviço",
+    LABORATORIO_UPA: "Laboratório da UPA",
     OUTRO: "Outro canal",
   };
 
@@ -582,6 +588,16 @@
       e.especialidade.forEach(function (esp) {
         meta.push('<span class="ex-selo ex-especialidade">🩺 ' + escapar(esp) + "</span>");
       });
+    }
+    /* `status: "SUSPENSO"` vira badge de alerta — vermelho de proposito,
+     * diferente da paleta ambar do resto do modulo, porque a mensagem
+     * e diferente: nao e "atencao ao encaminhar" (o exame se pede, com
+     * cuidado), e "nao se pede, por enquanto, em caso nenhum". `ATIVO`
+     * (ou campo ausente, que e o mesmo) nao mostra nada — a ausencia de
+     * badge JA significa "oferta normal", a mesma leitura de todo campo
+     * opcional deste modulo. */
+    if (e.status === "SUSPENSO") {
+      meta.push('<span class="ex-selo ex-suspenso">⛔ Suspenso</span>');
     }
     var sigla = e.exige ? siglaDe(e.exige) : null;
 

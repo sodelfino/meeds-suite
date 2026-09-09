@@ -197,14 +197,31 @@ const municipios = Object.keys(BASE.municipios).filter((k) => k.indexOf("_") !==
            .includes(e.orientacao.canalEncaminhamento)));
   }
 
-  /* "Congonhas" nao existe mais aqui: os 16 itens que tinham esse nome
-   * eram, na verdade, o catalogo `_comum` de dados/apac.json (o mesmo
-   * compartilhado por Itaúna/Betim/Sete Lagoas no gerador de APAC) sob
-   * um rotulo que nunca teve fonte propria — erro de rotulo desde o
-   * pedido original, nao dado real de Congonhas. Ver
-   * docs/COMO-ADICIONAR-MUNICIPIO-EXAMES.md. */
-  ok('"Congonhas" nao existe mais como municipio (era o catalogo APAC mal rotulado)',
-     !BASE.municipios["Congonhas"]);
+  const congonhas = BASE.municipios["Congonhas"];
+  if (congonhas) {
+    /* Congonhas e a lista real (laboratorio da UPA 24h), nao mais o
+     * catalogo de APAC mal rotulado que existiu aqui ate esta leva. */
+    ok("Congonhas tem os 52 exames do laboratorio da UPA",
+       congonhas.exames.length === 52, "achou " + congonhas.exames.length);
+    ok("nenhum exame de Congonhas tem codigo (o documento nao traz)",
+       congonhas.exames.every((e) => !e.codigo));
+    ok("todo exame de Congonhas usa o canal LABORATORIO_UPA",
+       congonhas.exames.every((e) => e.orientacao && e.orientacao.canalEncaminhamento === "LABORATORIO_UPA"));
+    ok("nenhum status usado em Congonhas foge do vocabulario ATIVO/SUSPENSO",
+       congonhas.exames.every((e) => !e.status || ["ATIVO", "SUSPENSO"].includes(e.status)));
+    ok("so a Baciloscopia direta para BAAR esta SUSPENSO",
+       congonhas.exames.filter((e) => e.status === "SUSPENSO").map((e) => e.nome)
+         .join(", ") === "Baciloscopia direta para BAAR");
+    ok("nenhum exame ATIVO grava status (campo ausente e o padrao implicito)",
+       congonhas.exames.filter((e) => e.status === "ATIVO").length === 0);
+    ok("os 7 exames restritos a urgencia/emergencia ou indicacao especifica tem `restricoes`",
+       congonhas.exames.filter((e) => e.orientacao && e.orientacao.restricoes).length === 7);
+    ok("Congonhas reativa a observacao municipal (regra de pedido separado)",
+       Array.isArray(congonhas.observacoes) && congonhas.observacoes.length === 1 &&
+       /pedido separado/i.test(congonhas.observacoes[0]));
+    ok("fonte e data batem com o documento",
+       congonhas.fonte === "Laboratório da UPA 24h – Congonhas (MG)" && congonhas.atualizadoEm === "2025-10-21");
+  }
 
   const betim = BASE.municipios["Betim"];
   if (betim) {

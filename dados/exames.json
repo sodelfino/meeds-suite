@@ -8451,6 +8451,352 @@
         }
       ]
     },
+    "Congonhas": {
+      "_leia_me": "Extraído de 'Exames realizados pelo laboratório da UPA 24h – Eletivo' (Congonhas/MG), atualizada em 21/10/2025. Sem código de procedimento — o documento não traz. O grupo de imagem/especialidade de Congonhas (equivalente ao que Macaé tem na SEMUSA) ainda NÃO foi transcrito e não entra aqui — será a SEGUNDA fonte deste município quando fornecido, mesmo padrão 'um município, duas fontes' já usado em Sete Lagoas e Macaé.",
+      "fonte": "Laboratório da UPA 24h – Congonhas (MG)",
+      "atualizadoEm": "2025-10-21",
+      "observacoes": [
+        "Exames do laboratório da UPA devem ser pedidos juntos. Qualquer exame fora desta lista deve ir em pedido separado — senão o paciente não consegue marcar."
+      ],
+      "exames": [
+        {
+          "nome": "Baciloscopia direta para BAAR",
+          "status": "SUSPENSO",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA",
+            "observacoes": "Suspenso pelo Ministério da Saúde – COVID-19, por tempo indeterminado."
+          }
+        },
+        {
+          "nome": "Bacterioscopia Gram",
+          "orientacao": {
+            "faixaEtaria": "Até 12 anos",
+            "restricoes": [
+              "Somente para urgência em crianças de até 12 anos."
+            ],
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Contagem de plaquetas",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Coombs direto",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Coombs indireto",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Determinação da proteína C reativa qualitativa (PCR qualitativo)",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Determinação do grupo sanguíneo e fator Rh",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Determinação do tempo de protrombina (RNI)",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Determinação do tempo parcial de tromboplastina ativado",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Determinação do VDRL",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Determinação qualitativa da gonadotrofina coriônica (teste de gravidez)",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Determinação semiquantitativa do fator reumatoide",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Determinação semiquantitativa da antiestreptolisina O",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de D-dímero",
+          "orientacao": {
+            "restricoes": [
+              "Somente para urgência e emergência."
+            ],
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de ácido úrico",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de albumina",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de amilase",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de bilirrubina direta",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de bilirrubina total",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de cálcio",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de CK total",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de CK-MB",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de cloretos",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de colesterol HDL (colesterol total e frações)",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de colesterol total",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de creatinina",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de fosfatase alcalina",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de gama-GT",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de glicose",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de hemoglobina glicada (HbA1c)",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de lipase",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de potássio",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de proteínas totais e frações",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de sódio",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de TGO (AST)",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de TGP (ALT)",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de triglicérides",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de troponina",
+          "orientacao": {
+            "restricoes": [
+              "Somente para urgência e emergência."
+            ],
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Dosagem de ureia",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Eritrograma",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Hemograma completo",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Leucograma",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Parasitológico de fezes",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Pesquisa de sangue oculto",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Reticulócitos",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Teste rápido de dengue",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Teste rápido HBsAg",
+          "orientacao": {
+            "restricoes": [
+              "Somente para acidente de trabalho e profilaxia pós-exposição ao HIV."
+            ],
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Teste rápido HCV",
+          "orientacao": {
+            "restricoes": [
+              "Somente para acidente de trabalho e profilaxia pós-exposição ao HIV."
+            ],
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Teste rápido HIV 1 e 2",
+          "orientacao": {
+            "restricoes": [
+              "Somente para acidente de trabalho e profilaxia pós-exposição ao HIV."
+            ],
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Teste rápido de sífilis",
+          "orientacao": {
+            "restricoes": [
+              "Somente para acidente de trabalho e profilaxia pós-exposição ao HIV."
+            ],
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Urina rotina (elementos anormais e sedimentoscopia)",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        },
+        {
+          "nome": "Velocidade de hemossedimentação (VHS)",
+          "orientacao": {
+            "canalEncaminhamento": "LABORATORIO_UPA"
+          }
+        }
+      ]
+    },
     "Sete Lagoas": {
       "_leia_me": "Transcrito de 'ORIENTAÇÕES SOBRE EXAMES E ESPECIALIDADES AGENDADOS PELA CENTRAL DE MARCAÇÃO - SL - MG (ATUALIZAÇÃO AGOSTO/2026)', só a seção de exames (a de consultas/encaminhamento a especialista ficou de fora — é outra categoria). Nome do médico aberto à agenda e responsável pelo agendamento foram omitidos: são escala interna e nome de funcionário, não informação sobre o exame. | Transcrito de 'PREFEITURA MUNICIPAL DE SETE LAGOAS — APÊNDICE I, Lotes I a III — Procedimentos da tabela SIGTAP' (contrato de exames laboratoriais, documento escaneado sem camada de texto — pdftotext devolve 0 linhas, e o OCR testado saiu pior que a leitura visual). Só código e nome; a coluna de preço (\"Valor Unit.\") não entra — é dado de contrato entre a prefeitura e o laboratório, sem uso para o médico que pede o exame.",
       "fonte": "Orientações da Central de Marcação — SL + Tabela SIGTAP de exames laboratoriais (Apêndice I) — SL",

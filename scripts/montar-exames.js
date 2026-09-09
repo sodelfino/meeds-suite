@@ -90,8 +90,25 @@ const CANAIS_VALIDOS = [
   "CENTRAL_MUNICIPAL",
   "REGULACAO_ESTADUAL",
   "DIRETO_AO_SERVICO",
+  /* Congonhas so tem, por enquanto, a fonte do laboratorio da UPA — tudo
+   * o que existe hoje passa por esse canal. Nao e "especifico de
+   * Congonhas": e o mesmo principio de SISREG/CENTRAL_MUNICIPAL/etc.,
+   * generico o bastante para qualquer municipio cujo unico canal
+   * conhecido, por ora, seja "o laboratorio da propria UPA". Quando a
+   * segunda fonte de Congonhas (imagem/especialidade) chegar, o canal
+   * passa a ser a distincao entre as duas. */
+  "LABORATORIO_UPA",
   "OUTRO",
 ];
+
+/* Vocabulario de `status` — campo do EXAME (fora de `orientacao`: nao e
+ * uma orientacao de conduta, e o estado atual da oferta). So dois
+ * valores, e "ATIVO" nunca aparece escrito no JSON — e o padrao
+ * implicito quando o campo esta ausente, a mesma disciplina de todo
+ * campo opcional deste arquivo (campo ausente = nao ha nada de especial
+ * a dizer). So "SUSPENSO" e escrito, e so quando a fonte afirma isso
+ * sem ambiguidade — nunca por suposicao. */
+const STATUS_VALIDOS = ["ATIVO", "SUSPENSO"];
 
 /* A mesma frase-molde aparece em quase toda linha da fonte de Sete
  * Lagoas ("PREPARO CONFORME ORIENTACAO DO PRESTADOR"), variando so
@@ -571,6 +588,164 @@ function lerMacaeEspecialidades() {
       "(mesmo padrão 'um município, duas fontes' já usado em Sete Lagoas).",
     fonte: "Exames por especialidade (SEMUSA Macaé) — DOCX (lista) + XLSX (fluxo e direcionamento)",
     atualizadoEm: "2026-09-09",
+    exames,
+  };
+}
+
+/* ------------------------------------------------------------------
+ * CONGONHAS — laboratório da UPA 24h (primeira fonte do município)
+ * ------------------------------------------------------------------
+ * Fonte: "Exames realizados pelo laboratório da UPA 24h – Eletivo",
+ * atualizada em 21/10/2025. Lista de duas colunas (número + nome), sem
+ * código de procedimento — `codigo` fica ausente nos 52 itens, sem
+ * inventar.
+ *
+ * SEGUNDA FONTE AINDA NAO EXISTE
+ * O grupo de imagem/especialidade de Congonhas (equivalente ao que
+ * Macaé tem na SEMUSA) ainda não foi transcrito. Quando chegar, entra
+ * pelo mesmo padrão "um município, duas fontes" de Sete Lagoas/Macaé —
+ * ver `juntarFontesDoMesmoMunicipio()`.
+ *
+ * NORMALIZACAO DE NOME: mesma regra de Macaé, nao a de Betim
+ * O documento original traz tudo em CAIXA ALTA ("DETERMINAÇÃO DO TEMPO
+ * DE PROTROMBINA / RNI", "DOSAGEM DE CKMB"). Nome foi normalizado —
+ * capitalização de frase, abreviação padronizada (RNI entre parênteses,
+ * "CK-MB" com hífen) — pelo mesmo motivo de Macaé: o objetivo do nome é
+ * ser encontrado na busca, não reproduzir a formatação do PDF.
+ *
+ * `canalEncaminhamento: "LABORATORIO_UPA"` EM TODOS OS 52
+ * Hoje só existe uma fonte, e ela é inteira do laboratório da UPA — o
+ * canal não distingue nada ainda (todo item tem o mesmo valor), mas
+ * fica explícito desde já porque é a mesma pergunta que `canalEncaminhamento`
+ * sempre respondeu (por qual canal o pedido entra) e porque, quando a
+ * segunda fonte chegar, o canal vira a distinção real entre as duas —
+ * sem precisar reabrir os 52 itens desta leva para acrescentar o campo.
+ *
+ * PEGADINHA REAL, NAO RESOLVIDA: "ELETIVO" NO TÍTULO, MAS NEM TUDO É
+ * O título do documento diz "Eletivo", mas 7 dos 52 itens só se
+ * realizam em urgência/emergência, ou só para uma indicação específica
+ * (acidente de trabalho / profilaxia pós-exposição ao HIV) — uma
+ * contradição real do documento, transcrita como está, não resolvida
+ * aqui. Vira `restricoes`, não `observacoes`: é condição de quando o
+ * exame se aplica, o mesmo padrão já usado para toda a base.
+ *
+ * `status: "SUSPENSO"`: DIFERENTE DE `restricoes`
+ * Restrição é "faz, sob certa condição". A Baciloscopia para BAAR está
+ * suspensa pelo Ministério da Saúde — não é "faz só em certos casos", é
+ * "não faz, por enquanto, em caso nenhum". `status` é campo novo, do
+ * exame (fora de `orientacao`: não é orientação de conduta, é o estado
+ * da oferta), opcional e genérico — não específico deste caso.
+ * ------------------------------------------------------------------ */
+function lerCongonhas() {
+  /* Helper local: monta um exame do laboratorio da UPA com o canal
+   * padrao ja aplicado, e delega o resto para orientacao() — mesma
+   * disciplina de nao escrever o objeto de orientacao a mao. */
+  function exameLaboratorioUPA(nome, extras) {
+    extras = extras || {};
+    if (extras.status && STATUS_VALIDOS.indexOf(extras.status) === -1) {
+      throw new Error(
+        "lerCongonhas(): status \"" + extras.status + "\" nao esta em " + STATUS_VALIDOS.join("/") +
+        " para \"" + nome + "\"."
+      );
+    }
+    var e = { nome: nome };
+    if (extras.status && extras.status !== "ATIVO") e.status = extras.status;
+    e.orientacao = orientacao({
+      faixaEtaria: extras.faixaEtaria,
+      restricoes: extras.restricoes,
+      observacoes: extras.observacoes,
+      canalEncaminhamento: "LABORATORIO_UPA",
+    });
+    return e;
+  }
+
+  const RESTRICAO_URGENCIA = ["Somente para urgência e emergência."];
+  const RESTRICAO_ACIDENTE_TRABALHO = ["Somente para acidente de trabalho e profilaxia pós-exposição ao HIV."];
+
+  const exames = [
+    exameLaboratorioUPA("Baciloscopia direta para BAAR", {
+      status: "SUSPENSO",
+      observacoes: "Suspenso pelo Ministério da Saúde – COVID-19, por tempo indeterminado.",
+    }),
+    exameLaboratorioUPA("Bacterioscopia Gram", {
+      faixaEtaria: "Até 12 anos",
+      restricoes: ["Somente para urgência em crianças de até 12 anos."],
+    }),
+    exameLaboratorioUPA("Contagem de plaquetas"),
+    exameLaboratorioUPA("Coombs direto"),
+    exameLaboratorioUPA("Coombs indireto"),
+    exameLaboratorioUPA("Determinação da proteína C reativa qualitativa (PCR qualitativo)"),
+    exameLaboratorioUPA("Determinação do grupo sanguíneo e fator Rh"),
+    exameLaboratorioUPA("Determinação do tempo de protrombina (RNI)"),
+    exameLaboratorioUPA("Determinação do tempo parcial de tromboplastina ativado"),
+    exameLaboratorioUPA("Determinação do VDRL"),
+    exameLaboratorioUPA("Determinação qualitativa da gonadotrofina coriônica (teste de gravidez)"),
+    exameLaboratorioUPA("Determinação semiquantitativa do fator reumatoide"),
+    exameLaboratorioUPA("Determinação semiquantitativa da antiestreptolisina O"),
+    exameLaboratorioUPA("Dosagem de D-dímero", { restricoes: RESTRICAO_URGENCIA }),
+    exameLaboratorioUPA("Dosagem de ácido úrico"),
+    exameLaboratorioUPA("Dosagem de albumina"),
+    exameLaboratorioUPA("Dosagem de amilase"),
+    exameLaboratorioUPA("Dosagem de bilirrubina direta"),
+    exameLaboratorioUPA("Dosagem de bilirrubina total"),
+    exameLaboratorioUPA("Dosagem de cálcio"),
+    exameLaboratorioUPA("Dosagem de CK total"),
+    exameLaboratorioUPA("Dosagem de CK-MB"),
+    exameLaboratorioUPA("Dosagem de cloretos"),
+    exameLaboratorioUPA("Dosagem de colesterol HDL (colesterol total e frações)"),
+    exameLaboratorioUPA("Dosagem de colesterol total"),
+    exameLaboratorioUPA("Dosagem de creatinina"),
+    exameLaboratorioUPA("Dosagem de fosfatase alcalina"),
+    exameLaboratorioUPA("Dosagem de gama-GT"),
+    exameLaboratorioUPA("Dosagem de glicose"),
+    exameLaboratorioUPA("Dosagem de hemoglobina glicada (HbA1c)"),
+    exameLaboratorioUPA("Dosagem de lipase"),
+    exameLaboratorioUPA("Dosagem de potássio"),
+    exameLaboratorioUPA("Dosagem de proteínas totais e frações"),
+    exameLaboratorioUPA("Dosagem de sódio"),
+    exameLaboratorioUPA("Dosagem de TGO (AST)"),
+    exameLaboratorioUPA("Dosagem de TGP (ALT)"),
+    exameLaboratorioUPA("Dosagem de triglicérides"),
+    exameLaboratorioUPA("Dosagem de troponina", { restricoes: RESTRICAO_URGENCIA }),
+    exameLaboratorioUPA("Dosagem de ureia"),
+    exameLaboratorioUPA("Eritrograma"),
+    exameLaboratorioUPA("Hemograma completo"),
+    exameLaboratorioUPA("Leucograma"),
+    exameLaboratorioUPA("Parasitológico de fezes"),
+    /* O PDF de origem mostra este item riscado (tachado), sem o mesmo
+     * texto explicativo que acompanha a Baciloscopia suspensa — nao ha
+     * frase que afirme "suspenso" ou o motivo. Marcar como SUSPENSO
+     * aqui seria inferir a partir de uma formatacao visual ambigua, nao
+     * transcrever uma afirmacao do documento — por isso o item entra
+     * ATIVO. Fica registrado para confirmar com quem publicou a lista. */
+    exameLaboratorioUPA("Pesquisa de sangue oculto"),
+    exameLaboratorioUPA("Reticulócitos"),
+    exameLaboratorioUPA("Teste rápido de dengue"),
+    exameLaboratorioUPA("Teste rápido HBsAg", { restricoes: RESTRICAO_ACIDENTE_TRABALHO }),
+    exameLaboratorioUPA("Teste rápido HCV", { restricoes: RESTRICAO_ACIDENTE_TRABALHO }),
+    exameLaboratorioUPA("Teste rápido HIV 1 e 2", { restricoes: RESTRICAO_ACIDENTE_TRABALHO }),
+    exameLaboratorioUPA("Teste rápido de sífilis", { restricoes: RESTRICAO_ACIDENTE_TRABALHO }),
+    exameLaboratorioUPA("Urina rotina (elementos anormais e sedimentoscopia)"),
+    exameLaboratorioUPA("Velocidade de hemossedimentação (VHS)"),
+  ];
+
+  return {
+    _leia_me:
+      "Extraído de 'Exames realizados pelo laboratório da UPA 24h – Eletivo' (Congonhas/MG), atualizada em " +
+      "21/10/2025. Sem código de procedimento — o documento não traz. O grupo de imagem/especialidade de " +
+      "Congonhas (equivalente ao que Macaé tem na SEMUSA) ainda NÃO foi transcrito e não entra aqui — será a " +
+      "SEGUNDA fonte deste município quando fornecido, mesmo padrão 'um município, duas fontes' já usado em " +
+      "Sete Lagoas e Macaé.",
+    fonte: "Laboratório da UPA 24h – Congonhas (MG)",
+    atualizadoEm: "2025-10-21",
+    /* Regra de fluxo do município inteiro, nao de um exame so: reativa
+     * o mecanismo de observacao municipal (existe desde Macae/Sete
+     * Lagoas, ficou sem uso depois que as observacoes daqueles dois
+     * foram removidas a pedido). */
+    observacoes: [
+      "Exames do laboratório da UPA devem ser pedidos juntos. Qualquer exame fora desta lista deve ir em " +
+        "pedido separado — senão o paciente não consegue marcar.",
+    ],
     exames,
   };
 }
@@ -1530,12 +1705,7 @@ async function main() {
   const novos = {
     Betim: await lerBetim(),
     "Macaé": juntarFontesDoMesmoMunicipio([lerMacae(), lerMacaeEspecialidades()]),
-    /* "Congonhas" existiu aqui como 16 procedimentos de dados/apac.json
-     * (o catalogo COMUM de APAC, o mesmo usado por Itaúna/Betim/Sete
-     * Lagoas) — nunca foi uma lista real de Congonhas, foi um erro de
-     * rotulo desde a primeira vez que este municipio foi pedido.
-     * Removido; a lista real de Congonhas (exames de laboratorio da
-     * UPA) entra quando o documento certo for transcrito. */
+    Congonhas: lerCongonhas(),
     "Sete Lagoas": juntarFontesDoMesmoMunicipio([lerSeteLagoas(), lerSeteLagoasLaboratorio()]),
   };
 
