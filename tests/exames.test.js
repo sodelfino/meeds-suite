@@ -242,6 +242,110 @@ const municipios = Object.keys(BASE.municipios).filter((k) => k.indexOf("_") !==
   }
 }
 
+/* --- 5b. o campo `orientacao` (opcional, por exame) --- */
+{
+  const FLUXOS_VALIDOS = ["FICA_NA_UNIDADE", "VAI_PARA_CENTRAL", "OUTRO"];
+  /* Achata TODO texto de uma orientacao — os campos string e os itens
+   * dos campos array — numa lista so, pra rodar a mesma bateria de
+   * checagem (hygiene, nome de pessoa) sem repetir o codigo por campo. */
+  function textosDaOrientacao(o) {
+    const t = [];
+    ["faixaEtaria", "preparo", "comoCadastrar", "validade", "observacoes"].forEach((k) => {
+      if (o[k]) t.push(o[k]);
+    });
+    ["documentos", "preRequisitos", "restricoes"].forEach((k) => {
+      (o[k] || []).forEach((item) => t.push(item));
+    });
+    return t;
+  }
+
+  let comOrientacao = 0;
+  const vazias = [];
+  const fluxoInvalido = [];
+  const listaVazia = [];
+  const textoSujo = [];
+  const nomeDePessoa = [];
+
+  municipios.forEach((m) => {
+    BASE.municipios[m].exames.forEach((e) => {
+      if (!e.orientacao) return;
+      comOrientacao++;
+      const o = e.orientacao;
+
+      /* O gerador (orientacao(), em scripts/montar-exames.js) promete
+       * nunca deixar passar um objeto sem conteudo — `orientacao: {}`
+       * obrigaria o renderizador a checar "existe mas esta vazio" em
+       * vez de so "existe". Aqui e onde essa promessa e cobrada. */
+      const temAlgumCampo = Object.keys(o).some((k) => {
+        const v = o[k];
+        return Array.isArray(v) ? v.length > 0 : !!v;
+      });
+      if (!temAlgumCampo) vazias.push(m + ": " + e.nome);
+
+      if (o.fluxo && FLUXOS_VALIDOS.indexOf(o.fluxo) === -1) {
+        fluxoInvalido.push(m + ": " + e.nome + " -> " + o.fluxo);
+      }
+
+      /* Array presente mas vazio e o mesmo bug que `orientacao: {}`,
+       * um nivel abaixo: melhor o campo nem existir. */
+      ["documentos", "preRequisitos", "restricoes"].forEach((k) => {
+        if (o[k] && o[k].length === 0) listaVazia.push(m + ": " + e.nome + " (" + k + ")");
+      });
+
+      textosDaOrientacao(o).forEach((texto) => {
+        if (/[\n\r]|\s{2,}/.test(texto)) textoSujo.push(m + ": " + e.nome);
+        /* A mesma regra do campo `nome`: nenhum nome de pessoa entra em
+         * `orientacao`, nem escondido dentro de uma frase — e onde a
+         * regra 4 (excluir nome de medico/responsavel) e cobrada de
+         * verdade, porque e o campo de texto livre mais provavel de
+         * "vazar" um nome colado sem querer. */
+        if (/Dr\.|Dra\.|DANIEL|BRENO|FONSECA|SOFIA|JAQUELINE/i.test(texto)) {
+          nomeDePessoa.push(m + ": " + e.nome);
+        }
+      });
+    });
+  });
+
+  ok("ha pelo menos um exame com `orientacao` na base (a feature esta em uso)",
+     comOrientacao > 0);
+  ok("nenhum `orientacao` ficou vazio depois de gerado",
+     vazias.length === 0, vazias.join(" | "));
+  ok("todo `fluxo` usado esta no vocabulario FICA_NA_UNIDADE/VAI_PARA_CENTRAL/OUTRO",
+     fluxoInvalido.length === 0, fluxoInvalido.join(" | "));
+  ok("nenhuma lista de orientacao (documentos/preRequisitos/restricoes) ficou vazia",
+     listaVazia.length === 0, listaVazia.join(" | "));
+  ok("nenhum texto de orientacao tem quebra de linha ou espaco duplo",
+     textoSujo.length === 0, textoSujo.join(" | "));
+  ok("nenhum texto de orientacao contem nome de medico ou funcionario",
+     nomeDePessoa.length === 0, nomeDePessoa.join(" | "));
+
+  /* Os dois exemplos apresentados no desenho do schema, fixados aqui
+   * para o teste falhar se algum deles regredir num proximo commit —
+   * ou se `orientacao()` mudar de comportamento sem ninguem notar. */
+  const sl = BASE.municipios["Sete Lagoas"];
+  if (sl) {
+    const urodinamico = sl.exames.find((e) => e.nome === "Estudo Urodinâmico");
+    ok('"Estudo Urodinâmico" tem orientacao totalmente tipada',
+       !!urodinamico && !!urodinamico.orientacao);
+    if (urodinamico && urodinamico.orientacao) {
+      const o = urodinamico.orientacao;
+      ok("  ...com faixaEtaria, preRequisitos, restricoes, fluxo e observacoes",
+         !!o.faixaEtaria && Array.isArray(o.preRequisitos) && Array.isArray(o.restricoes) &&
+         !!o.fluxo && !!o.observacoes);
+      ok('  ...fluxo e FICA_NA_UNIDADE (nao vai fisicamente para a Central)',
+         o.fluxo === "FICA_NA_UNIDADE");
+      ok("  ...nao decompos em documentos nem comoCadastrar (a fonte nao pedia isso)",
+         !o.documentos && !o.comoCadastrar);
+    }
+
+    const usgUrinario = sl.exames.find((e) => e.nome === "Ultrassonografia de Aparelho Urinário");
+    ok('"Ultrassonografia de Aparelho Urinário" tem orientacao SO com observacoes',
+       !!usgUrinario && !!usgUrinario.orientacao &&
+       Object.keys(usgUrinario.orientacao).length === 1 &&
+       !!usgUrinario.orientacao.observacoes);
+  }
+}
+
 /* --- 6. a ordem alfabetica trata acento como letra --- */
 {
   /* A comparacao byte a byte poe "ÁCIDO" DEPOIS de "ZINCO", porque o "Á"

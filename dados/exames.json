@@ -8303,7 +8303,17 @@
         {
           "nome": "Estudo Urodinâmico",
           "local": "prestador terceirizado",
-          "nota": "Não realiza em menores de 18 anos. Solicitar via e-mail (agendacentralmarcacao2.saude@setelagoas.mg.gov.br) com nome completo, data de nascimento e contato do paciente, e resultado de urina rotina atual (até 15 dias) já avaliado pelo médico da unidade, anexado em PDF. Exame de urina alterado (infecção) contraindica o procedimento."
+          "orientacao": {
+            "faixaEtaria": "Não realiza em menores de 18 anos.",
+            "preRequisitos": [
+              "Resultado de urina rotina atual (até 15 dias), já avaliado pelo médico da unidade, anexado em PDF."
+            ],
+            "restricoes": [
+              "Exame de urina alterado (infecção) contraindica o procedimento."
+            ],
+            "fluxo": "FICA_NA_UNIDADE",
+            "observacoes": "Solicitar via e-mail (agendacentralmarcacao2.saude@setelagoas.mg.gov.br) com nome completo, data de nascimento e contato do paciente."
+          }
         },
         {
           "nome": "Dilatação Uretral",
@@ -8457,7 +8467,9 @@
         {
           "nome": "Ultrassonografia de Aparelho Urinário",
           "local": "HM",
-          "nota": "Informar na observação quando for com Doppler."
+          "orientacao": {
+            "observacoes": "Informar na observação do pedido quando for com Doppler."
+          }
         },
         {
           "nome": "Ultrassonografia de Bolsa Escrotal",

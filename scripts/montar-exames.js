@@ -33,6 +33,105 @@ const FONTES = {
 };
 
 /* ------------------------------------------------------------------
+ * orientacao(...) — monta o campo opcional `orientacao` de um exame
+ * ------------------------------------------------------------------
+ * NAO E UM PARSER DE TEXTO LIVRE, DE PROPOSITO
+ * Esta funcao nao le PDF nem tenta adivinhar, por regex ou NLP, qual
+ * pedaco de uma frase e "faixa etaria" e qual e "pre-requisito". Fazer
+ * isso seria delegar para codigo exatamente a inferencia que a regra de
+ * ouro proibe — um classificador automatico ERRA, e erra em silencio.
+ *
+ * O que ela faz e o passo seguinte, depois que uma PESSOA ja leu o
+ * documento e decidiu, frase por frase, em qual campo tipado (se algum)
+ * aquele trecho cabe sem ambiguidade. Esta funcao so:
+ *   1. recusa `preparo` boilerplate ("preparo conforme orientacao do
+ *      prestador"), mesmo se alguem colar por engano;
+ *   2. limpa array vazio, string vazia e whitespace solto — o formato
+ *      final no JSON fica sempre com o campo AUSENTE quando nao ha
+ *      conteudo, nunca com "" ou [] sobrando;
+ *   3. valida `fluxo` contra o vocabulario fixo (falha o build se vier
+ *      algo fora dele — mesmo espirito da validacao de `codigo` em
+ *      Congonhas: erro de digitacao vira erro de build, nao vira dado
+ *      errado em producao);
+ *   4. devolve `undefined` quando, depois da limpeza, nao sobrou nada —
+ *      assim quem monta o exame nunca deixa um `orientacao: {}` pendurado,
+ *      e o modulo de renderizacao pode confiar que "orientacao existe"
+ *      ja significa "tem conteudo para mostrar".
+ *
+ * NENHUM DADO DE PACIENTE PASSA POR AQUI. Isto e metadado do EXAME
+ * (regra de conduta, documento a anexar, faixa etaria) — nunca nome,
+ * CPF ou qualquer coisa de uma pessoa atendida.
+ * ------------------------------------------------------------------ */
+const FLUXOS_VALIDOS = ["FICA_NA_UNIDADE", "VAI_PARA_CENTRAL", "OUTRO"];
+
+/* A mesma frase-molde aparece em quase toda linha da fonte de Sete
+ * Lagoas ("PREPARO CONFORME ORIENTACAO DO PRESTADOR"), variando so
+ * acento e maiuscula. Normaliza removendo acento antes de comparar,
+ * para nao depender de a pessoa digitar exatamente igual. */
+function normalizarPraComparar(t) {
+  return String(t || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function ehPreparoBoilerplate(texto) {
+  var limpo = normalizarPraComparar(texto);
+  return (
+    limpo === "" ||
+    limpo.indexOf("preparo conforme orientacao do prestador") !== -1 ||
+    limpo.indexOf("conforme orientacao medica") !== -1
+  );
+}
+
+/* Tira string vazia/so-espaco de um array, e devolve undefined (nao []
+ * vazio) se nada sobrou. */
+function limparLista(lista) {
+  if (!Array.isArray(lista)) return undefined;
+  var limpa = lista.map((s) => String(s || "").trim()).filter(Boolean);
+  return limpa.length ? limpa : undefined;
+}
+
+function limparString(s) {
+  var limpa = String(s || "").trim();
+  return limpa || undefined;
+}
+
+function orientacao(campos) {
+  campos = campos || {};
+
+  var preparo = limparString(campos.preparo);
+  if (preparo && ehPreparoBoilerplate(preparo)) preparo = undefined;
+
+  if (campos.fluxo && FLUXOS_VALIDOS.indexOf(campos.fluxo) === -1) {
+    throw new Error(
+      "orientacao(): fluxo \"" + campos.fluxo + "\" nao esta em " + FLUXOS_VALIDOS.join("/") +
+      " — corrija ou acrescente o valor novo ao vocabulario antes de usar."
+    );
+  }
+
+  var saida = {
+    faixaEtaria: limparString(campos.faixaEtaria),
+    preparo: preparo,
+    documentos: limparLista(campos.documentos),
+    preRequisitos: limparLista(campos.preRequisitos),
+    restricoes: limparLista(campos.restricoes),
+    comoCadastrar: limparString(campos.comoCadastrar),
+    validade: limparString(campos.validade),
+    fluxo: campos.fluxo || undefined,
+    observacoes: limparString(campos.observacoes),
+  };
+
+  /* So existe conteudo se pelo menos um campo sobreviveu a limpeza.
+   * `orientacao: {}` nao ajuda ninguem — e pior que nao ter o campo,
+   * porque obrigaria o renderizador a checar "existe mas esta vazio"
+   * em vez de so checar "existe". */
+  var temConteudo = Object.keys(saida).some((k) => saida[k] !== undefined);
+  return temConteudo ? saida : undefined;
+}
+
+/* ------------------------------------------------------------------
  * BETIM — planilha do contrato laboratorial
  * ------------------------------------------------------------------
  * Duas colunas: CODIGO e PROCEDIMENTO. As duas primeiras linhas sao
@@ -310,11 +409,34 @@ function lerSeteLagoas() {
     {
       nome: "Estudo Urodinâmico",
       local: "prestador terceirizado",
-      nota:
-        "Não realiza em menores de 18 anos. Solicitar via e-mail " +
-        "(agendacentralmarcacao2.saude@setelagoas.mg.gov.br) com nome completo, data de nascimento e contato " +
-        "do paciente, e resultado de urina rotina atual (até 15 dias) já avaliado pelo médico da unidade, " +
-        "anexado em PDF. Exame de urina alterado (infecção) contraindica o procedimento.",
+      /* Exemplo de exame TOTALMENTE decomposto. Fonte original (o que
+       * antes vivia inteiro num `nota` de texto livre):
+       *   "Não realiza em menores de 18 anos. Solicitar via e-mail
+       *    (agendacentralmarcacao2.saude@setelagoas.mg.gov.br) com nome
+       *    completo, data de nascimento e contato do paciente, e
+       *    resultado de urina rotina atual (até 15 dias) já avaliado
+       *    pelo médico da unidade, anexado em PDF. Exame de urina
+       *    alterado (infecção) contraindica o procedimento."
+       *
+       * O e-mail e institucional (sem nome de pessoa) — e o unico jeito
+       * de o medico de fato conseguir pedir o exame, entao fica em
+       * `observacoes` como dado operacional. Nao ha campo tipado para
+       * "canal de solicitacao", e forcar um seria inventar estrutura
+       * que a fonte nao pede. */
+      orientacao: orientacao({
+        faixaEtaria: "Não realiza em menores de 18 anos.",
+        preRequisitos: [
+          "Resultado de urina rotina atual (até 15 dias), já avaliado pelo médico da unidade, anexado em PDF.",
+        ],
+        restricoes: ["Exame de urina alterado (infecção) contraindica o procedimento."],
+        /* "FICA NA UNIDADE... ANEXAR AGENDAMENTO QUE SERA ENVIADO POR
+         * EMAIL A SOLICITACAO MEDICA" — o pedido nao vai fisicamente
+         * para a Central, o agendamento e que chega por e-mail. */
+        fluxo: "FICA_NA_UNIDADE",
+        observacoes:
+          "Solicitar via e-mail (agendacentralmarcacao2.saude@setelagoas.mg.gov.br) com nome completo, " +
+          "data de nascimento e contato do paciente.",
+      }),
     },
     { nome: "Dilatação Uretral", local: "CEM" },
     { nome: "Cistoscopia / Retirada de Duplo J / Cauterização em Região Genital", local: "CEM" },
@@ -439,7 +561,15 @@ function lerSeteLagoas() {
     {
       nome: "Ultrassonografia de Aparelho Urinário",
       local: "HM",
-      nota: "Informar na observação quando for com Doppler.",
+      /* Exemplo de exame com SO `observacoes`. Fonte: "Informar na
+       * observação quando for com Doppler." Nao e idade, preparo,
+       * documento, pre-requisito, restricao nem cadastro — e uma
+       * instrucao sobre o que ESCREVER no proprio pedido. Fica ambiguo
+       * entre `observacoes` e `comoCadastrar`; na duvida, o catch-all
+       * generico, nunca um campo especifico forcado. */
+      orientacao: orientacao({
+        observacoes: "Informar na observação do pedido quando for com Doppler.",
+      }),
     },
     {
       nome: "Ultrassonografia de Bolsa Escrotal",

@@ -314,6 +314,28 @@
     ".ex-meta { font-size:11.5px; color:#64748b; margin-top:3px; display:flex; gap:10px; flex-wrap:wrap; }",
     ".ex-selo { display:inline-flex; align-items:center; gap:4px; }",
     ".ex-nota { font-size:11.5px; color:#78350f; background:#fffbeb; border:1px solid #fde68a; border-radius:7px; padding:5px 8px; margin-top:5px; line-height:1.5; }",
+
+    /* --- ex-orientacao: bloco "⚠️ Atenção ao encaminhar" ---
+     * Mesma paleta ambar de `.ex-nota`/`.ex-obs` — pedido explicito de
+     * reutilizar o padrao visual, e faz sentido: e o mesmo tipo de
+     * aviso (conduta antes de pedir), so que agora com estrutura.
+     * SO FLEX, NUNCA position:absolute/fixed — a regra de arquitetura
+     * do build proibe posicao fixa em modulo (ela existe para impedir
+     * modulo de decidir sozinho onde fica botao/painel na tela); um
+     * bloco dentro do proprio item da lista nunca precisa escapar do
+     * fluxo normal do documento, entao a regra nunca chega a apertar
+     * aqui. */
+    ".ex-orientacao { display:flex; flex-direction:column; gap:6px; margin-top:6px; padding:8px 10px; background:#fffbeb; border:1px solid #fde68a; border-radius:8px; }",
+    ".ex-or-titulo { font-size:11px; font-weight:800; color:#92400e; text-transform:uppercase; letter-spacing:.02em; }",
+    ".ex-or-linha { display:flex; align-items:flex-start; gap:7px; font-size:11.5px; color:#78350f; line-height:1.5; }",
+    /* Largura fixa no icone: sem isso, um icone mais estreito ("📝")
+     * ao lado de um mais largo ("🖥️") deixa o texto das linhas
+     * desalinhado verticalmente — flex sozinho nao resolve, porque o
+     * proprio glifo do emoji tem largura variavel. */
+    ".ex-or-icone { flex:0 0 18px; text-align:center; line-height:1.5; }",
+    ".ex-or-txt { flex:1; min-width:0; }",
+    ".ex-or-txt ul { margin:2px 0 0; padding-left:16px; }",
+    ".ex-or-txt li { margin:2px 0; }",
     ".ex-sigla { flex-shrink:0; background:#7c3aed; color:#fff; font-size:10.5px; font-weight:800; padding:3px 8px; border-radius:999px; letter-spacing:.03em; white-space:nowrap; }",
     ".ex-copiar { flex-shrink:0; background:#f1f5f9; border:none; color:#475569; border-radius:7px; padding:6px 9px; font-size:11.5px; font-weight:700; cursor:pointer; }",
     ".ex-copiar:hover { background:#e2e8f0; }",
@@ -426,6 +448,93 @@
    * tudo de uma vez trava a abertura no notebook do plantao.
    * ------------------------------------------------------------------ */
 
+  /* ------------------------------------------------------------------
+   * BLOCO "⚠️ ATENÇÃO AO ENCAMINHAR" — renderiza `orientacao`
+   * ------------------------------------------------------------------
+   * `orientacao` (dados/exames.json) e opcional e, quando existe, ja
+   * chega SEM campo vazio — quem monta o dado (scripts/montar-exames.js)
+   * garante isso na fonte. Aqui a regra e simples: cada campo que
+   * existir vira uma linha com icone; campo ausente nao aparece — nunca
+   * um rotulo com valor vazio do lado.
+   *
+   * NENHUM DADO DE PACIENTE PASSA POR AQUI. `orientacao` e metadado do
+   * EXAME (regra de conduta, documento a anexar, faixa etaria) —
+   * nunca nome, CPF ou qualquer coisa de quem esta sendo atendido.
+   * ------------------------------------------------------------------ */
+
+  /* Icone por VALOR de fluxo, nao um so para o campo: "para onde o
+   * pedido vai" e mais legivel com um icone que muda conforme a
+   * resposta do que com um icone fixo mais um texto ao lado. */
+  var ICONE_FLUXO = {
+    FICA_NA_UNIDADE: "🏥",
+    VAI_PARA_CENTRAL: "📤",
+    OUTRO: "🔀",
+  };
+  var ROTULO_FLUXO = {
+    FICA_NA_UNIDADE: "Fica na unidade",
+    VAI_PARA_CENTRAL: "Vai para a Central",
+    OUTRO: "Outro fluxo",
+  };
+
+  /* Uma linha simples: icone + rotulo + texto corrido. */
+  function linhaDeOrientacao(icone, rotulo, texto) {
+    return (
+      '<div class="ex-or-linha">' +
+      '<span class="ex-or-icone" aria-hidden="true">' + icone + "</span>" +
+      '<span class="ex-or-txt"><b>' + escapar(rotulo) + ":</b> " + escapar(texto) + "</span>" +
+      "</div>"
+    );
+  }
+
+  /* Uma linha com lista: mesmo icone+rotulo, mas o conteudo vira <ul> —
+   * usado pelos campos que sao array (documentos, pre-requisitos,
+   * restricoes), porque um pre-requisito com seis itens (caso real: a
+   * Biopsia Renal de Sete Lagoas) legivel um por linha, nao um paragrafo
+   * so com virgula separando tudo. */
+  function linhaDeOrientacaoComLista(icone, rotulo, itens) {
+    return (
+      '<div class="ex-or-linha">' +
+      '<span class="ex-or-icone" aria-hidden="true">' + icone + "</span>" +
+      '<span class="ex-or-txt"><b>' + escapar(rotulo) + ":</b>" +
+      "<ul>" + itens.map(function (i) { return "<li>" + escapar(i) + "</li>"; }).join("") + "</ul>" +
+      "</span></div>"
+    );
+  }
+
+  function blocoDeOrientacao(o) {
+    if (!o) return "";
+    var linhas = [];
+
+    if (o.faixaEtaria) linhas.push(linhaDeOrientacao("🎂", "Faixa etária", o.faixaEtaria));
+    if (o.preparo) linhas.push(linhaDeOrientacao("🩺", "Preparo", o.preparo));
+    if (o.documentos) linhas.push(linhaDeOrientacaoComLista("📄", "Documentos", o.documentos));
+    if (o.preRequisitos) linhas.push(linhaDeOrientacaoComLista("✅", "Pré-requisitos", o.preRequisitos));
+    if (o.restricoes) linhas.push(linhaDeOrientacaoComLista("🚫", "Restrições", o.restricoes));
+    if (o.comoCadastrar) linhas.push(linhaDeOrientacao("🖥️", "Como cadastrar", o.comoCadastrar));
+    if (o.validade) linhas.push(linhaDeOrientacao("⏳", "Validade", o.validade));
+    if (o.fluxo) {
+      linhas.push(linhaDeOrientacao(
+        ICONE_FLUXO[o.fluxo] || "🔀",
+        "Fluxo",
+        ROTULO_FLUXO[o.fluxo] || o.fluxo
+      ));
+    }
+    if (o.observacoes) linhas.push(linhaDeOrientacao("📝", "Observações", o.observacoes));
+
+    /* Defensivo: `orientacao()` no gerador ja garante que so chega aqui
+     * com pelo menos um campo, mas o modulo nao deve confiar cegamente
+     * num JSON externo (o remoto pode, um dia, vir de outra fonte). Sem
+     * linha nenhuma, nao ha bloco. */
+    if (!linhas.length) return "";
+
+    return (
+      '<div class="ex-orientacao">' +
+      '<div class="ex-or-titulo">⚠️ Atenção ao encaminhar</div>' +
+      linhas.join("") +
+      "</div>"
+    );
+  }
+
   function elementoDoExame(e, indice) {
     var meta = [];
     if (e.codigo) meta.push('<span class="ex-selo">🔢 ' + escapar(e.codigo) + "</span>");
@@ -452,6 +561,14 @@
        * `.ex-meta` porque nao e dado do exame (codigo, local) — e
        * instrucao de conduta, e precisa ler como aviso, nao como selo. */
       (e.nota ? '  <div class="ex-nota">ℹ️ ' + escapar(e.nota) + "</div>" : "") +
+      /* `orientacao` e a evolucao tipada de `nota` — os dois convivem
+       * por enquanto porque so 2 dos 65 itens de orientacoes de Sete
+       * Lagoas foram reclassificados ate aqui; os outros 34 `nota`
+       * continuam do jeito antigo ate a proxima leva de transcricao.
+       * Um exame nunca tem os dois ao mesmo tempo na pratica (a fonte
+       * de dados evita isso de proposito), mas o `if` abaixo nao
+       * assume isso — so desenha o que existir. */
+      blocoDeOrientacao(e.orientacao) +
       "</div>" +
       (sigla
         ? '<span class="ex-sigla" title="' + escapar(sigla.titulo) + '">' + escapar(sigla.rotulo) + "</span>"
