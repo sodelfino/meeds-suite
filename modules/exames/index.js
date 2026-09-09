@@ -55,11 +55,39 @@
     "https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dados/exames.json";
 
   var CONFIG_BUSCA = {
-    LIMITE_RESULTADOS: 60,
-    /* Abaixo disso a busca dispara a cada letra e devolve meia base. O
-     * medico digita "he" e recebe tudo que tem "he" no nome. */
-    MIN_CARACTERES: 3,
+    /* Quantos itens entram na tela por vez. A lista de Betim tem 1.983:
+     * desenhar tudo de uma vez trava a abertura do painel no notebook do
+     * plantao, que e onde isso precisa funcionar. */
+    BLOCO: 100,
+    /* Abaixo de 3 letras o motor difuso devolve meia base — ele foi feito
+     * para tolerar erro de digitacao, e com uma letra tudo "parece" com
+     * tudo. Ate 2 letras o filtro e literal (contem o texto), que e
+     * exatamente o que a pessoa espera ao digitar "he". */
+    MIN_CARACTERES_DIFUSO: 3,
+    /* Espera depois da ultima tecla. 200ms e o intervalo entre teclas de
+     * quem digita rapido: menos que isso refiltra a lista no meio da
+     * palavra, mais que isso ja parece travamento. */
+    DEBOUNCE_MS: 200,
   };
+
+  /* Adiar a execucao ate a pessoa parar de digitar.
+   *
+   * NAO existe um `debounce` compartilhado no nucleo — procurei em
+   * core/decision-engine.js e nos demais. Cada modulo que precisou disso
+   * fez o seu com setTimeout. Como sao seis linhas, repetir aqui custa
+   * menos que criar uma dependencia nova entre modulo e nucleo por tao
+   * pouco. */
+  function adiar(fn, ms) {
+    var timer = null;
+    return function () {
+      var args = arguments, esse = this;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(function () {
+        timer = null;
+        fn.apply(esse, args);
+      }, ms);
+    };
+  }
 
   var d = null;              // dependencias entregues pelo nucleo
   var overlay = null;
@@ -68,7 +96,24 @@
   var municipioEscolhido = null;
   var indicePorMunicipio = {};
   var cancelarRede = null;
-  var timerBusca = null;
+
+  /* ------------------------------------------------------------------
+   * ESTADO DA LISTA NA TELA
+   * ------------------------------------------------------------------
+   * `ordenados` e a lista COMPLETA do municipio, em ordem alfabetica.
+   * `visiveis` sao os indices que passaram no filtro atual — quando nao
+   * ha filtro, e a lista inteira. `desenhados` conta quantos ja viraram
+   * elemento na tela.
+   *
+   * O filtro trabalha sempre sobre `ordenados`, e nao sobre o que esta
+   * desenhado: um exame que ainda nao coube no primeiro bloco continua
+   * encontravel. Se o filtro olhasse so a tela, buscar "zinco" numa
+   * lista parada no item 100 nao acharia nada — e o medico concluiria
+   * que o municipio nao oferece.
+   * ------------------------------------------------------------------ */
+  var ordenados = [];
+  var visiveis = [];
+  var desenhados = 0;
 
   /* ------------------------------------------------------------------
    * A BASE
@@ -157,13 +202,87 @@
     return indicePorMunicipio[municipio];
   }
 
-  function buscar(municipio, termo) {
-    var limpo = String(termo || "").trim();
-    if (limpo.length < CONFIG_BUSCA.MIN_CARACTERES) return null;
-    var r = raiz.MeedsSuiteBusca.buscar(limpo, indiceDe(municipio), {
-      limite: CONFIG_BUSCA.LIMITE_RESULTADOS,
+  /* Ordem alfabetica de gente, nao de computador.
+   *
+   * A comparacao byte a byte poe "ÁCIDO" depois de "ZINCO", porque o "Á"
+   * tem codigo maior que qualquer letra sem acento. `localeCompare` com
+   * sensitivity "base" trata A e Á como a mesma letra, e
+   * `ignorePunctuation` impede que um parenteses ou uma virgula no comeco
+   * jogue o item para outro lugar da lista. Numa base onde metade dos
+   * nomes tem acento, a diferenca e entre uma lista navegavel e uma
+   * lista aparentemente embaralhada. */
+  function ordenarAlfabeticamente(lista) {
+    return lista.slice().sort(function (a, b) {
+      return String(a.nome).localeCompare(String(b.nome), "pt-BR", {
+        sensitivity: "base",
+        ignorePunctuation: true,
+        numeric: true,
+      });
     });
-    return r;
+  }
+
+  function normalizar(t) {
+    return String(t == null ? "" : t)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  /* Quais itens da lista COMPLETA passam no filtro.
+   *
+   * Duas estrategias, escolhidas pelo tamanho do que foi digitado:
+   *
+   *   ate 2 letras  filtro literal (o texto aparece no nome, no codigo ou
+   *                 no local), sem acento e sem caixa. Com uma letra so,
+   *                 o motor difuso acharia semelhanca em quase tudo.
+   *
+   *   3 ou mais     o mesmo motor do REMUME e da CID-10: erro de
+   *                 digitacao, fonetica do portugues, palavra inteira.
+   *                 Reaproveitar significa que uma correcao de busca vale
+   *                 nos tres modulos de uma vez.
+   *
+   * Devolve INDICES de `ordenados`, e nao os itens: e o indice que
+   * permite saber se aquele item ja esta desenhado na tela. */
+  function indicesQuePassam(termo) {
+    var limpo = String(termo || "").trim();
+    var todos = ordenados.map(function (_, i) { return i; });
+    if (!limpo) return todos;
+
+    if (limpo.length < CONFIG_BUSCA.MIN_CARACTERES_DIFUSO) {
+      var alvo = normalizar(limpo);
+      return todos.filter(function (i) {
+        var e = ordenados[i];
+        return normalizar([e.nome, e.codigo || "", e.local || ""].join(" ")).indexOf(alvo) !== -1;
+      });
+    }
+
+    var r = raiz.MeedsSuiteBusca.buscar(limpo, indiceDe(municipioEscolhido), {
+      /* Sem teto: o filtro cobre a lista inteira, e a paginacao e que
+       * decide quanto disso vai para a tela. Cortar aqui esconderia
+       * resultado legitimo sem avisar ninguem. */
+      limite: ordenados.length,
+    });
+
+    /* AQUI A ORDEM MUDA, E DE PROPOSITO.
+     *
+     * Sem termo digitado, a lista e alfabetica: a pessoa esta
+     * PERCORRENDO, e ordem alfabetica e como se acha algo percorrendo.
+     *
+     * Com termo digitado, ela esta PROCURANDO, e vale o ranking do
+     * motor. Forcar alfabetica aqui foi um erro meu que o teste pegou:
+     * buscar "acido folico" trazia "ÁCIDO 2-3 DIFOSFOGLICÉRICO" no topo,
+     * porque vem antes no alfabeto — e o que a pessoa pediu ficava
+     * enterrado no meio de setenta e quatro resultados. */
+    var posicao = new Map();
+    ordenados.forEach(function (e, i) { posicao.set(e, i); });
+    var saida = [];
+    (r.itens || []).forEach(function (x) {
+      var i = posicao.get(x.item || x);
+      if (i !== undefined) saida.push(i);
+    });
+    return saida;
   }
 
   /* ------------------------------------------------------------------
@@ -186,7 +305,8 @@
     ".ex-obs { margin:10px 18px 0; padding:10px 12px; background:#fffbeb; border:1px solid #fde68a; border-radius:9px; font-size:12px; color:#78350f; line-height:1.5; }",
     ".ex-obs ul { margin:4px 0 0; padding-left:18px; }",
     ".ex-obs li { margin:3px 0; }",
-    ".ex-lista { overflow-y:auto; padding:8px 18px 16px; flex:1; }",
+    ".ex-rolagem { overflow-y:auto; padding:8px 18px 16px; flex:1; }",
+    ".ex-lista { padding:0; }",
     ".ex-item { padding:10px 0; border-bottom:1px solid #f1f5f9; display:flex; gap:10px; align-items:flex-start; }",
     ".ex-item:last-child { border-bottom:none; }",
     ".ex-item-txt { flex:1; min-width:0; }",
@@ -200,6 +320,42 @@
     ".ex-aviso b { color:#0f172a; }",
     ".ex-nao-consta { background:#fef2f2; border:1px solid #fecaca; color:#7f1d1d; border-radius:10px; padding:12px 14px; margin:10px 0; font-size:12.5px; line-height:1.55; }",
     ".ex-contagem { font-size:11px; color:#94a3b8; padding:6px 18px 0; }",
+
+    /* Uma classe so para esconder, usada no lugar de mexer em
+     * `style.display` item a item: com quase dois mil elementos, trocar
+     * uma classe e mais barato e deixa o motivo visivel no inspetor. */
+    ".oculto { display:none !important; }",
+
+    /* A lista virou <ul>: `list-style:none` e `margin:0` desfazem o que o
+     * navegador poe por padrao. O shadow root isola do CSS do Meeds, mas
+     * nao do estilo padrao do proprio navegador. */
+    "ul.ex-lista { list-style:none; margin:0; }",
+    "li.ex-item { list-style:none; }",
+
+    /* Sinal de que o filtro esta rodando. Fica DENTRO do campo, a
+     * direita: um spinner longe do campo obriga a procurar o que mudou. */
+    /* Sem `position:absolute` de proposito: a regra de arquitetura que o
+     * build cobra proibe posicao fixa em modulo, e ela existe por um bom
+     * motivo (impedir que modulo decida onde fica botao na tela). Dava
+     * para abrir excecao — mas enfraquecer a regra por conveniencia de um
+     * spinner sairia mais caro que resolver com flex.
+     *
+     * O resultado e o mesmo: o campo reserva espaco a direita
+     * (padding-right) e a margem negativa traz o disco para dentro dele. */
+    ".ex-campo { flex:1; display:flex; align-items:center; }",
+    ".ex-campo input { width:100%; padding-right:32px; }",
+    ".ex-spinner { width:15px; height:15px; margin-left:-24px; flex-shrink:0;",
+    "  border:2px solid #cbd5e1; border-top-color:#0ea5a4; border-radius:50%;",
+    "  animation:ex-girar .7s linear infinite; pointer-events:none; }",
+    "@keyframes ex-girar { to { transform:rotate(360deg); } }",
+    /* Quem pediu para reduzir animacao no sistema nao deve receber um
+     * disco girando: o ponto vira estatico e continua indicando trabalho. */
+    "@media (prefers-reduced-motion: reduce) { .ex-spinner { animation:none; border-top-color:#0ea5a4; } }",
+
+    ".ex-mais { display:block; width:100%; margin:12px 0 4px; padding:11px; border:1px dashed #cbd5e1;",
+    "  background:#f8fafc; color:#0f766e; border-radius:10px; font:inherit; font-size:12.5px;",
+    "  font-weight:700; cursor:pointer; }",
+    ".ex-mais:hover { background:#f1f5f9; border-color:#0ea5a4; }",
   ].join("\n");
 
   function montarSelect() {
@@ -256,65 +412,120 @@
     });
   }
 
-  function pintarResultado() {
-    var termo = refs.busca.value;
-    var lista = refs.lista;
+  /* ------------------------------------------------------------------
+   * DESENHAR A LISTA
+   * ------------------------------------------------------------------
+   * A lista completa aparece assim que o painel abre, em ordem
+   * alfabetica. Antes ela so existia depois de digitar tres letras, e o
+   * campo vazio mostrava um convite a digitar — o que obriga a saber o
+   * nome ANTES de olhar. Quem nao sabe o nome exato (a maioria das
+   * vezes) nao tinha por onde comecar.
+   *
+   * A tela recebe os itens em blocos porque Betim tem 1.983: desenhar
+   * tudo de uma vez trava a abertura no notebook do plantao.
+   * ------------------------------------------------------------------ */
 
-    if (String(termo).trim().length < CONFIG_BUSCA.MIN_CARACTERES) {
-      var total = examesDe(municipioEscolhido).length;
-      lista.innerHTML =
-        '<div class="ex-aviso">Digite o nome do exame.<br><b>' + total +
-        "</b> exame(s) na lista de " + escapar(municipioEscolhido) + ".</div>";
-      refs.contagem.textContent = "";
-      return;
+  function elementoDoExame(e, indice) {
+    var meta = [];
+    if (e.codigo) meta.push('<span class="ex-selo">🔢 ' + escapar(e.codigo) + "</span>");
+    if (e.local) meta.push('<span class="ex-selo">📍 ' + escapar(e.local) + "</span>");
+    var sigla = e.exige ? siglaDe(e.exige) : null;
+
+    var li = document.createElement("li");
+    li.className = "ex-item";
+    /* `listitem`, e nao `option`: a linha tem um botao de copiar dentro,
+     * e um `option` com controle interno confunde o leitor de tela — ele
+     * anuncia a linha como escolhivel quando o que e clicavel e o botao.
+     * A spec pedia `listbox`/`option`, mas esses papeis nunca existiram
+     * neste modulo e aplica-los aqui pioraria a leitura em vez de
+     * melhorar. */
+    li.setAttribute("role", "listitem");
+    li.setAttribute("data-idx", String(indice));
+    li.innerHTML =
+      '<div class="ex-item-txt">' +
+      '  <div class="ex-nome">' + escapar(e.nome) + "</div>" +
+      (meta.length ? '  <div class="ex-meta">' + meta.join("") + "</div>" : "") +
+      "</div>" +
+      (sigla
+        ? '<span class="ex-sigla" title="' + escapar(sigla.titulo) + '">' + escapar(sigla.rotulo) + "</span>"
+        : "") +
+      '<button type="button" class="ex-copiar" aria-label="Copiar ' + escapar(e.nome) + '">Copiar</button>';
+
+    li.querySelector(".ex-copiar").addEventListener("click", function (ev) {
+      copiar(textoParaCopiar(e), ev.currentTarget);
+    });
+    return li;
+  }
+
+  /* Desenha o proximo bloco do conjunto que passou no filtro. */
+  function desenharBloco() {
+    var ate = Math.min(desenhados + CONFIG_BUSCA.BLOCO, visiveis.length);
+    var pedaco = document.createDocumentFragment();
+    for (var k = desenhados; k < ate; k++) {
+      var i = visiveis[k];
+      pedaco.appendChild(elementoDoExame(ordenados[i], i));
     }
+    refs.lista.appendChild(pedaco);
+    desenhados = ate;
+    atualizarRodape();
+  }
 
-    var r = buscar(municipioEscolhido, termo);
-    var itens = (r && r.itens) || [];
+  function atualizarRodape() {
+    var restam = visiveis.length - desenhados;
+    refs.mais.textContent = restam > 0
+      ? "+ Mais " + Math.min(CONFIG_BUSCA.BLOCO, restam) + " (faltam " + restam + ")"
+      : "";
+    refs.mais.classList.toggle("oculto", restam <= 0);
 
-    if (!itens.length) {
+    var termo = refs.busca.value.trim();
+    refs.contagem.textContent = termo
+      ? "mostrando " + desenhados + " de " + visiveis.length + " que casam · " +
+        ordenados.length + " na lista de " + municipioEscolhido
+      : "mostrando " + desenhados + " de " + ordenados.length +
+        " exame(s) em " + municipioEscolhido;
+  }
+
+  /* Recomeca a lista: usado ao abrir o painel, ao trocar de municipio e
+   * a cada filtro novo. */
+  function redesenhar() {
+    refs.lista.innerHTML = "";
+    desenhados = 0;
+    refs.vazio.classList.add("oculto");
+
+    if (!visiveis.length) {
       /* A MENSAGEM E ESPECIFICA DE PROPOSITO. "Nenhum resultado" faria o
        * medico achar que errou a digitacao. O que aconteceu foi outra
        * coisa, e ela muda a conduta: este municipio nao oferece. */
-      lista.innerHTML =
-        '<div class="ex-nao-consta"><b>Não consta na lista de ' + escapar(municipioEscolhido) + ".</b><br>" +
+      refs.vazio.innerHTML =
+        "<b>Não consta na lista de " + escapar(municipioEscolhido) + ".</b><br>" +
         "Isso não quer dizer que o exame não exista — quer dizer que ele não está na lista que este município publicou. " +
-        "Confira a grafia; se estiver certa, o caminho é o fluxo de encaminhamento ou a regulação.</div>";
-      refs.contagem.textContent = "";
+        "Confira a grafia; se estiver certa, o caminho é o fluxo de encaminhamento ou a regulação.";
+      refs.vazio.classList.remove("oculto");
+      atualizarRodape();
       return;
     }
+    desenharBloco();
+  }
 
-    lista.innerHTML = itens
-      .map(function (x) {
-        var e = x.item || x;
-        var meta = [];
-        if (e.codigo) meta.push('<span class="ex-selo">🔢 ' + escapar(e.codigo) + "</span>");
-        if (e.local) meta.push('<span class="ex-selo">📍 ' + escapar(e.local) + "</span>");
-        var sigla = e.exige ? siglaDe(e.exige) : null;
-        return (
-          '<div class="ex-item">' +
-          '  <div class="ex-item-txt">' +
-          '    <div class="ex-nome">' + escapar(e.nome) + "</div>" +
-          (meta.length ? '    <div class="ex-meta">' + meta.join("") + "</div>" : "") +
-          "  </div>" +
-          (sigla
-            ? '  <span class="ex-sigla" title="' + escapar(sigla.titulo) + '">' + escapar(sigla.rotulo) + "</span>"
-            : "") +
-          '  <button type="button" class="ex-copiar" data-copiar="' + escapar(textoParaCopiar(e)) + '">Copiar</button>' +
-          "</div>"
-        );
-      })
-      .join("");
+  /* Aplica o filtro sobre a lista COMPLETA e redesenha. */
+  function filtrarExames() {
+    visiveis = indicesQuePassam(refs.busca.value);
+    redesenhar();
+    /* O spinner some depois do trabalho, nao antes: ele existe para
+     * cobrir justamente o intervalo em que a lista de 1.983 itens esta
+     * sendo percorrida. */
+    refs.spinner.classList.add("oculto");
+  }
 
-    refs.contagem.textContent =
-      itens.length + " de " + examesDe(municipioEscolhido).length +
-      (r && r.viaFuzzy ? " · busca aproximada" : "");
+  var filtrarComAtraso = adiar(filtrarExames, CONFIG_BUSCA.DEBOUNCE_MS);
 
-    overlay.$$("button[data-copiar]").forEach(function (b) {
-      b.addEventListener("click", function () {
-        copiar(b.getAttribute("data-copiar"), b);
-      });
-    });
+  /* Carrega a lista do municipio escolhido, do zero. */
+  function carregarMunicipio() {
+    ordenados = ordenarAlfabeticamente(examesDe(municipioEscolhido));
+    visiveis = ordenados.map(function (_, i) { return i; });
+    refs.busca.value = "";
+    refs.spinner.classList.add("oculto");
+    redesenhar();
   }
 
   /* O que vai para a area de transferencia e o que o medico cola no
@@ -336,14 +547,6 @@
     }
   }
 
-  function agendarBusca() {
-    if (timerBusca) clearTimeout(timerBusca);
-    timerBusca = setTimeout(function () {
-      timerBusca = null;
-      pintarResultado();
-    }, 180);
-  }
-
   function abrirPainel() {
     if (overlay && overlay.estaAberto && overlay.estaAberto()) {
       overlay.fechar();
@@ -351,7 +554,7 @@
     }
     if (!overlay) montarPainel();
     montarSelect();
-    pintarResultado();
+    carregarMunicipio();
     overlay.abrir();
     setTimeout(function () { refs.busca.focus(); }, 60);
   }
@@ -367,13 +570,21 @@
         '  <div class="ex-topo">' +
         '    <div class="ex-linha">' +
         '      <select id="ex-municipio" aria-label="Município"></select>' +
-        '      <input type="search" id="ex-busca" placeholder="Ex: hemograma, creatinina, holter" autocomplete="off" />' +
+        '      <div class="ex-campo">' +
+        '        <input type="search" id="ex-busca" autocomplete="off"' +
+        '               placeholder="Filtrar exames…" aria-label="Filtrar exames pelo nome, código ou local" />' +
+        '        <span class="ex-spinner oculto" id="ex-spinner" role="status" aria-label="Filtrando"></span>' +
+        "      </div>" +
         "    </div>" +
         '    <div class="ex-origem" id="ex-origem"></div>' +
         "  </div>" +
         '  <div class="ex-obs" id="ex-obs" hidden></div>' +
-        '  <div class="ex-contagem" id="ex-contagem"></div>' +
-        '  <div class="ex-lista" id="ex-lista"></div>' +
+        '  <div class="ex-contagem" id="ex-contagem" role="status"></div>' +
+        '  <div class="ex-rolagem">' +
+        '    <div class="ex-nao-consta oculto" id="ex-vazio"></div>' +
+        '    <ul class="ex-lista" id="ex-lista" role="list" aria-label="Exames disponíveis neste município"></ul>' +
+        '    <button type="button" class="ex-mais oculto" id="ex-mais"></button>' +
+        "  </div>" +
         "</div>",
     });
 
@@ -383,13 +594,26 @@
     refs.origem = overlay.$("#ex-origem");
     refs.obs = overlay.$("#ex-obs");
     refs.contagem = overlay.$("#ex-contagem");
+    refs.spinner = overlay.$("#ex-spinner");
+    refs.mais = overlay.$("#ex-mais");
+    refs.vazio = overlay.$("#ex-vazio");
 
     overlay.$(".ex-fechar").addEventListener("click", function () { overlay.fechar(); });
-    refs.busca.addEventListener("input", agendarBusca);
+
+    refs.busca.addEventListener("input", function () {
+      /* O spinner acende JA, no evento de tecla, e nao dentro do filtro:
+       * o que ele cobre e justamente a espera do debounce mais o tempo de
+       * percorrer a lista. Acender depois seria acender tarde demais. */
+      refs.spinner.classList.remove("oculto");
+      filtrarComAtraso();
+    });
+
+    refs.mais.addEventListener("click", desenharBloco);
+
     refs.select.addEventListener("change", function () {
       municipioEscolhido = refs.select.value;
       pintarCabecalho();
-      pintarResultado();
+      carregarMunicipio();
       refs.busca.focus();
     });
   }
@@ -462,9 +686,11 @@
 
     stop: function () {
       if (cancelarRede) { cancelarRede(); cancelarRede = null; }
-      if (timerBusca) { clearTimeout(timerBusca); timerBusca = null; }
       if (overlay) { overlay.remover(); overlay = null; refs = {}; }
       indicePorMunicipio = {};
+      ordenados = [];
+      visiveis = [];
+      desenhados = 0;
     },
 
     aoCargaRede: function () {

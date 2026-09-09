@@ -192,7 +192,51 @@ const municipios = Object.keys(BASE.municipios).filter((k) => k.indexOf("_") !==
   }
 }
 
-/* --- 6. a copia embutida esta em dia --- */
+/* --- 6. a ordem alfabetica trata acento como letra --- */
+{
+  /* A comparacao byte a byte poe "ÁCIDO" DEPOIS de "ZINCO", porque o "Á"
+   * tem codigo maior que qualquer letra sem acento. Numa base onde
+   * metade dos nomes comeca com acento, isso e a diferenca entre uma
+   * lista navegavel e uma lista que parece embaralhada. */
+  const opcoes = { sensitivity: "base", ignorePunctuation: true, numeric: true };
+  const cmp = (a, b) => String(a).localeCompare(String(b), "pt-BR", opcoes);
+
+  ok('"ÁCIDO" vem antes de "BILIRRUBINA" (acento nao joga para o fim)',
+     cmp("ÁCIDO ÚRICO", "BILIRRUBINA TOTAL") < 0);
+  ok('"ÁCIDO" e "ACIDO" empatam (o acento nao separa)',
+     cmp("ÁCIDO FÓLICO", "ACIDO FOLICO") === 0);
+  ok('numeros em ordem numerica: "3-METIL" antes de "10,11 EPÓXIDO"',
+     cmp("3-METIL HISTIDINA", "10,11 EPÓXIDO CARBAMAZEPINAM") < 0);
+
+  /* A lista de cada municipio precisa ficar estavel: ordenar duas vezes
+   * nao pode mudar a ordem, senao o item "pula" a cada redesenho. */
+  municipios.forEach((m) => {
+    const nomes = BASE.municipios[m].exames.map((e) => e.nome);
+    const uma = nomes.slice().sort(cmp);
+    const duas = uma.slice().sort(cmp);
+    ok("a ordenacao de " + m + " e estavel", JSON.stringify(uma) === JSON.stringify(duas));
+  });
+}
+
+/* --- 7. a tela declara as pecas que a lista completa precisa --- */
+{
+  /* Guarda contra remocao acidental: sem qualquer uma destas, a lista
+   * completa deixa de funcionar de um jeito que so aparece na tela. */
+  const fonte = fs.readFileSync(path.join(RAIZ, "modules/exames/index.js"), "utf8");
+  const pecas = [
+    [".oculto", "a classe que esconde item filtrado"],
+    ["ex-spinner", "o sinal de que o filtro esta rodando"],
+    ["ex-mais", 'o botao "+ Mais" da paginacao'],
+    ["ordenarAlfabeticamente", "a ordenacao da lista"],
+    ["indicesQuePassam", "o filtro sobre a base inteira"],
+    ["localeCompare", "a comparacao que trata acento como letra"],
+  ];
+  pecas.forEach(([marca, oQueE]) => {
+    ok("o modulo ainda tem " + oQueE, fonte.indexOf(marca) !== -1);
+  });
+}
+
+/* --- 8. a copia embutida esta em dia --- */
 {
   /* Quem cai no fallback (sem internet, dominio bloqueado, CSP) precisa
    * ver a mesma lista. Ja aconteceu no REMUME de Barbacena entrar so na
