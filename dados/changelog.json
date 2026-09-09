@@ -2,6 +2,19 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.38.0",
+      "data": "2026-09-09",
+      "novidades": [
+        "Macaé ganhou a lista de exames por especialidade da SEMUSA: 66 exames de Cardiologia, Urologia, Neurologia, Otorrino e outras, somados aos 28 que já existiam da UPA Barra — 94 no total. Cada exame mostra a especialidade (alguns aparecem em mais de uma, como o Ecodoppler de Carótidas) e, quando o documento afirma, o canal por onde o pedido entra: SISREG, Central de Regulação do Município ou regulação estadual.",
+        "Congonhas entrou com a lista certa: 52 exames de laboratório da UPA 24h. Um aviso fixo no topo explica a regra da prefeitura — exames desta lista precisam ser pedidos juntos, e qualquer exame fora dela vai em pedido separado, senão o paciente não consegue marcar. A Baciloscopia para BAAR aparece com um selo \"Suspenso\", porque está parada pelo Ministério da Saúde desde a COVID-19."
+      ],
+      "melhorias": [],
+      "correcoes": [
+        "A lista antiga de Congonhas (16 procedimentos com a sigla APAC) estava errada: era o catálogo geral de procedimentos que exigem APAC — o mesmo usado no gerador de APAC para Itaúna, Betim e Sete Lagoas — mostrado por engano como se fosse a lista de exames de Congonhas. Foi removida e substituída pela lista real, acima. O gerador de APAC em si nunca teve esse erro.",
+        "Os avisos fixos de Macaé (consentimento para HIV, data de nascimento) e de Sete Lagoas (cadastro no GMUS/CADWEB, carimbo/contato) foram retirados do topo do painel."
+      ]
+    },
+    {
       "versao": "2.37.0",
       "data": "2026-09-09",
       "novidades": [
