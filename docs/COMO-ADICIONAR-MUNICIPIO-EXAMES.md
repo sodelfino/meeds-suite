@@ -73,14 +73,15 @@ desiguais sem inventar dado:
 |---|---|---|---|---|---|
 | Betim | sim (contrato) | não | não | não | não |
 | Macaé | não (nenhuma das 2 fontes tem) | 28 de 94 (só na fonte UPA Barra) | não | 21 de 94 com `orientacao` (fonte SEMUSA) | 28 de 94 (fonte SEMUSA) |
+| Congonhas | não (o documento não traz) | não | não | não | não |
 | Sete Lagoas | 456 de 521 (só na fonte laboratorial) | 64 de 521 (só na fonte de orientações) | APAC / LAUDO / Alto Custo | 34 com `nota`, 2 já com `orientacao` | não |
 
-> Um "Congonhas" existiu nesta tabela até setembro de 2026 — na verdade era o
-> catálogo `_comum` de `dados/apac.json` (procedimentos APAC, compartilhados por
-> Itaúna/Betim/Sete Lagoas no gerador de APAC) sob um nome de município que
-> nunca teve fonte própria — erro de rótulo desde o pedido original, não dado
-> real de Congonhas. Removido; a lista real de Congonhas (exames de laboratório
-> da UPA) entra quando o documento correto for transcrito.
+> Um "Congonhas" diferente existiu nesta tabela até setembro de 2026 — na
+> verdade era o catálogo `_comum` de `dados/apac.json` (procedimentos APAC,
+> compartilhados por Itaúna/Betim/Sete Lagoas no gerador de APAC) sob um nome
+> de município que nunca teve fonte própria — erro de rótulo desde o pedido
+> original, não dado real de Congonhas. Removido; o Congonhas da tabela acima
+> é a lista real (laboratório da UPA 24h), que entrou depois.
 
 **Campo vazio significa "o município não publicou", nunca "faltou preencher".**
 Completar por dedução colocaria no sistema informação que a prefeitura não deu —
@@ -225,18 +226,31 @@ seu jeito, e o schema tem que caber nos dois sem "endurecer" para nenhum.
 | `CENTRAL_MUNICIPAL` | Paciente dá entrada na Central de Regulação do Município. |
 | `REGULACAO_ESTADUAL` | Encaminhado para regulação de outro estado (em Macaé, o Rio de Janeiro). |
 | `DIRETO_AO_SERVICO` | Vai direto ao prestador, sem passar por regulação. |
+| `LABORATORIO_UPA` | O único canal conhecido é "o laboratório da própria UPA" — hoje usado em Congonhas, onde só existe uma fonte e ela é inteira desse laboratório. |
 | `OUTRO` | Nenhum dos anteriores — mesma regra de `fluxo`: não force um encaixe. |
 
 Igual a `fluxo`, um valor fora dessa lista **falha o build**. E, igual a
 `fluxo`, o ícone da tela muda por **valor**, não é um ícone fixo com texto do
 lado.
 
-**Quando o canal varia por especialidade, para o mesmo exame, não escolha um.**
-"Ecodoppler de Carótidas" entra pelo SISREG quando pedido via Neurologia Adulto,
-mas pela Central Municipal quando pedido via Cardiologia — a fonte não afirma um
-canal único para o exame. Nesse caso `canalEncaminhamento` fica **ausente**, e a
-variação vai para `observacoes` como texto — a mesma disciplina de "só campo
-tipado quando o documento afirma sem ambiguidade", aplicada a um caso novo.
+> **Estado atual: `canalEncaminhamento` não é usado em nenhum exame de Macaé.**
+> Foi removido a pedido — os 8 exames que tinham `SISREG`, `CENTRAL_MUNICIPAL`
+> ou `REGULACAO_ESTADUAL` ficaram só com o texto correspondente em
+> `observacoes` (a frase, não o campo estruturado). O raciocínio acima
+> continua válido para quem for usar o campo de novo, em Macaé ou em outro
+> município — só não há exemplo ativo dele em Macaé neste momento. Quem usa o
+> campo hoje é Congonhas, com `LABORATORIO_UPA` em todos os exames (ver
+> `lerCongonhas()`).
+>
+> O caso que motivou a frase abaixo — canal variando por especialidade para o
+> mesmo exame — segue documentado porque o **princípio** (não force um valor
+> único que a fonte não afirma) continua valendo, mesmo sem `canalEncaminhamento`
+> ativo em Macaé hoje: "Ecodoppler de Carótidas" entraria pelo SISREG quando
+> pedido via Neurologia Adulto, mas pela Central Municipal quando pedido via
+> Cardiologia — a fonte não afirma um canal único para o exame. Nesse caso o
+> campo ficaria **ausente**, e a variação iria para `observacoes` como texto —
+> a mesma disciplina de "só campo tipado quando o documento afirma sem
+> ambiguidade".
 
 **Nomes normalizados: a única exceção deliberada a "erro se transcreve como
 está".** A regra de sempre (mais abaixo) é preservar erro de digitação da fonte.
@@ -254,6 +268,69 @@ Ver `lerMacaeEspecialidades()` em `scripts/montar-exames.js` para o exemplo
 completo — inclusive os casos em que a especialidade some de propósito (linha
 sem correspondência inequívoca entre as duas fontes de Macaé) em vez de ser
 adivinhada.
+
+**Congonhas usa a mesma regra de normalização de nome que Macaé** ("erro se
+corrige, não se preserva", exceção ao padrão de Betim/Sete Lagoas) — o
+documento original está em CAIXA ALTA ("DETERMINAÇÃO DO TEMPO DE PROTROMBINA
+/ RNI") e foi normalizado pelo mesmo motivo: o nome existe para ser
+encontrado, não para reproduzir a formatação do PDF.
+
+### `justificativaObrigatoria`: exige justificativa no pedido?
+
+Campo novo do EXAME (`boolean`, opcional, `default false`/ausente — nunca
+`false` escrito no JSON, a mesma disciplina de todo campo opcional deste
+arquivo). Responde uma pergunta que nem `orientacao` nem `especialidade`
+cobrem: **este exame exige que o médico escreva uma justificativa no
+pedido?**
+
+**O critério é LABORATORIAL × NÃO-LABORATORIAL — uma coisa só, factual:**
+
+> O exame analisa uma amostra biológica colhida do paciente (sangue, urina,
+> fezes, escarro) — **laboratorial**, `justificativaObrigatoria` ausente — ou
+> faz algo COM/NO paciente: captura uma imagem, registra um sinal fisiológico,
+> executa um procedimento — **não-laboratorial**, `justificativaObrigatoria: true`.
+
+Não é "tem risco", não é "é caro", não é opinião — é a mesma pergunta,
+sempre, e hoje todo exame da base cai claramente de um lado ou do outro.
+Exemplos de não-laboratorial: RX, USG, TC, RM, mamografia, densitometria,
+cintilografia, endoscopia, colonoscopia, biópsia, cateterismo, teste
+ergométrico, ECG, Holter, MAPA, EEG, espirometria, audiometria. Exemplos de
+laboratorial: hemograma, dosagem bioquímica (glicose, colesterol, ureia...),
+urina, fezes, sorologia, teste rápido.
+
+**Como é aplicado no código: por FONTE, não por regex item a item.** Cada
+fonte, hoje, é inteiramente laboratorial ou inteiramente não-laboratorial —
+nenhuma mistura as duas coisas:
+
+| Fonte | Classificação |
+|---|---|
+| Betim (contrato laboratorial) | 100% laboratorial → campo ausente |
+| Macaé, UPA Barra | 100% laboratorial → campo ausente |
+| Macaé, especialidades SEMUSA | 100% não-laboratorial → `true` |
+| Congonhas, laboratório da UPA | 100% laboratorial → campo ausente |
+| Sete Lagoas, orientações da Central | 100% não-laboratorial → `true` |
+| Sete Lagoas, tabela SIGTAP laboratorial | 100% laboratorial → campo ausente |
+
+Por isso o código não escreve `justificativaObrigatoria: true` exame a
+exame: a fonte inteira sai com `exames.map(e => ({...e, justificativaObrigatoria: true}))`
+no retorno da função. Se uma fonte nova misturar as duas categorias (ainda
+não aconteceu), aí sim caberia decidir item a item — sempre por leitura
+humana do documento, nunca por classificador automático de texto livre
+(mesma disciplina do construtor `orientacao(...)`, abaixo).
+
+**Testável sem depender do código do gerador.** `tests/exames.test.js`
+reimplementa o mesmo critério do zero, como lista de palavras-chave, e
+confere que ele bate com o valor de `justificativaObrigatoria` de cada exame
+da base — uma segunda opinião independente, que pega contradição (um exame
+marcado errado) em vez de confiar cegamente em como o dado foi gerado. Não
+exige 100% de cobertura por palavra-chave (nomes curtos como "PET-CT" não
+carregam vocabulário reconhecível, e está tudo bem) — exige zero contradição,
+e uma cobertura mínima fora de Betim (cujos 1.983 itens de contrato nunca
+foram ambíguos, e por isso não entram na medida).
+
+UI: renderiza **"⚠️ Justificativa médica obrigatória no pedido"** no exame,
+fora do bloco de `orientacao` (muitos exames com o campo não têm `orientacao`
+nenhuma) — ver `linhaJustificativaObrigatoria()` em `modules/exames/index.js`.
 
 ### Como preencher: o construtor `orientacao(...)`
 
@@ -396,6 +473,121 @@ automaticamente quando o exame não tem código nenhum.
 
 ---
 
+## Exame suspenso: removido, não marcado
+
+Congonhas teve dois exames que a própria fonte confirmou não estarem mais
+disponíveis: "Baciloscopia direta para BAAR" (suspensa pelo Ministério da
+Saúde) e "Pesquisa de sangue oculto". A política adotada foi **tirar o item
+da lista**, não deixá-lo lá com um selo de "indisponível".
+
+Existiu uma política anterior — campo `status` (`ATIVO`/`SUSPENSO`), com um
+badge vermelho na tela — que foi **substituída** por esta, mais restritiva,
+a pedido. O raciocínio: um exame que a unidade não realiza não deveria
+aparecer pesquisável, exigindo que o médico leia um selo para só então
+descobrir que não pode pedir. É mais simples e mais seguro simplesmente não
+listar.
+
+Isso não é uma regra nova de transcrição — é a mesma velha regra de sempre
+("a lista de cada município é a única fonte de verdade do que ele oferece")
+aplicada ao caso "a fonte diz que isto não está mais disponível": o item
+não entra, do mesmo jeito que um exame nunca ofertado nunca entrou.
+
+**Se a fonte não afirma suspensão com clareza, não remova por suposição.**
+O documento de Congonhas mostrava "Pesquisa de sangue oculto" com formatação
+de texto riscado, mas sem a frase explicativa que acompanhava a Baciloscopia
+— só depois de confirmar com quem publicou a lista é que o item saiu.
+Formatação visual ambígua (texto riscado, cor diferente) não é, sozinha,
+uma afirmação do documento — é o mesmo princípio de "na dúvida, não invente"
+aplicado a remoção, não só a inclusão.
+
+---
+
+## `encaminhamentos`: quando não é exame
+
+A aba "Serviços e Programas Especiais" do XLSX de Macaé lista 5 serviços de
+referência — Casa da Criança e do Adolescente, CRA (Centro de Referência do
+Adolescente), Núcleo de Saúde Mental, Clínica do Autista, GAN (Gerência de
+Alimentação e Nutrição). Nenhum deles é "exame": são estabelecimentos/serviços
+para onde um especialista encaminha o paciente, cada um com seu próprio
+público-alvo, atendimentos oferecidos e fluxo de entrada.
+
+**Por que uma entidade separada, e não um "exame" com campos vazios.** Um
+serviço de referência não tem faixa etária de "quem pode pedir o exame" — tem
+público-alvo de "quem o serviço atende". Não tem documentos/pré-requisitos —
+tem uma lista de atendimentos oferecidos. Forçar isso dentro do schema de
+exame obrigaria a inventar equivalências que não existem, ou a deixar metade
+dos campos de `orientacao` sempre vazios — o mesmo tipo de "endurecer o
+schema para um formato" que a regra de ouro proíbe.
+
+**Estrutura**, um objeto por serviço:
+
+```json
+{
+  "nome": "CRA — Centro de Referência do Adolescente",
+  "publicoAlvo": "Adolescentes de 12 a 19 anos, 11 meses e 29 dias — autolesão, tentativa de suicídio...",
+  "atendimentos": [
+    "Atendimento médico: ginecologia, dermatologia, clínica geral, psiquiatria...",
+    "Apoio psicossocial: psicólogos, assistentes sociais, terapeutas ocupacionais.",
+    "Prevenção e testes rápidos (HIV, sífilis, hepatites B/C).",
+    "Grupos educativos.",
+    "Serviço social."
+  ],
+  "fluxo": "Encaminhar adolescentes para o CRA."
+}
+```
+
+`fluxo` aqui é **texto livre**, não o enum `FICA_NA_UNIDADE`/`VAI_PARA_CENTRAL`
+de exame — a fonte não usa esse vocabulário para serviço, e forçar seria
+inventar estrutura que ela não pede (mesma disciplina de "só campo tipado
+quando o documento afirma sem ambiguidade").
+
+**Onde mora: `dados/exames.json`, chave nova `encaminhamentos`, irmã de
+`municipios` — não um arquivo novo, e nunca dentro de `municipios[x].exames`.**
+
+- **Por que não um `dados/encaminhamentos.json` separado:** um arquivo novo
+  pediria novo endpoint remoto, novo fallback embutido no pacote, novo script
+  de sincronização e novo teste de "o fallback bate com a fonte" — toda a
+  infraestrutura que já existe e já é testada para `exames.json` (busca
+  offline, atualização sem republicar o userscript, detecção de fallback
+  desatualizado). Reusar o mesmo arquivo dá a mesma garantia sem duplicar
+  mecanismo nenhum. Se o volume crescer muito no futuro (hoje são 5 serviços,
+  só em Macaé), a decisão pode ser revisitada.
+- **Por que não dentro de `municipios["Macaé"].exames`:** misturar as duas
+  listas obrigaria a busca, a paginação e a renderização de cada item a
+  checar "isto é exame ou é serviço?" a cada linha — o mesmo argumento que já
+  separa `dados/apac.json` de `dados/exames.json` como dois arquivos, em vez
+  de um só com uma flag "isto é APAC ou é exame comum".
+
+Formato do bloco por município (hoje só `"Macaé"` existe):
+
+```json
+"encaminhamentos": {
+  "Macaé": {
+    "_leia_me": "...",
+    "fonte": "Serviços e Programas Especiais (SEMUSA Macaé)",
+    "atualizadoEm": "2026-09-09",
+    "observacoes": ["Apenas profissionais especialistas podem encaminhar para estes serviços."],
+    "servicos": [ { "nome": "...", "publicoAlvo": "...", "atendimentos": [...], "fluxo": "..." } ]
+  }
+}
+```
+
+`observacoes`, no nível do bloco, é a mesma regra válida para o município
+inteiro (aqui: só especialista encaminha) — escrita **uma vez**, não repetida
+em cada um dos 5 serviços.
+
+UI: seção própria **"📋 Encaminhamentos / Serviços de referência"**, em
+paleta azul (nem aviso de risco, nem categoria de exame — informativo,
+cor diferente das duas outras já usadas no módulo), renderizada uma vez por
+município, antes da lista de exames. Não entra na busca, na paginação nem na
+ordenação alfabética de exame — ver `pintarEncaminhamentos()` em
+`modules/exames/index.js`.
+
+Ver `lerMacaeEncaminhamentos()` em `scripts/montar-exames.js` para o exemplo
+completo.
+
+---
+
 ## Duas armadilhas que já custaram caro
 
 **Duplicata que não parece duplicata.** A planilha de Betim quebra nomes longos
@@ -429,23 +621,22 @@ inventar o que a prefeitura quis dizer, a mesma disciplina do
 - **Betim não tem `nota` nem `orientacao`.** Os dois campos existem e a tela
   sabe pintá-los (Sete Lagoas e Macaé usam, por enquanto); se um exame de outro
   município precisar de um aviso específico, é só acrescentar.
-- **A lista real de Congonhas ainda não existe.** O que havia aqui com esse nome
-  era, na verdade, o catálogo de procedimentos APAC (removido — ver nota na
-  seção "O formato"). A lista real (exames de laboratório da UPA de Congonhas)
-  entra quando o documento correto for transcrito.
-- **`especialidade` e `canalEncaminhamento` só existem em Macaé, por enquanto.**
-  Nada nos dois campos é "específico de Macaé" — qualquer município organizado
-  por especialidade ou com canal de entrada explícito pode usar os dois valores
-  na mesma escala.
+- **Congonhas só tem a lista de laboratório da UPA 24h, por enquanto.** O grupo
+  de imagem/especialidade (equivalente ao que Macaé tem na SEMUSA) ainda não foi
+  transcrito — vai ser a segunda fonte do município, mesmo padrão "um
+  município, duas fontes" abaixo, quando o documento chegar.
+- **`especialidade` só existe em Macaé, por enquanto.** Nada no campo é
+  "específico de Macaé" — qualquer município organizado por especialidade pode
+  usar o mesmo array.
+- **`canalEncaminhamento` só existe em Congonhas (`LABORATORIO_UPA`), por
+  enquanto.** Foi removido de Macaé a pedido (ver a nota em "`especialidade` e
+  `canalEncaminhamento`: o que Macaé acrescentou", acima). O campo continua
+  genérico — nenhum valor do vocabulário é exclusivo de um município.
 - **A lista de laboratoriais de bancada de Macaé ainda não chegou.** Hemograma,
   glicemia, TSH, sorologia... nenhuma das duas fontes atuais lista isso — vai
   ser a **terceira** fonte do município (a segunda foi a lista por
   especialidade, somada à UPA Barra que já existia), no mesmo padrão "um
   município, duas fontes" abaixo, quando a prefeitura mandar.
-- **A aba "Serviços e Programas" do XLSX de Macaé ficou de fora.** Casa da
-  Criança, CRA, Núcleo de Saúde Mental — é encaminhamento para serviço/programa,
-  não pedido de exame, mesma categoria da seção "Consultas" já excluída de Sete
-  Lagoas, abaixo.
 - **34 dos 65 exames de "orientações" de Sete Lagoas ainda estão em `nota`, não
   em `orientacao`.** Só os dois exemplos deste guia foram reclassificados. A
   migração é releitura item a item, com a mesma dupla conferência de sempre —
@@ -454,5 +645,7 @@ inventar o que a prefeitura quis dizer, a mesma disciplina do
 - **As consultas/encaminhamentos de Sete Lagoas ficaram de fora.** O mesmo PDF
   tem uma segunda seção ("Consultas agendadas pela Central de Marcação") com
   encaminhamento para especialista — outra categoria, não "exame", e fora do
-  escopo deste módulo. Poderia virar uma função irmã ("Especialidades do
-  município"), com a mesma arquitetura, se algum dia fizer sentido.
+  escopo deste módulo. Agora existe precedente pronto para isso: a entidade
+  `encaminhamentos` (ver "`encaminhamentos`: quando não é exame", abaixo),
+  criada para os serviços de referência de Macaé, serviria sem mudança de
+  estrutura — só uma função `lerSeteLagoasConsultas()` a mais.
