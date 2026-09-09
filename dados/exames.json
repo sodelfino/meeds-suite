@@ -8077,7 +8077,8 @@
           "especialidade": [
             "Neuro Pediatra",
             "Otorrinolaringologia"
-          ]
+          ],
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Biópsia de próstata guiada por ultrassonografia (pelo cirurgião de urologia)",
@@ -8092,19 +8093,24 @@
               "Paciente com implante de duplo J: atendimento somente presencial, avaliado pelo serviço de urologia."
             ],
             "observacoes": "Indicação de biópsia é encaminhada para atendimento presencial, não por regulação a distância."
-          }
+          },
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Cintilografia de miocárdio para avaliação da perfusão em situação de estresse (mínimo 3 projeções)"
+          "nome": "Cintilografia de miocárdio para avaliação da perfusão em situação de estresse (mínimo 3 projeções)",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Cintilografia de miocárdio para avaliação da perfusão em situação de repouso (mínimo 3 projeções)"
+          "nome": "Cintilografia de miocárdio para avaliação da perfusão em situação de repouso (mínimo 3 projeções)",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Colonoscopia"
+          "nome": "Colonoscopia",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Densitometria óssea duo-energética de coluna (vértebras lombares e/ou fêmur)"
+          "nome": "Densitometria óssea duo-energética de coluna (vértebras lombares e/ou fêmur)",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Doppler de MMII arterial e venoso",
@@ -8116,7 +8122,8 @@
               "Solicitação/indicação exclusiva do especialista da área."
             ],
             "observacoes": "Em caso de indicação de cirurgia vascular, encaminhar para atendimento presencial em Cirurgia Vascular."
-          }
+          },
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ecocardiograma bidimensional com ou sem Doppler",
@@ -8124,12 +8131,13 @@
             "Cardiologia"
           ],
           "orientacao": {
-            "canalEncaminhamento": "CENTRAL_MUNICIPAL",
             "observacoes": "Pedido médico deve conter justificativa/motivo."
-          }
+          },
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Ecocardiograma bidimensional com ou sem Doppler pediátrico"
+          "nome": "Ecocardiograma bidimensional com ou sem Doppler pediátrico",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ecodoppler de carótidas/vertebrais",
@@ -8140,70 +8148,86 @@
           ],
           "orientacao": {
             "observacoes": "Canal de encaminhamento varia por especialidade solicitante: via Neurologia Adulto, o pedido entra pelo SISREG; via Cardiologia, o paciente dá entrada na Central de Regulação do Município. A fonte não especifica o canal para o pedido via Endocrinologia."
-          }
+          },
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Eletrocardiograma infantil"
+          "nome": "Eletrocardiograma infantil",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Eletrocardiograma adulto"
+          "nome": "Eletrocardiograma adulto",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Endoscopia digestiva alta"
+          "nome": "Endoscopia digestiva alta",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Espirometria"
+          "nome": "Espirometria",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Estudo urodinâmico",
           "especialidade": [
             "Urologia"
-          ]
+          ],
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Angiorressonância magnética de tórax"
+          "nome": "Angiorressonância magnética de tórax",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Angiorressonância cerebral – arterial"
+          "nome": "Angiorressonância cerebral – arterial",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Angiorressonância cerebral – venosa"
+          "nome": "Angiorressonância cerebral – venosa",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Angiorressonância cerebral"
+          "nome": "Angiorressonância cerebral",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Angiorressonância de aorta torácica – venosa"
+          "nome": "Angiorressonância de aorta torácica – venosa",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Angiotomografia computadorizada de aorta torácica"
+          "nome": "Angiotomografia computadorizada de aorta torácica",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Angiotomografia de crânio"
+          "nome": "Angiotomografia de crânio",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Angiotomografia de crânio – venosa"
+          "nome": "Angiotomografia de crânio – venosa",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Angiotomografia de crânio – arterial"
+          "nome": "Angiotomografia de crânio – arterial",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Angiotomografia de tórax"
+          "nome": "Angiotomografia de tórax",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Angiotomografia de tórax – arterial"
+          "nome": "Angiotomografia de tórax – arterial",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Angiotomografia de aorta torácica"
+          "nome": "Angiotomografia de aorta torácica",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Eletroencefalograma sem sedação",
           "especialidade": [
             "Neurologia Adulto"
           ],
-          "orientacao": {
-            "canalEncaminhamento": "SISREG"
-          }
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Eletroencefalograma sem sedação infantil",
@@ -8212,16 +8236,15 @@
           ],
           "orientacao": {
             "observacoes": "Pedido médico deve conter justificativa/motivo."
-          }
+          },
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Holter 24 horas",
           "especialidade": [
             "Cardiologia"
           ],
-          "orientacao": {
-            "canalEncaminhamento": "CENTRAL_MUNICIPAL"
-          }
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Mamografia (deve conter a ficha do SISCAN preenchida pela unidade de saúde)",
@@ -8229,94 +8252,97 @@
             "preRequisitos": [
               "Ficha do SISCAN preenchida pela unidade de saúde."
             ]
-          }
+          },
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Monitoramento ambulatorial de pressão arterial – MAPA",
           "especialidade": [
             "Cardiologia"
           ],
-          "orientacao": {
-            "canalEncaminhamento": "CENTRAL_MUNICIPAL"
-          }
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Ressonância magnética de bacia ou pelve"
+          "nome": "Ressonância magnética de bacia ou pelve",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Ressonância de coluna cervical/pescoço"
+          "nome": "Ressonância de coluna cervical/pescoço",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ressonância de coluna lombar",
           "especialidade": [
             "Neurologia Adulto"
           ],
-          "orientacao": {
-            "canalEncaminhamento": "SISREG"
-          }
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Ressonância de mama"
+          "nome": "Ressonância de mama",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ressonância magnética de mastoide ou ouvidos",
           "especialidade": [
             "Otorrinolaringologia"
-          ]
+          ],
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Ressonância magnética de órbitas"
+          "nome": "Ressonância magnética de órbitas",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Ressonância de quadril direito ou esquerdo"
+          "nome": "Ressonância de quadril direito ou esquerdo",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Ressonância de sacro-cóccix"
+          "nome": "Ressonância de sacro-cóccix",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Ressonância magnética de sacro-ilíaca"
+          "nome": "Ressonância magnética de sacro-ilíaca",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Teste da linguinha",
           "especialidade": [
             "Otorrinolaringologia"
-          ]
+          ],
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Teste de esforço ou teste ergométrico",
           "especialidade": [
             "Cardiologia"
           ],
-          "orientacao": {
-            "canalEncaminhamento": "CENTRAL_MUNICIPAL"
-          }
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Tomografia computadorizada coluna lombar",
           "especialidade": [
             "Neurologia Adulto"
           ],
-          "orientacao": {
-            "canalEncaminhamento": "SISREG"
-          }
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Tomografia computadorizada de cóccix"
+          "nome": "Tomografia computadorizada de cóccix",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Tomografia computadorizada de órbita"
+          "nome": "Tomografia computadorizada de órbita",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Tomografia computadorizada de tórax"
+          "nome": "Tomografia computadorizada de tórax",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Tomografia computadorizada lombo-sacra",
           "especialidade": [
             "Neurologia Adulto"
           ],
-          "orientacao": {
-            "canalEncaminhamento": "SISREG"
-          }
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Tratamento esclerosante não estético de varizes dos membros inferiores",
@@ -8327,7 +8353,8 @@
             "restricoes": [
               "Solicitação/indicação exclusiva do especialista da área."
             ]
-          }
+          },
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ultrassonografia de abdômen total",
@@ -8336,10 +8363,12 @@
           ],
           "orientacao": {
             "observacoes": "Exame de uso geral — não exclusivo de uma especialidade específica."
-          }
+          },
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Ultrassonografia de abdômen inferior"
+          "nome": "Ultrassonografia de abdômen inferior",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ultrassonografia de abdômen superior",
@@ -8348,7 +8377,8 @@
           ],
           "orientacao": {
             "observacoes": "Exame de uso geral — não exclusivo de uma especialidade específica."
-          }
+          },
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ultrassonografia de mama bilateral (pacientes acima de 45 anos devem ter mamografia com menos de 1 ano)",
@@ -8357,43 +8387,52 @@
             "preRequisitos": [
               "Mamografia realizada há menos de 1 ano (exigido apenas para pacientes acima de 45 anos)."
             ]
-          }
+          },
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Ultrassonografia transvaginal"
+          "nome": "Ultrassonografia transvaginal",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "Ultrassonografia de aparelho urinário"
+          "nome": "Ultrassonografia de aparelho urinário",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "USG de partes moles"
+          "nome": "USG de partes moles",
+          "justificativaObrigatoria": true
         },
         {
-          "nome": "USG pélvica"
+          "nome": "USG pélvica",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "USG de próstata via abdominal",
           "especialidade": [
             "Urologia"
-          ]
+          ],
+          "justificativaObrigatoria": true
         },
         {
           "nome": "USG da tireoide",
           "especialidade": [
             "Endocrinologia"
-          ]
+          ],
+          "justificativaObrigatoria": true
         },
         {
           "nome": "USG da tireoide com Doppler",
           "especialidade": [
             "Endocrinologia"
-          ]
+          ],
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Videonasolaringoscopia",
           "especialidade": [
             "Otorrinolaringologia"
-          ]
+          ],
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ressonância magnética com sedação",
@@ -8401,9 +8440,9 @@
             "Neurologia Adulto"
           ],
           "orientacao": {
-            "canalEncaminhamento": "REGULACAO_ESTADUAL",
             "observacoes": "Encaminhado para o Rio de Janeiro via regulação estadual, mediante justificativa médica — dar entrada na Central de Regulação, na porta de vidro. É a única situação em que a Neurologia Adulto foge do fluxo geral (SISREG) desta especialidade; o município não realiza os demais exames com sedação."
-          }
+          },
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Cateterismo",
@@ -8419,9 +8458,9 @@
               "Exames de sangue atualizados (HC, ureia, creatinina, sódio, potássio, glicose)",
               "Laudo de exame cardíaco (ecocardiografia bi-dimensional com/sem doppler ou Holter 24hs) com data de até 180 dias"
             ],
-            "canalEncaminhamento": "CENTRAL_MUNICIPAL",
             "observacoes": "Fluxo específico, diferente do fluxo geral de Cardiologia."
-          }
+          },
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Tomografia computadorizada de mastoides ou ouvidos",
@@ -8431,7 +8470,8 @@
           ],
           "orientacao": {
             "observacoes": "Pedido médico deve conter justificativa/motivo."
-          }
+          },
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Tomografia computadorizada de face ou seios da face",
@@ -8441,13 +8481,15 @@
           ],
           "orientacao": {
             "observacoes": "Pedido médico deve conter justificativa/motivo."
-          }
+          },
+          "justificativaObrigatoria": true
         },
         {
           "nome": "USG de bolsa escrotal",
           "especialidade": [
             "Urologia"
-          ]
+          ],
+          "justificativaObrigatoria": true
         }
       ]
     },
@@ -8459,14 +8501,6 @@
         "Exames do laboratório da UPA devem ser pedidos juntos. Qualquer exame fora desta lista deve ir em pedido separado — senão o paciente não consegue marcar."
       ],
       "exames": [
-        {
-          "nome": "Baciloscopia direta para BAAR",
-          "status": "SUSPENSO",
-          "orientacao": {
-            "canalEncaminhamento": "LABORATORIO_UPA",
-            "observacoes": "Suspenso pelo Ministério da Saúde – COVID-19, por tempo indeterminado."
-          }
-        },
         {
           "nome": "Bacterioscopia Gram",
           "orientacao": {
@@ -8730,12 +8764,6 @@
           }
         },
         {
-          "nome": "Pesquisa de sangue oculto",
-          "orientacao": {
-            "canalEncaminhamento": "LABORATORIO_UPA"
-          }
-        },
-        {
           "nome": "Reticulócitos",
           "orientacao": {
             "canalEncaminhamento": "LABORATORIO_UPA"
@@ -8804,124 +8832,150 @@
       "exames": [
         {
           "nome": "Mapeamento de Retina",
-          "local": "aguardando prestador"
+          "local": "aguardando prestador",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Fotocoagulação a Laser",
-          "local": "BH"
+          "local": "BH",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Avaliação em Deficiência Visual - Reabilitação (Visão Subnormal)",
           "local": "BH",
           "exige": "LAUDO",
-          "nota": "Formulário próprio preenchido por oftalmologista. Inclui o fluxo para fornecimento de bengala."
+          "nota": "Formulário próprio preenchido por oftalmologista. Inclui o fluxo para fornecimento de bengala.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Plástica Ocular",
-          "local": "BH"
+          "local": "BH",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Angiofluorescência",
-          "local": "BH"
+          "local": "BH",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Eco B - Ultrassonografia Ocular",
-          "local": "BH"
+          "local": "BH",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "OCT Mácula - Topografia de Coerência Óptica",
-          "local": "BH"
+          "local": "BH",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Topografia de Córnea",
-          "local": "BH"
+          "local": "BH",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Capsulotomia a YAG Laser",
-          "local": "BH"
+          "local": "BH",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "(FACO + LIO) Catarata",
           "local": "BH",
-          "exige": "APAC"
+          "exige": "APAC",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Teste Alérgico",
           "local": "CISMISEL",
-          "nota": "Suspender 5 dias antes do exame os medicamentos antialérgicos e corticoides."
+          "nota": "Suspender 5 dias antes do exame os medicamentos antialérgicos e corticoides.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Tratamento Esclerosante Não Estético de Varizes dos MMII (Espuma)",
           "local": "HM / CISMISEL",
           "exige": "ALTO_CUSTO",
-          "nota": "Anexar xerox do resultado de Duplex."
+          "nota": "Anexar xerox do resultado de Duplex.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ultrassom de Próstata via Transretal com Sedação e Biópsia",
-          "local": "prestador terceirizado"
+          "local": "prestador terceirizado",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Tomografia com Sedação",
           "local": "Hermes Pardini",
-          "exige": "ALTO_CUSTO"
+          "exige": "ALTO_CUSTO",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Tomografia",
           "local": "Hermes Pardini / HM",
-          "exige": "ALTO_CUSTO"
+          "exige": "ALTO_CUSTO",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Tomografia com Protocolo de Enterografia",
           "local": "Hospital Municipal",
-          "exige": "ALTO_CUSTO"
+          "exige": "ALTO_CUSTO",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Angiotomografia",
           "local": "Hospital Municipal",
-          "exige": "ALTO_CUSTO"
+          "exige": "ALTO_CUSTO",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Retossigmoidoscopia",
-          "local": "Gastrocentro"
+          "local": "Gastrocentro",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Colonoscopia",
-          "local": "HM / Gastrocentro"
+          "local": "HM / Gastrocentro",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Raio X - Com Preparo",
           "local": "HM",
-          "nota": "Informar se é direito/esquerdo ou ambos. Pedido com dois membros de um único lado: cadastrar o paciente 2 vezes (ex.: membros inferiores direito e esquerdo). Dois membros de cada lado: 4 vezes. Solicitações múltiplas (ex.: coluna cervical + torácica + lombar) devem ser desmembradas em pedidos separados, com o local detalhado na justificativa."
+          "nota": "Informar se é direito/esquerdo ou ambos. Pedido com dois membros de um único lado: cadastrar o paciente 2 vezes (ex.: membros inferiores direito e esquerdo). Dois membros de cada lado: 4 vezes. Solicitações múltiplas (ex.: coluna cervical + torácica + lombar) devem ser desmembradas em pedidos separados, com o local detalhado na justificativa.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Raio X - Sem Preparo",
           "local": "HM",
-          "nota": "Mesma regra do Raio X com preparo: informar lado e cadastrar um pedido por membro/lado. O cadastro precisa ficar igual à solicitação física (um membro ou dois membros)."
+          "nota": "Mesma regra do Raio X com preparo: informar lado e cadastrar um pedido por membro/lado. O cadastro precisa ficar igual à solicitação física (um membro ou dois membros).",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Espirometria",
           "local": "aguardando prestador",
-          "nota": "Acima de 40 anos."
+          "nota": "Acima de 40 anos.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Endoscopia",
           "local": "Gastro Gerais e HM",
-          "nota": "A partir de 13 anos de idade. De 13 a 15 anos, informar peso e altura."
+          "nota": "A partir de 13 anos de idade. De 13 a 15 anos, informar peso e altura.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Videonasolaringoscopia / Fibronasolaringoscopia",
           "local": "HM e terceirizado",
           "exige": "LAUDO",
-          "nota": "Pedido de exame + Termo de Esclarecimento, Ciência e Consentimento para o procedimento."
+          "nota": "Pedido de exame + Termo de Esclarecimento, Ciência e Consentimento para o procedimento.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Eletroneuromiografia",
           "local": "prestador terceirizado",
-          "nota": "Informar na observação quais os membros."
+          "nota": "Informar na observação quais os membros.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Polissonografia",
-          "local": "prestador terceirizado"
+          "local": "prestador terceirizado",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Estudo Urodinâmico",
@@ -8936,201 +8990,240 @@
             ],
             "fluxo": "FICA_NA_UNIDADE",
             "observacoes": "Solicitar via e-mail (agendacentralmarcacao2.saude@setelagoas.mg.gov.br) com nome completo, data de nascimento e contato do paciente."
-          }
+          },
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Dilatação Uretral",
-          "local": "CEM"
+          "local": "CEM",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Cistoscopia / Retirada de Duplo J / Cauterização em Região Genital",
-          "local": "CEM"
+          "local": "CEM",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "PET-CT",
           "local": "prestador terceirizado / BH",
-          "nota": "Anexar obrigatoriamente o resultado da biópsia. Se houver outros PET-CT, RNM e TC, anexar os resultados também."
+          "nota": "Anexar obrigatoriamente o resultado da biópsia. Se houver outros PET-CT, RNM e TC, anexar os resultados também.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ressonância Magnética",
           "local": "prestador terceirizado / BH",
           "exige": "ALTO_CUSTO",
-          "nota": "Registrar peso e altura no impresso. Nos casos com sedação, a Central entra em contato direto com o paciente para a retirada do agendamento e as orientações."
+          "nota": "Registrar peso e altura no impresso. Nos casos com sedação, a Central entra em contato direto com o paciente para a retirada do agendamento e as orientações.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Angioressonância",
           "local": "prestador terceirizado / BH",
           "exige": "ALTO_CUSTO",
-          "nota": "Registrar peso e altura do paciente no impresso."
+          "nota": "Registrar peso e altura do paciente no impresso.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Colangiorressonância",
           "local": "prestador terceirizado",
           "exige": "ALTO_CUSTO",
-          "nota": "Registrar peso e altura do paciente no impresso."
+          "nota": "Registrar peso e altura do paciente no impresso.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Biópsia de RISN por Punção",
           "local": "prestador terceirizado / BH",
           "exige": "ALTO_CUSTO",
-          "nota": "Exames obrigatórios para instruir o pedido: creatinina sérica; relação albumina/creatinina na urina isolada ou albuminúria de 24h; imagem renal (USG, TC ou RM, validade 6 meses); hemograma (validade 60 dias); coagulograma sem alterações (validade 60 dias); urocultura recente negativa (validade 60 dias)."
+          "nota": "Exames obrigatórios para instruir o pedido: creatinina sérica; relação albumina/creatinina na urina isolada ou albuminúria de 24h; imagem renal (USG, TC ou RM, validade 6 meses); hemograma (validade 60 dias); coagulograma sem alterações (validade 60 dias); urocultura recente negativa (validade 60 dias).",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Cateterismo Cardíaco Adulto - Cineangiocoronariografia",
           "local": "Angiosete / diversos hospitais BH",
           "exige": "APAC",
-          "nota": "Anexar exames anteriores (ECO, ECG, Holter ou teste ergométrico) e contato do paciente."
+          "nota": "Anexar exames anteriores (ECO, ECG, Holter ou teste ergométrico) e contato do paciente.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Cateterismo Pediátrico",
           "local": "Biocor",
           "exige": "APAC",
-          "nota": "Anexar exames anteriores (ECO) e contato do paciente."
+          "nota": "Anexar exames anteriores (ECO) e contato do paciente.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Densitometria Óssea",
           "local": "prestador terceirizado / BH",
           "exige": "ALTO_CUSTO",
-          "nota": "Registrar peso e altura do paciente no impresso."
+          "nota": "Registrar peso e altura do paciente no impresso.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Cintilografia Óssea",
           "local": "prestador terceirizado / BH",
-          "exige": "ALTO_CUSTO"
+          "exige": "ALTO_CUSTO",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Cintilografia Renal / Pulmonar / Miocárdica / Tireoide / Paratireoide / Linfocintilografia / Cistocintilografia Direta",
           "local": "diversos em BH",
           "exige": "ALTO_CUSTO",
-          "nota": "Anexar exames anteriores relacionados à patologia, registrar peso e altura do paciente."
+          "nota": "Anexar exames anteriores relacionados à patologia, registrar peso e altura do paciente.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Arteriografia Cerebral / Angiografia Cerebral / Arteriografia de Membros",
           "local": "HM / diversos em BH",
           "exige": "ALTO_CUSTO",
-          "nota": "A solicitação deve ser do especialista. Registrar peso e altura, contato do paciente."
+          "nota": "A solicitação deve ser do especialista. Registrar peso e altura, contato do paciente.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Litotripsia",
           "local": "diversos em BH",
-          "exige": "ALTO_CUSTO"
+          "exige": "ALTO_CUSTO",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "PAAF de Tireoide Guiado por US (Biópsia)",
           "exige": "ALTO_CUSTO",
-          "nota": "O resultado do US de tireoide deve ser enviado à Central junto com o pedido médico de PAAF."
+          "nota": "O resultado do US de tireoide deve ser enviado à Central junto com o pedido médico de PAAF.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Terapia Ablativa de Iodo",
           "local": "BH",
           "exige": "ALTO_CUSTO",
-          "nota": "Enviar com resultados anteriores de cintilografia de tireoide, PAAF ou ultrassom."
+          "nota": "Enviar com resultados anteriores de cintilografia de tireoide, PAAF ou ultrassom.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "PAAF de Tireoide Comum",
           "local": "CEM",
-          "nota": "O paciente deve apresentar resultado de US de tireoide para realizar o PAAF."
+          "nota": "O paciente deve apresentar resultado de US de tireoide para realizar o PAAF.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Duplex Scan Venoso e/ou Arterial (MMII, MIE, MID)",
           "local": "CISMISEL",
-          "nota": "Informar se é só venoso, só arterial, ou venoso e arterial, e a parte do corpo (MMII, MIE ou MID)."
+          "nota": "Informar se é só venoso, só arterial, ou venoso e arterial, e a parte do corpo (MMII, MIE ou MID).",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Duplex Scan de Carótidas e Vertebrais",
-          "local": "CISMISEL"
+          "local": "CISMISEL",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Eletroencefalograma de Vigília",
-          "local": "CISMISEL"
+          "local": "CISMISEL",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Eletroencefalograma de Sono e Vigília",
-          "local": "CISMISEL"
+          "local": "CISMISEL",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ecodopplercardiograma Transtorácico com Stress Farmacológico",
           "local": "prestador terceirizado",
           "exige": "ALTO_CUSTO",
-          "nota": "Realizado a partir de 18 anos."
+          "nota": "Realizado a partir de 18 anos.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ecodopplercardiograma Transtorácico",
           "local": "prestador terceirizado",
           "exige": "ALTO_CUSTO",
-          "nota": "No sistema GMUS, cadastrar como \"Ecocardiografia Transtorácica\"."
+          "nota": "No sistema GMUS, cadastrar como \"Ecocardiografia Transtorácica\".",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Teste Ergométrico / Teste de Esforço",
           "local": "prestador terceirizado",
-          "nota": "A partir de 16 anos."
+          "nota": "A partir de 16 anos.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Monitoramento pelo Sistema Holter 24hs",
           "local": "prestador terceirizado",
-          "nota": "A partir de 15 anos. Cadastrar corretamente o código de referência."
+          "nota": "A partir de 15 anos. Cadastrar corretamente o código de referência.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Monitorização Ambulatorial de Pressão Arterial (MAPA) 24hs",
           "local": "prestador terceirizado",
-          "nota": "A partir de 15 anos."
+          "nota": "A partir de 15 anos.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ultrassonografia de Mama e Axila",
-          "local": "prestador terceirizado"
+          "local": "prestador terceirizado",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ultrassonografia de Abdômen Total",
-          "local": "HM"
+          "local": "HM",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ultrassonografia de Abdômen Total com Doppler",
-          "local": "HM"
+          "local": "HM",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ultrassonografia de Aparelho Urinário",
           "local": "HM",
           "orientacao": {
             "observacoes": "Informar na observação do pedido quando for com Doppler."
-          }
+          },
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ultrassonografia de Bolsa Escrotal",
           "local": "HM",
-          "nota": "Informar na observação quando for com Doppler."
+          "nota": "Informar na observação quando for com Doppler.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ultrassonografia de Próstata por Via Abdominal",
-          "local": "HM"
+          "local": "HM",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ultrassonografia Pélvica (Ginecológica) Simples",
-          "local": "HM"
+          "local": "HM",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ultrassonografia Transvaginal",
           "local": "HM / CEAE",
-          "nota": "Informar na observação quando for com Doppler."
+          "nota": "Informar na observação quando for com Doppler.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ultrassonografia de Tireoide ou com Doppler",
           "local": "HM",
-          "nota": "Informar na observação quando for com Doppler."
+          "nota": "Informar na observação quando for com Doppler.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ultrassonografia Obstétrica Simples",
           "local": "prestador terceirizado",
-          "nota": "Informar na observação as semanas de gestação e o tipo: obstétrico simples, TN ou com PBF."
+          "nota": "Informar na observação as semanas de gestação e o tipo: obstétrico simples, TN ou com PBF.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ultrassonografia de Articulação",
           "local": "HM",
-          "nota": "Informar na observação a parte do corpo solicitada (ex.: ombro direito, joelhos direito e esquerdo)."
+          "nota": "Informar na observação a parte do corpo solicitada (ex.: ombro direito, joelhos direito e esquerdo).",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Ultrassonografia Mamária Bilateral e Axilas",
           "local": "prestador terceirizado",
-          "nota": "Informar na observação se é bilateral ou unilateral, e/ou axilas."
+          "nota": "Informar na observação se é bilateral ou unilateral, e/ou axilas.",
+          "justificativaObrigatoria": true
         },
         {
           "nome": "Clearance Osmolar",
@@ -10955,6 +11048,70 @@
         {
           "nome": "Titulação de Anticorpos Anti A e/ou Anti B",
           "codigo": "202120104"
+        }
+      ]
+    }
+  },
+  "encaminhamentos": {
+    "Macaé": {
+      "_leia_me": "Extraído da aba 'Serviços e Programas Especiais' de 'Fluxo SUS Macae.xlsx' (mesmo arquivo usado por lerMacaeEspecialidades()) — SEMUSA Macaé. Estes NÃO são exames: são serviços/estabelecimentos de referência para encaminhamento, entidade separada, renderizada em seção própria na tela.",
+      "fonte": "Serviços e Programas Especiais (SEMUSA Macaé)",
+      "atualizadoEm": "2026-09-09",
+      "observacoes": [
+        "Apenas profissionais especialistas podem encaminhar para estes serviços."
+      ],
+      "servicos": [
+        {
+          "nome": "Casa da Criança e do Adolescente",
+          "publicoAlvo": "Crianças de 0 a 17 anos, 11 meses e 29 dias.",
+          "atendimentos": [
+            "Fonoaudiologia",
+            "Terapia Ocupacional",
+            "Fisioterapia",
+            "Psicologia"
+          ],
+          "fluxo": "Presencial. Encaminhar diretamente quando houver indicação de terapia.",
+          "observacoes": "O município não oferta neuropsicólogo nem psicopedagogo."
+        },
+        {
+          "nome": "CRA — Centro de Referência do Adolescente",
+          "publicoAlvo": "Adolescentes de 12 a 19 anos, 11 meses e 29 dias — autolesão, tentativa de suicídio, abuso/exploração sexual, transgêneros, uso de psicoativos, acolhimento em abrigo, medidas socioeducativas, vulnerabilidade social.",
+          "atendimentos": [
+            "Atendimento médico: ginecologia, dermatologia, clínica geral, psiquiatria, enfermagem, nutrição, fonoaudiologia, fisioterapia.",
+            "Apoio psicossocial: psicólogos, assistentes sociais, terapeutas ocupacionais.",
+            "Prevenção e testes rápidos (HIV, sífilis, hepatites B/C).",
+            "Grupos educativos.",
+            "Serviço social."
+          ],
+          "fluxo": "Encaminhar adolescentes para o CRA."
+        },
+        {
+          "nome": "Núcleo de Saúde Mental",
+          "publicoAlvo": "Crianças de 6 a 11 anos, 11 meses e 29 dias, com demandas leves/moderadas.",
+          "atendimentos": [
+            "Equipe multidisciplinar: psicologia, fonoaudiologia, terapia ocupacional, fisioterapia, serviço social, neuropediatria, psiquiatria infantil."
+          ],
+          "fluxo": "Pronto acolhimento e grupos."
+        },
+        {
+          "nome": "Clínica do Autista",
+          "publicoAlvo": "Crianças com TEA (Transtorno do Espectro Autista) de 2 a 11 anos, 11 meses e 29 dias.",
+          "atendimentos": [
+            "Psiquiatria infantil, neuropediatria, serviço social, psicologia, fisioterapia, fonoaudiologia, nutrição."
+          ],
+          "fluxo": "Atendimentos individuais e em grupo, incluindo grupo de apoio aos responsáveis."
+        },
+        {
+          "nome": "GAN — Gerência de Alimentação e Nutrição",
+          "publicoAlvo": "Crianças e adolescentes de 0 a 16 anos, 11 meses e 29 dias, com demandas nutricionais.",
+          "atendimentos": [
+            "Atendimento ambulatorial.",
+            "Sala de acolhimento materno.",
+            "Proteja — prevenção e atenção à obesidade infantil.",
+            "Atendimento a beneficiários do GAN, Centro de Referência do Diabético, Doenças Falciformes e Saúde na Escola.",
+            "Programa Municipal de Fórmulas e Suplementos."
+          ],
+          "fluxo": "Atendimento a beneficiários dos programas listados."
         }
       ]
     }

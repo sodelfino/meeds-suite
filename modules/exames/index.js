@@ -132,6 +132,16 @@
     return (BASE.municipios || {})[municipio] || null;
   }
 
+  /* `encaminhamentos` e uma entidade SEPARADA de exame — servico de
+   * referencia (Casa da Crianca, CRA...), nao exame. Por isso vive numa
+   * chave irma de `municipios` no mesmo JSON (nunca dentro de
+   * `municipios[x].exames`), e tem sua propria funcao de leitura e sua
+   * propria secao na tela, renderizada uma vez por municipio (nao entra
+   * na busca/paginacao/ordenacao de exames). */
+  function blocoDeEncaminhamentosDe(municipio) {
+    return (BASE.encaminhamentos || {})[municipio] || null;
+  }
+
   function examesDe(municipio) {
     var b = blocoDe(municipio);
     return (b && Array.isArray(b.exames)) ? b.exames : [];
@@ -305,6 +315,21 @@
     ".ex-obs { margin:10px 18px 0; padding:10px 12px; background:#fffbeb; border:1px solid #fde68a; border-radius:9px; font-size:12px; color:#78350f; line-height:1.5; }",
     ".ex-obs ul { margin:4px 0 0; padding-left:18px; }",
     ".ex-obs li { margin:3px 0; }",
+
+    /* --- ex-enc-*: secao "Encaminhamentos / Serviços de referência" ---
+     * Paleta azul (nao ambar, nao vermelha): nao e aviso de risco nem
+     * de conduta sobre um exame — e informativo, uma categoria de
+     * conteudo diferente das duas outras que ja usam cor. So flex,
+     * nunca position:fixed/absolute — mesma regra do resto do modulo. */
+    ".ex-encaminhamentos { margin:10px 18px 0; }",
+    ".ex-enc-titulo { font-size:12px; font-weight:800; color:#1e3a8a; text-transform:uppercase; letter-spacing:.02em; margin-bottom:6px; }",
+    ".ex-enc-nota-geral { font-size:11.5px; color:#1e3a8a; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:6px 9px; margin-bottom:8px; line-height:1.5; }",
+    ".ex-enc-lista { display:flex; flex-direction:column; gap:8px; }",
+    ".ex-enc-cartao { background:#eff6ff; border:1px solid #bfdbfe; border-radius:9px; padding:9px 11px; }",
+    ".ex-enc-nome { font-size:13px; font-weight:700; color:#1e3a8a; margin-bottom:4px; }",
+    ".ex-enc-linha { font-size:11.5px; color:#1e40af; line-height:1.5; margin-top:3px; }",
+    ".ex-enc-linha ul { margin:2px 0 0; padding-left:16px; }",
+    ".ex-enc-linha li { margin:2px 0; }",
     ".ex-rolagem { overflow-y:auto; padding:8px 18px 16px; flex:1; }",
     ".ex-lista { padding:0; }",
     ".ex-item { padding:10px 0; border-bottom:1px solid #f1f5f9; display:flex; gap:10px; align-items:flex-start; }",
@@ -430,6 +455,58 @@
       refs.obs.hidden = true;
       refs.obs.innerHTML = "";
     }
+
+    pintarEncaminhamentos();
+  }
+
+  /* Secao "Encaminhamentos / Serviços de referência" — SEPARADA da
+   * lista de exames: nao entra na busca, na paginacao nem na
+   * ordenacao alfabetica de exames, porque nao e exame. Aparece uma
+   * vez, fixa, logo abaixo do aviso de observacoes do municipio (se
+   * houver) e antes da lista — hoje so Macae tem conteudo aqui; para
+   * qualquer outro municipio a secao fica oculta. */
+  function pintarEncaminhamentos() {
+    var enc = blocoDeEncaminhamentosDe(municipioEscolhido);
+    if (!enc || !enc.servicos || !enc.servicos.length) {
+      refs.encaminhamentos.hidden = true;
+      refs.encaminhamentos.innerHTML = "";
+      return;
+    }
+
+    var cartoes = enc.servicos.map(function (s) {
+      var linhas = "";
+      if (s.publicoAlvo) {
+        linhas += '<div class="ex-enc-linha"><b>Público-alvo:</b> ' + escapar(s.publicoAlvo) + "</div>";
+      }
+      if (s.atendimentos && s.atendimentos.length) {
+        linhas +=
+          '<div class="ex-enc-linha"><b>Atendimentos:</b><ul>' +
+          s.atendimentos.map(function (a) { return "<li>" + escapar(a) + "</li>"; }).join("") +
+          "</ul></div>";
+      }
+      if (s.fluxo) {
+        linhas += '<div class="ex-enc-linha"><b>Fluxo:</b> ' + escapar(s.fluxo) + "</div>";
+      }
+      if (s.observacoes) {
+        linhas += '<div class="ex-enc-linha"><b>Observações:</b> ' + escapar(s.observacoes) + "</div>";
+      }
+      return (
+        '<div class="ex-enc-cartao">' +
+        '<div class="ex-enc-nome">' + escapar(s.nome) + "</div>" +
+        linhas +
+        "</div>"
+      );
+    }).join("");
+
+    var notaGeral = enc.observacoes && enc.observacoes.length
+      ? '<div class="ex-enc-nota-geral">ℹ️ ' + enc.observacoes.map(escapar).join(" ") + "</div>"
+      : "";
+
+    refs.encaminhamentos.hidden = false;
+    refs.encaminhamentos.innerHTML =
+      '<div class="ex-enc-titulo">📋 Encaminhamentos / Serviços de referência</div>' +
+      notaGeral +
+      '<div class="ex-enc-lista">' + cartoes + "</div>";
   }
 
   function formatarData(iso) {
@@ -574,6 +651,24 @@
     );
   }
 
+  /* `justificativaObrigatoria` e campo do EXAME (fora de `orientacao`),
+   * mas a linha entra no MESMO lugar/estilo do bloco de orientacao —
+   * e aviso de conduta, nao categoria. Renderizada A PARTE de
+   * blocoDeOrientacao() porque muitos exames com justificativa
+   * obrigatoria nao tem `orientacao` nenhuma (o campo nao depende de
+   * `orientacao` existir), entao nao da pra so acrescentar mais uma
+   * linha dentro daquele bloco condicional. */
+  function linhaJustificativaObrigatoria(e) {
+    if (!e.justificativaObrigatoria) return "";
+    return (
+      '<div class="ex-orientacao ex-justificativa">' +
+      '<div class="ex-or-linha">' +
+      '<span class="ex-or-icone" aria-hidden="true">⚠️</span>' +
+      '<span class="ex-or-txt">Justificativa médica obrigatória no pedido</span>' +
+      "</div></div>"
+    );
+  }
+
   function elementoDoExame(e, indice) {
     var meta = [];
     if (e.codigo) meta.push('<span class="ex-selo">🔢 ' + escapar(e.codigo) + "</span>");
@@ -629,6 +724,7 @@
        * de dados evita isso de proposito), mas o `if` abaixo nao
        * assume isso — so desenha o que existir. */
       blocoDeOrientacao(e.orientacao) +
+      linhaJustificativaObrigatoria(e) +
       "</div>" +
       (sigla
         ? '<span class="ex-sigla" title="' + escapar(sigla.titulo) + '">' + escapar(sigla.rotulo) + "</span>"
@@ -763,6 +859,7 @@
         '    <div class="ex-origem" id="ex-origem"></div>' +
         "  </div>" +
         '  <div class="ex-obs" id="ex-obs" hidden></div>' +
+        '  <div class="ex-encaminhamentos" id="ex-encaminhamentos" hidden></div>' +
         '  <div class="ex-contagem" id="ex-contagem" role="status"></div>' +
         '  <div class="ex-rolagem">' +
         '    <div class="ex-nao-consta oculto" id="ex-vazio"></div>' +
@@ -777,6 +874,7 @@
     refs.lista = overlay.$("#ex-lista");
     refs.origem = overlay.$("#ex-origem");
     refs.obs = overlay.$("#ex-obs");
+    refs.encaminhamentos = overlay.$("#ex-encaminhamentos");
     refs.contagem = overlay.$("#ex-contagem");
     refs.spinner = overlay.$("#ex-spinner");
     refs.mais = overlay.$("#ex-mais");

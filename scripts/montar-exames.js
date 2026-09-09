@@ -101,14 +101,55 @@ const CANAIS_VALIDOS = [
   "OUTRO",
 ];
 
-/* Vocabulario de `status` — campo do EXAME (fora de `orientacao`: nao e
- * uma orientacao de conduta, e o estado atual da oferta). So dois
- * valores, e "ATIVO" nunca aparece escrito no JSON — e o padrao
- * implicito quando o campo esta ausente, a mesma disciplina de todo
- * campo opcional deste arquivo (campo ausente = nao ha nada de especial
- * a dizer). So "SUSPENSO" e escrito, e so quando a fonte afirma isso
- * sem ambiguidade — nunca por suposicao. */
-const STATUS_VALIDOS = ["ATIVO", "SUSPENSO"];
+/* O campo `status` (ATIVO/SUSPENSO) existiu aqui por uma leva: usado
+ * em Congonhas para marcar 2 exames suspensos, com badge na tela.
+ * Removido — a politica atual e que exame suspenso NAO ENTRA na lista,
+ * em vez de entrar marcado. Ver comentario de cabecalho de
+ * lerCongonhas(). */
+
+/* ------------------------------------------------------------------
+ * `justificativaObrigatoria` — campo do EXAME (boolean, opcional,
+ * default `false`/ausente)
+ * ------------------------------------------------------------------
+ * Responde: "o pedido medico PRECISA vir com justificativa escrita
+ * para este exame?". E `true` para todo procedimento NAO-laboratorial
+ * — imagem (RX, USG, TC, RM, mamografia, densitometria, cintilografia),
+ * procedimento (endoscopia, colonoscopia, biopsia, cateterismo, teste
+ * ergometrico) e diagnostico funcional (ECG, Holter, MAPA, EEG,
+ * espirometria, audiometria). E `false` (ou o campo simplesmente
+ * ausente — mesma leitura) para exame LABORATORIAL de bancada:
+ * hemograma, dosagem bioquimica, urina, fezes, sorologia, teste rapido
+ * — qualquer coisa que seja analise de AMOSTRA BIOLOGICA colhida do
+ * paciente (sangue, urina, fezes, escarro).
+ *
+ * CRITERIO: LABORATORIAL x NAO-LABORATORIAL, NAO "TEM RISCO" OU
+ * "E CARO". A pergunta e uma so: o exame analisa uma amostra biologica
+ * colhida do paciente (laboratorial), ou faz algo COM/NO paciente —
+ * captura uma imagem, registra um sinal fisiologico, executa um
+ * procedimento (nao-laboratorial)? E FACTUAL, nao interpretacao: todo
+ * exame cai claramente de um lado ou do outro, sem zona cinzenta
+ * conhecida na base atual.
+ *
+ * COMO E APLICADO NESTE ARQUIVO: por FONTE, nao por regex item a item.
+ * Cada fonte hoje e inteiramente laboratorial ou inteiramente
+ * nao-laboratorial — nenhuma mistura as duas coisas:
+ *   Betim (contrato laboratorial)              — 100% laboratorial → ausente
+ *   Macae, UPA Barra (lerMacae)                 — 100% laboratorial → ausente
+ *   Macae, especialidades SEMUSA                — 100% nao-lab      → true
+ *   Congonhas, laboratorio da UPA                — 100% laboratorial → ausente
+ *   Sete Lagoas, orientacoes da Central          — 100% nao-lab      → true
+ *   Sete Lagoas, tabela SIGTAP laboratorial      — 100% laboratorial → ausente
+ * Por isso a atribuicao e `exames.map(e => ({...e, justificativaObrigatoria: true}))`
+ * no retorno de cada fonte nao-laboratorial, em vez de uma linha por
+ * item — e o mesmo dado, com menos chance de esquecer um item na hora
+ * de acrescentar.
+ *
+ * TESTAVEL SEM DEPENDER DESTE ARQUIVO: tests/exames.test.js reimplementa
+ * o mesmo criterio como uma lista de palavras-chave (uma classificacao
+ * INDEPENDENTE, nao uma copia desta decisao) e verifica que todo exame
+ * da base bate com o valor esperado — se um item novo entrar com o
+ * campo trocado, o teste falha citando o nome do exame.
+ * ------------------------------------------------------------------ */
 
 /* A mesma frase-molde aparece em quase toda linha da fonte de Sete
  * Lagoas ("PREPARO CONFORME ORIENTACAO DO PRESTADOR"), variando so
@@ -338,14 +379,13 @@ function lerMacae() {
  *     pareamento aqui seria inventar. Ficam de fora desta leva; quem for
  *     revisar pode decidir caso a caso, com a planilha aberta ao lado.
  *
- * CANAL POR ESPECIALIDADE PODE VARIAR PARA O MESMO EXAME
- * "Ecodoppler de carotidas/vertebrais" aparece em 3 especialidades, e o
- * XLSX so afirma o canal explicitamente para uma delas (SISREG, via
- * Neurologia Adulto) — as outras nao repetem a informacao. Forcar um
- * canal unico para o exame inteiro seria estender uma leitura
- * (Cardiologia = Central Municipal) que o documento nao afirma para
- * este item especificamente. Nestes casos `canalEncaminhamento` fica
- * AUSENTE e a variacao vai para `observacoes`, em vez de adivinhar.
+ * `canalEncaminhamento` NAO E USADO NESTA LEVA (removido a pedido)
+ * O campo existe no schema (nasceu com Macae, ver comentario acima de
+ * `orientacao()`) e continua em uso em Congonhas (LABORATORIO_UPA). Mas
+ * nesta leva de Macae ele foi removido de todos os exames — nenhum item
+ * abaixo preenche `canalEncaminhamento`. Onde o documento menciona o
+ * canal (SISREG, Central de Regulacao, regulacao estadual), o texto
+ * continua em `observacoes`, como frase — so o campo ESTRUTURADO saiu.
  * ------------------------------------------------------------------ */
 function lerMacaeEspecialidades() {
   if (!fs.existsSync(FONTES.macaeEspecialidadesDocx) || !fs.existsSync(FONTES.macaeEspecialidadesXlsx)) {
@@ -382,7 +422,6 @@ function lerMacaeEspecialidades() {
       nome: "Ecocardiograma bidimensional com ou sem Doppler",
       especialidade: ["Cardiologia"],
       orientacao: orientacao({
-        canalEncaminhamento: "CENTRAL_MUNICIPAL",
         observacoes: "Pedido médico deve conter justificativa/motivo.",
       }),
     },
@@ -417,11 +456,7 @@ function lerMacaeEspecialidades() {
     { nome: "Angiotomografia de tórax" },
     { nome: "Angiotomografia de tórax – arterial" },
     { nome: "Angiotomografia de aorta torácica" },
-    {
-      nome: "Eletroencefalograma sem sedação",
-      especialidade: ["Neurologia Adulto"],
-      orientacao: orientacao({ canalEncaminhamento: "SISREG" }),
-    },
+    { nome: "Eletroencefalograma sem sedação", especialidade: ["Neurologia Adulto"] },
     {
       /* A linha de "Neuro Pediatra" para EEG sem sedacao na planilha nao
        * tem qualificador "infantil" — pareada aqui com a especialidade
@@ -431,11 +466,7 @@ function lerMacaeEspecialidades() {
       especialidade: ["Neuro Pediatra"],
       orientacao: orientacao({ observacoes: "Pedido médico deve conter justificativa/motivo." }),
     },
-    {
-      nome: "Holter 24 horas",
-      especialidade: ["Cardiologia"],
-      orientacao: orientacao({ canalEncaminhamento: "CENTRAL_MUNICIPAL" }),
-    },
+    { nome: "Holter 24 horas", especialidade: ["Cardiologia"] },
     {
       /* Pegadinha 1/5: exigencia embutida no proprio nome no documento
        * de origem (DOCX) — nao veio do XLSX. */
@@ -444,18 +475,10 @@ function lerMacaeEspecialidades() {
         preRequisitos: ["Ficha do SISCAN preenchida pela unidade de saúde."],
       }),
     },
-    {
-      nome: "Monitoramento ambulatorial de pressão arterial – MAPA",
-      especialidade: ["Cardiologia"],
-      orientacao: orientacao({ canalEncaminhamento: "CENTRAL_MUNICIPAL" }),
-    },
+    { nome: "Monitoramento ambulatorial de pressão arterial – MAPA", especialidade: ["Cardiologia"] },
     { nome: "Ressonância magnética de bacia ou pelve" },
     { nome: "Ressonância de coluna cervical/pescoço" },
-    {
-      nome: "Ressonância de coluna lombar",
-      especialidade: ["Neurologia Adulto"],
-      orientacao: orientacao({ canalEncaminhamento: "SISREG" }),
-    },
+    { nome: "Ressonância de coluna lombar", especialidade: ["Neurologia Adulto"] },
     { nome: "Ressonância de mama" },
     {
       nome: "Ressonância magnética de mastoide ou ouvidos",
@@ -466,24 +489,12 @@ function lerMacaeEspecialidades() {
     { nome: "Ressonância de sacro-cóccix" },
     { nome: "Ressonância magnética de sacro-ilíaca" },
     { nome: "Teste da linguinha", especialidade: ["Otorrinolaringologia"] },
-    {
-      nome: "Teste de esforço ou teste ergométrico",
-      especialidade: ["Cardiologia"],
-      orientacao: orientacao({ canalEncaminhamento: "CENTRAL_MUNICIPAL" }),
-    },
-    {
-      nome: "Tomografia computadorizada coluna lombar",
-      especialidade: ["Neurologia Adulto"],
-      orientacao: orientacao({ canalEncaminhamento: "SISREG" }),
-    },
+    { nome: "Teste de esforço ou teste ergométrico", especialidade: ["Cardiologia"] },
+    { nome: "Tomografia computadorizada coluna lombar", especialidade: ["Neurologia Adulto"] },
     { nome: "Tomografia computadorizada de cóccix" },
     { nome: "Tomografia computadorizada de órbita" },
     { nome: "Tomografia computadorizada de tórax" },
-    {
-      nome: "Tomografia computadorizada lombo-sacra",
-      especialidade: ["Neurologia Adulto"],
-      orientacao: orientacao({ canalEncaminhamento: "SISREG" }),
-    },
+    { nome: "Tomografia computadorizada lombo-sacra", especialidade: ["Neurologia Adulto"] },
     {
       nome: "Tratamento esclerosante não estético de varizes dos membros inferiores",
       especialidade: ["Angiologia"],
@@ -535,7 +546,6 @@ function lerMacaeEspecialidades() {
       nome: "Ressonância magnética com sedação",
       especialidade: ["Neurologia Adulto"],
       orientacao: orientacao({
-        canalEncaminhamento: "REGULACAO_ESTADUAL",
         observacoes:
           "Encaminhado para o Rio de Janeiro via regulação estadual, mediante justificativa médica — " +
           "dar entrada na Central de Regulação, na porta de vidro. É a única situação em que a Neurologia " +
@@ -548,7 +558,6 @@ function lerMacaeEspecialidades() {
       nome: "Cateterismo",
       especialidade: ["Cardiologia"],
       orientacao: orientacao({
-        canalEncaminhamento: "CENTRAL_MUNICIPAL",
         documentos: [
           "RG, CPF e comprovante de residência em nome do paciente (emitido há no máx. 30 dias)",
           "Pedido médico",
@@ -588,7 +597,136 @@ function lerMacaeEspecialidades() {
       "(mesmo padrão 'um município, duas fontes' já usado em Sete Lagoas).",
     fonte: "Exames por especialidade (SEMUSA Macaé) — DOCX (lista) + XLSX (fluxo e direcionamento)",
     atualizadoEm: "2026-09-09",
-    exames,
+    /* Toda esta fonte e exame de imagem/procedimento/diagnostico
+     * funcional (RM, TC, ECG, Holter, MAPA, EEG, audiometria,
+     * endoscopia, colonoscopia, biopsia, cateterismo...) — nenhum item
+     * de bancada (a lista laboratorial de Macae e outra fonte, ainda
+     * nao fornecida). `justificativaObrigatoria: true` no bloco
+     * inteiro. Ver criterio documentado junto de `orientacao()`. */
+    exames: exames.map((e) => ({ ...e, justificativaObrigatoria: true })),
+  };
+}
+
+/* ------------------------------------------------------------------
+ * MACAE — encaminhamentos (servicos de referencia, NAO SAO EXAME)
+ * ------------------------------------------------------------------
+ * Fonte: aba "Serviços e Programas Especiais" do mesmo XLSX "Fluxo SUS
+ * Macae" usado por lerMacaeEspecialidades() — a aba que, na leva
+ * anterior, foi deliberadamente deixada de fora por nao ser "exame"
+ * (ver comentario em lerMacaeEspecialidades()). Agora entra, mas como
+ * uma ENTIDADE DIFERENTE: um servico de referencia (Casa da Crianca,
+ * CRA, Nucleo de Saude Mental, Clinica do Autista, GAN) nao tem nome de
+ * exame, nao tem faixa etaria de "quem pode pedir o exame" e sim
+ * "quem o servico atende", e nao cabe em `orientacao` sem forcar o
+ * schema para um formato que nao e dele.
+ *
+ * POR QUE UM ARRAY SEPARADO (`encaminhamentos`), E NAO DENTRO DE
+ * `municipios["Macaé"].exames`
+ * Misturar os dois na mesma lista obrigaria o modulo de busca, a
+ * paginacao e a renderizacao de cada item a checar "isto e exame ou e
+ * servico?" a cada linha — um se-infiltrar aqui e um encaminhamento
+ * aparece na busca de exame, ou um exame precisa fingir que tem
+ * "publicoAlvo" para caber no mesmo molde. Entidades diferentes, arrays
+ * diferentes: a mesma razao pela qual `dados/apac.json` e
+ * `dados/exames.json` ja sao dois arquivos, nao um so com uma flag
+ * "isto e APAC ou e exame comum".
+ *
+ * POR QUE DENTRO DE `dados/exames.json` (chave nova `encaminhamentos`,
+ * irma de `municipios`), E NAO UM `dados/encaminhamentos.json` NOVO
+ * Um arquivo novo pediria: novo endpoint remoto, novo fallback
+ * embutido, novo script de sync, novo teste de "fallback bate com a
+ * fonte" — toda a infraestrutura que ja existe e ja e testada para
+ * `exames.json` (busca offline, atualizacao sem republicar o
+ * userscript, deteccao de fallback desatualizado). Reusar o mesmo
+ * arquivo, numa chave nova e irma de `municipios` (nunca dentro de um
+ * municipio nem dentro de `exames`), da a mesma garantia de
+ * atualizacao e offline SEM duplicar mecanismo nenhum. Se um dia
+ * `encaminhamentos` crescer muito (hoje sao 5 itens, so em Macae), a
+ * decisao pode ser revisitada — mas hoje o volume nao justifica um
+ * arquivo e um pipeline novos.
+ *
+ * ESTRUTURA: { nome, publicoAlvo, atendimentos[], fluxo, observacoes }
+ * `publicoAlvo` e `atendimentos` sao os equivalentes, para um servico,
+ * do que `faixaEtaria` e `documentos`/`preRequisitos` sao para um
+ * exame — mas com nome proprio, porque a pergunta que respondem e
+ * outra ("quem o servico atende" e "o que ele oferece", nao "o que o
+ * paciente precisa levar"). `fluxo` aqui e texto livre (nao o enum
+ * FICA_NA_UNIDADE/VAI_PARA_CENTRAL de exame — a fonte nao usa esse
+ * vocabulario para servico, e forcar seria inventar).
+ *
+ * REGRA GERAL DA FONTE: SO ESPECIALISTA ENCAMINHA
+ * A nota "apenas profissionais especialistas podem encaminhar para
+ * esses servicos" vale para os 5 — fica UMA VEZ, no nivel do bloco
+ * (mesmo padrao das `observacoes` de municipio em exames), nao
+ * repetida em cada servico.
+ * ------------------------------------------------------------------ */
+function lerMacaeEncaminhamentos() {
+  const servicos = [
+    {
+      nome: "Casa da Criança e do Adolescente",
+      publicoAlvo: "Crianças de 0 a 17 anos, 11 meses e 29 dias.",
+      atendimentos: ["Fonoaudiologia", "Terapia Ocupacional", "Fisioterapia", "Psicologia"],
+      fluxo: "Presencial. Encaminhar diretamente quando houver indicação de terapia.",
+      observacoes: "O município não oferta neuropsicólogo nem psicopedagogo.",
+    },
+    {
+      nome: "CRA — Centro de Referência do Adolescente",
+      publicoAlvo:
+        "Adolescentes de 12 a 19 anos, 11 meses e 29 dias — autolesão, tentativa de suicídio, abuso/exploração " +
+        "sexual, transgêneros, uso de psicoativos, acolhimento em abrigo, medidas socioeducativas, " +
+        "vulnerabilidade social.",
+      atendimentos: [
+        "Atendimento médico: ginecologia, dermatologia, clínica geral, psiquiatria, enfermagem, nutrição, " +
+          "fonoaudiologia, fisioterapia.",
+        "Apoio psicossocial: psicólogos, assistentes sociais, terapeutas ocupacionais.",
+        "Prevenção e testes rápidos (HIV, sífilis, hepatites B/C).",
+        "Grupos educativos.",
+        "Serviço social.",
+      ],
+      fluxo: "Encaminhar adolescentes para o CRA.",
+    },
+    {
+      nome: "Núcleo de Saúde Mental",
+      publicoAlvo: "Crianças de 6 a 11 anos, 11 meses e 29 dias, com demandas leves/moderadas.",
+      atendimentos: [
+        "Equipe multidisciplinar: psicologia, fonoaudiologia, terapia ocupacional, fisioterapia, serviço " +
+          "social, neuropediatria, psiquiatria infantil.",
+      ],
+      fluxo: "Pronto acolhimento e grupos.",
+    },
+    {
+      nome: "Clínica do Autista",
+      publicoAlvo: "Crianças com TEA (Transtorno do Espectro Autista) de 2 a 11 anos, 11 meses e 29 dias.",
+      atendimentos: [
+        "Psiquiatria infantil, neuropediatria, serviço social, psicologia, fisioterapia, fonoaudiologia, " +
+          "nutrição.",
+      ],
+      fluxo: "Atendimentos individuais e em grupo, incluindo grupo de apoio aos responsáveis.",
+    },
+    {
+      nome: "GAN — Gerência de Alimentação e Nutrição",
+      publicoAlvo: "Crianças e adolescentes de 0 a 16 anos, 11 meses e 29 dias, com demandas nutricionais.",
+      atendimentos: [
+        "Atendimento ambulatorial.",
+        "Sala de acolhimento materno.",
+        "Proteja — prevenção e atenção à obesidade infantil.",
+        "Atendimento a beneficiários do GAN, Centro de Referência do Diabético, Doenças Falciformes e Saúde " +
+          "na Escola.",
+        "Programa Municipal de Fórmulas e Suplementos.",
+      ],
+      fluxo: "Atendimento a beneficiários dos programas listados.",
+    },
+  ];
+
+  return {
+    _leia_me:
+      "Extraído da aba 'Serviços e Programas Especiais' de 'Fluxo SUS Macae.xlsx' (mesmo arquivo usado por " +
+      "lerMacaeEspecialidades()) — SEMUSA Macaé. Estes NÃO são exames: são serviços/estabelecimentos de " +
+      "referência para encaminhamento, entidade separada, renderizada em seção própria na tela.",
+    fonte: "Serviços e Programas Especiais (SEMUSA Macaé)",
+    atualizadoEm: "2026-09-09",
+    observacoes: ["Apenas profissionais especialistas podem encaminhar para estes serviços."],
+    servicos,
   };
 }
 
@@ -597,7 +735,7 @@ function lerMacaeEspecialidades() {
  * ------------------------------------------------------------------
  * Fonte: "Exames realizados pelo laboratório da UPA 24h – Eletivo",
  * atualizada em 21/10/2025. Lista de duas colunas (número + nome), sem
- * código de procedimento — `codigo` fica ausente nos 52 itens, sem
+ * código de procedimento — `codigo` fica ausente nos itens, sem
  * inventar.
  *
  * SEGUNDA FONTE AINDA NAO EXISTE
@@ -613,43 +751,40 @@ function lerMacaeEspecialidades() {
  * "CK-MB" com hífen) — pelo mesmo motivo de Macaé: o objetivo do nome é
  * ser encontrado na busca, não reproduzir a formatação do PDF.
  *
- * `canalEncaminhamento: "LABORATORIO_UPA"` EM TODOS OS 52
+ * `canalEncaminhamento: "LABORATORIO_UPA"` EM TODOS
  * Hoje só existe uma fonte, e ela é inteira do laboratório da UPA — o
  * canal não distingue nada ainda (todo item tem o mesmo valor), mas
  * fica explícito desde já porque é a mesma pergunta que `canalEncaminhamento`
  * sempre respondeu (por qual canal o pedido entra) e porque, quando a
  * segunda fonte chegar, o canal vira a distinção real entre as duas —
- * sem precisar reabrir os 52 itens desta leva para acrescentar o campo.
+ * sem precisar reabrir esta leva para acrescentar o campo.
  *
  * PEGADINHA REAL, NAO RESOLVIDA: "ELETIVO" NO TÍTULO, MAS NEM TUDO É
- * O título do documento diz "Eletivo", mas 7 dos 52 itens só se
- * realizam em urgência/emergência, ou só para uma indicação específica
+ * O título do documento diz "Eletivo", mas 7 dos itens só se realizam
+ * em urgência/emergência, ou só para uma indicação específica
  * (acidente de trabalho / profilaxia pós-exposição ao HIV) — uma
  * contradição real do documento, transcrita como está, não resolvida
  * aqui. Vira `restricoes`, não `observacoes`: é condição de quando o
  * exame se aplica, o mesmo padrão já usado para toda a base.
  *
- * `status: "SUSPENSO"`: DIFERENTE DE `restricoes`
- * Restrição é "faz, sob certa condição". A Baciloscopia para BAAR está
- * suspensa pelo Ministério da Saúde — não é "faz só em certos casos", é
- * "não faz, por enquanto, em caso nenhum". `status` é campo novo, do
- * exame (fora de `orientacao`: não é orientação de conduta, é o estado
- * da oferta), opcional e genérico — não específico deste caso.
- * ------------------------------------------------------------------ */
+ * EXAME SUSPENSO: REMOVIDO DA LISTA, NAO EXIBIDO COM BADGE
+ * Dois itens do documento original — "Baciloscopia direta para BAAR"
+ * (suspensa pelo Ministério da Saúde, COVID-19) e "Pesquisa de sangue
+ * oculto" (fonte confirmou suspensão) — não fazem parte oferta atual.
+ * A política adotada é REMOVER o item, não marcá-lo como indisponível
+ * na tela: um exame que a unidade não realiza não deveria aparecer
+ * pesquisável, mostrando um selo, para depois o medico descobrir que
+ * nao pode pedir — e mais simples e mais seguro simplesmente nao
+ * listar. (Uma politica anterior usava `status: "SUSPENSO"` com badge
+ * na tela; foi substituida por esta, mais restritiva, a pedido.) */
 function lerCongonhas() {
   /* Helper local: monta um exame do laboratorio da UPA com o canal
    * padrao ja aplicado, e delega o resto para orientacao() — mesma
    * disciplina de nao escrever o objeto de orientacao a mao. */
   function exameLaboratorioUPA(nome, extras) {
     extras = extras || {};
-    if (extras.status && STATUS_VALIDOS.indexOf(extras.status) === -1) {
-      throw new Error(
-        "lerCongonhas(): status \"" + extras.status + "\" nao esta em " + STATUS_VALIDOS.join("/") +
-        " para \"" + nome + "\"."
-      );
-    }
     var e = { nome: nome };
-    if (extras.status && extras.status !== "ATIVO") e.status = extras.status;
+    if (extras.justificativaObrigatoria) e.justificativaObrigatoria = true;
     e.orientacao = orientacao({
       faixaEtaria: extras.faixaEtaria,
       restricoes: extras.restricoes,
@@ -663,10 +798,10 @@ function lerCongonhas() {
   const RESTRICAO_ACIDENTE_TRABALHO = ["Somente para acidente de trabalho e profilaxia pós-exposição ao HIV."];
 
   const exames = [
-    exameLaboratorioUPA("Baciloscopia direta para BAAR", {
-      status: "SUSPENSO",
-      observacoes: "Suspenso pelo Ministério da Saúde – COVID-19, por tempo indeterminado.",
-    }),
+    /* "Baciloscopia direta para BAAR" e "Pesquisa de sangue oculto"
+     * foram REMOVIDOS (nao comentados, nao marcados) — os dois estao
+     * suspensos e a politica atual e nao listar exame suspenso. Ver
+     * comentario de cabecalho desta funcao. */
     exameLaboratorioUPA("Bacterioscopia Gram", {
       faixaEtaria: "Até 12 anos",
       restricoes: ["Somente para urgência em crianças de até 12 anos."],
@@ -712,13 +847,6 @@ function lerCongonhas() {
     exameLaboratorioUPA("Hemograma completo"),
     exameLaboratorioUPA("Leucograma"),
     exameLaboratorioUPA("Parasitológico de fezes"),
-    /* O PDF de origem mostra este item riscado (tachado), sem o mesmo
-     * texto explicativo que acompanha a Baciloscopia suspensa — nao ha
-     * frase que afirme "suspenso" ou o motivo. Marcar como SUSPENSO
-     * aqui seria inferir a partir de uma formatacao visual ambigua, nao
-     * transcrever uma afirmacao do documento — por isso o item entra
-     * ATIVO. Fica registrado para confirmar com quem publicou a lista. */
-    exameLaboratorioUPA("Pesquisa de sangue oculto"),
     exameLaboratorioUPA("Reticulócitos"),
     exameLaboratorioUPA("Teste rápido de dengue"),
     exameLaboratorioUPA("Teste rápido HBsAg", { restricoes: RESTRICAO_ACIDENTE_TRABALHO }),
@@ -1079,7 +1207,14 @@ function lerSeteLagoas() {
       "são escala interna e nome de funcionário, não informação sobre o exame.",
     fonte: "Orientações da Central de Marcação — SL",
     atualizadoEm: "2026-08-01",
-    exames,
+    /* Toda esta fonte e exame de imagem/procedimento agendado (oftalmo,
+     * tomografia, endoscopia, US, cateterismo...) — nenhum item de
+     * bancada. `justificativaObrigatoria: true` aplicado ao BLOCO
+     * inteiro, nao item a item: e a mesma classificacao factual que ja
+     * separa esta funcao de lerSeteLagoasLaboratorio() (a outra fonte
+     * do municipio, essa sim inteira de bancada). Ver o criterio
+     * documentado junto de `orientacao()`, no topo do arquivo. */
+    exames: exames.map((e) => ({ ...e, justificativaObrigatoria: true })),
   };
 }
 
@@ -1733,7 +1868,28 @@ async function main() {
       },
     },
     municipios: {},
+    /* Entidade separada de `municipios[x].exames` — ver o comentario de
+     * cabecalho de lerMacaeEncaminhamentos() para a justificativa
+     * completa de por que fica aqui (chave irma de `municipios`, mesmo
+     * arquivo) em vez de um dados/encaminhamentos.json novo. Chave por
+     * municipio, igual `municipios`; hoje so Macae tem. */
+    encaminhamentos: {},
   };
+
+  const novosEncaminhamentos = {
+    "Macaé": lerMacaeEncaminhamentos(),
+  };
+  Object.keys(novosEncaminhamentos).forEach((m) => {
+    if (novosEncaminhamentos[m]) {
+      saida.encaminhamentos[m] = novosEncaminhamentos[m];
+    } else if (anterior.encaminhamentos && anterior.encaminhamentos[m]) {
+      saida.encaminhamentos[m] = anterior.encaminhamentos[m];
+    }
+  });
+  Object.keys(anterior.encaminhamentos || {}).forEach((m) => {
+    if (!saida.encaminhamentos[m]) saida.encaminhamentos[m] = anterior.encaminhamentos[m];
+  });
+  if (!Object.keys(saida.encaminhamentos).length) delete saida.encaminhamentos;
 
   Object.keys(novos).forEach((m) => {
     if (novos[m]) {

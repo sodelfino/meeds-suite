@@ -190,30 +190,35 @@ const municipios = Object.keys(BASE.municipios).filter((k) => k.indexOf("_") !==
     ok("Ecodoppler de carotidas/vertebrais tem 3 especialidades (o exemplo que motivou o array)",
        (macae.exames.find((e) => e.nome === "Ecodoppler de carótidas/vertebrais") || {}).especialidade
          ?.length === 3);
-    ok("nenhum canalEncaminhamento de Macae fica fora do vocabulario",
-       macae.exames.every((e) =>
-         !e.orientacao || !e.orientacao.canalEncaminhamento ||
-         ["SISREG", "CENTRAL_MUNICIPAL", "REGULACAO_ESTADUAL", "DIRETO_AO_SERVICO", "OUTRO"]
-           .includes(e.orientacao.canalEncaminhamento)));
+    /* canalEncaminhamento foi removido de Macae inteira a pedido — o
+     * campo continua existindo no schema (Congonhas usa
+     * LABORATORIO_UPA), so nao em nenhum exame de Macae. */
+    ok("nenhum exame de Macae tem canalEncaminhamento",
+       macae.exames.every((e) => !e.orientacao || e.orientacao.canalEncaminhamento === undefined));
+    ok("os 66 exames da fonte SEMUSA tem justificativaObrigatoria=true (nao-laboratorial)",
+       macae.exames.filter((e) => e.justificativaObrigatoria === true).length === 66);
+    ok("os 28 exames da UPA Barra (laboratorial) nao tem justificativaObrigatoria",
+       macae.exames.filter((e) => e.local === "UPA Barra").every((e) => !e.justificativaObrigatoria));
   }
 
   const congonhas = BASE.municipios["Congonhas"];
   if (congonhas) {
     /* Congonhas e a lista real (laboratorio da UPA 24h), nao mais o
-     * catalogo de APAC mal rotulado que existiu aqui ate esta leva. */
-    ok("Congonhas tem os 52 exames do laboratorio da UPA",
-       congonhas.exames.length === 52, "achou " + congonhas.exames.length);
+     * catalogo de APAC mal rotulado que existiu aqui ate uma leva
+     * anterior. Os dois exames suspensos (BAAR, sangue oculto) foram
+     * REMOVIDOS, nao marcados — 52 → 50. */
+    ok("Congonhas tem os 50 exames do laboratorio da UPA (2 suspensos removidos)",
+       congonhas.exames.length === 50, "achou " + congonhas.exames.length);
+    ok("Baciloscopia direta para BAAR foi removida (nao so marcada)",
+       !congonhas.exames.some((e) => /baar/i.test(e.nome)));
+    ok("Pesquisa de sangue oculto foi removida (nao so marcada)",
+       !congonhas.exames.some((e) => /sangue oculto/i.test(e.nome)));
+    ok("nenhum exame tem campo `status` em lugar nenhum da base (removido)",
+       Object.values(BASE.municipios).every((m) => m.exames.every((e) => e.status === undefined)));
     ok("nenhum exame de Congonhas tem codigo (o documento nao traz)",
        congonhas.exames.every((e) => !e.codigo));
     ok("todo exame de Congonhas usa o canal LABORATORIO_UPA",
        congonhas.exames.every((e) => e.orientacao && e.orientacao.canalEncaminhamento === "LABORATORIO_UPA"));
-    ok("nenhum status usado em Congonhas foge do vocabulario ATIVO/SUSPENSO",
-       congonhas.exames.every((e) => !e.status || ["ATIVO", "SUSPENSO"].includes(e.status)));
-    ok("so a Baciloscopia direta para BAAR esta SUSPENSO",
-       congonhas.exames.filter((e) => e.status === "SUSPENSO").map((e) => e.nome)
-         .join(", ") === "Baciloscopia direta para BAAR");
-    ok("nenhum exame ATIVO grava status (campo ausente e o padrao implicito)",
-       congonhas.exames.filter((e) => e.status === "ATIVO").length === 0);
     ok("os 7 exames restritos a urgencia/emergencia ou indicacao especifica tem `restricoes`",
        congonhas.exames.filter((e) => e.orientacao && e.orientacao.restricoes).length === 7);
     ok("Congonhas reativa a observacao municipal (regra de pedido separado)",
@@ -221,6 +226,8 @@ const municipios = Object.keys(BASE.municipios).filter((k) => k.indexOf("_") !==
        /pedido separado/i.test(congonhas.observacoes[0]));
     ok("fonte e data batem com o documento",
        congonhas.fonte === "Laboratório da UPA 24h – Congonhas (MG)" && congonhas.atualizadoEm === "2025-10-21");
+    ok("nenhum exame de Congonhas (laboratorial) tem justificativaObrigatoria",
+       congonhas.exames.every((e) => !e.justificativaObrigatoria));
   }
 
   const betim = BASE.municipios["Betim"];
@@ -369,6 +376,152 @@ const municipios = Object.keys(BASE.municipios).filter((k) => k.indexOf("_") !==
        !!usgUrinario && !!usgUrinario.orientacao &&
        Object.keys(usgUrinario.orientacao).length === 1 &&
        !!usgUrinario.orientacao.observacoes);
+  }
+}
+
+/* --- 5c. `justificativaObrigatoria`: classificador INDEPENDENTE ---
+ * O criterio (documentado em scripts/montar-exames.js, junto de
+ * `orientacao()`) e aplicado la por FONTE (cada fonte e inteiramente
+ * laboratorial ou inteiramente nao-laboratorial). Aqui a verificacao e
+ * OUTRA: uma lista de palavras-chave reimplementada do zero, so a
+ * partir do NOME do exame, sem olhar como o gerador decidiu — se as
+ * duas seguem caminhos diferentes e chegam na mesma resposta para
+ * TODOS os 2.648 exames da base, o criterio esta consistente. Uma
+ * divergencia aqui aponta o nome do exame que fugiu do padrao. */
+{
+  /* Termos que, aparecendo no nome, classificam o exame como
+   * LABORATORIAL (analise de amostra biologica: sangue, urina, fezes,
+   * escarro, saliva). */
+  const PALAVRAS_LABORATORIAL = [
+    "hemograma", "leucograma", "eritrograma", "reticulócito", "plaqueta",
+    "dosagem", "determinação", "determinacao", "coombs", "vdrl", "sorologia",
+    "sorológic", "sorologic", "teste rápido", "teste rapido", "bacterioscopia",
+    "baciloscopia", "parasitológico", "parasitologico", "urina rotina", "eas",
+    "urocultura", "fezes",
+    "coagulograma", "hemossedimentação", "hemossedimentacao", "glic", "colesterol",
+    "triglicéride", "trigliceride", "creatinina", "ureia", "bilirrubina", "amilase",
+    "lipase", "cálcio", "calcio", "sódio", "sodio", "potássio", "potassio",
+    "cloretos", "ácido úrico", "acido urico", "proteínas totais", "proteinas totais",
+    "fator reumatoide", "antiestreptolisina", "gonadotrofina", "grupo sanguíneo",
+    "grupo sanguineo", "fator rh", "protrombina", "tromboplastina", "d-dímero",
+    "d-dimero", "troponina", "tgo", "tgp", "gama-gt", "gama gt", "fosfatase",
+    "hba1c", "hemoglobina glicada", "hbsag", "hcv", "hiv", "influenza", "covid",
+    "eas", "cpk", "ckmb", "ck-mb", "ck total", "lipidograma", "ldh",
+  ];
+  /* Termos que classificam como NAO-laboratorial (imagem, procedimento,
+   * diagnostico funcional — algo feito COM/NO paciente, nao analise de
+   * amostra). Usados so como checagem de sanidade cruzada: um exame que
+   * bate em ambas as listas seria ambiguo, e o teste abaixo cobra que
+   * isso NAO aconteca na base atual. */
+  const PALAVRAS_NAO_LABORATORIAL = [
+    "tomografia", "ressonânc", "ressonanc", "radiografia", "raio x", "raio-x",
+    "ultrassonografia", "ultrassom", "usg", "ecocardiogr", "ecodoppler",
+    "ecografia", "doppler", "endoscopia", "colonoscopia", "retossigmoidoscopia",
+    "cateterismo", "ergométric", "ergometric", "holter",
+    "mapa", "eletroencefalograma", "espirometria", "audiometria", "mamografia",
+    "densitometria", "cintilografia", "eletrocardiograma", "angiotomografia",
+    "angiorressonânc", "angiorressonanc", "videonasolaringoscopia",
+    "urodinâmico", "urodinamico", "esclerosante", "cistoscopia", "litotripsia",
+    "polissonografia", "angiofluorescência", "angiofluorescencia", "capsulotomia",
+    "eletroneuromiografia", "paaf", "pet-ct", "dilatação uretral", "dilatacao uretral",
+    "topografia", "arteriografia", "angiografia", "terapia ablativa",
+  ];
+
+  function normalizar(s) {
+    return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  }
+
+  /* undefined = "nao classificavel por palavra-chave" (nem lab nem
+   * nao-lab reconhecido) — usado so para medir cobertura, nunca falha
+   * sozinho: um exame sem palavra-chave reconhecida so e um problema se
+   * a base disser que ele precisa de justificativa e a classificacao
+   * nao conseguir confirmar nem negar. */
+  function classificarPorNome(nome) {
+    const n = normalizar(nome);
+    const ehLab = PALAVRAS_LABORATORIAL.some((p) => n.indexOf(normalizar(p)) !== -1);
+    const ehNaoLab = PALAVRAS_NAO_LABORATORIAL.some((p) => n.indexOf(normalizar(p)) !== -1);
+    if (ehLab && !ehNaoLab) return false; // laboratorial → justificativaObrigatoria false
+    if (ehNaoLab && !ehLab) return true;  // nao-laboratorial → justificativaObrigatoria true
+    return undefined; // ambiguo ou desconhecido
+  }
+
+  const todosOsExames = Object.keys(BASE.municipios).flatMap((m) =>
+    BASE.municipios[m].exames.map((e) => ({ ...e, _municipio: m }))
+  );
+
+  const divergencias = todosOsExames
+    .map((e) => ({ e, classificado: classificarPorNome(e.nome) }))
+    .filter((r) => r.classificado !== undefined && r.classificado !== !!r.e.justificativaObrigatoria);
+
+  ok("o classificador independente por nome bate com `justificativaObrigatoria` em toda a base",
+     divergencias.length === 0,
+     divergencias.slice(0, 10).map((r) =>
+       r.e._municipio + "/" + r.e.nome + " (base:" + !!r.e.justificativaObrigatoria +
+       " classificador:" + r.classificado + ")"
+     ).join(" | "));
+
+  /* Cobertura por palavra-chave NAO precisa ser 100% para o criterio
+   * ser valido — nomes curtos e proprios ("Mapeamento de Retina",
+   * "Teste da linguinha", "PET-CT") nao carregam palavra-chave
+   * reconhecivel, e isso e esperado: a classificacao de verdade
+   * aconteceu por FONTE (documentado em scripts/montar-exames.js), o
+   * classificador aqui e so uma segunda opiniao independente para
+   * pegar CONTRADICAO (teste acima), nao para reclassificar a base.
+   *
+   * Medida SO fora de Betim: os 1.983 itens de Betim sao nomes de
+   * contrato laboratorial, terse e sem vocabulario clinico repetido
+   * ("PESQUISA DE...", "ANTICORPOS...") — a classe deles (laboratorial)
+   * nunca foi ambigua (a fonte inteira e um contrato de laboratorio),
+   * entao baixa cobertura ali nao mede nada sobre o criterio, so sobre
+   * o estilo de nomenclatura do contrato. Fora de Betim (Macae,
+   * Congonhas, Sete Lagoas — onde a base MISTURA laboratorial e
+   * nao-laboratorial, e a classificacao correta importa de verdade) a
+   * cobertura e o numero que teria valor de alarme se caisse. */
+  const foraDeBetim = todosOsExames.filter((e) => e._municipio !== "Betim");
+  const classificaveis = foraDeBetim.filter((e) => classificarPorNome(e.nome) !== undefined).length;
+  const cobertura = classificaveis / foraDeBetim.length;
+  ok("o classificador independente cobre pelo menos 60% dos " + foraDeBetim.length + " exames fora de Betim",
+     cobertura >= 0.6, (cobertura * 100).toFixed(1) + "% classificados por palavra-chave");
+}
+
+/* --- 5d. `encaminhamentos`: entidade separada de exame (so Macae) --- */
+{
+  const enc = (BASE.encaminhamentos || {})["Macaé"];
+  ok("BASE.encaminhamentos existe e e diferente de BASE.municipios", !!BASE.encaminhamentos);
+  if (enc) {
+    ok("Macae tem 5 servicos de encaminhamento",
+       Array.isArray(enc.servicos) && enc.servicos.length === 5, "achou " + (enc.servicos || []).length);
+
+    const nomesEsperados = [
+      "Casa da Criança e do Adolescente",
+      "CRA — Centro de Referência do Adolescente",
+      "Núcleo de Saúde Mental",
+      "Clínica do Autista",
+      "GAN — Gerência de Alimentação e Nutrição",
+    ];
+    ok("os 5 servicos sao exatamente os esperados",
+       nomesEsperados.every((n) => enc.servicos.some((s) => s.nome === n)));
+
+    ok("todo servico tem publicoAlvo e fluxo",
+       enc.servicos.every((s) => !!s.publicoAlvo && !!s.fluxo));
+
+    ok("todo servico tem pelo menos um atendimento listado",
+       enc.servicos.every((s) => Array.isArray(s.atendimentos) && s.atendimentos.length > 0));
+
+    ok("a nota geral (so especialista encaminha) esta no nivel do bloco, nao repetida por servico",
+       Array.isArray(enc.observacoes) && enc.observacoes.length === 1 &&
+       /especialista/i.test(enc.observacoes[0]));
+
+    /* Regra de ouro tambem vale para encaminhamentos: nao pode vazar
+     * para outro municipio nem se misturar com a lista de exames. */
+    ok("nenhum servico de encaminhamento aparece dentro de municipios[x].exames",
+       Object.values(BASE.municipios).every((m) =>
+         m.exames.every((e) => !nomesEsperados.includes(e.nome))));
+    ok("so Macae tem encaminhamentos (nenhum outro municipio inventado)",
+       Object.keys(BASE.encaminhamentos).length === 1 && Object.keys(BASE.encaminhamentos)[0] === "Macaé");
+
+    ok("fonte e data de encaminhamentos estao declaradas",
+       !!enc.fonte && !!enc.atualizadoEm);
   }
 }
 
