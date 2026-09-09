@@ -8415,6 +8415,21 @@
    * em vez de so ligar e desligar. Desligar de vez continua sendo a
    * chave da funcao no painel da engrenagem — aqui a escolha e "quanto",
    * nao "se". */
+  /* Ponto UNICO de abertura do painel de Ajustes — chamado pelos tres
+   * caminhos que levam la (aoAbrirAjustes do painel da engrenagem,
+   * clique direito no icone, shift+clique no icone). Existe por causa
+   * da oferta de tutorial na primeira vez: se cada caminho chamasse
+   * `painel.abrir()` direto, so o caminho que fosse embrulhado por
+   * ultimo ofereceria o tutorial — os outros dois abririam os Ajustes
+   * em silencio, e a "primeira vez" nunca aconteceria para quem usa
+   * clique direito. */
+  function abrirPainelDeAjustes() {
+    painel.abrir();
+    if (raiz.MeedsSuiteTutorial) {
+      raiz.MeedsSuiteTutorial.iniciarSePrimeiraVez("alarme-fila", { dock: d.dock });
+    }
+  }
+
   function ciclarIntensidade() {
     /* Aproveita o gesto de clique para destravar o audio: o navegador so
      * deixa tocar som depois de uma interacao do usuario. */
@@ -8567,16 +8582,7 @@
        * "Ajustes". O clique direito continua valendo como atalho, mas
        * deixou de ser o UNICO caminho — ninguem descobre clique direito
        * sozinho. */
-      deps.aoAbrirAjustes(function () {
-        painel.abrir();
-        /* So faz alguma coisa na primeira vez (ou se o tutorial nunca
-         * foi registrado) — seguro chamar sempre. Abre por CIMA dos
-         * Ajustes, mesmo empilhamento de qualquer overlay aberto a
-         * partir de outro (ver comentario em criarOverlay(), core/dock.js). */
-        if (raiz.MeedsSuiteTutorial) {
-          raiz.MeedsSuiteTutorial.iniciarSePrimeiraVez("alarme-fila", { dock: d.dock });
-        }
-      });
+      deps.aoAbrirAjustes(abrirPainelDeAjustes);
       if (typeof deps.aoIniciarTutorial === "function") {
         deps.aoIniciarTutorial(function () {
           if (raiz.MeedsSuiteTutorial) raiz.MeedsSuiteTutorial.iniciar("alarme-fila", { dock: d.dock });
@@ -8587,12 +8593,12 @@
       if (deps.botao) {
         deps.botao.elemento.addEventListener("contextmenu", function (ev) {
           ev.preventDefault();
-          painel.abrir();
+          abrirPainelDeAjustes();
         });
         deps.botao.elemento.addEventListener("click", function (ev) {
           if (ev.shiftKey) {
             ev.stopImmediatePropagation();
-            painel.abrir();
+            abrirPainelDeAjustes();
           }
         });
       }
