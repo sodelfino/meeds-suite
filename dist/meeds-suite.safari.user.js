@@ -16402,6 +16402,10 @@ function moverFocoResultado(delta) {
     ".ex-nome { font-size:13.5px; color:#0f172a; font-weight:600; line-height:1.4; }",
     ".ex-meta { font-size:11.5px; color:#64748b; margin-top:3px; display:flex; gap:10px; flex-wrap:wrap; }",
     ".ex-selo { display:inline-flex; align-items:center; gap:4px; }",
+    /* Badge de especialidade: mesmo formato de `.ex-selo`, cor propria
+     * (roxo suave) so para diferenciar visualmente de codigo/local, que
+     * sao dado bruto — especialidade e categoria clinica. */
+    ".ex-especialidade { background:#f5f3ff; color:#5b21b6; border:1px solid #ddd6fe; border-radius:999px; padding:1px 8px; }",
     ".ex-nota { font-size:11.5px; color:#78350f; background:#fffbeb; border:1px solid #fde68a; border-radius:7px; padding:5px 8px; margin-top:5px; line-height:1.5; }",
 
     /* --- ex-orientacao: bloco "⚠️ Atenção ao encaminhar" ---
@@ -16565,6 +16569,28 @@ function moverFocoResultado(delta) {
     OUTRO: "Outro fluxo",
   };
 
+  /* `canalEncaminhamento` (nasceu com Macae) responde uma pergunta
+   * DIFERENTE de `fluxo` (nasceu com Sete Lagoas): fluxo e "o papel
+   * fica onde depois de emitido"; canal e "por qual porta o pedido
+   * entra na regulacao". Os dois tem o mesmo tratamento visual (icone
+   * que muda por valor) porque sao o mesmo TIPO de informacao — so
+   * eixos diferentes — mas aparecem como linhas separadas quando um
+   * exame tiver os dois, nunca fundidos numa frase so. */
+  var ICONE_CANAL = {
+    SISREG: "🗂️",
+    CENTRAL_MUNICIPAL: "🏛️",
+    REGULACAO_ESTADUAL: "🗺️",
+    DIRETO_AO_SERVICO: "➡️",
+    OUTRO: "🔀",
+  };
+  var ROTULO_CANAL = {
+    SISREG: "Via SISREG",
+    CENTRAL_MUNICIPAL: "Via Central de Regulação do Município",
+    REGULACAO_ESTADUAL: "Via regulação estadual",
+    DIRETO_AO_SERVICO: "Direto ao serviço",
+    OUTRO: "Outro canal",
+  };
+
   /* Uma linha simples: icone + rotulo + texto corrido. */
   function linhaDeOrientacao(icone, rotulo, texto) {
     return (
@@ -16608,6 +16634,13 @@ function moverFocoResultado(delta) {
         ROTULO_FLUXO[o.fluxo] || o.fluxo
       ));
     }
+    if (o.canalEncaminhamento) {
+      linhas.push(linhaDeOrientacao(
+        ICONE_CANAL[o.canalEncaminhamento] || "🔀",
+        "Canal",
+        ROTULO_CANAL[o.canalEncaminhamento] || o.canalEncaminhamento
+      ));
+    }
     if (o.observacoes) linhas.push(linhaDeOrientacao("📝", "Observações", o.observacoes));
 
     /* Defensivo: `orientacao()` no gerador ja garante que so chega aqui
@@ -16628,6 +16661,17 @@ function moverFocoResultado(delta) {
     var meta = [];
     if (e.codigo) meta.push('<span class="ex-selo">🔢 ' + escapar(e.codigo) + "</span>");
     if (e.local) meta.push('<span class="ex-selo">📍 ' + escapar(e.local) + "</span>");
+    /* `especialidade` fica no `.ex-meta`, junto de codigo/local — e
+     * CATEGORIA do exame, nao aviso de conduta, entao nao entra no
+     * bloco `.ex-orientacao` (o "⚠️ Atenção ao encaminhar" e so para
+     * o que muda a conduta de quem pede). Um badge por especialidade:
+     * o mesmo exame pode pertencer a mais de uma (Ecodoppler de
+     * Carótidas, em Macaé, esta em 3). */
+    if (e.especialidade) {
+      e.especialidade.forEach(function (esp) {
+        meta.push('<span class="ex-selo ex-especialidade">🩺 ' + escapar(esp) + "</span>");
+      });
+    }
     var sigla = e.exige ? siglaDe(e.exige) : null;
 
     var li = document.createElement("li");

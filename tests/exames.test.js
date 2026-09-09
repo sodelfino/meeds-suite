@@ -173,9 +173,29 @@ const municipios = Object.keys(BASE.municipios).filter((k) => k.indexOf("_") !==
    * possivel aqui. */
   const macae = BASE.municipios["Macaé"];
   if (macae) {
-    ok("Macae traz o local em todos os exames",
-       macae.exames.every((e) => e.local === "UPA Barra"));
-    ok("Macae mantem as duas regras clinicas do PDF",
+    /* Macae e o segundo municipio com duas fontes (Sete Lagoas foi o
+     * primeiro): a UPA Barra (local, sem especialidade) e a lista por
+     * especialidade da SEMUSA (especialidade, sem local — o `local`
+     * so faz sentido para quem descreve "onde", nao "por qual porta de
+     * entrada"). Cada exame pertence a exatamente UMA das duas fontes,
+     * entao nunca tem as duas coisas ao mesmo tempo. */
+    ok("nenhum exame de Macae tem local (UPA Barra) E especialidade (SEMUSA) ao mesmo tempo",
+       macae.exames.every((e) => {
+         const temLocal = e.local === "UPA Barra";
+         const temEspecialidade = Array.isArray(e.especialidade) && e.especialidade.length > 0;
+         return !(temLocal && temEspecialidade);
+       }));
+    ok("os 28 exames da UPA Barra continuam com local",
+       macae.exames.filter((e) => e.local === "UPA Barra").length === 28);
+    ok("Ecodoppler de carotidas/vertebrais tem 3 especialidades (o exemplo que motivou o array)",
+       (macae.exames.find((e) => e.nome === "Ecodoppler de carótidas/vertebrais") || {}).especialidade
+         ?.length === 3);
+    ok("nenhum canalEncaminhamento de Macae fica fora do vocabulario",
+       macae.exames.every((e) =>
+         !e.orientacao || !e.orientacao.canalEncaminhamento ||
+         ["SISREG", "CENTRAL_MUNICIPAL", "REGULACAO_ESTADUAL", "DIRETO_AO_SERVICO", "OUTRO"]
+           .includes(e.orientacao.canalEncaminhamento)));
+    ok("Macae mantem as duas regras clinicas do PDF da UPA Barra",
        Array.isArray(macae.observacoes) && macae.observacoes.length === 2);
     ok("uma das regras e o consentimento para HIV",
        (macae.observacoes || []).some((o) => /HIV/i.test(o) && /consentimento/i.test(o)));

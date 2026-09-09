@@ -30,6 +30,15 @@ const SAIDA = path.join(RAIZ, "dados/exames.json");
 const FONTES = {
   betim: "/Users/marcelodelfino/Downloads/Tabela do contrato LABORATORIAIS para Callmed.xlsx",
   macae: "/Users/marcelodelfino/Downloads/Exames realizados na UPA .pdf",
+  /* As duas fontes por especialidade nao sao lidas em runtime (o DOCX
+   * nao tem tabela, so paragrafos soltos; o XLSX tem varias abas com
+   * texto que mistura canal + pre-requisito + validade na mesma
+   * celula). Os dois caminhos ficam registrados aqui so para quem for
+   * conferir a proxima atualizacao saber onde procurar — a leitura em
+   * si e a lista transcrita a mao dentro de lerMacaeEspecialidades(),
+   * na mesma disciplina ja usada para Sete Lagoas. */
+  macaeEspecialidadesDocx: "/Users/marcelodelfino/Downloads/EXAMES REALIZADOS PELO SUS NO MUNICIPIO DE MACAÉ.docx",
+  macaeEspecialidadesXlsx: "/Users/marcelodelfino/Downloads/Fluxo SUS Macae.xlsx",
 };
 
 /* ------------------------------------------------------------------
@@ -63,6 +72,26 @@ const FONTES = {
  * CPF ou qualquer coisa de uma pessoa atendida.
  * ------------------------------------------------------------------ */
 const FLUXOS_VALIDOS = ["FICA_NA_UNIDADE", "VAI_PARA_CENTRAL", "OUTRO"];
+
+/* `canalEncaminhamento` nasceu com Macae, e responde uma pergunta
+ * DIFERENTE da que `fluxo` responde:
+ *
+ *   fluxo               = depois de emitido, o papel FICA ONDE?
+ *                          (conceito de Sete Lagoas: unidade x central)
+ *   canalEncaminhamento = por QUAL CANAL o pedido ENTRA na regulacao?
+ *                          (conceito de Macae: SISREG x Central x
+ *                          regulacao estadual x direto no servico)
+ *
+ * Os dois campos NAO SE SUBSTITUEM. Um exame pode ter os dois, so um,
+ * ou nenhum — sao eixos independentes, e um municipio que so enxerga um
+ * dos dois eixos simplesmente nao preenche o outro. */
+const CANAIS_VALIDOS = [
+  "SISREG",
+  "CENTRAL_MUNICIPAL",
+  "REGULACAO_ESTADUAL",
+  "DIRETO_AO_SERVICO",
+  "OUTRO",
+];
 
 /* A mesma frase-molde aparece em quase toda linha da fonte de Sete
  * Lagoas ("PREPARO CONFORME ORIENTACAO DO PRESTADOR"), variando so
@@ -110,6 +139,12 @@ function orientacao(campos) {
       " — corrija ou acrescente o valor novo ao vocabulario antes de usar."
     );
   }
+  if (campos.canalEncaminhamento && CANAIS_VALIDOS.indexOf(campos.canalEncaminhamento) === -1) {
+    throw new Error(
+      "orientacao(): canalEncaminhamento \"" + campos.canalEncaminhamento + "\" nao esta em " +
+      CANAIS_VALIDOS.join("/") + " — corrija ou acrescente o valor novo ao vocabulario antes de usar."
+    );
+  }
 
   var saida = {
     faixaEtaria: limparString(campos.faixaEtaria),
@@ -120,6 +155,7 @@ function orientacao(campos) {
     comoCadastrar: limparString(campos.comoCadastrar),
     validade: limparString(campos.validade),
     fluxo: campos.fluxo || undefined,
+    canalEncaminhamento: campos.canalEncaminhamento || undefined,
     observacoes: limparString(campos.observacoes),
   };
 
@@ -223,6 +259,324 @@ function lerMacae() {
       "Sorologia para HIV exige consentimento livre e esclarecido do paciente, assinado no pedido ou em termo de anuência.",
       "A data de nascimento é obrigatória na requisição de exames laboratoriais — é o que identifica o paciente sem ambiguidade e define os valores de referência por faixa etária.",
     ],
+    exames,
+  };
+}
+
+/* ------------------------------------------------------------------
+ * MACAE — exames por especialidade (SEMUSA), segunda fonte do municipio
+ * ------------------------------------------------------------------
+ * Macae e o segundo caso de "um municipio, duas fontes" (o primeiro foi
+ * Sete Lagoas). A UPA Barra (lerMacae(), acima) e a lista de agendamento
+ * por especialidade sao arquivos DIFERENTES, publicados por partes
+ * DIFERENTES da SEMUSA, e a lista laboratorial de bancada — uma
+ * TERCEIRA fonte — ainda nao foi fornecida: fica registrada em
+ * `_leia_me` para nao ser esquecida quando chegar.
+ *
+ * DUAS FONTES PARA ESTA LISTA, COM PAPEIS DIFERENTES (nao dois
+ * municipios "duas fontes" empilhados — sao duas fontes de UM bloco):
+ *   DOCX  "Exames realizados pelo SUS no municipio de Macae"
+ *         Lista plana, so nome, 61 itens. E a fonte da LISTA — o que
+ *         entra e o que nao entra vem daqui.
+ *   XLSX  "Fluxo SUS Macae", aba "Especialidades Medicas"
+ *         Tabela por especialidade: Exame | Fluxo e Direcionamento |
+ *         Documentos | Observacoes. ENRIQUECE os itens do DOCX com
+ *         especialidade/canal/documentos — nao redefine a lista.
+ * Onde as duas se sobrepoem (a maioria dos casos), o item leva o nome
+ * do DOCX e o enriquecimento do XLSX. Onde so uma tem — nome so no
+ * DOCX, ou exame so no XLSX (ex.: Cateterismo, Ressonancia com
+ * sedacao) — o item entra do jeito que a fonte que o tem descreve,
+ * exatamente a regra de "usar o que tiver" combinada para esta leva.
+ *
+ * NORMALIZACAO DE NOME: REGRA DIFERENTE DA TRANSCRICAO DE CODIGO
+ * Para exame de Betim/Sete Lagoas/Congonhas, erro do documento fica
+ * como esta (ex.: "ERITOGRAMA" de Betim). Para o NOME deste bloco a
+ * regra combinada foi outra: corrigir erro obvio de digitacao e
+ * padronizar acento/caixa/abreviacao, porque o objetivo aqui e o exame
+ * ser ENCONTRAVEL na busca — "GIADA" (erro do DOCX) e "ELTROCARDIOGRAMA"
+ * (idem) nao ajudam ninguem a achar nada. Nao ha meio-termo combinado
+ * para nomes: ou preserva erro (Betim) ou corrige (Macae) — cada
+ * municipio segue a regra que foi decidida para ele.
+ *
+ * SEM CODIGO. Nenhuma das duas fontes traz codigo de procedimento —
+ * `codigo` fica ausente em todo item deste bloco, e a deduplicacao (que
+ * aqui nao chega a ser necessaria, a lista do DOCX ja vem sem
+ * repeticao) seria por nome normalizado, nunca por codigo inventado.
+ *
+ * FORA DO ESCOPO, DE PROPOSITO
+ *   - Laboratoriais de bancada (hemograma, glicemia, TSH, sorologia):
+ *     nenhuma das duas fontes lista isso. Nao criar exame nenhum aqui
+ *     "adivinhando" que o municipio deve oferecer os basicos — vira a
+ *     segunda fonte de Macae quando a prefeitura mandar.
+ *   - Aba "Servicos e Programas" do XLSX (Casa da Crianca, CRA, Nucleo
+ *     de Saude Mental, Clinica do Autista, GAN): outro tipo de dado —
+ *     encaminhamento para servico/programa, nao pedido de exame. Mesma
+ *     categoria que a secao "Consultas Agendadas" ja excluida de Sete
+ *     Lagoas.
+ *   - Linhas do XLSX que sao pre-requisito ou categoria, nao exame
+ *     autonomo: "Exames laboratoriais (geral)", "Exame de sangue (HC +
+ *     coagulograma + ureia + creatinina + glicose)", e o "ECG"/"RX de
+ *     torax" listados sob Risco Cirurgico. Nenhum vira item da lista.
+ *   - Variantes de Angiorressonancia/Angiotomografia/Tomografia por
+ *     regiao especifica que so aparecem no XLSX sob nomes genericos
+ *     ("Angioressonancia", "Angiotomografia", sem regiao) ou com corte
+ *     diferente do DOCX (ex.: "Tomografia computadorizada de coluna
+ *     dorsal", "com contraste" como variante separada): a correspondencia
+ *     1:1 com um item especifico do DOCX (ex.: qual das 6 variantes de
+ *     Angiotomografia de topo do DOCX) nao e inequivoca — forcar um
+ *     pareamento aqui seria inventar. Ficam de fora desta leva; quem for
+ *     revisar pode decidir caso a caso, com a planilha aberta ao lado.
+ *
+ * CANAL POR ESPECIALIDADE PODE VARIAR PARA O MESMO EXAME
+ * "Ecodoppler de carotidas/vertebrais" aparece em 3 especialidades, e o
+ * XLSX so afirma o canal explicitamente para uma delas (SISREG, via
+ * Neurologia Adulto) — as outras nao repetem a informacao. Forcar um
+ * canal unico para o exame inteiro seria estender uma leitura
+ * (Cardiologia = Central Municipal) que o documento nao afirma para
+ * este item especificamente. Nestes casos `canalEncaminhamento` fica
+ * AUSENTE e a variacao vai para `observacoes`, em vez de adivinhar.
+ * ------------------------------------------------------------------ */
+function lerMacaeEspecialidades() {
+  if (!fs.existsSync(FONTES.macaeEspecialidadesDocx) || !fs.existsSync(FONTES.macaeEspecialidadesXlsx)) {
+    return null;
+  }
+
+  const exames = [
+    { nome: "Audiometria", especialidade: ["Neuro Pediatra", "Otorrinolaringologia"] },
+    {
+      nome: "Biópsia de próstata guiada por ultrassonografia (pelo cirurgião de urologia)",
+      especialidade: ["Urologia"],
+      orientacao: orientacao({
+        preRequisitos: ["Encaminhamento médico do cirurgião de urologia."],
+        restricoes: [
+          "Paciente com implante de duplo J: atendimento somente presencial, avaliado pelo serviço de urologia.",
+        ],
+        observacoes:
+          "Indicação de biópsia é encaminhada para atendimento presencial, não por regulação a distância.",
+      }),
+    },
+    { nome: "Cintilografia de miocárdio para avaliação da perfusão em situação de estresse (mínimo 3 projeções)" },
+    { nome: "Cintilografia de miocárdio para avaliação da perfusão em situação de repouso (mínimo 3 projeções)" },
+    { nome: "Colonoscopia" },
+    { nome: "Densitometria óssea duo-energética de coluna (vértebras lombares e/ou fêmur)" },
+    {
+      nome: "Doppler de MMII arterial e venoso",
+      especialidade: ["Angiologia"],
+      orientacao: orientacao({
+        restricoes: ["Solicitação/indicação exclusiva do especialista da área."],
+        observacoes: "Em caso de indicação de cirurgia vascular, encaminhar para atendimento presencial em Cirurgia Vascular.",
+      }),
+    },
+    {
+      nome: "Ecocardiograma bidimensional com ou sem Doppler",
+      especialidade: ["Cardiologia"],
+      orientacao: orientacao({
+        canalEncaminhamento: "CENTRAL_MUNICIPAL",
+        observacoes: "Pedido médico deve conter justificativa/motivo.",
+      }),
+    },
+    { nome: "Ecocardiograma bidimensional com ou sem Doppler pediátrico" },
+    {
+      /* O exemplo que motivou o campo `especialidade` como array: as 3
+       * especialidades vem confirmadas linha a linha na aba
+       * "Especialidades Medicas" do XLSX. */
+      nome: "Ecodoppler de carótidas/vertebrais",
+      especialidade: ["Cardiologia", "Neurologia Adulto", "Endocrinologia"],
+      orientacao: orientacao({
+        observacoes:
+          "Canal de encaminhamento varia por especialidade solicitante: via Neurologia Adulto, o pedido " +
+          "entra pelo SISREG; via Cardiologia, o paciente dá entrada na Central de Regulação do Município. " +
+          "A fonte não especifica o canal para o pedido via Endocrinologia.",
+      }),
+    },
+    { nome: "Eletrocardiograma infantil" },
+    { nome: "Eletrocardiograma adulto" },
+    { nome: "Endoscopia digestiva alta" },
+    { nome: "Espirometria" },
+    { nome: "Estudo urodinâmico", especialidade: ["Urologia"] },
+    { nome: "Angiorressonância magnética de tórax" },
+    { nome: "Angiorressonância cerebral – arterial" },
+    { nome: "Angiorressonância cerebral – venosa" },
+    { nome: "Angiorressonância cerebral" },
+    { nome: "Angiorressonância de aorta torácica – venosa" },
+    { nome: "Angiotomografia computadorizada de aorta torácica" },
+    { nome: "Angiotomografia de crânio" },
+    { nome: "Angiotomografia de crânio – venosa" },
+    { nome: "Angiotomografia de crânio – arterial" },
+    { nome: "Angiotomografia de tórax" },
+    { nome: "Angiotomografia de tórax – arterial" },
+    { nome: "Angiotomografia de aorta torácica" },
+    {
+      nome: "Eletroencefalograma sem sedação",
+      especialidade: ["Neurologia Adulto"],
+      orientacao: orientacao({ canalEncaminhamento: "SISREG" }),
+    },
+    {
+      /* A linha de "Neuro Pediatra" para EEG sem sedacao na planilha nao
+       * tem qualificador "infantil" — pareada aqui com a especialidade
+       * pediatrica, nao com o nome do exame, que e a mesma base logica
+       * usada no DOCX para separar Eletrocardiograma adulto/infantil. */
+      nome: "Eletroencefalograma sem sedação infantil",
+      especialidade: ["Neuro Pediatra"],
+      orientacao: orientacao({ observacoes: "Pedido médico deve conter justificativa/motivo." }),
+    },
+    {
+      nome: "Holter 24 horas",
+      especialidade: ["Cardiologia"],
+      orientacao: orientacao({ canalEncaminhamento: "CENTRAL_MUNICIPAL" }),
+    },
+    {
+      /* Pegadinha 1/5: exigencia embutida no proprio nome no documento
+       * de origem (DOCX) — nao veio do XLSX. */
+      nome: "Mamografia (deve conter a ficha do SISCAN preenchida pela unidade de saúde)",
+      orientacao: orientacao({
+        preRequisitos: ["Ficha do SISCAN preenchida pela unidade de saúde."],
+      }),
+    },
+    {
+      nome: "Monitoramento ambulatorial de pressão arterial – MAPA",
+      especialidade: ["Cardiologia"],
+      orientacao: orientacao({ canalEncaminhamento: "CENTRAL_MUNICIPAL" }),
+    },
+    { nome: "Ressonância magnética de bacia ou pelve" },
+    { nome: "Ressonância de coluna cervical/pescoço" },
+    {
+      nome: "Ressonância de coluna lombar",
+      especialidade: ["Neurologia Adulto"],
+      orientacao: orientacao({ canalEncaminhamento: "SISREG" }),
+    },
+    { nome: "Ressonância de mama" },
+    {
+      nome: "Ressonância magnética de mastoide ou ouvidos",
+      especialidade: ["Otorrinolaringologia"],
+    },
+    { nome: "Ressonância magnética de órbitas" },
+    { nome: "Ressonância de quadril direito ou esquerdo" },
+    { nome: "Ressonância de sacro-cóccix" },
+    { nome: "Ressonância magnética de sacro-ilíaca" },
+    { nome: "Teste da linguinha", especialidade: ["Otorrinolaringologia"] },
+    {
+      nome: "Teste de esforço ou teste ergométrico",
+      especialidade: ["Cardiologia"],
+      orientacao: orientacao({ canalEncaminhamento: "CENTRAL_MUNICIPAL" }),
+    },
+    {
+      nome: "Tomografia computadorizada coluna lombar",
+      especialidade: ["Neurologia Adulto"],
+      orientacao: orientacao({ canalEncaminhamento: "SISREG" }),
+    },
+    { nome: "Tomografia computadorizada de cóccix" },
+    { nome: "Tomografia computadorizada de órbita" },
+    { nome: "Tomografia computadorizada de tórax" },
+    {
+      nome: "Tomografia computadorizada lombo-sacra",
+      especialidade: ["Neurologia Adulto"],
+      orientacao: orientacao({ canalEncaminhamento: "SISREG" }),
+    },
+    {
+      nome: "Tratamento esclerosante não estético de varizes dos membros inferiores",
+      especialidade: ["Angiologia"],
+      orientacao: orientacao({
+        restricoes: ["Solicitação/indicação exclusiva do especialista da área."],
+      }),
+    },
+    {
+      nome: "Ultrassonografia de abdômen total",
+      especialidade: ["Endocrinologia"],
+      orientacao: orientacao({
+        observacoes: "Exame de uso geral — não exclusivo de uma especialidade específica.",
+      }),
+    },
+    { nome: "Ultrassonografia de abdômen inferior" },
+    {
+      nome: "Ultrassonografia de abdômen superior",
+      especialidade: ["Endocrinologia"],
+      orientacao: orientacao({
+        observacoes: "Exame de uso geral — não exclusivo de uma especialidade específica.",
+      }),
+    },
+    {
+      /* Pegadinha 2/5: faixa etaria + pre-requisito condicional embutidos
+       * no proprio nome do DOCX. */
+      nome: "Ultrassonografia de mama bilateral (pacientes acima de 45 anos devem ter mamografia com menos de 1 ano)",
+      orientacao: orientacao({
+        faixaEtaria: "Acima de 45 anos",
+        preRequisitos: ["Mamografia realizada há menos de 1 ano (exigido apenas para pacientes acima de 45 anos)."],
+      }),
+    },
+    { nome: "Ultrassonografia transvaginal" },
+    { nome: "Ultrassonografia de aparelho urinário" },
+    { nome: "USG de partes moles" },
+    { nome: "USG pélvica" },
+    { nome: "USG de próstata via abdominal", especialidade: ["Urologia"] },
+    { nome: "USG da tireoide", especialidade: ["Endocrinologia"] },
+    { nome: "USG da tireoide com Doppler", especialidade: ["Endocrinologia"] },
+    { nome: "Videonasolaringoscopia", especialidade: ["Otorrinolaringologia"] },
+
+    /* --- Itens que existem SO no XLSX, nao no DOCX ------------------
+     * "Usar o que tiver" tambem vale ao contrario: um exame real,
+     * descrito com clareza numa das fontes, nao fica de fora so porque
+     * a OUTRA fonte nao o lista. Nome aqui segue a grafia do XLSX
+     * (mesma regra de normalizacao — nao existe uma terceira lista
+     * "oficial" para conferir contra). */
+    {
+      /* Pegadinha 3/5. */
+      nome: "Ressonância magnética com sedação",
+      especialidade: ["Neurologia Adulto"],
+      orientacao: orientacao({
+        canalEncaminhamento: "REGULACAO_ESTADUAL",
+        observacoes:
+          "Encaminhado para o Rio de Janeiro via regulação estadual, mediante justificativa médica — " +
+          "dar entrada na Central de Regulação, na porta de vidro. É a única situação em que a Neurologia " +
+          "Adulto foge do fluxo geral (SISREG) desta especialidade; o município não realiza os demais " +
+          "exames com sedação.",
+      }),
+    },
+    {
+      /* Pegadinha 4/5. */
+      nome: "Cateterismo",
+      especialidade: ["Cardiologia"],
+      orientacao: orientacao({
+        canalEncaminhamento: "CENTRAL_MUNICIPAL",
+        documentos: [
+          "RG, CPF e comprovante de residência em nome do paciente (emitido há no máx. 30 dias)",
+          "Pedido médico",
+        ],
+        preRequisitos: [
+          "Exames de sangue atualizados (HC, ureia, creatinina, sódio, potássio, glicose)",
+          "Laudo de exame cardíaco (ecocardiografia bi-dimensional com/sem doppler ou Holter 24hs) com data de até 180 dias",
+        ],
+        observacoes: "Fluxo específico, diferente do fluxo geral de Cardiologia.",
+      }),
+    },
+    {
+      nome: "Tomografia computadorizada de mastoides ou ouvidos",
+      especialidade: ["Neurologia Adulto", "Otorrinolaringologia"],
+      orientacao: orientacao({ observacoes: "Pedido médico deve conter justificativa/motivo." }),
+    },
+    {
+      nome: "Tomografia computadorizada de face ou seios da face",
+      especialidade: ["Neurologia Adulto", "Otorrinolaringologia"],
+      orientacao: orientacao({ observacoes: "Pedido médico deve conter justificativa/motivo." }),
+    },
+    {
+      nome: "USG de bolsa escrotal",
+      especialidade: ["Urologia"],
+    },
+  ];
+
+  return {
+    _leia_me:
+      "Lista de nomes extraida de 'EXAMES REALIZADOS PELO SUS NO MUNICIPIO DE MACAÉ.docx' (fonte da lista); " +
+      "enriquecida com especialidade/canal/documentos a partir de 'Fluxo SUS Macae.xlsx', aba 'Especialidades " +
+      "Médicas' (fonte oficial: SEMUSA Macaé). Nomes tiveram grafia/acentuação corrigida em relação ao " +
+      "documento original — regra diferente da transcrição de código, aqui o objetivo é o exame ser " +
+      "encontrável na busca. A aba 'Serviços e Programas' do XLSX e a aba 'Índice' não entram — não são " +
+      "'exames'. Exames laboratoriais de bancada (hemograma, glicemia, TSH, sorologia...) NÃO estão nesta " +
+      "lista: nenhuma das duas fontes os lista, e serão a SEGUNDA fonte deste município quando fornecidos " +
+      "(mesmo padrão 'um município, duas fontes' já usado em Sete Lagoas).",
+    fonte: "Exames por especialidade (SEMUSA Macaé) — DOCX (lista) + XLSX (fluxo e direcionamento)",
+    atualizadoEm: "2026-09-09",
     exames,
   };
 }
@@ -1185,10 +1539,11 @@ function juntarFontesDoMesmoMunicipio(blocos) {
 
   /* Codigo repetido entre as duas fontes seria o mesmo tipo de erro que
    * a duplicata de Betim: duas linhas para o mesmo exame, uma delas
-   * supérflua. As fontes aqui cobrem categorias diferentes de exame
-   * (imagem/procedimento agendado x bancada laboratorial), entao nao
-   * era esperado cruzamento — mas medir e mais seguro que supor. */
+   * supérflua. Quando nenhuma das fontes tem codigo (caso de Macae), a
+   * mesma checagem e feita por NOME normalizado — e o que a regra de
+   * deduplicacao daquele municipio pede. */
   const codigosVistos = new Map();
+  const nomesVistos = new Map();
   const exames = [];
   let colisoes = 0;
   validos.forEach((b) => {
@@ -1197,11 +1552,22 @@ function juntarFontesDoMesmoMunicipio(blocos) {
         if (codigosVistos.has(e.codigo)) {
           colisoes++;
           console.warn(
-            "  ! codigo " + e.codigo + " repetido entre fontes de Sete Lagoas: \"" +
+            "  ! codigo " + e.codigo + " repetido entre fontes: \"" +
             codigosVistos.get(e.codigo) + "\" e \"" + e.nome + "\""
           );
         } else {
           codigosVistos.set(e.codigo, e.nome);
+        }
+      } else {
+        const chave = normalizarPraComparar(e.nome);
+        if (nomesVistos.has(chave)) {
+          colisoes++;
+          console.warn(
+            "  ! nome repetido entre fontes (sem codigo para desempatar): \"" +
+            nomesVistos.get(chave) + "\" e \"" + e.nome + "\""
+          );
+        } else {
+          nomesVistos.set(chave, e.nome);
         }
       }
       exames.push(e);
@@ -1209,7 +1575,7 @@ function juntarFontesDoMesmoMunicipio(blocos) {
   });
 
   if (colisoes) {
-    console.warn("  ! " + colisoes + " codigo(s) repetido(s) entre as fontes de Sete Lagoas — ver acima");
+    console.warn("  ! " + colisoes + " colisao(oes) entre as fontes deste municipio — ver acima");
   }
 
   const observacoes = validos.reduce((acc, b) => acc.concat(b.observacoes || []), []);
@@ -1232,7 +1598,7 @@ async function main() {
 
   const novos = {
     Betim: await lerBetim(),
-    "Macaé": lerMacae(),
+    "Macaé": juntarFontesDoMesmoMunicipio([lerMacae(), lerMacaeEspecialidades()]),
     Congonhas: lerCongonhas(),
     "Sete Lagoas": juntarFontesDoMesmoMunicipio([lerSeteLagoas(), lerSeteLagoasLaboratorio()]),
   };

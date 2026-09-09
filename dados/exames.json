@@ -7956,9 +7956,9 @@
       ]
     },
     "Macaé": {
-      "_leia_me": "Extraido de 'Exames realizados na UPA .pdf' (UPA Barra). O PDF nao traz codigo de procedimento.",
-      "fonte": "Exames realizados na unidade — UPA Barra",
-      "atualizadoEm": "2026-09-08",
+      "_leia_me": "Extraido de 'Exames realizados na UPA .pdf' (UPA Barra). O PDF nao traz codigo de procedimento. | Lista de nomes extraida de 'EXAMES REALIZADOS PELO SUS NO MUNICIPIO DE MACAÉ.docx' (fonte da lista); enriquecida com especialidade/canal/documentos a partir de 'Fluxo SUS Macae.xlsx', aba 'Especialidades Médicas' (fonte oficial: SEMUSA Macaé). Nomes tiveram grafia/acentuação corrigida em relação ao documento original — regra diferente da transcrição de código, aqui o objetivo é o exame ser encontrável na busca. A aba 'Serviços e Programas' do XLSX e a aba 'Índice' não entram — não são 'exames'. Exames laboratoriais de bancada (hemograma, glicemia, TSH, sorologia...) NÃO estão nesta lista: nenhuma das duas fontes os lista, e serão a SEGUNDA fonte deste município quando fornecidos (mesmo padrão 'um município, duas fontes' já usado em Sete Lagoas).",
+      "fonte": "Exames realizados na unidade — UPA Barra + Exames por especialidade (SEMUSA Macaé) — DOCX (lista) + XLSX (fluxo e direcionamento)",
+      "atualizadoEm": "2026-09-09",
       "observacoes": [
         "Sorologia para HIV exige consentimento livre e esclarecido do paciente, assinado no pedido ou em termo de anuência.",
         "A data de nascimento é obrigatória na requisição de exames laboratoriais — é o que identifica o paciente sem ambiguidade e define os valores de referência por faixa etária."
@@ -8075,6 +8075,383 @@
         {
           "nome": "INFLUENZA",
           "local": "UPA Barra"
+        },
+        {
+          "nome": "Audiometria",
+          "especialidade": [
+            "Neuro Pediatra",
+            "Otorrinolaringologia"
+          ]
+        },
+        {
+          "nome": "Biópsia de próstata guiada por ultrassonografia (pelo cirurgião de urologia)",
+          "especialidade": [
+            "Urologia"
+          ],
+          "orientacao": {
+            "preRequisitos": [
+              "Encaminhamento médico do cirurgião de urologia."
+            ],
+            "restricoes": [
+              "Paciente com implante de duplo J: atendimento somente presencial, avaliado pelo serviço de urologia."
+            ],
+            "observacoes": "Indicação de biópsia é encaminhada para atendimento presencial, não por regulação a distância."
+          }
+        },
+        {
+          "nome": "Cintilografia de miocárdio para avaliação da perfusão em situação de estresse (mínimo 3 projeções)"
+        },
+        {
+          "nome": "Cintilografia de miocárdio para avaliação da perfusão em situação de repouso (mínimo 3 projeções)"
+        },
+        {
+          "nome": "Colonoscopia"
+        },
+        {
+          "nome": "Densitometria óssea duo-energética de coluna (vértebras lombares e/ou fêmur)"
+        },
+        {
+          "nome": "Doppler de MMII arterial e venoso",
+          "especialidade": [
+            "Angiologia"
+          ],
+          "orientacao": {
+            "restricoes": [
+              "Solicitação/indicação exclusiva do especialista da área."
+            ],
+            "observacoes": "Em caso de indicação de cirurgia vascular, encaminhar para atendimento presencial em Cirurgia Vascular."
+          }
+        },
+        {
+          "nome": "Ecocardiograma bidimensional com ou sem Doppler",
+          "especialidade": [
+            "Cardiologia"
+          ],
+          "orientacao": {
+            "canalEncaminhamento": "CENTRAL_MUNICIPAL",
+            "observacoes": "Pedido médico deve conter justificativa/motivo."
+          }
+        },
+        {
+          "nome": "Ecocardiograma bidimensional com ou sem Doppler pediátrico"
+        },
+        {
+          "nome": "Ecodoppler de carótidas/vertebrais",
+          "especialidade": [
+            "Cardiologia",
+            "Neurologia Adulto",
+            "Endocrinologia"
+          ],
+          "orientacao": {
+            "observacoes": "Canal de encaminhamento varia por especialidade solicitante: via Neurologia Adulto, o pedido entra pelo SISREG; via Cardiologia, o paciente dá entrada na Central de Regulação do Município. A fonte não especifica o canal para o pedido via Endocrinologia."
+          }
+        },
+        {
+          "nome": "Eletrocardiograma infantil"
+        },
+        {
+          "nome": "Eletrocardiograma adulto"
+        },
+        {
+          "nome": "Endoscopia digestiva alta"
+        },
+        {
+          "nome": "Espirometria"
+        },
+        {
+          "nome": "Estudo urodinâmico",
+          "especialidade": [
+            "Urologia"
+          ]
+        },
+        {
+          "nome": "Angiorressonância magnética de tórax"
+        },
+        {
+          "nome": "Angiorressonância cerebral – arterial"
+        },
+        {
+          "nome": "Angiorressonância cerebral – venosa"
+        },
+        {
+          "nome": "Angiorressonância cerebral"
+        },
+        {
+          "nome": "Angiorressonância de aorta torácica – venosa"
+        },
+        {
+          "nome": "Angiotomografia computadorizada de aorta torácica"
+        },
+        {
+          "nome": "Angiotomografia de crânio"
+        },
+        {
+          "nome": "Angiotomografia de crânio – venosa"
+        },
+        {
+          "nome": "Angiotomografia de crânio – arterial"
+        },
+        {
+          "nome": "Angiotomografia de tórax"
+        },
+        {
+          "nome": "Angiotomografia de tórax – arterial"
+        },
+        {
+          "nome": "Angiotomografia de aorta torácica"
+        },
+        {
+          "nome": "Eletroencefalograma sem sedação",
+          "especialidade": [
+            "Neurologia Adulto"
+          ],
+          "orientacao": {
+            "canalEncaminhamento": "SISREG"
+          }
+        },
+        {
+          "nome": "Eletroencefalograma sem sedação infantil",
+          "especialidade": [
+            "Neuro Pediatra"
+          ],
+          "orientacao": {
+            "observacoes": "Pedido médico deve conter justificativa/motivo."
+          }
+        },
+        {
+          "nome": "Holter 24 horas",
+          "especialidade": [
+            "Cardiologia"
+          ],
+          "orientacao": {
+            "canalEncaminhamento": "CENTRAL_MUNICIPAL"
+          }
+        },
+        {
+          "nome": "Mamografia (deve conter a ficha do SISCAN preenchida pela unidade de saúde)",
+          "orientacao": {
+            "preRequisitos": [
+              "Ficha do SISCAN preenchida pela unidade de saúde."
+            ]
+          }
+        },
+        {
+          "nome": "Monitoramento ambulatorial de pressão arterial – MAPA",
+          "especialidade": [
+            "Cardiologia"
+          ],
+          "orientacao": {
+            "canalEncaminhamento": "CENTRAL_MUNICIPAL"
+          }
+        },
+        {
+          "nome": "Ressonância magnética de bacia ou pelve"
+        },
+        {
+          "nome": "Ressonância de coluna cervical/pescoço"
+        },
+        {
+          "nome": "Ressonância de coluna lombar",
+          "especialidade": [
+            "Neurologia Adulto"
+          ],
+          "orientacao": {
+            "canalEncaminhamento": "SISREG"
+          }
+        },
+        {
+          "nome": "Ressonância de mama"
+        },
+        {
+          "nome": "Ressonância magnética de mastoide ou ouvidos",
+          "especialidade": [
+            "Otorrinolaringologia"
+          ]
+        },
+        {
+          "nome": "Ressonância magnética de órbitas"
+        },
+        {
+          "nome": "Ressonância de quadril direito ou esquerdo"
+        },
+        {
+          "nome": "Ressonância de sacro-cóccix"
+        },
+        {
+          "nome": "Ressonância magnética de sacro-ilíaca"
+        },
+        {
+          "nome": "Teste da linguinha",
+          "especialidade": [
+            "Otorrinolaringologia"
+          ]
+        },
+        {
+          "nome": "Teste de esforço ou teste ergométrico",
+          "especialidade": [
+            "Cardiologia"
+          ],
+          "orientacao": {
+            "canalEncaminhamento": "CENTRAL_MUNICIPAL"
+          }
+        },
+        {
+          "nome": "Tomografia computadorizada coluna lombar",
+          "especialidade": [
+            "Neurologia Adulto"
+          ],
+          "orientacao": {
+            "canalEncaminhamento": "SISREG"
+          }
+        },
+        {
+          "nome": "Tomografia computadorizada de cóccix"
+        },
+        {
+          "nome": "Tomografia computadorizada de órbita"
+        },
+        {
+          "nome": "Tomografia computadorizada de tórax"
+        },
+        {
+          "nome": "Tomografia computadorizada lombo-sacra",
+          "especialidade": [
+            "Neurologia Adulto"
+          ],
+          "orientacao": {
+            "canalEncaminhamento": "SISREG"
+          }
+        },
+        {
+          "nome": "Tratamento esclerosante não estético de varizes dos membros inferiores",
+          "especialidade": [
+            "Angiologia"
+          ],
+          "orientacao": {
+            "restricoes": [
+              "Solicitação/indicação exclusiva do especialista da área."
+            ]
+          }
+        },
+        {
+          "nome": "Ultrassonografia de abdômen total",
+          "especialidade": [
+            "Endocrinologia"
+          ],
+          "orientacao": {
+            "observacoes": "Exame de uso geral — não exclusivo de uma especialidade específica."
+          }
+        },
+        {
+          "nome": "Ultrassonografia de abdômen inferior"
+        },
+        {
+          "nome": "Ultrassonografia de abdômen superior",
+          "especialidade": [
+            "Endocrinologia"
+          ],
+          "orientacao": {
+            "observacoes": "Exame de uso geral — não exclusivo de uma especialidade específica."
+          }
+        },
+        {
+          "nome": "Ultrassonografia de mama bilateral (pacientes acima de 45 anos devem ter mamografia com menos de 1 ano)",
+          "orientacao": {
+            "faixaEtaria": "Acima de 45 anos",
+            "preRequisitos": [
+              "Mamografia realizada há menos de 1 ano (exigido apenas para pacientes acima de 45 anos)."
+            ]
+          }
+        },
+        {
+          "nome": "Ultrassonografia transvaginal"
+        },
+        {
+          "nome": "Ultrassonografia de aparelho urinário"
+        },
+        {
+          "nome": "USG de partes moles"
+        },
+        {
+          "nome": "USG pélvica"
+        },
+        {
+          "nome": "USG de próstata via abdominal",
+          "especialidade": [
+            "Urologia"
+          ]
+        },
+        {
+          "nome": "USG da tireoide",
+          "especialidade": [
+            "Endocrinologia"
+          ]
+        },
+        {
+          "nome": "USG da tireoide com Doppler",
+          "especialidade": [
+            "Endocrinologia"
+          ]
+        },
+        {
+          "nome": "Videonasolaringoscopia",
+          "especialidade": [
+            "Otorrinolaringologia"
+          ]
+        },
+        {
+          "nome": "Ressonância magnética com sedação",
+          "especialidade": [
+            "Neurologia Adulto"
+          ],
+          "orientacao": {
+            "canalEncaminhamento": "REGULACAO_ESTADUAL",
+            "observacoes": "Encaminhado para o Rio de Janeiro via regulação estadual, mediante justificativa médica — dar entrada na Central de Regulação, na porta de vidro. É a única situação em que a Neurologia Adulto foge do fluxo geral (SISREG) desta especialidade; o município não realiza os demais exames com sedação."
+          }
+        },
+        {
+          "nome": "Cateterismo",
+          "especialidade": [
+            "Cardiologia"
+          ],
+          "orientacao": {
+            "documentos": [
+              "RG, CPF e comprovante de residência em nome do paciente (emitido há no máx. 30 dias)",
+              "Pedido médico"
+            ],
+            "preRequisitos": [
+              "Exames de sangue atualizados (HC, ureia, creatinina, sódio, potássio, glicose)",
+              "Laudo de exame cardíaco (ecocardiografia bi-dimensional com/sem doppler ou Holter 24hs) com data de até 180 dias"
+            ],
+            "canalEncaminhamento": "CENTRAL_MUNICIPAL",
+            "observacoes": "Fluxo específico, diferente do fluxo geral de Cardiologia."
+          }
+        },
+        {
+          "nome": "Tomografia computadorizada de mastoides ou ouvidos",
+          "especialidade": [
+            "Neurologia Adulto",
+            "Otorrinolaringologia"
+          ],
+          "orientacao": {
+            "observacoes": "Pedido médico deve conter justificativa/motivo."
+          }
+        },
+        {
+          "nome": "Tomografia computadorizada de face ou seios da face",
+          "especialidade": [
+            "Neurologia Adulto",
+            "Otorrinolaringologia"
+          ],
+          "orientacao": {
+            "observacoes": "Pedido médico deve conter justificativa/motivo."
+          }
+        },
+        {
+          "nome": "USG de bolsa escrotal",
+          "especialidade": [
+            "Urologia"
+          ]
         }
       ]
     },
