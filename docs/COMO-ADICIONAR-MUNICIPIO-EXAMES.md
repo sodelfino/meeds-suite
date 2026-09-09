@@ -69,12 +69,12 @@ Cada município é um bloco em `dados/exames.json`:
 **opcionais**, e isso não é descuido — é o que permite representar fontes
 desiguais sem inventar dado:
 
-| Município | Traz código | Traz local | Traz sigla | Traz nota/orientação por exame |
-|---|---|---|---|---|
-| Betim | sim (contrato) | não | não | não |
-| Macaé | não (o PDF não tem) | sim | não | não |
-| Congonhas | sim (SIGTAP) | não | APAC | não |
-| Sete Lagoas | 456 de 521 (só na fonte laboratorial) | 64 de 521 (só na fonte de orientações) | APAC / LAUDO / Alto Custo | 34 com `nota`, 2 já com `orientacao` |
+| Município | Traz código | Traz local | Traz sigla | Traz nota/orientação por exame | Traz `especialidade` |
+|---|---|---|---|---|---|
+| Betim | sim (contrato) | não | não | não | não |
+| Macaé | não (nenhuma das 2 fontes tem) | 28 de 94 (só na fonte UPA Barra) | não | 21 de 94 com `orientacao` (fonte SEMUSA) | 28 de 94 (fonte SEMUSA) |
+| Congonhas | sim (SIGTAP) | não | APAC | não | não |
+| Sete Lagoas | 456 de 521 (só na fonte laboratorial) | 64 de 521 (só na fonte de orientações) | APAC / LAUDO / Alto Custo | 34 com `nota`, 2 já com `orientacao` | não |
 
 **Campo vazio significa "o município não publicou", nunca "faltou preencher".**
 Completar por dedução colocaria no sistema informação que a prefeitura não deu —
@@ -105,9 +105,10 @@ formulário a preencher é outro.
 ### `observacoes` (por município) x `nota` (por exame)
 
 `observacoes` aparece em destaque no topo do painel, antes da lista, e vale para
-**todos** os exames daquele município — em Macaé são duas, tiradas do PDF:
-consentimento assinado para sorologia de HIV, e data de nascimento obrigatória na
-requisição.
+**todos** os exames daquele município. Hoje nenhum município usa: as duas
+regras que Macaé (UPA Barra) e Sete Lagoas (Central) tinham aqui foram removidas
+a pedido — o campo continua existindo e a tela continua sabendo desenhá-lo, para
+o próximo município que precisar dele.
 
 `nota` é a mesma ideia, mas por **exame**: "a partir de 13 anos", "anexar
 resultado de biópsia", "cadastrar o paciente uma vez por membro" mudam o que o
@@ -172,6 +173,81 @@ tela:
 | `FICA_NA_UNIDADE` | O pedido é cadastrado e resolvido ali mesmo, sem passar pela Central. |
 | `VAI_PARA_CENTRAL` | O pedido segue para a Central de Marcação. |
 | `OUTRO` | Nenhum dos dois — não force um encaixe que a fonte não pede. |
+
+### `especialidade` e `canalEncaminhamento`: o que Macaé acrescentou
+
+Sete Lagoas organiza tudo numa lista só. Macaé organiza por **especialidade**
+(Cardiologia, Urologia, Neurologia Adulto...) e pensa o encaminhamento como
+**canal de entrada**, não como "onde o papel fica" — dois conceitos que Sete
+Lagoas não tinha e que os campos abaixo cobrem, sem quebrar nada do que já
+existia.
+
+**`especialidade`** é `array`, não `string`, e não é capricho: no levantamento
+real de Macaé, exame como "Ecodoppler de Carótidas/Vertebrais" aparece em
+**três** especialidades ao mesmo tempo (Cardiologia, Neurologia Adulto,
+Endocrinologia). Uma `string` única forçaria escolher uma "principal" que a fonte
+não elege — e é exatamente o tipo de invenção que a regra de ouro proíbe. Fica
+**fora** de `orientacao`, ao lado de `nome`/`local`/`codigo`: é categoria do
+exame, não aviso de conduta, e por isso a tela também desenha diferente — um
+selo por especialidade, junto de código/local, nunca dentro do bloco "⚠️ Atenção
+ao encaminhar".
+
+```json
+{
+  "nome": "Ecodoppler de Carótidas/Vertebrais",
+  "especialidade": ["Cardiologia", "Neurologia Adulto", "Endocrinologia"]
+}
+```
+
+**`canalEncaminhamento`** mora dentro de `orientacao`, ao lado de `fluxo` — e
+**não é o mesmo campo com outro nome**. A diferença é a pergunta que cada um
+responde:
+
+| Campo | Pergunta | Nasceu de |
+|---|---|---|
+| `fluxo` | Depois de emitido, o papel **fica onde**? | Sete Lagoas — "fica na unidade" x "vai para a Central" |
+| `canalEncaminhamento` | Por **qual porta** o pedido **entra** na regulação? | Macaé — SISREG, Central Municipal, regulação estadual, direto ao serviço |
+
+Um exame pode ter os dois, um só, ou nenhum — são eixos independentes, e
+misturar os vocabulários seria forçar Macaé no molde de Sete Lagoas (ou
+vice-versa), o que a regra de ouro também proíbe: cada município se organiza do
+seu jeito, e o schema tem que caber nos dois sem "endurecer" para nenhum.
+
+| Valor | Quando usar |
+|---|---|
+| `SISREG` | Pedido inserido no Sistema de Regulação de Vagas do Município. |
+| `CENTRAL_MUNICIPAL` | Paciente dá entrada na Central de Regulação do Município. |
+| `REGULACAO_ESTADUAL` | Encaminhado para regulação de outro estado (em Macaé, o Rio de Janeiro). |
+| `DIRETO_AO_SERVICO` | Vai direto ao prestador, sem passar por regulação. |
+| `OUTRO` | Nenhum dos anteriores — mesma regra de `fluxo`: não force um encaixe. |
+
+Igual a `fluxo`, um valor fora dessa lista **falha o build**. E, igual a
+`fluxo`, o ícone da tela muda por **valor**, não é um ícone fixo com texto do
+lado.
+
+**Quando o canal varia por especialidade, para o mesmo exame, não escolha um.**
+"Ecodoppler de Carótidas" entra pelo SISREG quando pedido via Neurologia Adulto,
+mas pela Central Municipal quando pedido via Cardiologia — a fonte não afirma um
+canal único para o exame. Nesse caso `canalEncaminhamento` fica **ausente**, e a
+variação vai para `observacoes` como texto — a mesma disciplina de "só campo
+tipado quando o documento afirma sem ambiguidade", aplicada a um caso novo.
+
+**Nomes normalizados: a única exceção deliberada a "erro se transcreve como
+está".** A regra de sempre (mais abaixo) é preservar erro de digitação da fonte.
+Para Macaé foi combinada uma regra **diferente**, só para o campo `nome`: corrigir
+erro óbvio de grafia e padronizar acento/caixa. O documento original trazia
+"ELTROCARDIOGRAMA", "GIADA", "PARATES", "ABDMINAL" — nada disso ajuda alguém a
+achar o exame na busca, que é o único motivo de o nome existir. **`codigo`
+continua com a regra antiga, sem exceção**: nenhuma das fontes de Macaé traz
+código de procedimento, e o campo fica simplesmente ausente — nunca inventado
+para "completar" o exame. Corrigir grafia de nome é tornar encontrável o que já
+existe; inventar código seria criar dado que a fonte não deu. São operações
+diferentes, e só a primeira é permitida.
+
+Ver `lerMacaeEspecialidades()` em `scripts/montar-exames.js` para o exemplo
+completo — inclusive os casos em que a especialidade some de propósito (linha
+sem correspondência inequívoca entre as duas fontes de Macaé) em vez de ser
+adivinhada.
 
 ### Como preencher: o construtor `orientacao(...)`
 
@@ -304,6 +380,12 @@ Um segundo município com o mesmo padrão usa a mesma função:
 "Nome do Município": juntarFontesDoMesmoMunicipio([lerFonteA(), lerFonteB()]),
 ```
 
+**Macaé é o segundo caso**, e testou uma variação: nenhuma das duas fontes
+(UPA Barra e a lista por especialidade da SEMUSA) traz `codigo`, então não havia
+como desempatar colisão por código. `juntarFontesDoMesmoMunicipio()` passou a
+checar colisão por **nome normalizado** também, não só por código — usada
+automaticamente quando o exame não tem código nenhum.
+
 ---
 
 ## Duas armadilhas que já custaram caro
@@ -336,9 +418,22 @@ inventar o que a prefeitura quis dizer, a mesma disciplina do
 
 - **Betim não tem local.** O contrato não diz onde cada exame é feito. Quando a
   prefeitura mandar essa informação, é acrescentar `local` em cada item.
-- **Macaé e Congonhas não têm `nota` nem `orientacao`.** Os dois campos existem e
-  a tela sabe pintá-los (só Sete Lagoas usa, por enquanto); se um exame de outro
+- **Congonhas não tem `nota` nem `orientacao`.** Os dois campos existem e a tela
+  sabe pintá-los (Sete Lagoas e Macaé usam, por enquanto); se um exame de outro
   município precisar de um aviso específico, é só acrescentar.
+- **`especialidade` e `canalEncaminhamento` só existem em Macaé, por enquanto.**
+  Nada nos dois campos é "específico de Macaé" — qualquer município organizado
+  por especialidade ou com canal de entrada explícito pode usar os dois valores
+  na mesma escala.
+- **A lista de laboratoriais de bancada de Macaé ainda não chegou.** Hemograma,
+  glicemia, TSH, sorologia... nenhuma das duas fontes atuais lista isso — vai
+  ser a **terceira** fonte do município (a segunda foi a lista por
+  especialidade, somada à UPA Barra que já existia), no mesmo padrão "um
+  município, duas fontes" abaixo, quando a prefeitura mandar.
+- **A aba "Serviços e Programas" do XLSX de Macaé ficou de fora.** Casa da
+  Criança, CRA, Núcleo de Saúde Mental — é encaminhamento para serviço/programa,
+  não pedido de exame, mesma categoria da seção "Consultas" já excluída de Sete
+  Lagoas, abaixo.
 - **34 dos 65 exames de "orientações" de Sete Lagoas ainda estão em `nota`, não
   em `orientacao`.** Só os dois exemplos deste guia foram reclassificados. A
   migração é releitura item a item, com a mesma dupla conferência de sempre —
