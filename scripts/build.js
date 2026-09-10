@@ -333,14 +333,18 @@ function main() {
       /* A documentacao do Userscripts e explicita: o @updateURL deve
        * terminar em .meta.js, e o @downloadURL em .user.js. Apontar os
        * dois para o mesmo arquivo faz o app baixar 1 MB so para conferir
-       * a versao — e, pior, a checagem pode nem funcionar. */
+       * a versao — e, pior, a checagem pode nem funcionar.
+       *
+       * As URLs apontam para o asset da GitHub Release (releases/latest/
+       * download/<basename>), nao para um branch — ver docs/RELEASE.md e
+       * a decisao D59. So o basename entra: o asset da release e plano. */
       .replace(
         /\/\/ @updateURL\s+.*\n/,
-        `// @updateURL    ${manifest.baseRaw}/${VARIANTE_SAFARI.replace(".user.js", ".meta.js")}\n`
+        `// @updateURL    ${manifest.baseReleases}/${path.basename(VARIANTE_SAFARI).replace(".user.js", ".meta.js")}\n`
       )
       .replace(
         /\/\/ @downloadURL\s+.*\n/,
-        `// @downloadURL  ${manifest.baseRaw}/${VARIANTE_SAFARI}\n`
+        `// @downloadURL  ${manifest.baseReleases}/${path.basename(VARIANTE_SAFARI)}\n`
       );
 
     return meta + resto;

@@ -13,6 +13,6 @@
 // @grant        none
 // @inject-into auto
 // @run-at       document-start
-// @updateURL    https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.safari.meta.js
-// @downloadURL  https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.safari.user.js
+// @updateURL    https://github.com/sodelfino/meeds-suite/releases/latest/download/meeds-suite.safari.meta.js
+// @downloadURL  https://github.com/sodelfino/meeds-suite/releases/latest/download/meeds-suite.safari.user.js
 // ==/UserScript==

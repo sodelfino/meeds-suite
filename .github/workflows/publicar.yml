@@ -1,0 +1,73 @@
+name: publicar release
+
+# Dispara quando uma tag vX.Y.Z e empurrada. Reconstroi o pacote do zero
+# num runner limpo, confere que a suite passa e que a tag bate com o
+# manifest, e anexa os quatro artefatos a Release correspondente.
+#
+# E dessa Release que o @updateURL / @downloadURL dos medicos puxa
+# (releases/latest/download/...). Um push no main, sozinho, nao gera
+# release e nao chega ao navegador de ninguem. Ver docs/RELEASE.md.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Suite de verificacao
+        run: npm run verificar
+
+      - name: A tag bate com manifest.versao?
+        run: |
+          v=$(node -p "require('./manifest.json').versao")
+          if [ "$GITHUB_REF_NAME" != "v$v" ]; then
+            echo "::error::A tag e $GITHUB_REF_NAME mas o manifest esta em v$v. Suba a versao no manifest.json antes de tagear."
+            exit 1
+          fi
+
+      - name: Build limpo
+        run: node scripts/build.js
+
+      - name: dist/ do commit bate com o build?
+        run: |
+          if ! git diff --quiet -- dist/; then
+            echo "::error::O dist/ tagueado nao bate com o build. Rode 'npm run build' e refaca a tag."
+            git --no-pager diff --stat -- dist/
+            exit 1
+          fi
+
+      - name: Notas da release (do changelog.json)
+        run: |
+          node -e '
+            const c = require("./dados/changelog.json").versoes[0];
+            const secao = (t, xs) => (xs && xs.length) ? `\n### ${t}\n` + xs.map(x => `- ${x}`).join("\n") + "\n" : "";
+            process.stdout.write(
+              secao("Novidades", c.novidades) +
+              secao("Melhorias", c.melhorias) +
+              secao("Correcoes", c.correcoes)
+            );
+          ' > NOTAS.md
+          cat NOTAS.md
+
+      - name: Publica / atualiza a Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          artefatos="dist/meeds-suite.user.js dist/meeds-suite.meta.js dist/meeds-suite.safari.user.js dist/meeds-suite.safari.meta.js"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" $artefatos --clobber
+            gh release edit "$GITHUB_REF_NAME" --notes-file NOTAS.md
+          else
+            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file NOTAS.md $artefatos
+          fi

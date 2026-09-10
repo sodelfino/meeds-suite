@@ -16,8 +16,8 @@
 // @grant        unsafeWindow
 // @connect      raw.githubusercontent.com
 // @run-at       document-start
-// @updateURL    https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.meta.js
-// @downloadURL  https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.user.js
+// @updateURL    https://github.com/sodelfino/meeds-suite/releases/latest/download/meeds-suite.meta.js
+// @downloadURL  https://github.com/sodelfino/meeds-suite/releases/latest/download/meeds-suite.user.js
 // ==/UserScript==
 
 /* ------------------------------------------------------------------

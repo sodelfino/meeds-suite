@@ -18,7 +18,7 @@ tela do Meeds, e você liga ou desliga cada uma pelo botão ⚙️.
    Se ainda não tiver: <https://www.tampermonkey.net>
 2. Abra este link:
 
-   <https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.user.js>
+   <https://github.com/sodelfino/meeds-suite/releases/latest/download/meeds-suite.user.js>
 
 3. O Tampermonkey abre a tela de instalação. Clique em **Instalar**.
 4. Abra o Meeds e faça login normalmente.

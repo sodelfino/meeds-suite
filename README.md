@@ -43,13 +43,13 @@ clicável na linha "Sempre ativas").
 
 **No computador** (Windows, Mac, Linux) ou no Android, com o **Tampermonkey**:
 
-<https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.user.js>
+<https://github.com/sodelfino/meeds-suite/releases/latest/download/meeds-suite.user.js>
 
 Passo a passo: **[docs/GUIA-INSTALACAO.md](docs/GUIA-INSTALACAO.md)**
 
 **No iPad ou iPhone**, com o app gratuito **Userscripts** no Safari:
 
-<https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.safari.user.js>
+<https://github.com/sodelfino/meeds-suite/releases/latest/download/meeds-suite.safari.user.js>
 
 > No iPad, **ligar a extensão em Ajustes → Safari → Extensões é um passo
 > separado** de instalar o app — é onde quase todo mundo trava. Se o link
@@ -129,6 +129,9 @@ documentação.
 **Antes de publicar uma versão:** suba `versao` no `manifest.json` (é o único
 lugar — o build propaga para o userscript, o núcleo e o `package.json`) e
 descreva o que mudou em `dados/changelog.json`. O build avisa se você esquecer.
+O código chega ao médico por **GitHub Release** (uma tag `vX.Y.Z` dispara o
+workflow que anexa os artefatos) — não por push no `main`. Passo a passo:
+**[docs/RELEASE.md](docs/RELEASE.md)**.
 
 ```
 bootloader.user.js     o único arquivo que o médico instala
@@ -151,6 +154,7 @@ docs/                  arquitetura, instalação, manual do admin, testes
 | [MANUAL-ADMIN.md](docs/MANUAL-ADMIN.md) | "quero fazer X → abro o arquivo Y" |
 | [GUIA-INSTALACAO.md](docs/GUIA-INSTALACAO.md) · [GUIA-IPAD.md](docs/GUIA-IPAD.md) | para o médico |
 | [TESTES.md](docs/TESTES.md) | roteiro de QA e resultados |
+| [RELEASE.md](docs/RELEASE.md) | como publicar uma versão; proteções da conta |
 | [DIAGNOSTICO-SALA-ESPERA.md](docs/DIAGNOSTICO-SALA-ESPERA.md) · [DIAGNOSTICO-CID.md](docs/DIAGNOSTICO-CID.md) | investigação de defeitos: causa raiz, evidência e o que foi corrigido |
 | [VIABILIDADE-PREVIEW.md](docs/VIABILIDADE-PREVIEW.md) | por que a prévia do PDF foi feita assim |
 

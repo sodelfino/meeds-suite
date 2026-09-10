@@ -1310,6 +1310,34 @@ Efeitos colaterais da remoção, todos desejados:
   `https://api.cdnjs.com/libraries/<lib>/<versão>?fields=sri` e substitua no
   `bootloader.user.js`. Hash errado = PDF não gera.
 
+**D59 — Distribuição do código por GitHub Release, não por branch.**
+Até a v2.38.0, `@updateURL` e `@downloadURL` apontavam para
+`raw.githubusercontent.com/sodelfino/meeds-suite/**main**/dist/…`. Todo push no
+`main` — inclusive um commit errado ou vindo de uma conta comprometida —
+chegava ao navegador de todos os médicos em ~24 h, executando na sessão
+autenticada do Meeds. Não havia CI, nem branch protection, nem etapa de
+revisão entre "commitei" e "todo mundo roda".
+
+Agora o `.user.js` é distribuído por **GitHub Release**: as duas URLs apontam
+para `releases/latest/download/<arquivo>`. Um push no `main` não gera release
+e não chega a ninguém — só uma tag `vX.Y.Z`, que dispara o workflow
+`publicar release` (`.github/workflows/publicar.yml`), que reconstrói num
+runner limpo, confere `npm run verificar`, confere tag × `manifest.versao`,
+e anexa os quatro artefatos à Release. O passo a passo e a transição estão em
+[RELEASE.md](RELEASE.md).
+
+Complementos:
+- `.github/workflows/verificar.yml` roda a suíte em todo push e todo PR, e
+  reprova se o `dist/` estiver dessincronizado da fonte. Com branch protection
+  exigindo esse check, código que reprova não entra no `main` — e portanto não
+  vira release.
+- Os **dados** (`seletores.json`, `cid10.json`, `remumes.json`, `exames.json`)
+  continuam vindo do `main`, de propósito: é o canal de correção a quente
+  (ver D1). O que os protege é branch protection + 2FA na conta, mais a
+  validação de formato + fallback embutido que o núcleo já faz.
+- `manifest.json`: `baseRaw` virou `baseReleases`; o `build.js` monta as URLs
+  da variante Safari a partir dele.
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público
