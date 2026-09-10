@@ -90,10 +90,14 @@ Do mais baixo para o mais alto, no canto inferior direito:
 |---|---|
 | ⚙️ | Painel: liga e desliga cada função |
 | 🔔 / 🔕 | **Alarme de fila.** Clique para ligar/desligar. Clique com o **botão direito** (ou Shift+clique) para configurar som, volume e quando alertar |
-| 📋 APAC - Itaúna | Gera a APAC de Itaúna e encaminha para assinatura gov.br |
-| 📄 Laudo - Sete Lagoas | Preenche o LME oficial de Sete Lagoas |
-| 📄 Laudo - CMD | Preenche o laudo de alto custo de Conceição do Mato Dentro |
-| 💊 | Consulta a REMUME do município do atendimento |
+| 📋 APAC | Gera a APAC preenchida e encaminha para assinatura gov.br (Itaúna, Betim, Sete Lagoas) |
+| 📄 Laudo — Sete Lagoas | Preenche o Laudo Médico de Alto Custo oficial de Sete Lagoas |
+| 📄 Laudo — Conceição | Preenche o Laudo Médico de Alto Custo oficial de Conceição do Mato Dentro |
+| 💊 REMUME | Consulta a REMUME do município do atendimento |
+| 🧪 Exames | Mostra os exames que o município oferece, com código e local |
+
+Os rótulos e ícones dos botões vêm do bloco `apresentacao` de cada ficha no
+`manifest.json` — o módulo não os declara (decisão D34).
 
 Nada disso aparece na tela de login — só depois que você entra.
 

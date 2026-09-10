@@ -320,10 +320,13 @@ O alarme comparava timestamps na mão para saber se a leitura do DOM ainda era
 confiável. Isso virou a validade de voto do `decision-engine`. Comportamento
 observável idêntico (12 s), mas agora é um mecanismo genérico e testável.
 
-**D4 — Botões de laudo mantidos como pílula com rótulo.**
-O dock suporta botão redondo, mas "📄 Laudo - CMD" e "📄 Laudo - Sete Lagoas"
-seriam indistinguíveis como ícone. O médico que atende vários municípios
-precisa ler o nome. Só alarme (🔔/🔕), REMUME (💊) e a engrenagem são redondos.
+**D4 — Botões de laudo como pílula com rótulo. → substituída pela D58.**
+Registrava que os laudos ficavam como pílula (não ícone redondo) porque
+"📄 Laudo" repetido seria ilegível — decisão correta, mas tomada com o rótulo
+digitado dentro do módulo. A D58 move a apresentação inteira para o manifest e,
+de passo, estendeu a mesma regra a REMUME e Exames (agora com rótulo também):
+dois círculos de emoji no topo da pilha tinham o mesmo problema de leitura.
+Redondos só o alarme (o ícone é o estado) e a engrenagem.
 
 **D5 — Shim `shadow.getElementById` nos três geradores de PDF.**
 APAC, LME e CMD acessavam o formulário por `shadow.getElementById()` em
@@ -1272,6 +1275,40 @@ Implementado como referência funcionando de ponta a ponta só para "Exames do
 Município" nesta leva — os outros 7 módulos da suíte não têm roteiro escrito
 ainda; o mecanismo é genérico e qualquer um pode adotar (ver comentário de
 cabeçalho em `core/tutorial.js` para o passo a passo de três linhas).
+
+---
+
+**D58 — A apresentação do módulo vive no manifest, e o build reprova quem a duplica.**
+A suíte nasceu de cinco userscripts, e cada um trazia o próprio nome, o próprio
+rótulo de botão e o próprio ícone embutidos no código. Depois da fusão, o
+`manifest.json` passou a ser a fonte de `nome`, `descrição` e `versão` — mas o
+**botão** continuou sendo declarado pelo módulo, em `registerModule({ botao: {…} })`.
+Resultado, medido na revisão de apresentação: a APAC se chamava "APAC" na pilha,
+"APAC" no painel e "Gerador de APAC" no próprio cabeçalho; os dois laudos
+entravam como `📄 Laudo - CMD` (sigla do repositório) e `📄 Laudo - Sete Lagoas`,
+com hífen onde o resto da suíte usa travessão; a REMUME tinha três nomes.
+
+Nenhum desses casos é descuido de quem escreveu o módulo. É falta de um lugar
+que **force** a consistência, do jeito que este mesmo build já força a
+arquitetura (sem posição fixa, sem hook de rede próprio).
+
+Então: cada ficha do `manifest.json` ganhou um bloco `apresentacao` —
+`formaBotao` (`"rotulo"` | `"icone"` | `"nenhum"`), `icone`, `rotuloBotao`,
+`cabecalho`. O núcleo (`montarSpecBotao`, em `core/core.user.js`) monta o botão
+do dock a partir daí; `def.botao` no módulo só é lido como reserva, para um
+módulo em desenvolvimento ainda fora do manifest. E `scripts/build.js` reprova a
+compilação de qualquer módulo empacotado que contenha `botao: {` — a mesma
+mecânica das outras duas regras de arquitetura, pelo mesmo motivo: regra que
+mora só no README o próximo módulo quebra em silêncio.
+
+O que **não** entrou nesta leva: o cabeçalho de cada janela (`<h2>`) ainda é
+HTML dentro de cada módulo — APAC, LME e CMD usam uma barra de gradiente com
+botões de estilo embutido; REMUME, Exames e Alarme usam um `<header>` com
+subtítulo. Unificar isso num componente de núcleo é o passo seguinte, e é o mais
+arriscado, porque esses cabeçalhos têm ações ligadas por `id`. Por ora, o
+`cabecalho` do manifest alimenta o `title` do botão e fica pronto para quando o
+núcleo assumir o `<h2>`. Substitui a antiga D4, que registrava a decisão oposta
+(rótulo digitado no módulo) e ficou obsoleta.
 
 ---
 

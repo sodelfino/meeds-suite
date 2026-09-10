@@ -62,6 +62,15 @@ const REGRAS = [
     nome: "hook proprio de fetch/XHR",
     regex: /(XMLHttpRequest\.prototype\.(open|send)\s*=)|(\bwindow\.fetch\s*=)|(\braiz\.fetch\s*=)/,
   },
+  {
+    // A apresentacao do botao (rotulo, icone, forma) vem do bloco
+    // "apresentacao" da ficha do modulo no manifest.json — nunca do
+    // proprio arquivo. Ver decisao D58. Um `botao: {` no modulo e a
+    // volta do problema que o manifest resolveu: o nome numa tela nao
+    // batia com o nome na outra.
+    nome: 'botao declarado no modulo (a apresentacao vem do manifest.json, bloco "apresentacao")',
+    regex: /\bbotao\s*:\s*\{/,
+  },
 ];
 
 function verificarRegras(rel, conteudo) {
@@ -119,8 +128,10 @@ function main() {
     console.error("\nBUILD REPROVADO — regras de arquitetura violadas:\n");
     problemas.forEach((p) => console.error("  " + p));
     console.error(
-      "\nModulo nao posiciona botao (use dock.registrarBotao) nem instala hook de rede\n" +
-        "(use assinaturasRede / deps.network.assinar). Ver docs/ARQUITETURA.md.\n"
+      "\nModulo nao posiciona botao (o dock empilha), nao declara a apresentacao\n" +
+        "do botao (vai no bloco \"apresentacao\" da ficha no manifest.json) e nao\n" +
+        "instala hook de rede (use assinaturasRede / deps.network.assinar).\n" +
+        "Ver docs/ARQUITETURA.md, decisoes D3 e D58.\n"
     );
     process.exit(1);
   }
@@ -216,6 +227,10 @@ function main() {
            * chave liga/desliga dessa funcao. Sem este campo, o nucleo
            * nao tem como saber que ela e sempre ativa. */
           sempreAtivo: !!m.sempreAtivo,
+          /* Apresentacao do botao: o nucleo monta o botao do dock a partir
+           * daqui, nao do arquivo do modulo. Ver decisao D58. */
+          prioridadeBotao: m.prioridadeBotao,
+          apresentacao: m.apresentacao || null,
         })),
       },
       null,

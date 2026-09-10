@@ -11,7 +11,9 @@
  *   {
  *     id, nome, descricao, versao,
  *     configPadrao: {},
- *     botao: { rotulo, icone, prioridade, variante } | null,
+ *     temBotao: true,      // a APRESENTACAO do botao (rotulo, icone,
+ *                          // forma) vive no bloco "apresentacao" da
+ *                          // ficha no manifest.json — nunca aqui. D58.
  *     assinaturasRede: [ { regex, metodos } ],
  *     start(deps), stop(), aoCargaRede(evt)
  *   }
@@ -223,6 +225,48 @@
     return null;
   }
 
+  /* ------------------------------------------------------------------
+   * APRESENTACAO DO BOTAO — do manifest, nunca do modulo
+   * ------------------------------------------------------------------
+   * O rotulo, o icone e a forma do botao (com texto ou so icone) vem do
+   * bloco `apresentacao` da ficha do modulo no manifest.json. O modulo
+   * so diz o que fazer no clique. Ver decisao D58 em docs/ARQUITETURA.md.
+   *
+   * `def.botao` continua sendo lido como RESERVA — mas so serve a um
+   * modulo em desenvolvimento que ainda nao esta no manifest. Nos modulos
+   * empacotados, build.js reprova declarar botao no proprio arquivo, pelo
+   * mesmo motivo que reprova posicao fixa: dois lugares para a mesma
+   * coisa divergem.
+   *
+   * Devolve o spec pronto para Dock.registrarBotao, ou null quando o
+   * modulo nao tem botao (cid10 e previa-pdf acoplam-se a outra tela).
+   * ------------------------------------------------------------------ */
+  function montarSpecBotao(def, ficha) {
+    var ap = ficha && ficha.apresentacao;
+    if (ap) {
+      if (ap.formaBotao === "nenhum" || !ap.icone) return null;
+      var comRotulo = ap.formaBotao === "rotulo";
+      return {
+        icone: ap.icone,
+        rotulo: comRotulo ? (ap.rotuloBotao || ficha.nome || "") : "",
+        variante: comRotulo ? undefined : "icone",
+        titulo: ap.cabecalho || ficha.nome || def.nome || "",
+        prioridade:
+          typeof ficha.prioridadeBotao === "number" ? ficha.prioridadeBotao : undefined,
+      };
+    }
+    if (def.botao) {
+      return {
+        icone: def.botao.icone,
+        rotulo: def.botao.rotulo,
+        variante: def.botao.variante,
+        titulo: def.botao.titulo || def.nome,
+        prioridade: def.botao.prioridade,
+      };
+    }
+    return null;
+  }
+
   function listarModulos() {
     return registro.map(function (e) {
       var m = fichaDoManifesto(e.def.id) || {};
@@ -285,24 +329,21 @@
   function iniciarModulo(entrada) {
     if (entrada.rodando) return;
     var def = entrada.def;
+    var ficha = fichaDoManifesto(def.id);
     try {
       var storage = Storage.criarStorage(def.id);
       var config = storage.lerConfig(def.configPadrao || {});
 
-      // Botao: o modulo DECLARA, o dock POSICIONA.
+      // Botao: a APRESENTACAO vem do manifest (montarSpecBotao), o dock
+      // POSICIONA, e o modulo so diz o que fazer no clique.
       var botaoHandle = null;
-      if (def.botao) {
-        botaoHandle = Dock.registrarBotao({
-          id: def.id,
-          rotulo: def.botao.rotulo,
-          icone: def.botao.icone,
-          titulo: def.botao.titulo || def.nome,
-          variante: def.botao.variante,
-          prioridade: def.botao.prioridade,
-          aoClicar: function () {
-            if (typeof entrada.aoClicarBotao === "function") entrada.aoClicarBotao();
-          },
-        });
+      var specBotao = montarSpecBotao(def, ficha);
+      if (specBotao) {
+        specBotao.id = def.id;
+        specBotao.aoClicar = function () {
+          if (typeof entrada.aoClicarBotao === "function") entrada.aoClicarBotao();
+        };
+        botaoHandle = Dock.registrarBotao(specBotao);
       }
       entrada.botaoHandle = botaoHandle;
 

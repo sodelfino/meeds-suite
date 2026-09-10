@@ -789,7 +789,7 @@ function moverFocoResultado(delta) {
    * ---------------------------------------------------------------- */
   if (raiz.MeedsSuiteTutorial) {
     raiz.MeedsSuiteTutorial.registrar("remume", {
-      titulo: "Assistente REMUME",
+      titulo: "Consulta REMUME",
       passos: [
         {
           icone: "💊",
@@ -845,12 +845,8 @@ function moverFocoResultado(delta) {
     versao: "2.0.1",
     configPadrao: {},
 
-    botao: {
-      icone: "\u{1F48A}",
-      variante: "icone",
-      titulo: "Consultar REMUME",
-      prioridade: 50,
-    },
+    // Botao: apresentacao no manifest.json (ficha "remume"). Ver D58.
+    temBotao: true,
 
     assinaturasRede: [{ regex: /\/api\/v1\/Atendimento\/[^/?]+(?:[?#].*)?$/i, metodos: ["GET"] }],
 

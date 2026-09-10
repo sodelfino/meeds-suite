@@ -1395,12 +1395,10 @@
     versao: "2.0.0",
     configPadrao: {},
 
-    botao: {
-      icone: "📋",
-      rotulo: "APAC",
-      titulo: "Gerador de APAC",
-      prioridade: 20,
-    },
+    // Botao: apresentacao no manifest.json, bloco "apresentacao" da
+    // ficha "apac". O nucleo monta o botao; este modulo so trata o
+    // clique (aoClicarBotao). Ver decisao D58.
+    temBotao: true,
 
     // captura passiva: e a via mais confiavel de detectar troca de
     // paciente, porque nao depende de a URL mudar nem de conter o UUID

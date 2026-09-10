@@ -1340,13 +1340,10 @@
     versao: "2.0.0",
     configPadrao: CONFIG_PADRAO,
 
-    botao: {
-      icone: "🔕",
-      rotulo: "",
-      variante: "icone",
-      titulo: "Alarme de fila (plantao noturno)",
-      prioridade: 10, // logo acima da engrenagem
-    },
+    // Botao: apresentacao no manifest.json (ficha "alarme-fila"). O
+    // icone inicial e 🔕; o modulo troca para 🔉/🔔 conforme a
+    // intensidade, por deps.botao.definirTexto(). Ver decisao D58.
+    temBotao: true,
 
     assinaturasRede: [{ regex: /\/api\/v1\/Atendimento\?/i, metodos: ["GET"] }],
 

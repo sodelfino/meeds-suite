@@ -886,7 +886,7 @@
       estilo: CSS,
       html:
         '<div class="ex-modal" role="dialog" aria-modal="true" aria-label="Exames do município">' +
-        "  <header><div><h2>🧪 Exames do município</h2>" +
+        "  <header><div><h2>Exames do município</h2>" +
         "    <p>O que este município oferece — e o que exige APAC ou laudo</p></div>" +
         '    <button type="button" class="ex-fechar" aria-label="Fechar">&#10005;</button></header>' +
         '  <div class="ex-topo">' +
@@ -1056,13 +1056,8 @@
     versao: "1.0.0",
     configPadrao: {},
 
-    botao: {
-      rotulo: "Exames",
-      icone: "🧪",
-      variante: "icone",
-      prioridade: 55,
-      titulo: "Exames do município",
-    },
+    // Botao: apresentacao no manifest.json (ficha "exames"). Ver D58.
+    temBotao: true,
 
     /* Mesma assinatura do REMUME: a tela do atendimento carrega o
      * paciente e, com ele, o vinculo que revela o municipio. */

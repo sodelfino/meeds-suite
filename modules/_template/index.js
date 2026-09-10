@@ -63,8 +63,21 @@
     id: "template",
 
     /* TROQUE: nome e descricao aparecem no painel da engrenagem.
-     * A descricao e uma frase, em portugues claro, dizendo o que a
-     * funcao faz para o MEDICO — nao como ela funciona por dentro. */
+     * IMPORTANTE: nome, descricao, versao e a APRESENTACAO DO BOTAO vivem
+     * na ficha deste modulo no manifest.json, no bloco "apresentacao" —
+     * NAO aqui. O que estiver aqui vale so como reserva enquanto o modulo
+     * ainda nao esta no manifest; build.js reprova declarar `botao: {}`
+     * num modulo empacotado. Ver decisao D58.
+     *
+     * A ficha no manifest fica assim:
+     *   "apresentacao": {
+     *     "formaBotao": "rotulo",          // "rotulo" | "icone" | "nenhum"
+     *     "icone": "🧩",
+     *     "rotuloBotao": "Texto do botão", // so quando formaBotao e "rotulo"
+     *     "cabecalho": "Título da janela do módulo"
+     *   },
+     *   "prioridadeBotao": 60              // MENOR = mais embaixo na pilha
+     */
     nome: "Módulo modelo",
     descricao: "TROQUE: uma frase explicando o que esta função faz.",
     versao: "1.0.0",
@@ -73,17 +86,9 @@
      * deps.config e voce grava com deps.storage.gravarConfig(). */
     configPadrao: {},
 
-    /* Botao no dock. Use null se o modulo nao precisar de botao.
-     * prioridade: MENOR = mais embaixo na pilha. As atuais vao de 10 em
-     * 10 (alarme 10, APAC 20, Sete Lagoas 30, CMD 40, REMUME 50), entao
-     * um numero como 25 ou 60 encaixa sem renumerar ninguem. */
-    botao: {
-      icone: "🧩",
-      rotulo: "TROQUE: texto do botão",
-      titulo: "TROQUE: o que aparece ao passar o mouse",
-      prioridade: 60,
-      // variante: "icone",  // use para botao redondo, so com o icone
-    },
+    /* O modulo so declara QUE tem botao; o COMO vem do manifest. Remova
+     * esta linha se o modulo nao precisa de botao (formaBotao "nenhum"). */
+    temBotao: true,
 
     /* Chamadas de rede que voce quer ouvir. O nucleo ja intercepta tudo
      * uma vez; aqui voce so diz o que lhe interessa. Deixe [] se nao

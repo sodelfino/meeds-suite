@@ -29,7 +29,7 @@ desliga num painel, sem reinstalar nada.
 | 📄 **Laudo — Conceição do Mato Dentro** | Idem, no formulário oficial de CMD. |
 | 🔎 **Buscar CID-10** | Procura o código pelo nome da doença, na tabela completa (14.233 códigos), e preenche no laudo aberto. |
 | 🧪 **Exames do município** | Mostra os exames que aquele município oferece — Betim, Macaé, Congonhas e Sete Lagoas — com código, local de realização, especialidade, canal de encaminhamento, a marca de quem exige APAC/Laudo/Alto Custo (💰), e um aviso quando há uma regra específica daquele exame (idade mínima, documento a anexar, justificativa médica obrigatória). Macaé também tem uma seção separada de **Encaminhamentos** — serviços de referência como CRA e Clínica do Autista, que não são exame. O que não está na lista aparece como "não consta" — nunca como exame de outra cidade. |
-| 💊 **Assistente REMUME** | Consulta os medicamentos do município do atendimento. Aceita erro de digitação e nome comercial. |
+| 💊 **Consulta REMUME** | Consulta os medicamentos do município do atendimento. Aceita erro de digitação e nome comercial. |
 
 Todas as funções têm um **tutorial guiado** (🎓) — as que têm painel próprio
 oferecem sozinho na primeira vez que você abre; todas ficam disponíveis depois
