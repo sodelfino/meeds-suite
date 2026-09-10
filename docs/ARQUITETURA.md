@@ -1302,6 +1302,13 @@ Efeitos colaterais da remoção, todos desejados:
 - `bootloader.user.js` perdeu `@grant GM_xmlhttpRequest` e
   `@connect cdnjs.cloudflare.com` — nada mais os usa. Menos permissão pedida ao
   gerenciador de scripts é menos superfície.
+- Os dois `@require` ganharam `#sha512=<hash>` (o mesmo SRI que o cdnjs
+  publica). O `@require` continua sendo o único jeito de carregar jsPDF e
+  pdf-lib, mas agora o gerenciador de scripts recusa a lib se um byte tiver
+  mudado — fecha o mesmo buraco pelo caminho legítimo. **Ao subir a versão de
+  jsPDF ou pdf-lib, o hash tem que subir junto:** pegue o campo `sri` em
+  `https://api.cdnjs.com/libraries/<lib>/<versão>?fields=sri` e substitua no
+  `bootloader.user.js`. Hash errado = PDF não gera.
 
 ---
 
