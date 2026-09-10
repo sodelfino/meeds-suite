@@ -346,6 +346,45 @@
     return true;
   }
 
+  /* ----------------------------------------------------------------
+   * TUTORIAL GUIADO — ver core/tutorial.js para o mecanismo.
+   * Este modulo NAO tem painel proprio (botao: null, de proposito — ver
+   * comentario abaixo), entao nao ha "primeira vez que abre" para
+   * oferecer sozinho: o tutorial so e alcancavel pelo botao "🎓 Ver
+   * tutorial" no painel da engrenagem, explicando como um campo sem
+   * botao nenhum passa a funcionar.
+   * ---------------------------------------------------------------- */
+  if (raiz.MeedsSuiteTutorial) {
+    raiz.MeedsSuiteTutorial.registrar("cid10", {
+      titulo: "Busca de CID-10 nos laudos",
+      passos: [
+        {
+          icone: "🔎",
+          titulo: "O que esta função faz",
+          texto:
+            "Liga a tabela completa da CID-10 (14.233 códigos) ao campo de CID de qualquer laudo aberto — " +
+            "APAC, Sete Lagoas, CMD. Não tem botão próprio na barra: ela funciona DENTRO do campo que já " +
+            "existe no formulário.",
+        },
+        {
+          icone: "⌨️",
+          titulo: "Busque pelo nome, não só pelo código",
+          texto:
+            "Digite o nome da doença (\"enxaqueca\") ou o código — os dois funcionam, com a mesma " +
+            "tolerância a erro de digitação da busca de medicamentos. Escolha na própria linha do " +
+            "formulário; não abre uma janela separada.",
+        },
+        {
+          icone: "🧩",
+          titulo: "Funciona em qualquer laudo, sem repetir trabalho",
+          texto:
+            "Antes, cada gerador de laudo tinha sua própria lista curta de CID. Agora é uma base só, ligada " +
+            "a todos — um laudo novo recebe a busca completa sem precisar copiar nada aqui.",
+        },
+      ],
+    });
+  }
+
   raiz.MeedsSuite.registerModule({
     id: "cid10",
     nome: "Busca de CID-10 nos laudos",
@@ -381,6 +420,12 @@
       deps.publicarEvento("cid:pronto", {});
 
       buscarBaseCompleta();
+
+      if (typeof deps.aoIniciarTutorial === "function") {
+        deps.aoIniciarTutorial(function () {
+          if (raiz.MeedsSuiteTutorial) raiz.MeedsSuiteTutorial.iniciar("cid10", { dock: d.dock });
+        });
+      }
     },
 
     stop: function () {

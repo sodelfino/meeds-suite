@@ -564,6 +564,9 @@
     aplicarLeituraDaTela(dadosTela);
     aplicarModeloPadraoSeVazio();
     overlay.abrir();
+    if (raiz.MeedsSuiteTutorial) {
+      raiz.MeedsSuiteTutorial.iniciarSePrimeiraVez("cmd", { dock: d.dock });
+    }
   }
 
   function limparForm() {
@@ -886,6 +889,48 @@
     if (guia) guia.atualizar();
   }
 
+  /* ----------------------------------------------------------------
+   * TUTORIAL GUIADO — ver core/tutorial.js para o mecanismo.
+   * Registro estatico, independente de o modulo estar rodando.
+   * ---------------------------------------------------------------- */
+  if (raiz.MeedsSuiteTutorial) {
+    raiz.MeedsSuiteTutorial.registrar("cmd", {
+      titulo: "Laudo — Conceição do Mato Dentro",
+      passos: [
+        {
+          icone: "📄",
+          titulo: "O que esta função faz",
+          texto:
+            "Preenche o Laudo Médico de Alto Custo oficial de Conceição do Mato Dentro usando os campos " +
+            "reais do formulário em PDF (AcroForm) — não é uma cópia redesenhada, é o formulário oficial " +
+            "preenchido. A seção 04 (Junta de Autorização) não é preenchida — é reservada para a regulação.",
+        },
+        {
+          icone: "🏥",
+          titulo: "Médico e unidade de origem",
+          texto:
+            "Escolha o médico solicitante no cadastro (nome, CRM e CPF vêm sozinhos), e a unidade de " +
+            "origem no seletor — se a unidade não estiver na lista, escolha \"outro\" e digite o nome.",
+        },
+        {
+          icone: "🩺",
+          titulo: "Procedimento, CID e justificativa",
+          texto:
+            "Digite o nome do procedimento e busque na lista de sugestões. O CID-10 busca pelo nome da " +
+            "doença; o diagnóstico inicial preenche sozinho a partir dele. A justificativa clínica é " +
+            "obrigatória, com limite de 700 caracteres — o contador mostra quanto falta.",
+        },
+        {
+          icone: "💾",
+          titulo: "Modelos, histórico e gerar",
+          texto:
+            "Salve como modelo o que você repete sempre. \"Gerar e baixar PDF\" produz o documento final; " +
+            "ele fica registrado no 📜 Histórico deste computador para reabrir depois.",
+        },
+      ],
+    });
+  }
+
   raiz.MeedsSuite.registerModule({
     id: "cmd",
     nome: "Laudo — Conceição do Mato Dentro",
@@ -965,6 +1010,11 @@
       });
 
       deps.aoClicarBotao(abrirModal);
+      if (typeof deps.aoIniciarTutorial === "function") {
+        deps.aoIniciarTutorial(function () {
+          if (raiz.MeedsSuiteTutorial) raiz.MeedsSuiteTutorial.iniciar("cmd", { dock: d.dock });
+        });
+      }
     },
 
     stop: function () {

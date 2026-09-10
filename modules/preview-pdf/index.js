@@ -501,6 +501,50 @@
   var aoMudarTela = null;
   var aoMudarVisibilidade = null;
 
+  /* ----------------------------------------------------------------
+   * TUTORIAL GUIADO — ver core/tutorial.js para o mecanismo.
+   * Sem painel proprio (botao: null, mesmo desenho do CID-10) — o
+   * botao "👁 Prévia" vive dentro de cada gerador, nao na barra do
+   * dock. So alcancavel pelo "🎓 Ver tutorial" no painel da
+   * engrenagem.
+   * ---------------------------------------------------------------- */
+  if (raiz.MeedsSuiteTutorial) {
+    raiz.MeedsSuiteTutorial.registrar("preview-pdf", {
+      titulo: "Prévia do documento",
+      passos: [
+        {
+          icone: "👁️",
+          titulo: "O que esta função faz",
+          texto:
+            "Mostra o PDF de verdade, ao lado do formulário, atualizado enquanto você preenche — nos " +
+            "geradores de APAC e de laudo. Não é um esboço nem uma imitação: é o mesmo arquivo que o botão " +
+            "\"Gerar\" produz.",
+        },
+        {
+          icone: "🖱️",
+          titulo: "Onde ligar",
+          texto:
+            "O botão \"👁 Prévia\" fica no cabeçalho de cada gerador (APAC, Sete Lagoas, CMD) — não na " +
+            "barra de funções principal, porque só faz sentido dentro de um formulário aberto.",
+        },
+        {
+          icone: "✅",
+          titulo: "Uma diferença deliberada",
+          texto:
+            "O botão \"Gerar\" recusa campo obrigatório vazio; a prévia não — ela precisa desenhar mesmo " +
+            "pela metade, para você conferir o documento enquanto ainda está preenchendo.",
+        },
+        {
+          icone: "📐",
+          titulo: "Tela pequena",
+          texto:
+            "Em telas estreitas o painel de prévia não é oferecido — não cabe lado a lado com o formulário " +
+            "sem espremer os dois.",
+        },
+      ],
+    });
+  }
+
   raiz.MeedsSuite.registerModule({
     id: "preview-pdf",
     nome: "Prévia do documento",
@@ -528,6 +572,12 @@
       /* Geradores que subiram antes deste módulo já anunciaram e não
        * encontraram ninguém. Este aviso faz cada um anunciar de novo. */
       deps.publicarEvento("preview:pronto", {});
+
+      if (typeof deps.aoIniciarTutorial === "function") {
+        deps.aoIniciarTutorial(function () {
+          if (raiz.MeedsSuiteTutorial) raiz.MeedsSuiteTutorial.iniciar("preview-pdf", { dock: d.dock });
+        });
+      }
 
       aoMudarTela = function () {
         Object.keys(geradores).forEach(function (id) {

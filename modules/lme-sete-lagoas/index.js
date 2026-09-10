@@ -555,6 +555,9 @@
     aplicarLeituraDaTela(dadosTela);
     aplicarModeloPadraoSeVazio();
     overlay.abrir();
+    if (raiz.MeedsSuiteTutorial) {
+      raiz.MeedsSuiteTutorial.iniciarSePrimeiraVez("lme-sete-lagoas", { dock: d.dock });
+    }
   }
 
   function limparForm() {
@@ -874,6 +877,57 @@
     if (guia) guia.atualizar();
   }
 
+  /* ----------------------------------------------------------------
+   * TUTORIAL GUIADO — ver core/tutorial.js para o mecanismo.
+   * Registro estatico, independente de o modulo estar rodando.
+   * ---------------------------------------------------------------- */
+  if (raiz.MeedsSuiteTutorial) {
+    raiz.MeedsSuiteTutorial.registrar("lme-sete-lagoas", {
+      titulo: "Laudo — Sete Lagoas",
+      passos: [
+        {
+          icone: "📄",
+          titulo: "O que esta função faz",
+          texto:
+            "Preenche o Laudo Médico de Alto Custo oficial de Sete Lagoas por cima do PDF real da " +
+            "prefeitura — mesmo logo, mesmo layout. O Cartão Nacional do SUS é preenchido com o CPF do " +
+            "paciente. Município fixo: Sete Lagoas.",
+        },
+        {
+          icone: "🏥",
+          titulo: "Médico e unidade de origem",
+          texto:
+            "Escolha o médico solicitante no cadastro (nome, CRM e CPF vêm sozinhos), e a unidade de " +
+            "origem no seletor — se a unidade não estiver na lista, escolha \"outro\" e digite o nome.",
+        },
+        {
+          icone: "🩺",
+          titulo: "Procedimento com código SIGTAP",
+          texto:
+            "Digite o nome do procedimento e busque na lista — o código SIGTAP preenche sozinho quando " +
+            "reconhecido. O catálogo cobre os exames de Alto Custo e APAC que a Central de Regulação de " +
+            "Sete Lagoas pede em formulário próprio (tomografia, ressonância, cintilografia, cateterismo e " +
+            "outros).",
+        },
+        {
+          icone: "📝",
+          titulo: "CID e justificativa",
+          texto:
+            "O CID-10 busca pelo nome da doença; o diagnóstico inicial preenche sozinho a partir dele. A " +
+            "justificativa clínica é obrigatória — história da moléstia, exames prévios e o objetivo do " +
+            "exame solicitado.",
+        },
+        {
+          icone: "💾",
+          titulo: "Modelos, histórico e gerar",
+          texto:
+            "Salve como modelo o que você repete sempre. \"Gerar e baixar PDF\" produz o documento final; " +
+            "ele fica registrado no 📜 Histórico deste computador para reabrir depois.",
+        },
+      ],
+    });
+  }
+
   raiz.MeedsSuite.registerModule({
     id: "lme-sete-lagoas",
     nome: "Laudo — Sete Lagoas",
@@ -953,6 +1007,11 @@
       });
 
       deps.aoClicarBotao(abrirModal);
+      if (typeof deps.aoIniciarTutorial === "function") {
+        deps.aoIniciarTutorial(function () {
+          if (raiz.MeedsSuiteTutorial) raiz.MeedsSuiteTutorial.iniciar("lme-sete-lagoas", { dock: d.dock });
+        });
+      }
     },
 
     stop: function () {

@@ -5725,6 +5725,12 @@
     ".msm-item-ver { font-size:10px; color:#9aa5b1; font-family:ui-monospace,Menlo,monospace; margin-top:4px; }",
     ".msm-fixos { font-size:11px; color:#8a97a4; line-height:1.5; padding:10px 0 2px; border-top:1px solid #f3f6f9; margin-top:4px; }",
     ".msm-fixos b { color:#5b6672; font-weight:600; }",
+    /* Nome de modulo "sempre ativo" que tem tutorial vira botao — mesma
+     * cor do texto ao redor (nao e uma acao "destacada", e so um jeito
+     * de tornar clicavel algo que ja parecia so texto). */
+    ".msm-tutorial-fixo { background:none; border:none; padding:0; font:inherit; font-size:11px; color:#8a97a4; cursor:pointer; text-decoration:underline dotted; }",
+    ".msm-tutorial-fixo:hover { color:#0f766e; }",
+    ".msm-tutorial-fixo b { color:inherit; }",
     ".msm-ajustes { margin-top:7px; background:#fff; border:1.4px solid #c3d4ee; color:#1a4fa0; cursor:pointer; font-size:11.5px; font-family:inherit; font-weight:700; padding:6px 11px; border-radius:8px; }",
     ".msm-ajustes:hover { background:#eef4ff; border-color:#1a4fa0; }",
     /* Mesma forma do botao de Ajustes, paleta verde-agua (a cor do
@@ -6129,10 +6135,24 @@
       .join("");
 
     if (fixos.length) {
+      /* Modulo "sempre ativo" (sem chave liga/desliga) nunca vira
+       * `.msm-item` — so aparece nesta linha discreta de rodape. Sem
+       * isso, um modulo com tutorial mas sem `.msm-item` (CID-10,
+       * Prévia do documento — os dois com `botao: null`) ficaria com o
+       * roteiro registrado e NENHUM jeito de o medico abrir: o botao
+       * "🎓 Ver tutorial" so existia no template de `.msm-item`. Por
+       * isso o nome vira botao clicavel quando `temTutorial`, em vez de
+       * so texto — mesmo emoji, mesma funcao, formato menor porque a
+       * linha inteira e mais discreta. */
+      var nomesFixos = fixos.map(function (m) {
+        var nome = "<b>" + escapeHtml(m.nome) + "</b>";
+        return m.temTutorial
+          ? '<button type="button" class="msm-tutorial-fixo" data-tutorial="' + escapeHtml(m.id) +
+            '" title="Ver tutorial de ' + escapeHtml(m.nome) + '">' + nome + " 🎓</button>"
+          : nome;
+      });
       lista.innerHTML +=
-        '<div class="msm-fixos">Sempre ativas: <b>' +
-        fixos.map(function (m) { return escapeHtml(m.nome); }).join("</b> e <b>") +
-        "</b>.</div>";
+        '<div class="msm-fixos">Sempre ativas: ' + nomesFixos.join(" e ") + ".</div>";
     }
 
     /* A translucidez em repouso deixou de ter chave: e como o Assistente
@@ -9604,6 +9624,13 @@
     }
     aplicarModeloPadraoSeVazio();
     overlay.abrir();
+    /* So faz alguma coisa na primeira vez (ou se o tutorial nunca foi
+     * registrado) — seguro chamar sempre. Abre por CIMA do modal da
+     * APAC, mesmo empilhamento de qualquer overlay aberto a partir de
+     * outro (ver comentario em criarOverlay(), core/dock.js). */
+    if (raiz.MeedsSuiteTutorial) {
+      raiz.MeedsSuiteTutorial.iniciarSePrimeiraVez("apac", { dock: d.dock });
+    }
   }
 
   /* Porta do preview: produz os bytes sem validar e sem tocar na tela. */
@@ -10008,6 +10035,62 @@
     if (guia) guia.atualizar();
   }
 
+  /* ----------------------------------------------------------------
+   * TUTORIAL GUIADO — ver core/tutorial.js para o mecanismo.
+   * Registro estatico, independente de o modulo estar rodando. O
+   * roteiro cobre, nessa ordem: o que a funcao faz, o preenchimento
+   * automatico a partir da tela, a escolha de procedimento (com os
+   * campos extras de Doppler/Eco/Outro), CID-10, modelos salvos e
+   * historico, e a etapa de assinatura (gov.br ou PDF simples).
+   * ---------------------------------------------------------------- */
+  if (raiz.MeedsSuiteTutorial) {
+    raiz.MeedsSuiteTutorial.registrar("apac", {
+      titulo: "APAC",
+      passos: [
+        {
+          icone: "📋",
+          titulo: "O que esta função faz",
+          texto:
+            "Gera o Laudo para Solicitação/Autorização de Procedimento Ambulatorial (APAC) já preenchido, e " +
+            "encaminha para assinatura no gov.br. O formulário é o mesmo em qualquer município — muda só a " +
+            "unidade solicitante. Atende Itaúna, Betim e Sete Lagoas.",
+        },
+        {
+          icone: "🔄",
+          titulo: "Preenchimento automático",
+          texto:
+            "Município, estabelecimento e dados do paciente vêm sozinhos da tela do atendimento. Se algo " +
+            "não bater — outro paciente na tela, por exemplo — o Assistente avisa antes de sobrescrever o " +
+            "que já estava no formulário.",
+        },
+        {
+          icone: "🩺",
+          titulo: "Procedimento",
+          texto:
+            "Escolha o procedimento nos quadros. Alguns pedem uma informação a mais: Doppler pede o " +
+            "território vascular, Ecocardiograma pede a variante (repouso, estresse ou transesofágico), e " +
+            "\"Outro\" pede o código SIGTAP e o nome exatamente como devem aparecer no campo 19.",
+        },
+        {
+          icone: "🔎",
+          titulo: "CID-10 e modelos salvos",
+          texto:
+            "O campo de CID busca pelo nome da doença, não só pelo código. E se você repete sempre o mesmo " +
+            "procedimento com a mesma justificativa, salve como modelo — da próxima vez é só escolher, e " +
+            "tudo volta preenchido.",
+        },
+        {
+          icone: "🏛️",
+          titulo: "Gerar e assinar",
+          texto:
+            "Depois de \"Gerar PDF\", a APAC já fica registrada no 📜 Histórico deste computador, e você " +
+            "escolhe: \"Assinar via gov.br\" (baixa o PDF e já abre o portal) ou \"Baixar sem assinar\" " +
+            "(PDF simples, para assinar de outro jeito).",
+        },
+      ],
+    });
+  }
+
   raiz.MeedsSuite.registerModule({
     id: "apac",
     nome: "APAC",
@@ -10099,6 +10182,11 @@
       });
 
       deps.aoClicarBotao(abrirModal);
+      if (typeof deps.aoIniciarTutorial === "function") {
+        deps.aoIniciarTutorial(function () {
+          if (raiz.MeedsSuiteTutorial) raiz.MeedsSuiteTutorial.iniciar("apac", { dock: d.dock });
+        });
+      }
 
       // polling de URL: segunda camada, para o caso de a captura passiva
       // nao ter visto a chamada do paciente atual
@@ -10582,6 +10670,45 @@
     return true;
   }
 
+  /* ----------------------------------------------------------------
+   * TUTORIAL GUIADO — ver core/tutorial.js para o mecanismo.
+   * Este modulo NAO tem painel proprio (botao: null, de proposito — ver
+   * comentario abaixo), entao nao ha "primeira vez que abre" para
+   * oferecer sozinho: o tutorial so e alcancavel pelo botao "🎓 Ver
+   * tutorial" no painel da engrenagem, explicando como um campo sem
+   * botao nenhum passa a funcionar.
+   * ---------------------------------------------------------------- */
+  if (raiz.MeedsSuiteTutorial) {
+    raiz.MeedsSuiteTutorial.registrar("cid10", {
+      titulo: "Busca de CID-10 nos laudos",
+      passos: [
+        {
+          icone: "🔎",
+          titulo: "O que esta função faz",
+          texto:
+            "Liga a tabela completa da CID-10 (14.233 códigos) ao campo de CID de qualquer laudo aberto — " +
+            "APAC, Sete Lagoas, CMD. Não tem botão próprio na barra: ela funciona DENTRO do campo que já " +
+            "existe no formulário.",
+        },
+        {
+          icone: "⌨️",
+          titulo: "Busque pelo nome, não só pelo código",
+          texto:
+            "Digite o nome da doença (\"enxaqueca\") ou o código — os dois funcionam, com a mesma " +
+            "tolerância a erro de digitação da busca de medicamentos. Escolha na própria linha do " +
+            "formulário; não abre uma janela separada.",
+        },
+        {
+          icone: "🧩",
+          titulo: "Funciona em qualquer laudo, sem repetir trabalho",
+          texto:
+            "Antes, cada gerador de laudo tinha sua própria lista curta de CID. Agora é uma base só, ligada " +
+            "a todos — um laudo novo recebe a busca completa sem precisar copiar nada aqui.",
+        },
+      ],
+    });
+  }
+
   raiz.MeedsSuite.registerModule({
     id: "cid10",
     nome: "Busca de CID-10 nos laudos",
@@ -10617,6 +10744,12 @@
       deps.publicarEvento("cid:pronto", {});
 
       buscarBaseCompleta();
+
+      if (typeof deps.aoIniciarTutorial === "function") {
+        deps.aoIniciarTutorial(function () {
+          if (raiz.MeedsSuiteTutorial) raiz.MeedsSuiteTutorial.iniciar("cid10", { dock: d.dock });
+        });
+      }
     },
 
     stop: function () {
@@ -11221,6 +11354,9 @@
     aplicarLeituraDaTela(dadosTela);
     aplicarModeloPadraoSeVazio();
     overlay.abrir();
+    if (raiz.MeedsSuiteTutorial) {
+      raiz.MeedsSuiteTutorial.iniciarSePrimeiraVez("lme-sete-lagoas", { dock: d.dock });
+    }
   }
 
   function limparForm() {
@@ -11540,6 +11676,57 @@
     if (guia) guia.atualizar();
   }
 
+  /* ----------------------------------------------------------------
+   * TUTORIAL GUIADO — ver core/tutorial.js para o mecanismo.
+   * Registro estatico, independente de o modulo estar rodando.
+   * ---------------------------------------------------------------- */
+  if (raiz.MeedsSuiteTutorial) {
+    raiz.MeedsSuiteTutorial.registrar("lme-sete-lagoas", {
+      titulo: "Laudo — Sete Lagoas",
+      passos: [
+        {
+          icone: "📄",
+          titulo: "O que esta função faz",
+          texto:
+            "Preenche o Laudo Médico de Alto Custo oficial de Sete Lagoas por cima do PDF real da " +
+            "prefeitura — mesmo logo, mesmo layout. O Cartão Nacional do SUS é preenchido com o CPF do " +
+            "paciente. Município fixo: Sete Lagoas.",
+        },
+        {
+          icone: "🏥",
+          titulo: "Médico e unidade de origem",
+          texto:
+            "Escolha o médico solicitante no cadastro (nome, CRM e CPF vêm sozinhos), e a unidade de " +
+            "origem no seletor — se a unidade não estiver na lista, escolha \"outro\" e digite o nome.",
+        },
+        {
+          icone: "🩺",
+          titulo: "Procedimento com código SIGTAP",
+          texto:
+            "Digite o nome do procedimento e busque na lista — o código SIGTAP preenche sozinho quando " +
+            "reconhecido. O catálogo cobre os exames de Alto Custo e APAC que a Central de Regulação de " +
+            "Sete Lagoas pede em formulário próprio (tomografia, ressonância, cintilografia, cateterismo e " +
+            "outros).",
+        },
+        {
+          icone: "📝",
+          titulo: "CID e justificativa",
+          texto:
+            "O CID-10 busca pelo nome da doença; o diagnóstico inicial preenche sozinho a partir dele. A " +
+            "justificativa clínica é obrigatória — história da moléstia, exames prévios e o objetivo do " +
+            "exame solicitado.",
+        },
+        {
+          icone: "💾",
+          titulo: "Modelos, histórico e gerar",
+          texto:
+            "Salve como modelo o que você repete sempre. \"Gerar e baixar PDF\" produz o documento final; " +
+            "ele fica registrado no 📜 Histórico deste computador para reabrir depois.",
+        },
+      ],
+    });
+  }
+
   raiz.MeedsSuite.registerModule({
     id: "lme-sete-lagoas",
     nome: "Laudo — Sete Lagoas",
@@ -11619,6 +11806,11 @@
       });
 
       deps.aoClicarBotao(abrirModal);
+      if (typeof deps.aoIniciarTutorial === "function") {
+        deps.aoIniciarTutorial(function () {
+          if (raiz.MeedsSuiteTutorial) raiz.MeedsSuiteTutorial.iniciar("lme-sete-lagoas", { dock: d.dock });
+        });
+      }
     },
 
     stop: function () {
@@ -12213,6 +12405,9 @@
     aplicarLeituraDaTela(dadosTela);
     aplicarModeloPadraoSeVazio();
     overlay.abrir();
+    if (raiz.MeedsSuiteTutorial) {
+      raiz.MeedsSuiteTutorial.iniciarSePrimeiraVez("cmd", { dock: d.dock });
+    }
   }
 
   function limparForm() {
@@ -12535,6 +12730,48 @@
     if (guia) guia.atualizar();
   }
 
+  /* ----------------------------------------------------------------
+   * TUTORIAL GUIADO — ver core/tutorial.js para o mecanismo.
+   * Registro estatico, independente de o modulo estar rodando.
+   * ---------------------------------------------------------------- */
+  if (raiz.MeedsSuiteTutorial) {
+    raiz.MeedsSuiteTutorial.registrar("cmd", {
+      titulo: "Laudo — Conceição do Mato Dentro",
+      passos: [
+        {
+          icone: "📄",
+          titulo: "O que esta função faz",
+          texto:
+            "Preenche o Laudo Médico de Alto Custo oficial de Conceição do Mato Dentro usando os campos " +
+            "reais do formulário em PDF (AcroForm) — não é uma cópia redesenhada, é o formulário oficial " +
+            "preenchido. A seção 04 (Junta de Autorização) não é preenchida — é reservada para a regulação.",
+        },
+        {
+          icone: "🏥",
+          titulo: "Médico e unidade de origem",
+          texto:
+            "Escolha o médico solicitante no cadastro (nome, CRM e CPF vêm sozinhos), e a unidade de " +
+            "origem no seletor — se a unidade não estiver na lista, escolha \"outro\" e digite o nome.",
+        },
+        {
+          icone: "🩺",
+          titulo: "Procedimento, CID e justificativa",
+          texto:
+            "Digite o nome do procedimento e busque na lista de sugestões. O CID-10 busca pelo nome da " +
+            "doença; o diagnóstico inicial preenche sozinho a partir dele. A justificativa clínica é " +
+            "obrigatória, com limite de 700 caracteres — o contador mostra quanto falta.",
+        },
+        {
+          icone: "💾",
+          titulo: "Modelos, histórico e gerar",
+          texto:
+            "Salve como modelo o que você repete sempre. \"Gerar e baixar PDF\" produz o documento final; " +
+            "ele fica registrado no 📜 Histórico deste computador para reabrir depois.",
+        },
+      ],
+    });
+  }
+
   raiz.MeedsSuite.registerModule({
     id: "cmd",
     nome: "Laudo — Conceição do Mato Dentro",
@@ -12614,6 +12851,11 @@
       });
 
       deps.aoClicarBotao(abrirModal);
+      if (typeof deps.aoIniciarTutorial === "function") {
+        deps.aoIniciarTutorial(function () {
+          if (raiz.MeedsSuiteTutorial) raiz.MeedsSuiteTutorial.iniciar("cmd", { dock: d.dock });
+        });
+      }
     },
 
     stop: function () {
@@ -18152,6 +18394,50 @@ function moverFocoResultado(delta) {
   var aoMudarTela = null;
   var aoMudarVisibilidade = null;
 
+  /* ----------------------------------------------------------------
+   * TUTORIAL GUIADO — ver core/tutorial.js para o mecanismo.
+   * Sem painel proprio (botao: null, mesmo desenho do CID-10) — o
+   * botao "👁 Prévia" vive dentro de cada gerador, nao na barra do
+   * dock. So alcancavel pelo "🎓 Ver tutorial" no painel da
+   * engrenagem.
+   * ---------------------------------------------------------------- */
+  if (raiz.MeedsSuiteTutorial) {
+    raiz.MeedsSuiteTutorial.registrar("preview-pdf", {
+      titulo: "Prévia do documento",
+      passos: [
+        {
+          icone: "👁️",
+          titulo: "O que esta função faz",
+          texto:
+            "Mostra o PDF de verdade, ao lado do formulário, atualizado enquanto você preenche — nos " +
+            "geradores de APAC e de laudo. Não é um esboço nem uma imitação: é o mesmo arquivo que o botão " +
+            "\"Gerar\" produz.",
+        },
+        {
+          icone: "🖱️",
+          titulo: "Onde ligar",
+          texto:
+            "O botão \"👁 Prévia\" fica no cabeçalho de cada gerador (APAC, Sete Lagoas, CMD) — não na " +
+            "barra de funções principal, porque só faz sentido dentro de um formulário aberto.",
+        },
+        {
+          icone: "✅",
+          titulo: "Uma diferença deliberada",
+          texto:
+            "O botão \"Gerar\" recusa campo obrigatório vazio; a prévia não — ela precisa desenhar mesmo " +
+            "pela metade, para você conferir o documento enquanto ainda está preenchendo.",
+        },
+        {
+          icone: "📐",
+          titulo: "Tela pequena",
+          texto:
+            "Em telas estreitas o painel de prévia não é oferecido — não cabe lado a lado com o formulário " +
+            "sem espremer os dois.",
+        },
+      ],
+    });
+  }
+
   raiz.MeedsSuite.registerModule({
     id: "preview-pdf",
     nome: "Prévia do documento",
@@ -18179,6 +18465,12 @@ function moverFocoResultado(delta) {
       /* Geradores que subiram antes deste módulo já anunciaram e não
        * encontraram ninguém. Este aviso faz cada um anunciar de novo. */
       deps.publicarEvento("preview:pronto", {});
+
+      if (typeof deps.aoIniciarTutorial === "function") {
+        deps.aoIniciarTutorial(function () {
+          if (raiz.MeedsSuiteTutorial) raiz.MeedsSuiteTutorial.iniciar("preview-pdf", { dock: d.dock });
+        });
+      }
 
       aoMudarTela = function () {
         Object.keys(geradores).forEach(function (id) {

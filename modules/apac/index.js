@@ -920,6 +920,13 @@
     }
     aplicarModeloPadraoSeVazio();
     overlay.abrir();
+    /* So faz alguma coisa na primeira vez (ou se o tutorial nunca foi
+     * registrado) — seguro chamar sempre. Abre por CIMA do modal da
+     * APAC, mesmo empilhamento de qualquer overlay aberto a partir de
+     * outro (ver comentario em criarOverlay(), core/dock.js). */
+    if (raiz.MeedsSuiteTutorial) {
+      raiz.MeedsSuiteTutorial.iniciarSePrimeiraVez("apac", { dock: d.dock });
+    }
   }
 
   /* Porta do preview: produz os bytes sem validar e sem tocar na tela. */
@@ -1324,6 +1331,62 @@
     if (guia) guia.atualizar();
   }
 
+  /* ----------------------------------------------------------------
+   * TUTORIAL GUIADO — ver core/tutorial.js para o mecanismo.
+   * Registro estatico, independente de o modulo estar rodando. O
+   * roteiro cobre, nessa ordem: o que a funcao faz, o preenchimento
+   * automatico a partir da tela, a escolha de procedimento (com os
+   * campos extras de Doppler/Eco/Outro), CID-10, modelos salvos e
+   * historico, e a etapa de assinatura (gov.br ou PDF simples).
+   * ---------------------------------------------------------------- */
+  if (raiz.MeedsSuiteTutorial) {
+    raiz.MeedsSuiteTutorial.registrar("apac", {
+      titulo: "APAC",
+      passos: [
+        {
+          icone: "📋",
+          titulo: "O que esta função faz",
+          texto:
+            "Gera o Laudo para Solicitação/Autorização de Procedimento Ambulatorial (APAC) já preenchido, e " +
+            "encaminha para assinatura no gov.br. O formulário é o mesmo em qualquer município — muda só a " +
+            "unidade solicitante. Atende Itaúna, Betim e Sete Lagoas.",
+        },
+        {
+          icone: "🔄",
+          titulo: "Preenchimento automático",
+          texto:
+            "Município, estabelecimento e dados do paciente vêm sozinhos da tela do atendimento. Se algo " +
+            "não bater — outro paciente na tela, por exemplo — o Assistente avisa antes de sobrescrever o " +
+            "que já estava no formulário.",
+        },
+        {
+          icone: "🩺",
+          titulo: "Procedimento",
+          texto:
+            "Escolha o procedimento nos quadros. Alguns pedem uma informação a mais: Doppler pede o " +
+            "território vascular, Ecocardiograma pede a variante (repouso, estresse ou transesofágico), e " +
+            "\"Outro\" pede o código SIGTAP e o nome exatamente como devem aparecer no campo 19.",
+        },
+        {
+          icone: "🔎",
+          titulo: "CID-10 e modelos salvos",
+          texto:
+            "O campo de CID busca pelo nome da doença, não só pelo código. E se você repete sempre o mesmo " +
+            "procedimento com a mesma justificativa, salve como modelo — da próxima vez é só escolher, e " +
+            "tudo volta preenchido.",
+        },
+        {
+          icone: "🏛️",
+          titulo: "Gerar e assinar",
+          texto:
+            "Depois de \"Gerar PDF\", a APAC já fica registrada no 📜 Histórico deste computador, e você " +
+            "escolhe: \"Assinar via gov.br\" (baixa o PDF e já abre o portal) ou \"Baixar sem assinar\" " +
+            "(PDF simples, para assinar de outro jeito).",
+        },
+      ],
+    });
+  }
+
   raiz.MeedsSuite.registerModule({
     id: "apac",
     nome: "APAC",
@@ -1415,6 +1478,11 @@
       });
 
       deps.aoClicarBotao(abrirModal);
+      if (typeof deps.aoIniciarTutorial === "function") {
+        deps.aoIniciarTutorial(function () {
+          if (raiz.MeedsSuiteTutorial) raiz.MeedsSuiteTutorial.iniciar("apac", { dock: d.dock });
+        });
+      }
 
       // polling de URL: segunda camada, para o caso de a captura passiva
       // nao ter visto a chamada do paciente atual

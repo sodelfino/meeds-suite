@@ -61,6 +61,12 @@
     ".msm-item-ver { font-size:10px; color:#9aa5b1; font-family:ui-monospace,Menlo,monospace; margin-top:4px; }",
     ".msm-fixos { font-size:11px; color:#8a97a4; line-height:1.5; padding:10px 0 2px; border-top:1px solid #f3f6f9; margin-top:4px; }",
     ".msm-fixos b { color:#5b6672; font-weight:600; }",
+    /* Nome de modulo "sempre ativo" que tem tutorial vira botao — mesma
+     * cor do texto ao redor (nao e uma acao "destacada", e so um jeito
+     * de tornar clicavel algo que ja parecia so texto). */
+    ".msm-tutorial-fixo { background:none; border:none; padding:0; font:inherit; font-size:11px; color:#8a97a4; cursor:pointer; text-decoration:underline dotted; }",
+    ".msm-tutorial-fixo:hover { color:#0f766e; }",
+    ".msm-tutorial-fixo b { color:inherit; }",
     ".msm-ajustes { margin-top:7px; background:#fff; border:1.4px solid #c3d4ee; color:#1a4fa0; cursor:pointer; font-size:11.5px; font-family:inherit; font-weight:700; padding:6px 11px; border-radius:8px; }",
     ".msm-ajustes:hover { background:#eef4ff; border-color:#1a4fa0; }",
     /* Mesma forma do botao de Ajustes, paleta verde-agua (a cor do
@@ -465,10 +471,24 @@
       .join("");
 
     if (fixos.length) {
+      /* Modulo "sempre ativo" (sem chave liga/desliga) nunca vira
+       * `.msm-item` — so aparece nesta linha discreta de rodape. Sem
+       * isso, um modulo com tutorial mas sem `.msm-item` (CID-10,
+       * Prévia do documento — os dois com `botao: null`) ficaria com o
+       * roteiro registrado e NENHUM jeito de o medico abrir: o botao
+       * "🎓 Ver tutorial" so existia no template de `.msm-item`. Por
+       * isso o nome vira botao clicavel quando `temTutorial`, em vez de
+       * so texto — mesmo emoji, mesma funcao, formato menor porque a
+       * linha inteira e mais discreta. */
+      var nomesFixos = fixos.map(function (m) {
+        var nome = "<b>" + escapeHtml(m.nome) + "</b>";
+        return m.temTutorial
+          ? '<button type="button" class="msm-tutorial-fixo" data-tutorial="' + escapeHtml(m.id) +
+            '" title="Ver tutorial de ' + escapeHtml(m.nome) + '">' + nome + " 🎓</button>"
+          : nome;
+      });
       lista.innerHTML +=
-        '<div class="msm-fixos">Sempre ativas: <b>' +
-        fixos.map(function (m) { return escapeHtml(m.nome); }).join("</b> e <b>") +
-        "</b>.</div>";
+        '<div class="msm-fixos">Sempre ativas: ' + nomesFixos.join(" e ") + ".</div>";
     }
 
     /* A translucidez em repouso deixou de ter chave: e como o Assistente
