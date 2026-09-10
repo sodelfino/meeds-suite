@@ -31,10 +31,11 @@ desliga num painel, sem reinstalar nada.
 | 🧪 **Exames do município** | Mostra os exames que aquele município oferece — Betim, Macaé, Congonhas e Sete Lagoas — com código, local de realização, especialidade, canal de encaminhamento, a marca de quem exige APAC/Laudo/Alto Custo (💰), e um aviso quando há uma regra específica daquele exame (idade mínima, documento a anexar, justificativa médica obrigatória). Macaé também tem uma seção separada de **Encaminhamentos** — serviços de referência como CRA e Clínica do Autista, que não são exame. O que não está na lista aparece como "não consta" — nunca como exame de outra cidade. |
 | 💊 **Assistente REMUME** | Consulta os medicamentos do município do atendimento. Aceita erro de digitação e nome comercial. |
 
-Algumas funções (hoje: Alarme de Fila, Assistente REMUME e Exames do Município)
-têm um **tutorial guiado** — abre sozinho na primeira vez que você usa a
-função, e fica disponível depois no botão "🎓 Ver tutorial", no painel da
-engrenagem.
+Todas as funções têm um **tutorial guiado** (🎓) — as que têm painel próprio
+oferecem sozinho na primeira vez que você abre; todas ficam disponíveis depois
+no botão "🎓 Ver tutorial", no painel da engrenagem (nas duas que não têm botão
+próprio na barra — Busca de CID-10 e Prévia do documento — o nome vira botão
+clicável na linha "Sempre ativas").
 
 ---
 
