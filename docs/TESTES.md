@@ -28,6 +28,16 @@ real quem faz isso é o `@require` do Tampermonkey.
 **160 casos, 160 passaram, 0 falharam.** Executado em 31/08/2026 contra
 `dist/meeds-suite.safari.user.js` v2.13.0 (corpo idêntico ao pacote do Tampermonkey).
 
+> **Suíte automática (`npm run verificar`).** Além deste roteiro manual, há
+> testes sem navegador que rodam no CI a cada push e PR (`.github/workflows/
+> verificar.yml`): `storage`, `busca-remume`, `exames`, `atencao`,
+> `fila-contagem`, `apac-municipio`, `modelos`, `tutorial`, `sala-espera`,
+> **`historico`** (a pseudonimização do paciente — `referenciaDoPaciente`
+> nunca vaza nome nem CPF completo) e **`network-hub`**
+> (sem assinante o corpo não é lido; a Response volta intacta; assinante que
+> lança não derruba a página). O CI também reprova se o `dist/` estiver
+> dessincronizado da fonte.
+
 ### Núcleo, dock e login
 
 | # | O que verifica | Resultado |
