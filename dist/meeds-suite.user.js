@@ -16850,6 +16850,13 @@ function moverFocoResultado(delta) {
     ".ex-linha input { flex:1; padding:10px 12px; border-radius:9px; border:1.5px solid #cbd5e1; font:inherit; font-size:14px; }",
     ".ex-linha input:focus, .ex-linha select:focus { outline:none; border-color:#0ea5a4; box-shadow:0 0 0 3px rgba(14,165,164,.15); }",
     ".ex-origem { font-size:11px; color:#64748b; margin-top:7px; line-height:1.45; }",
+    /* Botao de Encaminhamentos: fica no cabecalho (fora de .ex-rolagem),
+     * entao nunca rola pra fora de vista — e o CONTEUDO que ele abre e
+     * quem vive dentro da area com rolagem (ver comentario em
+     * pintarEncaminhamentos()). */
+    ".ex-encaminhamentos-btn { margin-top:9px; width:100%; text-align:left; background:#eff6ff; border:1.4px solid #bfdbfe; color:#1e3a8a; font:inherit; font-size:12px; font-weight:700; padding:8px 12px; border-radius:9px; cursor:pointer; }",
+    ".ex-encaminhamentos-btn:hover { background:#e0eefe; border-color:#93c5fd; }",
+    ".ex-encaminhamentos-btn[aria-expanded='true'] { background:#dbeafe; }",
     ".ex-obs { margin:10px 18px 0; padding:10px 12px; background:#fffbeb; border:1px solid #fde68a; border-radius:9px; font-size:12px; color:#78350f; line-height:1.5; }",
     ".ex-obs ul { margin:4px 0 0; padding-left:18px; }",
     ".ex-obs li { margin:3px 0; }",
@@ -16859,8 +16866,10 @@ function moverFocoResultado(delta) {
      * de conduta sobre um exame — e informativo, uma categoria de
      * conteudo diferente das duas outras que ja usam cor. So flex,
      * nunca position:fixed/absolute — mesma regra do resto do modulo. */
-    ".ex-encaminhamentos { margin:10px 18px 0; }",
-    ".ex-enc-titulo { font-size:12px; font-weight:800; color:#1e3a8a; text-transform:uppercase; letter-spacing:.02em; margin-bottom:6px; }",
+    /* Vive DENTRO de .ex-rolagem agora (primeiro item, antes da lista de
+     * exames) — a margem inferior separa do que vem depois; a lateral
+     * fica por conta do padding que .ex-rolagem ja aplica. */
+    ".ex-encaminhamentos { margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid #eef2f7; }",
     ".ex-enc-nota-geral { font-size:11.5px; color:#1e3a8a; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:6px 9px; margin-bottom:8px; line-height:1.5; }",
     ".ex-enc-lista { display:flex; flex-direction:column; gap:8px; }",
     ".ex-enc-cartao { background:#eff6ff; border:1px solid #bfdbfe; border-radius:9px; padding:9px 11px; }",
@@ -16999,17 +17008,37 @@ function moverFocoResultado(delta) {
 
   /* Secao "Encaminhamentos / Serviços de referência" — SEPARADA da
    * lista de exames: nao entra na busca, na paginacao nem na
-   * ordenacao alfabetica de exames, porque nao e exame. Aparece uma
-   * vez, fixa, logo abaixo do aviso de observacoes do municipio (se
-   * houver) e antes da lista — hoje so Macae tem conteudo aqui; para
-   * qualquer outro municipio a secao fica oculta. */
+   * ordenacao alfabetica de exames, porque nao e exame.
+   *
+   * BOTAO NO CABECALHO, CONTEUDO DENTRO DA AREA COM ROLAGEM (nao mais
+   * um bloco sempre aberto no topo). Um municipio com varios servicos
+   * (Macae, 5) escrevia um paragrafo por servico ANTES de `.ex-rolagem`
+   * — o modal tem altura fixa (max-height:82vh do `.ex-modal`), entao
+   * aquele bloco sozinho podia consumir a altura toda e empurrar a
+   * lista de exames pra fora da tela, sem NENHUM jeito de rolar ate
+   * ela (o scroll so existe dentro de `.ex-rolagem`). Por isso o botao
+   * fica fixo no cabecalho (sempre visivel, nunca rola pra fora), e o
+   * conteudo em si vive DENTRO de `.ex-rolagem`, como primeiro item —
+   * ele rola junto com a lista em vez de competir por altura fixa com
+   * ela. So Macae tem conteudo aqui hoje; para qualquer outro
+   * municipio o botao fica oculto. */
   function pintarEncaminhamentos() {
     var enc = blocoDeEncaminhamentosDe(municipioEscolhido);
+    /* Troca de municipio: sempre recolhe. Ver o conteudo de Macae ainda
+     * aberto depois de trocar para Betim (que nao tem nada) confundiria
+     * mais do que ajudaria. */
+    refs.encaminhamentos.classList.add("oculto");
+    refs.encaminhamentosBtn.setAttribute("aria-expanded", "false");
+
     if (!enc || !enc.servicos || !enc.servicos.length) {
-      refs.encaminhamentos.hidden = true;
+      refs.encaminhamentosBtn.classList.add("oculto");
       refs.encaminhamentos.innerHTML = "";
       return;
     }
+
+    refs.encaminhamentosBtn.classList.remove("oculto");
+    refs.encaminhamentosBtn.textContent =
+      "📋 Encaminhamentos / Serviços de referência (" + enc.servicos.length + ")";
 
     var cartoes = enc.servicos.map(function (s) {
       var linhas = "";
@@ -17040,9 +17069,9 @@ function moverFocoResultado(delta) {
       ? '<div class="ex-enc-nota-geral">ℹ️ ' + enc.observacoes.map(escapar).join(" ") + "</div>"
       : "";
 
-    refs.encaminhamentos.hidden = false;
+    /* Conteudo preenchido, mas continua com a classe "oculto" — so o
+     * clique no botao (ligado em montarPainel()) revela. */
     refs.encaminhamentos.innerHTML =
-      '<div class="ex-enc-titulo">📋 Encaminhamentos / Serviços de referência</div>' +
       notaGeral +
       '<div class="ex-enc-lista">' + cartoes + "</div>";
   }
@@ -17408,11 +17437,21 @@ function moverFocoResultado(delta) {
         "      </div>" +
         "    </div>" +
         '    <div class="ex-origem" id="ex-origem"></div>' +
+        /* Botao, nao bloco sempre aberto: um municipio com 5 servicos
+         * de referencia (Macae) escrevia um paragrafo por servico ANTES
+         * da area com scroll propria (.ex-rolagem) — o modal tem altura
+         * fixa (max-height:82vh), entao aquele bloco empurrava a lista
+         * inteira pra fora da tela, sem nenhum jeito de rolar ate ela.
+         * Botao aqui, no cabecalho (fora da area de rolagem, sempre
+         * visivel); o CONTEUDO fica dentro de .ex-rolagem, como o
+         * primeiro item — assim ele rola junto com a lista, em vez de
+         * competir por altura fixa com ela. */
+        '    <button type="button" class="ex-encaminhamentos-btn oculto" id="ex-encaminhamentos-btn"></button>' +
         "  </div>" +
         '  <div class="ex-obs" id="ex-obs" hidden></div>' +
-        '  <div class="ex-encaminhamentos" id="ex-encaminhamentos" hidden></div>' +
         '  <div class="ex-contagem" id="ex-contagem" role="status"></div>' +
         '  <div class="ex-rolagem">' +
+        '    <div class="ex-encaminhamentos oculto" id="ex-encaminhamentos"></div>' +
         '    <div class="ex-nao-consta oculto" id="ex-vazio"></div>' +
         '    <ul class="ex-lista" id="ex-lista" role="list" aria-label="Exames disponíveis neste município"></ul>' +
         '    <button type="button" class="ex-mais oculto" id="ex-mais"></button>' +
@@ -17426,10 +17465,21 @@ function moverFocoResultado(delta) {
     refs.origem = overlay.$("#ex-origem");
     refs.obs = overlay.$("#ex-obs");
     refs.encaminhamentos = overlay.$("#ex-encaminhamentos");
+    refs.encaminhamentosBtn = overlay.$("#ex-encaminhamentos-btn");
+    refs.rolagem = overlay.$(".ex-rolagem");
     refs.contagem = overlay.$("#ex-contagem");
     refs.spinner = overlay.$("#ex-spinner");
     refs.mais = overlay.$("#ex-mais");
     refs.vazio = overlay.$("#ex-vazio");
+
+    refs.encaminhamentosBtn.addEventListener("click", function () {
+      var abrindo = refs.encaminhamentos.classList.contains("oculto");
+      refs.encaminhamentos.classList.toggle("oculto", !abrindo);
+      refs.encaminhamentosBtn.setAttribute("aria-expanded", String(abrindo));
+      if (abrindo && refs.rolagem) {
+        refs.rolagem.scrollTop = 0; // o bloco e o primeiro item da lista
+      }
+    });
 
     overlay.$(".ex-fechar").addEventListener("click", function () { overlay.fechar(); });
 
