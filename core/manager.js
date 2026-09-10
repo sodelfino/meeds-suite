@@ -246,7 +246,7 @@
         "      </div>" +
         '      <div class="msm-sobre-bloco">' +
         '        <div class="msm-sobre-titulo">Privacidade</div>' +
-        '        <p class="msm-sobre-texto">Nenhum dado de paciente é gravado em disco nem enviado para fora. O que fica salvo neste navegador é preferência de uso: funções ligadas, ajustes do alarme e os cadastros desta tela.</p>' +
+        '        <p class="msm-sobre-texto">Nada de paciente sai do navegador, e o que identifica o paciente (nome, CPF, nascimento) nunca vai para o disco. Fica salvo neste navegador: sua preferência de uso (funções ligadas, ajustes do alarme), os cadastros desta tela, e o histórico dos geradores — que guarda a parte clínica dos documentos e só as iniciais + 3 dígitos do CPF, para você reconhecer o atendimento.</p>' +
         "      </div>" +
         "    </div>" +
 

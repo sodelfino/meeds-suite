@@ -265,7 +265,9 @@ ou por inspeção direta do código migrado.
 - [x] Trava de frame (agora 1x, no bootloader)
 - [x] Ocultar tudo na tela de login (agora 1x, no núcleo) — usando a variante
       **mais correta**, que checa visibilidade do campo de senha
-- [x] Nenhum dado de paciente gravado em disco
+- [x] Nada que identifique o paciente vai para o disco (o histórico dos
+      geradores grava a parte clínica + iniciais e 3 dígitos do CPF — ver
+      `core/historico.js` e a seção Privacidade do README)
 - [x] Nenhum envio de dado de paciente para fora do navegador
 
 ---

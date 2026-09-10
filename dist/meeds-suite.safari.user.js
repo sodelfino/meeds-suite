@@ -2,7 +2,7 @@
 // @name         Assistente Meeds para iPad - por Marcelo
 // @namespace    novetech-meeds-suite-safari
 // @version      2.38.0
-// @description  Assistente Meeds - Por: Marcelo. Alarme de fila, APAC de Itauna, laudos de Sete Lagoas e Conceicao do Mato Dentro e consulta a REMUME, numa instalacao unica. Cada funcao liga e desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
+// @description  Assistente Meeds - Por: Marcelo. Alarme de fila, APAC de Itauna, laudos de Sete Lagoas e Conceicao do Mato Dentro e consulta a REMUME, numa instalacao unica. Cada funcao liga e desliga no painel da engrenagem. Nada de paciente sai do navegador; o que identifica o paciente nunca vai para o disco (ver Privacidade no README).
 // @author       Marcelo
 // @match        *://*.meeds.com.br/*
 // @match        *://doctor-calltech.meeds.com.br/*
@@ -3845,7 +3845,7 @@
  * justificativa e unidade — que e o que da trabalho.
  *
  * O QUE E GRAVADO, E O QUE NAO E  (leia antes de mexer aqui)
- * A regra herdada dos cinco scripts originais e clara: NENHUM dado de
+ * A regra herdada dos cinco scripts originais: nada que IDENTIFIQUE o
  * paciente vai para o disco. O historico que existia no APAC gravava o
  * NOME COMPLETO do paciente no armazenamento do Tampermonkey — ou seja,
  * ja contrariava a propria descricao do script.
@@ -5905,7 +5905,7 @@
         "      </div>" +
         '      <div class="msm-sobre-bloco">' +
         '        <div class="msm-sobre-titulo">Privacidade</div>' +
-        '        <p class="msm-sobre-texto">Nenhum dado de paciente é gravado em disco nem enviado para fora. O que fica salvo neste navegador é preferência de uso: funções ligadas, ajustes do alarme e os cadastros desta tela.</p>' +
+        '        <p class="msm-sobre-texto">Nada de paciente sai do navegador, e o que identifica o paciente (nome, CPF, nascimento) nunca vai para o disco. Fica salvo neste navegador: sua preferência de uso (funções ligadas, ajustes do alarme), os cadastros desta tela, e o histórico dos geradores — que guarda a parte clínica dos documentos e só as iniciais + 3 dígitos do CPF, para você reconhecer o atendimento.</p>' +
         "      </div>" +
         "    </div>" +
 

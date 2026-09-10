@@ -2,7 +2,7 @@
 // @name         Assistente Meeds - Por: Marcelo
 // @namespace    novetech-meeds-suite
 // @version      2.38.0
-// @description  Assistente Meeds - Por: Marcelo. Alarme de fila, APAC de Itauna, laudos de Sete Lagoas e Conceicao do Mato Dentro e consulta a REMUME, numa instalacao unica. Cada funcao liga e desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
+// @description  Assistente Meeds - Por: Marcelo. Alarme de fila, APAC de Itauna, laudos de Sete Lagoas e Conceicao do Mato Dentro e consulta a REMUME, numa instalacao unica. Cada funcao liga e desliga no painel da engrenagem. Nada de paciente sai do navegador; o que identifica o paciente nunca vai para o disco (ver Privacidade no README).
 // @author       Marcelo
 // @match        *://*.meeds.com.br/*
 // @match        *://doctor-calltech.meeds.com.br/*

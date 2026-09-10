@@ -162,8 +162,24 @@ docs/                  arquitetura, instalação, manual do admin, testes
 
 ## Privacidade
 
-Nenhum dado de paciente é gravado em disco nem enviado para fora do navegador.
-Nome, CPF e identificador de atendimento vivem só na memória da aba.
+**Nada de paciente sai do navegador.** Não há servidor, telemetria nem serviço
+de terceiro no caminho: as chamadas de rede são só para o próprio Meeds (mesma
+origem) e para buscar no GitHub as listas públicas que o Assistente usa
+(medicamentos, CID-10, exames, rótulos de tela). O "Enviar feedback" abre o
+programa de e-mail do próprio médico — não posta em lugar nenhum.
+
+**No disco, quase nada — e nunca o que identifica o paciente.** Nome completo,
+CPF completo, data de nascimento, nome da mãe e telefone vivem só na memória da
+aba: vão da tela do atendimento para o formulário e somem quando a aba fecha.
+
+A única exceção é o **histórico** dos geradores de APAC e laudo. Para você não
+redigitar a parte clínica de um documento parecido, ele guarda **no navegador**
+(não numa nuvem) as últimas ~30 emissões: procedimento, CID, justificativa,
+unidade, médico e data — mais uma **referência que não identifica ninguém**: as
+iniciais e os três últimos dígitos do CPF (`M.A.S. · •••890`), só para você
+reconhecer qual atendimento foi. "Reabrir" repõe apenas a parte clínica; os
+dados do paciente vêm sempre frescos da tela. Cada gerador tem um botão para
+limpar o próprio histórico.
 
 > **Em desenvolvimento:** a função **Sala de Espera** (aviso de paciente
 > agendado que chegou) está pronta, mas fora desta versão. Ela precisa de
