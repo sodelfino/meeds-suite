@@ -207,7 +207,7 @@
     alternar.setAttribute("aria-pressed", "false");
     alternar.textContent = "👁 Prévia";
     alternar.title = "Ver o documento enquanto preenche";
-    var cabecalho = modal.querySelector("[id$='-modal-head'] > div:last-child") || modal.firstElementChild;
+    var cabecalho = modal.querySelector(".msc-acoes") || modal.firstElementChild;
     if (cabecalho) cabecalho.insertBefore(alternar, cabecalho.firstChild);
 
     var g = {

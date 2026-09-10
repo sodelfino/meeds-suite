@@ -284,6 +284,7 @@
 };
 
   var CSS_PAINEL = [
+    raiz.MeedsSuiteCabecalho.CSS,
     ".af-modal { width: 100%; max-width: 380px; background: #fff; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden; }",
     ".af-modal header { background: linear-gradient(135deg,#dc2626,#f97316); color:#fff; padding:16px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
     ".af-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
@@ -968,8 +969,7 @@
       estilo: CSS_PAINEL,
       html:
         '<div class="af-modal" role="dialog" aria-modal="true">' +
-        "  <header><h2>Alarme de fila</h2>" +
-        '  <button type="button" class="af-fechar" aria-label="Fechar">&#10005;</button></header>' +
+        raiz.MeedsSuiteCabecalho.html({ tom: "alarme", titulo: "Alarme de fila" }) +
         '  <div class="af-body">' +
         "    <div>" +
         "      <label>Como avisar</label>" +
@@ -1000,7 +1000,7 @@
         "</div>",
     });
 
-    painel.$(".af-fechar").addEventListener("click", painel.fechar);
+    painel.$(".msc-fechar").addEventListener("click", painel.fechar);
 
     painel.$$('input[name="af-intensidade"]').forEach(function (radio) {
       radio.addEventListener("change", function () {

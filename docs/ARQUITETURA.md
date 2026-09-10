@@ -1301,14 +1301,32 @@ compilação de qualquer módulo empacotado que contenha `botao: {` — a mesma
 mecânica das outras duas regras de arquitetura, pelo mesmo motivo: regra que
 mora só no README o próximo módulo quebra em silêncio.
 
-O que **não** entrou nesta leva: o cabeçalho de cada janela (`<h2>`) ainda é
-HTML dentro de cada módulo — APAC, LME e CMD usam uma barra de gradiente com
-botões de estilo embutido; REMUME, Exames e Alarme usam um `<header>` com
-subtítulo. Unificar isso num componente de núcleo é o passo seguinte, e é o mais
-arriscado, porque esses cabeçalhos têm ações ligadas por `id`. Por ora, o
-`cabecalho` do manifest alimenta o `title` do botão e fica pronto para quando o
-núcleo assumir o `<h2>`. Substitui a antiga D4, que registrava a decisão oposta
-(rótulo digitado no módulo) e ficou obsoleta.
+**Parte 2 — o cabeçalho das janelas (v2.40.0).** `core/cabecalho.js` expõe
+`MeedsSuiteCabecalho.html({ titulo, subtitulo, tom, acoes, idFechar, idTitulo })`
+e um CSS único. O módulo passa o título e as ações — cada ação com o `id` que ele
+já usava para ligar o clique — e o núcleo desenha a faixa, a ordem e o botão de
+fechar. Migrados: APAC, Sete Lagoas, Conceição, Exames e o Alarme.
+
+Uma exceção deliberada: **a REMUME manteve o cabeçalho próprio**. Ele tem duas
+linhas de subtítulo que mudam em tempo real — o município do atendimento e a
+data dos dados —, e um `subtitulo` estático não cobre isso. Os valores dele
+(padding 15/18, fechar de 28px) já são os do componente novo, então o que se
+perde é só a partilha do markup, não a consistência visual.
+
+As regras de CSS antigas de cabeçalho (`#apac-modal-head`, `.rm-fechar`,
+`.ex-fechar`, `.af-fechar`) continuam nos arquivos, mortas — o seletor não casa
+com nada. Limpá-las é um passo à parte: nos geradores elas estão no meio de uma
+folha de estilo de 2 000 caracteres numa linha só, e removê-las ali é mais
+arriscado do que o ganho.
+
+Ícones (revisão, finding 9): os dois laudos ainda compartilham `📄`, mas agora os
+rótulos dizem a cidade por extenso — a confusão real (`Laudo - CMD`) acabou. Um
+conjunto de ícones SVG chapados, um por módulo, encerraria a variação entre
+sistemas de vez; é trabalho à parte, com o seu próprio teste, porque muda o dock
+de `textContent` para `innerHTML` e o Alarme troca de ícone conforme o estado.
+
+Substitui a antiga D4, que registrava a decisão oposta (rótulo digitado no
+módulo) e ficou obsoleta.
 
 ---
 

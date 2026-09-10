@@ -488,7 +488,8 @@
           : nome;
       });
       lista.innerHTML +=
-        '<div class="msm-fixos">Sempre ativas: ' + nomesFixos.join(" e ") + ".</div>";
+        '<div class="msm-fixos">Sempre ativas, dentro dos formulários de APAC e de laudo — ' +
+        "não têm botão próprio na barra: " + nomesFixos.join(" e ") + ".</div>";
     }
 
     /* A translucidez em repouso deixou de ter chave: e como o Assistente

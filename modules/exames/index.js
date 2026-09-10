@@ -300,6 +300,7 @@
    * ------------------------------------------------------------------ */
 
   var CSS = [
+    raiz.MeedsSuiteCabecalho.CSS,
     ".ex-modal { width:100%; max-width:560px; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.3); overflow:hidden; display:flex; flex-direction:column; max-height:82vh; }",
     ".ex-modal header { background:linear-gradient(135deg,#0f766e,#0ea5a4); color:#fff; padding:15px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
     ".ex-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
@@ -886,9 +887,11 @@
       estilo: CSS,
       html:
         '<div class="ex-modal" role="dialog" aria-modal="true" aria-label="Exames do município">' +
-        "  <header><div><h2>Exames do município</h2>" +
-        "    <p>O que este município oferece — e o que exige APAC ou laudo</p></div>" +
-        '    <button type="button" class="ex-fechar" aria-label="Fechar">&#10005;</button></header>' +
+        raiz.MeedsSuiteCabecalho.html({
+          tom: "consulta",
+          titulo: "Exames do município",
+          subtitulo: "O que este município oferece — e o que exige APAC ou laudo",
+        }) +
         '  <div class="ex-topo">' +
         '    <div class="ex-linha">' +
         '      <select id="ex-municipio" aria-label="Município"></select>' +
@@ -943,7 +946,7 @@
       }
     });
 
-    overlay.$(".ex-fechar").addEventListener("click", function () { overlay.fechar(); });
+    overlay.$(".msc-fechar").addEventListener("click", function () { overlay.fechar(); });
 
     refs.busca.addEventListener("input", function () {
       /* O spinner acende JA, no evento de tecla, e nao dentro do filtro:

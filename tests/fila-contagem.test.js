@@ -45,6 +45,10 @@ function carregar() {
     },
     MutationObserver: function () { this.observe = function () {}; this.disconnect = function () {}; },
     MeedsSuite: { registerModule: (d) => { definicao = d; } },
+    /* No pacote real, core/cabecalho.js roda antes dos modulos e define
+     * isto. Aqui o modulo e carregado sozinho, entao um stub basta — o
+     * teste nao exercita o cabecalho. */
+    MeedsSuiteCabecalho: { CSS: "", html: function () { return ""; } },
   };
   ctx.window = ctx;
   ctx.globalThis = ctx;
