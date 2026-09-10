@@ -150,6 +150,8 @@ docs/                  arquitetura, instalação, manual do admin, testes
 | Documento | Para quê |
 |---|---|
 | [ARQUITETURA.md](docs/ARQUITETURA.md) | desenho, contrato de módulo, decisões técnicas |
+| [SEGURANCA.md](docs/SEGURANCA.md) | modelo de ameaça: o que o Assistente pode/não faz, fronteiras de confiança |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | como propor uma correção; regras que o build cobra |
 | [COMO-ADICIONAR-MODULO.md](docs/COMO-ADICIONAR-MODULO.md) | criar uma função nova, em 6 passos |
 | [MANUAL-ADMIN.md](docs/MANUAL-ADMIN.md) | "quero fazer X → abro o arquivo Y" |
 | [GUIA-INSTALACAO.md](docs/GUIA-INSTALACAO.md) · [GUIA-IPAD.md](docs/GUIA-IPAD.md) | para o médico |

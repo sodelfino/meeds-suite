@@ -9512,7 +9512,17 @@
       var btn = document.createElement("div");
       btn.className = "apac-proc-btn";
       btn.id = "apac-proc-" + key;
-      btn.innerHTML = '<div class="t">' + p.nome + '</div><div class="c">' + (p.codigo || "digitar manualmente") + "</div>";
+      /* textContent, nao innerHTML: p.nome/p.codigo vem de dados/apac.json,
+       * mas a regra do modulo (ver preencherDoCache) e nao concatenar dado
+       * em HTML — nem quando a fonte e "confiavel". */
+      var elNome = document.createElement("div");
+      elNome.className = "t";
+      elNome.textContent = p.nome;
+      var elCod = document.createElement("div");
+      elCod.className = "c";
+      elCod.textContent = p.codigo || "digitar manualmente";
+      btn.appendChild(elNome);
+      btn.appendChild(elCod);
       btn.addEventListener("click", function () { selecionarProc(key); });
       grid.appendChild(btn);
     });
