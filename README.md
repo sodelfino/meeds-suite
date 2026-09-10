@@ -188,3 +188,13 @@ limpar o próprio histórico.
 
 Os dados dos médicos (nome, CRM, CPF, CNS) **não ficam no código**: cada médico
 se cadastra uma vez no próprio navegador, com backup e restauração no painel.
+
+---
+
+## Licença
+
+Propriedade de Marcelo / Novetech — ver **[LICENSE](LICENSE)**. O uso do
+Assistente é livre para apoio ao trabalho clínico; redistribuir ou publicar
+versões modificadas precisa de autorização. O software é fornecido **sem
+garantia**: a conferência de todo documento gerado antes de assinar é do
+profissional.
