@@ -2,6 +2,15 @@
  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
  "versoes": [
   {
+   "versao": "2.40.1",
+   "data": "2026-09-10",
+   "novidades": [],
+   "melhorias": [
+    "No painel da engrenagem, o texto que explica cada função ficou do mesmo tamanho e no mesmo tom para todas: o que ela faz e quando serve, em uma ou duas frases. O do Alarme de Fila era o mais longo e listava as três intensidades — isso agora fica na tela de configuração, onde você escolhe."
+   ],
+   "correcoes": []
+  },
+  {
    "versao": "2.40.0",
    "data": "2026-09-10",
    "novidades": [],

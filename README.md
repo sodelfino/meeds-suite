@@ -26,8 +26,8 @@ desliga num painel, sem reinstalar nada.
 | 🔔 **Alarme de Fila** | Avisa com som e aviso na tela quando entra paciente na fila do Pronto Atendimento, ou quando alguém espera além do tempo definido. Para sozinho quando a fila esvazia. |
 | 📋 **APAC** | Gera a APAC (Autorização de Procedimento Ambulatorial) já preenchida com os dados da tela e leva direto para a assinatura no gov.br. Atende Itaúna, Betim e Sete Lagoas. |
 | 📄 **Laudo — Sete Lagoas** | Preenche o Laudo Médico de Alto Custo no formulário oficial da prefeitura. |
-| 📄 **Laudo — Conceição do Mato Dentro** | Idem, no formulário oficial de CMD. |
-| 🔎 **Buscar CID-10** | Procura o código pelo nome da doença, na tabela completa (14.233 códigos), e preenche no laudo aberto. |
+| 📄 **Laudo — Conceição do Mato Dentro** | Idem, no formulário oficial da prefeitura de Conceição do Mato Dentro. |
+| 🔎 **Busca de CID-10** | Procura o código pelo nome da doença, na tabela completa, e preenche na própria linha do laudo aberto. |
 | 🧪 **Exames do município** | Mostra os exames que aquele município oferece — Betim, Macaé, Congonhas e Sete Lagoas — com código, local de realização, especialidade, canal de encaminhamento, a marca de quem exige APAC/Laudo/Alto Custo (💰), e um aviso quando há uma regra específica daquele exame (idade mínima, documento a anexar, justificativa médica obrigatória). Macaé também tem uma seção separada de **Encaminhamentos** — serviços de referência como CRA e Clínica do Autista, que não são exame. O que não está na lista aparece como "não consta" — nunca como exame de outra cidade. |
 | 💊 **Consulta REMUME** | Consulta os medicamentos do município do atendimento. Aceita erro de digitação e nome comercial. |
 
