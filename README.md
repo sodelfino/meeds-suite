@@ -121,8 +121,10 @@ npm run sync-fallback   # sincroniza a lista de medicamentos embutida
 npm run sync-cid10      # sincroniza a lista de CID embutida
 ```
 
-O build **reprova** se um módulo posicionar o próprio botão em pixel ou
-instalar hook próprio de fetch/XHR. As regras não são só documentação.
+O build **reprova** se um módulo posicionar o próprio botão em pixel, instalar
+hook próprio de fetch/XHR ou usar `eval`/`new Function` (o pacote é autocontido:
+nenhum módulo busca e executa código em runtime). As regras não são só
+documentação.
 
 **Antes de publicar uma versão:** suba `versao` no `manifest.json` (é o único
 lugar — o build propaga para o userscript, o núcleo e o `package.json`) e

@@ -62,6 +62,14 @@ const REGRAS = [
     nome: "hook proprio de fetch/XHR",
     regex: /(XMLHttpRequest\.prototype\.(open|send)\s*=)|(\bwindow\.fetch\s*=)|(\braiz\.fetch\s*=)/,
   },
+  {
+    // O pacote e autocontido (decisao D1). Nenhum modulo pode buscar e
+    // executar JavaScript em runtime — isso e execucao remota de codigo
+    // na sessao autenticada do medico. Pega eval(...), (0, eval)(...) e
+    // new Function(...). Ver D58.
+    nome: "execucao de codigo remoto (eval / new Function)",
+    regex: /\beval\s*[()]|\bnew\s+Function\s*\(/,
+  },
 ];
 
 function verificarRegras(rel, conteudo) {

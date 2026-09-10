@@ -8756,9 +8756,17 @@
   }
 
   /* ----------------------------------------------------------------
-   * jsPDF — resolvido do escopo global (o bootloader ja o carrega via
-   * @require) com o mesmo fallback do original para o caso de o
-   * @require nao ter exposto a lib no escopo esperado.
+   * jsPDF — resolvido do escopo global. O bootloader carrega a lib via
+   * @require, avaliado pelo gerenciador de scripts na INSTALACAO.
+   *
+   * NAO ha fallback que busque e execute a lib em runtime. Ate a v2.38.0
+   * havia um: baixar a lib do cdnjs em runtime e avaliar a resposta.
+   * Isso era execucao remota de codigo dentro da
+   * pagina do atendimento — quem controlasse o cdnjs (ou um MITM na rede
+   * da clinica) rodaria JavaScript arbitrario na sessao autenticada do
+   * medico, contrariando a decisao D1. Removido na D58 (ver
+   * docs/ARQUITETURA.md). Se o @require nao expos a lib, a geracao de
+   * PDF falha com uma mensagem que diz o que fazer.
    * ---------------------------------------------------------------- */
   function resolverJsPDF() {
     var escopos = [];
@@ -8774,35 +8782,12 @@
     return null;
   }
 
-  var jsPDFCarregandoPromise = null;
   function garantirJsPDF() {
     var direto = resolverJsPDF();
     if (direto) return Promise.resolve(direto);
-    if (jsPDFCarregandoPromise) return jsPDFCarregandoPromise;
-    jsPDFCarregandoPromise = new Promise(function (resolve, reject) {
-      if (typeof GM_xmlhttpRequest !== "function") {
-        reject(new Error("o componente jsPDF não está disponível e o Tampermonkey não concedeu permissão para baixá-lo"));
-        return;
-      }
-      GM_xmlhttpRequest({
-        method: "GET",
-        url: "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
-        onload: function (res) {
-          try {
-            (0, eval)(res.responseText);
-            var lib = resolverJsPDF();
-            if (lib) resolve(lib);
-            else reject(new Error("jsPDF avaliado mas não exposto."));
-          } catch (e) {
-            reject(e);
-          }
-        },
-        onerror: function () {
-          reject(new Error("a rede bloqueou o download do jsPDF"));
-        },
-      });
-    });
-    return jsPDFCarregandoPromise;
+    return Promise.reject(
+      new Error("jsPDF não foi carregado pelo @require do gerenciador de scripts")
+    );
   }
 
   /* ----------------------------------------------------------------
@@ -10853,8 +10838,13 @@
   }
 
   /* ----------------------------------------------------------------
-   * pdf-lib — resolvido do escopo global (o bootloader carrega via
-   * @require), com o mesmo fallback do original.
+   * pdf-lib — resolvido do escopo global. Carregado pelo @require do
+   * bootloader, avaliado pelo gerenciador de scripts na INSTALACAO.
+   *
+   * NAO ha fallback que busque e execute a lib em runtime (removido na
+   * D58 — ver docs/ARQUITETURA.md e o comentario equivalente no APAC).
+   * Buscar e executar JavaScript remoto na pagina do atendimento seria
+   * execucao remota de codigo na sessao do medico.
    * ---------------------------------------------------------------- */
   function resolverPdfLib() {
     var escopos = [];
@@ -10868,31 +10858,12 @@
     return null;
   }
 
-  var pdfLibCarregandoPromise = null;
   function garantirPdfLib() {
     var direto = resolverPdfLib();
     if (direto) return Promise.resolve(direto);
-    if (pdfLibCarregandoPromise) return pdfLibCarregandoPromise;
-    pdfLibCarregandoPromise = new Promise(function (resolve, reject) {
-      if (typeof GM_xmlhttpRequest !== "function") {
-        reject(new Error("o componente pdf-lib não está disponível e o Tampermonkey não concedeu permissão para baixá-lo"));
-        return;
-      }
-      GM_xmlhttpRequest({
-        method: "GET",
-        url: "https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js",
-        onload: function (res) {
-          try {
-            (0, eval)(res.responseText);
-            var lib = resolverPdfLib();
-            if (lib) resolve(lib);
-            else reject(new Error("pdf-lib avaliado mas não exposto."));
-          } catch (e) { reject(e); }
-        },
-        onerror: function () { reject(new Error("a rede bloqueou o download do pdf-lib")); },
-      });
-    });
-    return pdfLibCarregandoPromise;
+    return Promise.reject(
+      new Error("pdf-lib não foi carregado pelo @require do gerenciador de scripts")
+    );
   }
 
   function formatarCpf(digits) {
@@ -11898,8 +11869,13 @@
   }
 
   /* ----------------------------------------------------------------
-   * pdf-lib — resolvido do escopo global (o bootloader carrega via
-   * @require), com o mesmo fallback do original.
+   * pdf-lib — resolvido do escopo global. Carregado pelo @require do
+   * bootloader, avaliado pelo gerenciador de scripts na INSTALACAO.
+   *
+   * NAO ha fallback que busque e execute a lib em runtime (removido na
+   * D58 — ver docs/ARQUITETURA.md e o comentario equivalente no APAC).
+   * Buscar e executar JavaScript remoto na pagina do atendimento seria
+   * execucao remota de codigo na sessao do medico.
    * ---------------------------------------------------------------- */
   function resolverPdfLib() {
     var escopos = [];
@@ -11913,31 +11889,12 @@
     return null;
   }
 
-  var pdfLibCarregandoPromise = null;
   function garantirPdfLib() {
     var direto = resolverPdfLib();
     if (direto) return Promise.resolve(direto);
-    if (pdfLibCarregandoPromise) return pdfLibCarregandoPromise;
-    pdfLibCarregandoPromise = new Promise(function (resolve, reject) {
-      if (typeof GM_xmlhttpRequest !== "function") {
-        reject(new Error("o componente pdf-lib não está disponível e o Tampermonkey não concedeu permissão para baixá-lo"));
-        return;
-      }
-      GM_xmlhttpRequest({
-        method: "GET",
-        url: "https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js",
-        onload: function (res) {
-          try {
-            (0, eval)(res.responseText);
-            var lib = resolverPdfLib();
-            if (lib) resolve(lib);
-            else reject(new Error("pdf-lib avaliado mas não exposto."));
-          } catch (e) { reject(e); }
-        },
-        onerror: function () { reject(new Error("a rede bloqueou o download do pdf-lib")); },
-      });
-    });
-    return pdfLibCarregandoPromise;
+    return Promise.reject(
+      new Error("pdf-lib não foi carregado pelo @require do gerenciador de scripts")
+    );
   }
 
   function formatarCpf(digits) {

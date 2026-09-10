@@ -1273,6 +1273,36 @@ Município" nesta leva — os outros 7 módulos da suíte não têm roteiro escr
 ainda; o mecanismo é genérico e qualquer um pode adotar (ver comentário de
 cabeçalho em `core/tutorial.js` para o passo a passo de três linhas).
 
+**D58 — Removido o fallback que baixava e executava jsPDF/pdf-lib em runtime.**
+Até a v2.38.0, `garantirJsPDF()` (APAC) e `garantirPdfLib()` (LME, CMD) tinham
+um fallback: se o `@require` do bootloader não tivesse exposto a lib no escopo
+esperado, o módulo fazia `GM_xmlhttpRequest` para
+`cdnjs.cloudflare.com/.../jspdf.umd.min.js` e rodava `(0, eval)(res.responseText)`.
+
+Isso é **execução remota de código** dentro da página do atendimento, onde vivem
+os dados de paciente: quem controlasse o cdnjs — ou um MITM capaz de forjar TLS
+ou DNS para `cdnjs.cloudflare.com` na rede da clínica — executaria JavaScript
+arbitrário na sessão autenticada do médico. Contradizia diretamente a **D1**
+(*"buscar e executar JavaScript remoto ... cria uma superfície de execução
+remota de código"*) e a flag `manifest.json → carregamentoRemotoDeCodigo: false`.
+
+Agora o único caminho de carga é o `@require`, avaliado pelo gerenciador de
+scripts na instalação. Se ele não expôs a lib, `garantirJsPDF()`/`garantirPdfLib()`
+rejeitam de imediato e a geração de PDF falha com
+`MeedsSuiteMensagens.BIBLIOTECA_NAO_CARREGOU` — que já dizia o que fazer (quase
+sempre é a rede da unidade bloqueando o cdnjs; peça liberação ao TI). O
+comportamento observável só muda quando o `@require` falha: antes tentava um
+segundo caminho arriscado, agora falha com mensagem.
+
+Efeitos colaterais da remoção, todos desejados:
+- `scripts/build.js` ganhou uma terceira regra de arquitetura: `eval(`,
+  `(0, eval)(` e `new Function(` **reprovam o build**. A regra "pacote
+  autocontido" deixou de ser só documentação, como já era o caso de posição
+  hardcoded e hook de rede.
+- `bootloader.user.js` perdeu `@grant GM_xmlhttpRequest` e
+  `@connect cdnjs.cloudflare.com` — nada mais os usa. Menos permissão pedida ao
+  gerenciador de scripts é menos superfície.
+
 ---
 
 ## 7. Risco aberto: CPF e CNS em repositório público

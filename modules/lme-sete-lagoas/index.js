@@ -59,8 +59,13 @@
   }
 
   /* ----------------------------------------------------------------
-   * pdf-lib — resolvido do escopo global (o bootloader carrega via
-   * @require), com o mesmo fallback do original.
+   * pdf-lib — resolvido do escopo global. Carregado pelo @require do
+   * bootloader, avaliado pelo gerenciador de scripts na INSTALACAO.
+   *
+   * NAO ha fallback que busque e execute a lib em runtime (removido na
+   * D58 — ver docs/ARQUITETURA.md e o comentario equivalente no APAC).
+   * Buscar e executar JavaScript remoto na pagina do atendimento seria
+   * execucao remota de codigo na sessao do medico.
    * ---------------------------------------------------------------- */
   function resolverPdfLib() {
     var escopos = [];
@@ -74,31 +79,12 @@
     return null;
   }
 
-  var pdfLibCarregandoPromise = null;
   function garantirPdfLib() {
     var direto = resolverPdfLib();
     if (direto) return Promise.resolve(direto);
-    if (pdfLibCarregandoPromise) return pdfLibCarregandoPromise;
-    pdfLibCarregandoPromise = new Promise(function (resolve, reject) {
-      if (typeof GM_xmlhttpRequest !== "function") {
-        reject(new Error("o componente pdf-lib não está disponível e o Tampermonkey não concedeu permissão para baixá-lo"));
-        return;
-      }
-      GM_xmlhttpRequest({
-        method: "GET",
-        url: "https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js",
-        onload: function (res) {
-          try {
-            (0, eval)(res.responseText);
-            var lib = resolverPdfLib();
-            if (lib) resolve(lib);
-            else reject(new Error("pdf-lib avaliado mas não exposto."));
-          } catch (e) { reject(e); }
-        },
-        onerror: function () { reject(new Error("a rede bloqueou o download do pdf-lib")); },
-      });
-    });
-    return pdfLibCarregandoPromise;
+    return Promise.reject(
+      new Error("pdf-lib não foi carregado pelo @require do gerenciador de scripts")
+    );
   }
 
   function formatarCpf(digits) {
