@@ -1,6 +1,6 @@
 {
  "nome": "Assistente Meeds",
- "versao": "2.40.1",
+ "versao": "2.41.0",
  "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
  "repositorio": "https://github.com/sodelfino/meeds-suite",
  "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -24,6 +24,7 @@
   "core/modelos.js",
   "core/guia.js",
   "core/cabecalho.js",
+  "core/icones.js",
   "core/diagnostico.js",
   "core/novidades.js",
   "core/tutorial.js",
@@ -68,7 +69,7 @@
    ],
    "apresentacao": {
     "formaBotao": "rotulo",
-    "icone": "📋",
+    "icone": "apac",
     "rotuloBotao": "APAC",
     "cabecalho": "Gerador de APAC"
    }
@@ -106,7 +107,7 @@
    ],
    "apresentacao": {
     "formaBotao": "rotulo",
-    "icone": "📄",
+    "icone": "laudo",
     "rotuloBotao": "Laudo — Sete Lagoas",
     "cabecalho": "Laudo Médico de Alto Custo — Sete Lagoas"
    }
@@ -127,7 +128,7 @@
    ],
    "apresentacao": {
     "formaBotao": "rotulo",
-    "icone": "📄",
+    "icone": "laudo",
     "rotuloBotao": "Laudo — Conceição",
     "cabecalho": "Laudo Médico de Alto Custo — Conceição do Mato Dentro"
    }
@@ -145,7 +146,7 @@
    ],
    "apresentacao": {
     "formaBotao": "rotulo",
-    "icone": "💊",
+    "icone": "remume",
     "rotuloBotao": "REMUME",
     "cabecalho": "Consulta REMUME"
    }
@@ -162,7 +163,7 @@
    ],
    "apresentacao": {
     "formaBotao": "rotulo",
-    "icone": "🧪",
+    "icone": "exames",
     "rotuloBotao": "Exames",
     "cabecalho": "Exames do município"
    }

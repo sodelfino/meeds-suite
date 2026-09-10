@@ -77,7 +77,12 @@
     ".ms-btn:active { transform: scale(.97); }",
     ".ms-btn[hidden] { display: none; }",
 
-    /* botao redondo (icone puro), usado por REMUME e pela engrenagem */
+    /* icone SVG (core/icones.js): herda a cor do texto do botao */
+    ".ms-btn .ms-ico { display: inline-flex; width: 16px; height: 16px; flex-shrink: 0; }",
+    ".ms-btn .ms-ico svg { width: 100%; height: 100%; display: block; }",
+    ".ms-btn.ms-btn-icone .ms-ico { width: 22px; height: 22px; }",
+
+    /* botao redondo (icone puro), usado pelo alarme e pela engrenagem */
     ".ms-btn.ms-btn-icone { width: 52px; height: 52px; padding: 0; border-radius: 50%; font-size: 24px; }",
     ".ms-btn.ms-btn-engrenagem {",
     "  width: 42px; height: 42px; font-size: 18px; padding: 0; border-radius: 50%;",
@@ -449,6 +454,38 @@
    * API PUBLICA
    * ------------------------------------------------------------------ */
 
+  /* Conteudo do botao: SVG do core/icones.js quando `icone` casa com uma
+   * chave de la; senao texto/emoji, exatamente como antes. Preserva um
+   * .ms-badge (contador) que outro caminho tenha anexado. */
+  function pintarConteudoBotao(el, icone, rotulo, variante) {
+    var badge = el.querySelector(".ms-badge");
+    var svg =
+      raiz.MeedsSuiteIcones && typeof raiz.MeedsSuiteIcones.obter === "function"
+        ? raiz.MeedsSuiteIcones.obter(icone)
+        : null;
+    var soIcone = variante === "icone" || variante === "engrenagem";
+
+    if (svg) {
+      el.textContent = "";
+      var caixa = document.createElement("span");
+      caixa.className = "ms-ico";
+      caixa.setAttribute("aria-hidden", "true");
+      caixa.innerHTML = svg; // constante do pacote, dentro do shadow root
+      el.appendChild(caixa);
+      if (rotulo && !soIcone) {
+        var rot = document.createElement("span");
+        rot.className = "ms-rot";
+        rot.textContent = rotulo;
+        el.appendChild(rot);
+      }
+    } else {
+      el.textContent = soIcone
+        ? icone || rotulo || ""
+        : (icone ? icone + " " : "") + (rotulo || "");
+    }
+    if (badge) el.appendChild(badge);
+  }
+
   /* registrarBotao({ id, rotulo, icone, prioridade, titulo, variante, aoClicar })
    * Retorna um handle com o que o modulo pode mexer NO SEU botao —
    * e nada mais. Posicao nao esta no handle de proposito. */
@@ -462,9 +499,7 @@
     if (spec.variante === "icone") el.classList.add("ms-btn-icone");
     if (spec.variante === "engrenagem") el.classList.add("ms-btn-icone", "ms-btn-engrenagem");
     el.title = spec.titulo || spec.rotulo || "";
-    el.textContent = spec.variante === "icone" || spec.variante === "engrenagem"
-      ? spec.icone || spec.rotulo || ""
-      : (spec.icone ? spec.icone + " " : "") + (spec.rotulo || "");
+    pintarConteudoBotao(el, spec.icone, spec.rotulo, spec.variante);
     if (typeof spec.aoClicar === "function") el.addEventListener("click", spec.aoClicar);
 
     var registro = {

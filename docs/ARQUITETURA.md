@@ -1319,11 +1319,19 @@ com nada. Limpá-las é um passo à parte: nos geradores elas estão no meio de 
 folha de estilo de 2 000 caracteres numa linha só, e removê-las ali é mais
 arriscado do que o ganho.
 
-Ícones (revisão, finding 9): os dois laudos ainda compartilham `📄`, mas agora os
-rótulos dizem a cidade por extenso — a confusão real (`Laudo - CMD`) acabou. Um
-conjunto de ícones SVG chapados, um por módulo, encerraria a variação entre
-sistemas de vez; é trabalho à parte, com o seu próprio teste, porque muda o dock
-de `textContent` para `innerHTML` e o Alarme troca de ícone conforme o estado.
+**Ícones (revisão, finding 9 — v2.41.0).** `core/icones.js` guarda quatro glifos
+SVG — `apac`, `laudo`, `remume`, `exames` — num traço só, grade de 24,
+`currentColor` para herdar o branco do texto sobre a pílula. O `apresentacao.icone`
+no manifest passou a ser a chave desse mapa em vez de um emoji; o dock
+(`pintarConteudoBotao`) detecta: chave conhecida → desenha o SVG num `<span>`;
+qualquer outra coisa → texto/emoji, como sempre. Os dois laudos usam o mesmo
+glifo de propósito — é o mesmo tipo de documento, e o nome da cidade no rótulo é
+o que separa.
+
+O Alarme e a engrenagem **continuam emoji**: `🔕 / 🔉 / 🔔` é um glifo universal,
+renderiza igual em todo lugar, e o ícone do alarme troca em tempo real por
+`deps.botao.definirTexto()` — trazê-lo para o SVG obrigaria a reescrever essa
+troca sem ganho real.
 
 Substitui a antiga D4, que registrava a decisão oposta (rótulo digitado no
 módulo) e ficou obsoleta.
