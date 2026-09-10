@@ -43,13 +43,13 @@ clicável na linha "Sempre ativas").
 
 **No computador** (Windows, Mac, Linux) ou no Android, com o **Tampermonkey**:
 
-<https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.user.js>
+<https://github.com/sodelfino/meeds-suite/releases/latest/download/meeds-suite.user.js>
 
 Passo a passo: **[docs/GUIA-INSTALACAO.md](docs/GUIA-INSTALACAO.md)**
 
 **No iPad ou iPhone**, com o app gratuito **Userscripts** no Safari:
 
-<https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.safari.user.js>
+<https://github.com/sodelfino/meeds-suite/releases/latest/download/meeds-suite.safari.user.js>
 
 > No iPad, **ligar a extensão em Ajustes → Safari → Extensões é um passo
 > separado** de instalar o app — é onde quase todo mundo trava. Se o link
@@ -121,12 +121,17 @@ npm run sync-fallback   # sincroniza a lista de medicamentos embutida
 npm run sync-cid10      # sincroniza a lista de CID embutida
 ```
 
-O build **reprova** se um módulo posicionar o próprio botão em pixel ou
-instalar hook próprio de fetch/XHR. As regras não são só documentação.
+O build **reprova** se um módulo posicionar o próprio botão em pixel, instalar
+hook próprio de fetch/XHR ou usar `eval`/`new Function` (o pacote é autocontido:
+nenhum módulo busca e executa código em runtime). As regras não são só
+documentação.
 
 **Antes de publicar uma versão:** suba `versao` no `manifest.json` (é o único
 lugar — o build propaga para o userscript, o núcleo e o `package.json`) e
 descreva o que mudou em `dados/changelog.json`. O build avisa se você esquecer.
+O código chega ao médico por **GitHub Release** (uma tag `vX.Y.Z` dispara o
+workflow que anexa os artefatos) — não por push no `main`. Passo a passo:
+**[docs/RELEASE.md](docs/RELEASE.md)**.
 
 ```
 bootloader.user.js     o único arquivo que o médico instala
@@ -145,10 +150,13 @@ docs/                  arquitetura, instalação, manual do admin, testes
 | Documento | Para quê |
 |---|---|
 | [ARQUITETURA.md](docs/ARQUITETURA.md) | desenho, contrato de módulo, decisões técnicas |
+| [SEGURANCA.md](docs/SEGURANCA.md) | modelo de ameaça: o que o Assistente pode/não faz, fronteiras de confiança |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | como propor uma correção; regras que o build cobra |
 | [COMO-ADICIONAR-MODULO.md](docs/COMO-ADICIONAR-MODULO.md) | criar uma função nova, em 6 passos |
 | [MANUAL-ADMIN.md](docs/MANUAL-ADMIN.md) | "quero fazer X → abro o arquivo Y" |
 | [GUIA-INSTALACAO.md](docs/GUIA-INSTALACAO.md) · [GUIA-IPAD.md](docs/GUIA-IPAD.md) | para o médico |
 | [TESTES.md](docs/TESTES.md) | roteiro de QA e resultados |
+| [RELEASE.md](docs/RELEASE.md) | como publicar uma versão; proteções da conta |
 | [DIAGNOSTICO-SALA-ESPERA.md](docs/DIAGNOSTICO-SALA-ESPERA.md) · [DIAGNOSTICO-CID.md](docs/DIAGNOSTICO-CID.md) | investigação de defeitos: causa raiz, evidência e o que foi corrigido |
 | [VIABILIDADE-PREVIEW.md](docs/VIABILIDADE-PREVIEW.md) | por que a prévia do PDF foi feita assim |
 
@@ -156,8 +164,24 @@ docs/                  arquitetura, instalação, manual do admin, testes
 
 ## Privacidade
 
-Nenhum dado de paciente é gravado em disco nem enviado para fora do navegador.
-Nome, CPF e identificador de atendimento vivem só na memória da aba.
+**Nada de paciente sai do navegador.** Não há servidor, telemetria nem serviço
+de terceiro no caminho: as chamadas de rede são só para o próprio Meeds (mesma
+origem) e para buscar no GitHub as listas públicas que o Assistente usa
+(medicamentos, CID-10, exames, rótulos de tela). O "Enviar feedback" abre o
+programa de e-mail do próprio médico — não posta em lugar nenhum.
+
+**No disco, quase nada — e nunca o que identifica o paciente.** Nome completo,
+CPF completo, data de nascimento, nome da mãe e telefone vivem só na memória da
+aba: vão da tela do atendimento para o formulário e somem quando a aba fecha.
+
+A única exceção é o **histórico** dos geradores de APAC e laudo. Para você não
+redigitar a parte clínica de um documento parecido, ele guarda **no navegador**
+(não numa nuvem) as últimas ~30 emissões: procedimento, CID, justificativa,
+unidade, médico e data — mais uma **referência que não identifica ninguém**: as
+iniciais e os três últimos dígitos do CPF (`M.A.S. · •••890`), só para você
+reconhecer qual atendimento foi. "Reabrir" repõe apenas a parte clínica; os
+dados do paciente vêm sempre frescos da tela. Cada gerador tem um botão para
+limpar o próprio histórico.
 
 > **Em desenvolvimento:** a função **Sala de Espera** (aviso de paciente
 > agendado que chegou) está pronta, mas fora desta versão. Ela precisa de
@@ -166,3 +190,13 @@ Nome, CPF e identificador de atendimento vivem só na memória da aba.
 
 Os dados dos médicos (nome, CRM, CPF, CNS) **não ficam no código**: cada médico
 se cadastra uma vez no próprio navegador, com backup e restauração no painel.
+
+---
+
+## Licença
+
+Propriedade de Marcelo / Novetech — ver **[LICENSE](LICENSE)**. O uso do
+Assistente é livre para apoio ao trabalho clínico; redistribuir ou publicar
+versões modificadas precisa de autorização. O software é fornecido **sem
+garantia**: a conferência de todo documento gerado antes de assinar é do
+profissional.

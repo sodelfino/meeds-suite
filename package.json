@@ -2,10 +2,12 @@
   "name": "meeds-suite",
   "version": "2.38.0",
   "private": true,
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "Marcelo / Novetech",
   "description": "Pacote unificado das ferramentas Meeds da Novetech: bootloader unico, nucleo compartilhado e modulos independentes.",
   "scripts": {
     "build": "node scripts/build.js",
-    "verificar": "node scripts/build.js --check && node scripts/sync-fallback.js --check && node scripts/sync-cid10.js --check && node scripts/sync-exames.js --check && node tests/exames.test.js && node tests/sala-espera.test.js && node tests/storage.test.js && node tests/busca-remume.test.js && node tests/apac-municipio.test.js && node tests/atencao.test.js && node tests/fila-contagem.test.js && node tests/modelos.test.js && node tests/tutorial.test.js",
+    "verificar": "node scripts/build.js --check && node scripts/sync-fallback.js --check && node scripts/sync-cid10.js --check && node scripts/sync-exames.js --check && node tests/exames.test.js && node tests/sala-espera.test.js && node tests/storage.test.js && node tests/busca-remume.test.js && node tests/apac-municipio.test.js && node tests/atencao.test.js && node tests/fila-contagem.test.js && node tests/modelos.test.js && node tests/tutorial.test.js && node tests/historico.test.js && node tests/network-hub.test.js",
     "sync-fallback": "node scripts/sync-fallback.js",
     "teste": "node scripts/build.js && node -e \"console.log('Agora sirva a pasta e abra tests/smoke.html — ver docs/TESTES.md')\"",
     "sync-cid10": "node scripts/sync-cid10.js",
@@ -18,6 +20,8 @@
     "teste-contagem": "node tests/fila-contagem.test.js",
     "teste-modelos": "node tests/modelos.test.js",
     "teste-exames": "node tests/exames.test.js",
+    "teste-historico": "node tests/historico.test.js",
+    "teste-network": "node tests/network-hub.test.js",
     "montar-exames": "node scripts/montar-exames.js && node scripts/sync-exames.js"
   },
   "engines": {

@@ -1,0 +1,39 @@
+name: verificar
+
+# Roda a suite completa (npm run verificar) em todo push no main e em todo
+# pull request. Junto com branch protection, e o que garante que codigo que
+# reprova nao chega ao main — e, por tabela, nao vira release.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # O projeto nao tem dependencias (nem node_modules, nem lockfile):
+      # os scripts usam so modulos nativos do Node. Nao ha o que instalar.
+      - name: Suite de verificacao
+        run: npm run verificar
+
+      # Pega o esquecimento classico: mexer no nucleo/modulo/dados e nao
+      # rodar `npm run build`. O dist versionado tem que bater com a fonte.
+      - name: dist/ esta atualizado?
+        run: |
+          node scripts/build.js
+          if ! git diff --quiet -- dist/; then
+            echo "::error::dist/ esta desatualizado. Rode 'npm run build' e faca commit do resultado."
+            git --no-pager diff --stat -- dist/
+            exit 1
+          fi

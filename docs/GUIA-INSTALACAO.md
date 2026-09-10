@@ -18,7 +18,7 @@ tela do Meeds, e você liga ou desliga cada uma pelo botão ⚙️.
    Se ainda não tiver: <https://www.tampermonkey.net>
 2. Abra este link:
 
-   <https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.user.js>
+   <https://github.com/sodelfino/meeds-suite/releases/latest/download/meeds-suite.user.js>
 
 3. O Tampermonkey abre a tela de instalação. Clique em **Instalar**.
 4. Abra o Meeds e faça login normalmente.
@@ -207,10 +207,13 @@ toca na chegada, só quando alguém ultrapassa o limite configurado.
 
 ## 7. Privacidade
 
-- Nenhum dado de paciente é gravado em disco: nome, CPF e identificador de
-  atendimento vivem só na memória da aba e somem quando você fecha ou recarrega.
+- O que identifica o paciente **nunca vai para o disco**: nome, CPF completo,
+  nascimento, nome da mãe e telefone vivem só na memória da aba e somem quando
+  você fecha ou recarrega.
 - Nada de paciente é enviado para fora do navegador.
 - O que fica salvo neste navegador: quais funções estão ligadas, som e volume
   do alarme, a lista de médicos que você cadastrou, e o histórico dos
-  documentos gerados — este último **sem** nome, CPF completo, nascimento,
-  nome da mãe ou telefone do paciente.
+  documentos gerados — este último com a parte clínica (procedimento, CID,
+  justificativa) e uma referência curta que **não identifica** (iniciais + 3
+  últimos dígitos do CPF), **sem** nome, CPF completo, nascimento, nome da mãe
+  ou telefone.

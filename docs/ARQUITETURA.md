@@ -265,7 +265,9 @@ ou por inspeção direta do código migrado.
 - [x] Trava de frame (agora 1x, no bootloader)
 - [x] Ocultar tudo na tela de login (agora 1x, no núcleo) — usando a variante
       **mais correta**, que checa visibilidade do campo de senha
-- [x] Nenhum dado de paciente gravado em disco
+- [x] Nada que identifique o paciente vai para o disco (o histórico dos
+      geradores grava a parte clínica + iniciais e 3 dígitos do CPF — ver
+      `core/historico.js` e a seção Privacidade do README)
 - [x] Nenhum envio de dado de paciente para fora do navegador
 
 ---
@@ -1272,6 +1274,71 @@ Implementado como referência funcionando de ponta a ponta só para "Exames do
 Município" nesta leva — os outros 7 módulos da suíte não têm roteiro escrito
 ainda; o mecanismo é genérico e qualquer um pode adotar (ver comentário de
 cabeçalho em `core/tutorial.js` para o passo a passo de três linhas).
+
+**D58 — Removido o fallback que baixava e executava jsPDF/pdf-lib em runtime.**
+Até a v2.38.0, `garantirJsPDF()` (APAC) e `garantirPdfLib()` (LME, CMD) tinham
+um fallback: se o `@require` do bootloader não tivesse exposto a lib no escopo
+esperado, o módulo fazia `GM_xmlhttpRequest` para
+`cdnjs.cloudflare.com/.../jspdf.umd.min.js` e rodava `(0, eval)(res.responseText)`.
+
+Isso é **execução remota de código** dentro da página do atendimento, onde vivem
+os dados de paciente: quem controlasse o cdnjs — ou um MITM capaz de forjar TLS
+ou DNS para `cdnjs.cloudflare.com` na rede da clínica — executaria JavaScript
+arbitrário na sessão autenticada do médico. Contradizia diretamente a **D1**
+(*"buscar e executar JavaScript remoto ... cria uma superfície de execução
+remota de código"*) e a flag `manifest.json → carregamentoRemotoDeCodigo: false`.
+
+Agora o único caminho de carga é o `@require`, avaliado pelo gerenciador de
+scripts na instalação. Se ele não expôs a lib, `garantirJsPDF()`/`garantirPdfLib()`
+rejeitam de imediato e a geração de PDF falha com
+`MeedsSuiteMensagens.BIBLIOTECA_NAO_CARREGOU` — que já dizia o que fazer (quase
+sempre é a rede da unidade bloqueando o cdnjs; peça liberação ao TI). O
+comportamento observável só muda quando o `@require` falha: antes tentava um
+segundo caminho arriscado, agora falha com mensagem.
+
+Efeitos colaterais da remoção, todos desejados:
+- `scripts/build.js` ganhou uma terceira regra de arquitetura: `eval(`,
+  `(0, eval)(` e `new Function(` **reprovam o build**. A regra "pacote
+  autocontido" deixou de ser só documentação, como já era o caso de posição
+  hardcoded e hook de rede.
+- `bootloader.user.js` perdeu `@grant GM_xmlhttpRequest` e
+  `@connect cdnjs.cloudflare.com` — nada mais os usa. Menos permissão pedida ao
+  gerenciador de scripts é menos superfície.
+- Os dois `@require` ganharam `#sha512=<hash>` (o mesmo SRI que o cdnjs
+  publica). O `@require` continua sendo o único jeito de carregar jsPDF e
+  pdf-lib, mas agora o gerenciador de scripts recusa a lib se um byte tiver
+  mudado — fecha o mesmo buraco pelo caminho legítimo. **Ao subir a versão de
+  jsPDF ou pdf-lib, o hash tem que subir junto:** pegue o campo `sri` em
+  `https://api.cdnjs.com/libraries/<lib>/<versão>?fields=sri` e substitua no
+  `bootloader.user.js`. Hash errado = PDF não gera.
+
+**D59 — Distribuição do código por GitHub Release, não por branch.**
+Até a v2.38.0, `@updateURL` e `@downloadURL` apontavam para
+`raw.githubusercontent.com/sodelfino/meeds-suite/**main**/dist/…`. Todo push no
+`main` — inclusive um commit errado ou vindo de uma conta comprometida —
+chegava ao navegador de todos os médicos em ~24 h, executando na sessão
+autenticada do Meeds. Não havia CI, nem branch protection, nem etapa de
+revisão entre "commitei" e "todo mundo roda".
+
+Agora o `.user.js` é distribuído por **GitHub Release**: as duas URLs apontam
+para `releases/latest/download/<arquivo>`. Um push no `main` não gera release
+e não chega a ninguém — só uma tag `vX.Y.Z`, que dispara o workflow
+`publicar release` (`.github/workflows/publicar.yml`), que reconstrói num
+runner limpo, confere `npm run verificar`, confere tag × `manifest.versao`,
+e anexa os quatro artefatos à Release. O passo a passo e a transição estão em
+[RELEASE.md](RELEASE.md).
+
+Complementos:
+- `.github/workflows/verificar.yml` roda a suíte em todo push e todo PR, e
+  reprova se o `dist/` estiver dessincronizado da fonte. Com branch protection
+  exigindo esse check, código que reprova não entra no `main` — e portanto não
+  vira release.
+- Os **dados** (`seletores.json`, `cid10.json`, `remumes.json`, `exames.json`)
+  continuam vindo do `main`, de propósito: é o canal de correção a quente
+  (ver D1). O que os protege é branch protection + 2FA na conta, mais a
+  validação de formato + fallback embutido que o núcleo já faz.
+- `manifest.json`: `baseRaw` virou `baseReleases`; o `build.js` monta as URLs
+  da variante Safari a partir dele.
 
 ---
 

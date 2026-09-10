@@ -9,7 +9,7 @@
  * justificativa e unidade — que e o que da trabalho.
  *
  * O QUE E GRAVADO, E O QUE NAO E  (leia antes de mexer aqui)
- * A regra herdada dos cinco scripts originais e clara: NENHUM dado de
+ * A regra herdada dos cinco scripts originais: nada que IDENTIFIQUE o
  * paciente vai para o disco. O historico que existia no APAC gravava o
  * NOME COMPLETO do paciente no armazenamento do Tampermonkey — ou seja,
  * ja contrariava a propria descricao do script.
