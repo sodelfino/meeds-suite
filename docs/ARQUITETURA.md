@@ -1338,6 +1338,38 @@ módulo) e ficou obsoleta.
 
 ---
 
+**D59 — O cabeçalho da APAC é a imagem do formulário oficial, não um desenho nosso.**
+A APAC é o único gerador da suíte que nunca usou o padrão de LME/CMD — abrir o
+PDF real da prefeitura via pdf-lib e só preencher por cima. Ela sempre desenhou
+tudo do zero com jsPDF, inclusive o cabeçalho: um retângulo, a palavra "SUS" e o
+título. Funcional, mas era uma **aproximação nossa**, não o original — faltavam
+o emblema do SUS, o texto "Sistema Único de Saúde / Ministério da Saúde" e o
+"fls.1/2" que o formulário do Ministério da Saúde traz.
+
+O pedido foi explícito: sair igual ao modelo oficial, sem alteração. Desenhar o
+brasão do SUS à mão em vetor arriscava exatamente o oposto — uma versão nossa
+do emblema, não o emblema. A solução, então, não foi redesenhar melhor: foi
+**parar de desenhar essa parte**. `modules/apac/assets/cabecalho-oficial.js`
+guarda um recorte fiel (300dpi, convertido para escala de cinza) da caixa de
+cabeçalho do formulário real do Ministério da Saúde, e `gerarPdfInterno` a
+posiciona com `doc.addImage()` na largura da página, mantendo a proporção
+original. Os campos do laudo continuam desenhados dinamicamente por cima, como
+sempre — só o cabeçalho deixou de ser aproximado.
+
+Existe uma reserva: se o asset não estiver no pacote por algum motivo, o código
+volta ao retângulo desenhado à mão em vez de deixar o PDF sem cabeçalho nenhum
+— a mesma filosofia de degradação de qualquer parte "sempre ativa" da suíte.
+
+**O que ficou de fora desta correção, de propósito:** a numeração dos campos no
+corpo do formulário (nosso "3 - Nome do paciente" onde o oficial diz
+"3 - Nome do paciente" mas "6 - CNS" onde o oficial diz "5 - Cartão Nacional de
+Saúde (CNS)", por exemplo) não foi conferida campo a campo contra o modelo
+oficial — o pedido foi especificamente o cabeçalho, num modelo que "está
+rodando". Alinhar a numeração inteira do corpo é trabalho maior, e mais
+arriscado num gerador em produção; fica para quando for pedido.
+
+---
+
 ## 7. Risco aberto: CPF e CNS em repositório público
 
 Os repositórios de origem `lme-sete-lagoas-gerador` e `laudo-cmd-meeds` são

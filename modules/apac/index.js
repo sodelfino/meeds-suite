@@ -34,6 +34,14 @@
   var cacheId = null;
   var ultimaUrl = "";
 
+  /* Cabecalho oficial (SUS/Ministerio da Saude), recorte fiel do
+   * formulario real — ver modules/apac/assets/cabecalho-oficial.js.
+   * "data:" prefixado aqui, nao no asset, para o asset continuar sendo
+   * so o base64 puro (mais facil de trocar sem mexer em codigo). */
+  var CABECALHO_OFICIAL_PNG = raiz.MEEDS_APAC_CABECALHO_B64
+    ? "data:image/png;base64," + raiz.MEEDS_APAC_CABECALHO_B64
+    : null;
+
   /* SHIM DE COMPATIBILIDADE
    * O codigo original acessava o formulario por shadow.getElementById().
    * Em vez de reescrever centenas de chamadas (e arriscar trocar um id),
@@ -506,12 +514,26 @@
       doc.splitTextToSize(String(texto), w).forEach((ln,i)=> doc.text(ln, x, yy+i*leading)); doc.setTextColor(0,0,0);
     }
 
-    doc.rect(M, y, CW, 40); doc.line(M+180, y, M+180, y+40);
-    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text('SUS', M+8, y+24);
-    doc.setFont('helvetica','bolditalic'); doc.setFontSize(10.5);
-    doc.text('LAUDO PARA SOLICITAÇÃO/AUTORIZAÇÃO DE', M+180+(CW-180)/2, y+18, {align:'center'});
-    doc.text('PROCEDIMENTO AMBULATORIAL', M+180+(CW-180)/2, y+30, {align:'center'});
-    y += 40;
+    /* CABEÇALHO: precisa sair IGUAL ao formulário oficial do Ministério
+     * da Saúde, sem alteração — por isso é a imagem do original, não um
+     * desenho nosso aproximando o emblema do SUS. Ver decisão D59 em
+     * docs/ARQUITETURA.md e o comentário em assets/cabecalho-oficial.js. */
+    if (CABECALHO_OFICIAL_PNG) {
+      var propCab = 2299 / 186; // largura/altura do recorte original, 300dpi
+      var altCab = CW / propCab;
+      doc.addImage(CABECALHO_OFICIAL_PNG, 'PNG', M, y, CW, altCab);
+      y += altCab;
+    } else {
+      /* Reserva: só entra em cena se o asset não carregou no pacote —
+       * nunca deveria acontecer em produção. Melhor um cabeçalho feio e
+       * funcional do que um PDF sem cabeçalho nenhum. */
+      doc.rect(M, y, CW, 40); doc.line(M+180, y, M+180, y+40);
+      doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text('SUS', M+8, y+24);
+      doc.setFont('helvetica','bolditalic'); doc.setFontSize(10.5);
+      doc.text('LAUDO PARA SOLICITAÇÃO/AUTORIZAÇÃO DE', M+180+(CW-180)/2, y+18, {align:'center'});
+      doc.text('PROCEDIMENTO AMBULATORIAL', M+180+(CW-180)/2, y+30, {align:'center'});
+      y += 40;
+    }
 
     bar(11, 'IDENTIFICAÇÃO DO ESTABELECIMENTO DE SAÚDE (SOLICITANTE)');
     box(M, y, CW-170, 20, '1 - NOME DO ESTABELECIMENTO', estabelecimentoEscolhido(), {size:8});
