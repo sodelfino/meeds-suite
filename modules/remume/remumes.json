@@ -73,7 +73,8 @@
   },
   {
    "nome": "Alfentanila, cloridrato 0,544mg/ml (544mcg/ml) solução injetável ampola 5ml (port.nº 344/98 Lista A1)",
-   "local": "HPM"
+   "local": "HPM",
+   "receituario": "amarela"
   },
   {
    "nome": "Algestona Acetofenida 150 Mg/ml + Enantato De Estradiol 10 Mg/ml",
@@ -85,11 +86,13 @@
   },
   {
    "nome": "Alprazolam 0,5mg comprimido (Portaria nº344/98 - Lista B1)",
-   "local": "HPM, HPMS, EMERG, FM"
+   "local": "HPM, HPMS, EMERG, FM",
+   "receituario": "azul"
   },
   {
    "nome": "Alprazolam 1mg comprimido (Portaria nº344/98 - Lista B1)",
-   "local": "HPM, EMERG, FM"
+   "local": "HPM, EMERG, FM",
+   "receituario": "azul"
   },
   {
    "nome": "Alprostadil 20mcg pó liofilizado para solução injetável ampola",
@@ -277,11 +280,13 @@
   },
   {
    "nome": "Bromazepam 3mg comprimido (port.nº 344/98 Lista B1)",
-   "local": "HPM, HPMS, EMERG, FM"
+   "local": "HPM, HPMS, EMERG, FM",
+   "receituario": "azul"
   },
   {
    "nome": "Bromazepam 6mg comprimido (port.nº 344/98 Lista B1)",
-   "local": "HPM, HPMS, FM"
+   "local": "HPM, HPMS, FM",
+   "receituario": "azul"
   },
   {
    "nome": "Bromoprida 4mg/ml solução oral frasco 20ml",
@@ -473,7 +478,8 @@
   },
   {
    "nome": "Clobazam 10mg comprimido (port.nº 344/98 Lista B1).",
-   "local": "HPM"
+   "local": "HPM",
+   "receituario": "azul"
   },
   {
    "nome": "Clofazimina 100 mg cápsula",
@@ -489,15 +495,18 @@
   },
   {
    "nome": "Clonazepam 0,5mg comprimido (port.nº 344/98 Lista B1)",
-   "local": "HPM, HPMS, EMERG, FM"
+   "local": "HPM, HPMS, EMERG, FM",
+   "receituario": "azul"
   },
   {
    "nome": "Clonazepam 2,5 mg/ml solução oral frasco 20ml (port.nº 344/98 Lista B1)",
-   "local": "FM"
+   "local": "FM",
+   "receituario": "azul"
   },
   {
    "nome": "Clonazepam 2mg comprimido (port.nº 344/98 Lista B1)",
-   "local": "HPM, HPMS, EMERG, FM"
+   "local": "HPM, HPMS, EMERG, FM",
+   "receituario": "azul"
   },
   {
    "nome": "Clonidina, cloridrato 150mcg/ml (0,15mg/ml) solução injetável ampola 1ml",
@@ -661,15 +670,18 @@
   },
   {
    "nome": "Diazepam 10mg comprimido (port.nº 344/98 Lista B1)",
-   "local": "HPM, HPMS, EMERG, FM"
+   "local": "HPM, HPMS, EMERG, FM",
+   "receituario": "azul"
   },
   {
    "nome": "Diazepam 5mg comprimido (port.nº 344/98 Lista B1)",
-   "local": "HPM, HPMS, EMERG, FM"
+   "local": "HPM, HPMS, EMERG, FM",
+   "receituario": "azul"
   },
   {
    "nome": "Diazepam 5mg/ml solução injetável ampola 2ml (port.nº 344/98 Lista B1)",
-   "local": "HPM, HPMS, EMERG, Maleta"
+   "local": "HPM, HPMS, EMERG, Maleta",
+   "receituario": "azul"
   },
   {
    "nome": "Diclofenaco Potássico 50mg comprimido revestido ou drágea",
@@ -849,15 +861,18 @@
   },
   {
    "nome": "Fentanila, citrato 0,0785mg/ml + Droperidol 2,50mg/ml solução injetável ampola 2ml (port.nº 344/98 Lista A1)",
-   "local": "HPM, Maleta"
+   "local": "HPM, Maleta",
+   "receituario": "amarela"
   },
   {
    "nome": "Fentanila, citrato 50mcg/ml ou 0,050mg/ml solução injetável ampola 10ml (port.nº 344/98 Lista A1)",
-   "local": "HPM, HPMS, EMERG, Maleta"
+   "local": "HPM, HPMS, EMERG, Maleta",
+   "receituario": "amarela"
   },
   {
    "nome": "Fentanila, Citrato 50mcg/ml ou 0,050mg/ml solução injetável ampola 2ml (port.nº 344/98 Lista A1)",
-   "local": "HPM, HPMS"
+   "local": "HPM, HPMS",
+   "receituario": "amarela"
   },
   {
    "nome": "Filgrastim 1ml 300mcg/ml solução injetável frasco ampola",
@@ -1229,7 +1244,8 @@
   },
   {
    "nome": "Lorazepam 2mg comprimido (Portaria nº344/98 - Lista B1)",
-   "local": "HPM"
+   "local": "HPM",
+   "receituario": "azul"
   },
   {
    "nome": "Losartana potássica 50mg comprimido revestido",
@@ -1265,7 +1281,8 @@
   },
   {
    "nome": "Metadona, cloridrato 5mg comprimido (Portaria nº344/98 - Lista A1)",
-   "local": "HPM"
+   "local": "HPM",
+   "receituario": "amarela"
   },
   {
    "nome": "Metformina, cloridrato 500mg comprimido revestido",
@@ -1345,11 +1362,13 @@
   },
   {
    "nome": "Midazolam / Midazolam, maleato 5mg/ml solução injetável ampola 10ml (port.nº 344/98 Lista B1)",
-   "local": "HPM, HPMS, EMERG, Maleta"
+   "local": "HPM, HPMS, EMERG, Maleta",
+   "receituario": "azul"
   },
   {
    "nome": "Midazolam / Midazolam, maleato 5mg/ml solução injetável ampola 3ml (port.nº 344/98 Lista B1)",
-   "local": "HPM, HPMS"
+   "local": "HPM, HPMS",
+   "receituario": "azul"
   },
   {
    "nome": "Milrinona, 10ml lactato 1mg/ml solução injetável ampola",
@@ -1365,23 +1384,28 @@
   },
   {
    "nome": "Morfina, sulfato 0,2mg/ml solução injetável ampola 1ml s/conservante (port.nº 344/98 Lista A1)",
-   "local": "HPM"
+   "local": "HPM",
+   "receituario": "amarela"
   },
   {
    "nome": "Morfina, sulfato 10mg comprimido (port.nº 344/98 Lista A1)",
-   "local": "HPM, HPMS, EMERG, FM"
+   "local": "HPM, HPMS, EMERG, FM",
+   "receituario": "amarela"
   },
   {
    "nome": "Morfina, sulfato 10mg/ml solução injetável ampola 1ml s/conservante (port.nº 344/98 Lista A1)",
-   "local": "HPM, HPMS, EMERG, Maleta"
+   "local": "HPM, HPMS, EMERG, Maleta",
+   "receituario": "amarela"
   },
   {
    "nome": "Morfina, sulfato 1mg/ml solução injetável ampola 2ml s/conservante (port.nº 344/98 Lista A1)",
-   "local": "HPM, HPMS, EMERG"
+   "local": "HPM, HPMS, EMERG",
+   "receituario": "amarela"
   },
   {
    "nome": "Morfina, sulfato 30mg comprimido (port.nº 344/98 Lista A1)",
-   "local": "HPM, HPMS, EMERG, FM"
+   "local": "HPM, HPMS, EMERG, FM",
+   "receituario": "amarela"
   },
   {
    "nome": "Moxifloxacino, cloridrato 1,6mg/ml solução injetável bolsa sistema fechado 250ml",
@@ -1473,7 +1497,8 @@
   },
   {
    "nome": "Nitrazepam 5mg comprimido (port.nº 344/98 Lista B1)",
-   "local": "FM"
+   "local": "FM",
+   "receituario": "azul"
   },
   {
    "nome": "Nitrofurantoína 100mg cápsula gel dura",
@@ -1605,7 +1630,8 @@
   },
   {
    "nome": "Petidina, cloridrato 50mg/ml solução injetável ampola 2ml (port.nº 344/98 Lista A1)",
-   "local": "HPM, HPMS"
+   "local": "HPM, HPMS",
+   "receituario": "amarela"
   },
   {
    "nome": "Piperacilina 4,0g + Tazobactam sódico 0,5G (4,5G) pó liof para solução injetável",

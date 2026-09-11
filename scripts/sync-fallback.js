@@ -48,11 +48,20 @@ const soChecar = process.argv.includes("--check");
  * porque e o formato que o modulo ja sabe ler — normalizarItemRemume()
  * aceita tanto a string legada quanto o objeto {nome, local} do JSON
  * remoto. Manter o legado aqui garante que o fallback continue
- * funcionando mesmo se o formato do JSON evoluir. */
+ * funcionando mesmo se o formato do JSON evoluir.
+ *
+ * "receituario" (amarela/azul — Notificacao de Receita A/B, Portaria
+ * 344/98) vai num segundo marcador, SEMPRE depois do de local: o modulo
+ * descasca da direita para a esquerda (separarReceituario antes de
+ * separarLocalAcesso), entao a ordem aqui tem que casar com a ordem la. */
 function itemParaStringLegado(item) {
   if (typeof item === "string") return item;
   const nome = item.nome || "";
-  return item.local ? `${nome} (Local de acesso: ${item.local})` : nome;
+  let s = item.local ? `${nome} (Local de acesso: ${item.local})` : nome;
+  if (item.receituario === "amarela" || item.receituario === "azul") {
+    s += ` [Receituário: ${item.receituario}]`;
+  }
+  return s;
 }
 
 function gerarFallback(dados) {

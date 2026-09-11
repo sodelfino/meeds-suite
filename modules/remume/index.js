@@ -132,12 +132,62 @@ function separarLocalAcesso(texto) {
     return { nome, local };
   }
 
-function normalizarItemRemume(item) {
-    if (typeof item === "string") return separarLocalAcesso(item);
-    if (item && typeof item === "object") {
-      return { nome: item.nome || "", local: item.local || null };
+  /* O fallback embutido (modules/remume/assets/fallback.js) guarda cada
+   * item como STRING, e o marcador de receituario vem depois do de
+   * local — entao precisa sair PRIMEIRO, da direita para a esquerda,
+   * antes de separarLocalAcesso() rodar no que sobrar. Ver
+   * scripts/sync-fallback.js (itemParaStringLegado). */
+  const REGEX_MARCADOR_RECEITUARIO = /\s*\[Receituário:\s*(amarela|azul)\]\s*$/i;
+
+  function separarReceituario(texto) {
+    const m = REGEX_MARCADOR_RECEITUARIO.exec(texto);
+    if (!m) return { texto: texto, receituario: null };
+    return { texto: texto.slice(0, m.index).trim(), receituario: m[1].toLowerCase() };
+  }
+
+/* "receituario": so existe quando o municipio marcou o medicamento como
+   * sujeito a Notificacao de Receita A (amarela) ou B (azul) — a lista de
+   * entorpecentes/psicotropicos puros da Portaria 344/98, sem o desconto
+   * de dose que tira alguns itens dessa exigencia (ver RECEITUARIO_AVISO
+   * abaixo). Nao inventa: fica null quando a fonte nao informa. */
+  var RECEITUARIOS_VALIDOS = { amarela: true, azul: true };
+
+  /* Notificacao de Receita A (amarela) e B (azul) ainda nao tem
+   * aprovacao para prescricao digital. Se o medicamento entrar
+   * JUNTO com outros numa mesma prescricao eletronica, o pedido nao
+   * sai como esses receituarios exigem e o paciente pode nao
+   * conseguir retirar na farmacia — precisa ir separado, para um
+   * medico presencial transcrever na receita fisica correspondente. */
+  var RECEITUARIO_INFO = {
+    amarela: {
+      icone: "🟡",
+      rotulo: "Receita Amarela",
+      aviso:
+        "Prescreva separadamente dos demais itens — exige Notificação de Receita A (amarela), " +
+        "ainda sem aprovação para prescrição digital. Necessita transcrição por médico presencial " +
+        "em receituário físico; se for junto com outros medicamentos, pode prejudicar o paciente.",
+    },
+    azul: {
+      icone: "🔵",
+      rotulo: "Receita Azul",
+      aviso:
+        "Prescreva separadamente dos demais itens — exige Notificação de Receita B (azul), " +
+        "ainda sem aprovação para prescrição digital. Necessita transcrição por médico presencial " +
+        "em receituário físico; se for junto com outros medicamentos, pode prejudicar o paciente.",
+    },
+  };
+
+  function normalizarItemRemume(item) {
+    if (typeof item === "string") {
+      var semReceituario = separarReceituario(item);
+      var partes = separarLocalAcesso(semReceituario.texto);
+      return { nome: partes.nome, local: partes.local, receituario: semReceituario.receituario };
     }
-    return { nome: String(item), local: null };
+    if (item && typeof item === "object") {
+      var receituario = RECEITUARIOS_VALIDOS[item.receituario] ? item.receituario : null;
+      return { nome: item.nome || "", local: item.local || null, receituario: receituario };
+    }
+    return { nome: String(item), local: null, receituario: null };
   }
 
 const FORMAS_FARMACEUTICAS_RX = new RegExp(
@@ -322,7 +372,7 @@ function buscarMedicamentos(termo, cidade) {
 
     return {
       itens: r.itens.map(function (x) {
-        return { nome: x.nome, local: x.local };
+        return { nome: x.nome, local: x.local, receituario: x.receituario || null };
       }),
       termoReconhecido: termoReconhecido,
       marca: marca,
@@ -546,11 +596,15 @@ function moverFocoResultado(delta) {
     ".rm-hint-alerta { color:#8a2020; background:#fde8e8; border:1px solid #f0b8b8; font-weight:600; }",
     ".rm-count { font-size:11px; color:#5b6c68; }",
     ".rm-results { list-style:none; margin:0; padding:0; overflow-y:auto; flex:1; min-height:120px; border-top:1px solid #eef2f6; }",
-    ".rm-results li { display:flex; align-items:center; gap:10px; padding:8px 4px; border-bottom:1px solid #f1f5f9; font-size:12.5px; line-height:1.45; }",
+    ".rm-results li { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:8px 4px; border-bottom:1px solid #f1f5f9; font-size:12.5px; line-height:1.45; }",
     ".rm-results li.rm-focado { background:#e3f5f3; }",
     ".rm-item-main { flex:1; min-width:0; }",
     ".rm-item-text mark { background:#fde68a; padding:0 1px; border-radius:2px; }",
     ".rm-local { display:inline-block; margin-left:6px; font-size:10.5px; color:#0e7a70; background:#e3f5f3; padding:1px 6px; border-radius:999px; white-space:nowrap; }",
+    ".rm-receituario { display:inline-block; margin-left:6px; font-size:10.5px; font-weight:600; padding:1px 6px; border-radius:999px; white-space:nowrap; }",
+    ".rm-receituario-amarela { color:#7a5d00; background:#fff3c4; }",
+    ".rm-receituario-azul { color:#0b4c8c; background:#dceaff; }",
+    ".rm-aviso-receituario { flex-basis:100%; font-size:11.5px; line-height:1.4; color:#7a5d00; background:#fff8e1; border:1px solid #f2e0a0; border-radius:6px; padding:5px 8px; }",
     ".rm-copiar { background:none; border:1px solid #d8e6e3; border-radius:7px; cursor:pointer; font-size:13px; padding:4px 8px; flex-shrink:0; }",
     ".rm-copiar:hover { background:#e3f5f3; }",
     ".rm-vazio { color:#8a97a4; font-style:italic; padding:14px 4px; }",
@@ -759,7 +813,27 @@ function moverFocoResultado(delta) {
         localSpan.textContent = "\u{1F4CD} " + par.local;
         principal.appendChild(localSpan);
       }
+
+      // selo de receita amarela/azul: so aparece quando o municipio marcou
+      // o item na fonte (RECEITUARIOS_VALIDOS), nunca por deducao daqui
+      var infoReceituario = par.receituario ? RECEITUARIO_INFO[par.receituario] : null;
+      if (infoReceituario) {
+        var receituarioSpan = document.createElement("span");
+        receituarioSpan.className = "rm-receituario rm-receituario-" + par.receituario;
+        receituarioSpan.title = infoReceituario.aviso;
+        receituarioSpan.textContent = infoReceituario.icone + " " + infoReceituario.rotulo;
+        principal.appendChild(receituarioSpan);
+      }
       li.appendChild(principal);
+
+      // linha de aviso completa, alem do selo: o alerta de seguranca nao
+      // pode depender de o medico passar o mouse sobre o title do selo
+      if (infoReceituario) {
+        var avisoDiv = document.createElement("div");
+        avisoDiv.className = "rm-aviso-receituario";
+        avisoDiv.textContent = "⚠️ Atenção: " + infoReceituario.aviso;
+        li.appendChild(avisoDiv);
+      }
 
       var botaoCopiar = document.createElement("button");
       botaoCopiar.type = "button";
@@ -884,6 +958,11 @@ function moverFocoResultado(delta) {
       municipioDetectado = null;
       d = null;
     },
+
+    // Exposto so para teste: como um item da REMUME (objeto do JSON
+    // remoto OU string legada do fallback embutido) vira {nome, local,
+    // receituario}. Ver tests/remume-receituario.test.js.
+    _normalizarItemRemume: function (item) { return normalizarItemRemume(item); },
   });
 
   void atendimentoAtual; // guardado so em memoria, para depuracao no console
