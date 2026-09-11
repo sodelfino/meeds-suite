@@ -113,6 +113,11 @@
     ".msm-rodape-aba { margin-top:16px; padding-top:12px; border-top:1px solid #eef2f6; font-size:11px; color:#8a97a4; line-height:1.6; }",
     ".msm-link { background:none; border:none; color:#1a4fa0; cursor:pointer; font-size:11px; font-family:inherit; font-weight:700; padding:0; text-decoration:underline; }",
     ".msm-link:hover { color:#123a7a; }",
+    /* Discreto de proposito: sem titulo, sem texto explicando o que faz. */
+    ".msm-noturno-linha { text-align:right; margin-top:4px; }",
+    ".msm-noturno { background:none; border:none; color:#c3cad2; cursor:pointer; font-size:9.5px; font-family:inherit; padding:2px; }",
+    ".msm-noturno:hover { color:#8a97a4; }",
+    ".msm-noturno[aria-pressed='true'] { color:#0f766e; font-weight:700; }",
 
     /* mensagens */
     ".msm-aviso, .msm-ok, .msm-erro { font-size:11.5px; line-height:1.55; padding:10px 12px; border-radius:9px; margin:10px 0; }",
@@ -254,6 +259,9 @@
         '        <div class="msm-sobre-titulo">Privacidade</div>' +
         '        <p class="msm-sobre-texto">Nenhum dado de paciente é gravado em disco nem enviado para fora. O que fica salvo neste navegador é preferência de uso: funções ligadas, ajustes do alarme e os cadastros desta tela.</p>' +
         "      </div>" +
+        '      <div class="msm-noturno-linha">' +
+        '        <button type="button" class="msm-noturno" id="msm-noturno" aria-pressed="false">Noturno</button>' +
+        "      </div>" +
         "    </div>" +
 
         "  </div>" +
@@ -352,6 +360,19 @@
         }
       );
     });
+
+    (function () {
+      var botaoNoturno = overlay.$("#msm-noturno");
+      if (!botaoNoturno || !raiz.MeedsSuiteNoturno) return;
+      var refletir = function () {
+        botaoNoturno.setAttribute("aria-pressed", String(raiz.MeedsSuiteNoturno.estaLigado()));
+      };
+      refletir();
+      botaoNoturno.addEventListener("click", function () {
+        raiz.MeedsSuiteNoturno.alternar();
+        refletir();
+      });
+    })();
 
     ctx.dock.registrarBotao({
       id: "_manager",

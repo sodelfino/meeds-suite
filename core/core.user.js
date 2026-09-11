@@ -525,6 +525,7 @@
     }
 
     storageNucleo = Storage.storageDoNucleo();
+    if (raiz.MeedsSuiteNoturno) raiz.MeedsSuiteNoturno.iniciar();
     Dock.garantirHost();
     /* Segunda camada contra dock duplicado: se sobrou um host de uma
      * execucao anterior (SPA que remontou a pagina), remove o orfao. */
