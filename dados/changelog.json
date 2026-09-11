@@ -2,6 +2,15 @@
  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
  "versoes": [
   {
+   "versao": "2.43.1",
+   "data": "2026-09-11",
+   "novidades": [],
+   "melhorias": [],
+   "correcoes": [
+    "O \"Copiar diagnóstico técnico\" (⚙️ → Sobre) trazia só metadado e ficou raso demais na prática — faltava a URL completa, o corpo da resposta e o console inteiro, que é o que normalmente explica por que algo falhou. Agora traz tudo isso, como uma gravação traria. Continua mascarando automaticamente qualquer número de 6 ou mais dígitos (CPF, CNS, CNES, telefone) — é para uso interno, então envie só para quem está te ajudando a resolver."
+   ]
+  },
+  {
    "versao": "2.43.0",
    "data": "2026-09-11",
    "novidades": [

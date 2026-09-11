@@ -1370,54 +1370,50 @@ arriscado num gerador em produção; fica para quando for pedido.
 
 ---
 
-**D60 — Diagnóstico técnico: metadado sempre, conteúdo nunca.**
+**D60 — Diagnóstico técnico: o filtro é o destino, não o conteúdo.**
 Pedido recorrente: quando algo dá errado (a Memed não abre, um laudo não
 gera), quem investiga pede para ver o console e a rede — e um médico não tem
 como responder isso. `core/diagnostico-tecnico.js` monta, com um clique em
 ⚙️ → Sobre → "Copiar diagnóstico técnico", um texto pronto para colar no
-WhatsApp ou e-mail: versão, funções ligadas, navegador, e as chamadas de rede
-que falharam nos últimos 15 minutos.
+WhatsApp ou e-mail com o que aconteceu nos últimos 20 minutos.
 
-A decisão que molda o arquivo inteiro: **console e rede da página não são
-nossos.** São do Meeds e da Memed, e este projeto não controla o que eles
-escrevem ali — uma resposta de erro, em especial, às vezes ecoa de volta o que
-foi enviado. Por isso, três travas, não uma:
+**A v1 (v2.43.0) trouxe só metadado — sem corpo, sem query string, e só linha
+de console que começasse com um rótulo da própria suíte.** Raciocínio: console
+e rede da página não são nossos, são do Meeds e da Memed, e uma resposta de
+erro às vezes ecoa de volta o que foi enviado. Testado em campo, não bastou —
+faltava exatamente o que uma gravação de Jam traz: a URL inteira, a resposta
+inteira, o console inteiro. Sem isso, o texto não respondia à pergunta que
+motivou o recurso ("por que a Memed recusou").
 
-1. **Nunca o corpo da resposta.** Só método, caminho da URL e status. O corpo
-   é onde mais frequentemente um erro de validação devolve o que foi digitado.
-2. **Nunca a query string.** É separada da URL antes de guardar qualquer
-   coisa — é ali que costuma morar CPF, nome ou CNS em parâmetro.
-3. **Console: só linha que comece com um rótulo NOSSO** — `[Assistente
-   Meeds]`, `[Alarme Fila]`, `[Sala de espera]`, `[Assistente REMUME]`,
-   `[CID-10]`, `[CMD Laudo]` — a lista fechada de prefixos que os próprios
-   módulos já usam, verificada contra o código-fonte inteiro (zero exceção).
-   Uma linha que a página ou a Memed escrevam, por mais inofensiva que
-   pareça, nunca entra. Um módulo novo que esqueça de usar um destes
-   prefixos simplesmente não aparece no diagnóstico — a falha é "esconder de
-   menos", nunca "vazar de mais".
+**A correção (v2.43.1) trocou o eixo da decisão.** Não é "quanto entra" — é
+"para onde vai". O texto é de uso interno: quem lê já teria acesso a uma
+gravação de Jam do mesmo instante, então reter menos do que um Jam grava não
+protegia nada que já não estivesse acessível pelo canal que este recurso
+substitui. Trocado explicitamente pelo usuário, depois de testar a v1 e sentir
+a lacuna — não foi uma decisão unilateral deste lado. Agora entram: URL
+completa (com query string), corpo de cada resposta de rede (truncado a 500
+caracteres, para o texto não virar um arquivo), e o console inteiro — o nosso
+e o da página, todos os níveis.
 
-Por cima das três, uma quarta, de propósito redundante: qualquer sequência de
-6 ou mais dígitos seguidos — CPF, CNS, CNES, telefone, data numérica — é
-mascarada antes de entrar no texto final, mesmo vindo de um caminho já
-considerado seguro. Mesmo espírito das duas travas de `core/modelos.js`
-(D31): o erro que este arquivo existe para evitar sai em texto que alguém vai
-ler, então desconfiar duas vezes custa pouco.
+**O que continua de pé, porque não custa nada e não esconde evento nenhum:**
+qualquer sequência de 6 ou mais dígitos seguidos — CPF, CNS, CNES, telefone,
+data numérica — sai mascarada de tudo que entra no texto, inclusive da query
+string e do corpo, que agora aparecem inteiros. A mensagem ao redor do número
+continua literal; só o número vira `12…00(11díg)`. Mesmo espírito das duas
+travas de `core/modelos.js` (D31): não é a garantia que a v1 tentava prometer
+— é a mesma trava barata de sempre, mantida por hábito de desconfiar duas
+vezes, agora coexistindo com uma decisão consciente de trazer o resto sem
+filtro.
 
-**O que isso deixa de fora, conscientemente.** O corpo das respostas de erro
-— que é exatamente onde normalmente aparece "por que a Memed recusou" — não
-entra. Foi decisão explícita, não esquecimento: um filtro de redação
-automática sobre texto livre pega CPF formatado, mas não pega, por exemplo,
-um nome solto no meio de uma frase de erro. "Metadado sempre" é a fronteira
-que se pode prometer sem ressalva; "conteúdo redigido" seria prometer uma
-garantia que o código não consegue cumprir sozinho.
-
-**Buffer em memória, nunca em disco.** Os últimos 15 minutos (no máximo 40
-chamadas com falha e 40 avisos nossos) vivem só na memória da aba — somem no
+**Buffer em memória, nunca em disco.** Os últimos 20 minutos (no máximo 60
+chamadas de rede e 60 linhas de console) vivem só na memória da aba — somem no
 recarregamento, nunca são escritos em `GM_setValue`/IndexedDB. O texto só sai
-do navegador quando o médico aperta "Copiar", pelo mesmo caminho que
+do navegador quando alguém aperta "Copiar", pelo mesmo caminho que
 `core/feedback.js` já usa (área de transferência, com reserva por
 `textarea`+`execCommand` para navegador antigo) — sem servidor, sem serviço
-de terceiro.
+de terceiro. O aviso na própria tela deixou de dizer "sem dado de paciente"
+(deixou de ser verdade) e passou a dizer que o texto é de uso interno e pode
+conter o que estava na tela.
 
 **Efeito colateral corrigido de passagem, na mesma peça de infraestrutura:**
 `core/network-hub.js` só publicava para assinantes quando uma chamada via

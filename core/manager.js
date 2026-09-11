@@ -246,7 +246,7 @@
         "      </div>" +
         '      <div class="msm-sobre-bloco">' +
         '        <div class="msm-sobre-titulo">Deu erro e pediram os detalhes técnicos?</div>' +
-        '        <p class="msm-sobre-texto">Copia a versão do Assistente, as funções ligadas e as chamadas que falharam nos últimos 15 minutos — sem nome, CPF ou qualquer dado de paciente. Cole no WhatsApp ou e-mail para quem estiver te ajudando.</p>' +
+        '        <p class="msm-sobre-texto">Copia o que a tela e a rede mostraram nos últimos 20 minutos — o mesmo que a equipe pediria de uma gravação. Números como CPF e CNS saem mascarados; envie só para quem estiver te ajudando.</p>' +
         '        <button type="button" class="msm-btn msm-btn-sec" id="msm-diagnostico-copiar">📋 Copiar diagnóstico técnico</button>' +
         '        <div id="msm-diagnostico-mensagem"></div>' +
         "      </div>" +

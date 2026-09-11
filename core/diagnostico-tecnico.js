@@ -5,59 +5,44 @@
  * Quando algo dá errado (a Memed não abre, um laudo não gera), a
  * primeira pergunta de quem vai investigar é sempre "o que apareceu no
  * console e na rede?" — e o médico não tem como responder isso. Este
- * arquivo mantém, em memória, um resumo do que aconteceu nos últimos 15
+ * arquivo mantém, em memória, um resumo do que aconteceu nos últimos 20
  * minutos, para virar um texto pronto de colar no WhatsApp ou e-mail com
  * um clique em ⚙️ → Sobre → "Copiar diagnóstico técnico".
  *
- * A DECISÃO QUE MOLDA TUDO AQUI: SÓ METADADO, NUNCA CONTEÚDO
- * O console da PÁGINA e as respostas de rede não são nossos — são do
- * Meeds e da Memed, e nós não controlamos o que eles escrevem ali. Uma
- * resposta de erro, em particular, às vezes ecoa de volta o que foi
- * enviado. Por isso este arquivo NUNCA guarda corpo de resposta, nunca
- * guarda query string de URL, e só guarda linha de console que comece
- * com um dos rótulos que os PRÓPRIOS módulos desta suíte usam — o resto
- * da página pode gritar o que quiser no console que não entra aqui.
+ * V1 (v2.43.0) SÓ TROUXE METADADO — SEM CORPO, SEM QUERY STRING, SÓ
+ * CONSOLE NOSSO. Testado em campo, não bastou: faltava exatamente o que
+ * um Jam grava — a resposta inteira, a URL inteira, o console inteiro —
+ * porque é ali que normalmente aparece "por que a Memed recusou".
  *
- * O que fica, então:
- *   - de rede: só chamadas que FALHARAM (sem resposta, ou status >= 400)
- *     — método, o HOST+CAMINHO da URL (sem "?...", onde costuma morar
- *     parâmetro de paciente), status, duração;
- *   - de console: só as linhas que os módulos desta suíte já imprimem,
- *     que seguem a convenção de nunca citar paciente (é a mesma regra
- *     de ouro de sempre, não uma nova);
- *   - do ambiente: versão, funções ligadas, navegador, o mesmo "modo de
- *     execução" que já aparece na aba Sobre.
+ * A CORREÇÃO (v2.43.1): o destino é interno — quem lê este texto é quem
+ * já teria acesso a uma gravação de Jam do mesmo instante. Então o
+ * cálculo de risco muda, e foi uma decisão explícita, não um relaxamento
+ * por conveniência: agora entram URL completa (com query string),
+ * console inteiro (não só o nosso) e o corpo das respostas de rede,
+ * truncado para o texto não ficar gigante.
  *
- * E, por cima disso, uma segunda trava: qualquer sequência de 6 ou mais
- * dígitos seguidos — CPF, CNS, CNES, telefone, data em formato numérico —
- * é mascarada antes de entrar no texto final, mesmo vindo de um lugar
- * "confiável". Defesa em profundidade, mesmo espírito das duas travas de
- * `core/modelos.js`.
+ * O QUE CONTINUA VALENDO, MESMO ASSIM
+ * Uma trava barata e redundante não é a mesma coisa que confiar demais:
+ * qualquer sequência de 6+ dígitos seguidos (CPF, CNS, CNES, telefone,
+ * data numérica) continua mascarada em TUDO que entra no texto —
+ * inclusive na query string e no corpo, que agora aparecem inteiros. Não
+ * esconde evento nenhum (a mensagem de erro ao redor do número continua
+ * visível); só evita um CPF inteiro solto num texto que vai ser colado
+ * num WhatsApp. Mesmo espírito das duas travas de `core/modelos.js`
+ * (D31): desconfiar duas vezes custa pouco.
  *
  * NADA AQUI VAI PARA SERVIDOR NENHUM. O texto monta na memória do
- * navegador e só sai quando o médico aperta "Copiar" — mesmo caminho
+ * navegador e só sai quando alguém aperta "Copiar" — mesmo caminho
  * (área de transferência) que `core/feedback.js` já usa.
  * ------------------------------------------------------------------ */
 (function (raiz) {
   "use strict";
 
-  var JANELA_MS = 15 * 60 * 1000; // so o que aconteceu nos ultimos 15 min
-  var LIMITE_REDE = 40;
-  var LIMITE_CONSOLE = 40;
-
-  /* Rotulos que OS PROPRIOS modulos desta suite usam em console.debug/
-   * warn/error — conferido contra o codigo-fonte inteiro. Uma linha que
-   * nao comece com um destes e ignorada, nunca guardada. Um modulo novo
-   * que esqueca de entrar nesta lista simplesmente nao aparece no
-   * diagnostico — falha "escondendo de menos", nunca "vazando de mais". */
-  var ROTULOS_NOSSOS = [
-    "[Assistente Meeds]",
-    "[Alarme Fila]",
-    "[Sala de espera]",
-    "[Assistente REMUME]",
-    "[CID-10]",
-    "[CMD Laudo]",
-  ];
+  var JANELA_MS = 20 * 60 * 1000; // so o que aconteceu nos ultimos 20 min
+  var LIMITE_REDE = 60;
+  var LIMITE_CONSOLE = 60;
+  var LIMITE_CORPO = 500; // caracteres por corpo de resposta, truncado
+  var LIMITE_LINHA_CONSOLE = 500;
 
   var redeBuffer = [];
   var consoleBuffer = [];
@@ -67,16 +52,18 @@
 
   /* Mascara qualquer sequencia longa de digito — CPF (11), CNS (15),
    * CNES (7), telefone, data numerica. Mantem so as pontas, para quem le
-   * ainda enxergar "e um numero de X digitos" sem o numero inteiro. */
+   * ainda enxergar "e um numero de X digitos" sem o numero inteiro.
+   * Roda em CIMA de tudo que entra no buffer — URL, corpo, console —
+   * mesmo agora que o resto entra sem filtro de conteudo. */
   function mascararDigitos(texto) {
     return String(texto == null ? "" : texto).replace(/\d{6,}/g, function (seq) {
       return seq.slice(0, 2) + "…" + seq.slice(-2) + "(" + seq.length + "díg)";
     });
   }
 
-  function caminhoSemQuery(url) {
-    var semQuery = String(url || "").split("?")[0].split("#")[0];
-    return mascararDigitos(semQuery);
+  function truncar(texto, limite) {
+    var s = String(texto == null ? "" : texto);
+    return s.length > limite ? s.slice(0, limite) + "… (+" + (s.length - limite) + " car.)" : s;
   }
 
   function podar(lista) {
@@ -85,7 +72,7 @@
   }
 
   /* ------------------------------------------------------------------
-   * SINAL 1: chamadas de rede que falharam
+   * SINAL 1: toda chamada de rede — sucesso e falha, como um Jam grava
    * ------------------------------------------------------------------ */
   function assinarRede() {
     if (!raiz.MeedsSuiteNetwork || typeof raiz.MeedsSuiteNetwork.assinar !== "function") return;
@@ -93,16 +80,15 @@
       { regex: /.*/, idModulo: "diagnostico-tecnico" },
       function (evt) {
         totalChamadas++;
-        // status 0 = a chamada nem completou (rede caiu, CORS, timeout).
-        // status >= 400 = o servidor recusou. Os dois interessam; 2xx/3xx
-        // nao — nem guardamos, pra nao virar ruido nem crescer memoria.
-        if (evt.status !== 0 && evt.status < 400) return;
-        totalFalhas++;
+        var falhou = evt.status === 0 || evt.status >= 400;
+        if (falhou) totalFalhas++;
         redeBuffer.push({
           ts: Date.now(),
           metodo: evt.metodo,
-          caminho: caminhoSemQuery(evt.url),
+          url: mascararDigitos(evt.url),
           status: evt.status,
+          falhou: falhou,
+          corpo: mascararDigitos(truncar(evt.corpo, LIMITE_CORPO)),
         });
         podar(redeBuffer);
         if (redeBuffer.length > LIMITE_REDE) redeBuffer.shift();
@@ -111,38 +97,32 @@
   }
 
   /* ------------------------------------------------------------------
-   * SINAL 2: nossos próprios avisos — nunca os da página
+   * SINAL 2: console inteiro — o nosso e o da página
    * ------------------------------------------------------------------ */
-  function comecaComRotuloNosso(primeiroArgumento) {
-    if (typeof primeiroArgumento !== "string") return false;
-    for (var i = 0; i < ROTULOS_NOSSOS.length; i++) {
-      if (primeiroArgumento.indexOf(ROTULOS_NOSSOS[i]) === 0) return true;
-    }
-    return false;
-  }
-
   function instalarEscutaDeConsole() {
-    ["debug", "warn", "error"].forEach(function (nivel) {
+    ["log", "info", "debug", "warn", "error"].forEach(function (nivel) {
       var original = console[nivel];
       if (typeof original !== "function") return;
       console[nivel] = function () {
         try {
-          if (comecaComRotuloNosso(arguments[0])) {
-            var texto = Array.prototype.slice
-              .call(arguments)
-              .map(function (a) {
-                if (typeof a === "string") return a;
-                try {
-                  return JSON.stringify(a);
-                } catch (e) {
-                  return String(a);
-                }
-              })
-              .join(" ");
-            consoleBuffer.push({ ts: Date.now(), nivel: nivel, texto: mascararDigitos(texto) });
-            podar(consoleBuffer);
-            if (consoleBuffer.length > LIMITE_CONSOLE) consoleBuffer.shift();
-          }
+          var texto = Array.prototype.slice
+            .call(arguments)
+            .map(function (a) {
+              if (typeof a === "string") return a;
+              try {
+                return JSON.stringify(a);
+              } catch (e) {
+                return String(a);
+              }
+            })
+            .join(" ");
+          consoleBuffer.push({
+            ts: Date.now(),
+            nivel: nivel,
+            texto: mascararDigitos(truncar(texto, LIMITE_LINHA_CONSOLE)),
+          });
+          podar(consoleBuffer);
+          if (consoleBuffer.length > LIMITE_CONSOLE) consoleBuffer.shift();
         } catch (e) {
           /* a captura nunca pode ser o motivo de um novo erro */
         }
@@ -183,7 +163,7 @@
     podar(consoleBuffer);
 
     var linhas = [];
-    linhas.push("Assistente Meeds — diagnóstico técnico");
+    linhas.push("Assistente Meeds — diagnóstico técnico (uso interno)");
     linhas.push("Versão " + (ctx.versao || "?") + " · gerado em " + new Date().toLocaleString("pt-BR"));
 
     var funcoes = (ctx.modulos || []).filter(function (m) { return m.habilitado; }).map(function (m) { return m.nome; });
@@ -202,29 +182,36 @@
 
     linhas.push("");
     linhas.push(
-      "Rede, últimos 15 min: " + totalChamadas + " chamada(s) observada(s), " + totalFalhas + " falharam"
+      "Rede, últimos 20 min: " + totalChamadas + " chamada(s) observada(s), " + totalFalhas + " falharam"
     );
     if (redeBuffer.length) {
       redeBuffer.forEach(function (e) {
-        linhas.push("  " + horaCurta(e.ts) + "  " + e.metodo + "  " + e.caminho + "  → " + (e.status || "sem resposta"));
+        linhas.push(
+          "  " + horaCurta(e.ts) + "  " + (e.falhou ? "❌" : "  ") + " " + e.metodo + "  " +
+          e.url + "  → " + (e.status || "sem resposta")
+        );
+        if (e.corpo) linhas.push("      corpo: " + e.corpo);
       });
     } else {
-      linhas.push("  (nenhuma chamada com falha nesta janela)");
+      linhas.push("  (nenhuma chamada observada nesta janela)");
     }
 
     linhas.push("");
-    linhas.push("Avisos do Assistente, últimos 15 min:");
+    linhas.push("Console, últimos 20 min:");
     if (consoleBuffer.length) {
       consoleBuffer.forEach(function (e) {
-        linhas.push("  " + horaCurta(e.ts) + "  " + e.texto);
+        linhas.push("  " + horaCurta(e.ts) + "  [" + e.nivel + "]  " + e.texto);
       });
     } else {
-      linhas.push("  (nenhum)");
+      linhas.push("  (nenhuma linha nesta janela)");
     }
 
     linhas.push("");
     linhas.push("---");
-    linhas.push("Nenhum dado de paciente está neste texto — nem nome, nem CPF, nem conteúdo de formulário.");
+    linhas.push(
+      "Uso interno — este texto pode conter dado de tela (URL, resposta de API, mensagem de console). " +
+      "Números com 6+ dígitos (CPF/CNS/CNES/telefone/data) saem mascarados, mas o resto do conteúdo é literal."
+    );
 
     return linhas.join("\n");
   }
@@ -266,8 +253,7 @@
     copiar: copiar,
     /* exposto so para o teste */
     _mascararDigitos: mascararDigitos,
-    _caminhoSemQuery: caminhoSemQuery,
-    _comecaComRotuloNosso: comecaComRotuloNosso,
+    _truncar: truncar,
     _estado: function () {
       return { redeBuffer: redeBuffer, consoleBuffer: consoleBuffer, totalChamadas: totalChamadas, totalFalhas: totalFalhas };
     },
