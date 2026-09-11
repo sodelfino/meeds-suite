@@ -957,11 +957,41 @@ acrescentei uma linha ao `manifest.json` e rodei `npm run build`. Ele apareceu
 na pilha, na posição declarada, com a janela funcionando — **sem uma linha
 alterada** nos cinco módulos existentes nem no núcleo. Depois removi.
 
+### Cabeçalho oficial da APAC *(v2.42.0)*
+
+O cabeçalho passou a ser a imagem do formulário real do Ministério da Saúde
+(`doc.addImage`) em vez de desenhado à mão — ver decisão D59. Como jsPDF só
+existe via `@require` do Tampermonkey, gerar o PDF de verdade exige navegador;
+não dá para testar em Node como o resto da suíte. Verificado manualmente pelo
+fluxo real do produto (preencher → Gerar PDF → Baixar sem assinar), capturando
+o `Blob` via `URL.createObjectURL` interceptado — sem digitar dado de paciente
+real:
+
+- as **3 cidades** (Itaúna, Betim, Sete Lagoas);
+- **5 tipos de procedimento**, incluindo os dois com campo condicional —
+  Doppler (libera o território vascular) e "Outro" (código SIGTAP manual);
+- em nenhuma das 5 combinações houve erro de validação do módulo nem exceção
+  de JavaScript (`window.onerror` / `console.error` monitorados durante toda
+  a geração);
+- o PDF do caso Doppler foi validado estruturalmente com `pdfinfo` e
+  `pdftoppm` (abre, 1 página, A4, sem corrupção) e o campo do procedimento
+  conferido visualmente — "DOPPLER AORTA ABDOMINAL", código correto.
+
+O que **não** precisa mais de navegador para ser verificado a cada mudança:
+`tests/apac-cabecalho.test.js` confere que o asset da imagem continua listado
+no manifest, que o base64 decodifica para um PNG de verdade (assinatura de
+arquivo, não string vazia ou corrompida), que a proporção é a de uma faixa de
+cabeçalho (não uma página inteira nem um ícone), e que o módulo ainda chama
+`doc.addImage` com uma reserva para o caso de o asset não carregar. Não prova
+que o PDF final está correto — prova que a peça que sustenta essa correção não
+foi apagada nem corrompida em silêncio.
+
 ## Verificações que rodam sem navegador
 
 ```bash
-npm run verificar   # manifest, regras de arquitetura, fallback e as 4 suites de teste
-npm run teste-apac  # so a separacao de municipio da APAC
+npm run verificar             # manifest, regras de arquitetura, fallback e as suites de teste
+npm run teste-apac            # so a separacao de municipio da APAC
+npm run teste-apac-cabecalho  # so o asset do cabecalho oficial (v2.42.0)
 ```
 
 O build **reprova** (código de saída 1) se algum módulo — ou o próprio
@@ -971,9 +1001,12 @@ fetch/XHR. Verificado introduzindo as duas violações de propósito.
 ## O que ainda não é coberto
 
 - Não há teste automatizado em CI. O roteiro acima é manual.
-- O layout dos PDFs não é comparado pixel a pixel com o original. A garantia é
-  que as funções de geração foram extraídas **verbatim** e que os PDFs base são
-  byte a byte idênticos aos dos repositórios de origem.
+- O layout dos PDFs não é comparado pixel a pixel com o original, com uma
+  exceção: o cabeçalho da APAC (v2.42.0) **é** a imagem do formulário oficial,
+  então ali não há como divergir — o resto do corpo da APAC e os PDFs de LME/
+  CMD seguem com a garantia de que as funções de geração foram extraídas
+  **verbatim** e que os PDFs base são byte a byte idênticos aos dos
+  repositórios de origem.
 - O comportamento contra a API real do Meeds (formatos de payload que o mock não
   reproduz) só será exercido na validação em produção.
 - A detecção dos scripts antigos depende de eles manterem os mesmos ids no DOM.
