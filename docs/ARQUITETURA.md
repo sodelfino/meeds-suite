@@ -1370,6 +1370,67 @@ arriscado num gerador em produção; fica para quando for pedido.
 
 ---
 
+**D60 — Diagnóstico técnico: metadado sempre, conteúdo nunca.**
+Pedido recorrente: quando algo dá errado (a Memed não abre, um laudo não
+gera), quem investiga pede para ver o console e a rede — e um médico não tem
+como responder isso. `core/diagnostico-tecnico.js` monta, com um clique em
+⚙️ → Sobre → "Copiar diagnóstico técnico", um texto pronto para colar no
+WhatsApp ou e-mail: versão, funções ligadas, navegador, e as chamadas de rede
+que falharam nos últimos 15 minutos.
+
+A decisão que molda o arquivo inteiro: **console e rede da página não são
+nossos.** São do Meeds e da Memed, e este projeto não controla o que eles
+escrevem ali — uma resposta de erro, em especial, às vezes ecoa de volta o que
+foi enviado. Por isso, três travas, não uma:
+
+1. **Nunca o corpo da resposta.** Só método, caminho da URL e status. O corpo
+   é onde mais frequentemente um erro de validação devolve o que foi digitado.
+2. **Nunca a query string.** É separada da URL antes de guardar qualquer
+   coisa — é ali que costuma morar CPF, nome ou CNS em parâmetro.
+3. **Console: só linha que comece com um rótulo NOSSO** — `[Assistente
+   Meeds]`, `[Alarme Fila]`, `[Sala de espera]`, `[Assistente REMUME]`,
+   `[CID-10]`, `[CMD Laudo]` — a lista fechada de prefixos que os próprios
+   módulos já usam, verificada contra o código-fonte inteiro (zero exceção).
+   Uma linha que a página ou a Memed escrevam, por mais inofensiva que
+   pareça, nunca entra. Um módulo novo que esqueça de usar um destes
+   prefixos simplesmente não aparece no diagnóstico — a falha é "esconder de
+   menos", nunca "vazar de mais".
+
+Por cima das três, uma quarta, de propósito redundante: qualquer sequência de
+6 ou mais dígitos seguidos — CPF, CNS, CNES, telefone, data numérica — é
+mascarada antes de entrar no texto final, mesmo vindo de um caminho já
+considerado seguro. Mesmo espírito das duas travas de `core/modelos.js`
+(D31): o erro que este arquivo existe para evitar sai em texto que alguém vai
+ler, então desconfiar duas vezes custa pouco.
+
+**O que isso deixa de fora, conscientemente.** O corpo das respostas de erro
+— que é exatamente onde normalmente aparece "por que a Memed recusou" — não
+entra. Foi decisão explícita, não esquecimento: um filtro de redação
+automática sobre texto livre pega CPF formatado, mas não pega, por exemplo,
+um nome solto no meio de uma frase de erro. "Metadado sempre" é a fronteira
+que se pode prometer sem ressalva; "conteúdo redigido" seria prometer uma
+garantia que o código não consegue cumprir sozinho.
+
+**Buffer em memória, nunca em disco.** Os últimos 15 minutos (no máximo 40
+chamadas com falha e 40 avisos nossos) vivem só na memória da aba — somem no
+recarregamento, nunca são escritos em `GM_setValue`/IndexedDB. O texto só sai
+do navegador quando o médico aperta "Copiar", pelo mesmo caminho que
+`core/feedback.js` já usa (área de transferência, com reserva por
+`textarea`+`execCommand` para navegador antigo) — sem servidor, sem serviço
+de terceiro.
+
+**Efeito colateral corrigido de passagem, na mesma peça de infraestrutura:**
+`core/network-hub.js` só publicava para assinantes quando uma chamada via
+`fetch` respondia com `resposta.ok` — uma falha via `fetch` (diferente de
+XHR, cujo evento `load` dispara para qualquer status) ficava invisível para
+**todo** assinante, não só o novo. Os seis consumidores existentes já
+filtravam por `evt.status === 200` internamente (ou ignoravam status por
+completo), então publicar sempre — inclusive status 0 quando o `fetch` é
+rejeitado por completo (rede caiu, CORS, timeout) — não muda o comportamento
+de nenhum deles; só deixa de esconder a metade que faltava.
+
+---
+
 ## 7. Risco aberto: CPF e CNS em repositório público
 
 Os repositórios de origem `lme-sete-lagoas-gerador` e `laudo-cmd-meeds` são

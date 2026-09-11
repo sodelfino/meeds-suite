@@ -171,7 +171,17 @@
           promessa
             .then(function (resposta) {
               try {
-                if (resposta && resposta.ok) {
+                if (resposta) {
+                  /* ATE A v2.43.0 isto so publicava quando resposta.ok
+                   * era verdadeiro — uma falha via fetch (ao contrario
+                   * de XHR, cujo "load" dispara para qualquer status)
+                   * ficava invisivel para TODO assinante, nao so os que
+                   * ja existiam. Ninguem sentiu falta porque os
+                   * assinantes de entao so queriam status 200 mesmo —
+                   * mas um observador de diagnostico (D60) precisa
+                   * enxergar exatamente a falha. Publicar sempre nao
+                   * muda nada para quem ja filtra por status: so abre a
+                   * porta pra quem quer o outro lado. */
                   // .clone() e obrigatorio: consumir o corpo original
                   // deixaria a aplicacao sem resposta para ler.
                   resposta
@@ -180,14 +190,28 @@
                     .then(function (texto) {
                       publicar(alvos, montarEvento(url, metodo, resposta.status, texto));
                     })
-                    .catch(function () {});
+                    .catch(function () {
+                      // corpo nao pode ser lido (ex: ja consumido, vazio) —
+                      // ainda assim publica o status, que e o que mais
+                      // importa para quem so quer saber SE falhou.
+                      publicar(alvos, montarEvento(url, metodo, resposta.status, ""));
+                    });
                 }
               } catch (e) {
                 /* silencioso */
               }
               return resposta;
             })
-            .catch(function () {});
+            .catch(function () {
+              // fetch REJEITADO (rede caiu, CORS, timeout): nao ha
+              // resposta nenhuma. status 0 e o unico jeito de avisar que
+              // a chamada nem chegou a completar.
+              try {
+                publicar(alvos, montarEvento(url, metodo, 0, ""));
+              } catch (e) {
+                /* silencioso */
+              }
+            });
         }
 
         return promessa; // sempre a promessa original, intacta

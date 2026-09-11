@@ -245,6 +245,12 @@
         '        <button type="button" class="msm-btn" id="msm-feedback">Enviar feedback</button>' +
         "      </div>" +
         '      <div class="msm-sobre-bloco">' +
+        '        <div class="msm-sobre-titulo">Deu erro e pediram os detalhes técnicos?</div>' +
+        '        <p class="msm-sobre-texto">Copia a versão do Assistente, as funções ligadas e as chamadas que falharam nos últimos 15 minutos — sem nome, CPF ou qualquer dado de paciente. Cole no WhatsApp ou e-mail para quem estiver te ajudando.</p>' +
+        '        <button type="button" class="msm-btn msm-btn-sec" id="msm-diagnostico-copiar">📋 Copiar diagnóstico técnico</button>' +
+        '        <div id="msm-diagnostico-mensagem"></div>' +
+        "      </div>" +
+        '      <div class="msm-sobre-bloco">' +
         '        <div class="msm-sobre-titulo">Privacidade</div>' +
         '        <p class="msm-sobre-texto">Nenhum dado de paciente é gravado em disco nem enviado para fora. O que fica salvo neste navegador é preferência de uso: funções ligadas, ajustes do alarme e os cadastros desta tela.</p>' +
         "      </div>" +
@@ -329,6 +335,22 @@
         modulos: ctx.listarModulos(),
         contato: ctx.contato,
       });
+    });
+
+    overlay.$("#msm-diagnostico-copiar").addEventListener("click", function () {
+      var caixa = overlay.$("#msm-diagnostico-mensagem");
+      var diagTec = raiz.MeedsSuiteDiagnosticoTecnico;
+      if (!diagTec) return;
+      diagTec.copiar(
+        { versao: ctx.versaoNucleo, modulos: ctx.listarModulos() },
+        function () {
+          caixa.innerHTML = '<div class="msm-ok">Copiado. Cole no WhatsApp, no e-mail ou onde preferir.</div>';
+        },
+        function () {
+          caixa.innerHTML =
+            '<div class="msm-erro">Não consegui copiar automaticamente. Tente de novo, ou avise quem está te ajudando.</div>';
+        }
+      );
     });
 
     ctx.dock.registrarBotao({

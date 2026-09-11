@@ -67,6 +67,13 @@
    * dentro do iniciar() que espera o DOM. */
   raiz.MeedsSuiteNetwork.instalar();
 
+  /* 2.1) O diagnostico tecnico ("copiar diagnostico" na aba Sobre)
+   * precisa comecar a observar rede e console DESDE JA — ele so serve
+   * porque, quando o medico clica, ja tem os ultimos minutos gravados.
+   * Comecar depois do DOM pronto perderia justamente os primeiros
+   * minutos do plantao. Ver decisao D60 em docs/ARQUITETURA.md. */
+  raiz.MeedsSuiteDiagnosticoTecnico.instalar();
+
   /* __MEEDS_SUITE_MODULOS__ */
 
   /* 3) A UI so pode ser montada com <body> disponivel. */
