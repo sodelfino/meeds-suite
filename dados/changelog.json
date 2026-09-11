@@ -2,10 +2,10 @@
  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
  "versoes": [
   {
-   "versao": "2.42.1",
+   "versao": "2.42.2",
    "data": "2026-09-11",
    "novidades": [
-    "Assistente REMUME (Macaé): medicamentos que exigem Notificação de Receita A (amarela) ou B (azul) agora aparecem com um selo e um aviso — essas duas receitas ainda não têm aprovação para prescrição digital, então precisam ser prescritas separadamente dos demais itens, para transcrição por um médico presencial. 26 medicamentos marcados: 11 de Receita Amarela (morfina, fentanila, metadona, petidina, alfentanila) e 15 de Receita Azul (diazepam, midazolam, clonazepam, alprazolam, bromazepam, lorazepam, nitrazepam, clobazam)."
+    "Assistente REMUME, nos 11 municípios: medicamentos que exigem Notificação de Receita A (amarela) ou B (azul) agora aparecem com um selo e um aviso — essas duas receitas ainda não têm aprovação para prescrição digital, então precisam ser prescritas separadamente dos demais itens, para transcrição por um médico presencial. 96 medicamentos marcados ao todo: Receita Amarela (morfina, fentanila, metadona, petidina, alfentanila) e Receita Azul (diazepam, midazolam, clonazepam, alprazolam, bromazepam, lorazepam, nitrazepam, clobazam)."
    ],
    "correcoes": [],
    "melhorias": []

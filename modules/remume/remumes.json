@@ -2377,7 +2377,8 @@
   },
   {
    "nome": "Clonazepam 2,5mg/ml - Solução oral",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Cloreto de Potássio 191mg/ml (19,1%) - Solução injetável",
@@ -2525,11 +2526,13 @@
   },
   {
    "nome": "Diazepam 5mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Diazepam 5mg/ml - Solução injetável",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Diclofenaco Sódico 25mg/ml - Solução injetável",
@@ -3219,11 +3222,13 @@
   },
   {
    "nome": "Clonazepam 2,5mg/mL",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Clonazepam 2mg",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Cloreto de Sódio 0,9%",
@@ -3271,7 +3276,8 @@
   },
   {
    "nome": "Diazepam 10mg",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Diclofenaco de Sódio 50mg",
@@ -3941,11 +3947,13 @@
   },
   {
    "nome": "Clonazepam 2,5mg/ml - Solução Oral",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Clonazepam 2mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Cloreto de Sódio 0,9% (9mg/ml) - Solução Nasal",
@@ -3981,11 +3989,13 @@
   },
   {
    "nome": "Diazepam 10mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Diazepam 5mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Digoxina 0,25mg - Comprimido",
@@ -4423,7 +4433,8 @@
   },
   {
    "nome": "Alfentanila Cloridrato 0,544mg/ml - Solução Injetável",
-   "local": null
+   "local": null,
+   "receituario": "amarela"
   },
   {
    "nome": "Alopurinol 100mg - Comprimido",
@@ -4739,7 +4750,8 @@
   },
   {
    "nome": "Clobazam 10mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Clomipramina 25mg - Comprimido",
@@ -4751,11 +4763,13 @@
   },
   {
    "nome": "Clonazepam 2,5mg/ml - Solução Oral",
-   "local": "UBS, UPA, CERSAM, CAPS-AD, CERSAMI, HPRB"
+   "local": "UBS, UPA, CERSAM, CAPS-AD, CERSAMI, HPRB",
+   "receituario": "azul"
   },
   {
    "nome": "Clonazepam 2mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Clonidina 0,15mg/ml - Solução Injetável",
@@ -4875,11 +4889,13 @@
   },
   {
    "nome": "Diazepam 10mg - Comprimido",
-   "local": "UBS, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB"
+   "local": "UBS, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB",
+   "receituario": "azul"
   },
   {
    "nome": "Diazepam 5mg/ml - Solução Injetável",
-   "local": "UBS, CX EMERGÊNCIA, UPA, CERSAM, CAPS-AD, CERSAMI, SEPADI, HPRB, CIMUC, SAMU"
+   "local": "UBS, CX EMERGÊNCIA, UPA, CERSAM, CAPS-AD, CERSAMI, SEPADI, HPRB, CIMUC, SAMU",
+   "receituario": "azul"
   },
   {
    "nome": "Digoxina 0,25mg - Comprimido",
@@ -5027,7 +5043,8 @@
   },
   {
    "nome": "Fentanila 0,05mg/ml - Solução Injetável",
-   "local": "UPA, HPRB, SAMU"
+   "local": "UPA, HPRB, SAMU",
+   "receituario": "amarela"
   },
   {
    "nome": "Finasterida 5mg - Comprimido",
@@ -5303,7 +5320,8 @@
   },
   {
    "nome": "Lorazepam 2mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Losartana 50mg - Comprimido",
@@ -5331,7 +5349,8 @@
   },
   {
    "nome": "Metadona 10mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "amarela"
   },
   {
    "nome": "Metaraminol, Hemitartarato 10mg/ml - Solução Injetável",
@@ -5395,11 +5414,13 @@
   },
   {
    "nome": "Midazolam 15mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Midazolam 5mg/ml - Solução Injetável",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Milrinona Lactato 1mg/ml - Solução Injetável",
@@ -5415,15 +5436,18 @@
   },
   {
    "nome": "Morfina Sulfato 0,1mg/ml - Solução Injetável",
-   "local": null
+   "local": null,
+   "receituario": "amarela"
   },
   {
    "nome": "Morfina Sulfato 10mg/ml - Solução Injetável",
-   "local": "CX EMERGÊNCIA, UPA, HPRB, SEPADI, CIMUC, SAMU, PID"
+   "local": "CX EMERGÊNCIA, UPA, HPRB, SEPADI, CIMUC, SAMU, PID",
+   "receituario": "amarela"
   },
   {
    "nome": "Morfina Sulfato 1mg/ml - Solução Injetável",
-   "local": null
+   "local": null,
+   "receituario": "amarela"
   },
   {
    "nome": "Moxifloxacino 1,6mg/ml (400mg) - Solução Injetável",
@@ -5487,7 +5511,8 @@
   },
   {
    "nome": "Nitrazepam 5mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Nitrofurantoína 100mg - Cápsula",
@@ -6141,11 +6166,13 @@
   },
   {
    "nome": "Clonazepam 2,5mg/mL - Gotas",
-   "local": "FARMÁCIA CENTRAL"
+   "local": "FARMÁCIA CENTRAL",
+   "receituario": "azul"
   },
   {
    "nome": "Clonazepam 2mg - Comprimido",
-   "local": "FARMÁCIA CENTRAL, CAPS II (USO INTERNO), CAPS AD (USO INTERNO)"
+   "local": "FARMÁCIA CENTRAL, CAPS II (USO INTERNO), CAPS AD (USO INTERNO)",
+   "receituario": "azul"
   },
   {
    "nome": "Clopidogrel 75mg - Comprimido",
@@ -6225,11 +6252,13 @@
   },
   {
    "nome": "Diazepam 10mg - Comprimido",
-   "local": "FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO), CAPS II (USO INTERNO), CAPS AD (USO INTERNO)"
+   "local": "FARMÁCIA CENTRAL, URGÊNCIA (USO INTERNO), CAPS II (USO INTERNO), CAPS AD (USO INTERNO)",
+   "receituario": "azul"
   },
   {
    "nome": "Diazepam 5mg/mL - Injetável",
-   "local": "URGÊNCIA (USO INTERNO), CAPS II (USO INTERNO), CAPS AD (USO INTERNO)"
+   "local": "URGÊNCIA (USO INTERNO), CAPS II (USO INTERNO), CAPS AD (USO INTERNO)",
+   "receituario": "azul"
   },
   {
    "nome": "Diclofenaco Sódico 50mg - Comprimido",
@@ -6333,7 +6362,8 @@
   },
   {
    "nome": "Fentanila 0,05mg/mL - Injetável",
-   "local": "URGÊNCIA (USO INTERNO)"
+   "local": "URGÊNCIA (USO INTERNO)",
+   "receituario": "amarela"
   },
   {
    "nome": "Fitomenadiona 10mg/mL - Injetável",
@@ -6549,7 +6579,8 @@
   },
   {
    "nome": "Midazolam 5mg/mL - Injetável",
-   "local": "URGÊNCIA (USO INTERNO)"
+   "local": "URGÊNCIA (USO INTERNO)",
+   "receituario": "azul"
   },
   {
    "nome": "Mononitrato de Isossorbida 20mg - Comprimido",
@@ -6561,7 +6592,8 @@
   },
   {
    "nome": "Morfina 10mg/mL - Injetável",
-   "local": "URGÊNCIA (USO INTERNO)"
+   "local": "URGÊNCIA (USO INTERNO)",
+   "receituario": "amarela"
   },
   {
    "nome": "Naloxona 0,4mg/mL - Injetável",
@@ -6621,7 +6653,8 @@
   },
   {
    "nome": "Petidina 50mg/mL - Injetável",
-   "local": "URGÊNCIA (USO INTERNO)"
+   "local": "URGÊNCIA (USO INTERNO)",
+   "receituario": "amarela"
   },
   {
    "nome": "Prednisolona 3mg/mL - Solução Oral",
@@ -6867,7 +6900,8 @@
   },
   {
    "nome": "Alprazolam 1mg - Comprimido",
-   "local": "Farmácia Básica Municipal"
+   "local": "Farmácia Básica Municipal",
+   "receituario": "azul"
   },
   {
    "nome": "Alteplase 50mg - Frasco Ampola",
@@ -6999,7 +7033,8 @@
   },
   {
    "nome": "Bromazepam 6mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Brometo de Ipratrópio 0,25mg/ml - Solução Oral",
@@ -7155,7 +7190,8 @@
   },
   {
    "nome": "Clobazam 20mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Clofazimina + Rifampicina + Dapsona (Esquema MB) - Comprimido",
@@ -7163,15 +7199,18 @@
   },
   {
    "nome": "Clonazepam 0,5mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Clonazepam 2,5mg/ml - Solução Oral",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Clonazepam 2mg - Comprimido",
-   "local": "Farmácia Básica Municipal"
+   "local": "Farmácia Básica Municipal",
+   "receituario": "azul"
   },
   {
    "nome": "Clopidogrel 75mg - Comprimido",
@@ -7391,19 +7430,23 @@
   },
   {
    "nome": "Diazepam 10mg - Comprimido",
-   "local": "Uso Hospitalar (Rede Municipal)"
+   "local": "Uso Hospitalar (Rede Municipal)",
+   "receituario": "azul"
   },
   {
    "nome": "Diazepam 5mg - Comprimido",
-   "local": "Uso Hospitalar (Rede Municipal)"
+   "local": "Uso Hospitalar (Rede Municipal)",
+   "receituario": "azul"
   },
   {
    "nome": "Diazepam 5mg/ml - Ampola",
-   "local": "Uso Hospitalar (Rede Municipal)"
+   "local": "Uso Hospitalar (Rede Municipal)",
+   "receituario": "azul"
   },
   {
    "nome": "Diazepam 5mg/ml - Solução Injetável",
-   "local": "Uso Hospitalar (Rede Municipal)"
+   "local": "Uso Hospitalar (Rede Municipal)",
+   "receituario": "azul"
   },
   {
    "nome": "Diclofenaco de Sódio 50mg - Comprimido",
@@ -7863,7 +7906,8 @@
   },
   {
    "nome": "Midazolam 5mg/ml - Ampola",
-   "local": "Uso Hospitalar (Rede Municipal)"
+   "local": "Uso Hospitalar (Rede Municipal)",
+   "receituario": "azul"
   },
   {
    "nome": "Mikania Glomerata (Guaco) - Xarope",
@@ -8429,11 +8473,13 @@
   },
   {
    "nome": "Clonazepam 2,5mg/ml - Solução Oral",
-   "local": "FARMÁCIAS UBS E USO INTERNO CAPSi"
+   "local": "FARMÁCIAS UBS E USO INTERNO CAPSi",
+   "receituario": "azul"
   },
   {
    "nome": "Clonazepam 2mg - Comprimido",
-   "local": "FARMÁCIAS UBS"
+   "local": "FARMÁCIAS UBS",
+   "receituario": "azul"
   },
   {
    "nome": "Clopidogrel 75mg - Comprimido",
@@ -8481,11 +8527,13 @@
   },
   {
    "nome": "Diazepam 10mg - Comprimido",
-   "local": "FARMÁCIAS UBS"
+   "local": "FARMÁCIAS UBS",
+   "receituario": "azul"
   },
   {
    "nome": "Diazepam 5mg/ml - Solução Injetável",
-   "local": "USO INTERNO UBS, CAPS II E CAPSi"
+   "local": "USO INTERNO UBS, CAPS II E CAPSi",
+   "receituario": "azul"
   },
   {
    "nome": "Diclofenaco 25mg/ml - Solução Injetável",
@@ -9147,11 +9195,13 @@
   },
   {
    "nome": "Clonazepam 2,5mg/ml - Solução Oral (Gotas)",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Clonazepam 2mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Cloreto de Sódio 0,9% - Solução Nasal",
@@ -9183,11 +9233,13 @@
   },
   {
    "nome": "Diazepam 10mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Diazepam 5mg/ml - Injetável (Ampola 2ml)",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Digoxina 0,25mg - Comprimido",
@@ -9347,7 +9399,8 @@
   },
   {
    "nome": "Lorazepam 2mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Losartana 50mg - Comprimido",
@@ -9645,11 +9698,13 @@
   },
   {
    "nome": "Bromazepam 3mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Bromazepam 6mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Bromoprida 10mg - Comprimido",
@@ -9729,11 +9784,13 @@
   },
   {
    "nome": "Clonazepam 2,5mg/ml - Solução Oral",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Clonazepam 2mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Clopidogrel 75mg - Comprimido Revestido",
@@ -9765,11 +9822,13 @@
   },
   {
    "nome": "Diazepam 10mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Diazepam 5mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Diclofenaco Potássico 50mg - Comprimido",
@@ -9985,7 +10044,8 @@
   },
   {
    "nome": "Lorazepam 1mg - Comprimido",
-   "local": null
+   "local": null,
+   "receituario": "azul"
   },
   {
    "nome": "Losartana 25mg - Comprimido Revestido",
@@ -10599,11 +10659,13 @@
   },
   {
    "nome": "Clonazepam - solução oral gotas 2,5 mg/mL (0,25%)",
-   "local": "UBS"
+   "local": "UBS",
+   "receituario": "azul"
   },
   {
    "nome": "Clonazepam 2,5 mg/mL-20 mL - gotas",
-   "local": "UPA"
+   "local": "UPA",
+   "receituario": "azul"
   },
   {
    "nome": "Clonidina 0,100 mg - comprimido",
@@ -10759,23 +10821,28 @@
   },
   {
    "nome": "Diazepam - comprimido 10 mg",
-   "local": "UBS"
+   "local": "UBS",
+   "receituario": "azul"
   },
   {
    "nome": "Diazepam - solução injetável 5mg/mL",
-   "local": "CTA/CEM/UBS/CAPS"
+   "local": "CTA/CEM/UBS/CAPS",
+   "receituario": "azul"
   },
   {
    "nome": "Diazepam 10 mg - comprimido",
-   "local": "UPA"
+   "local": "UPA",
+   "receituario": "azul"
   },
   {
    "nome": "Diazepam 5 mg - comprimido",
-   "local": "UPA"
+   "local": "UPA",
+   "receituario": "azul"
   },
   {
    "nome": "Diazepam 5 mg/mL - 2 mL - ampola",
-   "local": "UPA"
+   "local": "UPA",
+   "receituario": "azul"
   },
   {
    "nome": "Diclofenaco Sódico 25 mg - 3 mL - ampola",
@@ -11415,15 +11482,18 @@
   },
   {
    "nome": "Midazolam maleato 5 mg/mL - 3 mL - ampola",
-   "local": "UPA"
+   "local": "UPA",
+   "receituario": "azul"
   },
   {
    "nome": "Midazolam maleato 50 mg/mL - 10 mL - ampola",
-   "local": "UPA"
+   "local": "UPA",
+   "receituario": "azul"
   },
   {
    "nome": "Morfina sulfato 10 mg/mL - 1 mL - ampola",
-   "local": "UPA"
+   "local": "UPA",
+   "receituario": "amarela"
   },
   {
    "nome": "Naloxona 0,4 mg/mL AMP 1 mL - ampola",

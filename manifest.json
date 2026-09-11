@@ -1,6 +1,6 @@
 {
   "nome": "Assistente Meeds",
-  "versao": "2.42.1",
+  "versao": "2.42.2",
   "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
   "repositorio": "https://github.com/sodelfino/meeds-suite",
   "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -140,7 +140,7 @@
       "id": "remume",
       "nome": "Consulta REMUME",
       "descricao": "Consulta a lista de medicamentos do município do atendimento. Aceita erro de digitação e nome comercial — “buscopan” encontra escopolamina.",
-      "versao": "2.6.3",
+      "versao": "2.6.4",
       "arquivo": "modules/remume/index.js",
       "origem": "sodelfino/meeds-remume-assistant",
       "prioridadeBotao": 50,

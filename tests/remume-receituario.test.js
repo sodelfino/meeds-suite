@@ -1,10 +1,23 @@
 /* ------------------------------------------------------------------
  * tests/remume-receituario.test.js — selo de Receita Amarela/Azul
  * ------------------------------------------------------------------
- * Cobre o pedido: alguns medicamentos da REMUME de Macaé exigem
- * Notificacao de Receita A (amarela) ou B (azul) — Portaria 344/98 —,
- * que ainda nao tem aprovacao para prescricao digital. Precisam ser
- * prescritos em separado, para transcricao por medico presencial.
+ * Cobre o pedido: alguns medicamentos das REMUMEs exigem Notificacao de
+ * Receita A (amarela) ou B (azul) — Portaria 344/98 —, que ainda nao tem
+ * aprovacao para prescricao digital. Precisam ser prescritos em
+ * separado, para transcricao por medico presencial.
+ *
+ * POR QUE OS 11 MUNICIPIOS, E NAO SO MACAÉ
+ * Comecou so em Macaé, cuja REMUME ja anota o dispositivo legal de cada
+ * item ("port.nº 344/98 Lista X") no proprio nome — fonte primaria.
+ * Nenhum outro municipio publica essa anotacao. A classificacao
+ * amarela/azul, porem, NAO e dado municipal: e lei federal, e o mesmo
+ * principio ativo (diazepam, morfina, midazolam...) exige a mesma
+ * receita em qualquer municipio. Por isso o campo foi replicado por
+ * CASAMENTO DE NOME DE SUBSTANCIA — nunca copiando ou inferindo POLITICA
+ * de um municipio a partir de outro, que e o que a regra de ouro proibe.
+ * A lista de substancias usada e so a que ja foi verificada uma por uma
+ * em Macaé (secao 5c abaixo), incluindo a excecao de dose que tira
+ * tramadol/codeina/nalbufina do amarelo.
  *
  * DOIS FORMATOS PRECISAM CONCORDAR:
  *   1. o objeto {nome, local, receituario} de modules/remume/remumes.json
@@ -105,9 +118,10 @@ if (modulo) {
     ok("string legada sem receituario: receituario null", r.receituario === null, r.receituario);
   }
 
-  /* 5. ida e volta: todo item de remumes.json com receituario precisa
-   *    sobreviver ao formato de string do fallback.js gerado — prova
-   *    viva de que os dois arquivos nao podem divergir */
+  /* 5. ida e volta: todo item de remumes.json com receituario, em
+   *    QUALQUER municipio, precisa sobreviver ao formato de string do
+   *    fallback.js gerado — prova viva de que os dois arquivos nao
+   *    podem divergir */
   {
     const REMUMES = JSON.parse(fs.readFileSync(path.join(RAIZ, "modules/remume/remumes.json"), "utf8"));
     function itemParaStringLegado(item) {
@@ -116,8 +130,10 @@ if (modulo) {
       if (item.receituario === "amarela" || item.receituario === "azul") s += ` [Receituário: ${item.receituario}]`;
       return s;
     }
-    const marcados = (REMUMES["Macaé"] || []).filter((i) => i.receituario);
-    ok("Macaé tem itens marcados para testar a ida e volta", marcados.length > 0, marcados.length);
+    const cidades = Object.keys(REMUMES).filter((c) => c !== "_meta");
+    const marcados = [];
+    cidades.forEach((c) => REMUMES[c].filter((i) => i.receituario).forEach((i) => marcados.push(i)));
+    ok("ha itens marcados, em mais de um municipio, para testar a ida e volta", marcados.length > 0, marcados.length);
 
     let quebrou = 0;
     marcados.forEach((item) => {
@@ -125,20 +141,100 @@ if (modulo) {
       const volta = N(string);
       if (volta.nome !== item.nome || volta.local !== item.local || volta.receituario !== item.receituario) quebrou++;
     });
-    ok("todos os itens marcados sobrevivem objeto -> string -> objeto", quebrou === 0, quebrou + " quebrado(s)");
+    ok("todos os itens marcados, de todos os municipios, sobrevivem objeto -> string -> objeto", quebrou === 0, quebrou + " quebrado(s)");
 
-    const amarela = marcados.filter((i) => i.receituario === "amarela").length;
-    const azul = marcados.filter((i) => i.receituario === "azul").length;
-    ok("11 itens marcados como amarela (Lista A1 pura, sem excecao de dose)", amarela === 11, amarela);
-    ok("15 itens marcados como azul (Lista B1)", azul === 15, azul);
+    const amarelaMacae = REMUMES["Macaé"].filter((i) => i.receituario === "amarela").length;
+    const azulMacae = REMUMES["Macaé"].filter((i) => i.receituario === "azul").length;
+    ok("Macaé: 11 itens amarela (Lista A1 pura, sem excecao de dose)", amarelaMacae === 11, amarelaMacae);
+    ok("Macaé: 15 itens azul (Lista B1)", azulMacae === 15, azulMacae);
   }
 
-  /* 6. regra de ouro: nenhum outro municipio foi tocado */
+  /* 6. REPLICACAO PARA OS OUTROS 10 MUNICIPIOS, POR SUBSTANCIA
+   *
+   * A regra de ouro proibe copiar POLITICA de um municipio para outro —
+   * mas receituario amarela/azul nao e politica municipal, e lei federal
+   * (Portaria 344/98) que vale igual em qualquer lugar. O casamento e
+   * por NOME DE SUBSTANCIA, sempre no INICIO do nome do medicamento (e
+   * onde o principio ativo sempre fica, nestas REMUMEs), usando so os
+   * principios ativos ja verificados um a um em Macaé — nunca a lista
+   * inteira do guia do HSL, que tambem lista substancias com excecao de
+   * dose (tramadol, codeina) que Macaé provou NAO poderem ir para o
+   * amarelo sem checar a concentracao.
+   *
+   * Este classificador e escrito de novo aqui, INDEPENDENTE do que gerou
+   * os dados (ver conversa/commit) — se algum dia o campo receituario
+   * dos dados divergir do que a lei diz para aquela substancia, em
+   * qualquer municipio, isto acusa. */
   {
     const REMUMES = JSON.parse(fs.readFileSync(path.join(RAIZ, "modules/remume/remumes.json"), "utf8"));
-    const outros = Object.keys(REMUMES).filter((c) => c !== "_meta" && c !== "Macaé");
-    const vazou = outros.some((c) => REMUMES[c].some((i) => i && typeof i === "object" && i.receituario));
-    ok("nenhum municipio alem de Macaé tem o campo receituario", !vazou);
+
+    function semAcento(s) {
+      return String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+    // Lista A1 pura (entorpecentes) e Lista B1 (psicotropicos), so as
+    // substancias ja conferidas item a item na REMUME de Macaé.
+    const AMARELA_SUBST = ["alfentanila", "fentanila", "metadona", "morfina", "petidina", "meperidina"];
+    const AZUL_SUBST = ["alprazolam", "bromazepam", "clobazam", "clonazepam", "diazepam", "lorazepam", "midazolam", "nitrazepam"];
+    function classificar(nome) {
+      const n = semAcento(nome).toLowerCase().trimStart();
+      if (AMARELA_SUBST.some((s) => n.startsWith(s))) return "amarela";
+      if (AZUL_SUBST.some((s) => n.startsWith(s))) return "azul";
+      return null;
+    }
+
+    const cidades = Object.keys(REMUMES).filter((c) => c !== "_meta");
+    let divergencias = [];
+    cidades.forEach((c) => {
+      REMUMES[c].forEach((item) => {
+        const esperado = classificar(item.nome);
+        const atual = item.receituario || null;
+        if (esperado !== atual) divergencias.push(c + " | " + item.nome + " | esperado=" + esperado + " atual=" + atual);
+      });
+    });
+    ok(
+      "em todos os 11 municipios, receituario bate com a classificacao por substancia",
+      divergencias.length === 0,
+      divergencias.slice(0, 5).join(" ; ")
+    );
+
+    // combinacao com outro ativo pode mudar a classificacao legal — o
+    // casamento por nome nao pode ter marcado uma sozinho. Macaé fica de
+    // fora desta checagem: "Fentanila + Droperidol (port.nº 344/98 Lista
+    // A1)" e um combo real, ja verificado item a item na fonte oficial —
+    // e continua Lista A1 mesmo associado. So os outros 10 municipios,
+    // marcados so por casamento de nome (sem conferencia individual),
+    // precisam vir 100% livres de combo.
+    const combosMarcados = [];
+    cidades
+      .filter((c) => c !== "Macaé")
+      .forEach((c) => {
+        REMUMES[c].forEach((item) => {
+          if (item.receituario && item.nome.indexOf("+") !== -1) combosMarcados.push(c + " | " + item.nome);
+        });
+      });
+    ok("nos 10 municipios replicados por nome, nenhuma associacao ('+') foi marcada", combosMarcados.length === 0, combosMarcados.join(" ; "));
+
+    // tramadol/codeina/nalbufina: a excecao de dose vale em TODO municipio,
+    // nao so em Macaé — nenhum dos tres pode ter sido marcado em lugar nenhum
+    const excecaoIndevida = [];
+    cidades.forEach((c) => {
+      REMUMES[c].forEach((item) => {
+        const n = semAcento(item.nome).toLowerCase();
+        if (item.receituario && /^(tramadol|codeina|nalbufina)/.test(n.trimStart())) {
+          excecaoIndevida.push(c + " | " + item.nome);
+        }
+      });
+    });
+    ok("tramadol/codeina/nalbufina continuam sem selo em todo municipio (excecao de dose)", excecaoIndevida.length === 0, excecaoIndevida.join(" ; "));
+
+    // mais de metade dos municipios precisa ter pelo menos um item
+    // marcado — se a replicacao falhar silenciosamente (ex.: acento
+    // quebrando o casamento), isto teria ficado em 1 (so Macaé)
+    const comMarca = cidades.filter((c) => REMUMES[c].some((i) => i.receituario)).length;
+    ok("pelo menos 9 dos 11 municipios tem algum item marcado", comMarca >= 9, comMarca + "/" + cidades.length);
+
+    const totalGeral = cidades.reduce((s, c) => s + REMUMES[c].filter((i) => i.receituario).length, 0);
+    ok("96 itens marcados no total, nos 11 municipios (26 em Macaé + 70 nos outros 10)", totalGeral === 96, totalGeral);
   }
 }
 
