@@ -8,14 +8,30 @@ tela do Meeds, e você liga ou desliga cada uma pelo botão ⚙️.
 ## 1. Instalar
 
 1. Tenha a extensão **Tampermonkey** no navegador (Chrome, Edge ou Firefox).
-
-   > **Usa Edge?** Faça mais um ajuste, uma vez só: em **Configurações › Sistema
-   > e desempenho**, procure *"Nunca colocar estes sites em suspensão"* e
-   > acrescente `meeds.com.br`. O Edge coloca abas de fundo para dormir de
-   > fábrica, e uma aba dormindo não consulta a fila — o alarme fica mudo sem
-   > avisar. O Assistente detecta e conta depois que aconteceu, mas o certo é
-   > não deixar acontecer.
    Se ainda não tiver: <https://www.tampermonkey.net>
+
+   > **Ative a permissão de userscripts.** Desde as versões recentes do
+   > Chrome e do Edge, instalar o Tampermonkey não basta — ele pede uma
+   > segunda autorização, separada, para poder rodar scripts. Sem isso, o
+   > Assistente instala e **não aparece na tela**, sem erro nenhum para
+   > avisar. Clique com o **botão direito** no ícone do Tampermonkey →
+   > **Gerenciar extensão** → ative **"Permitir userscripts"**. Não achou
+   > essa opção? Vá em `chrome://extensions` (ou `edge://extensions`) e
+   > ative o **"Modo de desenvolvedor"** no canto superior direito — dá no
+   > mesmo.
+
+   > **Chrome ou Edge colocando a aba do Meeds para dormir?** Os dois
+   > navegadores suspendem abas de fundo por padrão para economizar
+   > memória — e uma aba dormindo não consulta a fila, então o alarme fica
+   > mudo sem avisar. O Assistente detecta isso e conta quanto tempo ficou
+   > parado, mas o certo é não deixar acontecer:
+   >
+   > - **Chrome:** menu **⋮** → **Configurações** → **Desempenho** →
+   >   em *"Sempre manter estes sites ativos"*, clique em **Adicionar** e
+   >   digite `meeds.com.br`.
+   > - **Edge:** **Configurações › Sistema e desempenho**, procure
+   >   *"Nunca colocar estes sites em suspensão"* e acrescente
+   >   `meeds.com.br`.
 2. Abra este link:
 
    <https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.user.js>
