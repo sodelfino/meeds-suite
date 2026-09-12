@@ -1165,6 +1165,65 @@
    * periodo sem vigilancia, em vez de deixa-lo achar que ninguem chegou. */
   var cancelarVigiaSuspensao = null;
 
+  /* UM aviso reaproveitado, nunca um por acordada.
+   *
+   * Ate a v2.43.2 cada despertar criava um cartao NOVO, e com
+   * `autoFecharMs: 0` — nenhum deles sumia sozinho. Numa aba de fundo o
+   * navegador suspende de novo e de novo, entao um plantao noturno
+   * terminava com seis, sete cartoes identicos empilhados cobrindo a
+   * tela, todos pedindo para serem fechados a mao. Foi o que o medico
+   * reportou, com print: informacao util virou obstaculo.
+   *
+   * O dock ja previa exatamente este caso — o handle de criarAviso tem
+   * `atualizar()` para que "tres chegadas virem UM aviso que conta ate
+   * tres, nao tres avisos empilhados" (ver core/dock.js). Aqui era so
+   * usar: o mesmo cartao conta as repeticoes, volta para o fim da pilha
+   * a cada nova suspensao (para o medico reparar) e o relogio de
+   * fechamento reinicia junto.
+   *
+   * 30 s, e nao os 12 s do cartao de chegada: este texto e mais longo e
+   * pede uma acao ("confira a fila"), entao precisa de tempo de leitura.
+   * Mas sumir sozinho e requisito — um aviso permanente sobre algo que
+   * JA passou nao ajuda em nada depois de lido. */
+  var AUTO_FECHAR_SUSPENSAO_MS = 30000;
+  var avisoSuspensao = null;
+  var vezesSuspensa = 0;
+  var minutosSuspensa = 0;
+
+  function relatarSuspensao(min) {
+    if (!d || !d.dock || typeof d.dock.criarAviso !== "function") return;
+
+    /* Cartao anterior ja sumiu (ou nunca existiu): a contagem recomeca.
+     * Sem isto o total seguiria crescendo pelo plantao inteiro e o
+     * numero deixaria de dizer algo util — "23 vezes" desde quando? */
+    if (!avisoSuspensao || !avisoSuspensao.estaVisivel()) {
+      avisoSuspensao = null;
+      vezesSuspensa = 0;
+      minutosSuspensa = 0;
+    }
+
+    vezesSuspensa += 1;
+    minutosSuspensa += min;
+
+    var spec = {
+      titulo: "O alarme ficou parado",
+      corpo: [
+        vezesSuspensa === 1
+          ? "Esta aba ficou suspensa pelo navegador por cerca de " + min +
+            " min e o alarme não pôde tocar nesse período."
+          : "Já aconteceu " + vezesSuspensa + " vezes; a última há pouco, por cerca de " +
+            min + " min — somando " + minutosSuspensa + " min sem vigilância.",
+        "Confira a fila.",
+        "Para evitar, no Edge: Configurações › Sistema › “Nunca colocar estes sites " +
+          "em suspensão” e acrescente meeds.com.br.",
+      ],
+      autoFecharMs: AUTO_FECHAR_SUSPENSAO_MS,
+    };
+
+    if (avisoSuspensao) avisoSuspensao.atualizar(spec);
+    else avisoSuspensao = d.dock.criarAviso(spec);
+  }
+
   function vigiarSuspensaoDaAba() {
     var A = atencao();
     if (!A || !A.aoAcordarDeSuspensao) return;
@@ -1172,15 +1231,7 @@
       if (!config.ativo) return; // alarme desligado: nao havia o que vigiar
       var min = Math.round(atrasoMs / 60000);
       if (min < 2) return;
-      d.dock.criarAviso({
-        titulo: "O alarme ficou parado",
-        corpo:
-          "Esta aba ficou suspensa pelo navegador por cerca de " + min +
-          " min e o alarme não pôde tocar nesse período. Confira a fila. " +
-          "Para evitar, no Edge: Configurações › Sistema › “Nunca colocar estes sites " +
-          "em suspensão” e acrescente meeds.com.br.",
-        autoFecharMs: 0,
-      });
+      relatarSuspensao(min);
     });
   }
 
@@ -1474,6 +1525,14 @@
         cancelarVigiaSuspensao();
         cancelarVigiaSuspensao = null;
       }
+      /* O cartao de "alarme ficou parado" tambem sai: desligar a funcao
+       * nao pode deixar na tela um aviso que ninguem mais atualiza. */
+      if (avisoSuspensao) {
+        avisoSuspensao.fechar();
+        avisoSuspensao = null;
+      }
+      vezesSuspensa = 0;
+      minutosSuspensa = 0;
       if (atencao()) {
         atencao().limpar();
         atencao().manterTelaAcesa(false);
@@ -1496,5 +1555,8 @@
      * chegou. Se um dia voltar a haver nome de paciente aqui, o teste
      * quebra — que e exatamente o ponto. */
     _ultimaChegada: function () { return ultimaChegada; },
+    /* Exposto para o teste do aviso de suspensao: ele JA empilhou cartao
+     * sem fechar na tela do medico, e o teste existe para nao repetir. */
+    _relatarSuspensao: function (min) { relatarSuspensao(min); },
   });
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);

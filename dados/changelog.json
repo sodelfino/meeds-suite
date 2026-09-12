@@ -2,6 +2,15 @@
  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
  "versoes": [
   {
+   "versao": "2.43.3",
+   "data": "2026-09-12",
+   "novidades": [],
+   "melhorias": [],
+   "correcoes": [
+    "O aviso “O alarme ficou parado” (o que aparece quando o navegador suspende a aba de fundo e o alarme não pôde tocar) não sumia sozinho e criava um cartão novo a cada vez — num plantão a tela terminava coberta por seis ou sete avisos iguais, todos precisando ser fechados à mão. Agora é um único aviso, que se fecha sozinho depois de 30 segundos e, se acontecer de novo, se atualiza dizendo quantas vezes já foi e quantos minutos somam, em vez de empilhar."
+   ]
+  },
+  {
    "versao": "2.43.1",
    "data": "2026-09-11",
    "novidades": [],
