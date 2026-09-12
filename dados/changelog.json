@@ -2,6 +2,17 @@
  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
  "versoes": [
   {
+   "versao": "2.43.4",
+   "data": "2026-09-12",
+   "novidades": [],
+   "melhorias": [
+    "Se um botão do Assistente encontrar um erro ao ser clicado, agora aparece um aviso no canto da tela dizendo o que houve e o que fazer — tentar de novo ou copiar o diagnóstico técnico em ⚙️ → Sobre. Antes, o clique simplesmente não fazia nada, e não dava para saber se era para esperar ou pedir ajuda."
+   ],
+   "correcoes": [
+    "Quem tinha marcado um modelo com “★ Usar sempre” na APAC, no Laudo de Alto Custo de Conceição do Mato Dentro ou no Laudo de Sete Lagoas clicava no botão e a janela não abria. O problema começou na versão 2.28.1. Agora a janela abre normalmente e o modelo volta a entrar sozinho quando os campos clínicos estão vazios — sem nunca apagar o que você já escreveu."
+   ]
+  },
+  {
    "versao": "2.43.3",
    "data": "2026-09-12",
    "novidades": [],

@@ -439,7 +439,7 @@
     /* Quem chega de um atalho ("cadastrar médico" dentro de um laudo) cai
      * direto na aba certa, com o formulário já aberto — o atalho existe
      * justamente para poupar cliques. */
-    var destino = { medicos: "medicos", estabelecimentos: "unidades" }[secao] || "funcoes";
+    var destino = { medicos: "medicos", estabelecimentos: "unidades", sobre: "sobre" }[secao] || "funcoes";
     mostrarAba(destino);
     overlay.abrir();
 

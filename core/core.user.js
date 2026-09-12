@@ -341,7 +341,13 @@
       if (specBotao) {
         specBotao.id = def.id;
         specBotao.aoClicar = function () {
-          if (typeof entrada.aoClicarBotao === "function") entrada.aoClicarBotao();
+          if (typeof entrada.aoClicarBotao !== "function") return;
+          try {
+            entrada.aoClicarBotao();
+          } catch (e) {
+            console.warn("[Assistente Meeds] clique falhou em", def.id, e);
+            avisarFalhaNoClique(entrada, specBotao);
+          }
         };
         botaoHandle = Dock.registrarBotao(specBotao);
       }
@@ -444,6 +450,32 @@
       // desfazemos o que ja foi criado e seguimos.
       pararModulo(entrada, true);
     }
+  }
+
+  /* Um erro no clique de um modulo sumia no console: o medico clicava e
+   * nada acontecia, sem saber se era para esperar, tentar de novo ou
+   * pedir ajuda. Mesma regra de core/mensagens.js — o que houve, por que
+   * e o que fazer agora. Nao afirma "nao abriu": o erro pode ter vindo
+   * depois da janela aberta. Um aviso por modulo, que se atualiza em vez
+   * de empilhar quando o medico tenta de novo. */
+  function avisarFalhaNoClique(entrada, spec) {
+    var nome = (spec && (spec.titulo || spec.rotulo)) || entrada.def.nome || entrada.def.id;
+    var aviso = {
+      titulo: "Algo deu errado em " + nome,
+      corpo: [
+        "Um erro interno interrompeu esta função, e a janela pode não ter aberto por completo.",
+        "Tente de novo. Se continuar, copie o diagnóstico técnico em ⚙️ → Sobre e envie ao suporte.",
+      ],
+      acoes: [{
+        rotulo: "Abrir Sobre",
+        aoClicar: function () {
+          if (raiz.MeedsSuiteManager) raiz.MeedsSuiteManager.abrir("sobre");
+        },
+      }],
+      autoFecharMs: 20000,
+    };
+    if (entrada.avisoFalha && entrada.avisoFalha.estaVisivel()) entrada.avisoFalha.atualizar(aviso);
+    else entrada.avisoFalha = Dock.criarAviso(aviso);
   }
 
   function pararModulo(entrada, silencioso) {

@@ -1302,6 +1302,37 @@
     atualizarBotaoDeSalvar();
   }
 
+  /* ------------------------------------------------------------------
+   * "VAZIO" NAO E "SEM VALOR NENHUM"
+   * ------------------------------------------------------------------
+   * Alguns <select> deste formulario ja nascem com uma opcao escolhida
+   * (a variante do eco vem em "REPOUSO", a origem vem na primeira
+   * unidade). Se contassem como preenchimento, o formulario nunca
+   * pareceria vazio e o modelo padrao jamais entraria — que foi
+   * exatamente o que aconteceu no primeiro teste desta funcao.
+   *
+   * Entao um select so conta se o medico o tirou do valor inicial.
+   * ------------------------------------------------------------------ */
+  function campoFoiPreenchido(id) {
+    var el = shadow.getElementById(id);
+    if (!el || !el.value) return false;
+    if (el.tagName === "SELECT") {
+      var primeira = el.options && el.options.length ? el.options[0].value : "";
+      return el.value !== primeira;
+    }
+    return true;
+  }
+
+  function formularioClinicoVazio() {
+    if (procedimentoDoModelo()) return false;
+    for (var i = 0; i < CAMPOS_DO_MODELO.length; i++) {
+      var id = CAMPOS_DO_MODELO[i];
+      if (id === "procedimento") continue;
+      if (campoFoiPreenchido(id)) return false;
+    }
+    return true;
+  }
+
   /* O modelo padrao so entra com a parte clinica VAZIA. Ele existe para
    * poupar digitacao, nunca para apagar o que o medico ja escreveu. */
   function aplicarModeloPadraoSeVazio() {
