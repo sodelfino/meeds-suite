@@ -334,7 +334,7 @@
       .then(function (dd) {
         toast(dd.prontuario.individuo.nome ? "Atualizado: " + dd.prontuario.individuo.nome : "OK");
       })
-      .catch(function (e) {
+      .catch(function () {
         // a API falhou, mas a leitura da tela ja preencheu o que deu —
         // nunca deixa o medico sem nada so porque a rede falhou.
         toast(
@@ -596,7 +596,7 @@
       ['27 - CÓDIGO','28 - NOME','29 - QTDE.'],['30 - CÓDIGO','31 - NOME','32 - QTDE.'],
       ['33 - CÓDIGO','34 - NOME','35 - QTDE.'],
     ];
-    rots.forEach((rot,i)=>{ linhaProc(y, 20, '', '', '', rot); y += 20; });
+    rots.forEach((rot)=>{ linhaProc(y, 20, '', '', '', rot); y += 20; });
 
     bar(11, 'JUSTIFICATIVA');
     const cid1v = shadow.getElementById('apac-cid1').value.trim().toUpperCase();
@@ -789,7 +789,6 @@
 
   function montarEstabelecimentos() {
     var sel = shadow.getElementById("apac-estab-sel");
-    var cnesEl = shadow.getElementById("apac-estab-cnes");
     var lista = estabelecimentosVisiveis();
     /* O que se guarda para restaurar e o CNES, NAO o indice: o indice e
      * posicional dentro do municipio, entao guardar "0" faria a selecao

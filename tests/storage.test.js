@@ -5,7 +5,7 @@ const vm = require("vm");
  * que e exatamente o que precisamos provar. So implementa o que
  * core/storage.js usa. */
 function fakeIndexedDB(disco) {
-  function tx(store) {
+  function tx(_store) {
     return {
       objectStore: () => ({
         put: (v, k) => disco.set(k, JSON.parse(JSON.stringify(v))),

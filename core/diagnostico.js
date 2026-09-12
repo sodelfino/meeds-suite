@@ -218,7 +218,7 @@
     return overlay;
   }
 
-  function darBoasVindas(dock, storage) {
+  function darBoasVindas(dock, _storage) {
     /* Marca ANTES de mostrar: assim, qualquer jeito de dispensar (X, os
      * botoes, clique fora, fechar a aba) ja conta como visto. */
     marcarBoasVindasConcluidas();

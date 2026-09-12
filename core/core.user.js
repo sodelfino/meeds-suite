@@ -485,7 +485,6 @@
    * BOOTSTRAP
    * ------------------------------------------------------------------ */
   var INTERVALO_RECHECAGEM_MS = 1500;
-  var timerRecheck = null;
 
   function recheckPeriodico() {
     // Regra unica de visibilidade que os 5 scripts implementavam cada um
@@ -633,7 +632,7 @@
     });
 
     recheckPeriodico();
-    timerRecheck = setInterval(recheckPeriodico, INTERVALO_RECHECAGEM_MS);
+    setInterval(recheckPeriodico, INTERVALO_RECHECAGEM_MS);
 
     atualizarSeletoresRemoto(opcoes.urlSeletores);
 

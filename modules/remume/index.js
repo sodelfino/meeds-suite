@@ -42,17 +42,12 @@
   var municipioDetectado = null; // chave de REMUMES inferida da API/DOM
 
   /* ----------------------------------------------------------------
-   * HELPERS DE TEXTO — normalizarTexto e tokenizarTexto agora vem do
-   * dom-reader do nucleo (mesma implementacao), o resto e local.
+   * HELPERS DE TEXTO — normalizarTexto agora vem do dom-reader do
+   * nucleo (mesma implementacao), o resto e local. A tokenizacao mora
+   * em core/busca.js (tokenizarTexto); este modulo nao tokeniza.
    * ---------------------------------------------------------------- */
   function normalizarTexto(str) {
     return raiz.MeedsSuiteDom.normalizarTexto(str);
-  }
-
-  function tokenizarTexto(str) {
-    return normalizarTexto(str)
-      .split(/[\s,;.\-()]+/)
-      .filter(function (t) { return t.length > 0; });
   }
 
   // "_meta" e chave reservada (nao e municipio): quem itera "os

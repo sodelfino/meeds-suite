@@ -269,7 +269,6 @@
       const origem = (origemSel === 'outro' ? shadow.getElementById('cmd-origem-outro').value : origemSel).trim().toUpperCase();
 
       const nome = shadow.getElementById('cmd-pac-nome').value.trim().toUpperCase();
-      const cpf = shadow.getElementById('cmd-pac-cpf').value.trim();
       const nasc = shadow.getElementById('cmd-pac-nasc').value.trim();
       const sexo = shadow.getElementById('cmd-pac-sexo').value;
       const mae = shadow.getElementById('cmd-pac-mae').value.trim().toUpperCase();
@@ -292,7 +291,7 @@
 
       // --- 01 - DADOS DO ATENDIMENTO DA UNIDADE / MUNICÍPIO SOLICITANTE ---
       setTexto(form, 'origem', origem);
-      // 'municipio_1' já vem fixo no PDF oficial (Conceição do Mato Dentro) — não é reescrito.
+      void MUNICIPIO_FIXO; // 'municipio_1' já vem impresso no PDF oficial (Conceição do Mato Dentro)
       // 'codigo_sia' e 'n_prontuario' ficam em branco: removidos do formulário a pedido.
       // 'chefia_imediata' fica em branco: é assinatura/carimbo físico da chefia da unidade, não do médico solicitante.
 

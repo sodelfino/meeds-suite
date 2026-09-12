@@ -95,13 +95,6 @@
   var refs = {};
   var idAtual = null;
   var passoAtual = 0;
-  var dockAtual = null;
-
-  function escapar(t) {
-    return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
-    });
-  }
 
   function storage() {
     return raiz.MeedsSuiteStorage ? raiz.MeedsSuiteStorage.storageDoNucleo() : null;
@@ -139,7 +132,6 @@
    * módulos (`if (overlay) { ...; return; }` em abrirPainel()). */
   function montarOverlay(dock) {
     if (overlay) return;
-    dockAtual = dock;
     overlay = dock.criarOverlay({
       estilo: CSS,
       html:

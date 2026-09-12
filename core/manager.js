@@ -144,7 +144,6 @@
 
   var overlay = null;
   var ctx = null;
-  var abaAtual = "funcoes";
 
   function escapeHtml(str) {
     return String(str == null ? "" : str).replace(/[&<>"']/g, function (c) {
@@ -417,7 +416,6 @@
   }
 
   function mostrarAba(id) {
-    abaAtual = id;
     var ficha = ABAS.filter(function (a) {
       return a.id === id;
     })[0];

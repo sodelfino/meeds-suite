@@ -398,7 +398,7 @@
         marcarDesatualizado(g, false);
         reiniciarInatividade(g);
       })
-      .catch(function (e) {
+      .catch(function () {
         if (minhaGeracao !== g.geracao) return;
         /* Formulário pela metade costuma dar erro de desenho, e isso é
          * esperado — a prévia não é um validador. Mostramos um recado

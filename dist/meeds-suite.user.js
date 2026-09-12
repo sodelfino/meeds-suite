@@ -5308,7 +5308,7 @@
     return overlay;
   }
 
-  function darBoasVindas(dock, storage) {
+  function darBoasVindas(dock, _storage) {
     /* Marca ANTES de mostrar: assim, qualquer jeito de dispensar (X, os
      * botoes, clique fora, fechar a aba) ja conta como visto. */
     marcarBoasVindasConcluidas();
@@ -5813,13 +5813,6 @@
   var refs = {};
   var idAtual = null;
   var passoAtual = 0;
-  var dockAtual = null;
-
-  function escapar(t) {
-    return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
-    });
-  }
 
   function storage() {
     return raiz.MeedsSuiteStorage ? raiz.MeedsSuiteStorage.storageDoNucleo() : null;
@@ -5857,7 +5850,6 @@
    * módulos (`if (overlay) { ...; return; }` em abrirPainel()). */
   function montarOverlay(dock) {
     if (overlay) return;
-    dockAtual = dock;
     overlay = dock.criarOverlay({
       estilo: CSS,
       html:
@@ -6406,7 +6398,6 @@
 
   var overlay = null;
   var ctx = null;
-  var abaAtual = "funcoes";
 
   function escapeHtml(str) {
     return String(str == null ? "" : str).replace(/[&<>"']/g, function (c) {
@@ -6679,7 +6670,6 @@
   }
 
   function mostrarAba(id) {
-    abaAtual = id;
     var ficha = ABAS.filter(function (a) {
       return a.id === id;
     })[0];
@@ -7566,7 +7556,6 @@
    * BOOTSTRAP
    * ------------------------------------------------------------------ */
   var INTERVALO_RECHECAGEM_MS = 1500;
-  var timerRecheck = null;
 
   function recheckPeriodico() {
     // Regra unica de visibilidade que os 5 scripts implementavam cada um
@@ -7714,7 +7703,7 @@
     });
 
     recheckPeriodico();
-    timerRecheck = setInterval(recheckPeriodico, INTERVALO_RECHECAGEM_MS);
+    setInterval(recheckPeriodico, INTERVALO_RECHECAGEM_MS);
 
     atualizarSeletoresRemoto(opcoes.urlSeletores);
 
@@ -9867,7 +9856,7 @@
       .then(function (dd) {
         toast(dd.prontuario.individuo.nome ? "Atualizado: " + dd.prontuario.individuo.nome : "OK");
       })
-      .catch(function (e) {
+      .catch(function () {
         // a API falhou, mas a leitura da tela ja preencheu o que deu —
         // nunca deixa o medico sem nada so porque a rede falhou.
         toast(
@@ -10129,7 +10118,7 @@
       ['27 - CÓDIGO','28 - NOME','29 - QTDE.'],['30 - CÓDIGO','31 - NOME','32 - QTDE.'],
       ['33 - CÓDIGO','34 - NOME','35 - QTDE.'],
     ];
-    rots.forEach((rot,i)=>{ linhaProc(y, 20, '', '', '', rot); y += 20; });
+    rots.forEach((rot)=>{ linhaProc(y, 20, '', '', '', rot); y += 20; });
 
     bar(11, 'JUSTIFICATIVA');
     const cid1v = shadow.getElementById('apac-cid1').value.trim().toUpperCase();
@@ -10322,7 +10311,6 @@
 
   function montarEstabelecimentos() {
     var sel = shadow.getElementById("apac-estab-sel");
-    var cnesEl = shadow.getElementById("apac-estab-cnes");
     var lista = estabelecimentosVisiveis();
     /* O que se guarda para restaurar e o CNES, NAO o indice: o indice e
      * posicional dentro do municipio, entao guardar "0" faria a selecao
@@ -11225,12 +11213,6 @@
   var indice = null;
   var montandoIndice = false;
   var estiloCampos = null;
-  var totalBase = 0;
-  var usandoFallback = true;
-
-  /* Quantas linhas vao para a tela de uma vez. O resto continua
-   * acessivel: e so escrever mais na busca. */
-  var MAX_EXIBIDOS = 50;
 
   /* Quantas sugestoes cabem no autocomplete de dentro do laudo. Menos que
    * na janela de busca: e uma lista flutuante sobre o formulario, nao
@@ -11286,10 +11268,11 @@
   }
 
   /* ---- base de dados ---- */
-  function aplicarBase(mapa, completa) {
+  /* `_completa` nao e lido: o aviso de "caiu no fallback" ja sai no
+   * console.warn de quem chama. O argumento fica porque documenta no
+   * call-site qual base entrou -- a de 14.233 codigos ou a embutida. */
+  function aplicarBase(mapa, _completa) {
     cids = mapa;
-    totalBase = Object.keys(mapa).length;
-    usandoFallback = !completa;
     indice = null; // sera remontado sob demanda, com a base nova
     agendarMontagemOciosa();
   }
@@ -12972,7 +12955,6 @@
       const origem = (origemSel === 'outro' ? shadow.getElementById('cmd-origem-outro').value : origemSel).trim().toUpperCase();
 
       const nome = shadow.getElementById('cmd-pac-nome').value.trim().toUpperCase();
-      const cpf = shadow.getElementById('cmd-pac-cpf').value.trim();
       const nasc = shadow.getElementById('cmd-pac-nasc').value.trim();
       const sexo = shadow.getElementById('cmd-pac-sexo').value;
       const mae = shadow.getElementById('cmd-pac-mae').value.trim().toUpperCase();
@@ -12995,7 +12977,7 @@
 
       // --- 01 - DADOS DO ATENDIMENTO DA UNIDADE / MUNICÍPIO SOLICITANTE ---
       setTexto(form, 'origem', origem);
-      // 'municipio_1' já vem fixo no PDF oficial (Conceição do Mato Dentro) — não é reescrito.
+      void MUNICIPIO_FIXO; // 'municipio_1' já vem impresso no PDF oficial (Conceição do Mato Dentro)
       // 'codigo_sia' e 'n_prontuario' ficam em branco: removidos do formulário a pedido.
       // 'chefia_imediata' fica em branco: é assinatura/carimbo físico da chefia da unidade, não do médico solicitante.
 
@@ -16775,17 +16757,12 @@
   var municipioDetectado = null; // chave de REMUMES inferida da API/DOM
 
   /* ----------------------------------------------------------------
-   * HELPERS DE TEXTO — normalizarTexto e tokenizarTexto agora vem do
-   * dom-reader do nucleo (mesma implementacao), o resto e local.
+   * HELPERS DE TEXTO — normalizarTexto agora vem do dom-reader do
+   * nucleo (mesma implementacao), o resto e local. A tokenizacao mora
+   * em core/busca.js (tokenizarTexto); este modulo nao tokeniza.
    * ---------------------------------------------------------------- */
   function normalizarTexto(str) {
     return raiz.MeedsSuiteDom.normalizarTexto(str);
-  }
-
-  function tokenizarTexto(str) {
-    return normalizarTexto(str)
-      .split(/[\s,;.\-()]+/)
-      .filter(function (t) { return t.length > 0; });
   }
 
   // "_meta" e chave reservada (nao e municipio): quem itera "os
@@ -19230,7 +19207,7 @@ function moverFocoResultado(delta) {
         marcarDesatualizado(g, false);
         reiniciarInatividade(g);
       })
-      .catch(function (e) {
+      .catch(function () {
         if (minhaGeracao !== g.geracao) return;
         /* Formulário pela metade costuma dar erro de desenho, e isso é
          * esperado — a prévia não é um validador. Mostramos um recado

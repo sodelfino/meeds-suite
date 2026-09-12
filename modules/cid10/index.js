@@ -44,12 +44,6 @@
   var indice = null;
   var montandoIndice = false;
   var estiloCampos = null;
-  var totalBase = 0;
-  var usandoFallback = true;
-
-  /* Quantas linhas vao para a tela de uma vez. O resto continua
-   * acessivel: e so escrever mais na busca. */
-  var MAX_EXIBIDOS = 50;
 
   /* Quantas sugestoes cabem no autocomplete de dentro do laudo. Menos que
    * na janela de busca: e uma lista flutuante sobre o formulario, nao
@@ -105,10 +99,11 @@
   }
 
   /* ---- base de dados ---- */
-  function aplicarBase(mapa, completa) {
+  /* `_completa` nao e lido: o aviso de "caiu no fallback" ja sai no
+   * console.warn de quem chama. O argumento fica porque documenta no
+   * call-site qual base entrou -- a de 14.233 codigos ou a embutida. */
+  function aplicarBase(mapa, _completa) {
     cids = mapa;
-    totalBase = Object.keys(mapa).length;
-    usandoFallback = !completa;
     indice = null; // sera remontado sob demanda, com a base nova
     agendarMontagemOciosa();
   }
