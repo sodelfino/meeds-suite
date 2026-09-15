@@ -339,8 +339,10 @@
    *               interrompido, mas quer ver a fila crescer.
    *   discreto    um cartao no canto com quem chegou e de onde, e o som
    *               curto toca DUAS vezes (uma vez so passava despercebida
-   *               num plantao barulhento). Aparece e sai sozinho. Nao
-   *               bloqueia nada.
+   *               num plantao barulhento). Aparece e sai sozinho, e VOLTA
+   *               a cada 2 min enquanto o paciente continuar esperando
+   *               (ver agendarRepiqueDeEsperaDiscreto()). Nao bloqueia
+   *               nada.
    *   completo    o de hoje: sirene repetindo, faixa no topo e moldura
    *               na borda da tela, ate alguem silenciar.
    *
@@ -357,7 +359,7 @@
     discreto: {
       rotulo: "Discreto",
       icone: "🔉",
-      resumo: "Um cartão no canto com quem chegou e de onde, e um som curto que toca duas vezes.",
+      resumo: "Um cartão no canto com quem chegou e de onde, e um som curto que toca duas vezes — e volta a cada 2 min se o paciente continuar esperando.",
       som: "curto", cartao: true, banner: false,
     },
     completo: {
@@ -392,10 +394,16 @@
 
   var DEBOUNCE_MS = 2500;
   var DURACAO_MAX_SOM_MS = 120000;      // trava de seguranca do som (2 min)
-  var COOLDOWN_REENGATE_MS = 5 * 60000; // toca de novo 5 min apos silenciar
+  var COOLDOWN_REENGATE_MS = 5 * 60000; // toca de novo 5 min apos silenciar (modo Completo)
   var LIMITE_FRESCOR_DOM_MS = 12000;    // 3x o intervalo de polling do DOM
   var INTERVALO_RECHECAGEM_MS = 4000;
   var INTERVALO_CHECAGEM_ESPERA_MS = 15000;
+  /* Modo Discreto: se o paciente que disparou o alarme continuar na fila,
+   * o cartao e as duas batidas voltam a cada 2 min — mais curto que o
+   * reengate do Completo (5 min) porque o Discreto e pensado para lembrar
+   * com frequencia, sem interromper. Ver dispararAlarme() e
+   * repiqueDeEsperaDiscreto(). */
+  var INTERVALO_REPIQUE_DISCRETO_MS = 2 * 60000;
 
   var audioCtx = null;
   var tocando = false;
@@ -403,6 +411,7 @@
   var timeoutLimiteSirene = null;
   var timeoutReengate = null;
   var timeoutSomCurtoRepique = null;
+  var timeoutRepiqueDiscreto = null;
 
   /* ----------------------------------------------------------------
    * SINALIZACAO CENTRAL
@@ -828,6 +837,43 @@
       clearTimeout(timeoutSomCurtoRepique);
       timeoutSomCurtoRepique = null;
     }
+    if (timeoutRepiqueDiscreto) {
+      clearTimeout(timeoutRepiqueDiscreto);
+      timeoutRepiqueDiscreto = null;
+    }
+  }
+
+  /* ------------------------------------------------------------------
+   * REPIQUE DE ESPERA — SO NO MODO DISCRETO
+   * ------------------------------------------------------------------
+   * Completo ja lembra: toca ate silenciar, e se silenciado com a fila
+   * ainda cheia, volta em 5 min (silenciarComReengate). Discreto nunca
+   * teve equivalente — o cartao e as duas batidas tocavam uma vez so,
+   * e se o medico nao reparasse, o paciente ficava esperando sem
+   * segundo aviso nenhum.
+   *
+   * UM SO TIMER, agendado a cada disparo do modo curto — nunca um por
+   * paciente. Cada vez que dispara, agenda a PROXIMA checagem em 2 min;
+   * na hora de checar, confere de novo se ainda ha alguem esperando E
+   * se a intensidade continua Discreto. Se qualquer uma das duas nao
+   * for mais verdade, para sozinho — sem precisar de um botao
+   * "silenciar" que o Discreto nunca teve.
+   *
+   * DE PROPOSITO NAO HA LIMITE DE REPETICOES: um alarme que desiste
+   * sozinho depois de N vezes pode deixar um paciente esperando sem
+   * ninguem saber, o que e pior do que incomodar de leve pelo plantao
+   * inteiro. A saida para quem quer parar de ouvir e trocar para
+   * 🔕 Silencioso — a mesma troca de intensidade que ja existia.
+   * ------------------------------------------------------------------ */
+  function agendarRepiqueDeEsperaDiscreto() {
+    if (timeoutRepiqueDiscreto) return; // ja ha um repique agendado
+    timeoutRepiqueDiscreto = setTimeout(function () {
+      timeoutRepiqueDiscreto = null;
+      if (config.intensidade !== "discreto") return; // medico trocou de modo
+      if (filaDeEsperaEstaVazia()) return; // paciente ja saiu da fila
+      console.debug("[Alarme Fila] paciente ainda esperando, repique do modo discreto");
+      dispararAlarme();
+    }, INTERVALO_REPIQUE_DISCRETO_MS);
   }
 
   function dispararAlarme() {
@@ -852,6 +898,7 @@
         timeoutSomCurtoRepique = null;
         tocarSomAtual(true);
       }, tipoCurto.intervaloMs);
+      agendarRepiqueDeEsperaDiscreto();
     } else if (forma.som === "repetido") {
       tocando = true;
       atualizarTextoDoBanner();
@@ -1368,8 +1415,8 @@
           texto:
             "Clique no ícone do alarme, na barra de funções, para alternar entre Completo (sirene repetindo, " +
             "faixa no topo e moldura na borda até alguém silenciar), Discreto (um cartão no canto com quem " +
-            "chegou e um som curto que toca duas vezes, some sozinho) e Silencioso (só o contador na aba, sem " +
-            "som nem aviso). " +
+            "chegou e um som curto que toca duas vezes, some sozinho — e volta a cada 2 min se o paciente " +
+            "continuar esperando) e Silencioso (só o contador na aba, sem som nem aviso). " +
             "Um aviso na tela confirma qual ficou ativa. Não precisa escolher entre ser interrompido ou não " +
             "saber que chegou gente — dá para ajustar o quanto de interrupção cabe no momento.",
         },
@@ -1582,5 +1629,6 @@
     _relatarSuspensao: function (min) { relatarSuspensao(min); },
     _dispararAlarme: function () { dispararAlarme(); },
     _chamadasDeSom: function () { return chamadasDeSomParaTeste.slice(); },
+    _definirIntensidade: function (v) { config.intensidade = v; },
   });
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
