@@ -320,7 +320,7 @@
     modo: "imediato", // "imediato" | "espera"
     tempoEsperaMin: 5,
     som: "sirene-classica",      // modo completo: repete ate silenciar
-    somCurto: "toque-duplo",     // modo discreto: toca uma vez
+    somCurto: "toque-duplo",     // modo discreto: toca duas vezes
     volume: 70,
     janelaDeAviso: false,        // pop-up do navegador; nasce desligado
     intensidade: "completo", // "silencioso" | "discreto" | "completo"
@@ -337,8 +337,10 @@
    *   silencioso  so o contador na aba e no favicone. Nada de som, nada
    *               na tela. Para quem esta em consulta e nao pode ser
    *               interrompido, mas quer ver a fila crescer.
-   *   discreto    um cartao no canto com quem chegou e de onde, e UM som
-   *               curto. Aparece e sai sozinho. Nao bloqueia nada.
+   *   discreto    um cartao no canto com quem chegou e de onde, e o som
+   *               curto toca DUAS vezes (uma vez so passava despercebida
+   *               num plantao barulhento). Aparece e sai sozinho. Nao
+   *               bloqueia nada.
    *   completo    o de hoje: sirene repetindo, faixa no topo e moldura
    *               na borda da tela, ate alguem silenciar.
    *
@@ -355,7 +357,7 @@
     discreto: {
       rotulo: "Discreto",
       icone: "🔉",
-      resumo: "Um cartão no canto com quem chegou e de onde, e um som curto.",
+      resumo: "Um cartão no canto com quem chegou e de onde, e um som curto que toca duas vezes.",
       som: "curto", cartao: true, banner: false,
     },
     completo: {
@@ -400,6 +402,7 @@
   var intervaloSirene = null;
   var timeoutLimiteSirene = null;
   var timeoutReengate = null;
+  var timeoutSomCurtoRepique = null;
 
   /* ----------------------------------------------------------------
    * SINALIZACAO CENTRAL
@@ -735,7 +738,13 @@
     return TIPOS_DE_SOM[curto ? CONFIG_PADRAO.somCurto : CONFIG_PADRAO.som];
   }
 
+  // Exposto so para teste: nao ha como verificar audio de verdade fora do
+  // navegador, entao o teste confere QUANTAS VEZES e QUANDO o modulo pediu
+  // para tocar — o resto (o som em si) ja e coberto por tests/som.test.js.
+  var chamadasDeSomParaTeste = [];
+
   function tocarSomAtual(curto) {
+    chamadasDeSomParaTeste.push({ curto: !!curto, quando: Date.now() });
     try {
       var ctx = obterAudioContext();
       if (!ctx) return;
@@ -815,6 +824,10 @@
       clearTimeout(timeoutLimiteSirene);
       timeoutLimiteSirene = null;
     }
+    if (timeoutSomCurtoRepique) {
+      clearTimeout(timeoutSomCurtoRepique);
+      timeoutSomCurtoRepique = null;
+    }
   }
 
   function dispararAlarme() {
@@ -830,7 +843,15 @@
     if (forma.cartao) mostrarCartaoDeChegada();
 
     if (forma.som === "curto") {
-      tocarSomAtual(true); // uma vez so, e acabou
+      // toca duas vezes, espacadas pelo intervalo natural do proprio som
+      // (o mesmo intervaloMs que o modo completo usa para repetir a
+      // sirene) — uma vez so passava despercebida num plantao barulhento
+      var tipoCurto = somDoModo(true);
+      tocarSomAtual(true);
+      timeoutSomCurtoRepique = setTimeout(function () {
+        timeoutSomCurtoRepique = null;
+        tocarSomAtual(true);
+      }, tipoCurto.intervaloMs);
     } else if (forma.som === "repetido") {
       tocando = true;
       atualizarTextoDoBanner();
@@ -1347,7 +1368,8 @@
           texto:
             "Clique no ícone do alarme, na barra de funções, para alternar entre Completo (sirene repetindo, " +
             "faixa no topo e moldura na borda até alguém silenciar), Discreto (um cartão no canto com quem " +
-            "chegou e um som curto, some sozinho) e Silencioso (só o contador na aba, sem som nem aviso). " +
+            "chegou e um som curto que toca duas vezes, some sozinho) e Silencioso (só o contador na aba, sem " +
+            "som nem aviso). " +
             "Um aviso na tela confirma qual ficou ativa. Não precisa escolher entre ser interrompido ou não " +
             "saber que chegou gente — dá para ajustar o quanto de interrupção cabe no momento.",
         },
@@ -1558,5 +1580,7 @@
     /* Exposto para o teste do aviso de suspensao: ele JA empilhou cartao
      * sem fechar na tela do medico, e o teste existe para nao repetir. */
     _relatarSuspensao: function (min) { relatarSuspensao(min); },
+    _dispararAlarme: function () { dispararAlarme(); },
+    _chamadasDeSom: function () { return chamadasDeSomParaTeste.slice(); },
   });
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
