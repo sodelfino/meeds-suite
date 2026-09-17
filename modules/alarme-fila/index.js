@@ -421,6 +421,37 @@
    * ---------------------------------------------------------------- */
   function sinalizarNovoPaciente(origem) {
     if (origem !== "tempo-de-espera" && config.modo !== "imediato") return;
+
+    /* ----------------------------------------------------------------
+     * O TOAST E O UNICO SINAL SEM PROVA PROPRIA (D62)
+     * ----------------------------------------------------------------
+     * Os outros tres sinais trazem a evidencia junto: a rede so dispara
+     * com um id que NAO estava na leitura anterior, o contador do DOM so
+     * dispara quando o numero SOBE, e o tempo de espera so dispara para
+     * um id que ja estava na fila. O toast dispara so por existir um
+     * elemento com aquele texto na tela.
+     *
+     * A gravacao de 16/09 mostra o preco disso: o proprio Meeds tocou o
+     * MP3 dele e falou "Atencao: Novo Atendimento" com o cartao
+     * "Aguardando" marcando ZERO. Qualquer coisa que o Meeds resolva
+     * anunciar com esse texto — atendimento roteado para outro medico,
+     * re-render do toast, agendamento — vira sirene aqui.
+     *
+     * A guarda e deliberadamente fraca: so recusa quando existe prova
+     * FRESCA de fila vazia (filaDeEsperaEstaVazia() exige decisao, e a
+     * abstencao conta como "nao sei"). Na duvida continua disparando —
+     * a regra da casa e errar tocando, nao errar calando.
+     *
+     * E recusa ANTES de carimbar ultimoDisparoTs de proposito: se o
+     * paciente for real, a resposta de rede ou o contador do DOM chegam
+     * nos proximos segundos e disparam normalmente. Carimbar aqui
+     * engoliria esse disparo de verdade no debounce.
+     * ---------------------------------------------------------------- */
+    if (origem === "toast-nativo" && filaDeEsperaEstaVazia()) {
+      console.debug("[Alarme Fila] toast ignorado: a fila esta comprovadamente vazia");
+      return;
+    }
+
     var agora = Date.now();
     if (agora - ultimoDisparoTs < DEBOUNCE_MS) return; // outro sinal ja tratou
     ultimoDisparoTs = agora;
@@ -521,6 +552,19 @@
       var agora = Date.now();
       var assinatura = assinaturaDaChamada(url);
       var mapaAnterior = idsFilaPorAssinatura.get(assinatura);
+      /* Leitura velha nao serve de base para dizer "chegou alguem" (D62).
+       * resumoDaFila() ja DESCARTA assinatura parada ha mais de
+       * VALIDADE_ASSINATURA_MS — sem esta linha os dois calculos
+       * discordavam: o medico volta para a tela da fila depois de 10 min
+       * em outra tela, comparamos a fila de agora com a de 10 min atras,
+       * todo mundo parece "novo" e o alarme toca; enquanto o texto do
+       * cartao, lendo resumoDaFila(), dizia "Aguardando atualizacao da
+       * fila" porque para ELE aquela vista ja tinha morrido.
+       * Sem base confiavel, esta leitura vira a base nova e nao dispara —
+       * a mesma regra da primeira leitura, logo abaixo. */
+      if (mapaAnterior && agora - (mapaAnterior.atualizadoEm || 0) > VALIDADE_ASSINATURA_MS) {
+        mapaAnterior = null;
+      }
       var mapaAtual = new Map();
 
       itens.forEach(function (item) {
@@ -689,11 +733,13 @@
 
   /* --- SINAL C: contador "Aguardando" no DOM ---------------------- */
   var ultimoValorAguardandoDOM = null;
+  var ultimaLeituraDOMEm = 0; // quando ultimoValorAguardandoDOM foi lido
 
   function atualizarLeituraContadorAguardando() {
     var valor = d.dom.lerContadorPorRotulo(d.seletor("rotulos", "contadorFila"));
     if (valor !== null) {
       ultimoValorAguardandoDOM = valor;
+      ultimaLeituraDOMEm = Date.now();
       // o voto carrega o carimbo de tempo: o decisor descarta sozinho
       // uma leitura velha (validadeMs), que era o LIMITE_FRESCOR_DOM_MS
       decisorFila.votar("dom_contador", valor > 0);
@@ -703,8 +749,24 @@
 
   function tentarChecarContadorAguardando() {
     var anterior = ultimoValorAguardandoDOM;
+    /* Idade da base ANTES de ler de novo — depois da leitura ela zera. */
+    var idadeDaBase = Date.now() - ultimaLeituraDOMEm;
     var atual = atualizarLeituraContadorAguardando();
     if (atual === null) return; // leitura ambigua: NAO decide
+
+    /* "O numero subiu" so significa chegada se os dois numeros vierem da
+     * MESMA tela, em sequencia (D62). A leitura roda a cada 4 s; uma base
+     * mais velha que LIMITE_FRESCOR_DOM_MS (12 s) quer dizer que o
+     * contador sumiu da tela nesse intervalo — o medico saiu do Pronto
+     * Atendimento e voltou, ou trocou de aba na tela de monitoramento.
+     * Comparar o 0 da tela antiga com o 7 da tela nova e ler "chegaram
+     * sete pacientes agora". Base velha vira base nova, sem disparo. */
+    if (anterior !== null && idadeDaBase > LIMITE_FRESCOR_DOM_MS) {
+      console.debug("[Alarme Fila] contador voltou depois de " + Math.round(idadeDaBase / 1000) + "s: recomeçando a base");
+      checarSeDeveSilenciarPorFilaVazia();
+      return;
+    }
+
     if (anterior !== null && atual > anterior) sinalizarNovoPaciente("dom-contador-aguardando");
     checarSeDeveSilenciarPorFilaVazia();
   }
@@ -1418,7 +1480,37 @@
     obterAudioContext();
     var i = ORDEM_INTENSIDADE.indexOf(config.intensidade);
     config.intensidade = ORDEM_INTENSIDADE[(i + 1) % ORDEM_INTENSIDADE.length];
-    if (config.intensidade === "silencioso" && tocando) silenciarAlarme();
+
+    /* QUALQUER troca de intensidade com a sirene tocando para a sirene
+     * (D62). Antes so o Silencioso parava, e Completo -> Discreto deixava
+     * um estado impossivel: `tocando` continuava true, a sirene e a faixa
+     * seguiam na tela por ate 2 min (a trava DURACAO_MAX_SOM_MS), e como
+     * dispararAlarme() comeca com `if (tocando) return`, o Discreto
+     * recem-escolhido ficava incapaz de disparar. O medico pediu MENOS
+     * barulho e recebeu o mesmo barulho, seguido de um alarme mudo.
+     *
+     * Parar nao pode virar esquecer: se ainda ha gente esperando e a
+     * escolha foi Discreto, agenda o lembrete de 2 min. Sem som agora —
+     * o medico acabou de dizer que quer menos —, mas com volta marcada. */
+    if (tocando) {
+      silenciarAlarme();
+      if (config.intensidade === "discreto" && !filaDeEsperaEstaVazia()) {
+        agendarRepiqueDeEsperaDiscreto();
+      }
+    }
+
+    /* Sair do Discreto cancela o lembrete pendente. Hoje ele ja seria
+     * inofensivo — o callback reconfere a intensidade e desiste sozinho
+     * —, mas ficar pendente nao e inofensivo de graca:
+     * agendarRepiqueDeEsperaDiscreto() se recusa a agendar outro
+     * enquanto houver um em pe, entao um lembrete morto atrasa a fase do
+     * lembrete seguinte quando o medico volta para o Discreto. Estado
+     * que so existe para nao fazer nada e o tipo de coisa que quebra na
+     * proxima vez que alguem mexer no callback. */
+    if (config.intensidade !== "discreto" && timeoutRepiqueDiscreto) {
+      clearTimeout(timeoutRepiqueDiscreto);
+      timeoutRepiqueDiscreto = null;
+    }
     salvar();
     refletirEstado();
     if (d && d.dock && d.dock.criarAviso) {
@@ -1676,5 +1768,17 @@
     _sinalizarNovoPaciente: function (origem) { sinalizarNovoPaciente(origem); },
     _chamadasDeSom: function () { return chamadasDeSomParaTeste.slice(); },
     _definirIntensidade: function (v) { config.intensidade = v; },
+    /* Exposto para os testes de falso positivo (D62): envelhecer a base
+     * e a UNICA forma de reproduzir "o medico saiu da tela e voltou" sem
+     * esperar 12 s de relogio de verdade dentro do teste. */
+    _envelhecerLeituraDOM: function (ms) { ultimaLeituraDOMEm -= ms; },
+    _envelhecerAssinaturas: function (ms) {
+      idsFilaPorAssinatura.forEach(function (mapa) {
+        mapa.atualizadoEm = (mapa.atualizadoEm || 0) - ms;
+      });
+    },
+    _tentarChecarContador: function () { tentarChecarContadorAguardando(); },
+    _ciclarIntensidade: function () { ciclarIntensidade(); },
+    _estaTocando: function () { return tocando; },
   });
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);

@@ -1504,6 +1504,87 @@ o nosso nunca fala — é sempre tom sintetizado (bipe/sirene), nunca voz.
 
 ---
 
+**D62 — Um sinal só pode disparar o alarme se trouxer a prova junto.**
+Revisão regressiva pedida depois da D61: "um alarme falso quebra nossa
+credibilidade". A D61 corrigiu o TEXTO de um disparo legítimo; esta revisão
+foi atrás do disparo em si, procurando especificamente onde duas regras
+certas, encostadas, produzem uma errada. Três buracos, todos na mesma
+fronteira, todos fechados com a mesma regra que o módulo já aplicava à
+primeira leitura de rede — **base sem valor vira base nova e não dispara**.
+
+1. **O toast era o único sinal sem prova própria.** Os outros três carregam a
+   evidência junto: a rede só dispara com um `id` que não estava na leitura
+   anterior, o contador do DOM só dispara quando o número **sobe**, o tempo
+   de espera só dispara para um `id` que já estava na fila. O toast dispara
+   por existir um elemento com aquele texto na tela — e a gravação de 16/09
+   (registrada na D61) mostra o próprio Meeds anunciando "Novo Atendimento"
+   com "Aguardando" em **zero**. Agora `sinalizarNovoPaciente` recusa a
+   origem `"toast-nativo"` quando `filaDeEsperaEstaVazia()` responde que sim.
+   A guarda é deliberadamente fraca: só a **prova fresca** de fila vazia
+   recusa; a abstenção do decisor ("não sei") continua disparando, porque a
+   regra da casa é errar tocando, não errar calando. E recusa **antes** de
+   carimbar `ultimoDisparoTs`: se o paciente for real, a resposta de rede
+   chega segundos depois, e carimbar aqui faria o debounce engolir o único
+   alarme legítimo.
+
+2. **A base do contador atravessava telas.** "O número subiu" só significa
+   chegada se os dois números vierem da mesma tela, em sequência. A leitura
+   roda a cada 4 s; quando o contador some da tela (o médico sai do Pronto
+   Atendimento, ou troca de aba na tela de monitoramento), `valor === null` e
+   a base **congela**. Na volta, comparávamos o 0 da tela antiga com o 7 da
+   tela nova e líamos "chegaram sete pacientes agora". Base mais velha que
+   `LIMITE_FRESCOR_DOM_MS` agora vira base nova, sem disparo.
+
+3. **A base de rede podia estar morta.** `resumoDaFila()` já descartava vista
+   de fila parada há mais de `VALIDADE_ASSINATURA_MS`, mas o disparo não — os
+   dois cálculos discordavam: o médico voltava à fila depois de 10 min em
+   outra tela, todo mundo parecia novo e o alarme tocava, **enquanto o texto
+   do próprio cartão dizia "Aguardando atualização da fila"**, porque para ele
+   aquela vista já tinha morrido. Agora os dois usam o mesmo prazo.
+
+**Achado do lado oposto, e pior que um alarme falso: um alarme mudo.** Só o
+Silencioso parava a sirene. `Completo → Discreto` deixava `tocando` em `true`
+com a sirene e a faixa na tela — o médico pedia menos barulho e recebia o
+mesmo — e, como `dispararAlarme()` começa com `if (tocando) return`, o
+Discreto recém-escolhido nascia **incapaz de disparar** até a trava de 2 min
+destravar tudo sozinha. Agora qualquer troca de intensidade para a sirene; e
+parar não vira esquecer: se ainda há gente esperando e a escolha foi Discreto,
+o lembrete de 2 min é agendado na hora — sem som, que é o que ele pediu, mas
+com volta marcada. Sair do Discreto cancela o lembrete pendente, que antes
+sobrevivia inofensivo mas bloqueava o agendamento do próximo.
+
+**Os controles importam tanto quanto as guardas.** Cada uma das três correções
+tem um teste-espelho provando que o alarme de verdade continua tocando (toast
+com fila cheia, toast com leitura ambígua, contador subindo na mesma tela, id
+novo com a vista fresca) — em `tests/alarme-falso-positivo.test.js`, 21
+verificações. Uma guarda contra alarme falso que silencia um alarme real não é
+uma correção, é uma troca de defeito por outro pior.
+
+---
+
+**D63 — O aviso discreto sobe do rodapé, ao lado da pilha (mecanismo do MSN).**
+O aviso ficava no canto **superior** direito, pela ideia de que o dock é onde o
+médico clica e o aviso é algo que ele lê, então deviam ficar longe. Na tela do
+Pronto Atendimento isso não se sustentou: o médico passa o plantão olhando a
+fila e os botões, na metade de **baixo** da tela, e o cartão de 12 s aparecia
+no extremo oposto de onde os olhos dele estavam. Um cartão que ninguém olha é
+um cartão que não existe.
+
+Agora sobem do rodapé, encostados na pilha — o mecanismo do MSN, que funciona
+há 25 anos pelo mesmo motivo: movimento de baixo para cima na periferia da
+visão é percebido sem tirar o olho do que se está fazendo. `right: 92px`
+(24 da margem do `#dock` + 52 do botão redondo + 16 de respiro) os põe ao
+**lado** da pilha, não por cima: o canto continua sendo dos botões e do toast,
+que já se desloca sozinho acima deles (`reposicionarToast`). `flex-direction:
+column` ancorado em baixo faz o resto — o cartão novo entra no fim da lista,
+que é a posição mais baixa, e empurra os anteriores para cima; é também por
+isso que `atualizar()` refaz o `appendChild`, para o aviso corrigido **descer**
+até a altura do olhar em vez de ficar perdido no topo da pilha. Quem pediu
+menos animação no sistema operacional recebe o cartão inteiro, sem a subida —
+perde o deslocamento, não o aviso.
+
+---
+
 ## 7. Risco aberto: CPF e CNS em repositório público
 
 Os repositórios de origem `lme-sete-lagoas-gerador` e `laudo-cmd-meeds` são

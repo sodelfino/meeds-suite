@@ -2,6 +2,18 @@
  "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
  "versoes": [
   {
+   "versao": "2.43.8",
+   "data": "2026-09-17",
+   "novidades": [],
+   "melhorias": [
+    "O aviso do modo 🔉 Discreto mudou de lugar: em vez de aparecer no canto de cima da tela, agora sobe do rodapé, ao lado dos botões do Assistente — perto de onde você já está olhando a fila. Ele sobe deslizando, como as janelinhas do antigo MSN, e os avisos mais novos ficam sempre embaixo, na altura do olhar.",
+    "Trocar a intensidade do alarme no meio de uma sirene agora para a sirene na hora. Antes, só o 🔕 Silencioso parava: quem trocava de 🔔 Completo para 🔉 Discreto continuava ouvindo a sirene e vendo a faixa vermelha por até 2 minutos. Se ainda houver paciente esperando, o lembrete do Discreto fica marcado para 2 minutos depois — sem som agora, mas sem esquecer de você."
+   ],
+   "correcoes": [
+    "O alarme podia tocar sem paciente novo em três situações, todas corrigidas: quando o próprio Meeds anunciava \"Novo Atendimento\" com a fila marcando zero; quando você saía do Pronto Atendimento e voltava (o alarme comparava o número da tela antiga com o da tela nova e lia isso como gente chegando); e quando você voltava para a fila depois de vários minutos em outra tela (a fila inteira parecia nova). Em todos os casos o alarme agora recomeça a contagem em silêncio, em vez de tocar. Quando a leitura da fila é incerta, ele continua tocando — errar tocando é melhor que errar calando."
+   ]
+  },
+  {
    "versao": "2.43.7",
    "data": "2026-09-16",
    "novidades": [],

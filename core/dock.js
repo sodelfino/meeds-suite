@@ -176,23 +176,50 @@
     "}",
     ".ms-overlay[hidden] { display: none; }",
 
-    /* --- avisos no canto superior direito ---
-       Ficam longe do dock de proposito: o dock e onde o medico CLICA, e o
-       aviso e algo que ele LE. Empilham para baixo, na ordem de chegada,
-       e cada um sai sozinho. */
+    /* --- avisos, ao lado da pilha, subindo de baixo ------------------
+       Ficavam no canto SUPERIOR direito, pela ideia de que o dock e onde
+       o medico CLICA e o aviso e algo que ele LE. Na tela do Pronto
+       Atendimento isso nao se sustentou: o medico passa o plantao
+       olhando a fila e os botoes, na metade de BAIXO da tela, e o aviso
+       aparecia no extremo oposto do ponto onde os olhos dele estavam. Um
+       cartao de 12 s que ninguem olha e um cartao que nao existe.
+
+       Agora sobem do rodape, encostados na pilha — o mecanismo do MSN,
+       que funciona ha 25 anos pelo mesmo motivo: o movimento de baixo
+       para cima na periferia da visao e percebido sem tirar o olho do
+       que se esta fazendo.
+
+       O `right` daqui e so o PONTO DE PARTIDA, para o caso de ainda nao
+       haver botao nenhum para medir: 24 (a margem do #dock) + 52 (botao
+       redondo) + 16 de respiro. Quem manda de verdade e a medida da
+       largura real da pilha, feita em reposicionarToast() a cada
+       mudanca — porque `Laudo — Sete Lagoas` e `REMUME` sao botoes com
+       rotulo e passam dos 200px, e um numero fixo aqui poria o cartao em
+       cima deles. O canto continua sendo dos botoes e do toast, que se
+       desloca pela altura no mesmo lugar do codigo.
+
+       `flex-direction: column` ancorado em baixo faz o resto: o cartao
+       novo entra no fim da lista, que e a posicao mais BAIXA, e empurra
+       os anteriores para cima. E tambem por isso que atualizar() faz
+       appendChild de novo — o aviso corrigido desce para a altura do
+       olhar em vez de ficar perdido no topo da pilha. */
     "#avisos {",
-    "  position: fixed; top: 16px; right: 16px; z-index: " + (Z_BASE + 5) + ";",
+    "  position: fixed; bottom: 24px; right: 92px; z-index: " + (Z_BASE + 5) + ";",
     "  display: flex; flex-direction: column; gap: 10px; align-items: flex-end;",
-    "  pointer-events: none; max-width: min(380px, calc(100vw - 32px));",
+    "  pointer-events: none; max-width: min(380px, calc(100vw - 108px));",
     "}",
     "#avisos > * { pointer-events: auto; }",
     ".ms-aviso {",
     "  background: #fff; border-radius: 12px; width: 100%;",
     "  box-shadow: 0 10px 34px rgba(15,23,42,.28); overflow: hidden;",
     "  border-left: 4px solid #1a4fa0;",
-    "  animation: ms-aviso-entra .22s ease-out;",
+    "  animation: ms-aviso-entra .28s cubic-bezier(.22,.9,.3,1);",
     "}",
-    "@keyframes ms-aviso-entra { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }",
+    /* Sobe do rodape em vez de deslizar da direita. Os 26px e a saida
+       desacelerada dao o "peso" do cartao do MSN — rapido no comeco,
+       assentando no fim; um fade puro nao chama a atencao periferica, e
+       e exatamente ela que este aviso precisa alcancar. */
+    "@keyframes ms-aviso-entra { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }",
     ".ms-aviso-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 12px 14px 0; }",
     ".ms-aviso-titulo { font-size: 13px; font-weight: 700; color: #123a7a; line-height: 1.3; }",
     ".ms-aviso-fechar { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 15px; line-height: 1; padding: 0 2px; flex-shrink: 0; }",
@@ -255,6 +282,9 @@
        aguenta uma tela piscando um plantao inteiro. */
     "@media (prefers-reduced-motion: reduce) {",
     "  .ms-moldura-alerta, .ms-banner, .ms-btn { animation: none !important; }",
+    /* O cartao aparece inteiro, sem subir. Quem tem enjoo de movimento
+       nao perde o aviso — perde so o deslocamento. */
+    "  .ms-aviso { animation: none !important; }",
     "}",
   ].join("\n");
 
@@ -437,17 +467,48 @@
     reposicionarToast();
   }
 
-  /* O toast fica logo acima da pilha, sem ninguem precisar somar pixel
-   * na mao: mede a altura real do dock e desloca a partir dela. */
+  /* ------------------------------------------------------------------
+   * AS DUAS CAMADAS FLUTUANTES SAEM DA MEDIDA DO DOCK, NAO DE UM NUMERO
+   * ------------------------------------------------------------------
+   * Ninguem soma pixel na mao aqui: mede-se o dock de verdade e desloca
+   * a partir dele. O toast sobe pela ALTURA; os avisos saem pela
+   * LARGURA, para ficarem ao LADO da pilha sem cobri-la.
+   *
+   * A largura importa porque a pilha nao tem largura fixa: `alarme` e a
+   * engrenagem sao botoes redondos de 52px, mas `APAC`, `REMUME`,
+   * `Exames` e sobretudo `Laudo — Sete Lagoas` sao botoes com ROTULO, e
+   * passam facilmente dos 200px. A primeira versao desta mudanca usou um
+   * `right: 92px` fixo (24 da margem + 52 do botao redondo + 16 de
+   * respiro) e teria posto o cartao em cima do botao de laudo de quem
+   * tem esse modulo ligado — o contrario de "ao lado dos itens".
+   *
+   * Por isso esta funcao continua sendo o ponto UNICO de posicionamento
+   * das duas camadas: ela ja e chamada em todo evento que muda a pilha
+   * (registrar, remover, reordenar, recolher), e fazer as duas contas
+   * aqui garante que nenhuma delas fique com um gancho de fora.
+   * ------------------------------------------------------------------ */
   function reposicionarToast() {
-    if (!elToast || !elDock) return;
-    var altura = 0;
+    if (!elDock) return;
+    var caixa = null;
     try {
-      altura = elDock.getBoundingClientRect().height;
+      caixa = elDock.getBoundingClientRect();
     } catch (e) {
-      altura = 0;
+      caixa = null;
     }
-    elToast.style.bottom = 24 + (altura > 0 ? altura + 12 : 0) + "px";
+    var altura = caixa ? caixa.height : 0;
+    var largura = caixa ? caixa.width : 0;
+
+    if (elToast) elToast.style.bottom = 24 + (altura > 0 ? altura + 12 : 0) + "px";
+
+    if (elAvisos) {
+      /* Sem botao nenhum medido ainda, cai no mesmo 92px do CSS — o dock
+       * vazio nao tem o que cobrir, e a medida chega no primeiro botao. */
+      var afastamento = 24 + (largura > 0 ? largura + 16 : 68);
+      elAvisos.style.right = afastamento + "px";
+      /* O teto acompanha: com uma pilha larga numa janela estreita, o
+       * cartao tem que encolher em vez de sair pela esquerda da tela. */
+      elAvisos.style.maxWidth = "min(380px, calc(100vw - " + (afastamento + 16) + "px))";
+    }
   }
 
   /* ------------------------------------------------------------------
@@ -581,6 +642,21 @@
     garantirHost();
     elDock.hidden = !visivel;
     if (!visivel && elToast) elToast.hidden = true;
+    /* Remedir ao REAPARECER e obrigatorio, nao zelo.
+     *
+     * Um dock escondido mede 0x0, e as camadas flutuantes caem no valor
+     * de reserva — o que esta certo enquanto ele esta escondido, porque
+     * nao ha pilha nenhuma para desviar. O erro e ficar nesse valor
+     * DEPOIS que ele volta: a tela de login do Meeds esconde a suite
+     * inteira (regra do nucleo), e todo medico atravessa essa tela antes
+     * de chegar na fila. Sem esta linha, a pilha voltava com 206px de
+     * botoes com rotulo (`Laudo — Sete Lagoas`, `REMUME`) e o aviso
+     * continuava afastado dos 92px de reserva — ou seja, em cima deles,
+     * justamente no unico caminho por onde todo mundo passa.
+     *
+     * Achado na conferencia visual da v2.43.8, nao pela suite de testes:
+     * geometria de tela e a parte que os testes em Node nao alcancam. */
+    if (visivel) reposicionarToast();
   }
 
   function toast(mensagem, ms) {

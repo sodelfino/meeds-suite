@@ -103,7 +103,8 @@ Definido que há alguém esperando, o módulo decide o quanto incomodar. São tr
 intensidades, cicladas no próprio botão, à maneira do botão de som do Waze. No
 modo silencioso, só o contador na aba e no favicone — para quem está em consulta
 e não pode ser interrompido, mas quer ver a fila crescer. No modo discreto, um
-cartão no canto com o município de origem e um som curto, que aparece e sai
+cartão com o município de origem e um som curto, que sobe do rodapé ao lado da
+pilha de botões — perto de onde o médico já está olhando a fila — e sai
 sozinho. No modo completo, a sirene repetindo, a faixa no topo e a moldura na
 borda, até alguém silenciar. A escada de atenção vale nas três, porque ela é
 sobre onde avisar, não sobre o quanto incomodar.
