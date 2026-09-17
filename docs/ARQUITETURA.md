@@ -1427,6 +1427,83 @@ de nenhum deles; só deixa de esconder a metade que faltava.
 
 ---
 
+**D61 — "Novo paciente" não pode ser o título de um aviso sobre alguém que já
+estava lá.**
+Relato de médicos em 15 e 16/09: o alarme "disparava sem ninguém entrar na
+fila". A causa era literal: o cartão do modo Discreto e a faixa do modo
+Completo sempre titulavam o disparo como **"🔔 Novo paciente na fila"** —
+inclusive quando o disparo não era uma chegada, e sim um LEMBRETE de que o
+mesmo paciente de antes continuava esperando. O alarme estava certo; o texto
+é que inventava um evento que não houve.
+
+Dois pontos do código já geravam esse lembrete, e os dois herdavam o mesmo
+título:
+
+1. O repique do Discreto (`39525ef`, 15/09): a cada 2 min, se o paciente que
+   disparou o alarme ainda estiver na fila, o cartão volta — de propósito,
+   sem limite de repetições (ver a análise de risco no próprio commit). Isso
+   multiplicou a frequência do problema: antes, o título errado só aparecia
+   uma vez por chegada; com o repique, aparece a cada 2 minutos enquanto
+   alguém espera, tornando o defeito muito mais visível.
+2. O modo "Espera" (mais antigo): dispara quando alguém **que já estava na
+   fila** cruza um limite de minutos configurado — por definição, nunca é
+   uma chegada, e o título sempre mentiu aqui, só que com bem menos
+   frequência (o médico plantonista raramente usa este modo).
+
+**A correção não troca o MECANISMO — troca o VOCABULÁRIO.**
+`dispararAlarme(motivo)` agora aceita `"chegada"` (padrão) ou
+`"ainda-aguardando"`, e só isso decide o título mostrado — som, distintivo e
+notificação são idênticos nos dois casos, porque a urgência de avisar é a
+mesma; o que muda é só a honestidade sobre o que motivou o aviso. Os três
+pontos que já chamavam `dispararAlarme()` foram revisados um a um:
+`sinalizarNovoPaciente` traduz a origem `"tempo-de-espera"` para
+`"ainda-aguardando"` (as outras origens — sinal de rede, contador do DOM,
+toast nativo — são chegadas de verdade); o repique do Discreto sempre passa
+`"ainda-aguardando"`; o reengate do Completo (`tentarReengatarAlarme`,
+mesmo paciente, 5 min depois de silenciado) idem, ainda que hoje isso não
+mude nada visível porque o Completo tem `cartao:false` — o motivo certo
+protege contra um ajuste futuro de intensidade reabrir o mesmo erro por essa
+porta.
+
+Achado de passagem, na mesma revisão: o texto de reserva de `textoDoMotivo()`
+(usado quando a contagem da fila está momentaneamente indisponível) também
+dizia "Novo paciente na fila", só que por um motivo diferente — `resumoDaFila`
+e `decisorFila` são dois cálculos independentes, e podem discordar por um
+instante. Sem evidência de que isso já aconteceu de fato, mas é a mesma classe
+de erro (o texto afirma "novo" sem saber se é), e a troca custou uma linha:
+agora diz "Aguardando atualização da fila".
+
+**Por que o teste antigo não pegou isso:** os três arquivos de teste do
+repique e do som curto (`alarme-repique-discreto.test.js`,
+`alarme-som-discreto.test.js`) já existiam e passavam — mas o fake de
+`d.dock.criarAviso()` descartava `titulo`/`corpo`, e o de `criarBanner()`
+devolvia um objeto novo a cada `$()`, então nada testado nunca podia ler o
+que apareceria na tela. Os dois fakes foram corrigidos para reter estado
+(seção 7 e 8 de `alarme-repique-discreto.test.js`), e os testes novos foram
+confirmados contra o defeito real antes de confiar neles: revertida a
+correção, as verificações de título quebram exatamente nos três pontos
+esperados (chegada continua certa; repique e modo Espera acusam "Novo
+paciente" onde deveriam dizer o contrário).
+
+**Um segundo alarme que não é nosso.** Uma gravação separada, no mesmo
+relato, mostrou uma voz dizendo "Atenção: Novo Atendimento — um novo paciente
+entrou na fila" enquanto a aba "Aguardando" da tela de monitoramento mostrava
+zero. A rede da gravação mostrou a origem: `GET
+doctor-calltech.meeds.com.br/assets/alert_pronto_atendiment-*.mp3` — um
+arquivo servido pelo **próprio front-end do Meeds**, fora de qualquer
+`@require` ou asset desta suíte, que nunca busca áudio por rede (o alarme
+inteiro é sintetizado por `AudioContext`, offline). O console da gravação não
+tinha nenhuma linha `[Alarme Fila]`, e o mecanismo de repique/reengate deste
+documento é sempre acionado por um sinal que confirma paciente esperando —
+não explica um alerta com a fila em zero. Registrado, não corrigido: não há
+o que consertar no lado da suíte para esse caso específico, e nomear
+precisamente as duas fontes (o nosso alarme, corrigido acima; o alerta
+nativo do Meeds, fora do nosso alcance) é o que evita o próximo relato
+confundir os dois de novo. Diferença prática para reconhecer qual é qual:
+o nosso nunca fala — é sempre tom sintetizado (bipe/sirene), nunca voz.
+
+---
+
 ## 7. Risco aberto: CPF e CNS em repositório público
 
 Os repositórios de origem `lme-sete-lagoas-gerador` e `laudo-cmd-meeds` são

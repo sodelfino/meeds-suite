@@ -53,6 +53,8 @@ function criarDecisorControlavel(temGenteInicialmente) {
 function carregar(configExtra, temGenteInicialmente) {
   let definicao = null;
   const timeouts = [];
+  const avisos = []; // { titulo, corpo } de cada d.dock.criarAviso() — ver secao 7
+  const bannerFake = {}; // .elementosPorSeletor, preenchido quando o banner monta — ver secao 8
   let proximoId = 1;
   const decisor = criarDecisorControlavel(
     temGenteInicialmente === undefined ? true : temGenteInicialmente
@@ -101,23 +103,39 @@ function carregar(configExtra, temGenteInicialmente) {
     dom: { lerContadorPorRotulo: () => null },
     seletor: () => [],
     dock: {
-      criarBanner: () => ({
-        elemento: { addEventListener() {} },
-        $: () => ({ addEventListener() {}, textContent: "" }),
-        mostrar() {}, esconder() {}, remover() {},
-      }),
+      criarBanner: () => {
+        // fake com ESTADO: cada seletor sempre devolve o MESMO elemento,
+        // para o teste conseguir ler o texto depois de ele ser mudado —
+        // ver secao 8 (titulo do banner do Completo).
+        const elementosPorSeletor = {};
+        function elementoDe(sel) {
+          if (!elementosPorSeletor[sel]) {
+            elementosPorSeletor[sel] = { textContent: "", _handlers: {}, addEventListener(ev, fn) { this._handlers[ev] = fn; } };
+          }
+          return elementosPorSeletor[sel];
+        }
+        bannerFake.elementosPorSeletor = elementosPorSeletor;
+        return {
+          elemento: { addEventListener() {} },
+          $: elementoDe,
+          mostrar() {}, esconder() {}, remover() {},
+        };
+      },
       criarMolduraAlerta: () => ({ mostrar() {}, esconder() {}, remover() {} }),
       criarOverlay: () => ({
         $: () => ({ addEventListener() {}, appendChild() {}, value: "", textContent: "", checked: false, hidden: true }),
         $$: () => [],
         abrir() {}, fechar() {}, remover() {}, estaAberto: () => false,
       }),
-      criarAviso: () => ({ atualizar() {}, fechar() {}, estaVisivel: () => true }),
+      criarAviso: (spec) => {
+        avisos.push({ titulo: spec.titulo, corpo: spec.corpo });
+        return { atualizar() {}, fechar() {}, estaVisivel: () => true };
+      },
     },
     aoClicarBotao() {}, aoAbrirAjustes() {}, botao: null,
   });
 
-  return { api: definicao, timeouts, decisor };
+  return { api: definicao, timeouts, decisor, avisos, bannerFake };
 }
 
 /* O repique MAIS RECENTE ainda pendente (nao disparado, nao cancelado).
@@ -236,6 +254,91 @@ function repiquePendente(timeouts) {
 
   api.stop();
   ok("stop() cancelou o repique de 2 min", rep.cancelado === true);
+}
+
+/* ------------------------------------------------------------------
+ * 7. O CARTAO NAO PODE DIZER "NOVO PACIENTE" QUANDO NAO CHEGOU NINGUEM
+ * ------------------------------------------------------------------
+ * Bug relatado por medicos em 15 e 16/09: o alarme "disparava sem
+ * ninguem entrar na fila". A causa era este cartao — o repique do
+ * Discreto (secao 2 acima) e o modo "espera" reutilizavam o mesmo
+ * titulo da chegada de verdade, "🔔 Novo paciente na fila", mesmo
+ * quando o disparo era so um lembrete de alguem que JA estava
+ * esperando. O alarme estava certo; o texto e que inventava uma
+ * chegada que nao houve. Ver decisao D61.
+ * ------------------------------------------------------------------ */
+{
+  const { api, timeouts, avisos } = carregar(null, true);
+  api._dispararAlarme(); // chegada de verdade, sem motivo == comportamento padrao
+  ok(
+    "a chegada de verdade diz 'Novo paciente'",
+    avisos[0] && avisos[0].titulo === "🔔 Novo paciente na fila",
+    avisos[0] && avisos[0].titulo
+  );
+
+  dispararRepiqueMaisRecente(timeouts); // 2 min depois, MESMO paciente
+  ok(
+    "o repique de 2 min NAO diz 'Novo paciente' — e o mesmo de antes",
+    avisos[1] && avisos[1].titulo !== "🔔 Novo paciente na fila",
+    avisos[1] && avisos[1].titulo
+  );
+  ok(
+    "o repique diz claramente que e quem ja estava esperando",
+    avisos[1] && avisos[1].titulo === "🔔 Paciente ainda aguardando",
+    avisos[1] && avisos[1].titulo
+  );
+}
+
+{
+  const { api, avisos } = carregar({ modo: "espera" }, true);
+  api._sinalizarNovoPaciente("tempo-de-espera"); // cruzou o limite, nao chegou agora
+  ok(
+    "o modo Espera tambem NAO diz 'Novo paciente' ao disparar por tempo",
+    avisos[0] && avisos[0].titulo === "🔔 Paciente ainda aguardando",
+    avisos[0] && avisos[0].titulo
+  );
+}
+
+{
+  // uma chegada de verdade no modo imediato, por um dos sinais reais
+  // (nao pelo atalho de teste _dispararAlarme), continua dizendo "Novo".
+  const { api, avisos } = carregar({ modo: "imediato" }, true);
+  api._sinalizarNovoPaciente("rede-fila-espera");
+  ok(
+    "uma chegada real (sinal de rede) continua dizendo 'Novo paciente'",
+    avisos[0] && avisos[0].titulo === "🔔 Novo paciente na fila",
+    avisos[0] && avisos[0].titulo
+  );
+}
+
+/* ------------------------------------------------------------------
+ * 8. O MESMO PROBLEMA, NO TITULO DA FAIXA DO MODO COMPLETO
+ * ------------------------------------------------------------------
+ * O Completo tem cartao:false (nao mostra o aviso da secao 7), mas a
+ * faixa fixa no topo da tela tem o mesmo titulo estatico "🚨 Novo
+ * paciente na fila!" — e ele reaparece intacto quando o alarme reengata
+ * sozinho (o MESMO paciente, 5 min depois de silenciado), pelo mesmo
+ * motivo da secao 7. Uma atualizacao PASSIVA (a fila mudou enquanto o
+ * alarme ja tocava, sem disparo novo) nao deve mexer no titulo — so
+ * quem dispara de verdade sabe se e chegada ou nao.
+ * ------------------------------------------------------------------ */
+{
+  const { api, bannerFake } = carregar({ intensidade: "completo" }, true);
+  api._dispararAlarme(); // chegada de verdade
+  const titulo = () => bannerFake.elementosPorSeletor["#af-titulo"].textContent;
+
+  ok("chegada real: a faixa diz 'Novo paciente'", titulo() === "🚨 Novo paciente na fila!", titulo());
+
+  // simula "Silenciar" (o botao da propria faixa) e o reengate seguinte
+  bannerFake.elementosPorSeletor["#af-silenciar"]._handlers.click();
+  api._dispararAlarme("ainda-aguardando"); // e o que tentarReengatarAlarme() faz de verdade
+
+  ok(
+    "reengate (mesmo paciente): a faixa NAO diz mais 'Novo paciente'",
+    titulo() !== "🚨 Novo paciente na fila!",
+    titulo()
+  );
+  ok("e diz que e quem ja estava esperando", titulo() === "🔔 Paciente ainda aguardando", titulo());
 }
 
 console.log(falhas ? `\n${falhas} FALHA(S)` : "\ntodos passaram");

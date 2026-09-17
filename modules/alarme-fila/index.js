@@ -425,7 +425,10 @@
     if (agora - ultimoDisparoTs < DEBOUNCE_MS) return; // outro sinal ja tratou
     ultimoDisparoTs = agora;
     console.debug("[Alarme Fila] disparo via " + origem);
-    if (config.ativo) dispararAlarme();
+    /* "tempo-de-espera" (modo Espera) reage a alguem que JA estava na
+     * fila cruzar o limite de minutos — nao a uma chegada. O cartao nao
+     * pode dizer "novo paciente" para isso. */
+    if (config.ativo) dispararAlarme(origem === "tempo-de-espera" ? "ainda-aguardando" : "chegada");
   }
 
   /* --- SINAL A: toast nativo "Novo Atendimento" ------------------- */
@@ -668,7 +671,14 @@
 
   function textoDoMotivo() {
     var r = resumoDaFila();
-    if (!r.quantos) return "Novo paciente na fila";
+    /* "Nao sei quantos" (quantos=0) e um sinal PROPRIO, independente de
+     * a chegada ser nova ou de alguem que ja esperava (D61): resumoDaFila
+     * e decisorFila sao dois calculos separados, e o segundo pode dizer
+     * "tem gente" um instante antes ou depois do primeiro atualizar a
+     * contagem. A reserva nao pode alegar "novo" — vale tanto para o
+     * cartao do Discreto quanto para a faixa do Completo (o mesmo texto
+     * alimenta os dois, ver atualizarTextoDoBanner). */
+    if (!r.quantos) return "Aguardando atualização da fila";
     var partes = [r.quantos + (r.quantos === 1 ? " aguardando" : " aguardando")];
     var min = Math.floor(r.esperaMs / 60000);
     if (min >= 1) {
@@ -872,13 +882,19 @@
       if (config.intensidade !== "discreto") return; // medico trocou de modo
       if (filaDeEsperaEstaVazia()) return; // paciente ja saiu da fila
       console.debug("[Alarme Fila] paciente ainda esperando, repique do modo discreto");
-      dispararAlarme();
+      dispararAlarme("ainda-aguardando");
     }, INTERVALO_REPIQUE_DISCRETO_MS);
   }
 
-  function dispararAlarme() {
+  /* motivo: "chegada" (padrao — alguem novo entrou) ou "ainda-aguardando"
+   * (o mesmo paciente de antes continua na fila: repique do Discreto ou
+   * o modo "espera" reagindo a tempo de espera, nao a chegada). So muda
+   * o TITULO do cartao (ver mostrarCartaoDeChegada) — o resto do disparo
+   * (som, distintivo, notificacao) e identico nos dois casos. Ver D61. */
+  function dispararAlarme(motivo) {
     if (tocando) return;
     var forma = intensidadeAtual();
+    var ehAindaAguardando = motivo === "ainda-aguardando";
 
     /* O distintivo e a notificacao valem nos TRES modos: eles sao sobre
      * onde avisar, nao sobre o quanto incomodar. O que a intensidade
@@ -886,7 +902,7 @@
     atualizarDistintivo();
     avisarForaDaAba();
 
-    if (forma.cartao) mostrarCartaoDeChegada();
+    if (forma.cartao) mostrarCartaoDeChegada(ehAindaAguardando);
 
     if (forma.som === "curto") {
       // toca duas vezes, espacadas pelo intervalo natural do proprio som
@@ -901,7 +917,7 @@
       agendarRepiqueDeEsperaDiscreto();
     } else if (forma.som === "repetido") {
       tocando = true;
-      atualizarTextoDoBanner();
+      atualizarTextoDoBanner(ehAindaAguardando);
       if (banner) banner.mostrar();
       if (moldura) moldura.mostrar();
       var tipo = somDoModo(false);
@@ -922,7 +938,7 @@
    * bloqueia nada e nao repete som — e o meio-termo que faltava entre
    * "sirene" e "nao fico sabendo".
    * ------------------------------------------------------------------ */
-  function mostrarCartaoDeChegada() {
+  function mostrarCartaoDeChegada(ehAindaAguardando) {
     if (!d || !d.dock || typeof d.dock.criarAviso !== "function") return;
     var ficha = ultimaChegada || {};
     var linhas = [];
@@ -934,8 +950,15 @@
     if (ficha.municipio) linhas.push(ficha.municipio);
     linhas.push(textoDoMotivo());
 
+    /* O titulo MENTIA aqui ate a v2.43.7: todo repique do Discreto (o
+     * mesmo paciente, 2 min depois) e todo disparo do modo "espera"
+     * chamavam este cartao, e ele sempre dizia "Novo paciente" — mesmo
+     * quando ninguem novo tinha chegado. O medico lia "novo", olhava a
+     * fila, nao via ninguem, e reportava alarme disparando sozinho. Nao
+     * era: o alarme estava certo, o texto e que inventava uma chegada
+     * que nao houve. Ver D61. */
     d.dock.criarAviso({
-      titulo: "🔔 Novo paciente na fila",
+      titulo: ehAindaAguardando ? "🔔 Paciente ainda aguardando" : "🔔 Novo paciente na fila",
       corpo: linhas,
       autoFecharMs: 12000,
       acoes: [{ rotulo: "Ok", primario: true, aoClicar: function () {} }],
@@ -1006,7 +1029,11 @@
     if (!config.ativo) return;
     if (filaDeEsperaEstaVazia()) return;
     console.debug("[Alarme Fila] fila ainda cheia apos silenciar, tocando de novo");
-    dispararAlarme();
+    /* Reengate do Completo: mesmo paciente de antes, nao um novo — hoje
+     * este modo tem cartao:false, entao o titulo nem aparece, mas o
+     * motivo certo evita que um ajuste futuro de intensidade reintroduza
+     * o mesmo erro do D61 por aqui. */
+    dispararAlarme("ainda-aguardando");
   }
 
   function silenciarComReengate() {
@@ -1306,7 +1333,7 @@
   function montarBanner() {
     moldura = d.dock.criarMolduraAlerta();
     banner = d.dock.criarBanner(
-      '<span>🚨 Novo paciente na fila!</span>' +
+      '<span id="af-titulo">🚨 Novo paciente na fila!</span>' +
         '<span class="ms-banner-motivo" id="af-motivo"></span>' +
         '<button type="button" id="af-silenciar">Silenciar alarme</button>'
     );
@@ -1314,9 +1341,23 @@
   }
 
   /* Um alarme que diz POR QUE esta tocando e informacao; um que so grita
-   * vira ruido, e ruido o medico desliga. */
-  function atualizarTextoDoBanner() {
+   * vira ruido, e ruido o medico desliga.
+   *
+   * ehAindaAguardando: so vem preenchido (true/false) quando quem chama
+   * e um disparo de verdade (dispararAlarme) — ai o TITULO tambem e
+   * atualizado, porque e o unico momento em que sabemos se e uma chegada
+   * ou o mesmo paciente de antes (D61). A chamada passiva (fila mudou
+   * enquanto o alarme JA tocava, sem disparo novo) vem sem argumento e
+   * so atualiza a contagem/tempo — o titulo fica como estava, porque
+   * nao houve evento novo para ele descrever. */
+  function atualizarTextoDoBanner(ehAindaAguardando) {
     if (!banner) return;
+    if (ehAindaAguardando !== undefined) {
+      var titulo = banner.$("#af-titulo");
+      if (titulo) {
+        titulo.textContent = ehAindaAguardando ? "🔔 Paciente ainda aguardando" : "🚨 Novo paciente na fila!";
+      }
+    }
     var el = banner.$("#af-motivo");
     if (el) el.textContent = textoDoMotivo();
   }
@@ -1627,7 +1668,12 @@
     /* Exposto para o teste do aviso de suspensao: ele JA empilhou cartao
      * sem fechar na tela do medico, e o teste existe para nao repetir. */
     _relatarSuspensao: function (min) { relatarSuspensao(min); },
-    _dispararAlarme: function () { dispararAlarme(); },
+    _dispararAlarme: function (motivo) { dispararAlarme(motivo); },
+    /* Exposto para o teste do motivo do cartao (D61): dispara pela
+     * ENTRADA de verdade (sinalizarNovoPaciente), nao direto em
+     * dispararAlarme, para provar que "tempo-de-espera" e traduzido
+     * para "ainda-aguardando" no ponto onde isso realmente acontece. */
+    _sinalizarNovoPaciente: function (origem) { sinalizarNovoPaciente(origem); },
     _chamadasDeSom: function () { return chamadasDeSomParaTeste.slice(); },
     _definirIntensidade: function (v) { config.intensidade = v; },
   });
