@@ -6,7 +6,7 @@
  * aprovacao para prescricao digital. Precisam ser prescritos em
  * separado, para transcricao por medico presencial.
  *
- * POR QUE OS 11 MUNICIPIOS, E NAO SO MACAÉ
+ * POR QUE TODOS OS MUNICIPIOS, E NAO SO MACAÉ
  * Comecou so em Macaé, cuja REMUME ja anota o dispositivo legal de cada
  * item ("port.nº 344/98 Lista X") no proprio nome — fonte primaria.
  * Nenhum outro municipio publica essa anotacao. A classificacao
@@ -149,7 +149,7 @@ if (modulo) {
     ok("Macaé: 15 itens azul (Lista B1)", azulMacae === 15, azulMacae);
   }
 
-  /* 6. REPLICACAO PARA OS OUTROS 10 MUNICIPIOS, POR SUBSTANCIA
+  /* 6. REPLICACAO PARA OS OUTROS MUNICIPIOS, POR SUBSTANCIA
    *
    * A regra de ouro proibe copiar POLITICA de um municipio para outro —
    * mas receituario amarela/azul nao e politica municipal, e lei federal
@@ -192,7 +192,7 @@ if (modulo) {
       });
     });
     ok(
-      "em todos os 11 municipios, receituario bate com a classificacao por substancia",
+      "em todos os municipios, receituario bate com a classificacao por substancia",
       divergencias.length === 0,
       divergencias.slice(0, 5).join(" ; ")
     );
@@ -201,7 +201,7 @@ if (modulo) {
     // casamento por nome nao pode ter marcado uma sozinho. Macaé fica de
     // fora desta checagem: "Fentanila + Droperidol (port.nº 344/98 Lista
     // A1)" e um combo real, ja verificado item a item na fonte oficial —
-    // e continua Lista A1 mesmo associado. So os outros 10 municipios,
+    // e continua Lista A1 mesmo associado. So os outros municipios,
     // marcados so por casamento de nome (sem conferencia individual),
     // precisam vir 100% livres de combo.
     const combosMarcados = [];
@@ -231,10 +231,15 @@ if (modulo) {
     // marcado — se a replicacao falhar silenciosamente (ex.: acento
     // quebrando o casamento), isto teria ficado em 1 (so Macaé)
     const comMarca = cidades.filter((c) => REMUMES[c].some((i) => i.receituario)).length;
-    ok("pelo menos 9 dos 11 municipios tem algum item marcado", comMarca >= 9, comMarca + "/" + cidades.length);
+    ok("pelo menos 9 dos " + cidades.length + " municipios tem algum item marcado", comMarca >= 9, comMarca + "/" + cidades.length);
 
+    /* Canario, nao lei: sobe deliberadamente sempre que um municipio novo
+     * com psicotropicos/entorpecentes reais entra na base (ultima vez:
+     * Franco da Rocha, +6 — Clonazepam x2, Diazepam, Midazolam x2,
+     * Nitrazepam, todos Lista B1/azul). Se subir sem voce ter acrescentado
+     * municipio nenhum, e bug — va atras do porque. */
     const totalGeral = cidades.reduce((s, c) => s + REMUMES[c].filter((i) => i.receituario).length, 0);
-    ok("96 itens marcados no total, nos 11 municipios (26 em Macaé + 70 nos outros 10)", totalGeral === 96, totalGeral);
+    ok("102 itens marcados no total, nos " + cidades.length + " municipios (26 em Macaé + 76 nos outros)", totalGeral === 102, totalGeral);
   }
 }
 

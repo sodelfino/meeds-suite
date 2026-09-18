@@ -589,6 +589,13 @@ function moverFocoResultado(delta) {
     ".rm-hint { font-size:11.5px; color:#a15c00; background:#fff4e2; padding:7px 10px; border-radius:7px; }",
     ".rm-hint[hidden] { display:none; }",
     ".rm-hint-alerta { color:#8a2020; background:#fde8e8; border:1px solid #f0b8b8; font-weight:600; }",
+    /* Aviso do MUNICIPIO (nao do item): regra operacional do atendimento
+       naquela cidade, ex. "so receita pra casa". Fica ACIMA da busca e
+       independe de termo digitado — diferente de rm-hint, que so aparece
+       durante uma busca. Vermelho, nao amarelo: e sobre o que o medico
+       pode fazer no atendimento, nao sobre um medicamento especifico. */
+    ".rm-aviso-municipio { font-size:11.5px; line-height:1.45; font-weight:600; color:#8a2020; background:#fde8e8; border:1px solid #f0b8b8; border-radius:7px; padding:8px 10px; }",
+    ".rm-aviso-municipio[hidden] { display:none; }",
     ".rm-count { font-size:11px; color:#5b6c68; }",
     ".rm-results { list-style:none; margin:0; padding:0; overflow-y:auto; flex:1; min-height:120px; border-top:1px solid #eef2f6; }",
     ".rm-results li { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:8px 4px; border-bottom:1px solid #f1f5f9; font-size:12.5px; line-height:1.45; }",
@@ -618,6 +625,7 @@ function moverFocoResultado(delta) {
         '  <button type="button" class="rm-fechar" aria-label="Fechar">&#10005;</button></header>' +
         '  <div class="rm-body">' +
         '    <div><label for="rm-select">Municipio</label><select id="rm-select"></select></div>' +
+        '    <div class="rm-aviso-municipio" id="rm-aviso-municipio" hidden></div>' +
         '    <div><label for="rm-search">Buscar principio ativo / medicamento</label>' +
         '      <input id="rm-search" type="text" placeholder="Ex: amoxicilina" autocomplete="off" /></div>' +
         '    <div class="rm-hint" id="rm-hint" hidden></div>' +
@@ -631,6 +639,7 @@ function moverFocoResultado(delta) {
       sub: overlay.$("#rm-sub"),
       meta: overlay.$("#rm-meta"),
       select: overlay.$("#rm-select"),
+      avisoMunicipio: overlay.$("#rm-aviso-municipio"),
       search: overlay.$("#rm-search"),
       hint: overlay.$("#rm-hint"),
       count: overlay.$("#rm-count"),
@@ -731,9 +740,28 @@ function moverFocoResultado(delta) {
     }
   }
 
+  /* Aviso persistente por municipio (ex.: "so receita pra casa, nao
+   * administramos na unidade"). Fica em REMUMES._meta.avisos, chave e o
+   * mesmo nome de municipio usado no resto do arquivo. Diferente do
+   * rm-hint (que so aparece durante uma busca), este independe de termo
+   * digitado — e sobre o ATENDIMENTO naquela cidade, nao sobre um item. */
+  function atualizarAvisoMunicipio(cidade) {
+    if (!refs || !refs.avisoMunicipio) return;
+    var avisos = REMUMES._meta && REMUMES._meta.avisos;
+    var texto = avisos && avisos[cidade];
+    if (texto) {
+      refs.avisoMunicipio.hidden = false;
+      refs.avisoMunicipio.textContent = "⚠️ " + texto;
+    } else {
+      refs.avisoMunicipio.hidden = true;
+      refs.avisoMunicipio.textContent = "";
+    }
+  }
+
   function renderizarResultados() {
     if (!refs) return;
     var cidade = refs.select.value;
+    atualizarAvisoMunicipio(cidade);
     var lista = REMUMES[cidade] || [];
     var termo = refs.search.value.trim();
     var termoNormalizado = normalizarTexto(termo);
