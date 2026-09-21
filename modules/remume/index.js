@@ -758,6 +758,20 @@ function moverFocoResultado(delta) {
     }
   }
 
+  /* Aviso por TERMO no nome do item, definido por municipio em
+   * REMUMES._meta.avisosItens[cidade] = [{ termo, aviso }]. E regra, nao
+   * dado item a item: vale para todo item cujo nome contenha o termo (ex.:
+   * "ampola" pega tambem "frasco-ampola") e chega igual pelo JSON remoto e
+   * pelo fallback embutido, ja que os dois carregam o _meta inteiro. */
+  function avisosDoItem(cidade, nome) {
+    var regras = REMUMES._meta && REMUMES._meta.avisosItens && REMUMES._meta.avisosItens[cidade];
+    if (!regras || !regras.length) return [];
+    var n = normalizarTexto(nome);
+    return regras
+      .filter(function (r) { return r && r.termo && r.aviso && n.indexOf(normalizarTexto(r.termo)) !== -1; })
+      .map(function (r) { return r.aviso; });
+  }
+
   function renderizarResultados() {
     if (!refs) return;
     var cidade = refs.select.value;
@@ -857,6 +871,13 @@ function moverFocoResultado(delta) {
         avisoDiv.textContent = "⚠️ Atenção: " + infoReceituario.aviso;
         li.appendChild(avisoDiv);
       }
+
+      avisosDoItem(cidade, par.nome).forEach(function (texto) {
+        var avisoItem = document.createElement("div");
+        avisoItem.className = "rm-aviso-receituario";
+        avisoItem.textContent = "\u26A0\uFE0F Atenção: " + texto;
+        li.appendChild(avisoItem);
+      });
 
       var botaoCopiar = document.createElement("button");
       botaoCopiar.type = "button";
@@ -986,6 +1007,8 @@ function moverFocoResultado(delta) {
     // remoto OU string legada do fallback embutido) vira {nome, local,
     // receituario}. Ver tests/remume-receituario.test.js.
     _normalizarItemRemume: function (item) { return normalizarItemRemume(item); },
+    _avisosDoItem: function (cidade, nome) { return avisosDoItem(cidade, nome); },
+    _definirRemumesParaTeste: function (dados) { Object.keys(REMUMES).forEach(function (k) { delete REMUMES[k]; }); Object.assign(REMUMES, dados); },
   });
 
   void atendimentoAtual; // guardado so em memoria, para depuracao no console

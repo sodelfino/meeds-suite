@@ -14,6 +14,14 @@
       "atualizadoEm": "18/09/2026",
       "avisos": {
         "Franco da Rocha": "Nesta unidade (UPA Franco da Rocha) só são atendidas fichas azuis — o fluxo já contempla receita e alta. Paciente que precisar de medicação administrada no local (oral, IM ou EV) ou que apresentar sinal de alarme deve ser encaminhado para atendimento presencial: nenhuma medicação é aplicada aqui."
+      },
+      "avisosItens": {
+        "Franco da Rocha": [
+          {
+            "termo": "ampola",
+            "aviso": "Se houver necessidade de administração, encaminhe o paciente para o presencial."
+          }
+        ]
       }
     },
     "Macaé": [
@@ -3159,8 +3167,8 @@
       "Sódio Cloreto Soro Fisiológico 0,9% ampola 10 ml",
       "Sódio Cloreto 20% ampola 10 ml",
       "Cálcio Carbonato + Colecalciferol comprimido revestido (cálcio 500 mg + vit. D 200 UI)",
-      "Adrenalina ampola 1 mg/1 ml",
-      "Noradrenalina ampola 4 mg/4 ml",
+      "Adrenalina (Epinefrina) ampola 1 mg/1 ml",
+      "Noradrenalina (Norepinefrina) ampola 4 mg/4 ml",
       "Dobutamina ampola 250 mg/20 ml",
       "Dopamina ampola 50 mg/10 ml",
       "Talidomida comprimido 100 mg",
