@@ -2,6 +2,15 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.43.11",
+      "data": "2026-09-21",
+      "novidades": [],
+      "melhorias": [],
+      "correcoes": [
+        "O alarme podia voltar a tocar sozinho, a cada 5 minutos (ou a cada 2 no modo Discreto), depois de já ter sido silenciado — mesmo sem nenhum paciente novo e mesmo com a fila vazia. Acontecia quando você saía da tela da fila (para atender o paciente, por exemplo): sem ninguém olhando a fila, o alarme não tinha como confirmar se ainda havia alguém esperando, e passou a tratar essa dúvida como \"ainda tem gente\", voltando a soar. Agora, sem confirmação nenhuma, ele não toca — só volta a soar quando há prova de verdade, de que a fila ainda tem alguém ou de que já esvaziou."
+      ]
+    },
+    {
       "versao": "2.43.10",
       "data": "2026-09-18",
       "novidades": [

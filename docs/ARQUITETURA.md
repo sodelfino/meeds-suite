@@ -1585,6 +1585,66 @@ perde o deslocamento, não o aviso.
 
 ---
 
+**D64 — Abstenção não é prova de "ainda cheia": o alarme fantasma.**
+Relato de 20/09, com diagnóstico técnico em mãos pela primeira vez (a versão
+2.43.0 existe exatamente para isto): o console mostrava
+
+```
+20:18:00  [debug]  [Alarme Fila] fila ainda cheia apos silenciar, tocando de novo
+20:23:03  [debug]  [Alarme Fila] fila ainda cheia apos silenciar, tocando de novo
+```
+
+exatos 5 minutos entre um e outro — `COOLDOWN_REENGATE_MS` — e, **no meio dos
+dois**, às 20:18:43 e 20:18:44, a própria tela do Meeds consultou a fila de
+espera de verdade (`StatusAtendimentoId=2`, sem `ProfissionalId`) e voltou
+vazia as duas vezes. Nenhum paciente novo entrou; o log alegava "cheia" no
+exato momento em que a rede provava o contrário.
+
+**A causa era estrutural, não pontual — diferente da D62.** `filaDeEsperaEstaVazia()`
+volta `false` em duas situações que o código tratava como idênticas:
+
+1. o decisor **decidiu** "cheia" (evidência real: um voto fresco dizendo que
+   há gente);
+2. o decisor **não decidiu nada** — abstenção, nenhum voto válido dentro da
+   janela de validade.
+
+Para o disparo inicial isso está certo: entre tocar demais e deixar um
+paciente sem alarme, tocar demais é o preço menor, e é a mesma filosofia da
+D62 ("prefere não decidir a disparar errado" — mas errar aqui é do lado
+seguro). O problema é que `tentarReengatarAlarme()` (reengate do Completo, a
+cada 5 min) e o repique do Discreto (a cada 2 min) usavam a **mesma função**
+para decidir se **re-tocam** um alarme que o médico **já silenciou** — e aí
+abstenção vira gatilho de sirene, não trava de segurança.
+
+Os votos do decisor (`rede` e `dom_contador`) expiram em 12 s
+(`LIMITE_FRESCOR_DOM_MS`). O voto de rede só é renovado quando a **própria
+tela do Meeds** consulta a fila de espera — nada neste módulo faz essa
+chamada por conta própria (ver D1: sem fetch próprio). Assim que o médico sai
+da tela da fila para atender o paciente seguinte, os votos morrem em 12 s e
+nunca mais são renovados: dali em diante o decisor nunca mais decide nada, e
+o reengate, tratando "não decidiu" como "ainda cheia", volta a tocar a
+sirene inteira a cada 5 minutos — **para sempre**, mesmo com a fila vazia, até
+alguém silenciar nas mãos de novo ou trocar de intensidade.
+
+**A correção não mexe no disparo inicial** — ele continua preferindo tocar na
+dúvida, que é o comportamento certo para "devo ligar o alarme?". Ela é
+específica dos dois mecanismos que **re-tocam sozinhos**, via `haDecisaoSobreFila()`:
+exigem uma decisão de verdade, de qualquer lado, antes de soar de novo. Sem
+decisão, não tocam — mas também não desistem: reagendam a mesma checagem, na
+mesma cadência (5 min / 2 min), até que evidência real apareça, positiva ou
+negativa. A corrente nunca morre por falta de evidência; ela só para de
+**soar** sem evidência. Se o médico voltar para a tela da fila e o paciente
+ainda estiver lá, o próximo ciclo decide direito e toca; se ele foi atendido
+por outra via, o próximo ciclo decide "vazia" e a corrente termina de vez.
+
+`tests/alarme-falso-positivo.test.js`, seções 12–16: reproduz o incidente
+exato (abstenção no momento do reengate não pode tocar), com controles
+provando que evidência real de "cheia" ainda reengata e evidência real de
+"vazia" ainda encerra — e uma seção extra provando que a corrente se
+autocura quando a evidência volta, em vez de ficar perdida.
+
+---
+
 ## 7. Risco aberto: CPF e CNS em repositório público
 
 Os repositórios de origem `lme-sete-lagoas-gerador` e `laudo-cmd-meeds` são

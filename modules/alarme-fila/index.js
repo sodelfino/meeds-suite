@@ -942,6 +942,15 @@
     timeoutRepiqueDiscreto = setTimeout(function () {
       timeoutRepiqueDiscreto = null;
       if (config.intensidade !== "discreto") return; // medico trocou de modo
+
+      /* Mesma correcao do reengate do Completo, ver haDecisaoSobreFila():
+       * sem evidencia fresca, nao repica as cegas — so reagenda. */
+      if (!haDecisaoSobreFila()) {
+        console.debug("[Alarme Fila] sem evidencia fresca da fila — repique do discreto reagendado em silencio");
+        agendarRepiqueDeEsperaDiscreto();
+        return;
+      }
+
       if (filaDeEsperaEstaVazia()) return; // paciente ja saiu da fila
       console.debug("[Alarme Fila] paciente ainda esperando, repique do modo discreto");
       dispararAlarme("ainda-aguardando");
@@ -1078,6 +1087,43 @@
     return r.valor === false;
   }
 
+  /* ------------------------------------------------------------------
+   * ABSTENCAO NAO E PROVA DE "AINDA CHEIA" — SO PARA QUEM RE-TOCA SOZINHO
+   * ------------------------------------------------------------------
+   * filaDeEsperaEstaVazia() volta `false` em duas situacoes que NAO sao
+   * a mesma coisa: o decisor decidiu "cheia" (evidencia real), ou o
+   * decisor nao decidiu NADA (abstencao — nenhum voto valido). Para
+   * decidir se TOCA A PRIMEIRA VEZ, tratar as duas como "continua
+   * tocando" e a escolha certa: entre incomodar demais e deixar um
+   * paciente sem alarme, incomodar demais e o preco menor.
+   *
+   * Mas tentarReengatarAlarme() e o repique do Discreto usam a MESMA
+   * funcao para decidir se RE-TOCAM um alarme que o medico ja
+   * silenciou — e ai abstencao vira gatilho de sirene, nao trava de
+   * seguranca. Os votos (rede e dom_contador) expiram em 12s
+   * (LIMITE_FRESCOR_DOM_MS); o voto de rede so e renovado quando a
+   * PROPRIA TELA do Meeds consulta a fila de espera — nada aqui faz
+   * essa chamada por conta propria. Assim que o medico sai da tela da
+   * fila para atender o proximo paciente, os votos morrem em 12s e
+   * nunca mais sao renovados: dali em diante o decisor nunca mais
+   * decide nada, e o reengate, achando "nao decidiu" = "ainda cheia",
+   * volta a tocar a sirene inteira a cada 5 min (ou o cartao a cada
+   * 2 min, no Discreto) para sempre — mesmo com a fila vazia.
+   *
+   * Foi o relato de 20/09: "fila ainda cheia apos silenciar, tocando de
+   * novo" as 20:18:00 e as 20:23:03 (exatos 5 min de COOLDOWN_REENGATE_MS
+   * entre um e outro), com a PROPRIA rede do Meeds confirmando fila
+   * vazia as 20:18:43-44, no meio dos dois. Nenhum paciente novo entrou;
+   * o alarme so nao tinha como saber que a fila continuava vazia, e
+   * tratou esse "nao sei" como "ainda tem gente".
+   *
+   * Por isso os dois mecanismos de RE-TOCAR sozinhos (nao o disparo
+   * inicial, que continua preferindo tocar na duvida) passam a exigir
+   * decisao de verdade, de qualquer lado, antes de soar de novo. */
+  function haDecisaoSobreFila() {
+    return decisorFila.decidir().decidiu;
+  }
+
   function checarSeDeveSilenciarPorFilaVazia() {
     if (!tocando) return;
     if (filaDeEsperaEstaVazia()) {
@@ -1089,6 +1135,19 @@
   function tentarReengatarAlarme() {
     timeoutReengate = null;
     if (!config.ativo) return;
+
+    /* Sem decisao nenhuma (medico saiu da tela da fila, votos expirados):
+     * nao toca as cegas. Reagenda em silencio, na MESMA cadencia, e
+     * tenta de novo depois — se o medico voltar a fila, ou se algum
+     * outro sinal real (toast, rede, contador) trouxer evidencia fresca
+     * antes disso, a proxima tentativa decide direito. A corrente nunca
+     * morre por falta de evidencia; ela so para de SOAR sem evidencia. */
+    if (!haDecisaoSobreFila()) {
+      console.debug("[Alarme Fila] sem evidencia fresca da fila apos silenciar — reagendando em silencio, sem tocar");
+      timeoutReengate = setTimeout(tentarReengatarAlarme, COOLDOWN_REENGATE_MS);
+      return;
+    }
+
     if (filaDeEsperaEstaVazia()) return;
     console.debug("[Alarme Fila] fila ainda cheia apos silenciar, tocando de novo");
     /* Reengate do Completo: mesmo paciente de antes, nao um novo — hoje

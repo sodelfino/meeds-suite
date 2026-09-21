@@ -140,6 +140,37 @@ function carregar(opcoes) {
  * StatusAtendimentoId=2 e nenhum ProfissionalId. */
 const URL_FILA = "/api/v1/Atendimento?StatusAtendimentoId=2&take=5";
 
+/* O timeout MAIS RECENTE ainda pendente com um atraso exato — precisa
+ * ser o mais recente porque reagendar cria um novo com o MESMO atraso,
+ * e o antigo continua na lista (disparado, mas nao "cancelado"). */
+function dispararTimeout(timeouts, atrasoExato) {
+  const candidatos = timeouts.filter((t) => t.atraso === atrasoExato && !t.disparado && !t.cancelado);
+  const alvo = candidatos[candidatos.length - 1];
+  if (!alvo) return null;
+  alvo.disparado = true;
+  alvo.fn();
+  return alvo;
+}
+
+function pendente(timeouts, atrasoExato) {
+  const candidatos = timeouts.filter((t) => t.atraso === atrasoExato && !t.disparado && !t.cancelado);
+  return candidatos[candidatos.length - 1] || null;
+}
+
+const COOLDOWN_REENGATE_MS = 5 * 60000;
+const INTERVALO_REPIQUE_DISCRETO_MS = 2 * 60000;
+const DURACAO_MAX_SOM_MS = 2 * 60000; // mesmo valor de INTERVALO_REPIQUE_DISCRETO_MS — coincidencia, nao mecanismo
+
+/* Leva o Completo do zero ate "silenciado, reengate agendado": dispara,
+ * deixa a trava de seguranca de 2 min estourar (silenciarComReengate),
+ * que e o caminho real — o mesmo que qualquer plantao percorre quando
+ * ninguem clica em "Silenciar" a tempo, ou quando clica e o clique
+ * chama a mesma funcao. */
+function chegarNoReengateAgendado(api, timeouts) {
+  api._dispararAlarme();
+  dispararTimeout(timeouts, DURACAO_MAX_SOM_MS); // trava de 2 min -> silenciarComReengate()
+}
+
 /* ------------------------------------------------------------------
  * 1. TOAST COM PROVA FRESCA DE FILA VAZIA: nao dispara.
  *    E o caso da gravacao de 16/09 — a voz do proprio Meeds dizendo
@@ -302,6 +333,127 @@ const URL_FILA = "/api/v1/Atendimento?StatusAtendimentoId=2&take=5";
   ok(
     "fila vazia: trocar para Discreto nao agenda lembrete",
     timeouts.filter((t) => t.atraso === 120000 && !t.disparado && !t.cancelado).length === 0
+  );
+}
+
+/* ------------------------------------------------------------------
+ * 12. O ALARME FANTASMA (D64) — reengate sem NENHUMA evidencia nao pode
+ *     re-tocar a sirene.
+ * ------------------------------------------------------------------
+ * Relato de 20/09: "fila ainda cheia apos silenciar, tocando de novo"
+ * as 20:18:00 e as 20:23:03 — exatos 5 min (COOLDOWN_REENGATE_MS) entre
+ * um e outro — com a PROPRIA rede do Meeds confirmando fila vazia as
+ * 20:18:43-44, no meio dos dois. Nenhum paciente novo entrou.
+ *
+ * A causa: filaDeEsperaEstaVazia() volta `false` tanto quando o decisor
+ * decide "cheia" quanto quando NAO decide nada (abstencao — votos
+ * expirados, ninguem olhando a tela da fila). O reengate tratava as
+ * duas respostas como a mesma coisa: "toca de novo". Aqui reproduzimos
+ * exatamente essa abstencao — `decidiu:false`, sem nenhum voto valido —
+ * no momento em que o timer de 5 min dispara.
+ * ------------------------------------------------------------------ */
+{
+  const { api, timeouts, decisor } = carregar({ config: { intensidade: "completo" }, temGente: true });
+  chegarNoReengateAgendado(api, timeouts);
+  ok("1 chamada de som ate aqui (o disparo original)", api._chamadasDeSom().length === 1, api._chamadasDeSom().length);
+
+  decisor._definirDecidiu(false); // ninguem olhando a fila: nenhum voto fresco
+  dispararTimeout(timeouts, COOLDOWN_REENGATE_MS); // os 5 min do reengate
+
+  ok(
+    "SEM evidencia nenhuma, o reengate NAO toca a sirene de novo",
+    api._chamadasDeSom().length === 1,
+    api._chamadasDeSom().length
+  );
+  ok(
+    "mas a corrente nao morre: reagenda outra checagem, na mesma cadencia",
+    !!pendente(timeouts, COOLDOWN_REENGATE_MS)
+  );
+}
+
+/* ------------------------------------------------------------------
+ * 13. CONTROLE — com evidencia de verdade ("ainda cheia"), o reengate
+ *     continua tocando exatamente como antes. Nenhuma regressao.
+ * ------------------------------------------------------------------ */
+{
+  const { api, timeouts, decisor } = carregar({ config: { intensidade: "completo" }, temGente: true });
+  chegarNoReengateAgendado(api, timeouts);
+
+  decisor._definirDecidiu(true);
+  decisor._definir(true); // decidiu, e decidiu "tem gente"
+  dispararTimeout(timeouts, COOLDOWN_REENGATE_MS);
+
+  ok(
+    "com evidencia fresca de fila cheia, o reengate TOCA de novo (2 chamadas)",
+    api._chamadasDeSom().length === 2,
+    api._chamadasDeSom().length
+  );
+}
+
+/* ------------------------------------------------------------------
+ * 14. CONTROLE — com evidencia de verdade ("vazia"), o reengate para
+ *     de vez, sem reagendar. Tambem sem regressao.
+ * ------------------------------------------------------------------ */
+{
+  const { api, timeouts, decisor } = carregar({ config: { intensidade: "completo" }, temGente: true });
+  chegarNoReengateAgendado(api, timeouts);
+
+  decisor._definirDecidiu(true);
+  decisor._definir(false); // decidiu, e decidiu "vazia"
+  dispararTimeout(timeouts, COOLDOWN_REENGATE_MS);
+
+  ok("com evidencia fresca de fila vazia, NAO toca de novo", api._chamadasDeSom().length === 1);
+  ok("e nao reagenda mais nada — a corrente termina de verdade", !pendente(timeouts, COOLDOWN_REENGATE_MS));
+}
+
+/* ------------------------------------------------------------------
+ * 15. A CORRENTE SE AUTOCURA — quando a evidencia finalmente volta
+ *     (o medico voltou para a tela da fila), a proxima checagem decide
+ *     direito, sem precisar de um novo disparo externo.
+ * ------------------------------------------------------------------ */
+{
+  const { api, timeouts, decisor } = carregar({ config: { intensidade: "completo" }, temGente: true });
+  chegarNoReengateAgendado(api, timeouts);
+
+  decisor._definirDecidiu(false); // 1a checagem: sem evidencia, so reagenda
+  dispararTimeout(timeouts, COOLDOWN_REENGATE_MS);
+  ok("1a checagem sem evidencia: nao tocou", api._chamadasDeSom().length === 1);
+
+  decisor._definirDecidiu(true); // medico voltou a tela: evidencia chegou
+  decisor._definir(true);
+  dispararTimeout(timeouts, COOLDOWN_REENGATE_MS); // 2a checagem, ja reagendada pela 1a
+  ok(
+    "2a checagem, agora com evidencia: toca — a corrente nao se perdeu",
+    api._chamadasDeSom().length === 2,
+    api._chamadasDeSom().length
+  );
+}
+
+/* ------------------------------------------------------------------
+ * 16. O MESMO DEFEITO E A MESMA CORRECAO NO REPIQUE DO DISCRETO.
+ * ------------------------------------------------------------------ */
+{
+  const { api, timeouts, decisor } = carregar({ config: { intensidade: "discreto" }, temGente: true });
+  api._dispararAlarme(); // agenda o repique de 2 min
+  ok("1 chamada no disparo inicial do Discreto", api._chamadasDeSom().length === 1);
+
+  decisor._definirDecidiu(false); // sem evidencia quando os 2 min passam
+  dispararTimeout(timeouts, INTERVALO_REPIQUE_DISCRETO_MS);
+
+  ok(
+    "Discreto: sem evidencia, o repique NAO soa de novo",
+    api._chamadasDeSom().length === 1,
+    api._chamadasDeSom().length
+  );
+  ok("mas reagenda para tentar de novo depois", !!pendente(timeouts, INTERVALO_REPIQUE_DISCRETO_MS));
+
+  decisor._definirDecidiu(true); // evidencia chega: ainda tem gente
+  decisor._definir(true);
+  dispararTimeout(timeouts, INTERVALO_REPIQUE_DISCRETO_MS);
+  ok(
+    "e quando a evidencia chega, o repique soa (2 chamadas) — nao ficou perdido",
+    api._chamadasDeSom().length === 2,
+    api._chamadasDeSom().length
   );
 }
 
