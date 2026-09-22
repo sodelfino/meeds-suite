@@ -552,12 +552,51 @@ const municipios = Object.keys(BASE.municipios).filter((k) => k.indexOf("_") !==
     ok("nenhum servico de encaminhamento aparece dentro de municipios[x].exames",
        Object.values(BASE.municipios).every((m) =>
          m.exames.every((e) => !nomesEsperados.includes(e.nome))));
-    ok("so Macae tem encaminhamentos (nenhum outro municipio inventado)",
-       Object.keys(BASE.encaminhamentos).length === 1 && Object.keys(BASE.encaminhamentos)[0] === "Macaé");
 
     ok("fonte e data de encaminhamentos estao declaradas",
        !!enc.fonte && !!enc.atualizadoEm);
   }
+}
+
+/* --- 5e. `encaminhamentos` de Piraí (Especialidades Pediátricas + CEMAIA) --- */
+{
+  const enc = (BASE.encaminhamentos || {})["Piraí"];
+  if (enc) {
+    ok("Piraí tem 2 servicos de encaminhamento",
+       Array.isArray(enc.servicos) && enc.servicos.length === 2, "achou " + (enc.servicos || []).length);
+
+    const nomesEsperados = [
+      "Especialidades Pediátricas Ambulatoriais (Alta e Média Complexidade)",
+      "CEMAIA — Centro Especializado Multidisciplinar de Atendimento à Infância e Adolescência",
+    ];
+    ok("os 2 servicos sao exatamente os esperados",
+       nomesEsperados.every((n) => enc.servicos.some((s) => s.nome === n)));
+
+    ok("todo servico de Piraí tem publicoAlvo e fluxo",
+       enc.servicos.every((s) => !!s.publicoAlvo && !!s.fluxo));
+
+    ok("todo servico de Piraí tem pelo menos um atendimento listado",
+       enc.servicos.every((s) => Array.isArray(s.atendimentos) && s.atendimentos.length > 0));
+
+    const especialidades = enc.servicos.find((s) => s.nome === nomesEsperados[0]);
+    ok("Especialidades Pediátricas de Piraí lista as 14 especialidades do documento",
+       especialidades && especialidades.atendimentos.length === 14, especialidades && especialidades.atendimentos.length);
+
+    ok("nenhum servico de encaminhamento de Piraí aparece dentro de municipios[x].exames",
+       Object.values(BASE.municipios).every((m) =>
+         m.exames.every((e) => !nomesEsperados.includes(e.nome))));
+
+    ok("fonte e data de encaminhamentos de Piraí estao declaradas",
+       !!enc.fonte && !!enc.atualizadoEm);
+  }
+
+  /* Canario, nao lei: sobe deliberadamente quando um municipio novo com
+   * servicos de referencia reais entra na base (ultima vez: Piraí,
+   * Especialidades Pediátricas + CEMAIA). Se subir sem voce ter
+   * acrescentado municipio nenhum, e bug — va atras do porque. */
+  ok("Macaé e Piraí sao os unicos municipios com encaminhamentos (nenhum outro inventado)",
+     Object.keys(BASE.encaminhamentos).sort().join(",") === "Macaé,Piraí",
+     Object.keys(BASE.encaminhamentos).sort().join(","));
 }
 
 /* --- 6. a ordem alfabetica trata acento como letra --- */

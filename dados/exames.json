@@ -1,6 +1,6 @@
 {
   "_leia_me": "Exames ofertados por municipio. Gerado por scripts/montar-exames.js a partir dos documentos das prefeituras. REGRA DE OURO: a lista de cada municipio e a unica fonte de verdade do que ele oferece — nada e inferido, completado ou copiado de outro municipio. Campo 'exige' marca o que precisa de APAC ou laudo.",
-  "atualizadoEm": "2026-09-09",
+  "atualizadoEm": "2026-09-22",
   "siglas": {
     "APAC": {
       "rotulo": "APAC",
@@ -11054,6 +11054,1221 @@
           "codigo": "202120104"
         }
       ]
+    },
+    "Piraí": {
+      "_leia_me": "Lista de exames laboratoriais e 'Outros exames realizados no município' extraída de 'Exames  realizados no município 09 26.pdf' (Secretaria Municipal de Saúde de Piraí). Os 5 exames pediátricos regulados (Ecocardiograma Pediátrico, RM, TC, Oftalmologia Pediátrica de Alta Complexidade, Cloreto no Suor) vêm de 'Acesso à Especialidades Pediátricas e exames Média e Alta Complexidade.pdf' — NÃO são realizados em Piraí, atendimento ocorre no Rio de Janeiro via SER/SISREG. Ver a nota grande acima desta função para os itens cortados/completados na fonte.",
+      "fonte": "Secretaria Municipal de Saúde de Piraí",
+      "atualizadoEm": "2026-09-26",
+      "observacoes": [
+        "Os exames pediátricos de alta/média complexidade e as especialidades pediátricas ambulatoriais não são realizados em Piraí — atendimento ocorre no Rio de Janeiro, via regulação estadual/SISREG (ver Encaminhamentos, acima da lista)."
+      ],
+      "exames": [
+        {
+          "nome": "Dosagem Ácido Úrico"
+        },
+        {
+          "nome": "Dosagem de Anticorpos Anti-Ilhota de"
+        },
+        {
+          "nome": "Dosagem de Ácido Úrico Urinário"
+        },
+        {
+          "nome": "Dosagem de Ácido Vanilmandélico"
+        },
+        {
+          "nome": "Dosagem Aldolase"
+        },
+        {
+          "nome": "Dosagem Alfa-1-Antitripsina"
+        },
+        {
+          "nome": "Dosagem Amilase"
+        },
+        {
+          "nome": "Dosagem Bilirrubina Total e Frações"
+        },
+        {
+          "nome": "Dosagem Cálcio"
+        },
+        {
+          "nome": "Dosagem Cálcio Ionizável"
+        },
+        {
+          "nome": "Dosagem Ceruloplasmina"
+        },
+        {
+          "nome": "Dosagem Cloreto"
+        },
+        {
+          "nome": "Dosagem Colesterol HDL"
+        },
+        {
+          "nome": "Dosagem Colesterol LDL"
+        },
+        {
+          "nome": "Dosagem Colesterol Total"
+        },
+        {
+          "nome": "Dosagem Colinesterase"
+        },
+        {
+          "nome": "Dosagem Creatinina"
+        },
+        {
+          "nome": "Dosagem Creatinofosfoquinase (CPK)"
+        },
+        {
+          "nome": "Dosagem Creatinofosfoquinase Fração MB"
+        },
+        {
+          "nome": "Dosagem de Ácido Oxálico"
+        },
+        {
+          "nome": "Dosagem Desidrogenase Láctica"
+        },
+        {
+          "nome": "Dosagem Ferritina"
+        },
+        {
+          "nome": "Dosagem Ferro Sérico"
+        },
+        {
+          "nome": "Dosagem Folato"
+        },
+        {
+          "nome": "Dosagem Fosfatase Ácida Total"
+        },
+        {
+          "nome": "Dosagem Fosfatase Alcalina"
+        },
+        {
+          "nome": "Dosagem Fósforo"
+        },
+        {
+          "nome": "Dosagem Fração Prostática Fosfatase"
+        },
+        {
+          "nome": "Dosagem de Galactose"
+        },
+        {
+          "nome": "Dosagem Gama-Glutamil-Transferase (Gama GT)"
+        },
+        {
+          "nome": "Dosagem Glicose"
+        },
+        {
+          "nome": "Dosagem Glicose-6-Fosfato Desidrogenase"
+        },
+        {
+          "nome": "Dosagem Haptoglobina"
+        },
+        {
+          "nome": "Dosagem Hemoglobina Glicosilada"
+        },
+        {
+          "nome": "Dosagem Lactato"
+        },
+        {
+          "nome": "Dosagem Lipase"
+        },
+        {
+          "nome": "Dosagem Magnésio"
+        },
+        {
+          "nome": "Dosagem de Muco-Proteínas"
+        },
+        {
+          "nome": "Dosagem Potássio"
+        },
+        {
+          "nome": "Dosagem Proteínas Totais"
+        },
+        {
+          "nome": "Dosagem Proteínas Totais e Frações"
+        },
+        {
+          "nome": "Dosagem Sódio"
+        },
+        {
+          "nome": "Dosagem Transaminase Glutâmico-Oxalacética (TGO)"
+        },
+        {
+          "nome": "Dosagem Transaminase Glutâmico-Pirúvica"
+        },
+        {
+          "nome": "Dosagem Transferrina"
+        },
+        {
+          "nome": "Dosagem Triglicerídeos"
+        },
+        {
+          "nome": "Dosagem de Triptofano"
+        },
+        {
+          "nome": "Dosagem Uréia"
+        },
+        {
+          "nome": "Dosagem Vitamina B12"
+        },
+        {
+          "nome": "Eletroforese Lipoproteínas"
+        },
+        {
+          "nome": "Eletroforese Proteínas"
+        },
+        {
+          "nome": "Gasometria (Ph, Pco2, Po2, Bicarbonato, As2"
+        },
+        {
+          "nome": "Dosagem de 25-Hidroxivitamina D"
+        },
+        {
+          "nome": "Dosagem de Peptídeos Natriuréticos Tipo B"
+        },
+        {
+          "nome": "Contagem Plaquetas"
+        },
+        {
+          "nome": "Contagem Reticulócitos"
+        },
+        {
+          "nome": "Determinação Tempo Coagulação"
+        },
+        {
+          "nome": "Determinação Tempo Sangramento - Duke"
+        },
+        {
+          "nome": "Determinação Tempo Tromboplastina Parcial Ativada (TTP Ativada)"
+        },
+        {
+          "nome": "Determinação Tempo e Atividade Protrombina (TAP)"
+        },
+        {
+          "nome": "Determinação Velocidade Hemossedimentação (VHS)"
+        },
+        {
+          "nome": "Dosagem de Anticoagulante Circulante / Lúpico"
+        },
+        {
+          "nome": "Dosagem Antitrombina III"
+        },
+        {
+          "nome": "Dosagem de Fator II"
+        },
+        {
+          "nome": "Dosagem de Fator IX"
+        },
+        {
+          "nome": "Dosagem Fator V"
+        },
+        {
+          "nome": "Dosagem Fator VII"
+        },
+        {
+          "nome": "Dosagem Fator VIII"
+        },
+        {
+          "nome": "Dosagem Fator Von Willebrand (Antígeno)"
+        },
+        {
+          "nome": "Dosagem de Fator X"
+        },
+        {
+          "nome": "Dosagem de Fator XI"
+        },
+        {
+          "nome": "Dosagem de Fator XII"
+        },
+        {
+          "nome": "Dosagem de Fator XIII"
+        },
+        {
+          "nome": "Dosagem Fibrinogênio"
+        },
+        {
+          "nome": "Dosagem Hemoglobina"
+        },
+        {
+          "nome": "Eletroforese Hemoglobina"
+        },
+        {
+          "nome": "Eritrograma (Eritrócitos, Hemoglobina, Hematócrito)"
+        },
+        {
+          "nome": "Hematócrito"
+        },
+        {
+          "nome": "Hemograma Completo"
+        },
+        {
+          "nome": "Pesquisa Atividade Cofator Ristocetina"
+        },
+        {
+          "nome": "Pesquisa Filária"
+        },
+        {
+          "nome": "Pesquisa Hemoglobina S"
+        },
+        {
+          "nome": "Teste Direto Antiglobulina Humana (TAD)"
+        },
+        {
+          "nome": "Dosagem de Proteína C Funcional"
+        },
+        {
+          "nome": "Contagem de Linfócitos B"
+        },
+        {
+          "nome": "Contagem Linfócitos CD4/CD8"
+        },
+        {
+          "nome": "Contagem de Linfócitos T Totais"
+        },
+        {
+          "nome": "Determinação Complemento (CH50)"
+        },
+        {
+          "nome": "Determinação de Fator Reumatoide"
+        },
+        {
+          "nome": "Dosagem Alfa-Fetoproteína"
+        },
+        {
+          "nome": "Dosagem Antígeno Prostático Específico (PSA)"
+        },
+        {
+          "nome": "Dosagem Beta-2-Microglobulina"
+        },
+        {
+          "nome": "Dosagem Complemento C3"
+        },
+        {
+          "nome": "Dosagem Complemento C4"
+        },
+        {
+          "nome": "Dosagem de Crioaglutinina"
+        },
+        {
+          "nome": "Dosagem Imunoglobulina A (IgA)"
+        },
+        {
+          "nome": "Dosagem Imunoglobulina E (IgE)"
+        },
+        {
+          "nome": "Dosagem Imunoglobulina M (IgM)"
+        },
+        {
+          "nome": "Dosagem Proteína C Reativa"
+        },
+        {
+          "nome": "Dosagem de Oxcarbazepina"
+        },
+        {
+          "nome": "Imunoeletroforese Proteínas"
+        },
+        {
+          "nome": "Imunofenotipagem de Hemopatias Malignas (Por Marcador)"
+        },
+        {
+          "nome": "Pesquisa Anticorpo IgG Anti Cardiolipina"
+        },
+        {
+          "nome": "Pesquisa Anticorpo IgM Anti Cardiolipina"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Anti-DNA"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Anti-Helicobacter Pylori"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Anti-HIV-1 (Western Blot)"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Anti-HIV-1 + HIV-2 (Elisa)"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Anti-HTLV-1 + HTLV-2"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Anti Ribonucleoproteína (RNP)"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Anti-SM"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Anti-SS-A (RO)"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Anti-SS-B (LA)"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Antiaspergillus"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Anticlamídia (P/"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Antiesclerodermia (SCL-70)"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Antiestreptolisina O"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Antiinsulina"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Antimicrossoma Ou"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Antimitocôndria"
+        },
+        {
+          "nome": "Pesquisa de Anticorpos Antimúsculo"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Antimúsculo Liso"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Antinúcleo"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Antiparietais"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Antitireoglobulina"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Contra Antígeno Superfície Vírus Hepatite B (Anti-HBs)"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Contra Antígeno E do Vírus da Hepatite B (Anti-HBe)"
+        },
+        {
+          "nome": "Pesquisa de Anticorpos Contra Histoplasma"
+        },
+        {
+          "nome": "Pesquisa Anticorpos Contra o Vírus"
+        },
+        {
+          "nome": "Pesquisa de Anticorpos Contra Paracoccidioides Brasiliensis"
+        },
+        {
+          "nome": "Pesquisa Anticorpos EIE Anti Chlamydia Trachomatis IgA, IgG e IgM (CADA)"
+        },
+        {
+          "nome": "Pesquisa Anticorpos IgG Anticitomegalovírus"
+        },
+        {
+          "nome": "Pesquisa Anticorpos IgG Antitoxoplasma"
+        },
+        {
+          "nome": "Pesquisa de Anticorpos IgG e IgM Contra Antígeno Central do Vírus da Hepatite B"
+        },
+        {
+          "nome": "Pesquisa Anticorpos IgG Contra o Vírus Hepatite A (HAV-IGG)"
+        },
+        {
+          "nome": "Pesquisa Anticorpos IgG Contra o Vírus Rubéola"
+        },
+        {
+          "nome": "Pesquisa Anticorpos IgG Contra o Vírus Varicela - Herpes Zoster"
+        },
+        {
+          "nome": "Pesquisa Anticorpos IgG Contra o Vírus"
+        },
+        {
+          "nome": "Pesquisa Anticorpos IgG Contra o Vírus"
+        },
+        {
+          "nome": "Pesquisa Anticorpos IgM"
+        },
+        {
+          "nome": "Determinação Capacidade Fixação Ferro"
+        },
+        {
+          "nome": "Determinação de Curva Glicêmica (2/3 Dosagens)"
+        },
+        {
+          "nome": "BCR/ABL - Quantitativo P190, P210"
+        },
+        {
+          "nome": "Dosagem Ácido Ascórbico"
+        },
+        {
+          "nome": "Pesquisa Anticorpos IgM Antitoxoplasma"
+        },
+        {
+          "nome": "Pesquisa Anticorpos IgM Contra Antígeno Central Vírus Hepatite B (Anti-HBC-IGM)"
+        },
+        {
+          "nome": "Pesquisa Anticorpos IgM Contra o Vírus Hepatite A (HAV)"
+        },
+        {
+          "nome": "Pesquisa Anticorpos IgM Contra o Vírus Rubéola"
+        },
+        {
+          "nome": "Pesquisa Anticorpos IgM Contra o Vírus Varicela - Herpes Zoster"
+        },
+        {
+          "nome": "Pesquisa Anticorpos IgM Contra o Vírus Epstein-Barr"
+        },
+        {
+          "nome": "Pesquisa Anticorpos IgM Contra o Vírus Herpes Simples"
+        },
+        {
+          "nome": "Pesquisa Antígeno Carcinoembrionário (CEA)"
+        },
+        {
+          "nome": "Pesquisa Antígeno Superfície Vírus Hepatite B"
+        },
+        {
+          "nome": "Pesquisa Antígeno E Vírus Hepatite B (HBEAG)"
+        },
+        {
+          "nome": "Pesquisa de Clamídia (Por Captura Hibrida)"
+        },
+        {
+          "nome": "Pesquisa Crioglobulinas"
+        },
+        {
+          "nome": "Pesquisa Fator Reumatoide (Waaler-Rose)"
+        },
+        {
+          "nome": "Pesquisa de HIV-1 por Imunofluorescência"
+        },
+        {
+          "nome": "Pesquisa Imunoglobulina E (IgE) Alergeno-Específica"
+        },
+        {
+          "nome": "Reação de Machado Guerreiro"
+        },
+        {
+          "nome": "Teste Não Treponêmico P/ Diagnóstico Sífilis (VDRL)"
+        },
+        {
+          "nome": "Teste FTA-ABS Total P/ Diagnóstico Sífilis"
+        },
+        {
+          "nome": "Teste FTA-ABS IgM P/ Diagnóstico Sífilis"
+        },
+        {
+          "nome": "Teste Não Treponêmico P/ Detecção de Sífilis em Gestantes (VDRL)"
+        },
+        {
+          "nome": "Dosagem de Anticorpos Antitransglutaminase Recombinante Humano IgA"
+        },
+        {
+          "nome": "Dosagem Troponina Quantitativa"
+        },
+        {
+          "nome": "Dosagem Troponina Qualitativa"
+        },
+        {
+          "nome": "Dosagem do Antígeno CA 125"
+        },
+        {
+          "nome": "Dosagem de Adenosina-Desaminase (ADA) em Líquidos Orgânicos"
+        },
+        {
+          "nome": "Anti Beta2 Glicoproteína I (IgG)"
+        },
+        {
+          "nome": "Anti Beta2 Glicoproteína I (IgM)"
+        },
+        {
+          "nome": "Dosagem de Gordura Fecal"
+        },
+        {
+          "nome": "Exame Coprológico Funcional"
+        },
+        {
+          "nome": "Pesquisa de Larvas nas Fezes"
+        },
+        {
+          "nome": "Pesquisa Leucócitos nas Fezes"
+        },
+        {
+          "nome": "Pesquisa Ovos e Cistos Parasitas"
+        },
+        {
+          "nome": "Pesquisa Sangue Oculto nas Fezes"
+        },
+        {
+          "nome": "Pesquisa Substâncias Redutoras nas Fezes"
+        },
+        {
+          "nome": "Análise Caracteres Físicos, Elementos e Sedimentos da Urina"
+        },
+        {
+          "nome": "Clearance Creatinina"
+        },
+        {
+          "nome": "Clearance Uréia"
+        },
+        {
+          "nome": "Dosagem Citrato"
+        },
+        {
+          "nome": "Coprocultura"
+        },
+        {
+          "nome": "Dosagem Microalbumina na Urina"
+        },
+        {
+          "nome": "Dosagem Proteínas (Urina 24 Horas)"
+        },
+        {
+          "nome": "Pesquisa de Cadeias Leves Kappa e Lambda"
+        },
+        {
+          "nome": "Pesquisa Cistina na Urina"
+        },
+        {
+          "nome": "Pesquisa Proteínas Urinárias (Por Eletroforese)"
+        },
+        {
+          "nome": "Dosagem de Triiodotironina"
+        },
+        {
+          "nome": "Determinação de Retenção de T3"
+        },
+        {
+          "nome": "Determinação T3 Reverso"
+        },
+        {
+          "nome": "Dosagem 17-Alfa-Hidroxiprogesterona"
+        },
+        {
+          "nome": "Dosagem de Ácido 5-Hidroxi-Indol-Acético (Serotonina)"
+        },
+        {
+          "nome": "Dosagem Adrenocorticotrófico (ACTH)"
+        },
+        {
+          "nome": "Dosagem Aldosterona"
+        },
+        {
+          "nome": "Dosagem Androstenediona"
+        },
+        {
+          "nome": "Dosagem Calcitonina"
+        },
+        {
+          "nome": "Dosagem Cortisol"
+        },
+        {
+          "nome": "Dosagem Dehidroepiandrosterona (DHEA)"
+        },
+        {
+          "nome": "Dosagem Dihidrotestosterona (DHT)"
+        },
+        {
+          "nome": "Dosagem Estradiol"
+        },
+        {
+          "nome": "Dosagem de Estriol"
+        },
+        {
+          "nome": "Dosagem Estrona"
+        },
+        {
+          "nome": "Dosagem Gastrina"
+        },
+        {
+          "nome": "Dosagem de Globulina Transportadora de Tiroxina"
+        },
+        {
+          "nome": "Dosagem Gonadotrofina Coriônica Humana (HCG, Beta HCG) Qualitativo"
+        },
+        {
+          "nome": "Dosagem Gonadotrofina Coriônica Humana (HCG, Beta HCG) Quantitativo"
+        },
+        {
+          "nome": "Dosagem Hormônio Crescimento (HGH)"
+        },
+        {
+          "nome": "Dosagem Hormônio Folículo-Estimulante"
+        },
+        {
+          "nome": "Dosagem Hormônio Luteinizante (LH)"
+        },
+        {
+          "nome": "Dosagem Hormônio Tireoestimulante (TSH)"
+        },
+        {
+          "nome": "Dosagem Insulina"
+        },
+        {
+          "nome": "Dosagem Paratormônio"
+        },
+        {
+          "nome": "Dosagem Peptídeo C"
+        },
+        {
+          "nome": "Dosagem Progesterona"
+        },
+        {
+          "nome": "Dosagem Prolactina"
+        },
+        {
+          "nome": "Dosagem de Renina (ARP Atividade de Renina)"
+        },
+        {
+          "nome": "Dosagem Somatomedina C (IGF1)"
+        },
+        {
+          "nome": "SDHEA - Sulfato de Dehidroepiandrosterona"
+        },
+        {
+          "nome": "Dosagem Sulfato Hidroepiandrosterona"
+        },
+        {
+          "nome": "Dosagem Testosterona"
+        },
+        {
+          "nome": "Dosagem Testosterona Livre"
+        },
+        {
+          "nome": "Dosagem Tireoglobulina"
+        },
+        {
+          "nome": "Dosagem Tiroxina (T4)"
+        },
+        {
+          "nome": "Dosagem Tiroxina Livre (T4 Livre)"
+        },
+        {
+          "nome": "Dosagem Triiodotironina (T3 Livre)"
+        },
+        {
+          "nome": "Teste de Supressão do Cortisol Após Dexametasona"
+        },
+        {
+          "nome": "Pesquisa de Macroprolactina"
+        },
+        {
+          "nome": "Dosagem Ácido Valproico"
+        },
+        {
+          "nome": "Dosagem Alumínio"
+        },
+        {
+          "nome": "Dosagem de Barbitúratos"
+        },
+        {
+          "nome": "Dosagem Carbamazepina"
+        },
+        {
+          "nome": "Dosagem Cobre"
+        },
+        {
+          "nome": "Dosagem Fenitoína"
+        },
+        {
+          "nome": "Dosagem Lítio"
+        },
+        {
+          "nome": "Dosagem Zinco"
+        },
+        {
+          "nome": "Antibiograma"
+        },
+        {
+          "nome": "Antibiograma P/ Micobactérias"
+        },
+        {
+          "nome": "Baciloscopia Direta P/ BAAR Tuberculose (Diagnóstica)"
+        },
+        {
+          "nome": "Baciloscopia Direta P/ BAAR (Hanseníase)"
+        },
+        {
+          "nome": "Baciloscopia Direta P/ BAAR Tuberculose (Controle)"
+        },
+        {
+          "nome": "Cultura Bactérias P/ Identificação Urina"
+        },
+        {
+          "nome": "Cultura para Bactérias Anaeróbicas"
+        },
+        {
+          "nome": "Cultura para Identificação Fungos"
+        },
+        {
+          "nome": "Exame Microbiológico a Fresco (Direto)"
+        },
+        {
+          "nome": "Cultura - Candidíase"
+        },
+        {
+          "nome": "Hemocultura"
+        },
+        {
+          "nome": "Pesquisa Estreptococos Beta-Hemolíticos Grupo A"
+        },
+        {
+          "nome": "Pesquisa de Helicobacter Pylori"
+        },
+        {
+          "nome": "Contagem Específica de Células no Liquor"
+        },
+        {
+          "nome": "Contagem Global de Células no Liquor"
+        },
+        {
+          "nome": "Dosagem de Glicose no Líquido Sinovial e Derrames"
+        },
+        {
+          "nome": "Dosagem de Proteínas no Líquido Sinovial e Derrames"
+        },
+        {
+          "nome": "Exame de Caracteres Físicos Contagem Global e Específica de Células"
+        },
+        {
+          "nome": "Pesquisa de Caracteres Físicos no Liquor"
+        },
+        {
+          "nome": "Pesquisa de Espermatozoides (Após Vasectomia)"
+        },
+        {
+          "nome": "Prova do Látex P/ Pesquisa do Fator Reumatoide"
+        },
+        {
+          "nome": "Determinação de Cariótipo em Sangue Periférico (C/ Técnica de Bandas)"
+        },
+        {
+          "nome": "Mutação Gene Protrombina (G20210-G202A)"
+        },
+        {
+          "nome": "Determinação Direta e Reversa Grupo ABO"
+        },
+        {
+          "nome": "Fenotipagem de Sistema RH - HR"
+        },
+        {
+          "nome": "Pesquisa Fator RH (Inclui D Fraco)"
+        },
+        {
+          "nome": "Teste Indireto Antiglobulina Humana (TIA)"
+        },
+        {
+          "nome": "Exame Citopatológico Hormonal Seriado (Mínimo 3 Coletas)"
+        },
+        {
+          "nome": "Exame Citologia Oncótica (Exceto Cérvico-Vaginal)"
+        },
+        {
+          "nome": "Exame Citopatológico Cérvico Vaginal/Microflora-Rastreamento (*Acompanhamento SISCAN)"
+        },
+        {
+          "nome": "Exame Anatomo-Patológico para Congelamento / Parafina por Peça Cirúrgica ou por Biopsia (Exceto Colo Uterino e Mama)"
+        },
+        {
+          "nome": "Imunohistoquímica de Neoplasias Malignas (Por Marcador)"
+        },
+        {
+          "nome": "Exame Anatomopatológico de Medula Óssea"
+        },
+        {
+          "nome": "Citomegalovírus IgM - Liquor"
+        },
+        {
+          "nome": "Anticorpo Anti-Fator Intrínseco"
+        },
+        {
+          "nome": "Albumina, Dosagem"
+        },
+        {
+          "nome": "Apolipoproteína A (Apo A), Dosagem"
+        },
+        {
+          "nome": "Apolipoproteína B (Apo B)"
+        },
+        {
+          "nome": "Chlamydia Trachomatis - Anticorpos IgG"
+        },
+        {
+          "nome": "Chlamydia Trachomatis - Anticorpos IgM"
+        },
+        {
+          "nome": "Dosagem de Reserva Alcalina"
+        },
+        {
+          "nome": "Dosagem de Fenobarbital"
+        },
+        {
+          "nome": "Pró-Insulina Intacta"
+        },
+        {
+          "nome": "Frutosaminas (Proteínas Glicosiladas), Dosagem"
+        },
+        {
+          "nome": "Homocisteína, Dosagem"
+        },
+        {
+          "nome": "Dosagem de Topiramato"
+        },
+        {
+          "nome": "Dosagem de Levetiracetam"
+        },
+        {
+          "nome": "Lactose, Teste de Tolerância"
+        },
+        {
+          "nome": "Anticorpo IA2 (Anti Tirosina Fosfatase, Anti IA2, ICA512)"
+        },
+        {
+          "nome": "Vitamina A, Dosagem"
+        },
+        {
+          "nome": "Vitamina E, Dosagem"
+        },
+        {
+          "nome": "Procalcitonina"
+        },
+        {
+          "nome": "Imunofixação (Sangue)"
+        },
+        {
+          "nome": "Imunofenotipagem de Neoplasia Hematológica"
+        },
+        {
+          "nome": "Vitamina B1, Dosagem"
+        },
+        {
+          "nome": "Vitamina B6, Dosagem"
+        },
+        {
+          "nome": "Dosagem de Vitamina K"
+        },
+        {
+          "nome": "Falcização, Teste de"
+        },
+        {
+          "nome": "Proteínas Livre, Dosagem"
+        },
+        {
+          "nome": "Dímero D, Dosagem"
+        },
+        {
+          "nome": "1,25-Dihidroxi Vitamina D, Dosagem"
+        },
+        {
+          "nome": "ECA (Enzima Conversora de Angiotensina)"
+        },
+        {
+          "nome": "Eritropoietina, Dosagem"
+        },
+        {
+          "nome": "Pesquisa de Anticorpos Anti GAD (Descarboxilase Ácido Glutâmico)"
+        },
+        {
+          "nome": "IGF BP3 (Proteína Ligadora dos Fatores de Crescimento \"Insulin-Like\"), Dosagem"
+        },
+        {
+          "nome": "Leptina"
+        },
+        {
+          "nome": "N-Telopeptídeo NTX"
+        },
+        {
+          "nome": "Dosagem de Iodo"
+        },
+        {
+          "nome": "11-Desoxicorticosterona (Corticosterona)"
+        },
+        {
+          "nome": "Anticorpo Jo-1"
+        },
+        {
+          "nome": "Anticorpo LKM1"
+        },
+        {
+          "nome": "Anticardiolipina - IgA, Dosagem"
+        },
+        {
+          "nome": "Anticentrômero, Pesquisa"
+        },
+        {
+          "nome": "IGFBP3 (Hormônio de Crescimento)"
+        },
+        {
+          "nome": "Anti Endomísio - IgG, IgM, IgA (CADA), Dosagem"
+        },
+        {
+          "nome": "Anti Gliadina (Glúten) - IgA, Dosagem"
+        },
+        {
+          "nome": "Anti Gliadina (Glúten) - IgM, Dosagem"
+        },
+        {
+          "nome": "Anti Gliadina (Glúten) - IgG, Dosagem"
+        },
+        {
+          "nome": "Pesquisa de Anticorpos Anti-Mitocôndria (Anti MI-1)"
+        },
+        {
+          "nome": "Antineutrófilos (ANCA) C, Pesquisa, Anti Proteinase 3 APR3"
+        },
+        {
+          "nome": "Caxumba, IgG, Dosagem"
+        },
+        {
+          "nome": "Caxumba, IgM, Dosagem"
+        },
+        {
+          "nome": "CH 100-Localizado Complemento Total (CH100)"
+        },
+        {
+          "nome": "Helicobacter Pylori - IgM, Pesquisa E/Ou Dosagem"
+        },
+        {
+          "nome": "IgG, Subclasses 1,2,3,4 (CADA), Dosagem"
+        },
+        {
+          "nome": "Parvovírus B19 IgG/B19 IgM"
+        },
+        {
+          "nome": "Paul Bunnel Monocleose/Monotest"
+        },
+        {
+          "nome": "CCP - Anti Peptídio Citrulinado"
+        },
+        {
+          "nome": "Pesquisa de Anticorpos Anti Receptor de Acetilcolina"
+        },
+        {
+          "nome": "LCR Hospitalar Rotina (Aspectos Cor + Índice de Cor + Contagem Global e Específica de Leucócitos e Hemácias + Citologia Oncótica + Proteína + Glicose + Cloro + Eletroforese com Concentração + IGG + Reações para Neurocisticercose (2) + Reações para Neuroles (2))"
+        },
+        {
+          "nome": "Bandas Oligloconais-Localizado Eletroforese de Proteína C/ Pesq. Bandas Oligloconais - Líquor"
+        },
+        {
+          "nome": "Rotina do Líquido Amniótico-Amniograma (Citológico Espectrofotometria, Creatinina e Teste de Clements)"
+        },
+        {
+          "nome": "Rotina Líquido Sinovial - Caracteres Físicos, Citologia, Proteínas, Ácido Úrico, Látex P/ F.R., Bact."
+        },
+        {
+          "nome": "Metanefrinas Urinárias, Dosagem"
+        },
+        {
+          "nome": "Eletroforese de Proteínas Urinárias, Com Concentração"
+        },
+        {
+          "nome": "Cromo, Pesquisa E/Ou Dosagem"
+        },
+        {
+          "nome": "Fator V de Leiden, Pesquisa da Mutação"
+        },
+        {
+          "nome": "Imunoflorescência Direta - Biopsia Renal"
+        },
+        {
+          "nome": "Chlamydia por Biologia Molecular, Pesquisa"
+        },
+        {
+          "nome": "Pesquisa de HLA B27"
+        },
+        {
+          "nome": "Anticorpo Anti-Receptor de TSH (TRAB), Dosagem"
+        },
+        {
+          "nome": "Dosagem de Catecolaminas"
+        },
+        {
+          "nome": "Globulina de Ligação de Hormônios Sexuais (SHBG), Dosagem"
+        },
+        {
+          "nome": "Marcadores Tumorais (CA 19.9/ CA 72-4/ CA 15-3/ Etc.) Cada Por Marcadores"
+        },
+        {
+          "nome": "Vasopressina ADH"
+        },
+        {
+          "nome": "Dosagem de Vitamina B2"
+        },
+        {
+          "nome": "Clobazam Dosagem"
+        },
+        {
+          "nome": "Anticorpos Anti Tiroquinase Musculo Específica [Anti-MUSK]"
+        },
+        {
+          "nome": "Dosagem de Imunoglobulina G (IGG)"
+        },
+        {
+          "nome": "Avidez de IgG, para Toxoplasmose, Citomegalia, Rubéola, EB e Outros, Cada Dosagem"
+        },
+        {
+          "nome": "Anticorpo IgG Anti Aquaporina"
+        },
+        {
+          "nome": "Anticorpo IgG Anti Receptor de Insulina"
+        },
+        {
+          "nome": "Calprotectina Fecal"
+        },
+        {
+          "nome": "Cultura de Vigilância - Swab Nasal"
+        },
+        {
+          "nome": "Cultura de Vigilância - Swab Oral"
+        },
+        {
+          "nome": "Cultura de Vigilância - Swab Retal"
+        },
+        {
+          "nome": "Dosagem de Selênio"
+        },
+        {
+          "nome": "Determinação de Curva Glicêmica (03 Dosagens)"
+        },
+        {
+          "nome": "Índice de Saturação de Transferrina"
+        },
+        {
+          "nome": "JAK2 Mutação do Gene V617F"
+        },
+        {
+          "nome": "Mutação do Gene HFE, Hemocromatose"
+        },
+        {
+          "nome": "Sequenciamento dos Genes BRCA1 e BCRA2"
+        },
+        {
+          "nome": "Anticorpos IgG Bartonela"
+        },
+        {
+          "nome": "Anticorpos IgM Bartonela"
+        },
+        {
+          "nome": "Estimativa de Filtração Glomerular"
+        },
+        {
+          "nome": "Hormônio Anti-Mulleriano"
+        },
+        {
+          "nome": "Pesquisa Indican - Teste de Disbiose"
+        },
+        {
+          "nome": "Melatonina"
+        },
+        {
+          "nome": "Inibidor da Atividade do Plaminogênio Tipo 1"
+        },
+        {
+          "nome": "Relação Cálcio/Creatinina"
+        },
+        {
+          "nome": "Relação Proteína/Creatinina"
+        },
+        {
+          "nome": "Vitamina H Biotina"
+        },
+        {
+          "nome": "MTHFR - Mutação C677R"
+        },
+        {
+          "nome": "Infliximabe Anticorpos"
+        },
+        {
+          "nome": "Infliximabe Atividade"
+        },
+        {
+          "nome": "Inibina B"
+        },
+        {
+          "nome": "Cromogranina A"
+        },
+        {
+          "nome": "Teste FTA-ABS IgG P/ Diagnóstico Sífilis"
+        },
+        {
+          "nome": "Ultrassonografia",
+          "justificativaObrigatoria": true
+        },
+        {
+          "nome": "Tomografia Computadorizada com e sem Contraste",
+          "orientacao": {
+            "observacoes": "O documento de origem lista como um único item — não especifica se há protocolo/preparo diferente entre as duas variantes."
+          },
+          "justificativaObrigatoria": true
+        },
+        {
+          "nome": "Endoscopia",
+          "justificativaObrigatoria": true
+        },
+        {
+          "nome": "Ecocardiograma (crianças maiores)",
+          "especialidade": [
+            "Pediatria"
+          ],
+          "justificativaObrigatoria": true
+        },
+        {
+          "nome": "Ecocardiograma Pediátrico (Transtorácico e Fetal)",
+          "especialidade": [
+            "Pediatria",
+            "Cardiologia Pediátrica"
+          ],
+          "justificativaObrigatoria": true,
+          "orientacao": {
+            "fluxo": "VAI_PARA_CENTRAL",
+            "canalEncaminhamento": "REGULACAO_ESTADUAL",
+            "observacoes": "Disponibilizado pela Central Estadual de Regulação (SER) ou pelo SISREG, para serviço ofertado pelo município do Rio de Janeiro. Atendimento ocorre na cidade do Rio de Janeiro — vaga sujeita a regulação (apreciação e agendamento) por equipe externa (Central Estadual ou do município do Rio); não ocorre em Piraí. Encaminhamento deve vir o mais detalhado possível, com exames anexados e classificação de risco."
+          }
+        },
+        {
+          "nome": "Ressonância Magnética (RM) Pediátrica com ou sem Sedação",
+          "especialidade": [
+            "Pediatria"
+          ],
+          "justificativaObrigatoria": true,
+          "orientacao": {
+            "fluxo": "VAI_PARA_CENTRAL",
+            "canalEncaminhamento": "REGULACAO_ESTADUAL",
+            "observacoes": "Disponibilizado pela Central Estadual de Regulação (SER) ou pelo SISREG, para serviço ofertado pelo município do Rio de Janeiro. Atendimento ocorre na cidade do Rio de Janeiro — vaga sujeita a regulação (apreciação e agendamento) por equipe externa (Central Estadual ou do município do Rio); não ocorre em Piraí. Encaminhamento deve vir o mais detalhado possível, com exames anexados e classificação de risco. Essencial para o público infantil."
+          }
+        },
+        {
+          "nome": "Tomografia Computadorizada (TC) Pediátrica com ou sem Sedação",
+          "especialidade": [
+            "Pediatria"
+          ],
+          "justificativaObrigatoria": true,
+          "orientacao": {
+            "fluxo": "VAI_PARA_CENTRAL",
+            "canalEncaminhamento": "REGULACAO_ESTADUAL",
+            "observacoes": "Disponibilizado pela Central Estadual de Regulação (SER) ou pelo SISREG, para serviço ofertado pelo município do Rio de Janeiro. Atendimento ocorre na cidade do Rio de Janeiro — vaga sujeita a regulação (apreciação e agendamento) por equipe externa (Central Estadual ou do município do Rio); não ocorre em Piraí. Encaminhamento deve vir o mais detalhado possível, com exames anexados e classificação de risco."
+          }
+        },
+        {
+          "nome": "Exames de Alta Complexidade em Oftalmologia Pediátrica (Mapeamento de Retina para Prematuros, etc.)",
+          "especialidade": [
+            "Pediatria",
+            "Oftalmologia Pediátrica"
+          ],
+          "justificativaObrigatoria": true,
+          "orientacao": {
+            "fluxo": "VAI_PARA_CENTRAL",
+            "canalEncaminhamento": "REGULACAO_ESTADUAL",
+            "observacoes": "Disponibilizado pela Central Estadual de Regulação (SER) ou pelo SISREG, para serviço ofertado pelo município do Rio de Janeiro. Atendimento ocorre na cidade do Rio de Janeiro — vaga sujeita a regulação (apreciação e agendamento) por equipe externa (Central Estadual ou do município do Rio); não ocorre em Piraí. Encaminhamento deve vir o mais detalhado possível, com exames anexados e classificação de risco."
+          }
+        },
+        {
+          "nome": "Dosagem de Cloreto no Suor",
+          "especialidade": [
+            "Pediatria"
+          ],
+          "orientacao": {
+            "fluxo": "VAI_PARA_CENTRAL",
+            "canalEncaminhamento": "REGULACAO_ESTADUAL",
+            "observacoes": "Disponibilizado pela Central Estadual de Regulação (SER) ou pelo SISREG, para serviço ofertado pelo município do Rio de Janeiro. Atendimento ocorre na cidade do Rio de Janeiro — vaga sujeita a regulação (apreciação e agendamento) por equipe externa (Central Estadual ou do município do Rio); não ocorre em Piraí. Encaminhamento deve vir o mais detalhado possível, com exames anexados e classificação de risco."
+          }
+        }
+      ]
     }
   },
   "encaminhamentos": {
@@ -11116,6 +12331,60 @@
             "Programa Municipal de Fórmulas e Suplementos."
           ],
           "fluxo": "Atendimento a beneficiários dos programas listados."
+        }
+      ]
+    },
+    "Piraí": {
+      "_leia_me": "Especialidades pediátricas: 'Acesso à Especialidades Pediátricas e exames Média e Alta Complexidade.pdf'. CEMAIA: 'Projeto Técnico do CEMAIA atualizado 08 26.pdf', documento elaborado pela Equipe Técnica Multidisciplinar do CEMAIA, atualizado em 13/08/2026.",
+      "fonte": "Secretaria Municipal de Saúde de Piraí",
+      "atualizadoEm": "2026-08-13",
+      "observacoes": [
+        "Apenas profissionais especialistas/APS podem encaminhar para estes serviços — ver o fluxo específico de cada um."
+      ],
+      "servicos": [
+        {
+          "nome": "Especialidades Pediátricas Ambulatoriais (Alta e Média Complexidade)",
+          "publicoAlvo": "Crianças e adolescentes.",
+          "atendimentos": [
+            "Cardiologia Pediátrica",
+            "Cirurgia Pediátrica (Geral, Urológica)",
+            "Hematologia Pediátrica",
+            "Neuropediatria / Neurologia Pediátrica",
+            "Neurocirurgia Infantil",
+            "Endocrinologia Pediátrica",
+            "Gastroenterologia Pediátrica",
+            "Pneumologia Pediátrica",
+            "Alergia e Imunologia Pediátrica",
+            "Infectologia Pediátrica",
+            "Reumatologia Pediátrica",
+            "Dermatologia Pediátrica",
+            "Urologia Pediátrica",
+            "Genética Médica (Investigação de síndromes e doenças raras)"
+          ],
+          "fluxo": "Disponibilizadas pela Central Estadual de Regulação através do Sistema Estadual de Regulação (SER) ou pelo SISREG, para serviços ofertados pelo município do Rio de Janeiro. Atendimentos ocorrem na cidade do Rio de Janeiro. Vagas sujeitas a regulação (apreciação e agendamento) por equipe externa (Central Estadual ou do município do Rio) — não ocorre em Piraí.",
+          "observacoes": "Os encaminhamentos devem estar o mais detalhados possível, com exames anexados e classificação de risco."
+        },
+        {
+          "nome": "CEMAIA — Centro Especializado Multidisciplinar de Atendimento à Infância e Adolescência",
+          "publicoAlvo": "Crianças e adolescentes do município com demanda de atenção especializada — o CEMAIA é o serviço municipal de referência para o público infantojuvenil, com foco no desenvolvimento infanto-juvenil considerando o contexto familiar, escolar e social (lógica de atenção psicossocial e cuidado integral, não só ambulatório especializado).",
+          "atendimentos": [
+            "Atendimento individual em fonoaudiologia",
+            "Atendimento individual em psicologia",
+            "Estimulação precoce nas condições biológicas de risco para o desenvolvimento infantil relacionadas ao pré-natal e nascimento",
+            "Atendimento em grupo multidisciplinar",
+            "Grupos terapêuticos para estimulação social, cognitiva e de linguagem",
+            "Grupos para adolescentes",
+            "Oficinas terapêuticas",
+            "Atendimento multidisciplinar (psicologia e fonoaudiologia)",
+            "Orientação parental",
+            "Encontros programados com familiares (apoio mútuo e orientações)",
+            "Grupos de promoção de saúde: nutrição e odontopediatria",
+            "Atendimento preliminar para orientação em odontopediatria",
+            "Atendimento individual em nutrição",
+            "Atendimento psicológico presencial para responsáveis"
+          ],
+          "fluxo": "Encaminhamentos para avaliação: via APS por solicitação no SISREG (sujeito a regulação segundo avaliação de risco e gravidade); especialidades médicas por solicitação direta no serviço, através dos responsáveis, ou via APS/SISREG; Conselho Tutelar, equipamentos da rede assistencial, Judiciário e Ministério Público por e-mail e/ou sistemas do Gabinete da Secretaria Municipal de Saúde.",
+          "observacoes": "Principais hipóteses diagnósticas atendidas: suspeita de depressão, suspeita de ansiedade, suspeita de TDAH, suspeita de TEA (Transtorno do Espectro do Autismo), provável atraso ou alerta para o desenvolvimento, transtornos da linguagem, sofrimento decorrente de violência e abusos, uso abusivo de álcool e outras drogas, estimulação precoce, ideação suicida ou situações de risco de suicídio. A equipe técnica multidisciplinar NÃO é referência para avaliações neuropsicológicas (especialidade não disponível na rede do SUS); a terapia ABA não é a estratégia principal das intervenções. A definição do número de sessões, metodologia, abordagem e conduta terapêutica é de exclusividade da equipe técnica multidisciplinar, após avaliação da criança, por meio de instrumentos validados e reconhecidos pelas notas técnicas dos conselhos de classe. A indicação de Agente de Ensino colaborativo é exclusiva da equipe técnica do SAEE (Serviço de Atendimento Educacional Especializado), segundo critérios do Núcleo de Educação Inclusiva da SME/Piraí."
         }
       ]
     }

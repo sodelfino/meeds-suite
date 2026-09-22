@@ -2,6 +2,16 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.43.16",
+      "data": "2026-09-26",
+      "novidades": [
+        "Exames de Piraí incluídos: os 383 exames laboratoriais e de imagem realizados no próprio município, mais os 5 exames pediátricos de alta complexidade (Ecocardiograma Pediátrico, Ressonância, Tomografia, Oftalmologia de Alta Complexidade e Cloreto no Suor) que são encaminhados ao Rio de Janeiro via regulação estadual/SISREG.",
+        "Dois novos Encaminhamentos em Piraí: Especialidades Pediátricas Ambulatoriais (14 especialidades reguladas pelo SER/SISREG para o Rio de Janeiro) e o CEMAIA — Centro Especializado Multidisciplinar de Atendimento à Infância e Adolescência, o serviço municipal de referência psicossocial infantojuvenil, com o fluxo de encaminhamento de cada um."
+      ],
+      "melhorias": [],
+      "correcoes": []
+    },
+    {
       "versao": "2.43.15",
       "data": "2026-09-21",
       "novidades": [
