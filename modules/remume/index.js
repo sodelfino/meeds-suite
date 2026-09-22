@@ -941,12 +941,39 @@ function moverFocoResultado(delta) {
             "nunca mostra o que não existe na lista daquele lugar.",
         },
         {
+          icone: "🔎",
+          titulo: "Agora é sua vez: busque alguma coisa",
+          texto: "Digite parte do nome de um medicamento no campo de busca, do jeito que vier à cabeça.",
+          alvo: function () {
+            return refs && refs.search;
+          },
+          evento: "input",
+        },
+        {
           icone: "📋",
           titulo: "Trocar de município e copiar",
           texto:
             "O seletor no topo do painel troca de município a qualquer momento, sem fechar a busca. Cada " +
             "resultado tem um botão para copiar o nome do medicamento — útil na hora de colar no pedido ou " +
             "na receita.",
+        },
+        {
+          icone: "📍",
+          titulo: "Troque de município",
+          texto: "Escolha outro município no seletor no topo — a busca continua com o mesmo termo.",
+          alvo: function () {
+            return refs && refs.select;
+          },
+          evento: "change",
+        },
+        {
+          icone: "📋",
+          titulo: "Copie um resultado",
+          texto: "Clique no botão de copiar de qualquer item da lista — ele copia só o nome, pronto para colar.",
+          alvo: function () {
+            return refs && refs.results && refs.results.querySelector(".rm-copiar");
+          },
+          evento: "click",
         },
       ],
     });
@@ -980,6 +1007,13 @@ function moverFocoResultado(delta) {
       deps.aoClicarBotao(abrirModal);
       if (typeof deps.aoIniciarTutorial === "function") {
         deps.aoIniciarTutorial(function () {
+          /* Passos guiados (D65) precisam do modal ABERTO antes de
+           * começar — senão o alvo existe no DOM mas está invisível
+           * ([hidden]), e o passo cairia direto no "Pular este passo".
+           * abrirModal() já chama iniciarSePrimeiraVez, que não faz nada
+           * aqui (o médico já viu, senão nem existiria este botão) — o
+           * iniciar() explícito depois é que força o replay. */
+          abrirModal();
           if (raiz.MeedsSuiteTutorial) raiz.MeedsSuiteTutorial.iniciar("remume", { dock: d.dock });
         });
       }

@@ -2,15 +2,13 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
-      "versao": "2.43.14",
+      "versao": "2.43.15",
       "data": "2026-09-21",
       "novidades": [
-        "Na REMUME de Franco da Rocha, todo medicamento em ampola (inclusive frasco-ampola) agora mostra o aviso: \"Se houver necessidade de administração, encaminhe o paciente para o presencial.\""
+        "Tutoriais do REMUME e do Alarme de Fila ganharam passos guiados: em vez de só ler e clicar em \"Próximo\", alguns passos agora pedem uma ação real (digitar uma busca, trocar de município, copiar um resultado, testar o som, ajustar o volume) — o elemento certo da tela pisca em destaque e o passo avança sozinho quando você faz a ação."
       ],
       "melhorias": [],
-      "correcoes": [
-        "Na REMUME de Franco da Rocha, buscar \"adrenalina\" ou \"noradrenalina\" dizia que o medicamento não constava na lista, mesmo ele estando lá. Corrigido: a busca agora encontra a Adrenalina (Epinefrina) e a Noradrenalina (Norepinefrina)."
-      ]
+      "correcoes": []
     },
     {
       "versao": "2.43.12",

@@ -1629,6 +1629,24 @@
             "o aviso fora da aba é permissão do navegador, não uma chave — se pedir, o navegador pergunta.",
         },
         {
+          icone: "🔊",
+          titulo: "Agora é sua vez: toque o som",
+          texto: "Clique em \"Testar som\" para ouvir o alarme completo do jeito que ele soa de verdade.",
+          alvo: function () {
+            return painel && painel.$("#af-testar-som");
+          },
+          evento: "click",
+        },
+        {
+          icone: "🎚️",
+          titulo: "Ajuste o volume",
+          texto: "Arraste o controle de volume até o ponto que funciona para o seu plantão.",
+          alvo: function () {
+            return painel && painel.$("#af-volume");
+          },
+          evento: "input",
+        },
+        {
           icone: "🛡️",
           titulo: "Travas de segurança",
           texto:
@@ -1716,6 +1734,11 @@
       deps.aoAbrirAjustes(abrirPainelDeAjustes);
       if (typeof deps.aoIniciarTutorial === "function") {
         deps.aoIniciarTutorial(function () {
+          /* Passos guiados (D65) precisam do painel de Ajustes ABERTO
+           * antes de começar — mesma razão do REMUME, ver o comentário
+           * lá. abrirPainelDeAjustes() já chama iniciarSePrimeiraVez
+           * (no-op aqui, o médico já viu); o iniciar() força o replay. */
+          abrirPainelDeAjustes();
           if (raiz.MeedsSuiteTutorial) raiz.MeedsSuiteTutorial.iniciar("alarme-fila", { dock: d.dock });
         });
       }

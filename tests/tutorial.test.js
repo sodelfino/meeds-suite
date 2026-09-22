@@ -22,28 +22,50 @@ function ok(nome, cond, obs) {
 }
 
 /* Duble de elemento: o suficiente para o que tutorial.js faz com cada
- * ref (textContent, style.width, hidden, addEventListener/click). */
-function elementoFake() {
+ * ref (textContent, style.width, hidden, addEventListener/click). Serve
+ * tanto para refs do overlay do carrossel quanto para "alvo" de passo
+ * guiado (classList, isConnected, offsetParent, addEventListener com
+ * evento arbitrario + {once:true}). */
+function elementoFake(opcoes) {
+  opcoes = opcoes || {};
   var handlers = {};
-  return {
+  var classes = {};
+  var el = {
     textContent: "",
     hidden: false,
     style: {},
+    isConnected: opcoes.isConnected !== false,
+    offsetParent: opcoes.invisivel ? null : {},
+    classList: {
+      add: function (c) { classes[c] = true; },
+      remove: function (c) { delete classes[c]; },
+      contains: function (c) { return !!classes[c]; },
+    },
     addEventListener: function (evt, fn) {
-      handlers[evt] = fn;
+      handlers[evt] = fn; // {once:true} nao muda o duble: os testes disparam 1x
+    },
+    removeEventListener: function (evt, fn) {
+      if (handlers[evt] === fn) delete handlers[evt];
     },
     click: function () {
-      if (handlers.click) handlers.click();
+      this.disparar("click");
+    },
+    disparar: function (evt) {
+      if (handlers[evt]) handlers[evt]();
     },
   };
+  return el;
 }
 
 /* Duble de `dock`: criarOverlay() extrai os ids do HTML (regex, so o
  * suficiente para os seletores que tutorial.js usa: #id ou .tut-fechar)
  * e devolve um overlay fake com os mesmos metodos do real
- * (core/dock.js): $, abrir, fechar, estaAberto. */
+ * (core/dock.js): $, abrir, fechar, estaAberto. criarAviso() devolve um
+ * handle minimo (fechar()) e guarda cada chamada para os testes
+ * inspecionarem titulo/corpo/acoes. */
 function dockFake() {
   var overlays = [];
+  var avisos = [];
   return {
     criarOverlay: function (opcoes) {
       var porId = {};
@@ -65,7 +87,14 @@ function dockFake() {
       overlays.push(overlay);
       return overlay;
     },
+    criarAviso: function (spec) {
+      var fechado = false;
+      var handle = { spec: spec, fechado: function () { return fechado; }, fechar: function () { fechado = true; } };
+      avisos.push(handle);
+      return handle;
+    },
     _overlays: overlays,
+    _avisos: avisos,
   };
 }
 
@@ -73,7 +102,7 @@ function carregar() {
   var armazenado = {};
   var ctx = {
     console: { debug() {}, warn() {}, log() {} },
-    setTimeout, clearTimeout, Promise, Date, Math, JSON, Object, Array, String,
+    setTimeout, clearTimeout, setInterval, clearInterval, Promise, Date, Math, JSON, Object, Array, String,
     MeedsSuiteStorage: {
       storageDoNucleo: function () {
         return {
@@ -232,5 +261,133 @@ function carregar() {
   ok("m2 nao tem chave gravada nenhuma", armazenado.tutorial_visto_m2 === undefined);
 }
 
-console.log("\n" + (falhas ? falhas + " FALHA(S)" : "todos passaram"));
-if (falhas) process.exit(1);
+/* ------------------------------------------------------------------
+ * PASSO GUIADO (D65) — passo com `alvo`/`evento`, que espera uma acao
+ * real em vez de um clique em "Proximo".
+ * ------------------------------------------------------------------ */
+
+/* --- alvo existe e visivel: destaca, espera o evento, avanca sozinho --- */
+{
+  const { Tutorial } = carregar();
+  const alvo = elementoFake();
+  Tutorial.registrar("guiado", {
+    titulo: "Guiado",
+    passos: [
+      { titulo: "Intro", texto: "Antes de agir." },
+      { titulo: "Aja", texto: "Clique ali.", alvo: () => alvo, evento: "click" },
+      { titulo: "Fim", texto: "Acabou." },
+    ],
+  });
+  const dock = dockFake();
+  Tutorial.iniciar("guiado", { dock });
+  const overlay = dock._overlays[0];
+  ok("passo 1 (carrossel) abre o overlay normal", overlay.estaAberto());
+
+  overlay.$("#tut-proximo").click(); // Intro -> Aja
+  ok("passo guiado FECHA o overlay grande", !overlay.estaAberto());
+  ok("um aviso foi criado para o passo guiado", dock._avisos.length === 1);
+  ok("o alvo foi destacado", alvo.classList.contains("tut-alvo-destaque"));
+
+  alvo.disparar("click"); // a ACAO REAL, nao um botao do tutorial
+  ok("o aviso do passo guiado fechou sozinho", dock._avisos[0].fechado());
+  ok("o destaque saiu do alvo", !alvo.classList.contains("tut-alvo-destaque"));
+  ok("avancou para o passo seguinte (carrossel)", overlay.estaAberto() && overlay.$("#tut-titulo-passo").textContent === "Fim");
+}
+
+/* --- "Pular este passo" avanca sem o evento acontecer --- */
+{
+  const { Tutorial } = carregar();
+  const alvo = elementoFake();
+  Tutorial.registrar("guiado-pular", {
+    titulo: "Guiado",
+    passos: [
+      { titulo: "Aja", texto: "Clique ali.", alvo: () => alvo, evento: "click" },
+      { titulo: "Fim", texto: "Acabou." },
+    ],
+  });
+  const dock = dockFake();
+  Tutorial.iniciar("guiado-pular", { dock });
+
+  const aviso = dock._avisos[0];
+  const acaoPular = aviso.spec.acoes.find((a) => /pular/i.test(a.rotulo));
+  ok("o aviso do passo guiado oferece \"Pular este passo\"", !!acaoPular);
+  acaoPular.aoClicar();
+
+  const overlay = dock._overlays[0];
+  ok("pular o passo guiado avanca para o proximo (carrossel)",
+     overlay.estaAberto() && overlay.$("#tut-titulo-passo").textContent === "Fim");
+}
+
+/* --- alvo nao existe (ou invisivel): nunca trava, o aviso ainda aparece --- */
+{
+  const { Tutorial } = carregar();
+  Tutorial.registrar("guiado-sem-alvo", {
+    titulo: "Guiado",
+    passos: [{ titulo: "Aja", texto: "Nao vai achar.", alvo: () => null, evento: "click" }],
+  });
+  const dock = dockFake();
+  const abriu = Tutorial.iniciar("guiado-sem-alvo", { dock });
+  ok("iniciar() com passo guiado sem alvo nao quebra", abriu === true);
+  ok("mesmo sem alvo, o aviso aparece (\"Pular este passo\" e a saida)", dock._avisos.length === 1);
+
+  const invisivel = elementoFake({ invisivel: true });
+  Tutorial.registrar("guiado-invisivel", {
+    titulo: "Guiado",
+    passos: [{ titulo: "Aja", texto: "Esta la mas escondido.", alvo: () => invisivel, evento: "click" }],
+  });
+  const dock2 = dockFake();
+  Tutorial.iniciar("guiado-invisivel", { dock: dock2 });
+  ok("alvo com offsetParent null (escondido) nao ganha destaque",
+     !invisivel.classList.contains("tut-alvo-destaque"));
+}
+
+/* --- roteiro comecando JA num passo guiado: nao deixa o overlay grande
+ *     vazio aberto por cima --- */
+{
+  const { Tutorial } = carregar();
+  const alvo = elementoFake();
+  Tutorial.registrar("comeca-guiado", {
+    titulo: "Guiado",
+    passos: [{ titulo: "Aja", texto: "Primeiro passo ja e guiado.", alvo: () => alvo, evento: "click" }],
+  });
+  const dock = dockFake();
+  Tutorial.iniciar("comeca-guiado", { dock });
+  const overlay = dock._overlays[0];
+  ok("comecar direto num passo guiado NAO abre o overlay do carrossel", !overlay.estaAberto());
+  ok("mas ja destaca o alvo", alvo.classList.contains("tut-alvo-destaque"));
+
+  // limpa o vigia (setInterval real) que este passo guiado deixou
+  // armado — senao o processo do teste nunca fecha sozinho.
+  alvo.disparar("click");
+}
+
+/* --- vigia: alvo desconecta no meio do passo (medico fechou o modulo) ---
+ * Usa o setInterval DE VERDADE do vigia (a suite roda em Node, entao
+ * espera 600ms reais em vez de mockar o relogio — mais simples e ainda
+ * rapido o bastante para um teste). Fica por ultimo e assincrono porque
+ * e o unico caso que precisa de tempo real passando. */
+(async function () {
+  const { Tutorial } = carregar();
+  const alvo = elementoFake();
+  Tutorial.registrar("guiado-desconecta", {
+    titulo: "Guiado",
+    passos: [
+      { titulo: "Aja", texto: "Clique ali.", alvo: () => alvo, evento: "click" },
+      { titulo: "Fim", texto: "Acabou." },
+    ],
+  });
+  const dock = dockFake();
+  Tutorial.iniciar("guiado-desconecta", { dock });
+  ok("destacado enquanto conectado", alvo.classList.contains("tut-alvo-destaque"));
+
+  alvo.isConnected = false; // o medico fechou o overlay do proprio modulo
+  await new Promise((resolve) => setTimeout(resolve, 650));
+
+  const overlay = dock._overlays[0];
+  ok("o vigia detecta o alvo desconectado e segue em frente sozinho",
+     overlay.estaAberto() && overlay.$("#tut-titulo-passo").textContent === "Fim");
+  ok("o destaque nao fica orfao", !alvo.classList.contains("tut-alvo-destaque"));
+
+  console.log("\n" + (falhas ? falhas + " FALHA(S)" : "todos passaram"));
+  if (falhas) process.exit(1);
+})();

@@ -12,14 +12,38 @@
  * módulo registra seu próprio roteiro; este arquivo só sabe desenhar
  * "passo N de M" com Voltar/Próximo/Pular, e lembrar quem já viu.
  *
+ * PASSOS GUIADOS (opcional, por passo) — D65
+ * Um passo pode declarar `alvo` (função que devolve o elemento vivo do
+ * PRÓPRIO overlay do módulo, já aberto) e `evento` ("click"/"input"/
+ * "change"). Esse passo não usa o carrossel: fecha o overlay grande do
+ * tutorial, destaca o elemento de verdade com contorno pulsante, e
+ * mostra um cartão pequeno e NÃO bloqueante (`d.dock.criarAviso`) ao
+ * lado — o médico interage com a tela real, não com uma cópia dela. O
+ * passo avança sozinho quando o evento acontece.
+ *
+ * Por que isto NÃO reabre o risco que o parágrafo anterior evitava: o
+ * alvo só pode ser um elemento de um overlay que o PRÓPRIO módulo já
+ * abriu antes de chamar o tutorial (a REMUME já está na tela; o painel
+ * de Ajustes do alarme já está na tela) — nunca um botão do dock, cuja
+ * posição varia com quais módulos estão ligados (D58). Dentro de um
+ * overlay já aberto e `position:fixed`, o elemento não se move com
+ * rolagem da página nem com layout — a fragilidade que o parágrafo
+ * anterior descreve simplesmente não se aplica aqui.
+ *
+ * NUNCA TRANCA: se o alvo não existir ou não estiver visível (o médico
+ * fechou o painel no meio, ou reabriu o tutorial sem abrir o painel
+ * primeiro), o cartão aparece do mesmo jeito, sem destaque, e "Pular
+ * este passo" resolve. Um vigia por polling (500ms) detecta o alvo
+ * sumindo da tela NO MEIO do passo (ex.: o médico fechou o painel) e
+ * avança sozinho, em vez de deixar um destaque órfão esperando um
+ * clique que não vem mais.
+ *
  * O QUE ISTO NÃO É, DE PROPÓSITO
- *   - Não é um "spotlight" que ilumina um elemento vivo por trás de um
- *     overlay escuro. Isso exigiria coordenar DOIS overlays abertos ao
- *     mesmo tempo com furo recortado — funciona, mas é MUITO mais
- *     frágil (a posição do elemento muda com o layout, com a rolagem,
- *     com o tamanho de tela) do que vale para o ganho. O tutorial
- *     EXPLICA em texto o que a tela mostra; não precisa apontar um
- *     dedo para cada botão.
+ *   - Não é um "spotlight" sobre um elemento do DOCK (fora de qualquer
+ *     overlay). Isso exigiria coordenar dois overlays com furo
+ *     recortado sobre uma posição que muda de módulo para módulo —
+ *     continua não valendo o ganho. Passos sobre o dock (ex.: "clique
+ *     no ícone do alarme") continuam só em texto.
  *   - Não é um formulário sendo preenchido (isso já existe — ver
  *     core/guia.js, para dentro de UM formulário). Tutorial é sobre
  *     "o que esta função faz", guia.js é sobre "o que falta preencher
@@ -86,15 +110,29 @@
     ".tut-btn-voltar[hidden] { display:none; }",
     ".tut-btn-proximo { background:#0f766e; color:#fff; }",
     ".tut-btn-proximo:hover { background:#0b5a54; }",
+    /* Destaque de passo guiado — aplicado a um elemento QUALQUER do
+       shadow (nao so dentro do overlay do tutorial), por isso vive
+       aqui e nao dentro de .tut-modal. Mesma linguagem visual do
+       .msg-alvo de core/guia.js, para o medico nao reaprender. */
+    ".tut-alvo-destaque { outline:3px solid #0f766e !important; outline-offset:2px; border-radius:8px; animation:tut-pulso 1.1s ease-in-out infinite; }",
+    "@keyframes tut-pulso { 0%,100% { outline-color:#0f766e; } 50% { outline-color:#5eead4; } }",
+    "@media (prefers-reduced-motion: reduce) { .tut-alvo-destaque { animation:none; } }",
   ].join("\n");
 
-  /* idModulo -> { titulo, passos: [{ titulo, texto, icone? }] } */
+  /* idModulo -> { titulo, passos: [{ titulo, texto, icone?, alvo?, evento? }] } */
   var registro = {};
 
   var overlay = null;
   var refs = {};
   var idAtual = null;
   var passoAtual = 0;
+  var dockAtual = null;
+
+  /* --- estado do passo GUIADO em curso (D65) --- */
+  var avisoGuiado = null;   // handle de d.dock.criarAviso()
+  var alvoDestacado = null; // elemento com .tut-alvo-destaque aplicado
+  var listenerGuiado = null; // { el, tipo, fn } — para remover ao sair
+  var vigiaAlvo = null;      // setInterval que detecta o alvo sumindo
 
   function storage() {
     return raiz.MeedsSuiteStorage ? raiz.MeedsSuiteStorage.storageDoNucleo() : null;
@@ -184,10 +222,51 @@
     refs.proximo.addEventListener("click", avancar);
   }
 
+  /* Visível de verdade, não só presente no DOM: um overlay fechado tem
+   * os campos dele ainda conectados (só `hidden`), e destacar ou vigiar
+   * um elemento que o médico não está vendo só confunde. offsetParent
+   * fica null quando algum ancestral tem display:none — exatamente o
+   * que [hidden] usa. */
+  function elementoVisivel(el) {
+    return !!(el && el.isConnected && el.offsetParent !== null);
+  }
+
+  function limparPassoGuiado() {
+    if (vigiaAlvo) {
+      clearInterval(vigiaAlvo);
+      vigiaAlvo = null;
+    }
+    if (listenerGuiado) {
+      listenerGuiado.el.removeEventListener(listenerGuiado.tipo, listenerGuiado.fn);
+      listenerGuiado = null;
+    }
+    if (alvoDestacado) {
+      alvoDestacado.classList.remove("tut-alvo-destaque");
+      alvoDestacado = null;
+    }
+    if (avisoGuiado) {
+      avisoGuiado.fechar();
+      avisoGuiado = null;
+    }
+  }
+
   function pintarPasso() {
+    limparPassoGuiado();
     var spec = registro[idAtual];
     var passo = spec.passos[passoAtual];
+
+    if (passo.alvo) {
+      if (overlay) overlay.fechar();
+      pintarPassoGuiado(spec, passo);
+      return;
+    }
+
+    pintarPassoCarrossel(spec, passo);
+  }
+
+  function pintarPassoCarrossel(spec, passo) {
     var total = spec.passos.length;
+    overlay.abrir();
 
     refs.tituloModulo.textContent = "🎓 " + (spec.titulo || "Tutorial");
     refs.icone.textContent = passo.icone || "💡";
@@ -202,14 +281,58 @@
     refs.proximo.textContent = passoAtual === total - 1 ? "Concluir" : "Próximo";
   }
 
+  /* ------------------------------------------------------------------
+   * PASSO GUIADO (D65) — ver a nota grande no topo do arquivo.
+   * ------------------------------------------------------------------ */
+  function pintarPassoGuiado(spec, passo) {
+    if (!dockAtual || typeof dockAtual.criarAviso !== "function") {
+      // sem onde desenhar o cartão: não trava o roteiro, só pula.
+      avancar();
+      return;
+    }
+    var total = spec.passos.length;
+    var elAlvo = elementoVisivel(passo.alvo()) ? passo.alvo() : null;
+
+    avisoGuiado = dockAtual.criarAviso({
+      titulo: "🎓 " + (passo.titulo || "Sua vez") + " · " + (passoAtual + 1) + "/" + total,
+      corpo: passo.texto || "",
+      acoes: [{ rotulo: "Pular este passo", primario: false, fecha: false, aoClicar: avancarDoGuiado }],
+    });
+
+    if (!elAlvo) return; // sem alvo pra destacar: "Pular este passo" é a saída
+
+    elAlvo.classList.add("tut-alvo-destaque");
+    alvoDestacado = elAlvo;
+
+    var tipo = passo.evento || "click";
+    var fn = function () {
+      avancarDoGuiado();
+    };
+    elAlvo.addEventListener(tipo, fn, { once: true });
+    listenerGuiado = { el: elAlvo, tipo: tipo, fn: fn };
+
+    /* O médico pode fechar o overlay do próprio módulo (REMUME, Ajustes
+     * do alarme) no meio do passo — sem isto o destaque ficaria aceso
+     * num elemento que ninguém mais vê, esperando um clique que não vem. */
+    vigiaAlvo = setInterval(function () {
+      if (!elementoVisivel(elAlvo)) avancarDoGuiado();
+    }, 500);
+  }
+
+  function avancarDoGuiado() {
+    limparPassoGuiado();
+    avancar();
+  }
+
   function avancar() {
     var spec = registro[idAtual];
     if (passoAtual < spec.passos.length - 1) {
       passoAtual++;
       pintarPasso();
     } else {
+      limparPassoGuiado();
       marcarVisto(idAtual);
-      overlay.fechar();
+      if (overlay) overlay.fechar();
     }
   }
 
@@ -222,10 +345,14 @@
     var spec = registro[idModulo];
     if (!spec || !opcoes || !opcoes.dock) return false;
     montarOverlay(opcoes.dock);
+    dockAtual = opcoes.dock;
     idAtual = idModulo;
     passoAtual = 0;
+    /* pintarPasso() decide sozinho se abre o overlay grande (passo do
+     * carrossel) ou o fecha e desenha o cartão do passo guiado — não dá
+     * mais para abrir aqui incondicionalmente, senão um tutorial que
+     * COMEÇA com um passo guiado reabriria o overlay vazio por cima. */
     pintarPasso();
-    overlay.abrir();
     /* Marca "visto" ja na ABERTURA, nao so ao fechar/concluir. Motivo:
      * `iniciarSePrimeiraVez()` nao pode oferecer de novo toda vez que o
      * medico reabrir o painel antes de ele decidir fechar o tutorial —
