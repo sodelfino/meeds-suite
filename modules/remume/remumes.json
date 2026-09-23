@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "atualizadoEm": "18/09/2026",
+    "atualizadoEm": "23/09/2026",
     "avisos": {
       "Franco da Rocha": "Nesta unidade (UPA Franco da Rocha) só são atendidas fichas azuis — o fluxo já contempla receita e alta. Paciente que precisar de medicação administrada no local (oral, IM ou EV) ou que apresentar sinal de alarme deve ser encaminhado para atendimento presencial: nenhuma medicação é aplicada aqui."
     },
@@ -9,6 +9,26 @@
         {
           "termo": "ampola",
           "aviso": "Se houver necessidade de administração, encaminhe o paciente para o presencial."
+        }
+      ],
+      "Piracema": [
+        {
+          "termo": "glicosímetro",
+          "aviso": "Disponibilizado só para pacientes com diagnóstico de Diabetes Mellitus tipo 1, tipo 2 em uso de insulina, ou Diabetes Gestacional (Deliberação CIB-SUS/MG nº 2.964/2019)."
+        },
+        {
+          "termo": "tiras reagentes",
+          "aviso": "Disponibilizado só para pacientes com diagnóstico de Diabetes Mellitus tipo 1, tipo 2 em uso de insulina, ou Diabetes Gestacional (Deliberação CIB-SUS/MG nº 2.964/2019)."
+        }
+      ],
+      "Santa Bárbara": [
+        {
+          "termo": "olanzapina",
+          "aviso": "Disponibilizado para paciente cujo CID não seja compatível para acesso via Componente Especializado da Assistência Farmacêutica Estadual (CEAF)."
+        },
+        {
+          "termo": "risperidona",
+          "aviso": "Disponibilizado para paciente cujo CID não seja compatível para acesso via Componente Especializado da Assistência Farmacêutica Estadual (CEAF)."
         }
       ]
     }
@@ -12827,6 +12847,1147 @@
       "nome": "Nitrazepam comprimido 5 mg",
       "local": null,
       "receituario": "azul"
+    }
+  ],
+  "Piracema": [
+    {
+      "nome": "Albendazol 400mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Albendazol 40mg/ml - Frasco",
+      "local": null
+    },
+    {
+      "nome": "Alendronato de Sódio 70mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Alopurinol 100mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Alopurinol 300mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Amiodarona 200mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Amoxicilina 250mg/5ml - Frasco",
+      "local": null
+    },
+    {
+      "nome": "Amoxicilina 500mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Anlodipino 5mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Azitromicina 500mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Biperideno 2mg (Akneton) - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Captopril 25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Carbamazepina 200mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Carbonato de Lítio 300mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Carvedilol 25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Carvedilol 3,125mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Carvedilol 6,25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Cefalexina 250mg/5ml - Frasco",
+      "local": null
+    },
+    {
+      "nome": "Cefalexina 500mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Ciprofloxacino 500mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Clorpromazina 100mg (Amplictil) - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Clorpromazina 25mg (Amplictil) - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Dexametasona - Pomada (bisnaga)",
+      "local": null
+    },
+    {
+      "nome": "Dexametasona 4mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Dexclorfeniramina 0,4mg/5ml (Polaramine) - Frasco",
+      "local": null
+    },
+    {
+      "nome": "Dexclorfeniramina 2mg (Polaramine) - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Diazepam 10mg - Comprimido",
+      "local": null,
+      "receituario": "azul"
+    },
+    {
+      "nome": "Digoxina 0,25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Dipirona 500mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Dipirona 500mg/ml - Frasco (gotas)",
+      "local": null
+    },
+    {
+      "nome": "DIU de Cobre - Unidade",
+      "local": null
+    },
+    {
+      "nome": "Enalapril 10mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Enalapril 20mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Espironolactona 100mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Espironolactona 25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Fenitoína 100mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Fenobarbital 100mg (Gardenal) - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Fluconazol 150mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Fluoxetina 20mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Furosemida 40mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Glibenclamida 5mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Glicosímetro - Unidade",
+      "local": null
+    },
+    {
+      "nome": "Haloperidol 1mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Haloperidol 5mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Haloperidol Decanoato 50mg/ml - Ampola",
+      "local": null
+    },
+    {
+      "nome": "Hidroclorotiazida 25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Ibuprofeno 50mg/ml (Alivium) - Frasco (gotas)",
+      "local": null
+    },
+    {
+      "nome": "Ibuprofeno 600mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Insulina NPH - Frasco 10 ml",
+      "local": null
+    },
+    {
+      "nome": "Insulina NPH - Refil 3 ml",
+      "local": null
+    },
+    {
+      "nome": "Insulina Regular - Frasco 10ml",
+      "local": null
+    },
+    {
+      "nome": "Insulina Regular - Refil 3 ml",
+      "local": null
+    },
+    {
+      "nome": "Ivermectina 6mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Lancetas Automáticas - Unidade",
+      "local": null
+    },
+    {
+      "nome": "Levodopa + Benserazida 200+50mg (Prolopa) - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Levonorgestrel + Etinilestradiol 0,15mg+0,03mg (Ciclo21) - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Levotiroxina Sódica 100mcg (Puran T4) - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Levotiroxina Sódica 25mcg (Puran T4) - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Levotiroxina Sódica 50mcg (Puran T4) - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Loratadina 10mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Medroxiprogesterona 150mg/ml (Contracept/Demedrox) - Ampola",
+      "local": null
+    },
+    {
+      "nome": "Metildopa 250mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Metoclopramida 10mg (Plasil) - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Metronidazol 250mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Miconazol - Creme Dermatológico (bisnaga)",
+      "local": null
+    },
+    {
+      "nome": "Miconazol - Creme Vaginal (bisnaga)",
+      "local": null
+    },
+    {
+      "nome": "Nifedipino 10mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Noretisterona + Estradiol 50+5mg/ml (Noregyna/Mesigyna) - Ampola",
+      "local": null
+    },
+    {
+      "nome": "Nortriptilina 25mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Nortriptilina 50mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Oseltamivir 30mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Oseltamivir 45mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Oseltamivir 75mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Paracetamol 200mg/ml - Frasco",
+      "local": null
+    },
+    {
+      "nome": "Paracetamol 500mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Prednisona 20mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Prednisona 5mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Prometazina 25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Sais de Reidratação (soro oral) - Sachê",
+      "local": null
+    },
+    {
+      "nome": "Seringas 1ml (para aplicação de insulina) - Unidade",
+      "local": null
+    },
+    {
+      "nome": "Sinvastatina 20mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Sulfametoxazol + Trimetoprima 40+8mg/ml (Bactrim) - Frasco",
+      "local": null
+    },
+    {
+      "nome": "Sulfametoxazol + Trimetoprima 400+80mg (Bactrim) - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Sulfato Ferroso 125mg/ml - Frasco (gotas)",
+      "local": null
+    },
+    {
+      "nome": "Sulfato Ferroso 40mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Tiras Reagentes para Dosagem de Glicemia - Frasco",
+      "local": null
+    },
+    {
+      "nome": "Varfarina Sódica 5mg (Marevan) - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Ácido Acetilsalicílico 100mg (AAS) - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Ácido Fólico 5mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Ácido Valpróico 250mg (Depakene) - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Ácido Valpróico 50mg/ml (Depakene) - Frasco",
+      "local": null
+    }
+  ],
+  "Santa Bárbara": [
+    {
+      "nome": "Acetato de Medroxiprogesterona 150mg/mL - Suspensão Injetável",
+      "local": null
+    },
+    {
+      "nome": "Aciclovir 200mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Aciclovir 50mg/g - Creme",
+      "local": null
+    },
+    {
+      "nome": "Albendazol 400mg - Comprimido Mastigável",
+      "local": null
+    },
+    {
+      "nome": "Albendazol 40mg/mL - Suspensão Oral",
+      "local": null
+    },
+    {
+      "nome": "Alendronato de Sódio 70mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Alopurinol 100mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Alopurinol 300mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Alprazolam 0,5mg - Comprimido",
+      "local": null,
+      "receituario": "azul"
+    },
+    {
+      "nome": "Alprazolam 1,0mg - Comprimido",
+      "local": null,
+      "receituario": "azul"
+    },
+    {
+      "nome": "Amiodarona, Cloridrato 200mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Amitriptilina, Cloridrato 25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Amitriptilina, Cloridrato 75mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Amoxicilina + Ácido Clavulânico 500mg+125mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Amoxicilina + Ácido Clavulânico 50mg+12,5mg/mL - Suspensão Oral",
+      "local": null
+    },
+    {
+      "nome": "Amoxicilina 500mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Amoxicilina 50mg/mL - Pó para Suspensão Oral",
+      "local": null
+    },
+    {
+      "nome": "Anlodipino, Besilato 10mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Anlodipino, Besilato 5mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Atenolol 50mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Azitromicina 40mg/mL - Pó para Suspensão Oral",
+      "local": null
+    },
+    {
+      "nome": "Azitromicina 500mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Benzilpenicilina Benzatina 1.200.000UI - Pó para Suspensão Injetável",
+      "local": null
+    },
+    {
+      "nome": "Biperideno, Cloridrato 2mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Bromazepam 3mg - Comprimido",
+      "local": null,
+      "receituario": "azul"
+    },
+    {
+      "nome": "Bromazepam 6mg - Comprimido",
+      "local": null,
+      "receituario": "azul"
+    },
+    {
+      "nome": "Budesonida 50mcg - Spray Nasal",
+      "local": null
+    },
+    {
+      "nome": "Captopril 25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Carbamazepina 200mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Carbamazepina 20mg/mL - Xarope",
+      "local": null
+    },
+    {
+      "nome": "Carbamazepina 400mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Carbonato de Cálcio 1250mg (equivalente a 500mg Cálcio) - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Carbonato de Lítio 300mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Carvedilol 12,5mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Carvedilol 25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Carvedilol 3,125mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Cefalexina (sódica ou cloridrato) 500mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Cefalexina (sódica ou cloridrato) 50mg/mL - Suspensão Oral",
+      "local": null
+    },
+    {
+      "nome": "Cetoconazol + Betametasona + Neomicina 20+0,5+2,5mg/g - Creme",
+      "local": null
+    },
+    {
+      "nome": "Cetoconazol + Betametasona 20+0,5mg/g - Creme",
+      "local": null
+    },
+    {
+      "nome": "Cetoconazol 2% - Creme",
+      "local": null
+    },
+    {
+      "nome": "Cetoconazol 200mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Cetoconazol 20mg/ml - Shampoo",
+      "local": null
+    },
+    {
+      "nome": "Cianocobalamina 2500mcg/ml + Cloridrato de Tiamina 50mg/ml + Cloridrato de Piridoxina - Solução Injetável",
+      "local": null
+    },
+    {
+      "nome": "Ciprofloxacino 500mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Claritromicina 500mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Clindamicina 300mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Clomipramina, Cloridrato 25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Clomipramina, Cloridrato 75mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Clonazepam 2,5mg/mL - Solução Oral",
+      "local": null,
+      "receituario": "azul"
+    },
+    {
+      "nome": "Clonazepam 2mg - Comprimido",
+      "local": null,
+      "receituario": "azul"
+    },
+    {
+      "nome": "Clopidogrel 75mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Cloreto de Sódio 0,9mg/ml (9%) - Frasco 50ml",
+      "local": null
+    },
+    {
+      "nome": "Cloridrato de Clonidina 0,200mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Cloridrato de Doxiciclina 100mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Clorpromazina, Cloridrato 100mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Clorpromazina, Cloridrato 25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Clorpromazina, Cloridrato 40mg/mL - Solução Oral",
+      "local": null
+    },
+    {
+      "nome": "Codeína + Paracetamol 30+50mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Dexametasona + Tiamina + Piridoxina + Cianocobalamina 4mg+100mg+100mg+5.000mcg - Solução Injetável",
+      "local": null
+    },
+    {
+      "nome": "Dexametasona 0,1% - Colírio",
+      "local": null
+    },
+    {
+      "nome": "Dexametasona 0,1% - Pomada",
+      "local": null
+    },
+    {
+      "nome": "Dexclorfeniramina, Maleato 0,4mg/mL - Xarope",
+      "local": null
+    },
+    {
+      "nome": "Dexclorfeniramina, Maleato 2mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Diazepam 10mg - Comprimido",
+      "local": null,
+      "receituario": "azul"
+    },
+    {
+      "nome": "Diazepam 5mg - Comprimido",
+      "local": null,
+      "receituario": "azul"
+    },
+    {
+      "nome": "Digoxina 0,25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Dipirona 500mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Dipirona 500mg/mL - Solução Oral",
+      "local": null
+    },
+    {
+      "nome": "Dispositivo Intra-Uterino (DIU) de Cobre - Unidade",
+      "local": null
+    },
+    {
+      "nome": "Doxazosina 2mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Enalapril, Maleato 10mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Enalapril, Maleato 20mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Enantato de Noretisterona + Valerato de Estradiol 50+5mg/mL - Solução Injetável",
+      "local": null
+    },
+    {
+      "nome": "Eritromicina, Estearato 500mg - Cápsula ou Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Eritromicina, Estearato 50mg/mL - Suspensão Oral",
+      "local": null
+    },
+    {
+      "nome": "Escopolamina 10mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Espironolactona 25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Fenitoína Sódica 100mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Fenobarbital 100mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Fenobarbital 40mg/mL - Solução Oral",
+      "local": null
+    },
+    {
+      "nome": "Finasterida 5mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Fluconazol 150mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Fluocinolona + Neomicina + Polimixina B + Lidocaína 0,275mg/mL+3,85mg/mL+11.000UI/mL+20mg/mL - Solução Otológica",
+      "local": null
+    },
+    {
+      "nome": "Fluoxetina, Cloridrato 20mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Furosemida 40mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Gentamicina 0,5% - Colírio",
+      "local": null
+    },
+    {
+      "nome": "Glibenclamida 5mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Gliclazida 30mg - Comprimido de Liberação Controlada",
+      "local": null
+    },
+    {
+      "nome": "Haloperidol 1mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Haloperidol 2mg/mL - Solução Oral (gotas)",
+      "local": null
+    },
+    {
+      "nome": "Haloperidol 5mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Haloperidol 5mg/mL - Solução Injetável",
+      "local": null
+    },
+    {
+      "nome": "Haloperidol, Decanoato 70,52mg/mL (equivalente a 50mg/mL de Haloperidol) - Solução Injetável",
+      "local": null
+    },
+    {
+      "nome": "Heparina Sódica 5.000UI/ml - Solução Injetável (ampola)",
+      "local": null
+    },
+    {
+      "nome": "Hidralazina, Cloridrato 25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Hidralazina, Cloridrato 50mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Hidroclorotiazida 25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Hidrocortisona 10mg/g - Creme",
+      "local": null
+    },
+    {
+      "nome": "Hidroxiquinolina + Trolamina 0,4mg/mL+140mg/mL - Solução Otológica",
+      "local": null
+    },
+    {
+      "nome": "Hidróxido de Alumínio 6% - Solução Oral",
+      "local": null
+    },
+    {
+      "nome": "Ibuprofeno 50mg/mL - Solução Oral (gotas)",
+      "local": null
+    },
+    {
+      "nome": "Ibuprofeno 600mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Imipramina, Cloridrato 25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Insulina Humana NPH 100UI/mL - Suspensão",
+      "local": null
+    },
+    {
+      "nome": "Insulina Humana Regular 100UI/mL - Solução",
+      "local": null
+    },
+    {
+      "nome": "Isossorbida, Dinitrato 5mg - Comprimido Sublingual",
+      "local": null
+    },
+    {
+      "nome": "Isossorbida, Mononitrato 20mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Isossorbida, Mononitrato 40mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Ivermectina 6mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Kollagenase + Clonanfenicol 0,6U/g+0,01g/g - Pomada",
+      "local": null
+    },
+    {
+      "nome": "Kollagenase 0,6U/g - Pomada (30g)",
+      "local": null
+    },
+    {
+      "nome": "Levodopa + Benserazida 100+25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Levodopa + Benserazida 200+50mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Levomepromazina 100mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Levomepromazina 25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Levomepromazina 40mg/mL - Solução",
+      "local": null
+    },
+    {
+      "nome": "Levonorgestrel + Etinilestradiol 0,15+0,03mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Levotiroxina Sódica 100mcg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Levotiroxina Sódica 25mcg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Levotiroxina Sódica 50mcg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Lidocaína 2% - Geléia",
+      "local": null
+    },
+    {
+      "nome": "Loperamida 2mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Loratadina 10mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Loratadina 1mg/mL - Xarope",
+      "local": null
+    },
+    {
+      "nome": "Losartana Potássica 50mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Metformina, Cloridrato 850mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Metildopa 250mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Metildopa 500mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Metoclopramida, Cloridrato 10mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Metoclopramida, Cloridrato 4mg/mL - Solução Oral",
+      "local": null
+    },
+    {
+      "nome": "Metoprolol, Succinato 100mg - Comprimido de Liberação Controlada",
+      "local": null
+    },
+    {
+      "nome": "Metoprolol, Succinato 25mg - Comprimido de Liberação Controlada",
+      "local": null
+    },
+    {
+      "nome": "Metoprolol, Succinato 50mg - Comprimido de Liberação Controlada",
+      "local": null
+    },
+    {
+      "nome": "Metronidazol (benzoilmetronidazol) 40mg/mL - Suspensão Oral",
+      "local": null
+    },
+    {
+      "nome": "Metronidazol 100mg/g - Geléia Vaginal",
+      "local": null
+    },
+    {
+      "nome": "Metronidazol 250mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Metronidazol 400mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Miconazol, Nitrato 2% - Creme",
+      "local": null
+    },
+    {
+      "nome": "Miconazol, Nitrato 2% - Creme Vaginal",
+      "local": null
+    },
+    {
+      "nome": "Miconazol, Nitrato 2% - Loção",
+      "local": null
+    },
+    {
+      "nome": "Neomicina + Bacitracina 5mg/g+250UI/g - Pomada",
+      "local": null
+    },
+    {
+      "nome": "Nimesulida 100mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Nistatina 100.000UI/mL - Suspensão Oral",
+      "local": null
+    },
+    {
+      "nome": "Nitrofurantoína 100mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Noretisterona 0,35mg - Comprimido (cartela c/35 comp)",
+      "local": null
+    },
+    {
+      "nome": "Norfloxacino 400mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Nortriptilina, Cloridrato 10mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Nortriptilina, Cloridrato 25mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Nortriptilina, Cloridrato 50mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Olanzapina 10mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Olanzapina 5mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Omeprazol 20mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Ondansetrona 4mg - Comprimido Orodispersível",
+      "local": null
+    },
+    {
+      "nome": "Ondansetrona 8mg - Comprimido Orodispersível",
+      "local": null
+    },
+    {
+      "nome": "Paracetamol 200mg/mL - Solução Oral",
+      "local": null
+    },
+    {
+      "nome": "Paracetamol 500mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Paroxetina 20mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Periciazina 40mg/mL - Solução",
+      "local": null
+    },
+    {
+      "nome": "Permetrina 5% - Loção",
+      "local": null
+    },
+    {
+      "nome": "Prednisolona, Fosfato Sódico 1mg/mL - Solução Oral",
+      "local": null
+    },
+    {
+      "nome": "Prednisolona, Fosfato Sódico 3mg/mL - Solução Oral",
+      "local": null
+    },
+    {
+      "nome": "Prednisona 20mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Prednisona 5mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Prometazina 25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Propranolol, Cloridrato 40mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Risperidona 2mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Sais de Reidratação Oral - Pó para Solução Oral",
+      "local": null
+    },
+    {
+      "nome": "Sertralina, Cloridrato 50mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Sinvastatina 10mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Sinvastatina 20mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Sinvastatina 40mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Sulfadiazina de Prata 1% - Creme (bisnaga)",
+      "local": null
+    },
+    {
+      "nome": "Sulfadiazina de Prata 1% - Creme (pote)",
+      "local": null
+    },
+    {
+      "nome": "Sulfametoxazol + Trimetoprima 400mg+80mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Sulfametoxazol + Trimetoprima 40mg/mL+8mg/mL - Suspensão Oral",
+      "local": null
+    },
+    {
+      "nome": "Sulfato Ferroso 25mg/mL Fe elementar - Solução Oral (gotas)",
+      "local": null
+    },
+    {
+      "nome": "Sulfato Ferroso 40mg Fe elementar - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Timolol, Maleato 0,5% - Colírio",
+      "local": null
+    },
+    {
+      "nome": "Tioridazina, Cloridrato 100mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Tioridazina, Cloridrato 25mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Triancinolona 1mg/g - Creme em Orabase",
+      "local": null
+    },
+    {
+      "nome": "Valproato de Sódio 250mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Valproato de Sódio 500mg - Cápsula ou Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Valproato de Sódio 50mg/ml - Xarope",
+      "local": null
+    },
+    {
+      "nome": "Varfarina Sódica 5mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Verapamil, Cloridrato 80mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Vitaminas - Complexo B - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Ácido Acetilsalicílico 100mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Ácido Fólico 0,2mg/mL - Solução Oral (gotas)",
+      "local": null
+    },
+    {
+      "nome": "Ácido Fólico 5mg - Comprimido",
+      "local": null
     }
   ]
 }

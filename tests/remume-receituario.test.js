@@ -235,11 +235,12 @@ if (modulo) {
 
     /* Canario, nao lei: sobe deliberadamente sempre que um municipio novo
      * com psicotropicos/entorpecentes reais entra na base (ultima vez:
-     * Franco da Rocha, +6 — Clonazepam x2, Diazepam, Midazolam x2,
-     * Nitrazepam, todos Lista B1/azul). Se subir sem voce ter acrescentado
-     * municipio nenhum, e bug — va atras do porque. */
+     * Piracema, +1 — Diazepam; e Santa Bárbara, +8 — Alprazolam x2,
+     * Bromazepam x2, Clonazepam x2, Diazepam x2, todos Lista B1/azul). Se
+     * subir sem voce ter acrescentado municipio nenhum, e bug — va atras
+     * do porque. */
     const totalGeral = cidades.reduce((s, c) => s + REMUMES[c].filter((i) => i.receituario).length, 0);
-    ok("102 itens marcados no total, nos " + cidades.length + " municipios (26 em Macaé + 76 nos outros)", totalGeral === 102, totalGeral);
+    ok("111 itens marcados no total, nos " + cidades.length + " municipios (26 em Macaé + 85 nos outros)", totalGeral === 111, totalGeral);
   }
 }
 

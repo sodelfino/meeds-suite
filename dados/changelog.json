@@ -2,6 +2,16 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.43.17",
+      "data": "2026-09-23",
+      "novidades": [
+        "REMUME de Piracema-MG incluída na busca: 91 itens da Farmácia de Todos (Farmácia de Minas). Glicosímetro e tiras reagentes de glicemia aparecem com o aviso de que são só para diabetes tipo 1, tipo 2 em uso de insulina ou diabetes gestacional.",
+        "REMUME de Santa Bárbara-MG incluída na busca: 191 itens da REMUME 2024 (2ª edição, Portaria SMS nº 19/2023). Olanzapina e Risperidona aparecem com o aviso de que dependem do CID não ser compatível com o Componente Especializado da Assistência Farmacêutica Estadual."
+      ],
+      "melhorias": [],
+      "correcoes": []
+    },
+    {
       "versao": "2.43.16",
       "data": "2026-09-26",
       "novidades": [
