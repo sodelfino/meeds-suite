@@ -212,6 +212,36 @@ const RESTRICAO_POR_RECEITUARIO = {
 };
 
 /* ------------------------------------------------------------------
+ * 4. LIMITE DE TAMANHO DO CAMPO — o sistema nativo recusou a primeira
+ *    carga de Macaé: "Linha 377: principio_ativo deve ter no maximo
+ *    255 caracteres". A causa: 4 itens de Macaé sao formulas de
+ *    Nutricao Parenteral descritas em PROSA CLINICA (protocolo de uso,
+ *    composicao, via de administracao — ate 642 caracteres), sem um
+ *    "principio ativo" farmacologico de verdade para decompor() extrair.
+ *    Ele devolveu o texto inteiro, e o texto inteiro estoura o limite.
+ *
+ *    A correcao corta na ULTIMA PALAVRA COMPLETA antes do limite —
+ *    nunca no meio de uma palavra — e cada linha cortada entra no
+ *    -conferir.csv com destaque: um nome de produto truncado
+ *    automaticamente nao e o mesmo que um nome CERTO, e essas 4
+ *    formulas provavelmente merecem um nome curto escolhido por quem
+ *    conhece a lista, nao a prosa cortada na marra.
+ * ------------------------------------------------------------------ */
+const LIMITE_PRINCIPIO_ATIVO = 255;
+
+function truncarComLimite(valor, limite) {
+  const s = String(valor || "");
+  if (s.length <= limite) return { valor: s, truncou: false };
+  let corte = s.slice(0, limite);
+  const ultimoEspaco = corte.lastIndexOf(" ");
+  /* So corta no espaco se sobrar pelo menos 60% do limite — senao uma
+   * palavra rara e comprida (raro em nome de medicamento) deixaria o
+   * corte curto demais para servir de identificacao. */
+  if (ultimoEspaco > limite * 0.6) corte = corte.slice(0, ultimoEspaco);
+  return { valor: corte.trim(), truncou: true };
+}
+
+/* ------------------------------------------------------------------
  * CSV — ";" (igual ao modelo em anexo), aspas so quando o campo exige
  * (contem ";", aspas ou quebra de linha), CRLF por ser o padrao que
  * planilhas brasileiras esperam ao importar.
@@ -260,6 +290,7 @@ function main() {
   let semForma = 0;
   let comRestricao = 0;
   let concentracaoRefinada = 0;
+  let principioTruncado = 0;
 
   itens.forEach((item) => {
     const descricao = String(item.nome || "").trim();
@@ -269,6 +300,9 @@ function main() {
     const codigo = codigoDe(municipio, descricao);
     const refino = refinarConcentracao(descricao, d.concentracao);
     if (refino.trocou) concentracaoRefinada++;
+
+    const principio = truncarComLimite(d.principio_ativo, LIMITE_PRINCIPIO_ATIVO);
+    if (principio.truncou) principioTruncado++;
 
     const via = inferirVia(d.forma_farmaceutica, descricao);
     if (!via) semVia++;
@@ -284,7 +318,7 @@ function main() {
         versao,
         codigo,
         descricao,
-        d.principio_ativo,
+        principio.valor,
         refino.valor,
         d.forma_farmaceutica,
         d.apresentacao,
@@ -296,12 +330,18 @@ function main() {
     );
 
     const motivos = [];
+    if (principio.truncou) {
+      motivos.push(
+        "⚠ PRINCÍPIO ATIVO CORTADO — texto original tinha " + d.principio_ativo.length +
+        " caracteres (limite do sistema é 255); escolha um nome curto para este item antes de importar"
+      );
+    }
     if (d.decomposicao === "revisar") motivos.push("quebra automática incerta");
     if (refino.trocou) motivos.push("concentração corrigida (tamanho de embalagem != concentração)");
     if (!via) motivos.push("via de administração não inferida");
     if (motivos.length) {
       paraConferir.push(
-        linhaCsv([codigo, descricao, d.principio_ativo, refino.valor, d.forma_farmaceutica, motivos.join(" · ")])
+        linhaCsv([codigo, descricao, principio.valor, refino.valor, d.forma_farmaceutica, motivos.join(" · ")])
       );
     }
   });
@@ -323,6 +363,7 @@ function main() {
   console.log("  remume_versao:          " + versao);
   console.log("  com restrição (344/98): " + comRestricao);
   console.log("  concentração corrigida: " + concentracaoRefinada);
+  if (principioTruncado) console.log("  ⚠ princípio ativo CORTADO (>255 car.): " + principioTruncado);
   console.log("  sem forma farmacêutica: " + semForma);
   console.log("  sem via de administração: " + semVia);
   console.log("Para conferir antes de importar: " + path.relative(RAIZ, caminhoConferir) + " (" + (paraConferir.length - 1) + " linha(s))");
