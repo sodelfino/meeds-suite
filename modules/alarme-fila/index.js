@@ -522,9 +522,20 @@
     if (!REGEX_ATENDIMENTO_LISTA.test(url)) return false;
     if (/[?&]ProfissionalId=/i.test(url)) return false; // "meus atendimentos"
 
-    var status = String(url).match(/[?&]StatusAtendimentoId=([^&]*)/gi) || [];
-    if (status.length !== 1) return false;          // lista mista: nao e a fila
-    return /=2$/.test(status[0]);
+    /* take=1 e a consulta que o Meeds novo faz so para o contador da aba:
+     * traz UM paciente. Lida como fila, a troca desse unico paciente
+     * pareceria uma chegada nova. */
+    if (/[?&]take=1(?:&|$)/i.test(url)) return false;
+
+    var status = (String(url).match(/[?&]StatusAtendimentoId=([^&]*)/gi) || [])
+      .map(function (s) { return s.split("=")[1]; })
+      .sort()
+      .join(",");
+    /* "2" sozinho: a fila do Meeds antigo. "1,2": a aba Aguardando do
+     * Meeds novo (producao admin-calltech, 24/09/2026), que pede os dois
+     * status juntos e mostra o paciente como "Aguardando". Qualquer outra
+     * mistura nao e a fila. */
+    return status === "2" || status === "1,2";
   }
 
   function assinaturaDaChamada(url) {

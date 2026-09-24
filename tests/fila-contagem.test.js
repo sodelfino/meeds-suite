@@ -167,12 +167,33 @@ const corpo = (ids) => ({ data: ids.map((id) => ({ id: id })) });
   ok("operador: a fila de espera dele e reconhecida",
      eh(base + "&DataInicialCreated=2026-09-08&StatusAtendimentoId=2&Active=true&Agendado=false&take=100"));
 
-  /* O DEFEITO: o operador tem uma chamada que pede DOIS status de uma
-   * vez. Contar status 1 como "aguardando" enche a fila de gente que
-   * nao esta esperando, e pode disparar o alarme por ela. */
-  ok("lista que mistura status 1 e 2 NAO e a fila",
-     !eh(base + "&StatusAtendimentoId=1&StatusAtendimentoId=2&CreatedAt=2026-09-08&skip=1&take=5"),
-     "era aceita antes desta versao");
+  /* MEEDS NOVO (producao admin-calltech, Jam de 24/09/2026): a aba
+   * "Aguardando" do Pronto Atendimento pede statusAtendimentoId=1 E 2
+   * juntos, e o paciente aparece na tela com status "Aguardando". No
+   * Meeds antigo essa combinacao era uma lista do operador que nao era a
+   * fila — la ela ficava de fora. Com o Meeds antigo desligado, {1,2} e
+   * exatamente a fila. */
+  const V2 = "https://admin-calltech.meeds.com.br/bff/api/v1/atendimento?statusAtendimentoId=1&statusAtendimentoId=2&agendado=false&atendimentoTipoIds=1&empresasId=46df9d57&dataInicialCreated=2026-09-24T00%3A00%3A00";
+  ok("Meeds novo: a aba Aguardando (status 1 e 2) e a fila",
+     eh(V2 + "&sort=CreatedAt+DESC&skip=1&take=10"));
+  /* A mesma consulta com take=1 e so a sonda do contador da aba: traz um
+   * paciente so. Tratada como fila, a troca desse unico paciente
+   * pareceria "chegou alguem novo" e tocaria o alarme sem ninguem novo. */
+  ok("Meeds novo: a consulta de contagem (take=1) NAO e a fila",
+     !eh(V2 + "&skip=1&take=1"));
+  ok("Meeds novo: Em atendimento (3 e 7) nao e a fila",
+     !eh(V2.replace("statusAtendimentoId=1&statusAtendimentoId=2", "statusAtendimentoId=3&statusAtendimentoId=7") + "&take=10"));
+  /* Perfil PROFISSIONAL (doctor-calltech, Jam 4d4358b1 de 24/09/2026): a
+   * fila do medico pede so o status 2, filtrada por especialidade e
+   * clientes; o contador da aba repete a mesma consulta com take=1. */
+  const MED = "https://doctor-calltech.meeds.com.br/bff/api/v1/atendimento?agendado=false&skip=1&sort=CreatedAt+ASC&dataInicialCreated=2026-09-24T00%3A00%3A00&atendimentoTipoIds=1&statusAtendimentoId=2&especialidadesId=4fcab7e8&empresasId=46df9d57&clientesId=a1&clientesId=b2";
+  ok("Meeds novo, medico: a fila (status 2, take=10) e reconhecida", eh(MED + "&take=10"));
+  ok("Meeds novo, medico: o contador da fila (take=1) NAO e a fila", !eh(MED + "&take=1"));
+  ok("Meeds novo, medico: 'meus atendimentos' (profissionalId, 3 e 7) nao e a fila",
+     !eh("https://doctor-calltech.meeds.com.br/bff/api/v1/atendimento?profissionalId=b92ad1f5&skip=1&take=20&statusAtendimentoId=3&statusAtendimentoId=7"));
+  ok("status 1 sozinho nao e a fila", !eh(base + "&StatusAtendimentoId=1"));
+  ok("mistura com outro status nao e a fila",
+     !eh(base + "&StatusAtendimentoId=2&StatusAtendimentoId=3"));
 
   /* "Meus atendimentos" nunca e a fila de espera: nos dois perfis, o
    * ProfissionalId so aparece nas listas do proprio medico. */

@@ -165,7 +165,14 @@
   var VARIANTES = {
     nascimento: ["Data de Nascimento", "Data de nascimento", "Nascimento", "Dt. Nascimento"],
     cpf: ["CPF", "C.P.F.", "CPF do paciente"],
-    mae: ["Nome da Mãe", "Nome da mãe do paciente", "Nome da Mae", "Mãe", "Filiação", "Filiacao"],
+    /* "Parentesco" confirmado pela sonda em 22/09/2026 (relatorio real
+     * contra des-doctor-calltech): "Nome da Mae" nao existe mais como leaf
+     * isolado no cartao do paciente do v2 — o rotulo agora e "Parentesco".
+     * Variantes antigas mantidas para nao quebrar telas que ainda usem
+     * "Mae". Mantenha esta lista em sincronia com SELETORES_FALLBACK.rotulos
+     * em core/core.user.js e com seletores.json — sao 3 copias do mesmo dado
+     * (nucleo puro aqui, config remota+fallback la). */
+    mae: ["Nome da Mãe", "Nome da mãe do paciente", "Nome da Mae", "Mãe", "Filiação", "Filiacao", "Parentesco"],
     telefone: ["Telefone", "Celular", "Contato"],
   };
 

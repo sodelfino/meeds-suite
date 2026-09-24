@@ -60,12 +60,28 @@
     rotulos: {
       nascimento: ["Data de Nascimento", "Data de nascimento", "Nascimento", "Dt. Nascimento"],
       cpf: ["CPF", "C.P.F.", "CPF do paciente"],
-      mae: ["Nome da Mãe", "Nome da mãe do paciente", "Nome da Mae", "Mãe", "Filiação", "Filiacao"],
+      /* "Parentesco" confirmado pela sonda em 22/09/2026 (relatorio real
+       * rodado pelo usuario contra des-doctor-calltech): o rotulo "Nome
+       * da Mae" nao existe mais como leaf isolado no cartao do paciente
+       * do v2 — o campo aparece sob "Parentesco". Mantidas as variantes
+       * antigas, caso o v1 (ou uma tela antiga do v2) ainda use "Mae". */
+      mae: ["Nome da Mãe", "Nome da mãe do paciente", "Nome da Mae", "Mãe", "Filiação", "Filiacao", "Parentesco"],
       telefone: ["Telefone", "Celular", "Contato"],
       contadorFila: ["Aguardando", "Aguardando atendimento", "Na fila"],
     },
     toasts: {
-      novoAtendimento: ["novo atendimento"],
+      /* "novo atendimento" e o texto do v1. O Meeds novo (des-doctor-
+       * calltech, gravacao de 22/09/2026) manda "Novo paciente na fila de
+       * Pronto Atendimento" — confirmado visualmente no toast real, nao
+       * so no manual. As duas frases NAO compartilham um substring
+       * contiguo ("novo" e "atendimento" ficam separados por "paciente
+       * na fila de pronto"), entao o casamento antigo nunca dispararia
+       * no v2 sozinho — por isso as tres variantes convivem aqui. */
+      novoAtendimento: [
+        "novo atendimento",
+        "novo paciente na fila de pronto atendimento",
+        "novo paciente na fila",
+      ],
     },
   };
 
@@ -294,14 +310,39 @@
     return !!(m && m.sempreAtivo);
   }
 
+  /* Padrao de fabrica de UM modulo.
+   *
+   * Quem nao declara nada entra LIGADO: um modulo novo nao pode exigir
+   * que o medico descubra sozinho que precisa liga-lo.
+   *
+   * `padraoHabilitado: false` e o contrario — o modulo existe mas nao
+   * aparece sem o medico pedir. No v2 e o caso do APAC e do CID, porque
+   * o Meeds novo passou a ter os dois NATIVOS.
+   *
+   * `sempreAtivo` e `padraoHabilitado: false` sao contraditorios por
+   * construcao: um diz "nao ha como desligar", o outro diz "entra
+   * desligado". No v1 o CID era `sempreAtivo`, com a justificativa de
+   * que era melhoria do formulario sem contrapartida. Essa premissa
+   * caiu no Meeds novo: o campo CID agora tem busca propria, e encaixar
+   * a nossa em cima significaria duas listas de autocompletar no mesmo
+   * input. Por isso, no v2, o CID voltou a ser chave de verdade — e o
+   * `sempreAtivo` ficou so com a previa do documento, onde a premissa
+   * original continua valendo. */
+  function padraoDoModulo(id) {
+    var m = fichaDoManifesto(id);
+    return !m || m.padraoHabilitado !== false;
+  }
+
   /* Preferencia de habilitacao. Padrao: modulo novo entra HABILITADO,
    * para que quem ja usava os 5 scripts nao precise ligar nada na mao
    * depois de migrar. */
   function estaHabilitado(id) {
     if (sempreAtivo(id)) return true;
     var mapa = storageNucleo ? storageNucleo.ler("modulos", {}) : {};
+    /* Preferencia gravada sempre vence o padrao: se o medico ligou o
+     * APAC uma vez, uma atualizacao nao pode desligar de novo. */
     if (mapa && Object.prototype.hasOwnProperty.call(mapa, id)) return !!mapa[id];
-    return true;
+    return padraoDoModulo(id);
   }
 
   function definirHabilitado(id, valor) {

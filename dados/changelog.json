@@ -2,6 +2,18 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.44.0",
+      "data": "2026-09-24",
+      "novidades": [],
+      "melhorias": [
+        "O Assistente passa a acompanhar o Meeds novo, que entrou em produção. A leitura do cartão do paciente (usada pela APAC e pelos laudos) reconhece o campo \"Parentesco\", onde agora fica o nome da mãe."
+      ],
+      "correcoes": [
+        "O alarme de fila não enxergava a fila do Meeds novo pela rede: a aba Aguardando agora é pedida com dois status juntos, e o alarme recusava essa consulta. Corrigido, sem confundir com a consulta que só alimenta o contador da aba.",
+        "O alarme também reconhece o aviso \"Novo paciente na fila de Pronto Atendimento\", além do \"Novo atendimento\"."
+      ]
+    },
+    {
       "versao": "2.43.17",
       "data": "2026-09-23",
       "novidades": [

@@ -217,6 +217,17 @@ function main() {
       {
         versao: manifest.versao,
         contato: manifest.contato || null,
+        /* Projecao explicita, e nao o objeto inteiro: o manifesto tem
+         * campos que so o build usa (arquivo, requer, prioridadeBotao) e
+         * nao ha razao para carrega-los no pacote de 1 MB.
+         *
+         * Mas a lista fixa tem um custo que ja cobrou: um campo NOVO no
+         * manifesto e silenciosamente descartado aqui, e o efeito
+         * aparece longe da causa. Foi o que aconteceu com
+         * `padraoHabilitado` — o manifesto dizia que APAC e CID entram
+         * desligados, o nucleo lia o inventario, e o campo nao existia
+         * mais. Ao acrescentar campo de comportamento no manifesto,
+         * acrescente aqui tambem. */
         modulos: manifest.modulos.map((m) => ({
           id: m.id,
           nome: m.nome,
@@ -227,6 +238,8 @@ function main() {
            * chave liga/desliga dessa funcao. Sem este campo, o nucleo
            * nao tem como saber que ela e sempre ativa. */
           sempreAtivo: !!m.sempreAtivo,
+          padraoHabilitado: m.padraoHabilitado,
+          motivoPadraoDesligado: m.motivoPadraoDesligado,
           /* Apresentacao do botao: o nucleo monta o botao do dock a partir
            * daqui, nao do arquivo do modulo. Ver decisao D58. */
           prioridadeBotao: m.prioridadeBotao,
@@ -298,7 +311,10 @@ function main() {
    * O @require continua valendo: e a extensao que busca jsPDF e pdf-lib
    * na instalacao, nao a pagina em tempo de execucao.
    * ------------------------------------------------------------------ */
-  const VARIANTE_SAFARI = "dist/meeds-suite.safari.user.js";
+  /* Vem do manifesto, nao do codigo: o v2 gera outro nome de arquivo, e
+   * um nome fixo aqui faria o pacote do Safari sobrescrever o do v1
+   * quando os dois repositorios convivessem na mesma maquina. */
+  const VARIANTE_SAFARI = manifest.saidaSafari || "dist/meeds-suite.safari.user.js";
 
   function cabecalhoSafari(texto) {
     const fim = texto.indexOf("// ==/UserScript==");
