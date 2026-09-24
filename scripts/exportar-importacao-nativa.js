@@ -212,22 +212,38 @@ const RESTRICAO_POR_RECEITUARIO = {
 };
 
 /* ------------------------------------------------------------------
- * 4. LIMITE DE TAMANHO DO CAMPO — o sistema nativo recusou a primeira
- *    carga de Macaé: "Linha 377: principio_ativo deve ter no maximo
- *    255 caracteres". A causa: 4 itens de Macaé sao formulas de
- *    Nutricao Parenteral descritas em PROSA CLINICA (protocolo de uso,
- *    composicao, via de administracao — ate 642 caracteres), sem um
- *    "principio ativo" farmacologico de verdade para decompor() extrair.
- *    Ele devolveu o texto inteiro, e o texto inteiro estoura o limite.
+ * 4. LIMITE DE TAMANHO DO CAMPO — o sistema nativo recusou a carga de
+ *    Macaé DUAS vezes seguidas: primeiro "principio_ativo deve ter no
+ *    maximo 255 caracteres", depois — no MESMO municipio, na MESMA
+ *    linha 377 — "descricao_original deve ter no maximo 255
+ *    caracteres". A causa dos dois e a mesma: 4 itens de Macaé sao
+ *    formulas de Nutricao Parenteral descritas em PROSA CLINICA
+ *    (protocolo de uso, composicao, via de administracao — a
+ *    descricao_original original chega a 1367 caracteres), sem
+ *    "principio ativo" farmacologico de verdade para decompor()
+ *    extrair.
+ *
+ *    Duas rejeicoes seguidas no MESMO campo (so que colunas
+ *    diferentes) e o sinal de que o limite nao e so de
+ *    principio_ativo — e do CAMPO DE TEXTO do sistema nativo, ponto.
+ *    Por isso o corte agora e aplicado em TODA COLUNA da linha, nao so
+ *    nas que ja erraram uma vez: e mais barato cortar uma coluna que
+ *    nunca vai passar de 255 (situacao, via_administracao...) do que
+ *    descobrir campo por campo, erro por erro, qual e o proximo que o
+ *    sistema vai recusar.
  *
  *    A correcao corta na ULTIMA PALAVRA COMPLETA antes do limite —
- *    nunca no meio de uma palavra — e cada linha cortada entra no
- *    -conferir.csv com destaque: um nome de produto truncado
- *    automaticamente nao e o mesmo que um nome CERTO, e essas 4
- *    formulas provavelmente merecem um nome curto escolhido por quem
- *    conhece a lista, nao a prosa cortada na marra.
+ *    nunca no meio de uma palavra — e toda linha com QUALQUER coluna
+ *    cortada entra no -conferir.csv dizendo QUAL coluna foi cortada:
+ *    um texto truncado automaticamente nao e o mesmo que um texto
+ *    CERTO, e essas 4 formulas provavelmente merecem um nome e uma
+ *    descricao curtos, escolhidos por quem conhece a lista — nao a
+ *    prosa cortada na marca dos 255 caracteres. O texto INTEIRO, sem
+ *    corte nenhum, continua preservado em
+ *    exports/modelo-importacao-remume.xlsx (uso interno, sem limite de
+ *    tamanho) — nada se perde, so nao cabe no sistema nativo.
  * ------------------------------------------------------------------ */
-const LIMITE_PRINCIPIO_ATIVO = 255;
+const LIMITE_CAMPO_TEXTO = 255;
 
 function truncarComLimite(valor, limite) {
   const s = String(valor || "");
@@ -239,6 +255,19 @@ function truncarComLimite(valor, limite) {
    * corte curto demais para servir de identificacao. */
   if (ultimoEspaco > limite * 0.6) corte = corte.slice(0, ultimoEspaco);
   return { valor: corte.trim(), truncou: true };
+}
+
+/* Aplica o corte a TODA COLUNA de uma linha de uma vez, devolvendo os
+ * valores ja cortados e a lista de {coluna, tamanhoOriginal} de quem
+ * precisou. `pares` e uma lista [nomeDaColuna, valor]. */
+function truncarLinha(pares, limite) {
+  const truncadas = [];
+  const valores = pares.map(([coluna, valor]) => {
+    const r = truncarComLimite(valor, limite);
+    if (r.truncou) truncadas.push({ coluna, tamanhoOriginal: String(valor || "").length });
+    return r.valor;
+  });
+  return { valores, truncadas };
 }
 
 /* ------------------------------------------------------------------
@@ -290,7 +319,7 @@ function main() {
   let semForma = 0;
   let comRestricao = 0;
   let concentracaoRefinada = 0;
-  let principioTruncado = 0;
+  let linhasComCorte = 0;
 
   itens.forEach((item) => {
     const descricao = String(item.nome || "").trim();
@@ -301,9 +330,9 @@ function main() {
     const refino = refinarConcentracao(descricao, d.concentracao);
     if (refino.trocou) concentracaoRefinada++;
 
-    const principio = truncarComLimite(d.principio_ativo, LIMITE_PRINCIPIO_ATIVO);
-    if (principio.truncou) principioTruncado++;
-
+    /* via/forma sao calculados sobre o texto ORIGINAL, antes de
+     * qualquer corte — cortar e so formatacao de saida, nunca pode
+     * mudar uma decisao que ja foi tomada em cima do texto completo. */
     const via = inferirVia(d.forma_farmaceutica, descricao);
     if (!via) semVia++;
     if (!d.forma_farmaceutica) semForma++;
@@ -313,35 +342,47 @@ function main() {
       : "";
     if (restricao) comRestricao++;
 
-    linhasCsv.push(
-      linhaCsv([
-        versao,
-        codigo,
-        descricao,
-        principio.valor,
-        refino.valor,
-        d.forma_farmaceutica,
-        d.apresentacao,
-        item.local || "",
-        restricao,
-        via,
-        "ativo",
-      ])
+    /* Corte de 255 caracteres em TODA coluna — ver comentario acima de
+     * LIMITE_CAMPO_TEXTO: o sistema nativo ja recusou duas colunas
+     * diferentes pelo mesmo motivo, entao o limite e tratado como
+     * valendo para o campo de texto do sistema, nao coluna por coluna. */
+    const { valores, truncadas } = truncarLinha(
+      [
+        ["remume_versao", versao],
+        ["codigo_identificacao", codigo],
+        ["descricao_original", descricao],
+        ["principio_ativo", d.principio_ativo],
+        ["concentracao", refino.valor],
+        ["forma_farmaceutica", d.forma_farmaceutica],
+        ["apresentacao", d.apresentacao],
+        ["local_dispensacao", item.local || ""],
+        ["restricao", restricao],
+        ["via_administracao", via],
+        ["situacao", "ativo"],
+      ],
+      LIMITE_CAMPO_TEXTO
     );
+    if (truncadas.length) linhasComCorte++;
+
+    linhasCsv.push(linhaCsv(valores));
 
     const motivos = [];
-    if (principio.truncou) {
+    truncadas.forEach((t) => {
       motivos.push(
-        "⚠ PRINCÍPIO ATIVO CORTADO — texto original tinha " + d.principio_ativo.length +
-        " caracteres (limite do sistema é 255); escolha um nome curto para este item antes de importar"
+        "⚠ " + t.coluna.toUpperCase() + " CORTADO — texto original tinha " + t.tamanhoOriginal +
+        " caracteres (limite do sistema é 255); revise manualmente antes de importar"
       );
-    }
+    });
     if (d.decomposicao === "revisar") motivos.push("quebra automática incerta");
     if (refino.trocou) motivos.push("concentração corrigida (tamanho de embalagem != concentração)");
     if (!via) motivos.push("via de administração não inferida");
     if (motivos.length) {
+      /* valores segue a ordem de COLUNAS: [2]=descricao, [3]=principio,
+       * [4]=concentracao, [5]=forma — ja com o corte aplicado, para o
+       * -conferir.csv mostrar exatamente o que foi PARA o CSV de
+       * importacao, nao o valor de antes do corte. */
       paraConferir.push(
-        linhaCsv([codigo, descricao, principio.valor, refino.valor, d.forma_farmaceutica, motivos.join(" · ")])
+        linhaCsv([codigo, valores[2], valores[3], valores[4], valores[5], motivos.join(" · ")])
       );
     }
   });
@@ -363,7 +404,7 @@ function main() {
   console.log("  remume_versao:          " + versao);
   console.log("  com restrição (344/98): " + comRestricao);
   console.log("  concentração corrigida: " + concentracaoRefinada);
-  if (principioTruncado) console.log("  ⚠ princípio ativo CORTADO (>255 car.): " + principioTruncado);
+  if (linhasComCorte) console.log("  ⚠ linha(s) com algum campo CORTADO (>255 car.): " + linhasComCorte);
   console.log("  sem forma farmacêutica: " + semForma);
   console.log("  sem via de administração: " + semVia);
   console.log("Para conferir antes de importar: " + path.relative(RAIZ, caminhoConferir) + " (" + (paraConferir.length - 1) + " linha(s))");
