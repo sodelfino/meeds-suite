@@ -31,6 +31,12 @@ const FORMAS = [
   "comprimido efervescente", "comprimido de liberação prolongada", "comprimido",
   "cápsula mole", "cápsula dura", "cápsula",
   "pó liofilizado para solução injetável", "pó liofilizado", "pó para solução injetável",
+  /* Faltava so esta — "pó para suspensão oral" e "pó para solução
+   * injetável" ja existiam, mas a combinacao "suspensão injetável"
+   * (ex.: Benzilpenicilina Benzatina) caia pro "pó" pelado mesmo com a
+   * frase completa no texto. 40 itens nos 14 municipios tinham essa
+   * frase exata e nenhum casava. */
+  "pó para suspensão injetável",
   "pó para suspensão oral", "pó para solução oral", "pó para solução", "pó",
   "solução injetável", "solução oral", "solução nasal", "solução oftálmica",
   "solução otológica", "solução tópica", "solução",
@@ -423,7 +429,19 @@ async function main() {
   Object.entries(porMunicipio).forEach(([m, n]) => console.log("    " + String(n).padStart(4) + "  " + m));
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+/* Exportado para quem precisa da MESMA decomposicao e do MESMO codigo
+ * estavel fora desta planilha — hoje, scripts/exportar-importacao-nativa.js
+ * (o CSV por municipio para o cadastro nativo de REMUME do Meeds). Os
+ * dois tem que concordar sobre o que e "principio ativo" e sobre o
+ * codigo de cada item; duplicar a logica arriscaria os dois arquivos
+ * divergirem silenciosamente. `require.main === module` preserva o
+ * `node scripts/exportar-modelo-remume.js` de sempre: so entra aqui
+ * quando o arquivo e CHAMADO por outro, nunca quando roda direto. */
+module.exports = { decompor, codigoDe, semAcento, RE_CONC };
+
+if (require.main === module) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}

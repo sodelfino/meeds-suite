@@ -1,0 +1,539 @@
+﻿remume_versao;codigo_identificacao;descricao_original;principio_ativo;concentracao;forma_farmaceutica;apresentacao;local_dispensacao;restricao;via_administracao;situacao
+23/09/2026;MAC-FE880F;Abacavir (ABC) 300mg, comprimido revestido;Abacavir (ABC);300mg;comprimido revestido;;IST;;oral;ativo
+23/09/2026;MAC-329C5F;Abacavir (ABC) Solução Oral 20mg/ml;Abacavir (ABC);20mg/ml;solução oral;;IST;;oral;ativo
+23/09/2026;MAC-6B8CF1;Acetazolamida 250mg comprimido;Acetazolamida;250mg;comprimido;;HPM, HPMS, EMERG;;oral;ativo
+23/09/2026;MAC-254E92;Acetilcisteína 100 mg/ml (10%) solução injetável ampola 3ml;Acetilcisteína;100 mg/ml (10%);solução injetável;ampola 3ml;HPM;;injetável;ativo
+23/09/2026;MAC-C8DCC7;Acetilcisteína 600mg granulado sachê/envelope 5;Acetilcisteína;600mg;granulado;envelope 5;EMERG, HPM, HPMS;;oral;ativo
+23/09/2026;MAC-FF9D11;Aciclovir 10g 50mg/g (5%) creme dermatológico bisnaga;Aciclovir;50mg/g (5%);creme dermatológico;bisnaga;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;tópica;ativo
+23/09/2026;MAC-A2AD51;Aciclovir 200 mg comprimido;Aciclovir;200 mg;comprimido;;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-C49474;Aciclovir, sódico 250mg pó liofilizado para solução injetável f/a 20ml;Aciclovir, sódico;250mg;pó liofilizado para solução injetável;;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-4B796B;Adenosina 3mg/ml solução injetável ampola 2ml;Adenosina;3mg/ml;solução injetável;ampola 2ml;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-B36EC9;Albendazol 400mg comprimido mastigável;Albendazol;400mg;comprimido mastigável;;HPM, HPMS, UBS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-56FF4E;Albendazol 40mg/ml suspensão oral frasco 10ml;Albendazol;40mg/ml;suspensão oral;frasco 10ml;HPM, HPMS, UBS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-F056CB;Albumina Humana 200mg/ml (20%) solução injetável frasco 50ml;Albumina Humana;200mg/ml (20%);solução injetável;frasco 50ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-EF069F;Alcachofra (Cynara scolymus L .) 300mg cápsulas;Alcachofra (Cynara scolymus L .);300mg;cápsula;;FM;;oral;ativo
+23/09/2026;MAC-F286A1;Alendronato De Sódio 70mg comprimido;Alendronato De Sódio;70mg;comprimido;;FM, Dispensário;;oral;ativo
+23/09/2026;MAC-38D091;Alfaepoetina 4.000UI injetável frasco ampola 1ml;Alfaepoetina;4.000UI;injetável;frasco ampola 1ml;HPM, EMERG;;injetável;ativo
+23/09/2026;MAC-33E53A;Alfapeginterferona 2A 180 mcg;Alfapeginterferona 2A;180 mcg;;;FMC;;;ativo
+23/09/2026;MAC-4E4460;Alfaporactanto 80MG/ML suspensão injetável frasco ampola 3ml (alfa Poractante/ Surfactante Pulmonar);Alfaporactanto;80MG/ML;suspensão injetável;frasco ampola 3ml;HPM;;injetável;ativo
+23/09/2026;MAC-D547D5;Alfentanila, cloridrato 0,544mg/ml (544mcg/ml) solução injetável ampola 5ml (port.nº 344/98 Lista A1);Alfentanila, cloridrato;0,544mg/ml;solução injetável;ampola 5ml;HPM;Notificação de Receita A (amarela) — entorpecente/psicotrópico, Portaria 344/98. Prescrição em receituário especial.;injetável;ativo
+23/09/2026;MAC-B8F318;Algestona Acetofenida 150 Mg/ml + Enantato De Estradiol 10 Mg/ml;Algestona Acetofenida;150 Mg/ml;;;IST, FM, Dispensário;;;ativo
+23/09/2026;MAC-7C6431;Alopurinol 100mg comprimido;Alopurinol;100mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-C76267;Alprazolam 0,5mg comprimido (Portaria nº344/98 - Lista B1);Alprazolam;0,5mg;comprimido;;HPM, HPMS, EMERG, FM;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MAC-9A7B9F;Alprazolam 1mg comprimido (Portaria nº344/98 - Lista B1);Alprazolam;1mg;comprimido;;HPM, EMERG, FM;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MAC-7D1FC5;Alprostadil 20mcg pó liofilizado para solução injetável ampola;Alprostadil;20mcg;pó liofilizado para solução injetável;ampola;HPM;;injetável;ativo
+23/09/2026;MAC-B41F1C;Alprostadil 500mcg/ml solução injetável ampola 1ml;Alprostadil;500mcg/ml;solução injetável;ampola 1ml;HPM;;injetável;ativo
+23/09/2026;MAC-0DE723;Alteplase 10mg pó liofilizado p/sol.inj f/a + diluente 50ml + canul trans;Alteplase;10mg;pó liofilizado;;HPM, EMERG;;injetável;ativo
+23/09/2026;MAC-7CD0BC;Alteplase 50mg pó liofilizado p/sol.inj f/a + diluente 50ml + canul trans;Alteplase;50mg;pó liofilizado;;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-5876B6;AMBROXOL,cloridrato 3mg/ml (15mg/5ml) xarope infantil frasco 100/120ml + copo medida;AMBROXOL,cloridrato;3mg/ml;xarope;frasco 100;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-7AB5D6;AMBROXOL,cloridrato 6mg/ml (30mg/5ml) xarope adulto frasco 100/120ml + copo medida;AMBROXOL,cloridrato;6mg/ml;xarope;frasco 100;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-2D11F7;Amicacina, 2ml sulfato 250mg/ml solução injetável ampola;Amicacina;250mg/ml;solução injetável;ampola;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-5F9975;Aminofilina 24 mg/ml solução injetável ampola 10ml;Aminofilina;24 mg/ml;solução injetável;ampola 10ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-BC87C4;Amiodarona, cloridrato 150mg ou 50mg/ml solução injetável ampola 3ml;Amiodarona, cloridrato;50mg/ml;solução injetável;ampola 3ml;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-9113F4;Amiodarona, cloridrato 200mg comprimido;Amiodarona, cloridrato;200mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-2FBABC;Amitriptilina, cloridrato 25mg comprimido revestido (port.nº 344/98 Lista C1);Amitriptilina, cloridrato;25mg;comprimido revestido;;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-AE062D;Amoxicilina 1g + Clavulanato 200mg pó para solução injetável f/a 10ml + diluente;Amoxicilina;1g;pó para solução injetável;;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-0F061C;Amoxicilina 250mg/5ml (50mg/ml) pó susp.oral frasco 60ml + copo medida/ser dos;Amoxicilina;250mg/5ml;pó;frasco 60ml;HPM, HPMS, EMERG, IST, FM, Dispensário;;;ativo
+23/09/2026;MAC-7F7A7D;Amoxicilina 500mg + Clavulanato 125mg comprimido revestido;Amoxicilina;500mg;comprimido revestido;;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-0977E8;Amoxicilina 500mg cápsula gelatinosa dura;Amoxicilina;500mg;cápsula;;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-241577;Amoxicilina 50mg/ml + Clavulanato De Potássio 12,5mg/ml - pó para suspensão oral 75-100ml (250mg + 62,5mg/5ml) + copo medida;Amoxicilina;50mg/ml;pó para suspensão oral;;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-1ED259;Ampicilina 1g pó liof para solução injetável f/a + ampola diluente 3-5ml;Ampicilina;1g;pó;ampola;HPM, HPMS, EMERG;;;ativo
+23/09/2026;MAC-388A7B;Ampicilina, sódica + Sulbactam, sódico 3G (2,0/1,0G), pó para solução injetável Iv f/a;Ampicilina, sódica + Sulbactam, sódico;3G;pó para solução injetável;;HPM;;injetável;ativo
+23/09/2026;MAC-49DD65;Anfotericina B 50mg pó liofilizado para solução injetável frasco ampola;Anfotericina B;50mg;pó liofilizado para solução injetável;frasco ampola;HPM;;injetável;ativo
+23/09/2026;MAC-9C9142;Anlodipino, besilato 5mg comprimido;Anlodipino, besilato;5mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-F0AEAC;Arteméter + Lumefantrina 20 mg + 120 mg comprimido;Arteméter + Lumefantrina;20 mg + 120 mg;comprimido;;HPM;;oral;ativo
+23/09/2026;MAC-BE7C2A;Artesunato + Cloridrato De Mefloquina 100 mg + 220mg comprimido;Artesunato + Cloridrato De Mefloquina;100 mg + 220mg;comprimido;;HPM;;oral;ativo
+23/09/2026;MAC-5758B4;Artesunato + Cloridrato De Mefloquina 25 mg + 55 mg comprimido;Artesunato + Cloridrato De Mefloquina;25 mg + 55 mg;comprimido;;HPM;;oral;ativo
+23/09/2026;MAC-92090D;Artesunato De Sódio 60 mg/mL pó para solução injetável;Artesunato De Sódio;60 mg/mL;pó para solução injetável;;HPM;;injetável;ativo
+23/09/2026;MAC-E1B9D7;Atazanavir (ATV) 300mg, cápsula gelatinosa;Atazanavir (ATV);300mg;cápsula;;IST;;oral;ativo
+23/09/2026;MAC-1BB89E;Atenolol 25mg comprimido;Atenolol;25mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-F1846E;Atenolol 50 mg comprimido;Atenolol;50 mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-2A1D8B;Atracúrio, 5ml besilato 10mg/ml solução injetável ampola;Atracúrio;10mg/ml;solução injetável;ampola;HPM, HPMS;;injetável;ativo
+23/09/2026;MAC-05F0A1;Atropina, 1ml sulfato 0,25mg/ml solução injetável ampola;Atropina;0,25mg/ml;solução injetável;ampola;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-0C41D0;Atropina, sulfato 10mg/ml ( 1%) solução oftálmica frasco 5ml;Atropina, sulfato;10mg/ml;solução oftálmica;frasco 5ml;HPM;;oftálmica;ativo
+23/09/2026;MAC-AE0F5D;Azatioprina 50mg comprimido revestido;Azatioprina;50mg;comprimido revestido;;HPM;;oral;ativo
+23/09/2026;MAC-7757C3;Azitromicina 500mg comprimido revestido;Azitromicina;500mg;comprimido revestido;;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-5960D4;Azitromicina 600mg (40mg/ml ou 200mg/5ml) pó para susp oral frasco 15ml + seringa dosadora;Azitromicina;40mg/ml;pó;frasco 15ml;HPM, HPMS, EMERG, IST, FM, Dispensário;;;ativo
+23/09/2026;MAC-721016;Babosa (Aloe vera(L.) Burm.f .) 3% creme bisnaga 50g;Babosa (Aloe vera(L.) Burm.f .);3%;creme;bisnaga 50g;FM;;tópica;ativo
+23/09/2026;MAC-A3F0AC;Baclofeno 10mg comprimido;Baclofeno;10mg;comprimido;;HPM;;oral;ativo
+23/09/2026;MAC-4E058D;Beclometasona, dipropionato 200 mcg/dose sol.aerosol spray + dispositivo oral / frasco 200 doses;Beclometasona, dipropionato;200 mcg/dose;aerossol;frasco 200 doses;HPM, HPMS, EMERG, UBS, FM, Dispensário;;inalatória;ativo
+23/09/2026;MAC-8305DE;Beclometasona, dipropionato 50 mcg/dose sol.aerosol + dispositivo oral / frasco 200 doses;Beclometasona, dipropionato;50 mcg/dose;aerossol;frasco 200 doses;HPM, HPMS, EMERG, FM, Dispensário;;inalatória;ativo
+23/09/2026;MAC-5A4690;Benzilpenicilina Benzatina 1.200.000 Ui pó para suspensão injetável f/a + diluente 4ml ou 300.000 UI/ml susp injetável f/a 4ml;Benzilpenicilina Benzatina;1.200.000 Ui;pó para suspensão injetável;;HPM, HPMS, EMERG, IST;;injetável;ativo
+23/09/2026;MAC-7396BD;Benzilpenicilina Benzatina 600.000 Ui pó para suspensão injetável f/a + diluente 4ml ou 150.000 UI/ml susp injetável f/a 4ml;Benzilpenicilina Benzatina;600.000 Ui;pó para suspensão injetável;;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-07A657;Benzilpenicilina Potássica 5.000.000 Ui pó para solução injetável f/a;Benzilpenicilina Potássica;5.000.000 Ui;pó para solução injetável;;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-727F24;Benzilpenicilina Procaína 300.000UI + Benzilp. Potássica 100.000UI (400.000 Ui) pó para suspensão injetável f/a + diluente;Benzilpenicilina Procaína;300.000UI;pó para suspensão injetável;;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-192F30;Betametasona, acetato 3mg/ml + Betametasona, fosfato dissodico 3mg/ml suspensão injetável ampola 1ml;Betametasona, acetato;3mg/ml;suspensão injetável;ampola 1ml;HPM;;injetável;ativo
+23/09/2026;MAC-AAFB37;Bicarbonato De Sódio 84mg/ml (8,4%) solução injetável ampola 10ml;Bicarbonato De Sódio;84mg/ml (8,4%);solução injetável;ampola 10ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-D86E35;Bicarbonato De Sódio 84mg/ml (8,4%) solução injetável bolsa/ frasco sistema fechado 250ml;Bicarbonato De Sódio;84mg/ml (8,4%);solução injetável;frasco;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-520632;Biperideno, cloridrato 2mg comprimido (port.nº 344/98 Lista C1);Biperideno, cloridrato;2mg;comprimido;;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-791FA5;Bisacodil 5mg comprimido revestido;Bisacodil;5mg;comprimido revestido;;HPM, HPMS, EMERG, FMC;;oral;ativo
+23/09/2026;MAC-7A23DF;Bromazepam 3mg comprimido (port.nº 344/98 Lista B1);Bromazepam;3mg;comprimido;;HPM, HPMS, EMERG, FM;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MAC-7FA5BC;Bromazepam 6mg comprimido (port.nº 344/98 Lista B1);Bromazepam;6mg;comprimido;;HPM, HPMS, FM;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MAC-CF6C04;Bromoprida 4mg/ml solução oral frasco 20ml;Bromoprida;4mg/ml;solução oral;frasco 20ml;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-B99B2E;Bromoprida 5mg/ml solução injetável ampola 2ml;Bromoprida;5mg/ml;solução injetável;ampola 2ml;HPM, HPMS, EMERG, CEM;;injetável;ativo
+23/09/2026;MAC-CC82C3;Budesonida 200 doses 50mcg/dose sus/aerossol nasal frasco;Budesonida 200 doses;50mcg/dose;aerossol;frasco;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;inalatória;ativo
+23/09/2026;MAC-903D7B;Bupivacaína, cloridrato 5mg/ml (0,5% ou 0,50 Pcc) + Glicose 80mg/ml solução injetável ampola 4ml;Bupivacaína, cloridrato;5mg/ml;solução injetável;ampola 4ml;HPM, HPMS;;injetável;ativo
+23/09/2026;MAC-3A0366;Bupivacaína, cloridrato 5mg/ml (0,5% ou 0,50 Pcc) solução injetável ampola 4ml;Bupivacaína, cloridrato;5mg/ml;solução injetável;ampola 4ml;HPM, HPMS;;injetável;ativo
+23/09/2026;MAC-D80382;Bupivacaína, cloridrato 5mg/ml (0,5% ou 0,50 Pcc) solução injetável frasco ampola 20ml;Bupivacaína, cloridrato;5mg/ml;solução injetável;frasco ampola 20ml;HPM, HPMS;;injetável;ativo
+23/09/2026;MAC-0918ED;Bupivacaína, cloridrato 5mg/ml (0,5% ou 0,50 Pcc) solução injetável frasco ampola 20ml - Com Vasoconstritor/ Hemitartarato de Epinefrina;Bupivacaína, cloridrato;5mg/ml;solução injetável;frasco ampola 20ml;HPM, HPMS;;injetável;ativo
+23/09/2026;MAC-48AEF5;Bupropiona 150mg comprimido (port.nº 344/98 Lista C1);Bupropiona;150mg;comprimido;;FMC;;oral;ativo
+23/09/2026;MAC-FB3833;Cabergolina 0,5mg comprimido;Cabergolina;0,5mg;comprimido;;HPM, IST;;oral;ativo
+23/09/2026;MAC-4C1FB4;Cafeína, citrato 20 mg/ml solução injetável ampola 1ml;Cafeína, citrato;20 mg/ml;solução injetável;ampola 1ml;HPM;;injetável;ativo
+23/09/2026;MAC-E49A0D;Cal Sodada em galão de 4,3 Kg;Cal Sodada em galão de;4,3 Kg;;galão;HPM, HPMS;;;ativo
+23/09/2026;MAC-92F931;Captopril 25mg comprimido;Captopril;25mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário, Maleta;;oral;ativo
+23/09/2026;MAC-EF0C2E;Carbamazepina 200mg comprimido (port.nº 344/98 Lista C1);Carbamazepina;200mg;comprimido;;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-84314F;Carbamazepina 20mg/ml suspensão oral frasco 100ml + copo medida (port.nº 344/98 Lista C1);Carbamazepina;20mg/ml;suspensão oral;frasco 100ml;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-1559B9;Carbonato De Cálcio 500mg comprimido revestido (1.250mg equivalente a 500mg de cálcio);Carbonato De Cálcio;500mg;comprimido revestido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-2F3543;Carbonato De Cálcio 600mg + Colecalciferol 400UI comprimido revestido;Carbonato De Cálcio;600mg;comprimido revestido;;FM, Dispensário;;oral;ativo
+23/09/2026;MAC-E237BD;Carbonato De Lítio 300mg comprimido (port.nº 344/98 Lista C1);Carbonato De Lítio;300mg;comprimido;;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-60DAA4;Carvedilol 25mg comprimido;Carvedilol;25mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-ED489C;Carvedilol 3,125 comprimido;Carvedilol;3,125;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-CD99CC;Carvedilol 6,25mg comprimido;Carvedilol;6,25mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-8B1554;Carvão Vegetal Ativado 250mg cápsulas ou comprimido;Carvão Vegetal Ativado;250mg;cápsula;;HPM, HPMS, EMERG;;oral;ativo
+23/09/2026;MAC-F013E2;Cefalexina 250mg/5ml (50mg/ml) pó para susp.oral frasco 60ml + copo/ser dosador;Cefalexina;250mg/5ml;pó;frasco 60ml;HPM, HPMS, EMERG, IST, FM, Dispensário;;;ativo
+23/09/2026;MAC-CF7846;Cefalexina 500mg cápsula ou comprimido revestido;Cefalexina;500mg;cápsula;;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-8B054C;Cefazolina, ampola sódica 1G pó para solução injetável frasco;Cefazolina, ampola sódica;1G;pó para solução injetável;ampola;HPM, HPMS;;injetável;ativo
+23/09/2026;MAC-BD0B78;Cefepima, cloridrato 1 G pó para solução injetável Iv F/a + diluente;Cefepima, cloridrato;1 G;pó para solução injetável;;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-1438E7;Ceftazidima 1 G pó para solução injetável Im/iv f/a \+ diluente 10ml;Ceftazidima;1 G;pó para solução injetável;;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-3E02D0;Ceftriaxona 1 G pó para solução injetável Im f/a + ampola diluente (lidocaína 1%);Ceftriaxona;1%;pó para solução injetável;ampola;HPM, HPMS, EMERG, UBS;;injetável;ativo
+23/09/2026;MAC-B49040;Ceftriaxona 1 G pó para solução injetável Iv f/a + diluente 10ml;Ceftriaxona;1 G;pó para solução injetável;;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-0E7788;Cefuroxima sódica 750mg pó para solução injetável;Cefuroxima sódica;750mg;pó para solução injetável;;HPM;;injetável;ativo
+23/09/2026;MAC-BB8E69;Cetoconazol 2% (20mg/ml) shampoo frasco 100ml;Cetoconazol;2%;shampoo;frasco 100ml;IST, FM, Dispensário;;tópica;ativo
+23/09/2026;MAC-13849A;Cetoconazol 200mg comprimido;Cetoconazol;200mg;comprimido;;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-BF541C;Cetoconazol bisnaga 30g 2% (20mg/g) creme dermatológico;Cetoconazol bisnaga;2%;creme dermatológico;bisnaga 30g;HPM, HPMS, EMERG, IST, FM, Dispensário;;tópica;ativo
+23/09/2026;MAC-519437;Cetoprofeno 100mg pó para solução injetável Iv f/a;Cetoprofeno;100mg;pó para solução injetável;;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-580F69;Cetoprofeno 2ml 50mg/ml solução injetável Im ampola;Cetoprofeno;50mg/ml;solução injetável;ampola;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-D76ABF;Ciclopentolato, cloridrato 10mg/ml solução oftálmica frasco 5ml (port.nº 344/98 Lista C1);Ciclopentolato, cloridrato;10mg/ml;solução oftálmica;frasco 5ml;HPM, CEM;;oftálmica;ativo
+23/09/2026;MAC-134E5A;Cilostazol 100mg comprimido;Cilostazol;100mg;comprimido;;HPM, HPMS, EMERG;;oral;ativo
+23/09/2026;MAC-71EB75;Cinarizina 25mg comprimido;Cinarizina;25mg;comprimido;;FM, Dispensário;;oral;ativo
+23/09/2026;MAC-565793;Cinarizina 75mg comprimido;Cinarizina;75mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-C16C5C;Ciprofibrato 100mg comprimido;Ciprofibrato;100mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-81B9CE;Ciprofloxacino, cloridrato 2mg/ml (0,2%) solução injetável Iv frasco/bolsa sistema fechado 100ml;Ciprofloxacino, cloridrato;2mg/ml (0,2%);solução injetável;frasco;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-791B54;Ciprofloxacino, cloridrato 500mg comprimido revestido;Ciprofloxacino, cloridrato;500mg;comprimido revestido;;HPM, HPMS, EMERG, FM, UBS, Dispensário;;oral;ativo
+23/09/2026;MAC-9F82F7;Cisatracúrio, besilato 2mg/ml solução injetável ampola 5ml;Cisatracúrio, besilato;2mg/ml;solução injetável;ampola 5ml;HPM, HPMS;;injetável;ativo
+23/09/2026;MAC-6EFF79;Claritromicina 500mg comprimido revestido;Claritromicina;500mg;comprimido revestido;;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-BF94A5;Claritromicina 50mg/ml gran p/suspensão oral frasco 60ml + seringa dosadora;Claritromicina;50mg/ml;suspensão oral;frasco 60ml;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-B685F1;Claritromicina pó liof para solução injetável f/a 500mg;Claritromicina;500mg;pó;;HPM, HPMS, EMERG;;;ativo
+23/09/2026;MAC-78EC6D;Clindamicina 150mg/ml solução injetável ampola 4ml;Clindamicina;150mg/ml;solução injetável;ampola 4ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-9A3CD3;Clindamicina, cloridrato 300 mg cápsula gel dura;Clindamicina, cloridrato;300 mg;cápsula;;HPM, HPMS, EMERG UBS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-F4CEAF;Clobazam 10mg comprimido (port.nº 344/98 Lista B1).;Clobazam;10mg;comprimido;;HPM;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MAC-D1B4D6;Clofazimina 100 mg cápsula;Clofazimina;100 mg;cápsula;;PROG.CESAF;;oral;ativo
+23/09/2026;MAC-4EFCC4;Clofazimina 50 mg cápsula;Clofazimina;50 mg;cápsula;;PROG.CESAF;;oral;ativo
+23/09/2026;MAC-C4F81C;Clomipramina, cloridrato 25mg drágea ou comprimido revestido (port.nº 344/98 Lista C1);Clomipramina, cloridrato;25mg;drágea;;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-D0046B;Clonazepam 0,5mg comprimido (port.nº 344/98 Lista B1);Clonazepam;0,5mg;comprimido;;HPM, HPMS, EMERG, FM;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MAC-DA90F7;Clonazepam 2,5 mg/ml solução oral frasco 20ml (port.nº 344/98 Lista B1);Clonazepam;2,5 mg/ml;solução oral;frasco 20ml;FM;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MAC-00353C;Clonazepam 2mg comprimido (port.nº 344/98 Lista B1);Clonazepam;2mg;comprimido;;HPM, HPMS, EMERG, FM;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MAC-4F73DD;Clonidina, cloridrato 150mcg/ml (0,15mg/ml) solução injetável ampola 1ml;Clonidina, cloridrato;150mcg/ml;solução injetável;ampola 1ml;HPM;;injetável;ativo
+23/09/2026;MAC-702F4B;Clopidogrel, bissulfato 75mg comprimido revestido;Clopidogrel, bissulfato;75mg;comprimido revestido;;HPM, HPMS, EMERG, Maleta;;oral;ativo
+23/09/2026;MAC-72FC6A;Cloreto De Potássio 10% solução injetável ampola 10ml (1,3mEq/ml, 100mg/ml, 10g/100ml ou 1g/10ml);Cloreto De Potássio;10%;solução injetável;ampola 10ml;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-2D5BCD;Cloreto De Potássio 60 mg/ml (6%) xarope frasco/ solução oral frasco 150ml;Cloreto De Potássio;60 mg/ml (6%);xarope;frasco;HPM, HPMS, EMERG;;oral;ativo
+23/09/2026;MAC-284F04;Cloreto De Sódio 0,9% solução injetável ampola plástica 10ml (0,009g/ml, 9mg/ml);Cloreto De Sódio;0,9%;solução injetável;ampola;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-07E2C1;Cloreto De Sódio 0,9% solução injetável bolsa plástica sistema fechado 1000ml (0,009g/ml ou 9mg/ml);Cloreto De Sódio;0,9%;solução injetável;bolsa;HPM;;injetável;ativo
+23/09/2026;MAC-5E68B2;Cloreto De Sódio 0,9% solução injetável bolsa plástica sistema fechado 100ml (0,009g/ml ou 9mg/ml);Cloreto De Sódio;0,9%;solução injetável;bolsa;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-279C26;Cloreto De Sódio 0,9% solução injetável bolsa plástica sistema fechado 250ml (0,009g/ml ou 9mg/ml);Cloreto De Sódio;0,9%;solução injetável;bolsa;HPM, HPMS, EMERG, UBS;;injetável;ativo
+23/09/2026;MAC-499CF2;Cloreto De Sódio 0,9%solução injetável bolsa plástica sistema fechado 500ml (0,009g/ml ou 9mg/ml);Cloreto De Sódio;0,9%;solução injetável;bolsa;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-661A17;Cloreto De Sódio 20% solução injetável ampola plástica 10ml (200mg/ml);Cloreto De Sódio;20%;solução injetável;ampola;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-E48AF4;"Cloreto De Sódio; Hetamido 6% (Amido Hidroxietílico) 60 mg/ml solução injetável Iv bolsa Plástica Sistema Fechado 500ml";"Cloreto De Sódio; Hetamido";6%;solução injetável;bolsa;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-2347C2;Cloreto Férrico 50% - gel, bisnaga 10g;Cloreto Férrico;50%;gel;bisnaga 10g;CEM;;tópica;ativo
+23/09/2026;MAC-149653;Clorexidina, diclonato/gliconato 0,12% solução bucal frasco 250ml;Clorexidina, diclonato/gliconato;0,12%;solução;frasco 250ml;HPM, HPMS, EMERG;;oral;ativo
+23/09/2026;MAC-A1695C;Clorexidina, digliconato/gliconato 0,2% solução aquosa frasco 100ml;Clorexidina, digliconato/gliconato;0,2%;solução;frasco 100ml;HPM;;;ativo
+23/09/2026;MAC-CBD89C;Clorexidina, digliconato/gliconato 0,5% solução alcoólica frasco 100ml;Clorexidina, digliconato/gliconato;0,5%;solução;frasco 100ml;HPM, HPMS, EMERG, CEM, UBS;;;ativo
+23/09/2026;MAC-2A5DB2;Clorexidina, digliconato/gliconato degermante frasco 100ml 4% solução;Clorexidina, digliconato/gliconato degermante frasco;4%;solução;frasco 100ml;HPM, HPMS, EMERG, CEM, UBS;;;ativo
+23/09/2026;MAC-243A93;Cloroquina 150 mg comprimido;Cloroquina;150 mg;comprimido;;HPM;;oral;ativo
+23/09/2026;MAC-CCED3E;Clorpromazina, cloridrato 100mg comprimido (port.nº 344/98 Lista C1);Clorpromazina, cloridrato;100mg;comprimido;;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-ECECD1;Clorpromazina, cloridrato 25mg comprimido (port.nº 344/98 Lista C1);Clorpromazina, cloridrato;25mg;comprimido;;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-77A63C;Clorpromazina, cloridrato 40mg/ml solução oral frasco 20ml (port.nº 344/98 Lista C1);Clorpromazina, cloridrato;40mg/ml;solução oral;frasco 20ml;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-4C05E1;Clorpromazina, cloridrato 5mg/ml solução injetável ampola 5ml (port.nº 344/98 Lista C1);Clorpromazina, cloridrato;5mg/ml;solução injetável;ampola 5ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-1CF4DB;Colagenase 0,6 U/g + Cloranfenicol 0,01 g/g pomada dermatológica bisnaga 30g + espátula plas;Colagenase 0,6 U/g + Cloranfenicol;0,01 g;pomada;bisnaga 30g;HPM, HPMS, EMERG, CEM, UBS, IST, FM, Dispensário;;tópica;ativo
+23/09/2026;MAC-A5CF71;Colagenase 0,6 U/g pomada dermatológica bisnaga 30g + espátula plas;Colagenase 0,6 U/g;30g;pomada;bisnaga 30g;HPM, HPMS, EMERG, CEM, UBS, IST, FM, Dispensário;;tópica;ativo
+23/09/2026;MAC-93DD03;Colistimetato De Sódio 150 mg pó liofilizado para solução injetável Iv frasco ampola;Colistimetato De Sódio;150 mg;pó liofilizado para solução injetável;frasco ampola;HPM;;injetável;ativo
+23/09/2026;MAC-7675EC;Corante Lugol Forte 5% - solução líquida, frasco 1000ml;Corante Lugol Forte;5%;solução;frasco 1000ml;CEM;;;ativo
+23/09/2026;MAC-95C087;Daclatasvir 60 mg comprimido;Daclatasvir;60 mg;comprimido;;FMC;;oral;ativo
+23/09/2026;MAC-6B517D;Dantroleno Sódico 20mg pó liofilizado para uso intravenoso frasco ampola + diluente frasco ampola 60ml (apresentação única - caixa com 12F/A);Dantroleno Sódico;20mg;pó liofilizado;frasco ampola;HPM;;injetável;ativo
+23/09/2026;MAC-0429F9;Darunavir (DRV) 150mg, comprimido revestido;Darunavir (DRV);150mg;comprimido revestido;;IST;;oral;ativo
+23/09/2026;MAC-582B86;Darunavir (DRV) 600mg, comprimido revestido;Darunavir (DRV);600mg;comprimido revestido;;IST;;oral;ativo
+23/09/2026;MAC-BA36A5;Darunavir (DRV) 75mg, comprimido revestido;Darunavir (DRV);75mg;comprimido revestido;;IST;;oral;ativo
+23/09/2026;MAC-FCFC43;Deslanosídeo 0,2mg/ml solução injetável ampola 2ml;Deslanosídeo;0,2mg/ml;solução injetável;ampola 2ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-8D272D;DESMOPRESSINA,acetato 4mcg/ml solução injetável ampola 1ml;DESMOPRESSINA,acetato;4mcg/ml;solução injetável;ampola 1ml;HPM;;injetável;ativo
+23/09/2026;MAC-035D77;Dexametasona 1 mg/ml (0,1%) suspensão oftálmica frasco 5ml;Dexametasona;1 mg/ml (0,1%);suspensão;frasco 5ml;HPM, FM;;;ativo
+23/09/2026;MAC-2D95B3;Dexametasona 4 mg/ml solução injetável frasco ampola 2,5ml;Dexametasona;4 mg/ml;solução injetável;frasco ampola 2,5ml;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-6FF002;Dexametasona 4mg comprimido;Dexametasona;4mg;comprimido;;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-6EA56E;Dexametasona bisnaga 10g 1mg/g (1%) creme dermatológico;Dexametasona bisnaga;1mg/g (1%);creme dermatológico;bisnaga 10g;HPM, HPMS, EMERG, USB, IST, FM, Dispensário;;tópica;ativo
+23/09/2026;MAC-233C3C;Dexclorfeniramina, maleato 2mg comprimido;Dexclorfeniramina, maleato;2mg;comprimido;;HPM, HPMS, EMERG, FM, UBS, Dispensário;;oral;ativo
+23/09/2026;MAC-99B121;Dexclorfeniramina, maleato 2mg/5ml ou 0,4mg/ml solução oral 100ml/120ml + copo medida;Dexclorfeniramina, maleato;2mg/5ml;solução oral;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-6C5582;Dexmedetomidina, cloridrato 100mcg/ml solução injetável ampola 2ml (port.nº 344/98 Lista C1);Dexmedetomidina, cloridrato;100mcg/ml;solução injetável;ampola 2ml;HPM, HPMS;;injetável;ativo
+23/09/2026;MAC-032C23;Dextrocetamina/escetamina 50 mg/mL solução injetável ampola 2ml (port.nº 344/98 Lista C1);Dextrocetamina/escetamina;50 mg/mL;solução injetável;ampola 2ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-D8D5CE;Diazepam 10mg comprimido (port.nº 344/98 Lista B1);Diazepam;10mg;comprimido;;HPM, HPMS, EMERG, FM;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MAC-1C1D15;Diazepam 5mg comprimido (port.nº 344/98 Lista B1);Diazepam;5mg;comprimido;;HPM, HPMS, EMERG, FM;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MAC-751F64;Diazepam 5mg/ml solução injetável ampola 2ml (port.nº 344/98 Lista B1);Diazepam;5mg/ml;solução injetável;ampola 2ml;HPM, HPMS, EMERG, Maleta;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;injetável;ativo
+23/09/2026;MAC-08449C;Diclofenaco Potássico 50mg comprimido revestido ou drágea;Diclofenaco Potássico;50mg;comprimido revestido;;HPM, HPMS, EMERG, USB, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-8F1F25;Digoxina 0,25mg comprimido;Digoxina;0,25mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-D53E89;Diltiazem, cloridrato 30mg comprimido;Diltiazem, cloridrato;30mg;comprimido;;HPM, HPMS, EMERG;;oral;ativo
+23/09/2026;MAC-7B894E;Diosmina 450 mg + Hesperidina 50mg comprimido revestido;Diosmina;450 mg;comprimido revestido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-0A25D0;Dipirona sódica 500mg comprimido;Dipirona sódica;500mg;comprimido;;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-AF329C;Dipirona sódica 500mg/ml solução injetável ampola 2ml;Dipirona sódica;500mg/ml;solução injetável;ampola 2ml;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-F5D3DE;Dipirona sódica 500mg/ml solução oral frasco 10ml;Dipirona sódica;500mg/ml;solução oral;frasco 10ml;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-F2C5C9;Dispositivo Intrauterino Plástico Com Cobre (DIU) unidade, modelo T 380 mm2;Dispositivo Intrauterino Plástico Com Cobre (DIU) unidade, modelo T 380 mm2;;;unidade;CEM;;;ativo
+23/09/2026;MAC-3B940E;DOBUTAMINA,cloridrato injetável 12,5mg/ml (250mg) solução ampola 20ml;DOBUTAMINA,cloridrato;12,5mg/ml;injetável;ampola 20ml;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-9DB239;Dolutegravir (DTG) 50mg, comprimido revestido;Dolutegravir (DTG);50mg;comprimido revestido;;HPM, HPMS, EMERG, IST;;oral;ativo
+23/09/2026;MAC-0ACC81;Domperidona + dosador 1mg/ml suspensão oral frasco 100ml;Domperidona + dosador;1mg/ml;suspensão oral;frasco 100ml;HPM, HPMS, EMERG;;oral;ativo
+23/09/2026;MAC-D46384;Domperidona 10mg comprimido;Domperidona;10mg;comprimido;;HPM, HPMS, EMERG;;oral;ativo
+23/09/2026;MAC-8D06AF;Dopamina, 10ml cloridrato 5mg/ml solução injetável ampola;Dopamina;5mg/ml;solução injetável;ampola;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-CD0A03;Doxiciclina 100mg comprimido revestido ou drágea;Doxiciclina;100mg;comprimido revestido;;HPM, HPMS, EMERG, USB, IST, FM;;oral;ativo
+23/09/2026;MAC-FC0DD9;Efavirenz (EFZ) 200mg, cápsula gelatinosa dura;Efavirenz (EFZ);200mg;cápsula;;IST;;oral;ativo
+23/09/2026;MAC-98F47F;Efavirenz (EFZ) 600mg, comprimido revestido;Efavirenz (EFZ);600mg;comprimido revestido;;IST;;oral;ativo
+23/09/2026;MAC-B2317A;Efavirenz (EFZ) Solução Oral 30mg/ml;Efavirenz (EFZ);30mg/ml;solução oral;;IST;;oral;ativo
+23/09/2026;MAC-8C5578;Efedrina, sulfato 50mg/ml solução injetável ampola 1ml (port.nº 344/98 Lista D1);Efedrina, sulfato;50mg/ml;solução injetável;ampola 1ml;HPM;;injetável;ativo
+23/09/2026;MAC-A5D0BF;Enalapril, maleato 10mg comprimido;Enalapril, maleato;10mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-91E9E4;Enalapril, maleato 20mg comprimido;Enalapril, maleato;20mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-79031C;Enfuvirtida 90mg/ml (T-20);Enfuvirtida;90mg/ml;;;IST;;;ativo
+23/09/2026;MAC-FBE486;Enoxaparina sódica 20mg/0,2ml solução injetável seringa pré-enchida x 0,2ml (SC/IV);Enoxaparina sódica;20mg/0,2ml;solução injetável;seringa;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-5F36D0;Enoxaparina sódica 40mg/0,4ml solução injetável seringa pré-enchida x 0,4ml (sc/iv).;Enoxaparina sódica;40mg/0,4ml;solução injetável;seringa;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-B89135;Enoxaparina sódica 60mg/0,6ml solução injetável seringa pré enchida x 0,6ml (SC/IV);Enoxaparina sódica;60mg/0,6ml;solução injetável;seringa;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-5650E2;Entecavir 0,5 mg comprimido;Entecavir;0,5 mg;comprimido;;FMC;;oral;ativo
+23/09/2026;MAC-B341CB;Epinefrina, cloridrato ou hemitartarato 1mg/ml solução injetável ampola 1ml;Epinefrina, cloridrato ou hemitartarato;1mg/ml;solução injetável;ampola 1ml;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-3670F1;Esmolol, 10ml cloridrato 250mg/ml solução injetável ampola;Esmolol;250mg/ml;solução injetável;ampola;HPM;;injetável;ativo
+23/09/2026;MAC-56FEEA;Esmolol, cloridrato 10mg/ml solução injetável frasco ampola 10ml;Esmolol, cloridrato;10mg/ml;solução injetável;frasco ampola 10ml;HPM;;injetável;ativo
+23/09/2026;MAC-09B1B3;Espinheira-santa cápsulas (Maytenus officinalis Mabb .) 350mg;Espinheira-santa;350mg;cápsula;;FM;;oral;ativo
+23/09/2026;MAC-42DF4E;Espiramicina revestido 500mg Ou 1,5 Mui comprimido;Espiramicina revestido;500mg;comprimido;;HPM, HPMS, EMERG, IST, FMC;;oral;ativo
+23/09/2026;MAC-2241CD;Espironolactona 100mg comprimido;Espironolactona;100mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-D0DA99;Espironolactona 25mg comprimido;Espironolactona;25mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-E5F60D;Estriol 1mg/g creme vaginal bisnaga 50g + aplicador;Estriol;1mg/g;creme vaginal;bisnaga 50g;FM, Dispensário;;vaginal;ativo
+23/09/2026;MAC-DDBDA0;Etambutol 400 mg comprimido;Etambutol;400 mg;comprimido;;PROG.CESAF;;oral;ativo
+23/09/2026;MAC-D1E387;Etilefrina, cloridrato 10mg/ml solução injetável ampola 1ml;Etilefrina, cloridrato;10mg/ml;solução injetável;ampola 1ml;HPM, HPMS, CEM;;injetável;ativo
+23/09/2026;MAC-8044F1;Etomidato 2mg/ml solução injetável ampola 10ml (port.nº 344/98 Lista C1);Etomidato;2mg/ml;solução injetável;ampola 10ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-05A820;Etravirina (ETR) 100mg, comprimido revestido;Etravirina (ETR);100mg;comprimido revestido;;IST;;oral;ativo
+23/09/2026;MAC-4E3187;Etravirina (ETR) 200mg, comprimido revestido;Etravirina (ETR);200mg;comprimido revestido;;IST;;oral;ativo
+23/09/2026;MAC-533C3A;Fenilefrina, 5ml cloridrato 10% solução oftálmica frasco;Fenilefrina;10%;solução oftálmica;frasco;HPM;;oftálmica;ativo
+23/09/2026;MAC-80A018;Fenitoína, sódica 100mg comprimido (port.nº 344/98 Lista C1);Fenitoína, sódica;100mg;comprimido;;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-0F3CDD;Fenitoína, sódica 50mg/ml solução injetável ampola 5ml (port.nº 344/98 Lista C1);Fenitoína, sódica;50mg/ml;solução injetável;ampola 5ml;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-569F5B;Fenobarbital 100mg comprimido (port.nº 344/98 Lista C1);Fenobarbital;100mg;comprimido;;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-BE4F9A;Fenobarbital 100mg/ml solução injetável ampola 2ml ou 200mg/ml solução injetável ampola 1ml Im/iv - (port.nº 344/98 Lista C1);Fenobarbital;100mg/ml;solução injetável;ampola 2ml;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-524E38;Fenobarbital 40mg/ml (4%) solução oral frasco 20ml (port.nº 344/98 Lista C1);Fenobarbital;40mg/ml (4%);solução oral;frasco 20ml;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-047481;Fentanila, citrato 0,0785mg/ml + Droperidol 2,50mg/ml solução injetável ampola 2ml (port.nº 344/98 Lista A1);Fentanila, citrato;0,0785mg/ml;solução injetável;ampola 2ml;HPM, Maleta;Notificação de Receita A (amarela) — entorpecente/psicotrópico, Portaria 344/98. Prescrição em receituário especial.;injetável;ativo
+23/09/2026;MAC-835D09;Fentanila, citrato 50mcg/ml ou 0,050mg/ml solução injetável ampola 10ml (port.nº 344/98 Lista A1);Fentanila, citrato;50mcg/ml;solução injetável;ampola 10ml;HPM, HPMS, EMERG, Maleta;Notificação de Receita A (amarela) — entorpecente/psicotrópico, Portaria 344/98. Prescrição em receituário especial.;injetável;ativo
+23/09/2026;MAC-211FA1;Fentanila, Citrato 50mcg/ml ou 0,050mg/ml solução injetável ampola 2ml (port.nº 344/98 Lista A1);Fentanila, Citrato;50mcg/ml;solução injetável;ampola 2ml;HPM, HPMS;Notificação de Receita A (amarela) — entorpecente/psicotrópico, Portaria 344/98. Prescrição em receituário especial.;injetável;ativo
+23/09/2026;MAC-EA416A;Filgrastim 1ml 300mcg/ml solução injetável frasco ampola;Filgrastim;300mcg/ml;solução injetável;frasco ampola;HPM;;injetável;ativo
+23/09/2026;MAC-E673F0;Fitomenadiona 10mg/ml solução injetável ampola 1ml;Fitomenadiona;10mg/ml;solução injetável;ampola 1ml;EMERG, HPM, HPMS;;injetável;ativo
+23/09/2026;MAC-6219D5;Fluconazol 150mg cápsula gel dura;Fluconazol;150mg;cápsula;;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-12B7F2;Fluconazol 2 mg/ml solução injetável bolsa plást./sistema fechado 100ml;Fluconazol;2 mg/ml;solução injetável;bolsa;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-E0CC88;Flumazenil 0,1mg/ml (0,5mg/5ml) solução injetável ampola 5ml (port.nº 344/98 Lista C1);Flumazenil;0,1mg/ml;solução injetável;ampola 5ml;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-664088;Fluoresceína Sódica 10mg/ml solução oftálmica frasco 3ml;Fluoresceína Sódica;10mg/ml;solução oftálmica;frasco 3ml;HPM, CEM;;oftálmica;ativo
+23/09/2026;MAC-E50FCD;Fluoxetina, cloridrato 20mg cápsula ou comprimido revestido (port.nº 344/98 Lista C1);Fluoxetina, cloridrato;20mg;cápsula;;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-440F75;Formol 10% frasco 1000ml;Formol;10%;;frasco 1000ml;HPM, HPMS;;;ativo
+23/09/2026;MAC-61C567;Formoterol 6mcg + Budesonida 200mcg / dose aerosol oral 120 doses. Características Adicionais: Com frasco inalador;Formoterol;6mcg;aerosol;frasco;HPM;;inalatória;ativo
+23/09/2026;MAC-FD1F90;Furosemida 10 mg/ml solução injetável ampola 2ml;Furosemida;10 mg/ml;solução injetável;ampola 2ml;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-AF346F;Furosemida 40 mg comprimido;Furosemida;40 mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-226D12;Ganciclovir 1mg/mL sol. bolsa 500ml;Ganciclovir;1mg/mL;;bolsa 500ml;HPM;;;ativo
+23/09/2026;MAC-5BC97F;Garra-do-diabo cápsulas (Harpagophytum procumbens ) 200mg;Garra-do-diabo;200mg;cápsula;;FM;;oral;ativo
+23/09/2026;MAC-91559B;Gentamicina, sulfato 80mg (ou 80mg/2ml ou 40mg/ml) solução injetável ampola 2ml;Gentamicina, sulfato;80mg/2ml;solução injetável;ampola 2ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-B52AD4;Glecaprevir 100 mg + Pibrentasvir 400 mg comprimido revestido;Glecaprevir;100 mg;comprimido revestido;;FMC;;oral;ativo
+23/09/2026;MAC-559DF4;Glibenclamida 5 mg comprimido;Glibenclamida;5 mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-4E4294;Glicerol 120mg/ml ou 12% solução retal/enema frasco 500ml (glicerina Clister);Glicerol;120mg/ml;solução;frasco 500ml;HPM, HPMS, EMERG;;retal;ativo
+23/09/2026;MAC-A5E0A0;Glicina 15 mg/ml sol irrig urol cx bols pvc x 3000 ml;Glicina;15 mg/ml;;;HPM;;;ativo
+23/09/2026;MAC-0C022B;Gliclazida Mr 30mg comprimido de liberação controlada;Gliclazida Mr;30mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-A12F91;Gliclazida Mr 60mg comprimido de liberação controlada;Gliclazida Mr;60mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-5C5040;Gliconato De Cálcio 100mg/ml (10%) solução injetável ampola 10ml;Gliconato De Cálcio;100mg/ml (10%);solução injetável;ampola 10ml;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-62AFD5;Glicose Hipertônica 25% (250mg/ml) solução injetável ampola plástica 10ml;Glicose Hipertônica;25%;solução injetável;ampola;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-CEC2BE;Glicose Hipertônica 50% (500mg/ml) solução injetável ampola plástica 10ml;Glicose Hipertônica;50%;solução injetável;ampola;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-88AF5E;Glicose Isotônica 10% (100mg/ml) solução injetável bolsa/frasco sistema fechado 250ml;Glicose Isotônica;10%;solução injetável;frasco;HPM;;injetável;ativo
+23/09/2026;MAC-5EBB8E;Glicose Isotônica 5% (50mg/ml) solução injetável bolsa/frasco sistema fechado 250ml;Glicose Isotônica;5%;solução injetável;frasco;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-8AA177;Glicose Isotônica 5% (50mg/ml) solução injetável bolsa/frasco sistema fechado 500ml;Glicose Isotônica;5%;solução injetável;frasco;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-90B571;Glicosímetro Capilar Para Medida De Glicemia, unidade;Glicosímetro Capilar Para Medida De Glicemia, unidade;;;unidade;CEM, EMERG, FM, HPM, HPMS, UBS;;;ativo
+23/09/2026;MAC-34E48A;Guaco (Mikania glomerata) xarope 5% frasco 100ml;Guaco (Mikania glomerata);5%;xarope;frasco 100ml;FM;;oral;ativo
+23/09/2026;MAC-1BD668;Haloperidol 1mg comprimido (port.nº 344/98 Lista C1);Haloperidol;1mg;comprimido;;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-36F09E;Haloperidol 2mg/ml solução oral frasco 20-30ml (port.nº 344/98 Lista C1);Haloperidol;2mg/ml;solução oral;frasco 20;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-9C1D1B;Haloperidol 5mg comprimido (port.nº 344/98 Lista C1);Haloperidol;5mg;comprimido;;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-803F49;Haloperidol 5mg/ml solução injetável ampola 1ml (port.nº 344/98 Lista C1);Haloperidol;5mg/ml;solução injetável;ampola 1ml;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-98C434;Haloperidol, decanoato 50mg/ml solução injetável ampola 1ml (port.nº 344/98 Lista C1);Haloperidol, decanoato;50mg/ml;solução injetável;ampola 1ml;FM;;injetável;ativo
+23/09/2026;MAC-8E6BAD;Heparina 5ml Sódica 5.000 UI/ml solução injetável f/a;Heparina;5.000 UI/ml;solução injetável;;HPM;;injetável;ativo
+23/09/2026;MAC-A61B88;Heparina Sódica 5.000 UI/0,25ml solução injetável ampola 0,25ml subcutânea;Heparina Sódica;5.000 UI;solução injetável;ampola 0,25ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-7567A5;Hidralazina, cloridrato 20mg/ml solução injetável ampola 1ml;Hidralazina, cloridrato;20mg/ml;solução injetável;ampola 1ml;HPM, Maleta;;injetável;ativo
+23/09/2026;MAC-53E191;Hidralazina, cloridrato 25mg comprimido;Hidralazina, cloridrato;25mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-CBBC1A;Hidroclorotiazida 25 mg comprimido;Hidroclorotiazida;25 mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-FF457C;Hidrocortisona, acetato 10mg/g (1%) creme dermatológico bisnaga 15-25g;Hidrocortisona, acetato;10mg/g (1%);creme dermatológico;bisnaga 15;HPM, HPMS, EMERG, IST, FM, Dispensário;;tópica;ativo
+23/09/2026;MAC-BA31DE;Hidrocortisona, succinato sódico 100 mg pó liofilizado p/solução injetável f/a 2ml;Hidrocortisona, succinato sódico;100 mg;pó liofilizado;;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-3CA2A9;Hidrocortisona, succinato sódico 500 mg pó liofilizado p/solução injetável f/a 4ml;Hidrocortisona, succinato sódico;500 mg;pó liofilizado;;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-25E314;Hidroxiuréia 500mg cápsula gelatinosa dura;Hidroxiuréia;500mg;cápsula;;HPM;;oral;ativo
+23/09/2026;MAC-FFA710;Hidróxido De Alumínio 61,5mg/ml suspensão oral frasco 150-240ml;Hidróxido De Alumínio;61,5mg/ml;suspensão oral;frasco 150;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-96C790;Hipromelose 3mg/ml (0,3%) + Dextrana 70 1,0mg/ml (0,1%) solução oftálmica frasco 15ml;Hipromelose;3mg/ml (0,3%);solução oftálmica;frasco 15ml;Dispensário, FM, HPM;;oftálmica;ativo
+23/09/2026;MAC-25FD06;Ibuprofeno 300mg comprimido;Ibuprofeno;300mg;comprimido;;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-70C179;Ibuprofeno 50 mg/ml suspensão oral frasco 30ml;Ibuprofeno;50 mg/ml;suspensão oral;frasco 30ml;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-2338B8;Imipeném monohidratado 500mg + Cilastatina sódica 500mg monovial pó para sol.injetável;Imipeném monohidratado;500mg;pó;;EMERG, HPM, HPMS;;;ativo
+23/09/2026;MAC-7C313A;Imipramina, cloridrato 25mg drágea ou comprimido revestido (port.nº 344/98 Lista C1);Imipramina, cloridrato;25mg;drágea;;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-04ACAE;Imunoglobulina Anti-rho(d) 300mcg solução injetável frasco ampola 2ml ou 150mcg/ml solução injetável seringa de 2ml;Imunoglobulina Anti-rho(d);300mcg;solução injetável;frasco ampola 2ml;HPM;;injetável;ativo
+23/09/2026;MAC-48B3C2;Imunoglobulina Humana 5,0g solução injetável frasco ampola 100ml ou Imunoglobulina Humana Normal 50mg/ml solução injetável f/a 100ml;Imunoglobulina Humana;50mg/ml;solução injetável;frasco ampola 100ml;HPM;;injetável;ativo
+23/09/2026;MAC-9AAAE5;Imunoglobulina Humana Anti-hepatite B 1000 Ui/ 5 ml solução injetável;Imunoglobulina Humana Anti-hepatite B;1000 Ui;solução injetável;;FMC;;injetável;ativo
+23/09/2026;MAC-1C1E2D;Insulina Humana injetável Nph 100UI/ml suspensão f/a 10ml;Insulina Humana;100UI/ml;injetável;;HPM, HPMS, EMERG, FM;;injetável;ativo
+23/09/2026;MAC-6645D3;Insulina Humana injetável Regular 100UI/ml solução f/a 10ml;Insulina Humana;100UI/ml;injetável;;HPM, HPMS, EMERG, FM;;injetável;ativo
+23/09/2026;MAC-C792DF;Insulina Humana Nph 100 UI/ml suspensão injetável com sistema de aplicação 3ml;Insulina Humana Nph;100 UI/ml;suspensão injetável;;FM;;injetável;ativo
+23/09/2026;MAC-0C1283;Insulina Humana Regular 100UI/ml solução injetável com sistema de aplicação 3ml;Insulina Humana Regular;100UI/ml;solução injetável;;FM;;injetável;ativo
+23/09/2026;MAC-7FC685;Iodo Povidona 2,5% solução oftálmica frasco 5/10mL (Colírio Pvpi);Iodo Povidona;2,5%;solução oftálmica;frasco 5;HPM;;oftálmica;ativo
+23/09/2026;MAC-30E4E0;Isoflavona-de-soja cápsulas (Glycine max.(L.) Merr. ) 150mg;Isoflavona-de-soja;150mg;cápsula;;FM;;oral;ativo
+23/09/2026;MAC-2382AC;Isoniazida 100 mg comprimido;Isoniazida;100 mg;comprimido;;PROG.CESAF;;oral;ativo
+23/09/2026;MAC-A5CB40;Isoniazida 300 mg comprimido;Isoniazida;300 mg;comprimido;;PROG.CESAF;;oral;ativo
+23/09/2026;MAC-46F662;Isossorbida, dinitrato ou mononitrato 20mg comprimido sub- lingual;Isossorbida, dinitrato ou mononitrato;20mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-F688B9;Isossorbida, dinitrato ou mononitrato 5mg comprimido sub- lingual;Isossorbida, dinitrato ou mononitrato;5mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário, Maleta;;oral;ativo
+23/09/2026;MAC-FFE038;Isoxsuprina, cloridrato 5mg/ml solução injetável ampola 2ml;Isoxsuprina, cloridrato;5mg/ml;solução injetável;ampola 2ml;HPM;;injetável;ativo
+23/09/2026;MAC-73AD40;Itraconazol 100mg cápsula gelatinosa dura;Itraconazol;100mg;cápsula;;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-E7DF09;Ivermectina 6mg comprimido;Ivermectina;6mg;comprimido;;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-682FE6;Lactulose medida 667mg/ml xarope frasco 120ml + copo;Lactulose medida;667mg/ml;xarope;frasco 120ml;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-92AA9D;Lamivudina (3TC) 150mg, comprimido revestido;Lamivudina (3TC);150mg;comprimido revestido;;IST;;oral;ativo
+23/09/2026;MAC-693C4B;Lamivudina (3TC) Solução Oral 10mg/ml;Lamivudina (3TC);10mg/ml;solução oral;;IST;;oral;ativo
+23/09/2026;MAC-C0C437;Lancetas Para Punção Digital, unidade;Lancetas Para Punção Digital, unidade;;;unidade;CEM, EMERG, FM, HPM, HPMS, UBS;;;ativo
+23/09/2026;MAC-7F78C4;Levetiracetam 100mg comprimido (port.nº 344/98 Lista C1);Levetiracetam;100mg;comprimido;;HPM;;oral;ativo
+23/09/2026;MAC-19F9EB;Levetiracetam 100mg/ml suspensão oral frasco 100ml (port.nº 344/98 Lista C1);Levetiracetam;100mg/ml;suspensão oral;frasco 100ml;HPM;;oral;ativo
+23/09/2026;MAC-D94566;Levodopa 100mg + Benserazida, cloridrato 25mg comprimido dispersível;Levodopa;100mg;comprimido;;HPM, FM;;oral;ativo
+23/09/2026;MAC-35393B;Levodopa 200mg + Benserazida, cloridrato 50mg comprimido;Levodopa;200mg;comprimido;;HPM, FM;;oral;ativo
+23/09/2026;MAC-F72DD6;Levofloxacino 500mg comprimido;Levofloxacino;500mg;comprimido;;HPM, HPMS, EMERG, IST;;oral;ativo
+23/09/2026;MAC-06D6E3;Levofloxacino 5mg/ml solução injetável Iv bolsa/frasco sistema fechado 100ml;Levofloxacino;5mg/ml;solução injetável;frasco;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-12CCE6;Levomepromazina, maleato 100mg comprimido revestido (port.nº 344/98 Lista C1);Levomepromazina, maleato;100mg;comprimido revestido;;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-1EA6B9;Levomepromazina, maleato 25mg comprimido revestido (port.nº 344/98 Lista C1);Levomepromazina, maleato;25mg;comprimido revestido;;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-F4CE74;Levonorgestrel 0,15mg + Etinilestradiol 0,03mg comprimido ou drágea;Levonorgestrel;0,15mg;comprimido;;IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-91CE9A;Levonorgestrel 0,75mg comprimido;Levonorgestrel;0,75mg;comprimido;;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-C09943;Levotiroxina sódica 100mcg comprimido;Levotiroxina sódica;100mcg;comprimido;;HPM, HPMS, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-8C99F2;Levotiroxina sódica 25mcg comprimido;Levotiroxina sódica;25mcg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-D27492;Levotiroxina sódica 50mcg comprimido;Levotiroxina sódica;50mcg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-E1B892;Lidocaína, 30g cloridrato 20mg/g (2%) gel tópico bisnaga;Lidocaína;20mg/g (2%);gel;bisnaga;HPM, HPMS, EMERG, CEM, UBS, IST, FM, Dispensário;;tópica;ativo
+23/09/2026;MAC-7F0FB3;Lidocaína, cloridrato 100mg/ml (10%) solução tópica spray/aerossol 50ml;Lidocaína, cloridrato;100mg/ml (10%);solução tópica;;HPM, HPMS, CEM, UBS;;tópica;ativo
+23/09/2026;MAC-62B077;Lidocaína, cloridrato 20mg/ml (2%) + Epinefrina, hemitartarato solução injetável frasco ampola 20ml;Lidocaína, cloridrato;20mg/ml (2%);solução injetável;frasco ampola 20ml;HPM, CEM;;injetável;ativo
+23/09/2026;MAC-A4B3F2;Lidocaína, cloridrato 20mg/ml (2%) solução injetável ampola 5ml - Sem Vasoconstritor;Lidocaína, cloridrato;20mg/ml (2%);solução injetável;ampola 5ml;HPM, HPMS, EMERG, CEM, Maleta;;injetável;ativo
+23/09/2026;MAC-F66237;Lidocaína, cloridrato 20mg/ml (2%) solução injetável frasco ampola 20ml - Sem Vasoconstritor;Lidocaína, cloridrato;20mg/ml (2%);solução injetável;frasco ampola 20ml;HPM, Maleta;;injetável;ativo
+23/09/2026;MAC-32FE7C;Linezolida 2mg/ml solução injetável infus. bolsa sistema fechado 300ml;Linezolida;2mg/ml;solução injetável;bolsa;HPM;;injetável;ativo
+23/09/2026;MAC-BBA574;Loperamida, cloridrato 2MG comprimido;Loperamida, cloridrato;2MG;comprimido;;HPM;;oral;ativo
+23/09/2026;MAC-BF5081;Lopinavir + Ritonavir (LPV/R) 100mg + 25mg, comprimido revestido;Lopinavir + Ritonavir (LPV/R);100mg + 25mg;comprimido revestido;;IST;;oral;ativo
+23/09/2026;MAC-D801D2;Lopinavir 20mg/ml + Ritonavir (LPV/R) 80mg/ml;Lopinavir;20mg/ml;;;IST;;;ativo
+23/09/2026;MAC-B5A283;Loratadina 10mg comprimido;Loratadina;10mg;comprimido;;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-00CBB9;Loratadina 1mg/ml xarope 100ml + copo medida;Loratadina;1mg/ml;xarope;;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-26511B;Lorazepam 2mg comprimido (Portaria nº344/98 - Lista B1);Lorazepam;2mg;comprimido;;HPM;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MAC-4D632B;Losartana potássica 50mg comprimido revestido;Losartana potássica;50mg;comprimido revestido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-D970E0;Manitol 200mg/ml (0,2g/ml ou 20%) solução injetável Iv bolsa/frasco sistema fechado 250 ml;Manitol;200mg/ml;solução injetável;frasco;HPM, HPMS, EMERG, FMC;;injetável;ativo
+23/09/2026;MAC-53B184;Maraviroque (MVQ) 150mg, comprimido revestido;Maraviroque (MVQ);150mg;comprimido revestido;;IST;;oral;ativo
+23/09/2026;MAC-07E316;Medicamentos Homeopáticos Conforme Farmacopeia Homeopática Brasileira 3ª Edição;Medicamentos Homeopáticos Conforme Farmacopeia Homeopática Brasileira 3ª Edição;;;;FM, FMC;;;ativo
+23/09/2026;MAC-CFF676;Medroxiprogesterona, comprimido acetato de 10mg;Medroxiprogesterona;10mg;comprimido;;FM, IST, Dispensário;;oral;ativo
+23/09/2026;MAC-647178;Medroxiprogesterona, suspensão injetável f/a 1ml acetato 150mg/ml;Medroxiprogesterona;150mg/ml;suspensão injetável;;FM, UBS, IST, Dispensário;;injetável;ativo
+23/09/2026;MAC-D49FEF;Meio De Contraste De Baixa Osmolaridade Não Iônico frasco 500ml (iobitridol 300mg/ml solução injetável frasco 500ml);Meio De Contraste De Baixa Osmolaridade Não Iônico frasco;300mg/ml;solução injetável;frasco 500ml;HPM;;injetável;ativo
+23/09/2026;MAC-8C94FE;Meropeném pó para solução injetável frasco ampola 500mg;Meropeném;500mg;pó para solução injetável;frasco ampola 500mg;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-EE8B61;Metadona, cloridrato 5mg comprimido (Portaria nº344/98 - Lista A1);Metadona, cloridrato;5mg;comprimido;;HPM;Notificação de Receita A (amarela) — entorpecente/psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MAC-AB1793;Metformina, cloridrato 500mg comprimido revestido;Metformina, cloridrato;500mg;comprimido revestido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-A8758D;Metformina, cloridrato 850mg comprimido revestido;Metformina, cloridrato;850mg;comprimido revestido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-97DDCC;Metildopa 250mg comprimido revestido;Metildopa;250mg;comprimido revestido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-ABA03A;Metilergometrina, injetável maleato 0,2mg/ml solução ampola 1ml;Metilergometrina;0,2mg/ml;injetável;ampola 1ml;HPM;;injetável;ativo
+23/09/2026;MAC-92F85C;Metilprednisolona, acetato suspensão injetável 40mg/ml frasco ampola 2ml;Metilprednisolona, acetato;40mg/ml;suspensão injetável;frasco ampola 2ml;HPM;;injetável;ativo
+23/09/2026;MAC-C82683;Metilprednisolona, succinato sódico 500mg pó liofilizado injetável frasco ampola + ampola diluente 8ml;Metilprednisolona, succinato sódico;500mg;pó liofilizado;frasco ampola;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-88175D;Metoclopramida, cloridrato 10 mg comprimido;Metoclopramida, cloridrato;10 mg;comprimido;;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-82758A;Metoclopramida, cloridrato 5mg/ml solução injetável ampola 2ml;Metoclopramida, cloridrato;5mg/ml;solução injetável;ampola 2ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-F2F369;Metoclopramida, oral cloridrato 4mg/ml (0,4%) solução frasco 10ml;Metoclopramida, oral cloridrato;4mg/ml (0,4%);solução;frasco 10ml;HPM, HPMS, EMERG, IST, FM, Dispensário;;;ativo
+23/09/2026;MAC-0D1CF8;Metoprolol, succinato 25mg comprimido lib.prolongada;Metoprolol, succinato;25mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-60CBAC;Metoprolol, succinato 50mg comprimido lib.prolongada;Metoprolol, succinato;50mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-87E588;Metoprolol, tartarato 1 mg/ml solução injetável ampola 5ml;Metoprolol, tartarato;1 mg/ml;solução injetável;ampola 5ml;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-B7D6A7;Metronidazol 100mg/g gel vaginal aplicador, bisnaga 50g;Metronidazol;100mg/g;gel;bisnaga 50g;HPM, UBS, IST, FM, Dispensário;;tópica;ativo
+23/09/2026;MAC-E681E3;Metronidazol 250 mg comprimido;Metronidazol;250 mg;comprimido;;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-D5688D;Metronidazol 5mg/ml solução injetável bolsa/frasco sistema fechado 100 ml;Metronidazol;5mg/ml;solução injetável;frasco;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-3411D3;Metronidazol/ Benzoilmetronidazol 40mg/ml suspensão oral frasco 80-100ml + copo medida;Metronidazol/ Benzoilmetronidazol;40mg/ml;suspensão oral;frasco 80;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-3DF82C;Micafungina 50mg pó liofilizado para solução injetável frasco ampola;Micafungina;50mg;pó liofilizado para solução injetável;frasco ampola;HPM;;injetável;ativo
+23/09/2026;MAC-C37CDB;MICONAZOL,nitrato 80g + aplicador 20mg/g (2%) creme vaginal bisnaga;MICONAZOL,nitrato;20mg/g (2%);creme vaginal;bisnaga;UBS, IST, FM, Dispensário;;vaginal;ativo
+23/09/2026;MAC-D269D8;MICONAZOL,nitrato bisnaga 28/30g 20mg/g (2%) creme dermatológico;MICONAZOL,nitrato bisnaga 28/;20mg/g (2%);creme dermatológico;bisnaga 28;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;tópica;ativo
+23/09/2026;MAC-B6703B;Midazolam / Midazolam, maleato 5mg/ml solução injetável ampola 10ml (port.nº 344/98 Lista B1);Midazolam / Midazolam, maleato;5mg/ml;solução injetável;ampola 10ml;HPM, HPMS, EMERG, Maleta;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;injetável;ativo
+23/09/2026;MAC-C17C4B;Midazolam / Midazolam, maleato 5mg/ml solução injetável ampola 3ml (port.nº 344/98 Lista B1);Midazolam / Midazolam, maleato;5mg/ml;solução injetável;ampola 3ml;HPM, HPMS;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;injetável;ativo
+23/09/2026;MAC-BD5E2B;Milrinona, 10ml lactato 1mg/ml solução injetável ampola;Milrinona;1mg/ml;solução injetável;ampola;HPM;;injetável;ativo
+23/09/2026;MAC-551485;Misoprostol 200mcg comprimido vaginal (port.nº 344/98 Lista C1);Misoprostol;200mcg;comprimido;;HPM;;oral;ativo
+23/09/2026;MAC-F3EA47;Misoprostol 25mcg comprimido vaginal (port.nº 344/98 Lista C1);Misoprostol;25mcg;comprimido;;HPM;;oral;ativo
+23/09/2026;MAC-C5B2CD;Morfina, sulfato 0,2mg/ml solução injetável ampola 1ml s/conservante (port.nº 344/98 Lista A1);Morfina, sulfato;0,2mg/ml;solução injetável;ampola 1ml;HPM;Notificação de Receita A (amarela) — entorpecente/psicotrópico, Portaria 344/98. Prescrição em receituário especial.;injetável;ativo
+23/09/2026;MAC-FF8EBD;Morfina, sulfato 10mg comprimido (port.nº 344/98 Lista A1);Morfina, sulfato;10mg;comprimido;;HPM, HPMS, EMERG, FM;Notificação de Receita A (amarela) — entorpecente/psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MAC-955BDF;Morfina, sulfato 10mg/ml solução injetável ampola 1ml s/conservante (port.nº 344/98 Lista A1);Morfina, sulfato;10mg/ml;solução injetável;ampola 1ml;HPM, HPMS, EMERG, Maleta;Notificação de Receita A (amarela) — entorpecente/psicotrópico, Portaria 344/98. Prescrição em receituário especial.;injetável;ativo
+23/09/2026;MAC-CE6A8A;Morfina, sulfato 1mg/ml solução injetável ampola 2ml s/conservante (port.nº 344/98 Lista A1);Morfina, sulfato;1mg/ml;solução injetável;ampola 2ml;HPM, HPMS, EMERG;Notificação de Receita A (amarela) — entorpecente/psicotrópico, Portaria 344/98. Prescrição em receituário especial.;injetável;ativo
+23/09/2026;MAC-53036F;Morfina, sulfato 30mg comprimido (port.nº 344/98 Lista A1);Morfina, sulfato;30mg;comprimido;;HPM, HPMS, EMERG, FM;Notificação de Receita A (amarela) — entorpecente/psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MAC-91E8BD;Moxifloxacino, cloridrato 1,6mg/ml solução injetável bolsa sistema fechado 250ml;Moxifloxacino, cloridrato;1,6mg/ml;solução injetável;bolsa;HPM;;injetável;ativo
+23/09/2026;MAC-CE1AA7;N-butilbrometo De Escopolamina 10mg comprimido revestido/drágea;N-butilbrometo De Escopolamina;10mg;comprimido revestido;;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-0B0A7A;N-butilbrometo De Escopolamina 20mg/ml solução injetável ampola 1ml;N-butilbrometo De Escopolamina;20mg/ml;solução injetável;ampola 1ml;HPM, HPMS, EMERG, CEM;;injetável;ativo
+23/09/2026;MAC-C130B1;N-butilbrometo De Escopolamina 4mg/ml + Dipirona sódica 500mg/ml solução injetável ampola 5ml;N-butilbrometo De Escopolamina;4mg/ml;solução injetável;ampola 5ml;HPM, HPMS, EMERG, CEM;;injetável;ativo
+23/09/2026;MAC-970FEA;N-butilbrometo De Escopolamina 6,67mg/ml \+ Dipirona 333,4mg/ml solução oral frasco 20ml;N-butilbrometo De Escopolamina;6,67mg/ml;solução oral;frasco 20ml;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-CB1677;Nalbufina, cloridrato 10mg/ml solução injetável ampola 1ml (port.nº 344/98 Adendo da Lista A2);Nalbufina, cloridrato;10mg/ml;solução injetável;ampola 1ml;HPM;;injetável;ativo
+23/09/2026;MAC-90A65E;Naloxona, cloridrato 0,4mg/ml solução injetável ampola 1ml (port.nº 344/98 Lista C1);Naloxona, cloridrato;0,4mg/ml;solução injetável;ampola 1ml;HPM, HPMS, EMERG, CEM, Maleta;;injetável;ativo
+23/09/2026;MAC-F9F3BD;Neomicina, sulfato 5mg/g +bacitracina zíncica 250UI/g pomada dermatológica bisnaga 10-15g;Neomicina, sulfato;5mg/g;pomada;bisnaga 10;HPM, HPMS, EMERG, CEM, UBS, IST, FM, Dispensário;;tópica;ativo
+23/09/2026;MAC-F00B47;Neostigmina, metilsulfato 0,5mg/ml ampola 1ml;Neostigmina, metilsulfato;0,5mg/ml;;ampola 1ml;HPM, HPMS;;;ativo
+23/09/2026;MAC-CB401E;Nevirapina (NVP) 200mg, comprimido;Nevirapina (NVP);200mg;comprimido;;IST;;oral;ativo
+23/09/2026;MAC-734B17;Nevirapina (NVP) Suspensão Oral 50mg/5ml – Frasco Com 100ml;Nevirapina (NVP);50mg/5ml;suspensão oral;Frasco;IST;;oral;ativo
+23/09/2026;MAC-1FEEC5;Nicotina 14mg;Nicotina;14mg;;;PROG.CESAF;;;ativo
+23/09/2026;MAC-D204EA;Nicotina 21mg;Nicotina;21mg;;;PROG.CESAF;;;ativo
+23/09/2026;MAC-D7CAC8;Nicotina 2mg goma de mascar ou pastilha;Nicotina;2mg;goma de mascar;;PROG.CESAF;;oral;ativo
+23/09/2026;MAC-CC5FFA;Nicotina 7mg;Nicotina;7mg;;;PROG.CESAF;;;ativo
+23/09/2026;MAC-A39D99;Nifedipino 10mg comprimido;Nifedipino;10mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-814F02;Nifedipino 20 mg comprimido revestido retard;Nifedipino;20 mg;comprimido revestido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-6B4926;Nimodipino 30mg comprimido revestido;Nimodipino;30mg;comprimido revestido;;HPM;;oral;ativo
+23/09/2026;MAC-FC3E65;Nirmatrelvir + Ritonavir 150mg + 100mg comprimido;Nirmatrelvir + Ritonavir;150mg + 100mg;comprimido;;PSM;;oral;ativo
+23/09/2026;MAC-F3161E;Nistatina 100.000UI/ml suspensão oral frasco 50ml + conta- gotas;Nistatina;100.000UI/ml;suspensão oral;frasco 50ml;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-DC4C8B;Nistatina 25.000 UI/g creme vaginal bisnaga 60g + aplicador;Nistatina;25.000 UI;creme vaginal;bisnaga 60g;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;vaginal;ativo
+23/09/2026;MAC-948644;Nitrato De Prata 5g - bastão;Nitrato De Prata;5g;;;;;;ativo
+23/09/2026;MAC-B5955C;Nitrazepam 5mg comprimido (port.nº 344/98 Lista B1);Nitrazepam;5mg;comprimido;;FM;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MAC-6B97A4;Nitrofurantoína 100mg cápsula gel dura;Nitrofurantoína;100mg;cápsula;;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-064877;Nitroglicerina 10ml 5mg/ml solução injetável ampola;Nitroglicerina;5mg/ml;solução injetável;ampola;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-703756;Nitroprusseto De Sódio 50mg pó liof para injetável + diluente ampola 2ml ou 25mg/ml solução injetável ampola 2ml;Nitroprusseto De Sódio;25mg/ml;pó;ampola 2ml;HPM, HPMS, EMERG, Maleta;;;ativo
+23/09/2026;MAC-768941;Norepinefrina, hemitartarato 2mg/ml solução injetável ampola 4ml;Norepinefrina, hemitartarato;2mg/ml;solução injetável;ampola 4ml;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-BCB9BA;Noretisterona 0,35 mg comprimido;Noretisterona;0,35 mg;comprimido;;IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-627B81;Noretisterona, enantato 50mg + Estradiol, valerato 5mg/ml solução injetável ampola 1ml + seringa;Noretisterona, enantato;5mg/ml;solução injetável;ampola 1ml;IST, FM, Dispensário;;injetável;ativo
+23/09/2026;MAC-AD6878;Nortriptilina, cloridrato 25mg cápsula gel.dura (port.nº 344/98 Lista C1);Nortriptilina, cloridrato;25mg;cápsula;;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-1501D2;Nutrição Parenteral Dupla (sem Lipídeo) - Uso Adulto - bolsa de Np com formulações pré-fabricadas, com concentração fixas de aminoácidos, glicose e eletrólitos, com variedade suficiente para atender pacientes que não podem usar o trato gastrointestinal com alterações metabólicas dos lipídeos, hipometabolismo, insuficiência hepática, insuficiência renal, para administração por via venosa central. Solução de Nutrição Parenteral pré-fabricadas, pronta para o uso em sistema fechado, estéril e apirogência, contendo solução de poliaminoácidos e glicose em bolsa de única ou dupla câmara, relação Kcal/gN entre 80-100, volume final de 1000 – 1300ml, osmolaridade superior a 900 mOsm/litro, para administração central. Devem ser acondicionadas em bolsas de Eva com volume final de 1000 – 1300ml mais volume para preenchimento de equipo de acordo com prescrição médica e Portaria nº272 de 08 de abril de 1998 do Ministério da Saúde.;Nutrição Parenteral Dupla (sem Lipídeo) - Uso Adulto - bolsa de Np com formulações pré-fabricadas, com concentração fixas de aminoácidos, glicose e eletrólitos, com variedade suficiente para atender pacientes que não podem usar o trato gastrointestinal com alterações metabólicas dos lipídeos, hipometabolismo, insuficiência hepática, insuficiência renal, para administração por via venosa central.;1300ml;solução;bolsa;HPM;;;ativo
+23/09/2026;MAC-646D61;Nutrição Parenteral Tripla Hiperproteica - Uso Adulto – bolsa de Np com formulações pré-fabricadas, com concentrações fixas de aminoácidos, glicose, lipídeos e eletrólitos, com variedade suficiente para atender necessidades especiais de proteínas e lipídeos, que não podem usar o trato gastrointestinal com alterações metabólicas dos lipídeos, hipometabolismo, insuficiência hepática, insuficiência renal, para administração por via venosa central. Solução de Nutrição Parenteral pré-fabricadas, pronta para o uso em sistema fechado, estéril e apirogência, contendo solução de poliaminoácidos (55 a 65 g), lipideos (com 75 a 85% de óleo de oliva) e glicose (100 a 120 g) em bolsa de dupla ou tripla câmara, relação Kcal/gN entre 90-120, volume final de 1000 – 1300ml, osmolaridade superior a 900 mOsm/litro, para administração central. Devem ser acondicionadas em bolsas de Eva com volume final de 1000 – 1300ml mais volume para preenchimento de equipo de acordo com prescrição médica e Portaria nº272 de 08 de abril de 1998 do Ministério da Saúde;Nutrição Parenteral Tripla Hiperproteica - Uso Adulto – bolsa de Np com formulações pré-fabricadas, com concentrações fixas de aminoácidos, glicose, lipídeos e eletrólitos, com variedade suficiente para atender necessidades especiais de proteínas e lipídeos, que não podem usar o trato gastrointestinal com alterações metabólicas dos lipídeos, hipometabolismo, insuficiência hepática, insuficiência renal, para administração por via venosa central.;85%;solução;bolsa;HPM;;;ativo
+23/09/2026;MAC-66BEDC;Nutrição Parenteral Uso Adulto - bolsa de Np com formulações pré-fabricadas, concentração fixa de aminoácidos, glicose, lipídios e eletrólitos, com variedade suficiente para atender pacientes que não podem usar o trato gastrointestinal com ou sem alterações metabólicas, hipometabolismo, insuficiência hepática, insuficiência renal, para administração por via venosa central. Solução de Nutrição Parenteral pré-fabricadas, pronta para o uso em sistema fechado, estéril e apirogência, contendo solução de poliaminoácidos, glicose e emulsão lipidica em bolsa de tripla câmara, relação Kcal/gN entre 130-160, volume final de 1000 - 1300ml, osmolaridade superior a 900 mOsm/litro, para administração central. Devem ser acondicionadas em bolsas de Eva com volume final de 1000 – 1300 ml mais volume para preenchimento de equipo de acordo com prescrição médica e Portaria nº272 de 08 de abril de 1998 do Ministério da Saúde.;Nutrição Parenteral Uso Adulto - bolsa de Np com formulações pré-fabricadas, concentração fixa de aminoácidos, glicose, lipídios e eletrólitos, com variedade suficiente para atender pacientes que não podem usar o trato gastrointestinal com ou sem alterações metabólicas, hipometabolismo, insuficiência hepática, insuficiência renal, para administração por via venosa central.;1300ml;solução;bolsa;HPM;;;ativo
+23/09/2026;MAC-29100C;Ocitocina 5 UI/ml solução injetável ampola 1ml;Ocitocina;5 UI/ml;solução injetável;ampola 1ml;HPM;;injetável;ativo
+23/09/2026;MAC-3AED7A;Octreotida, acetato 0,1 mg/ml solução injetável ampola 1ml;Octreotida, acetato;0,1 mg/ml;solução injetável;ampola 1ml;HPM;;injetável;ativo
+23/09/2026;MAC-FAECDA;Ofloxacino 400 mg comprimido;Ofloxacino;400 mg;comprimido;;PROG.CESAF;;oral;ativo
+23/09/2026;MAC-62C574;Oleato De Monoetanolamina solução injetável ampola 2ml 50mg/ml;Oleato De Monoetanolamina;50mg/ml;solução injetável;ampola 2ml;HPM;;injetável;ativo
+23/09/2026;MAC-7D4048;Oligoelementos (Cu+Cr+Zn+Mn) solução injetável Iv ampola 2ml (sulfato de zinco heptaidratado + sulfato de manganês monoidratado + sulfato cúprico pentaidratado + cloreto crômico hexaidratado);Oligoelementos (Cu+Cr+Zn+Mn);2ml;solução injetável;ampola 2ml;HPM;;injetável;ativo
+23/09/2026;MAC-EFEE74;Omeprazol 20mg cápsula gel.dura;Omeprazol;20mg;cápsula;;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-D92DA2;Omeprazol 40mg pó liof.para solução injetável Iv f/a \+ ampola diluente 10ml;Omeprazol;40mg;pó;ampola;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-261851;Ondansetrona, cloridrato 2mg/ml solução injetável ampola 4ml;Ondansetrona, cloridrato;2mg/ml;solução injetável;ampola 4ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-FC4B4C;Ondansetrona, cloridrato di-hidratado 4mg comprimido ou comprimido dispersível;Ondansetrona, cloridrato di-hidratado;4mg;comprimido;;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-ADA33E;Oseltamivir 30mg cápsula;Oseltamivir;30mg;cápsula;;HPM, HPMS, EMERG, IST;;oral;ativo
+23/09/2026;MAC-8E71B7;Oseltamivir 45 mg cápsula;Oseltamivir;45 mg;cápsula;;HPM, HPMS, EMERG, IST;;oral;ativo
+23/09/2026;MAC-B9340C;Oseltamivir 75 mg cápsula;Oseltamivir;75 mg;cápsula;;HPM, HPMS, EMERG, IST;;oral;ativo
+23/09/2026;MAC-AFE13D;Oxacilina f/a sódica 500mg pó liof.para solução injetável;Oxacilina f/a sódica;500mg;pó;;HPM, HPMS, EMERG;;;ativo
+23/09/2026;MAC-A34815;Oxibuprocaina 4 mg/ml solução oftálmica frasco 10ml (port.nº 344/98 Lista C1);Oxibuprocaina;4 mg/ml;solução oftálmica;frasco 10ml;HPM, HPMS, EMERG, CEM;;oftálmica;ativo
+23/09/2026;MAC-9F65C7;Papaína 10% - creme, bisnaga 60g;Papaína;10%;creme;bisnaga 60g;HPM, UBS;;tópica;ativo
+23/09/2026;MAC-695B04;Paracetamol 200mg/ml solução oral frasco 15ml;Paracetamol;200mg/ml;solução oral;frasco 15ml;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-B2C37E;Paracetamol 500mg + Codeína, fosfato 30mg comprimido (Portaria nº344/98 - Adendo Lista A2);Paracetamol;500mg;comprimido;;HPM;;oral;ativo
+23/09/2026;MAC-290408;Paracetamol 500mg comprimido;Paracetamol;500mg;comprimido;;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-F3BA17;Pentoxifilina 400 mg comprimido;Pentoxifilina;400 mg;comprimido;;PROG.CESAF;;oral;ativo
+23/09/2026;MAC-D4C392;Pentoxifilina 400mg comprimido revestido;Pentoxifilina;400mg;comprimido revestido;;HPM;;oral;ativo
+23/09/2026;MAC-6A4BDC;Permetrina 10mg/ml (1%) loção tópica frasco 60ml;Permetrina;10mg/ml (1%);loção;frasco 60ml;HPM, UBS, IST, FM, Dispensário;;tópica;ativo
+23/09/2026;MAC-3FC188;Permetrina 50mg/ml (5%) loção cremosa frasco 60ml;Permetrina;50mg/ml (5%);loção;frasco 60ml;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;tópica;ativo
+23/09/2026;MAC-28A24B;Petidina, cloridrato 50mg/ml solução injetável ampola 2ml (port.nº 344/98 Lista A1);Petidina, cloridrato;50mg/ml;solução injetável;ampola 2ml;HPM, HPMS;Notificação de Receita A (amarela) — entorpecente/psicotrópico, Portaria 344/98. Prescrição em receituário especial.;injetável;ativo
+23/09/2026;MAC-CB93A0;Piperacilina 4,0g + Tazobactam sódico 0,5G (4,5G) pó liof para solução injetável;Piperacilina;4,0g;pó;;EMERG, HPM, HPMS;;;ativo
+23/09/2026;MAC-EF51A2;Pirazinamida 150 mg comprimido dispersível;Pirazinamida;150 mg;comprimido;;PROG.CESAF;;oral;ativo
+23/09/2026;MAC-5450D3;Pirazinamida 500 mg comprimido;Pirazinamida;500 mg;comprimido;;PROG.CESAF;;oral;ativo
+23/09/2026;MAC-86889E;Piridoxina 50 mg comprimido;Piridoxina;50 mg;comprimido;;PROG.CESAF;;oral;ativo
+23/09/2026;MAC-601E18;Pirimetamina 25mg comprimido;Pirimetamina;25mg;comprimido;;HPM, HPMS, EMERG, IST, FMC;;oral;ativo
+23/09/2026;MAC-7BDAFD;Plantago (Plantago ovata Forssk.) Pó Para Dispersão Oral Envelope (5 A 6 G);Plantago (Plantago ovata Forssk.);6 G;pó;Envelope;FM;;;ativo
+23/09/2026;MAC-C2F121;Policresuleno 360 mg/ml - solução tópica ginecológica 12ml;Policresuleno;360 mg/ml;solução tópica;;CEM;;tópica;ativo
+23/09/2026;MAC-E40175;Poliestirenossulfonato De Cálcio 900 mg/g pó oral envelope 30g;Poliestirenossulfonato De Cálcio;900 mg/g;pó;envelope 30g;HPM, HPMS, EMERG;;;ativo
+23/09/2026;MAC-276B5A;Polimixina B, sulfato 500.000 Ui pó liofilizado para solução injetável frasco ampola;Polimixina B, sulfato;500.000 Ui;pó liofilizado para solução injetável;frasco ampola;HPM;;injetável;ativo
+23/09/2026;MAC-CBB61E;Polivitamínicos Com Sais Minerais comprimido revestido ou cápsula gelatinosa;Polivitamínicos Com Sais Minerais;;comprimido revestido;;HPM, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-AF18F6;Polivitamínicos Com Sais Minerais solução oral frasco 100ml;Polivitamínicos Com Sais Minerais;100ml;solução oral;frasco 100ml;HPM, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-F06983;Polivitamínicos Sem Minerais solução injetável ampola 10ml;Polivitamínicos Sem Minerais;10ml;solução injetável;ampola 10ml;HPM;;injetável;ativo
+23/09/2026;MAC-3D72BE;Prednisolona, fosfato sódico 4,02mg/ml (equivale a 3mg/ml de prednisolona) solução oral frasco 60ml + copo medida;Prednisolona, fosfato sódico;4,02mg/ml;solução oral;frasco 60ml;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-92710A;Prednisona 20mg comprimido;Prednisona;20mg;comprimido;;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-2CB347;Prednisona 5mg comprimido;Prednisona;5mg;comprimido;;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-691F6D;Primaquina 15 mg comprimido;Primaquina;15 mg;comprimido;;HPM;;oral;ativo
+23/09/2026;MAC-17A736;Primaquina 5 mg comprimido;Primaquina;5 mg;comprimido;;HPM;;oral;ativo
+23/09/2026;MAC-E65755;Progesterona Natural Micronizada 100mg cápsula gelatinosa mole;Progesterona Natural Micronizada;100mg;cápsula;;HPM;;oral;ativo
+23/09/2026;MAC-348D54;Prometazina, cloridrato 25 mg comprimido revestido;Prometazina, cloridrato;25 mg;comprimido revestido;;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-43A8EA;Prometazina, cloridrato 25mg/ml solução injetável ampola 2ml;Prometazina, cloridrato;25mg/ml;solução injetável;ampola 2ml;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-652134;Propofol 10mg/ml emulsão injetável amp ou frasco ampola 20ml (port.nº 344/98 Lista C1);Propofol;10mg/ml;emulsão injetável;frasco ampola 20ml;HPM, HPMS, CEM;;injetável;ativo
+23/09/2026;MAC-610C5A;Propranolol, cloridrato 10mg comprimido;Propranolol, cloridrato;10mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-53DEB2;Propranolol, cloridrato 40mg comprimido;Propranolol, cloridrato;40mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-A8FEB5;Protamina, cloridrato 10mg/ml solução injetável ampola 5ml;Protamina, cloridrato;10mg/ml;solução injetável;ampola 5ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-846EBC;Raltegravir (RAL) 100mg, comprimido mastigável;Raltegravir (RAL);100mg;comprimido mastigável;;IST;;oral;ativo
+23/09/2026;MAC-EE2898;Raltegravir (RAL) 400mg, comprimido revestido;Raltegravir (RAL);400mg;comprimido revestido;;IST;;oral;ativo
+23/09/2026;MAC-C6E12B;Raltegravir (RAL) Granulado 100mg;Raltegravir (RAL);100mg;granulado;;IST;;oral;ativo
+23/09/2026;MAC-B09175;Ribavirina 250 mg comprimido;Ribavirina;250 mg;comprimido;;FMC;;oral;ativo
+23/09/2026;MAC-C344E5;Rifabutina 150 mg comprimido;Rifabutina;150 mg;comprimido;;PROG.CESAF;;oral;ativo
+23/09/2026;MAC-0DCAB4;Rifampicina + Isoniazida + Pirazinamida + Etambutol 150 mg + 75 mg + 400 + 275 mg comprimido;Rifampicina + Isoniazida + Pirazinamida + Etambutol;150 mg + 75 mg;comprimido;;HPM, HPMS, EMERG, PROG.CESAF;;oral;ativo
+23/09/2026;MAC-9326B7;Rifampicina + Isoniazida + Pirazinamida 75 mg + 50 mg +150 mg comprimido dispersível;Rifampicina + Isoniazida + Pirazinamida;75 mg + 50 mg +150 mg;comprimido;;PROG.CESAF;;oral;ativo
+23/09/2026;MAC-A3CC2E;Rifampicina + Isoniazida 75 mg + 50 mg comprimido dispersível;Rifampicina + Isoniazida;75 mg + 50 mg;comprimido;;PROG.CESAF;;oral;ativo
+23/09/2026;MAC-51DE91;Rifampicina 20 mg/ml suspensão oral;Rifampicina;20 mg/ml;suspensão oral;;HPM, PROG.CESAF;;oral;ativo
+23/09/2026;MAC-7E5214;Rifampicina 300 mg cápsula;Rifampicina;300 mg;cápsula;;HPM, PROG.CESAF;;oral;ativo
+23/09/2026;MAC-B6C05D;Rifampicina comprimido + Isoniazida 150 mg + 75 mg;Rifampicina;150 mg + 75 mg;comprimido;;PROG.CESAF;;oral;ativo
+23/09/2026;MAC-6E4F68;Rifampicina comprimido + Isoniazida 300 mg + 150mg;Rifampicina;300 mg + 150mg;comprimido;;PROG.CESAF;;oral;ativo
+23/09/2026;MAC-5F1BF0;Rifapentina 150 mg comprimido;Rifapentina;150 mg;comprimido;;PROG.CESAF;;oral;ativo
+23/09/2026;MAC-64CE42;Risperidona 1mg comprimido revestido (Portaria nº344/98 - Lista C1);Risperidona;1mg;comprimido revestido;;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-4A2CAD;Risperidona 1mg/ml solução oral frasco 30ml (port.nº 344/98 Lista C1);Risperidona;1mg/ml;solução oral;frasco 30ml;FM;;oral;ativo
+23/09/2026;MAC-76A7DC;Ritonavir (RTV) 100mg Pó Suspensão Oral;Ritonavir (RTV);100mg;pó;;IST;;;ativo
+23/09/2026;MAC-597DF3;Ritonavir (RTV) 100mg, comprimido revestido;Ritonavir (RTV);100mg;comprimido revestido;;IST;;oral;ativo
+23/09/2026;MAC-836D5E;Rivaroxabana 10mg comprimido;Rivaroxabana;10mg;comprimido;;HPM;;oral;ativo
+23/09/2026;MAC-F66A68;Rivaroxabana 15mg comprimido;Rivaroxabana;15mg;comprimido;;HPM;;oral;ativo
+23/09/2026;MAC-3262A8;Rivaroxabana 20mg comprimido;Rivaroxabana;20mg;comprimido;;HPM;;oral;ativo
+23/09/2026;MAC-353496;Rocurônio, brometo 10 mg/ml solução injetável frasco ampola 5 ml;Rocurônio, brometo;10 mg/ml;solução injetável;frasco ampola 5 ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-A141A5;Ropivacaína , cloridrato 10mg/ml solução injetável ampola 20ml;Ropivacaína , cloridrato;10mg/ml;solução injetável;ampola 20ml;HPM, HPMS;;injetável;ativo
+23/09/2026;MAC-A8817C;Sacarato De Hidróxido Férrico 20 mg/ml solução injetável (IV/EV) ampola 5ml;Sacarato De Hidróxido Férrico;20 mg/ml;solução injetável;ampola 5ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-846720;Saccharomyces gel.dura Boulardii 17 100mg cápsulas;Saccharomyces;100mg;gel;;HPM, HPMS, EMERG;;tópica;ativo
+23/09/2026;MAC-B57CA7;Saccharomyces sachê 1g Boulardii 17 200mg pó oral;Saccharomyces sachê;1g;pó;sachê 1g;HPM, HPMS, EMERG;;;ativo
+23/09/2026;MAC-93E2BC;Sachê oral Polimixina B, sulfato 10.000 UI/ml + Neomicina, sulfato 3,5 mg/ml + Fluocinolona acetonida 0,250 mg/ml + Lidocaína, cloridrato 20 mg/ml solução otológica frasco 10ml;Sachê oral Polimixina B, sulfato;10.000 UI/ml;solução otológica;frasco 10ml;Dispensário, FM, HPM, HPMS, IST, UBS;;otológica;ativo
+23/09/2026;MAC-EAABEE;"Sais De Reidratação Oral (Citrato de Sódio; Cloreto de Potássio; Cloreto de Sódio; Glicose) pó para solução oral sachê 27,9g";"Sais De Reidratação Oral (Citrato de Sódio; Cloreto de Potássio; Cloreto de Sódio; Glicose)";27,9g;pó para solução oral;sachê 27,9g;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-BF697E;Salbutamol, sulfato 0,5mg/ml solução injetável ampola 1ml;Salbutamol, sulfato;0,5mg/ml;solução injetável;ampola 1ml;HPM;;injetável;ativo
+23/09/2026;MAC-36A905;Salbutamol, sulfato 120,5 mcg/dose (equivalente a 100mcg/dose de salbutamol) aerosol oral 200 doses;Salbutamol, sulfato;120,5 mcg/dose;aerosol;;HPM, HPMS, EMERG, UBS, FM, Dispensário, Maleta;;inalatória;ativo
+23/09/2026;MAC-4AE4F3;Salicilato De Dietilamônio + Escina 10mg/g+ 50mg/g gel tópico bisnaga 30g;Salicilato De Dietilamônio + Escina;10mg/g + 50mg/g;gel;bisnaga 30g;HPM, HPMS, EMERG;;tópica;ativo
+23/09/2026;MAC-25702C;Salmeterol, xinafoato 25mcg/dose + Fluticasona, propionato 250mcg/dose suspensão oral 120 doses + valvula dosadora;Salmeterol, xinafoato;25mcg/dose;suspensão oral;;HPM;;oral;ativo
+23/09/2026;MAC-AEE9E5;Secnidazol 1000mg comprimido revestido;Secnidazol;1000mg;comprimido revestido;;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-D1848F;Sertralina 50mg comprimido (port.nº 344/98 Lista C1);Sertralina;50mg;comprimido;;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-0B52E3;Sevoflurano 1mg/ml solução inalatória frasco 250ml (port.nº 344/98 Lista C1);Sevoflurano;1mg/ml;solução;frasco 250ml;HPM, HPMS;;;ativo
+23/09/2026;MAC-94DFEE;Sildenafil, citrato 25mg comprimido revestido;Sildenafil, citrato;25mg;comprimido revestido;;HPM;;oral;ativo
+23/09/2026;MAC-9F30DB;Simeticona 15ml 75mg/ml emulsão/suspensão oral frasco;Simeticona;75mg/ml;emulsão;frasco;HPM, HPMS, EMERG, IST, FM, Dispensário;;;ativo
+23/09/2026;MAC-1D9CA1;Simeticona 40mg comprimido;Simeticona;40mg;comprimido;;HPM, HPMS, EMERG, CEM, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-37E76D;Sinvastatina 10mg comprimido revestido;Sinvastatina;10mg;comprimido revestido;;FM, Dispensário;;oral;ativo
+23/09/2026;MAC-039346;Sinvastatina 20mg comprimido revestido;Sinvastatina;20mg;comprimido revestido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-D28A78;Sinvastatina 40mg comprimido revestido;Sinvastatina;40mg;comprimido revestido;;HPM, HPMS, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-33C48A;Sofosbuvir 400 mg + Velpatasvir 100 mg comprimido revestido;Sofosbuvir;400 mg;comprimido revestido;;FMC;;oral;ativo
+23/09/2026;MAC-4FD604;Sofosbuvir 400 mg comprimido revestido;Sofosbuvir;400 mg;comprimido revestido;;FMC;;oral;ativo
+23/09/2026;MAC-D34269;Solução Fisiológica Nasal 0,9% (cloreto De Sódio 0,9%, 0,009g/ml, 9mg/ml) solução nasal frasco 30ml;Solução Fisiológica Nasal;0,9%;solução nasal;frasco 30ml;HPM, HPMS, IST, FM, Dispensário;;nasal;ativo
+23/09/2026;MAC-F6F51F;"Solução Ringer + Lactato (Cloreto de cálcio di-hidratado 6mg/ml; Cloreto de potássio 0,3mg/ml; Cloreto de sódio 0,2mg/ml; Lactato de sódio 3mg/ml) solução injetável frasco plástico sistema fechado 500ml";Solução Ringer + Lactato (Cloreto de cálcio di-hidratado;6mg/ml;solução injetável;frasco;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-EED605;Sorbitol 0,027 g/ml + Manitol 0,0054 g/ml solução para irrigação urológica frasco plástico sistema fechado 1000 Ml (ou 27G/1000ml + 5,4G/1000ML);Sorbitol;0,027 g/ml;solução;frasco;HPM;;;ativo
+23/09/2026;MAC-DF74B9;Sorbitol 30 mg/ml solução para irrigação urológica frasco plástico sistema fechado 3000;Sorbitol;30 mg/ml;solução;frasco;HPM;;;ativo
+23/09/2026;MAC-54D0B0;Sulfadiazina 500mg comprimido;Sulfadiazina;500mg;comprimido;;HPM, HPMS, EMERG, IST, FMC;;oral;ativo
+23/09/2026;MAC-AC6DF4;Sulfadiazina De Prata 10mg/g (1%) creme dermatológico bisnaga 30g;Sulfadiazina De Prata;10mg/g (1%);creme dermatológico;bisnaga 30g;HPM, HPMS, EMERG, CEM, UBS, IST, FM, Dispensário;;tópica;ativo
+23/09/2026;MAC-39FF9B;Sulfadiazina De Prata 10mg/g (1%) creme dermatológico pote 400g;Sulfadiazina De Prata;10mg/g (1%);creme dermatológico;pote 400g;HPM;;tópica;ativo
+23/09/2026;MAC-9368EF;Sulfametoxazol 40mg/ml + Trimetoprima 8mg/ml suspensão oral frasco 50ml + copo medida;Sulfametoxazol;40mg/ml;suspensão oral;frasco 50ml;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-00A7B8;Sulfametoxazol 80mg/ml + Trimetoprima 16mg/ml solução injetável ampola 5ml;Sulfametoxazol;80mg/ml;solução injetável;ampola 5ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-F053E9;Sulfametoxazol comprimido 400mg + Trimetoprima 80mg;Sulfametoxazol;400mg;comprimido;;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-9F62CC;Sulfato De Bário Contraste copo plast.150ml (sulfato De Bário 100% Ou 1G/ML Suspensão Oral copo plástico 150ml);Sulfato De Bário Contraste copo plast.;100%;suspensão oral;;HPM;;oral;ativo
+23/09/2026;MAC-BB6808;Sulfato De Magnesio injetável 500mg/ml (50%) solução ampola 10ml;Sulfato De Magnesio;500mg/ml (50%);injetável;ampola 10ml;HPM, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-9F9638;Sulfato De Magnésio injetável 100mg/ml (10%) solução ampola 10ml;Sulfato De Magnésio;100mg/ml (10%);injetável;ampola 10ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-2DCF45;Sulfato Ferroso 25mg/ml de ferro elementar solução oral frasco 30ml;Sulfato Ferroso;25mg/ml;solução oral;frasco 30ml;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-BB90C4;Sulfato Ferroso 40 mg comprimido revestido;Sulfato Ferroso;40 mg;comprimido revestido;;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-B43363;"Suplemento De Aminoácidos Para Regime Para Crianças (neonatos Pré- Termos E Termos E Bebês) E Crianças Jovens - Frasco de vidro com quantidades adequadas de carboidratos e gorduras como doadores de energia, vitaminas, eletrólitos e oligoelementos. São todos componentes de ocorrência fisiológica natural. Como os aminoácidos derivados da ingestão e assimilação das proteínas dos alimentos, os aminoácidos administrados por via parenteral entram na reserva do organismo de aminoácidos livres e subsequentemente em todas as reações metabólicas. Administrada exclusivamente pela via intravenosa. Pré fabricada em frasco de vidro pronta para uso. Solução de Nutrição Parenteral pré- fabricadas, pronta para o uso em sistema fechado, estéril e apirogência, contendo solução a cada 100ml com isoleucina 0,500-0,670 g; leucina 0,740-1,00 g; lisina 0,660-1,100g; metionina 0,240-0,430 g ; fenilalanina 0,420-0,510g; treonina 0,370-0,440g; triptofano 0,200 g; valina 0,620-0,760g; arginina 0,840-1,200g; histidina 0,300-0,380g ; alanina 0,800-1,40g; glicina 0,400-1,10g; prolina 0,300-1,120g; serina 0,400-0,650 g; tirosina 0,040- 0,045g; taurina 0,060-1,00g; Água para injetáveis; Concentrações variáveis até 100-250ml. A escolha da administração em veia central. O limite aceito para infusão periférica é de aproximadamente 800 mOsm/L; pH 5,5 – 6,0. Volume final 100- 250ml.";Suplemento De Aminoácidos Para Regime Para Crianças (neonatos Pré- Termos E Termos E Bebês) E Crianças Jovens - Frasco de vidro com quantidades adequadas de carboidratos e gorduras como doadores de energia, vitaminas, eletrólitos e oligoelementos. São todos componentes de ocorrência fisiológica natural. Como os aminoácidos derivados da ingestão e assimilação das proteínas dos alimentos, os aminoácidos administrados por via parenteral entram na reserva do organismo de aminoácidos livres e subsequentemente em todas as reações metabólicas. Administrada exclusivamente pela via intravenosa. Pré fabricada em frasco de vidro pronta para uso.;100ml;solução;Frasco;HPM;;injetável;ativo
+23/09/2026;MAC-A9A3CC;Suxametônio, ampola cloreto 100mg pó liofilizado frasco;Suxametônio, ampola cloreto;100mg;pó liofilizado;ampola;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-557175;Talidomida 100 mg comprimido;Talidomida;100 mg;comprimido;;FMC;;oral;ativo
+23/09/2026;MAC-DB937E;Teicoplanina 200mg pó liofilizado + diluente para solução injetável;Teicoplanina;200mg;pó liofilizado;;EMERG, HPM;;injetável;ativo
+23/09/2026;MAC-3563C8;Tenofovir (TDF) 300 mg + Lamivudina (3TC) 300 mg, comprimido;Tenofovir (TDF);300 mg;comprimido;;FMC;;oral;ativo
+23/09/2026;MAC-8589DD;Tenofovir (TDF) 300mg + Entricitabina (FTC) 200mg, comprimido revestido;Tenofovir (TDF);300mg;comprimido revestido;;IST;;oral;ativo
+23/09/2026;MAC-5C808C;Tenofovir (TDF) 300mg + Lamivudina (3TC) 300mg (dfc - 2 Em 1), comprimido revestido;Tenofovir (TDF);300mg;comprimido revestido;;HPM, HPMS, EMERG, IST;;oral;ativo
+23/09/2026;MAC-05BF35;Tenofovir (TDF) 300mg + Lamivudina (3TC) 300mg + Efavirenz (EFZ) 600mg (dfc – 3 Em 1), comprimido revestido;Tenofovir (TDF);300mg;comprimido revestido;;IST;;oral;ativo
+23/09/2026;MAC-F46B4A;Tenofovir (TDF) 300mg, comprimido revestido;Tenofovir (TDF);300mg;comprimido revestido;;IST;;oral;ativo
+23/09/2026;MAC-1DFB7D;Tenofovir 300 mg comprimido;Tenofovir;300 mg;comprimido;;FMC;;oral;ativo
+23/09/2026;MAC-3A97CB;Tenofovir Alafenamida 25 mg comprimido;Tenofovir Alafenamida;25 mg;comprimido;;FMC;;oral;ativo
+23/09/2026;MAC-17A4D4;Tenoxicam 20mg pó liofilizado para solução injetável f/a + ampola diluente 2ml;Tenoxicam;20mg;pó liofilizado para solução injetável;ampola;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-0214DD;Tetraciclina, cloridrato 500mg cápsula gelatinosa dura;Tetraciclina, cloridrato;500mg;cápsula;;HPM, HPMS, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-774221;Tiamina, cloridrato 300mg comprimido revestido;Tiamina, cloridrato;300mg;comprimido revestido;;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-F6C395;TIAMINA,cloridrato 100mg/ml + Piridoxina, cloridrato 100mg/ml + Cianocobalamina 5000 mcg/ml solução injetável ampola volume total 2ml;TIAMINA,cloridrato;100mg/ml;solução injetável;ampola;HPM, EMERG;;injetável;ativo
+23/09/2026;MAC-FC632F;Tigeciclina 50mg pó liofilizado frasco ampola;Tigeciclina;50mg;pó liofilizado;frasco ampola;HPM;;injetável;ativo
+23/09/2026;MAC-B28791;Timolol, maleato 5mg/ml (0,5%) solução oftálmica frasco 5ml;Timolol, maleato;5mg/ml (0,5%);solução oftálmica;frasco 5ml;IST, FM, Dispensário;;oftálmica;ativo
+23/09/2026;MAC-576022;Tiras Reagentes De Medida De Glicemia Capilar, lata c/50;Tiras Reagentes De Medida De Glicemia Capilar, lata c/50;;;;CEM, EMERG, FM, HPM, HPMS, UBS;;;ativo
+23/09/2026;MAC-A7A8A9;Tobramicina 3mg/ml solução oftálmica frasco 5ml;Tobramicina;3mg/ml;solução oftálmica;frasco 5ml;HPM;;oftálmica;ativo
+23/09/2026;MAC-21C960;Tramadol, cloridrato 50mg cápsula gelatinosa dura (port.nº 344/98 Adendo 3 da Lista A2);Tramadol, cloridrato;50mg;cápsula;;HPM, FM;;oral;ativo
+23/09/2026;MAC-D7B505;Tramadol, cloridrato 50mg/ml solução injetável ampola 1ml (port.nº 344/98 Adendo 3 da Lista A2);Tramadol, cloridrato;50mg/ml;solução injetável;ampola 1ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-738B00;Tramadol, cloridrato 50mg/ml solução injetável ampola 2ml (port.nº 344/98 Adendo 3 da Lista A2);Tramadol, cloridrato;50mg/ml;solução injetável;ampola 2ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-96BFA8;Tretinoína 10mg cápsula gelatinosa dura (port.nº 344/98 Lista C2);Tretinoína;10mg;cápsula;;HPM;;oral;ativo
+23/09/2026;MAC-5548F9;Tropicamida 5ml 10mg/ml (1% )solução oftálmica frasco;Tropicamida;10mg/ml;solução oftálmica;frasco;HPM, CEM;;oftálmica;ativo
+23/09/2026;MAC-9708EA;Tuberculina (PPD) 1,5 m;Tuberculina (PPD) 1,5 m;;;;PROG.CESAF;;;ativo
+23/09/2026;MAC-362B98;Unha-de-gato (Uncaria tomentosa (Wild. Ex Roem. & Schukt.) Dc . ) 100mg cápsulas;Unha-de-gato (Uncaria tomentosa (Wild. Ex Roem. & Schukt.) Dc . );100mg;cápsula;;FM;;oral;ativo
+23/09/2026;MAC-0A94BD;Valproato De Sódio/ Ácido Valpróico 288mg (equivale a 250mg de ácido valpróico) cápsula ou comprimido revestido (port.nº 344/98 Lista C1);Valproato De Sódio/ Ácido Valpróico;288mg;cápsula;;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-EFC617;Valproato De Sódio/ Ácido Valpróico 57,624 mg/ml (equivale a 50mg de ácido valpróico/ml) xarope frasco 100ml + copo medida (port.nº 344/98 Lista C1);Valproato De Sódio/ Ácido Valpróico;57,624 mg/ml;xarope;frasco 100ml;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-D48DBC;Valproato De Sódio/ Ácido Valpróico 576mg (equivale a 500mg de ácido valpróico) cápsula ou comprimido revestido (port.nº 344/98 Lista C1);Valproato De Sódio/ Ácido Valpróico;576mg;cápsula;;HPM, HPMS, EMERG, FM;;oral;ativo
+23/09/2026;MAC-2BA03A;Vancomicina, cloridrato 500mg pó liofilizado para sol.injetável f/a + ampola diluente 10 ml;Vancomicina, cloridrato;500mg;pó liofilizado;ampola;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-08B424;Varfarina sódica 5mg comprimido;Varfarina sódica;5mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-BEFE62;Vasopressina/ Argipressina 20 U/ml solução injetável ampola 1ml;Vasopressina/ Argipressina 20 U/ml;1ml;solução injetável;ampola 1ml;HPM, HPMS, EMERG, Maleta;;injetável;ativo
+23/09/2026;MAC-8FB1D6;Verapamil, cloridrato 80 mg comprimido revestido;Verapamil, cloridrato;80 mg;comprimido revestido;;HPM, HPMS, EMERG, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-41C916;Vitaminas 2ml do Complexo B solução injetável ampola;Vitaminas;2ml;solução injetável;ampola;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-3F51D0;Vitaminas do Complexo B drágea;Vitaminas do Complexo B;;drágea;;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-2C62D4;Zidovudina (AZT) 100mg, cápsula gelatinosa dura;Zidovudina (AZT);100mg;cápsula;;IST;;oral;ativo
+23/09/2026;MAC-D36877;Zidovudina (AZT) solução injetável 10mg/ml;Zidovudina (AZT);10mg/ml;solução injetável;;IST;;injetável;ativo
+23/09/2026;MAC-EA1FB3;Zidovudina (AZT) Solução Oral 10mg/ml – Frasco Com 100ml;Zidovudina (AZT);10mg/ml;solução oral;Frasco;IST;;oral;ativo
+23/09/2026;MAC-E6847F;Zidovudina 300mg + Lamivudina 150mg (AZT+3TC), comprimido revestido;Zidovudina;300mg;comprimido revestido;;IST;;oral;ativo
+23/09/2026;MAC-891779;Ácido Acetilsalicílico / Aas 100mg comprimido;Ácido Acetilsalicílico / Aas;100mg;comprimido;;HPM, HPMS, EMERG, FM, Dispensário, Maleta;;oral;ativo
+23/09/2026;MAC-90E95E;Ácido Acético 5% - solução tópica;Ácido Acético;5%;solução tópica;;CEM;;tópica;ativo
+23/09/2026;MAC-372B33;Ácido Ascórbico 100mg/ml solução injetável ampola 5ml (vitamina C 500mg );Ácido Ascórbico;100mg/ml;solução injetável;ampola 5ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-0B5112;Ácido Folínico/ Folinato De Cálcio 15mg comprimido;Ácido Folínico/ Folinato De Cálcio;15mg;comprimido;;HPM, HPMS, EMERG, IST, FMC;;oral;ativo
+23/09/2026;MAC-BF166E;Ácido Fólico 0,2mg/ml sol oral frasco 30ml;Ácido Fólico;0,2mg/ml;solução;frasco 30ml;HPM, HPMS, EMERG, IST, FM, Dispensário;;;ativo
+23/09/2026;MAC-87D5E4;Ácido Fólico 5mg comprimido;Ácido Fólico;5mg;comprimido;;HPM, HPMS, EMERG, IST, FM, Dispensário;;oral;ativo
+23/09/2026;MAC-3C53B3;Ácido Tranexâmico 50mg/ml solução injetável ampola 5ml;Ácido Tranexâmico;50mg/ml;solução injetável;ampola 5ml;HPM, HPMS, EMERG;;injetável;ativo
+23/09/2026;MAC-730EF6;Ácido Tricloroacético (TCA) 30% - solução aquosa 15ml;Ácido Tricloroacético (TCA);30%;solução;;CEM;;;ativo
+23/09/2026;MAC-6C1D29;Ácido Tricloroacético (TCA) 50% - solução aquosa 15ml;Ácido Tricloroacético (TCA);50%;solução;;;;;ativo
+23/09/2026;MAC-981F5A;Ácido Tricloroacético (TCA) 70% - solução aquosa 15ml;Ácido Tricloroacético (TCA);70%;solução;;;;;ativo
+23/09/2026;MAC-49AADE;Ácido Tricloroacético (TCA) 90% - solução aquosa 15ml;Ácido Tricloroacético (TCA);90%;solução;;;;;ativo
+23/09/2026;MAC-DFB11B;Água Destilada /água Para Injetáveis solução injetável ampola plástica 10ml;Água Destilada /água Para Injetáveis;10ml;solução injetável;ampola;HPM, HPMS, EMERG, UBS, IST, Maleta;;injetável;ativo
+23/09/2026;MAC-3AFD64;Água Destilada /água Para Injetáveis solução injetável frasco 1000ml;Água Destilada /água Para Injetáveis;1000ml;solução injetável;frasco 1000ml;HPM, HPMS;;injetável;ativo
+23/09/2026;MAC-CF812F;Água Destilada /água Para Injetáveis solução injetável frasco 500ml;Água Destilada /água Para Injetáveis;500ml;solução injetável;frasco 500ml;HPM, HPMS, EMERG, UBS, CEM;;injetável;ativo
+23/09/2026;MAC-1EF843;Álcool Etílico 70% solução frasco 1000ml Medicamento de Notificação Simplificada Rdc Anvisa Nº199/06 (atual.RDC107/2016) - Uso;Álcool Etílico;70%;solução;frasco 1000ml;HPM, HPMS, EMERG, CEM, UBS;;;ativo
+23/09/2026;MAC-6B3996;Óleo Mineral Puro (Petrolato líquido) frasco 100ml;Óleo Mineral Puro (Petrolato;100ml;líquido;frasco 100ml;HPM, HPMS, EMERG, IST, FM;;;ativo
+23/09/2026;MAC-F693B8;Óxido De Zinco + Retinol/vitamina A + Colecalciferol/vitamina D pomada dermatológica bisnaga 45g;Óxido De Zinco + Retinol/vitamina A + Colecalciferol/vitamina D;45g;pomada;bisnaga 45g;HPM, HPMS, EMERG, UBS, IST, FM, Dispensário;;tópica;ativo
