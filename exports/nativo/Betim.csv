@@ -1,0 +1,398 @@
+﻿remume_versao;codigo_identificacao;descricao_original;principio_ativo;concentracao;forma_farmaceutica;apresentacao;local_dispensacao;restricao;via_administracao;situacao
+23/09/2026;BET-C198D3;Acetato de Retinol + Aminoácidos + Metionina + Cloranfenicol 10.000ui/g + 25mg/g + 5mg/g + 5mg/g - Pomada Oftálmica;Acetato de Retinol + Aminoácidos + Metionina + Cloranfenicol;10.000ui;pomada oftálmica;;;;oftálmica;ativo
+23/09/2026;BET-27609B;Acetazolamida 250mg - Comprimido;Acetazolamida;250mg;comprimido;;;;oral;ativo
+23/09/2026;BET-D21B19;Acetilcisteína 600mg - Granulado Oral;Acetilcisteína;600mg;granulado;;UPA, HPRB, PID;;oral;ativo
+23/09/2026;BET-1C0115;Aciclovir 200mg - Comprimido;Aciclovir;200mg;comprimido;;UBS, SEPADI, UPA, HPRB;;oral;ativo
+23/09/2026;BET-86438B;Aciclovir 250mg - Pó para Solução Injetável;Aciclovir;250mg;pó para solução injetável;;;;injetável;ativo
+23/09/2026;BET-3307B0;Adenosina 3mg/ml - Solução Injetável;Adenosina;3mg/ml;solução injetável;;UPA, HPRB, SAMU, CIMUC;;injetável;ativo
+23/09/2026;BET-6711F7;Adrenalina (Epinefrina) 1mg/ml - Solução Injetável;Adrenalina (Epinefrina);1mg/ml;solução injetável;;CX EMERGÊNCIA, UPA, HPRB, SEPADI, CIMUC, SAMU;;injetável;ativo
+23/09/2026;BET-6C4AA4;Albendazol 400mg - Comprimido Mastigável;Albendazol;400mg;comprimido mastigável;;;;oral;ativo
+23/09/2026;BET-AA6DD8;Albendazol 40mg/ml - Suspensão Oral;Albendazol;40mg/ml;suspensão oral;;;;oral;ativo
+23/09/2026;BET-337F42;Albumina Humana 0.2 - Solução Injetável;Albumina Humana;0.2;solução injetável;;;;injetável;ativo
+23/09/2026;BET-3F772E;Alendronato de Sódio 70mg - Comprimido;Alendronato de Sódio;70mg;comprimido;;;;oral;ativo
+23/09/2026;BET-2EA6B5;Alfentanila Cloridrato 0,544mg/ml - Solução Injetável;Alfentanila Cloridrato;0,544mg/ml;solução injetável;;;Notificação de Receita A (amarela) — entorpecente/psicotrópico, Portaria 344/98. Prescrição em receituário especial.;injetável;ativo
+23/09/2026;BET-2C0610;Alopurinol 100mg - Comprimido;Alopurinol;100mg;comprimido;;;;oral;ativo
+23/09/2026;BET-EFD46F;Alopurinol 300mg - Comprimido;Alopurinol;300mg;comprimido;;;;oral;ativo
+23/09/2026;BET-23B2AA;Alteplase 50mg - Solução Injetável;Alteplase;50mg;solução injetável;;UPA, HPRB;;injetável;ativo
+23/09/2026;BET-F6C9CD;Amicacina 250mg/ml - Solução Injetável;Amicacina;250mg/ml;solução injetável;;HPRB, PID, UPA;;injetável;ativo
+23/09/2026;BET-2D09B1;Aminofilina 24mg/ml - Solução Injetável;Aminofilina;24mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-C83AA8;Amiodarona 200mg - Comprimido;Amiodarona;200mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-1EF195;Amiodarona 50mg/ml - Solução Injetável;Amiodarona;50mg/ml;solução injetável;;CX EMERGÊNCIA, UPA, HPRB, SEPADI, CIMUC, SAMU;;injetável;ativo
+23/09/2026;BET-2D65DA;Amitriptilina 25mg - Comprimido;Amitriptilina;25mg;comprimido;;;;oral;ativo
+23/09/2026;BET-AFD09D;Amoxicilina + Clavulanato de Potássio 1g + 200mg - Pó para Solução Injetável;Amoxicilina + Clavulanato de Potássio;1g + 200mg;pó para solução injetável;;UPA, HPRB;;injetável;ativo
+23/09/2026;BET-E87E5A;Amoxicilina + Clavulanato de Potássio 500mg + 125mg - Comprimido;Amoxicilina + Clavulanato de Potássio;500mg + 125mg;comprimido;;UBS, UPA, SEPADI, HPRB;;oral;ativo
+23/09/2026;BET-574F58;Amoxicilina + Clavulanato de Potássio 50mgml + 12,5mg/ml - Suspensão Oral;Amoxicilina + Clavulanato de Potássio 50mgml +;12,5mg/ml;suspensão oral;;;;oral;ativo
+23/09/2026;BET-FB03BC;Amoxicilina 500mg - Cápsula;Amoxicilina;500mg;cápsula;;UBS, UPA, SEPADI, HPRB;;oral;ativo
+23/09/2026;BET-E214BB;Amoxicilina 50mg/ml (5%) - Suspensão Oral;Amoxicilina;50mg/ml (5%);suspensão oral;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-EC1AAC;Ampicilina + Sulbactam 1000mg + 500mg - Pó para Solução Injetável;Ampicilina + Sulbactam;1000mg + 500mg;pó para solução injetável;;;;injetável;ativo
+23/09/2026;BET-5E4EE5;Ampicilina 1g - Pó para Solução Injetável;Ampicilina;1g;pó para solução injetável;;UPA, HPRB;;injetável;ativo
+23/09/2026;BET-BFA4C9;Ampicilina 500mg - Pó para Solução Injetável;Ampicilina;500mg;pó para solução injetável;;UPA, HPRB;;injetável;ativo
+23/09/2026;BET-FA0441;Anfotericina B 50mg - Pó Liofilizado Injetável;Anfotericina B;50mg;pó liofilizado;;;;injetável;ativo
+23/09/2026;BET-CF78F5;Anlodipino 5mg - Comprimido;Anlodipino;5mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-716814;Antimoniato de Meglumina 300mg/ml - Solução Injetável;Antimoniato de Meglumina;300mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-13B36F;Atenolol 50mg - Comprimido;Atenolol;50mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-4DC9C1;Atropina 0,25mg/ml - Solução Injetável;Atropina;0,25mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-DD3734;Atropina 0,5mg/ml - Solução Injetável;Atropina;0,5mg/ml;solução injetável;;CX EMERGÊNCIA, UPA, HPRB, SEPADI, CIMUC, SAMU;;injetável;ativo
+23/09/2026;BET-89786B;Atropina 10mg/ml (1%) - Solução Oftálmica;Atropina;10mg/ml (1%);solução oftálmica;;;;oftálmica;ativo
+23/09/2026;BET-EB5219;Azitromicina 40mg/ml – 600mg - Pó para Suspensão Oral;Azitromicina;40mg/ml;pó para suspensão oral;;UBS, UPA, HPRB, SEPADI;;oral;ativo
+23/09/2026;BET-9505BF;Azitromicina 500mg - Comprimido;Azitromicina;500mg;comprimido;;UBS, UPA, SEPADI, HPRB;;oral;ativo
+23/09/2026;BET-FB8C8D;Azul de Metileno 20mg/ml (2%) - Solução Injetável;Azul de Metileno;20mg/ml (2%);solução injetável;;;;injetável;ativo
+23/09/2026;BET-FD88D1;Baclofeno 10mg - Comprimido;Baclofeno;10mg;comprimido;;;;oral;ativo
+23/09/2026;BET-A63AB4;Beclometasona Dipropionato 200mcg - Aerossol Oral;Beclometasona Dipropionato;200mcg;aerossol;;;;inalatória;ativo
+23/09/2026;BET-78B470;Beclometasona Dipropionato 50mcg - Aerossol Oral;Beclometasona Dipropionato;50mcg;aerossol;;;;inalatória;ativo
+23/09/2026;BET-44DD00;Benzilpenicilina Benzatina 1.200.000ui - Pó para Suspensão Injetável ou Suspensão Injetável;Benzilpenicilina Benzatina;1.200.000ui;pó para suspensão injetável;;UBS, UPA, SEPADI, HPRB, PID;;injetável;ativo
+23/09/2026;BET-053B3C;Benzilpenicilina Benzatina 600.000ui - Pó para Suspensão Injetável ou Suspensão Injetável;Benzilpenicilina Benzatina;600.000ui;pó para suspensão injetável;;UPA, PID;;injetável;ativo
+23/09/2026;BET-0B9ACF;Benzilpenicilina Potássica + Benzilpenicilina Procaína 100.000ui + 300.000ui - Pó para Suspensão Injetável ou Suspensão Injetável;Benzilpenicilina Potássica + Benzilpenicilina Procaína;100.000ui + 300.000ui;pó para suspensão injetável;;UPA, PID;;injetável;ativo
+23/09/2026;BET-F39332;Benzilpenicilina Potássica 5.000.000ui - Pó para Suspensão Injetável ou Suspensão Injetável;Benzilpenicilina Potássica;5.000.000ui;pó para suspensão injetável;;;;injetável;ativo
+23/09/2026;BET-ECEB37;Benzoilmetronidazol 40mg/ml (4%) - Suspensão Oral;Benzoilmetronidazol;40mg/ml (4%);suspensão oral;;;;oral;ativo
+23/09/2026;BET-FFF9D3;Bicarbonato de Sódio 84mg/ml (8,4%) - Solução Injetável;Bicarbonato de Sódio;84mg/ml (8,4%);solução injetável;;;;injetável;ativo
+23/09/2026;BET-76033A;Biperideno 2mg - Comprimido;Biperideno;2mg;comprimido;;;;oral;ativo
+23/09/2026;BET-E3F602;Biperideno 5mg/ml - Solução Injetável;Biperideno;5mg/ml;solução injetável;;CERSAM, CAPS-AD, CERSAMI, UPA, HPRB;;injetável;ativo
+23/09/2026;BET-759D0C;Bisacodil 5mg - Drágea;Bisacodil;5mg;drágea;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-EA4A21;Brometo de Ipratrópio 0,25mg/ml - Solução para Inalação;Brometo de Ipratrópio;0,25mg/ml;solução;;UPA, HPRB, SAMU;;;ativo
+23/09/2026;BET-36E31C;Brometo de Ipratrópio 20mcg/dose - Solução Aerossol;Brometo de Ipratrópio;20mcg/dose;solução;;UPA, HPRB;;;ativo
+23/09/2026;BET-C6FE92;Budesonida 32mcg/dose - Spray Nasal;Budesonida;32mcg/dose;spray;;;;nasal;ativo
+23/09/2026;BET-51E065;Bupivacaína com Vasoconstritor 5mg/ml (0,5%) - Solução Injetável;Bupivacaína com Vasoconstritor;5mg/ml (0,5%);solução injetável;;;;injetável;ativo
+23/09/2026;BET-2AAFDB;Bupivacaína Isobárica 5mg/ml (0,5%) - Solução Injetável;Bupivacaína Isobárica;5mg/ml (0,5%);solução injetável;;;;injetável;ativo
+23/09/2026;BET-04BF41;Bupivacaína Pesada + Glicose 5mg/ml (0,5%) + 80mg/ml (8%) - Solução Injetável;Bupivacaína Pesada + Glicose;5mg/ml (0,5%) + 80mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-601872;Bupivacaína Sem Vasoconstritor 5mg/ml (0,5%) - Solução Injetável;Bupivacaína Sem Vasoconstritor;5mg/ml (0,5%);solução injetável;;;;injetável;ativo
+23/09/2026;BET-C99426;Bupropiona 150mg - Comprimido;Bupropiona;150mg;comprimido;;;;oral;ativo
+23/09/2026;BET-8E1F81;Captopril 25mg - Comprimido;Captopril;25mg;comprimido;;CX EMERGÊNCIA, UPA, HPRB, CIMUC, SAMU;;oral;ativo
+23/09/2026;BET-F5C09A;Carbamazepina 200mg - Comprimido;Carbamazepina;200mg;comprimido;;UBS, UPA, CERSAM, CAPS-AD, CERSAMI, HPRB;;oral;ativo
+23/09/2026;BET-619591;Carbamazepina 20mg/ml (2%) - Suspensão Oral;Carbamazepina;20mg/ml (2%);suspensão oral;;;;oral;ativo
+23/09/2026;BET-4E720C;Carbonato de Cálcio 1250mg (500mg Cálcio Elementar) - Comprimido;Carbonato de Cálcio;1250mg;comprimido;;;;oral;ativo
+23/09/2026;BET-AD2E3D;Carbonato de Lítio 300mg - Comprimido;Carbonato de Lítio;300mg;comprimido;;;;oral;ativo
+23/09/2026;BET-DAA6C8;Carvedilol 12,5mg - Comprimido;Carvedilol;12,5mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-09E9CC;Carvedilol 3,125mg - Comprimido;Carvedilol;3,125mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-0F0AEC;Carvão Ativado - Pó para Suspensão Oral;Carvão Ativado;;pó para suspensão oral;;UPA, HPRB;;oral;ativo
+23/09/2026;BET-4C0C96;Cefalexina 500mg - Comprimido ou Cápsula;Cefalexina;500mg;comprimido;;UBS, UPA, SEPADI, HPRB, PID;;oral;ativo
+23/09/2026;BET-C878FE;Cefalexina 50mg/ml (5%) - Pó para Suspensão Oral;Cefalexina;50mg/ml (5%);pó para suspensão oral;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-4C568C;Cefazolina 1g - Pó Liofilizado Injetável;Cefazolina;1g;pó liofilizado;;UPA, HPRB, PID;;injetável;ativo
+23/09/2026;BET-F24614;Cefepima 1g - Pó Liofilizado Injetável;Cefepima;1g;pó liofilizado;;UPA, HPRB, PID;;injetável;ativo
+23/09/2026;BET-04AECE;Cefotaxima Sódica 1g - Pó para Solução Injetável;Cefotaxima Sódica;1g;pó para solução injetável;;;;injetável;ativo
+23/09/2026;BET-1753AF;Ceftazidima + Avibactam 2.000mg + 500mg - Pó para Solução Injetável;Ceftazidima + Avibactam;2.000mg + 500mg;pó para solução injetável;;;;injetável;ativo
+23/09/2026;BET-84B023;Ceftazidima 1g - Pó para Solução Injetável;Ceftazidima;1g;pó para solução injetável;;;;injetável;ativo
+23/09/2026;BET-204A2D;Ceftriaxona 1g - Pó para Solução Injetável;Ceftriaxona;1g;pó para solução injetável;;;;injetável;ativo
+23/09/2026;BET-B9DA60;Cetoconazol 20mg/g - Creme Dermatológico;Cetoconazol;20mg/g;creme dermatológico;;;;tópica;ativo
+23/09/2026;BET-211DCC;Cetoprofeno 100mg - Pó para Solução Injetável;Cetoprofeno;100mg;pó para solução injetável;;UBS, UPA, HPRB, SAMU;;injetável;ativo
+23/09/2026;BET-8F5EB2;Cianocobalamina 2500mcg/ml - Solução Injetável;Cianocobalamina;2500mcg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-2D782F;Cianocobalamina 500mcg/ml - Solução Injetável;Cianocobalamina;500mcg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-68BF3A;Ciclobenzaprina 5mg - Comprimido;Ciclobenzaprina;5mg;comprimido;;;;oral;ativo
+23/09/2026;BET-44DFCD;Ciclofosfamida 1000mg - Pó para Solução Injetável;Ciclofosfamida;1000mg;pó para solução injetável;;;;injetável;ativo
+23/09/2026;BET-53C1F7;Ciclopentolato 10mg/ml (1%) - Solução Oftálmica;Ciclopentolato;10mg/ml (1%);solução oftálmica;;;;oftálmica;ativo
+23/09/2026;BET-C57F62;Ciprofloxacino 2mg/ml - Solução Injetável;Ciprofloxacino;2mg/ml;solução injetável;;UPA, HPRB, PID;;injetável;ativo
+23/09/2026;BET-DC6B6D;Ciprofloxacino 3,5mg/ml - Solução Oftálmica;Ciprofloxacino;3,5mg/ml;solução oftálmica;;;;oftálmica;ativo
+23/09/2026;BET-34F604;Ciprofloxacino 500mg - Comprimido;Ciprofloxacino;500mg;comprimido;;UBS, UPA, SEPADI, HPRB;;oral;ativo
+23/09/2026;BET-4E2B10;Ciproterona Acetato 50mg - Comprimido;Ciproterona Acetato;50mg;comprimido;;;;oral;ativo
+23/09/2026;BET-37CEBD;Cisatracúrio Besilato 2mg/ml - Solução Injetável;Cisatracúrio Besilato;2mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-FD60E2;Claritromicina 500mg - Comprimido;Claritromicina;500mg;comprimido;;;;oral;ativo
+23/09/2026;BET-85CE62;Claritromicina 500mg - Pó para Solução Injetável;Claritromicina;500mg;pó para solução injetável;;;;injetável;ativo
+23/09/2026;BET-924761;Clindamicina 150mg/ml - Solução Injetável;Clindamicina;150mg/ml;solução injetável;;UPA, HPRB, PID, UPA;;injetável;ativo
+23/09/2026;BET-50B5FF;Clindamicina 300mg - Cápsula;Clindamicina;300mg;cápsula;;SEPADI, HPRB, PID, UPA;;oral;ativo
+23/09/2026;BET-DE92DD;Clobazam 10mg - Comprimido;Clobazam;10mg;comprimido;;;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;BET-E5C73F;Clomipramina 25mg - Comprimido;Clomipramina;25mg;comprimido;;;;oral;ativo
+23/09/2026;BET-555A06;Clomipramina 75mg - Comprimido;Clomipramina;75mg;comprimido;;;;oral;ativo
+23/09/2026;BET-503AD6;Clonazepam 2,5mg/ml - Solução Oral;Clonazepam;2,5mg/ml;solução oral;;UBS, UPA, CERSAM, CAPS-AD, CERSAMI, HPRB;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;BET-8423B8;Clonazepam 2mg - Comprimido;Clonazepam;2mg;comprimido;;;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;BET-7547F6;Clonidina 0,15mg/ml - Solução Injetável;Clonidina;0,15mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-539B92;Clopidogrel 75mg - Comprimido;Clopidogrel;75mg;comprimido;;CX EMERGÊNCIA, UPA, HPRB, CIMUC, SAMU;;oral;ativo
+23/09/2026;BET-91EA4C;Cloreto de Potássio 100mg/ml (10%) - Solução Injetável;Cloreto de Potássio;100mg/ml (10%);solução injetável;;UPA, HPRB, SAMU, CIMUC;;injetável;ativo
+23/09/2026;BET-834607;Cloreto de Potássio 60mg/ml - Solução Oral;Cloreto de Potássio;60mg/ml;solução oral;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-8349EC;Cloreto de Sódio 100mg/ml (10%) - Solução Injetável;Cloreto de Sódio;100mg/ml (10%);solução injetável;;UPA, HPRB, PID;;injetável;ativo
+23/09/2026;BET-306F63;Cloreto de Sódio 200mg/ml (20%) - Solução Injetável;Cloreto de Sódio;200mg/ml (20%);solução injetável;;;;injetável;ativo
+23/09/2026;BET-70A097;Cloreto de Sódio 9mg/ml (0,9%) - Solução Injetável;Cloreto de Sódio;9mg/ml (0,9%);solução injetável;;;;injetável;ativo
+23/09/2026;BET-8A18F3;Clorpromazina 100mg - Comprimido;Clorpromazina;100mg;comprimido;;;;oral;ativo
+23/09/2026;BET-F887D4;Clorpromazina 25mg - Comprimido;Clorpromazina;25mg;comprimido;;;;oral;ativo
+23/09/2026;BET-AB9573;Clorpromazina 40mg/ml - Solução Oral;Clorpromazina;40mg/ml;solução oral;;UBS, UPA, CERSAM, CAPS-AD, CERSAMI, HPRB;;oral;ativo
+23/09/2026;BET-DCA38E;Clorpromazina 5mg/ml - Solução Injetável;Clorpromazina;5mg/ml;solução injetável;;UPA, CERSAM, CAPS-AD, CERSAMI, HPRB, SAMU;;injetável;ativo
+23/09/2026;BET-D518A1;Codeína 30mg - Comprimido;Codeína;30mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-DC1556;Colagenase Sem Cloranfenicol 0,6 U/g - Pomada Dermatológica;Colagenase Sem Cloranfenicol 0,6 U/g;;pomada;;UBS, UPA, PAD, HPRB, PID;;tópica;ativo
+23/09/2026;BET-2F78A0;Colagenase Sem Cloranfenicol 1,2 U/g - Pomada Dermatológica;Colagenase Sem Cloranfenicol 1,2 U/g;;pomada;;UBS, UPA, PAD, HPRB, PID;;tópica;ativo
+23/09/2026;BET-B237FA;Colchicina 0,5mg - Comprimido;Colchicina;0,5mg;comprimido;;;;oral;ativo
+23/09/2026;BET-DCAB55;Colecalciferol (Vitamina D3) 200ui/gota - Solução Oral;Colecalciferol (Vitamina D3);200ui;solução oral;;;;oral;ativo
+23/09/2026;BET-C8251B;Contraste Iodado Hidrossolúvel, Não Iônico 300 a 350mg/ml de iodo - Solução Injetável;Contraste Iodado Hidrossolúvel, Não Iônico 300 a;350mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-EC488C;Dantroleno 20mg - Pó para Solução Injetável;Dantroleno;20mg;pó para solução injetável;;;;injetável;ativo
+23/09/2026;BET-8D07BF;Dapsona + Rifampicina + Clofazimina 100mg + 300mg + (100 e 50mg) - Comprimido;Dapsona + Rifampicina + Clofazimina;100mg + 300mg;comprimido;;;;oral;ativo
+23/09/2026;BET-D6F801;Dapsona + Rifampicina + Clofazimina 50mg + 150mg + 50mg - Comprimido;Dapsona + Rifampicina + Clofazimina;50mg + 150mg + 50mg;comprimido;;;;oral;ativo
+23/09/2026;BET-A4B817;Daptomicina 500mg - Pó para Solução Injetável;Daptomicina;500mg;pó para solução injetável;;;;injetável;ativo
+23/09/2026;BET-4C59B6;Deslanosídeo 0,2mg/ml - Solução Injetável;Deslanosídeo;0,2mg/ml;solução injetável;;CX EMERGÊNCIA, UPA, HPRB, SEPADI, CIMUC, SAMU;;injetável;ativo
+23/09/2026;BET-8B1D9C;Desmopressina Acetato 4mcg/ml - Solução Injetável;Desmopressina Acetato;4mcg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-84D106;Dexametasona 1mg/g - Creme;Dexametasona;1mg/g;creme;;;;tópica;ativo
+23/09/2026;BET-65DFC7;Dexametasona 1mg/ml - Suspensão Oftálmica;Dexametasona;1mg/ml;suspensão;;;;;ativo
+23/09/2026;BET-55F858;Dexametasona 4mg - Comprimido;Dexametasona;4mg;comprimido;;;;oral;ativo
+23/09/2026;BET-37A913;Dexametasona 4mg/ml - Solução Injetável;Dexametasona;4mg/ml;solução injetável;;UBS, UPA, CERSAM, CAPS-AD, CERSAMI, HPRB, CREDFB;;injetável;ativo
+23/09/2026;BET-E8AA75;Dexmedetomidina 100mcg/ml - Solução Injetável;Dexmedetomidina;100mcg/ml;solução injetável;;HPRB, UPA;;injetável;ativo
+23/09/2026;BET-57DB0B;Dextrana + Hipromelose 1mg/ml + 3mg/ml - Solução Oftálmica;Dextrana + Hipromelose;1mg/ml + 3mg/ml;solução oftálmica;;UBS, UPA, HPRB;;oftálmica;ativo
+23/09/2026;BET-606C2C;Diazepam 10mg - Comprimido;Diazepam;10mg;comprimido;;UBS, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;BET-649143;Diazepam 5mg/ml - Solução Injetável;Diazepam;5mg/ml;solução injetável;;UBS, CX EMERGÊNCIA, UPA, CERSAM, CAPS-AD, CERSAMI, SEPADI, HPRB, CIMUC, SAMU;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;injetável;ativo
+23/09/2026;BET-A65147;Digoxina 0,25mg - Comprimido;Digoxina;0,25mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-378A00;Diltiazem 30mg - Comprimido;Diltiazem;30mg;comprimido;;;;oral;ativo
+23/09/2026;BET-40E3BA;Dipirona 500mg - Comprimido;Dipirona;500mg;comprimido;;UBS, UPA, CERSAM, CAPS-AD, CERSAMI, HPRB, SAMU;;oral;ativo
+23/09/2026;BET-718131;Dipirona 500mg/ml - Solução Injetável;Dipirona;500mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-C0969B;Dipirona 500mg/ml - Solução Oral;Dipirona;500mg/ml;solução oral;;;;oral;ativo
+23/09/2026;BET-3FE04E;Dobutamina 12,5mg/ml - Solução Injetável;Dobutamina;12,5mg/ml;solução injetável;;UPA, HPRB, SAMU;;injetável;ativo
+23/09/2026;BET-25F810;Domperidona 1mg/ml - Suspensão Oral;Domperidona;1mg/ml;suspensão oral;;;;oral;ativo
+23/09/2026;BET-7F4900;Dopamina Cloridrato 5mg/ml - Solução Injetável;Dopamina Cloridrato;5mg/ml;solução injetável;;UPA, HPRB, SAMU;;injetável;ativo
+23/09/2026;BET-7352DF;Doxazosina 2mg - Comprimido;Doxazosina;2mg;comprimido;;;;oral;ativo
+23/09/2026;BET-9F172A;Doxiciclina 100mg - Comprimido ou Drágea;Doxiciclina;100mg;comprimido;;;;oral;ativo
+23/09/2026;BET-F00670;Doxiciclina 100mg - Comprimido Solúvel;Doxiciclina;100mg;comprimido;;;;oral;ativo
+23/09/2026;BET-D12764;Efedrina Sulfato 50mg/ml - Solução Injetável;Efedrina Sulfato;50mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-F9B0F4;Enalapril 10mg - Comprimido;Enalapril;10mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-59947B;Enalapril 20mg - Comprimido;Enalapril;20mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-3E9AB1;Enoxaparina Sódica 20mg/0,2ml - Solução Injetável;Enoxaparina Sódica;20mg/0,2ml;solução injetável;;HPRB, UPA;;injetável;ativo
+23/09/2026;BET-B9E76C;Enoxaparina Sódica 40mg/0,4ml - Solução Injetável;Enoxaparina Sódica;40mg/0,4ml;solução injetável;;HPRB, UPA;;injetável;ativo
+23/09/2026;BET-C83337;Enoxaparina Sódica 60mg/0,6ml - Solução Injetável;Enoxaparina Sódica;60mg/0,6ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-7F765D;Ertapenem Sódico 1g – IV - Pó para Solução Injetável;Ertapenem Sódico;1g;pó para solução injetável;;;;injetável;ativo
+23/09/2026;BET-AE79FF;Escetamina Cloridrato 50mg/ml - Solução Injetável;Escetamina Cloridrato;50mg/ml;solução injetável;;HPRB, SAMU, UPA;;injetável;ativo
+23/09/2026;BET-7CABA5;Escopolamina Butilbrometo 10mg - Comprimido;Escopolamina Butilbrometo;10mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-7ED413;Escopolamina Butilbrometo 20mg/ml - Solução Injetável;Escopolamina Butilbrometo;20mg/ml;solução injetável;;UBS, UPA, HPRB;;injetável;ativo
+23/09/2026;BET-8E33EF;Espiramicina 1,5mui - Comprimido Revestido;Espiramicina 1,5mui;;comprimido revestido;;;;oral;ativo
+23/09/2026;BET-EA7659;Espironolactona 100mg - Comprimido;Espironolactona;100mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-3170FA;Espironolactona 25mg - Comprimido;Espironolactona;25mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-1A5168;Estradiol Hemi Hidratado 0,6mg/g - Gel;Estradiol Hemi Hidratado;0,6mg/g;gel;;;;tópica;ativo
+23/09/2026;BET-A49906;Estradiol Valerato 2mg - Comprimido;Estradiol Valerato;2mg;comprimido;;;;oral;ativo
+23/09/2026;BET-EDCB00;Estreptomicina 1g - Pó para Solução Injetável;Estreptomicina;1g;pó para solução injetável;;;;injetável;ativo
+23/09/2026;BET-A9BEF8;Etambutol 400mg - Comprimido;Etambutol;400mg;comprimido;;;;oral;ativo
+23/09/2026;BET-E1650F;Etionamida 250mg - Comprimido;Etionamida;250mg;comprimido;;;;oral;ativo
+23/09/2026;BET-FC6AAD;Etomidato 2mg/ml - Solução Injetável;Etomidato;2mg/ml;solução injetável;;UPA, HPRB, SAMU, CIMUC;;injetável;ativo
+23/09/2026;BET-DB717B;Etonogestrel 68mg - Implante Subdérmico;Etonogestrel;68mg;implante subdérmico;;;;subcutânea;ativo
+23/09/2026;BET-616A2E;Fenitoína 100mg - Comprimido;Fenitoína;100mg;comprimido;;UBS, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB;;oral;ativo
+23/09/2026;BET-09B9B1;Fenitoína 50mg/ml - Solução Injetável;Fenitoína;50mg/ml;solução injetável;;CX EMERGÊNCIA, UPA, HPRB, CERSAM, CAPS-AD, CERSAMI, SEPADI, CIMUC, SAMU;;injetável;ativo
+23/09/2026;BET-548D22;Fenobarbital 100mg - Comprimido;Fenobarbital;100mg;comprimido;;UBS, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB;;oral;ativo
+23/09/2026;BET-17A4E6;Fenobarbital 100mg/ml - Solução Injetável;Fenobarbital;100mg/ml;solução injetável;;CX EMERGÊNCIA, UPA, HPRB, CERSAM, CAPS-AD, CERSAMI, SEPADI, CIMUC, SAMU;;injetável;ativo
+23/09/2026;BET-D51449;Fenobarbital 40mg/ml - Solução Oral;Fenobarbital;40mg/ml;solução oral;;UBS, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB;;oral;ativo
+23/09/2026;BET-CDF0A3;Fentanila 0,05mg/ml - Solução Injetável;Fentanila;0,05mg/ml;solução injetável;;UPA, HPRB, SAMU;Notificação de Receita A (amarela) — entorpecente/psicotrópico, Portaria 344/98. Prescrição em receituário especial.;injetável;ativo
+23/09/2026;BET-412F86;Finasterida 5mg - Comprimido;Finasterida;5mg;comprimido;;;;oral;ativo
+23/09/2026;BET-7D1B10;Fitomenadiona 10mg/ml - Solução Injetável;Fitomenadiona;10mg/ml;solução injetável;;UBS, UPA, HPRB;;injetável;ativo
+23/09/2026;BET-6A7A12;Fluconazol 150mg - Cápsula;Fluconazol;150mg;cápsula;;UBS, UPA, HPRB, SEPADI;;oral;ativo
+23/09/2026;BET-32FF2F;Fluconazol 2mg/ml (0,2%) - Solução Injetável;Fluconazol;2mg/ml (0,2%);solução injetável;;;;injetável;ativo
+23/09/2026;BET-A4ACEF;Flumazenil 0,1mg/ml - Solução Injetável;Flumazenil;0,1mg/ml;solução injetável;;CX EMERGÊNCIA, UPA, HPRB, SEPADI, CIMUC;;injetável;ativo
+23/09/2026;BET-59FAE8;Fluocinolona + Polimixina B + Lidocaína + Neomicina 250mg + 10.000ui + 20mg + 5mg/ml - Solução Otológica;Fluocinolona + Polimixina B + Lidocaína + Neomicina;250mg + 10.000ui + 20mg + 5mg/ml;solução otológica;;;;otológica;ativo
+23/09/2026;BET-6001E5;Fluoresceína 10mg/ml (1%) - Solução Oftálmica;Fluoresceína;10mg/ml (1%);solução oftálmica;;;;oftálmica;ativo
+23/09/2026;BET-0B7889;Fluoxetina 20mg - Cápsula;Fluoxetina;20mg;cápsula;;;;oral;ativo
+23/09/2026;BET-44AE39;Fosfato de Potássio (Fosfato de Potássio Dibásico + Fosfato de Potássio Monobásico) 2meq/ml (156,7mg/ml + 30mg/ml) - Solução Injetável;Fosfato de Potássio (Fosfato de Potássio Dibásico + Fosfato de Potássio Monobásico) 2meq/ml (;156,7mg/ml + 30mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-275C36;Fosfomicina Trometamol 3g - Granulado;Fosfomicina Trometamol;3g;granulado;;;;oral;ativo
+23/09/2026;BET-F57D14;Furosemida 10mg/ml - Solução Injetável;Furosemida;10mg/ml;solução injetável;;UBS, CX EMERGÊNCIA, UPA, HPRB, CIMUC, SAMU, SEPADI;;injetável;ativo
+23/09/2026;BET-2111A5;Furosemida 40mg - Comprimido;Furosemida;40mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-BDBF51;Gentamicina 40mg/ml - Solução Injetável;Gentamicina;40mg/ml;solução injetável;;UPA, HPRB, PID, UBS;;injetável;ativo
+23/09/2026;BET-415E47;Glibenclamida 5mg - Comprimido;Glibenclamida;5mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-3F8278;Glicerina 120mg/ml (12%) - Solução Retal;Glicerina;120mg/ml (12%);solução;;UBS, UPA, PAD, HPRB, PID;;retal;ativo
+23/09/2026;BET-6E209F;Glicina 15mg/ml (1,5%) - Solução para Irrigação;Glicina;15mg/ml (1,5%);solução;;;;;ativo
+23/09/2026;BET-9BCCE8;Gliclazida 30mg - Comprimido de Liberação Controlada;Gliclazida;30mg;comprimido;;;;oral;ativo
+23/09/2026;BET-7A39A3;Gliclazida 60mg - Comprimido de Liberação Controlada;Gliclazida;60mg;comprimido;;;;oral;ativo
+23/09/2026;BET-5E48DF;Gliconato de Cálcio 100mg/ml (10%) - Solução Injetável;Gliconato de Cálcio;100mg/ml (10%);solução injetável;;UPA, HPRB, SAMU, CIMUC;;injetável;ativo
+23/09/2026;BET-EEEA77;Glicose 500mg/ml (50%) - Solução Injetável;Glicose;500mg/ml (50%);solução injetável;;UBS, CX EMERGÊNCIA, UPA, CERSAM, CAPS-AD, CERSAMI, HPRB, SEPADI, SAMU, CIMUC, PID;;injetável;ativo
+23/09/2026;BET-EB1944;Glicose 50mg/ml (5%) - Solução Injetável;Glicose;50mg/ml (5%);solução injetável;;UBS, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB, SEPADI, SAMU, PID;;injetável;ativo
+23/09/2026;BET-CE997E;Haloperidol 1mg - Comprimido;Haloperidol;1mg;comprimido;;;;oral;ativo
+23/09/2026;BET-8214E5;Haloperidol 2mg/ml (0,2%) - Solução Oral;Haloperidol;2mg/ml (0,2%);solução oral;;UBS, CERSAM, CAPS-AD, CERSAMI, HPRB, UPA;;oral;ativo
+23/09/2026;BET-55EAF5;Haloperidol 50mg/ml - Solução Injetável;Haloperidol;50mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-FF796E;Haloperidol 5mg - Comprimido;Haloperidol;5mg;comprimido;;UBS, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB;;oral;ativo
+23/09/2026;BET-9CBD1F;Haloperidol 5mg/ml - Solução Injetável;Haloperidol;5mg/ml;solução injetável;;CX EMERGÊNCIA, UPA, HPRB, CERSAM, CAPS-AD, CERSAMI, SEPADI, SAMU;;injetável;ativo
+23/09/2026;BET-7D5C04;Heparina Sódica 5.000ui/0,25ml - Solução Injetável;Heparina Sódica;5.000ui;solução injetável;;;;injetável;ativo
+23/09/2026;BET-6A4C26;Heparina Sódica 5.000ui/ml - Solução Injetável;Heparina Sódica;5.000ui/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-019451;Hidralazina 20mg/ml - Solução Injetável;Hidralazina;20mg/ml;solução injetável;;HPRB, UPA, CIMUC;;injetável;ativo
+23/09/2026;BET-520772;Hidralazina 25mg - Comprimido;Hidralazina;25mg;comprimido;;UBS, UPA, HPRB, CIMUC;;oral;ativo
+23/09/2026;BET-33B38F;Hidroclorotiazida 25mg - Comprimido;Hidroclorotiazida;25mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-6C48BA;Hidrocortisona 100mg - Pó para Solução Injetável;Hidrocortisona;100mg;pó para solução injetável;;UPA, HPRB, SAMU, PID;;injetável;ativo
+23/09/2026;BET-2A9EFC;Hidrocortisona 500mg - Pó para Solução Injetável;Hidrocortisona;500mg;pó para solução injetável;;UBS, CX EMERGÊNCIA, UPA, HPRB, CIMUC, SAMU, PID;;injetável;ativo
+23/09/2026;BET-58DEC1;Hidroxietilamido + Cloreto de Sódio 60mg/ml (6%) + 9mg/ml (0,9%) - Solução para Infusão;Hidroxietilamido + Cloreto de Sódio;60mg/ml (6%) + 9mg/ml;solução;;;;;ativo
+23/09/2026;BET-39EBB1;Ibuprofeno 50mg/ml - Suspensão Oral;Ibuprofeno;50mg/ml;suspensão oral;;;;oral;ativo
+23/09/2026;BET-FB76FD;Ibuprofeno 600mg - Comprimido;Ibuprofeno;600mg;comprimido;;UBS, UPA, HPRB, CAPS-AD;;oral;ativo
+23/09/2026;BET-5CEF18;Imatinibe 400mg - Comprimido;Imatinibe;400mg;comprimido;;;;oral;ativo
+23/09/2026;BET-1A84E6;Imunoglobulina Humana 50mg/ml (5g) - Injetável;Imunoglobulina Humana;50mg/ml;injetável;;;;injetável;ativo
+23/09/2026;BET-565166;Insulina Glargina 100ui/ml - Solução Injetável;Insulina Glargina;100ui/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-B9EF7F;Insulina Humana NPH 100ui/ml - Suspensão Injetável;Insulina Humana NPH;100ui/ml;suspensão injetável;;UBS, UPA, HPRB;;injetável;ativo
+23/09/2026;BET-8EE42E;Insulina Humana Regular 100ui/ml - Solução Injetável;Insulina Humana Regular;100ui/ml;solução injetável;;UBS, UPA, HPRB;;injetável;ativo
+23/09/2026;BET-98A79F;Isoniazida 100mg - Comprimido;Isoniazida;100mg;comprimido;;;;oral;ativo
+23/09/2026;BET-590E25;Isoniazida 300mg - Comprimido;Isoniazida;300mg;comprimido;;;;oral;ativo
+23/09/2026;BET-D1148B;Isossorbida Dinitrato 5mg - Comprimido Sublingual;Isossorbida Dinitrato;5mg;comprimido sublingual;;UBS, CX EMERGÊNCIA, UPA, HPRB, CIMUC, SAMU;;sublingual;ativo
+23/09/2026;BET-0C1F60;Isossorbida Mononitrato 20mg - Comprimido;Isossorbida Mononitrato;20mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-B46774;Itraconazol 100mg - Cápsula;Itraconazol;100mg;cápsula;;;;oral;ativo
+23/09/2026;BET-DEEDE3;Ivermectina 6mg - Comprimido;Ivermectina;6mg;comprimido;;UBS, SEPADI, UPA, HPRB;;oral;ativo
+23/09/2026;BET-85A602;Lactulose 667mg/ml (66,7%) - Xarope;Lactulose;667mg/ml (66,7%);xarope;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-933F9F;Levetiracetam 100mg/ml - Solução Oral;Levetiracetam;100mg/ml;solução oral;;;;oral;ativo
+23/09/2026;BET-4DA783;Levodopa + Benserazida 100mg + 25mg - Comprimido;Levodopa + Benserazida;100mg + 25mg;comprimido;;;;oral;ativo
+23/09/2026;BET-C452C9;Levodopa + Benserazida 200mg + 50mg - Comprimido;Levodopa + Benserazida;200mg + 50mg;comprimido;;;;oral;ativo
+23/09/2026;BET-AB3DFE;Levodopa + Carbidopa 250mg + 25mg - Comprimido;Levodopa + Carbidopa;250mg + 25mg;comprimido;;;;oral;ativo
+23/09/2026;BET-229B66;Levonorgestrel + Etinilestradiol 0,15mg + 0,03mg - Comprimido;Levonorgestrel + Etinilestradiol;0,15mg + 0,03mg;comprimido;;;;oral;ativo
+23/09/2026;BET-2762F5;Levonorgestrel 0,75mg - Comprimido;Levonorgestrel;0,75mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-1CF06F;Levotiroxina Sódica 100mcg - Comprimido;Levotiroxina Sódica;100mcg;comprimido;;;;oral;ativo
+23/09/2026;BET-47A867;Levotiroxina Sódica 25mcg - Comprimido;Levotiroxina Sódica;25mcg;comprimido;;;;oral;ativo
+23/09/2026;BET-2FE7C9;Levotiroxina Sódica 50mcg - Comprimido;Levotiroxina Sódica;50mcg;comprimido;;;;oral;ativo
+23/09/2026;BET-2E8A17;Levotiroxina Sódica 75mcg - Comprimido;Levotiroxina Sódica;75mcg;comprimido;;;;oral;ativo
+23/09/2026;BET-22DFDB;Lidocaína + Vasoconstritor 20mg/ml (2%) - Solução Injetável;Lidocaína + Vasoconstritor;20mg/ml (2%);solução injetável;;;;injetável;ativo
+23/09/2026;BET-6E2BE0;Lidocaína Cloridrato + Epinefrina 20mg/ml (2%) + 0,005mg - Solução Injetável;Lidocaína Cloridrato + Epinefrina;20mg/ml (2%) + 0,005mg;solução injetável;;;;injetável;ativo
+23/09/2026;BET-025451;Lidocaína Cloridrato 100mg/ml (10%) - Spray;Lidocaína Cloridrato;100mg/ml (10%);spray;;;;;ativo
+23/09/2026;BET-45FEA6;Lidocaína Cloridrato 20mg/g (2%) - Geleia;Lidocaína Cloridrato;20mg/g (2%);geleia;;UBS, UPA, PAD, CREDFB, HPRB, CIMUC, SAMU;;;ativo
+23/09/2026;BET-E6E056;Lidocaína Cloridrato 20mg/ml (2%) - Solução Injetável;Lidocaína Cloridrato;20mg/ml (2%);solução injetável;;UPA, HPRB, CIMUC, CREDFB;;injetável;ativo
+23/09/2026;BET-236E96;Lidocaína Cloridrato 20mg/ml (2%) Isobárica - Solução Injetável;Lidocaína Cloridrato;20mg/ml (2%);solução injetável;;;;injetável;ativo
+23/09/2026;BET-60E2CD;Linezolida 2mg/ml - Solução Injetável;Linezolida;2mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-CEB5AC;Loperamida Cloridrato 2mg - Comprimido;Loperamida Cloridrato;2mg;comprimido;;;;oral;ativo
+23/09/2026;BET-ECA839;Loratadina 10mg - Comprimido;Loratadina;10mg;comprimido;;UBS, UPA, HPRB, SEPADI;;oral;ativo
+23/09/2026;BET-029655;Loratadina 1mg/ml - Xarope;Loratadina;1mg/ml;xarope;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-ABCE7B;Lorazepam 2mg - Comprimido;Lorazepam;2mg;comprimido;;;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;BET-64DCBD;Losartana 50mg - Comprimido;Losartana;50mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-45B1A6;Manitol 200mg/ml (20%) - Solução Injetável;Manitol;200mg/ml (20%);solução injetável;;UPA, HPRB, SAMU, CIMUC;;injetável;ativo
+23/09/2026;BET-816775;Medroxiprogesterona 10mg - Comprimido;Medroxiprogesterona;10mg;comprimido;;;;oral;ativo
+23/09/2026;BET-D59DD0;Medroxiprogesterona 150mg/ml - Suspensão Injetável;Medroxiprogesterona;150mg/ml;suspensão injetável;;;;injetável;ativo
+23/09/2026;BET-A00888;Mepivacaína 30mg/ml (3%) - Solução Injetável;Mepivacaína;30mg/ml (3%);solução injetável;;;;injetável;ativo
+23/09/2026;BET-E3F8B1;Meropenem 1g IV - Pó para Solução Injetável;Meropenem;1g;pó para solução injetável;;UPA, HPRB, PID;;injetável;ativo
+23/09/2026;BET-72BA8E;Metadona 10mg - Comprimido;Metadona;10mg;comprimido;;;Notificação de Receita A (amarela) — entorpecente/psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;BET-B872B9;Metaraminol, Hemitartarato 10mg/ml - Solução Injetável;Metaraminol, Hemitartarato;10mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-6C46F8;Metformina 850mg - Comprimido;Metformina;850mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-E2C2ED;Metildopa 250mg - Comprimido;Metildopa;250mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-C9A82B;Metildopa 500mg - Comprimido;Metildopa;500mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-1211F9;Metilergometrina 0,2mg/ml - Solução Injetável;Metilergometrina;0,2mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-80C0C4;Metilprednisolona Succinato Sódico 125mg - Solução Injetável;Metilprednisolona Succinato Sódico;125mg;solução injetável;;;;injetável;ativo
+23/09/2026;BET-8ECDED;Metilprednisolona Succinato Sódico 500mg - Solução Injetável;Metilprednisolona Succinato Sódico;500mg;solução injetável;;;;injetável;ativo
+23/09/2026;BET-1B4286;Metoclopramida 10mg - Comprimido;Metoclopramida;10mg;comprimido;;UBS, UPA, SEPADI, HPRB, CIMUC;;oral;ativo
+23/09/2026;BET-A1D7D4;Metoclopramida 5mg/ml - Solução Injetável;Metoclopramida;5mg/ml;solução injetável;;UBS, UPA, CERSAM, CAPS-AD, CERSAMI, HPRB, SAMU, CIMUC, SEPADI;;injetável;ativo
+23/09/2026;BET-F57D6A;Metoprolol 1mg/ml - Solução Injetável;Metoprolol;1mg/ml;solução injetável;;UPA, HPRB, SAMU;;injetável;ativo
+23/09/2026;BET-898C8E;Metronidazol 100mg/g - Geleia Vaginal;Metronidazol;100mg/g;geleia vaginal;;;;vaginal;ativo
+23/09/2026;BET-439AAF;Metronidazol 250mg - Comprimido;Metronidazol;250mg;comprimido;;UBS, UPA, SEPADI, HPRB;;oral;ativo
+23/09/2026;BET-E86617;Metronidazol 5mg/ml - Solução Injetável;Metronidazol;5mg/ml;solução injetável;;UPA, HPRB;;injetável;ativo
+23/09/2026;BET-CE7F74;Micafungina 50mg - Pó para Solução Injetável;Micafungina;50mg;pó para solução injetável;;;;injetável;ativo
+23/09/2026;BET-202742;Miconazol Nitrato 20mg/g - Creme Vaginal;Miconazol Nitrato;20mg/g;creme vaginal;;;;vaginal;ativo
+23/09/2026;BET-2A75CC;Midazolam 15mg - Comprimido;Midazolam;15mg;comprimido;;;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;BET-5419C2;Midazolam 5mg/ml - Solução Injetável;Midazolam;5mg/ml;solução injetável;;;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;injetável;ativo
+23/09/2026;BET-613689;Milrinona Lactato 1mg/ml - Solução Injetável;Milrinona Lactato;1mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-5EC782;Minociclina 100mg - Comprimido;Minociclina;100mg;comprimido;;;;oral;ativo
+23/09/2026;BET-E590BE;Monoetanolamina Oleato 50mg/ml - Solução Injetável;Monoetanolamina Oleato;50mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-9D771E;Morfina Sulfato 0,1mg/ml - Solução Injetável;Morfina Sulfato;0,1mg/ml;solução injetável;;;Notificação de Receita A (amarela) — entorpecente/psicotrópico, Portaria 344/98. Prescrição em receituário especial.;injetável;ativo
+23/09/2026;BET-E02A85;Morfina Sulfato 10mg/ml - Solução Injetável;Morfina Sulfato;10mg/ml;solução injetável;;CX EMERGÊNCIA, UPA, HPRB, SEPADI, CIMUC, SAMU, PID;Notificação de Receita A (amarela) — entorpecente/psicotrópico, Portaria 344/98. Prescrição em receituário especial.;injetável;ativo
+23/09/2026;BET-BAB1B4;Morfina Sulfato 1mg/ml - Solução Injetável;Morfina Sulfato;1mg/ml;solução injetável;;;Notificação de Receita A (amarela) — entorpecente/psicotrópico, Portaria 344/98. Prescrição em receituário especial.;injetável;ativo
+23/09/2026;BET-ECBEFD;Moxifloxacino 1,6mg/ml (400mg) - Solução Injetável;Moxifloxacino;1,6mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-DDF88A;Naloxona 0,4mg/ml - Solução Injetável;Naloxona;0,4mg/ml;solução injetável;;CX EMERGÊNCIA, UPA, HPRB, CIMUC;;injetável;ativo
+23/09/2026;BET-5CAAD9;Naltrexona 50mg - Comprimido;Naltrexona;50mg;comprimido;;;;oral;ativo
+23/09/2026;BET-7DE9EE;Neostigmina Metilsulfato 0,5mg/ml - Solução Injetável;Neostigmina Metilsulfato;0,5mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-EC9C9F;Nicotina 14mg - Adesivo Transdérmico;Nicotina;14mg;adesivo transdérmico;;;;transdérmica;ativo
+23/09/2026;BET-765BAE;Nicotina 21mg - Adesivo Transdérmico;Nicotina;21mg;adesivo transdérmico;;;;transdérmica;ativo
+23/09/2026;BET-E8F2E9;Nicotina 2mg - Goma de Mascar;Nicotina;2mg;goma de mascar;;;;oral;ativo
+23/09/2026;BET-790667;Nicotina 2mg - Pastilha;Nicotina;2mg;pastilha;;;;oral;ativo
+23/09/2026;BET-0DD206;Nicotina 7mg - Adesivo Transdérmico;Nicotina;7mg;adesivo transdérmico;;;;transdérmica;ativo
+23/09/2026;BET-30EC91;Nifedipina 10mg - Comprimido;Nifedipina;10mg;comprimido;;;;oral;ativo
+23/09/2026;BET-91CDBA;Nifedipina 20mg - Comprimido;Nifedipina;20mg;comprimido;;;;oral;ativo
+23/09/2026;BET-2BBAB3;Nimodipino 30mg - Comprimido;Nimodipino;30mg;comprimido;;;;oral;ativo
+23/09/2026;BET-5285A3;Nirmatrelvir + Ritonavir 150mg + 100mg - Comprimido;Nirmatrelvir + Ritonavir;150mg + 100mg;comprimido;;UBS, HPRB, UPA, SEPADI;;oral;ativo
+23/09/2026;BET-49E774;Nistatina 100.000ui/ml - Suspensão Oral;Nistatina;100.000ui/ml;suspensão oral;;UBS, HPRB, UPA;;oral;ativo
+23/09/2026;BET-F0E5E0;Nistatina 25.000ui/g - Creme Vaginal;Nistatina;25.000ui;creme vaginal;;UBS, HPRB, UPA;;vaginal;ativo
+23/09/2026;BET-7A0160;Nitrazepam 5mg - Comprimido;Nitrazepam;5mg;comprimido;;;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;BET-E11246;Nitrofurantoína 100mg - Cápsula;Nitrofurantoína;100mg;cápsula;;UBS, UPA, SEPADI, HPRB;;oral;ativo
+23/09/2026;BET-AFD133;Nitroglicerina 5mg/ml - Solução Injetável;Nitroglicerina;5mg/ml;solução injetável;;HPRB, UPA, SAMU;;injetável;ativo
+23/09/2026;BET-EEEF6C;Nitroprussiato de Sódio 25mg/ml - Solução Injetável;Nitroprussiato de Sódio;25mg/ml;solução injetável;;HPRB, UPA, SAMU;;injetável;ativo
+23/09/2026;BET-9851BE;Norepinefrina (Hemitartarato de Norepinefrina) 1mg/ml (2mg/ml) - Solução Injetável;Norepinefrina (Hemitartarato de Norepinefrina);1mg/ml;solução injetável;;HPRB, UPA, SAMU;;injetável;ativo
+23/09/2026;BET-62A141;Noretisterona + Estradiol 50mg/ml + 5mg/ml - Solução Injetável;Noretisterona + Estradiol;50mg/ml + 5mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-0C57C5;Noretisterona 0,35mg - Comprimido;Noretisterona;0,35mg;comprimido;;;;oral;ativo
+23/09/2026;BET-366AD8;Nortriptilina 25mg - Cápsula;Nortriptilina;25mg;cápsula;;;;oral;ativo
+23/09/2026;BET-90F97B;Nortriptilina 50mg - Cápsula;Nortriptilina;50mg;cápsula;;;;oral;ativo
+23/09/2026;BET-535523;Octreotida Acetato 0,1mg/ml - Solução Injetável;Octreotida Acetato;0,1mg/ml;solução injetável;;HPRB, UPA;;injetável;ativo
+23/09/2026;BET-FB198D;Octreotida Acetato 0,5mg/ml - Solução Injetável;Octreotida Acetato;0,5mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-DF61EC;Ofloxacino 400mg - Comprimido;Ofloxacino;400mg;comprimido;;;;oral;ativo
+23/09/2026;BET-A32B77;Oleo Mineral;Oleo Mineral;;;;UBS, HPRB, UPA, CAPS-AD;;;ativo
+23/09/2026;BET-A92C2D;Omeprazol 20mg - Cápsula;Omeprazol;20mg;cápsula;;UBS, HPRB, UPA;;oral;ativo
+23/09/2026;BET-4B8F90;Omeprazol 40mg - Pó para Solução Injetável;Omeprazol;40mg;pó para solução injetável;;HPRB, UPA, SAMU, PID;;injetável;ativo
+23/09/2026;BET-D2AA82;Ondansetrona Cloridrato 2mg/ml - Solução Injetável;Ondansetrona Cloridrato;2mg/ml;solução injetável;;UBS, UPA, HPRB;;injetável;ativo
+23/09/2026;BET-C597B1;Oseltamivir 30mg - Comprimido;Oseltamivir;30mg;comprimido;;UBS, HPRB, UPA, SEPADI;;oral;ativo
+23/09/2026;BET-CBECBF;Oseltamivir 45mg - Comprimido;Oseltamivir;45mg;comprimido;;UBS, HPRB, UPA, SEPADI;;oral;ativo
+23/09/2026;BET-7446E0;Oseltamivir 75mg - Comprimido;Oseltamivir;75mg;comprimido;;UBS, HPRB, UPA, SEPADI;;oral;ativo
+23/09/2026;BET-052B15;Oxacilina Sódica 500mg - Pó para Solução Injetável;Oxacilina Sódica;500mg;pó para solução injetável;;HPRB, UPA;;injetável;ativo
+23/09/2026;BET-28C783;Oxcarbazepina 60mg/ml (6%) - Suspensão Oral;Oxcarbazepina;60mg/ml (6%);suspensão oral;;;;oral;ativo
+23/09/2026;BET-5E0A48;Oxibutinina Cloridrato 5mg - Comprimido;Oxibutinina Cloridrato;5mg;comprimido;;;;oral;ativo
+23/09/2026;BET-AB9BEF;Oxido Férrico, Sacarato 20mg/ml - Solução Injetável;Oxido Férrico, Sacarato;20mg/ml;solução injetável;;UPA, HPRB, PID;;injetável;ativo
+23/09/2026;BET-0D56AB;Palivizumabe 100mg/ml - Solução Injetável;Palivizumabe;100mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-083841;Paracetamol 200mg/ml (20%) - Solução Oral;Paracetamol;200mg/ml (20%);solução oral;;UBS, HPRB, UPA, SEPADI, CAPS-AD;;oral;ativo
+23/09/2026;BET-189EB5;Paracetamol 500mg - Comprimido;Paracetamol;500mg;comprimido;;UBS, HPRB, UPA, CAPS-AD;;oral;ativo
+23/09/2026;BET-80FF3A;Pentoxifilina 400mg - Drágea;Pentoxifilina;400mg;drágea;;;;oral;ativo
+23/09/2026;BET-8F2A11;Permetrina 10mg/ml (1%) - Loção;Permetrina;10mg/ml (1%);loção;;;;tópica;ativo
+23/09/2026;BET-932C9B;Permetrina 50mg/ml (5%) - Loção;Permetrina;50mg/ml (5%);loção;;;;tópica;ativo
+23/09/2026;BET-691590;Pertuzumabe 30mg/ml (420mg/14ml) - Solução Injetável;Pertuzumabe;30mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-7F9F2F;Pilocarpina 20mg/ml (2%) - Solução Oftálmica;Pilocarpina;20mg/ml (2%);solução oftálmica;;;;oftálmica;ativo
+23/09/2026;BET-9D51F3;Piperacilina Sódica + Tazobactam Sódico 4000mg + 500mg - Pó para Solução Injetável;Piperacilina Sódica + Tazobactam Sódico;4000mg + 500mg;pó para solução injetável;;;;injetável;ativo
+23/09/2026;BET-10583A;Pirazinamida 30mg/ml (3%) - Solução Oral;Pirazinamida;30mg/ml (3%);solução oral;;;;oral;ativo
+23/09/2026;BET-CF3A39;Pirazinamida 500mg - Comprimido;Pirazinamida;500mg;comprimido;;;;oral;ativo
+23/09/2026;BET-73849A;Piridoxina (Vitamina B6) 50mg - Comprimido;Piridoxina (Vitamina B6);50mg;comprimido;;;;oral;ativo
+23/09/2026;BET-D58C86;Pirimetamina 25mg - Comprimido;Pirimetamina;25mg;comprimido;;;;oral;ativo
+23/09/2026;BET-500484;Poliestirenossulfonato de Cálcio 900mg/g - Pó para Suspensão Oral;Poliestirenossulfonato de Cálcio;900mg/g;pó para suspensão oral;;;;oral;ativo
+23/09/2026;BET-78ABFE;Polimixina B, Sulfato 500.000ui - Pó Liofilizado Injetável;Polimixina B, Sulfato;500.000ui;pó liofilizado;;;;injetável;ativo
+23/09/2026;BET-B77B6E;Polimixina E – Colistimetato de Sódio 80mg de colistina base - Pó Liofilizado Injetável;Polimixina E – Colistimetato de Sódio;80mg;pó liofilizado;;;;injetável;ativo
+23/09/2026;BET-D81551;Praziquantel 600mg - Comprimido;Praziquantel;600mg;comprimido;;;;oral;ativo
+23/09/2026;BET-E182BB;Prednisolona, Fosfato Sódico 3mg/ml - Solução Oral;Prednisolona, Fosfato Sódico;3mg/ml;solução oral;;UBS, HPRB, UPA;;oral;ativo
+23/09/2026;BET-222A4A;Prednisona 20mg - Comprimido;Prednisona;20mg;comprimido;;UBS, HPRB, UPA, SEPADI;;oral;ativo
+23/09/2026;BET-07C814;Prednisona 5mg - Comprimido;Prednisona;5mg;comprimido;;UBS, HPRB, UPA;;oral;ativo
+23/09/2026;BET-3FF78F;Prometazina 25mg - Comprimido;Prometazina;25mg;comprimido;;UBS, CERSAM, CAPS-AD, CERSAMI, HPRB, UPA, SAMU, SEPADI;;oral;ativo
+23/09/2026;BET-C8B947;Prometazina 25mg/ml - Solução Injetável;Prometazina;25mg/ml;solução injetável;;UBS, CX EMERGÊNCIA, UPA, CERSAM, CAPS-AD, CERSAMI, HPRB, SEPADI, SAMU, CIMUC;;injetável;ativo
+23/09/2026;BET-F0D700;Propiltiouracila 100mg - Comprimido;Propiltiouracila;100mg;comprimido;;;;oral;ativo
+23/09/2026;BET-850393;Propofol 10mg/ml - Emulsão Injetável;Propofol;10mg/ml;emulsão injetável;;;;injetável;ativo
+23/09/2026;BET-AC88EB;Propranolol 40mg - Comprimido;Propranolol;40mg;comprimido;;UBS, HPRB, UPA, SAMU, CAPS-AD;;oral;ativo
+23/09/2026;BET-13DD24;Protamina, Cloridrato 1000ui/ml - Solução Injetável;Protamina, Cloridrato;1000ui/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-7232CD;Proximetacaína, Cloridrato 5mg/ml (0,5%) - Solução Oftálmica;Proximetacaína, Cloridrato;5mg/ml (0,5%);solução oftálmica;;;;oftálmica;ativo
+23/09/2026;BET-457A1A;Quetiapina 100mg - Comprimido;Quetiapina;100mg;comprimido;;;;oral;ativo
+23/09/2026;BET-D8DA9D;Quetiapina 25mg - Comprimido;Quetiapina;25mg;comprimido;;;;oral;ativo
+23/09/2026;BET-5E8227;Remifentanila, Cloridrato 2mg - Pó para Solução Injetável;Remifentanila, Cloridrato;2mg;pó para solução injetável;;;;injetável;ativo
+23/09/2026;BET-E7B2E2;Rifampicina + Isoniazida + Pirazinamida + Etambutol, Cloridrato 150mg + 75mg + 275mg + 400mg - Comprimido;Rifampicina + Isoniazida + Pirazinamida + Etambutol, Cloridrato;150mg + 75mg + 275mg + 400mg;comprimido;;UBS, HPRB, UPA, SEPADI;;oral;ativo
+23/09/2026;BET-10B925;Rifampicina + Isoniazida + Pirazinamida 75mg + 50mg + 150mg - Comprimido Dispersível;Rifampicina + Isoniazida + Pirazinamida;75mg + 50mg + 150mg;comprimido;;;;oral;ativo
+23/09/2026;BET-6B4696;Rifampicina + Isoniazida 150mg + 75mg - Comprimido;Rifampicina + Isoniazida;150mg + 75mg;comprimido;;;;oral;ativo
+23/09/2026;BET-343DF4;Rifampicina + Isoniazida 300mg + 150mg - Comprimido;Rifampicina + Isoniazida;300mg + 150mg;comprimido;;;;oral;ativo
+23/09/2026;BET-5CD308;Rifampicina + Isoniazida 75mg + 50mg - Comprimido Dispersível;Rifampicina + Isoniazida;75mg + 50mg;comprimido;;;;oral;ativo
+23/09/2026;BET-0FC739;Rifampicina 20mg/ml (2%) - Suspensão Oral;Rifampicina;20mg/ml (2%);suspensão oral;;;;oral;ativo
+23/09/2026;BET-4F2E09;Rifampicina 300mg - Cápsula;Rifampicina;300mg;cápsula;;;;oral;ativo
+23/09/2026;BET-B13574;Rifapentina 150mg - Comprimido;Rifapentina;150mg;comprimido;;;;oral;ativo
+23/09/2026;BET-1DEFF2;Risperidona 1mg - Comprimido;Risperidona;1mg;comprimido;;;;oral;ativo
+23/09/2026;BET-3B9695;Risperidona 1mg/ml - Solução Oral;Risperidona;1mg/ml;solução oral;;;;oral;ativo
+23/09/2026;BET-7160A3;Risperidona 2mg - Comprimido;Risperidona;2mg;comprimido;;;;oral;ativo
+23/09/2026;BET-0A022F;Rivaroxabana 10mg - Comprimido;Rivaroxabana;10mg;comprimido;;;;oral;ativo
+23/09/2026;BET-E2382B;Rocurônio, Brometo 10mg/ml - Solução Injetável;Rocurônio, Brometo;10mg/ml;solução injetável;;HPRB, UPA, CIMUC;;injetável;ativo
+23/09/2026;BET-1C6465;Ropivacaína, Cloridrato 10mg/ml - Solução Injetável;Ropivacaína, Cloridrato;10mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-2721AF;Saccharomyces Boulardii – 17 100mg - Cápsula;Saccharomyces Boulardii – 17;100mg;cápsula;;;;oral;ativo
+23/09/2026;BET-D9BCAE;"Sais para Reidratação Oral Cloreto de sódio 3,5g; Cloreto de potássio 1,5g; Citrato de Sódio diidratado 2,9g; Glicose 20g - Pó para Solução Oral";Sais para Reidratação Oral Cloreto de sódio;3,5g;pó para solução oral;;;;oral;ativo
+23/09/2026;BET-DE0D89;Salbutamol, Sulfato 0,5mg/ml - Solução Injetável;Salbutamol, Sulfato;0,5mg/ml;solução injetável;;HPRB, UPA;;injetável;ativo
+23/09/2026;BET-5832B8;Salbutamol, Sulfato 100mcg/dose - Aerossol Oral;Salbutamol, Sulfato;100mcg/dose;aerossol;;UBS, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB, SEPADI, CIMUC, SAMU, CREDFB;;inalatória;ativo
+23/09/2026;BET-B90E95;Salbutamol, Sulfato 5mg/ml - Solução para Inalação;Salbutamol, Sulfato;5mg/ml;solução;;UBS, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB, SEPADI, CIMUC, SAMU, CREDFB;;;ativo
+23/09/2026;BET-39199C;Salmeterol, Xinafoato + Fluticasona 25mcg + 125mcg/ dose - Spray Oral;Salmeterol, Xinafoato + Fluticasona;25mcg + 125mcg;spray;;;;;ativo
+23/09/2026;BET-BEC9C6;Secnidazol 1000mg - Comprimido;Secnidazol;1000mg;comprimido;;;;oral;ativo
+23/09/2026;BET-4E5B01;Sertralina 50mg - Comprimido;Sertralina;50mg;comprimido;;;;oral;ativo
+23/09/2026;BET-58AC97;Sevoflurano 1ml/ml (100%) - Solução para Inalação;Sevoflurano;100%;solução;;;;;ativo
+23/09/2026;BET-111499;Simeticona 75mg/ml - Emulsão Oral;Simeticona;75mg/ml;emulsão;;UBS, HPRB, UPA;;;ativo
+23/09/2026;BET-E96562;Sinvastatina 20mg - Comprimido;Sinvastatina;20mg;comprimido;;UBS, HPRB, UPA;;oral;ativo
+23/09/2026;BET-874239;Solução Ringer + Lactato Lactato de sódio 3mg/ml + cloreto de sódio 6mg/ml + cloreto de potássio 0,3mg/ml + cloreto de cálcio 0,2mg/ml - Solução Injetável Intravenosa;Solução Ringer + Lactato Lactato de sódio;3mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-B0103B;Solução Ringer Simples - Solução Injetável Intravenosa;Solução Ringer Simples;;solução injetável;;CX EMERGÊNCIA, UPA, HPRB, CIMUC, SEPADI;;injetável;ativo
+23/09/2026;BET-EBBC87;Sorbitol 30mg/ml (3%) - Solução para Irrigação;Sorbitol;30mg/ml (3%);solução;;;;;ativo
+23/09/2026;BET-5B2E0F;Sulfadiazina 500mg - Comprimido;Sulfadiazina;500mg;comprimido;;;;oral;ativo
+23/09/2026;BET-477E6B;Sulfadiazina de Prata 10mg/g (1%) - Creme;Sulfadiazina de Prata;10mg/g (1%);creme;;UBS, UPA, PAD, HPRB;;tópica;ativo
+23/09/2026;BET-4105F3;Sulfametoxazol + Trimetoprina 400mg + 80mg - Comprimido;Sulfametoxazol + Trimetoprina;400mg + 80mg;comprimido;;UBS, UPA, SEPADI, HPRB;;oral;ativo
+23/09/2026;BET-A8D7FD;Sulfametoxazol + Trimetoprina 40mg/ml (4%) + 8mg/ml (0,8%) - Suspensão Oral;Sulfametoxazol + Trimetoprina;40mg/ml (4%) + 8mg/ml;suspensão oral;;UBS, UPA, SEPADI, HPRB;;oral;ativo
+23/09/2026;BET-806E63;Sulfametoxazol + Trimetoprina 80mg/ml (8%) + 16mg/ml (1,6%) - Solução Injetável;Sulfametoxazol + Trimetoprina;80mg/ml (8%) + 16mg/ml;solução injetável;;HPRB, UPA;;injetável;ativo
+23/09/2026;BET-C9FBDE;Sulfato de Magnésio 500mg/ml (50%) - Solução Injetável;Sulfato de Magnésio;500mg/ml (50%);solução injetável;;UPA, HPRB, SAMU, CIMUC;;injetável;ativo
+23/09/2026;BET-B74C12;Sulfato Ferroso 125mg (Ferro elementar 40mg) - Drágea;Sulfato Ferroso;125mg;drágea;;;;oral;ativo
+23/09/2026;BET-DC3EC4;Sulfato Ferroso 125mg/ml (Ferro elementar 25mg/ml) - Solução Oral;Sulfato Ferroso;125mg/ml;solução oral;;;;oral;ativo
+23/09/2026;BET-CCC0DC;Suxametônio Cloreto 100mg - Pó para Solução Injetável;Suxametônio Cloreto;100mg;pó para solução injetável;;CX EMERGÊNCIA, UPA, HPRB, CIMUC, SAMU;;injetável;ativo
+23/09/2026;BET-D97112;Talidomida 100mg - Comprimido;Talidomida;100mg;comprimido;;;;oral;ativo
+23/09/2026;BET-6D21D7;Teicoplanina 400mg - Pó Liofilizado para Solução Injetável;Teicoplanina;400mg;pó liofilizado para solução injetável;;;;injetável;ativo
+23/09/2026;BET-534AD3;Tenoxicam 20mg - Pó Liofilizado para Solução Injetável;Tenoxicam;20mg;pó liofilizado para solução injetável;;UBS, UPA, HPRB, SAMU;;injetável;ativo
+23/09/2026;BET-045ECE;Testosterona Undecilato 250mg/ml - Solução Injetável;Testosterona Undecilato;250mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-23E3CB;Tiamina Cloridrato 100mg/ml (10%) - Solução Injetável;Tiamina Cloridrato;100mg/ml (10%);solução injetável;;UBS, CX EMERGÊNCIA, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB, SEPADI, CIMUC, SAMU;;injetável;ativo
+23/09/2026;BET-3EBCAA;Tiamina Cloridrato 300mg - Comprimido;Tiamina Cloridrato;300mg;comprimido;;UBS, CERSAM, CAPS-AD, CERSAMI, UPA, HPRB;;oral;ativo
+23/09/2026;BET-D81E38;Timolol Maleato 5mg/ml (0,5%) - Solução Oftálmica;Timolol Maleato;5mg/ml (0,5%);solução oftálmica;;;;oftálmica;ativo
+23/09/2026;BET-4BA6F0;Tiopental Sódico 1g - Pó para Solução Injetável;Tiopental Sódico;1g;pó para solução injetável;;;;injetável;ativo
+23/09/2026;BET-FBB4FE;Tobramicina 3mg/ml - Solução Oftálmica;Tobramicina;3mg/ml;solução oftálmica;;UBS, UPA, HPRB;;oftálmica;ativo
+23/09/2026;BET-D9952F;Topiramato 25mg - Comprimido ou Cápsula;Topiramato;25mg;comprimido;;;;oral;ativo
+23/09/2026;BET-7D9D00;Tramadol Cloridrato 50mg/ml (5%) - Solução Injetável;Tramadol Cloridrato;50mg/ml (5%);solução injetável;;HPRB, UPA;;injetável;ativo
+23/09/2026;BET-369F47;Trastuzumabe 150mg - Pó Liofilizado;Trastuzumabe;150mg;pó liofilizado;;;;injetável;ativo
+23/09/2026;BET-FC2807;Tropicamida 10mg/ml (1%) - Solução Oftálmica;Tropicamida;10mg/ml (1%);solução oftálmica;;;;oftálmica;ativo
+23/09/2026;BET-3F492D;Vancomicina Cloridrato 500mg - Pó para Solução Injetável;Vancomicina Cloridrato;500mg;pó para solução injetável;;;;injetável;ativo
+23/09/2026;BET-0F851E;Varfarina Sódica 5mg - Comprimido;Varfarina Sódica;5mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-DB2FFE;Vasopressina 20U/ml - Solução Injetável;Vasopressina 20U/ml;;solução injetável;;HPRB, UPA;;injetável;ativo
+23/09/2026;BET-10B60F;Verapamil Cloridrato 80mg - Comprimido;Verapamil Cloridrato;80mg;comprimido;;UBS, UPA, HPRB;;oral;ativo
+23/09/2026;BET-D77323;"Vitaminas do Complexo B Vitamina B1 (tiamina) 4mg; Vitamina B2 (riboflavina) 2mg; Vitamina B6 (piridoxina) 1mg; Vitamina B3 (nicotinamida) 10mg e Vitamina B5 (pantotenato de cálcio) 2mg - Comprimido ou Drágea";Vitaminas do Complexo B Vitamina B1 (tiamina);4mg;comprimido;;;;oral;ativo
+23/09/2026;BET-39706C;Vitaminas do Complexo B Vitamina B1 (tiamina) 8mg, Vitamina B2 (riboflavina) 2mg, Vitamina B3 (nicotinamida) 40mg, Vitamina B6 (piridoxina) 4mg, Vitamina B5 (pantotenato de calcio) 6mg - Solução Injetável;Vitaminas do Complexo B Vitamina B1 (tiamina);8mg;solução injetável;;;;injetável;ativo
+23/09/2026;BET-79B423;Ácido Acetilsalicílico 100mg - Comprimido;Ácido Acetilsalicílico;100mg;comprimido;;UBS, CX EMERGÊNCIA, UPA, HPRB, CIMUC, SAMU;;oral;ativo
+23/09/2026;BET-BEA6C2;Ácido Ascórbico 100mg/ml - Solução Injetável;Ácido Ascórbico;100mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-300950;Ácido Folínico 15mg - Comprimido;Ácido Folínico;15mg;comprimido;;;;oral;ativo
+23/09/2026;BET-34DE70;Ácido Fólico 0,2mg/ml - Solução Oral;Ácido Fólico;0,2mg/ml;solução oral;;;;oral;ativo
+23/09/2026;BET-A3180B;Ácido Fólico 5mg - Comprimido;Ácido Fólico;5mg;comprimido;;;;oral;ativo
+23/09/2026;BET-2B9403;Ácido Tranexâmico 50mg/ml - Solução Injetável;Ácido Tranexâmico;50mg/ml;solução injetável;;SAMU, HPRB, UPA;;injetável;ativo
+23/09/2026;BET-6ED8C2;Ácido Valpróico 250mg - Cápsula;Ácido Valpróico;250mg;cápsula;;;;oral;ativo
+23/09/2026;BET-469609;Ácido Valpróico 500mg - Comprimido;Ácido Valpróico;500mg;comprimido;;;;oral;ativo
+23/09/2026;BET-D2593C;Ácido Valpróico 50mg/ml (5%) - Xarope;Ácido Valpróico;50mg/ml (5%);xarope;;;;oral;ativo
+23/09/2026;BET-5517EC;Água Destilada - Solução Injetável 10ml;Água Destilada;10ml;solução injetável;;;;injetável;ativo
+23/09/2026;BET-8859B1;Água Destilada - Solução Injetável 500ml;Água Destilada;500ml;solução injetável;;;;injetável;ativo

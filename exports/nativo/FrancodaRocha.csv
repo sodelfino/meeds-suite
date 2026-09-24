@@ -1,0 +1,281 @@
+﻿remume_versao;codigo_identificacao;descricao_original;principio_ativo;concentracao;forma_farmaceutica;apresentacao;local_dispensacao;restricao;via_administracao;situacao
+23/09/2026;FRA-C12A64;Ácido Fólico comprimido 5 mg;Ácido Fólico;5 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-BFE259;Sulfato Ferroso drágea 40 mg;Sulfato Ferroso;40 mg;drágea;;;;oral;ativo
+23/09/2026;FRA-E4880F;Sulfato Ferroso gotas 25 mg/ml frasco 30 ml;Sulfato Ferroso;25 mg/ml;gotas;frasco 30 ml;;;;ativo
+23/09/2026;FRA-832B76;Isossorbida Dinitrato comprimido sublingual 5 mg;Isossorbida Dinitrato;5 mg;comprimido sublingual;;;;sublingual;ativo
+23/09/2026;FRA-461DDA;Isossorbida Mononitrato ampola 10 mg/1 ml;Isossorbida Mononitrato ampola;10 mg/1 ml;;ampola 10 mg;;;;ativo
+23/09/2026;FRA-9C98E4;Nifedipina cápsula sublingual 10 mg;Nifedipina;10 mg;cápsula;;;;oral;ativo
+23/09/2026;FRA-7A7A1D;Nifedipina Retard comprimido 20 mg;Nifedipina Retard;20 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-8692BB;Adenosina ampola 6 mg/2 ml;Adenosina ampola;6 mg/2 ml;;ampola 6 mg;;;;ativo
+23/09/2026;FRA-42C719;Amiodarona comprimido 200 mg;Amiodarona;200 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-6EC138;Amiodarona ampola 150 mg/3 ml;Amiodarona ampola;150 mg/3 ml;;ampola 150 mg;;;;ativo
+23/09/2026;FRA-A4F4D0;Carvedilol comprimido 3,125 mg;Carvedilol;3,125 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-EBFE7D;Carvedilol comprimido 6,25 mg;Carvedilol;6,25 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-B596A7;Carvedilol comprimido 12,5 mg;Carvedilol;12,5 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-32EC26;Propranolol comprimido 40 mg;Propranolol;40 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-2A1FAC;Heparina Sódica frasco-ampola 5.000 UI/0,25 ml;Heparina Sódica frasco-ampola;5.000 UI;;frasco-ampola 5.000;;;;ativo
+23/09/2026;FRA-BC6F2B;Heparina Sódica frasco-ampola 25.000 UI/5 ml;Heparina Sódica frasco-ampola;25.000 UI;;frasco-ampola 25.000;;;;ativo
+23/09/2026;FRA-1BCC12;Varfarina comprimido 5 mg;Varfarina;5 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-A18CEA;Atropina ampola 0,25 mg/1 ml;Atropina ampola;0,25 mg/1 ml;;ampola 0,25 mg;;;;ativo
+23/09/2026;FRA-6F0054;Etinilestradiol + Levonorgestrel drágea - cartela com 21 drágeas;Etinilestradiol + Levonorgestrel;;drágea;cartela;;;oral;ativo
+23/09/2026;FRA-78CAAC;Etinilestradiol 75 mg cartela com 2 comprimidos (Pílula do dia seguinte);Etinilestradiol;75 mg;comprimido;cartela;;;oral;ativo
+23/09/2026;FRA-2460FD;Medroxiprogesterona ampola de 150 mg;Medroxiprogesterona ampola de;150 mg;;ampola;;;;ativo
+23/09/2026;FRA-A4CD48;Noretisterona comprimido 50 mg - cartela com 35 comprimidos;Noretisterona;50 mg;comprimido;cartela;;;oral;ativo
+23/09/2026;FRA-97F1CF;Noretisterona + Valerato de Estradiol ampola;Noretisterona + Valerato de Estradiol ampola;;;ampola;;;;ativo
+23/09/2026;FRA-F54879;Preservativo masculino;Preservativo masculino;;;;;;;ativo
+23/09/2026;FRA-A8F84C;Dispositivo Intra Uterino DIU de cobre;Dispositivo Intra Uterino DIU de cobre;;;;;;;ativo
+23/09/2026;FRA-045A30;Fenitoína comprimido 100 mg;Fenitoína;100 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-AE6699;Fenitoína ampola 250 mg/5 ml;Fenitoína ampola;250 mg/5 ml;;ampola 250 mg;;;;ativo
+23/09/2026;FRA-042AF4;Fenobarbital comprimido 100 mg;Fenobarbital;100 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-74DF24;Fenobarbital ampola 200 mg/2 ml;Fenobarbital ampola;200 mg/2 ml;;ampola 200 mg;;;;ativo
+23/09/2026;FRA-4EB507;Carvão Ativado;Carvão Ativado;;;;;;;ativo
+23/09/2026;FRA-5093E4;Flumazenil ampola 0,5 mg/5 ml;Flumazenil ampola;0,5 mg/5 ml;;ampola 0,5 mg;;;;ativo
+23/09/2026;FRA-60FD95;Naloxona ampola 0,4 mg/1 ml;Naloxona ampola;0,4 mg/1 ml;;ampola 0,4 mg;;;;ativo
+23/09/2026;FRA-0B8385;Metoclopramida comprimido 10 mg;Metoclopramida;10 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-55B943;Metoclopramida ampola 10 mg/2 ml;Metoclopramida ampola;10 mg/2 ml;;ampola 10 mg;;;;ativo
+23/09/2026;FRA-BEC9BE;Dimenidrinato + Vitamina B6 (dimenidrinato 50 mg + vit. B6 50 mg) ampola 1 ml;Dimenidrinato + Vitamina B6 (dimenidrinato;50 mg;;ampola 1 ml;;;;ativo
+23/09/2026;FRA-B91F14;Dimenidrinato + Vitamina B6 DL + Glicose + Frutose (dimenidrinato 30 mg + vit. B6 50 mg + glicose 1 g + frutose 1 g) ampola 10 ml;Dimenidrinato + Vitamina B6 DL + Glicose + Frutose (dimenidrinato;30 mg;;ampola 10 ml;;;;ativo
+23/09/2026;FRA-69978D;N-Butilescopolamina simples drágea 10 mg;N-Butilescopolamina simples;10 mg;drágea;;;;oral;ativo
+23/09/2026;FRA-89D857;N-Butilescopolamina ampola 20 mg/ml;N-Butilescopolamina ampola;20 mg/ml;;ampola 20 mg;;;;ativo
+23/09/2026;FRA-9164B6;Adifenina + Dipirona + Prometazina (adifenina 25 mg + dipirona 750 mg + prometazina 25 mg) ampola 2 ml;Adifenina + Dipirona + Prometazina (adifenina;25 mg;;ampola 2 ml;;;;ativo
+23/09/2026;FRA-186A3E;N-Butilescopolamina + Dipirona composto (N-butilescopolamina 20 mg + dipirona 2.500 mg) ampola 5 ml;N-Butilescopolamina + Dipirona composto (N-butilescopolamina;20 mg;;ampola 5 ml;;;;ativo
+23/09/2026;FRA-B6BB90;Dimeticona gotas 75 mg/ml frasco 15 ml;Dimeticona;75 mg/ml;gotas;frasco 15 ml;;;;ativo
+23/09/2026;FRA-72B0CC;Fluconazol cápsula 150 mg;Fluconazol;150 mg;cápsula;;;;oral;ativo
+23/09/2026;FRA-A31578;Nistatina creme vaginal 100.000 UI/4 g tubo 60 g;Nistatina;100.000 UI;creme vaginal;tubo 60 g;;;vaginal;ativo
+23/09/2026;FRA-BC60FF;Miconazol creme vaginal;Miconazol;;creme vaginal;;;;vaginal;ativo
+23/09/2026;FRA-33DE6D;Alopurinol comprimido 300 mg;Alopurinol;300 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-26FFFA;Anlodipina comprimido 5 mg;Anlodipina;5 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-A9879F;Atenolol comprimido 50 mg;Atenolol;50 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-5C6B09;Captopril comprimido 25 mg;Captopril;25 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-DEFDEE;Enalapril comprimido 20 mg;Enalapril;20 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-E9F6BB;Metildopa comprimido 250 mg;Metildopa;250 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-D70B65;Dexclorfeniramina xarope;Dexclorfeniramina;;xarope;;;;oral;ativo
+23/09/2026;FRA-EADB75;Loratadina comprimido 10 mg;Loratadina;10 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;FRA-BA4312;Loratadina 5 mg/5 ml frasco 100 ml;Loratadina;5 mg/5 ml;;frasco 100 ml;;;;ativo
+23/09/2026;FRA-A52BC2;Prometazina comprimido 25 mg;Prometazina;25 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-3EFC4A;Prometazina ampola 50 mg/2 ml;Prometazina ampola;50 mg/2 ml;;ampola 50 mg;;;;ativo
+23/09/2026;FRA-8C270D;Dexametasona frasco-ampola 10 mg/2,5 ml;Dexametasona frasco-ampola;10 mg/2,5 ml;;frasco-ampola 10 mg;;;;ativo
+23/09/2026;FRA-38B0A7;Beclometasona 50 mcg;Beclometasona;50 mcg;;;;;;ativo
+23/09/2026;FRA-018758;Beclometasona 200 mcg;Beclometasona;200 mcg;;;;;;ativo
+23/09/2026;FRA-0F2D79;Beclometasona 250 mcg;Beclometasona;250 mcg;;;;;;ativo
+23/09/2026;FRA-E347F5;Hidrocortisona Succinato de Hidrocortisona frasco-ampola 100 mg;Hidrocortisona Succinato de Hidrocortisona frasco-ampola;100 mg;;frasco-ampola 100 mg;;;;ativo
+23/09/2026;FRA-16AA03;Hidrocortisona Succinato de Hidrocortisona frasco-ampola 500 mg;Hidrocortisona Succinato de Hidrocortisona frasco-ampola;500 mg;;frasco-ampola 500 mg;;;;ativo
+23/09/2026;FRA-960FF6;Prednisolona 3 mg/1 ml frasco 60 ml;Prednisolona;3 mg/1 ml;;frasco 60 ml;;;;ativo
+23/09/2026;FRA-BAAA88;Prednisona comprimido 5 mg;Prednisona;5 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;FRA-D1C8F5;Prednisona comprimido 20 mg;Prednisona;20 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;FRA-64C414;Cetoprofeno ampola 100 mg/2 ml;Cetoprofeno ampola;100 mg/2 ml;;ampola 100 mg;;;;ativo
+23/09/2026;FRA-409A05;Diclofenaco comprimido 50 mg;Diclofenaco;50 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;FRA-E03FB1;Diclofenaco ampola 75 mg/3 ml;Diclofenaco ampola;75 mg/3 ml;;ampola 75 mg;;;;ativo
+23/09/2026;FRA-8D2FAF;Amicacina ampola 100 mg/2 ml;Amicacina ampola;100 mg/2 ml;;ampola 100 mg;;;;ativo
+23/09/2026;FRA-F0AEDE;Amicacina ampola 500 mg/2 ml;Amicacina ampola;500 mg/2 ml;;ampola 500 mg;;;;ativo
+23/09/2026;FRA-63C32B;Gentamicina ampola 80 mg/2 ml;Gentamicina ampola;80 mg/2 ml;;ampola 80 mg;;;;ativo
+23/09/2026;FRA-CA6CF6;Metronidazol frasco 500 mg/100 ml;Metronidazol frasco;500 mg/100 ml;;frasco 500 mg;;;;ativo
+23/09/2026;FRA-5D4644;Cefalexina drágea ou cápsula 500 mg;Cefalexina;500 mg;drágea;;UPA;;oral;ativo
+23/09/2026;FRA-6E10C3;Cefalexina suspensão oral 250 mg/5 ml;Cefalexina;250 mg/5 ml;suspensão oral;;UPA;;oral;ativo
+23/09/2026;FRA-7D1F3F;Cefalotina frasco-ampola 1 g;Cefalotina frasco-ampola;1 g;;frasco-ampola 1 g;;;;ativo
+23/09/2026;FRA-3CF262;Ceftriaxona IV frasco-ampola 1 g;Ceftriaxona IV frasco-ampola;1 g;;frasco-ampola 1 g;;;injetável;ativo
+23/09/2026;FRA-C51F2D;Clindamicina cápsula 300 mg;Clindamicina;300 mg;cápsula;;;;oral;ativo
+23/09/2026;FRA-E164EA;Clindamicina ampola 300 mg/2 ml;Clindamicina ampola;300 mg/2 ml;;ampola 300 mg;;;;ativo
+23/09/2026;FRA-9CC726;Azitromicina comprimido 500 mg;Azitromicina;500 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;FRA-A26FDB;Claritromicina frasco-ampola 500 mg;Claritromicina frasco-ampola;500 mg;;frasco-ampola 500 mg;;;;ativo
+23/09/2026;FRA-A7C26D;Amoxicilina cápsula 500 mg;Amoxicilina;500 mg;cápsula;;UPA;;oral;ativo
+23/09/2026;FRA-5CD1A3;Amoxicilina suspensão oral 250 mg/5 ml frasco 150 ml;Amoxicilina;250 mg/5 ml;suspensão oral;frasco 150 ml;;;oral;ativo
+23/09/2026;FRA-320BB8;Amoxicilina + Clavulanato de Potássio suspensão oral (amoxicilina 250 mg + clavulanato de K 62,5 mg)/5 ml frasco 75 ml;Amoxicilina + Clavulanato de Potássio;250 mg;suspensão oral;frasco 75 ml;UPA;;oral;ativo
+23/09/2026;FRA-99770E;Amoxicilina + Clavulanato de Potássio comprimido (amoxicilina 500 mg + clavulanato de potássio 125 mg);Amoxicilina + Clavulanato de Potássio;500 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;FRA-B82D9B;Ampicilina frasco-ampola 1 g;Ampicilina frasco-ampola;1 g;;frasco-ampola 1 g;;;;ativo
+23/09/2026;FRA-CECDC8;Ampicilina frasco-ampola 500 g;Ampicilina frasco-ampola;500 g;;frasco-ampola 500 g;;;;ativo
+23/09/2026;FRA-BD46B8;Oxacilina frasco-ampola 500 mg;Oxacilina frasco-ampola;500 mg;;frasco-ampola 500 mg;;;;ativo
+23/09/2026;FRA-F645D8;Penicilina G Benzatina frasco-ampola 600.000 UI;Penicilina G Benzatina frasco-ampola;600.000 UI;;frasco-ampola 600.000;;;;ativo
+23/09/2026;FRA-DA2AC9;Penicilina G Benzatina frasco-ampola 1.200.000 UI;Penicilina G Benzatina frasco-ampola;1.200.000 UI;;frasco-ampola 1.200.000;;;;ativo
+23/09/2026;FRA-01A5BE;Penicilina G Potássica frasco-ampola 5.000.000 UI;Penicilina G Potássica frasco-ampola;5.000.000 UI;;frasco-ampola 5.000.000;;;;ativo
+23/09/2026;FRA-256F71;Penicilina G Procaína + Penicilina frasco-ampola 400.000 UI (penicilina G potássica procaína 300.000 UI + penicilina G potássica 100.000 UI);Penicilina G Procaína + Penicilina frasco-ampola;400.000 UI;;frasco-ampola 400.000;;;;ativo
+23/09/2026;FRA-9B9C8F;Ciprofloxacino frasco 200 mg/100 ml;Ciprofloxacino frasco;200 mg/100 ml;;frasco 200 mg;;;;ativo
+23/09/2026;FRA-E06D1F;Ciprofloxacino comprimido 500 mg;Ciprofloxacino;500 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;FRA-DC250B;Sulfametoxazol + Trimetoprima comprimido (sulfametoxazol 400 mg + trimetoprima 80 mg);Sulfametoxazol + Trimetoprima;400 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;FRA-4BC655;Sulfametoxazol + Trimetoprima suspensão pediátrica (sulfametoxazol 200 mg + trimetoprima 40 mg)/5 ml frasco 100 ml;Sulfametoxazol + Trimetoprima;200 mg;suspensão;frasco 100 ml;UPA;;;ativo
+23/09/2026;FRA-8F3544;Bacitracina + Neomicina pomada (bacitracina 250 UI + neomicina sulfato 5 mg)/g bisnaga 15 g;Bacitracina + Neomicina;250 UI;pomada;bisnaga 15 g;;;tópica;ativo
+23/09/2026;FRA-C3D4FA;Sulfadiazina de Prata creme 1% tubo 50 g;Sulfadiazina de Prata;1%;creme;tubo 50 g;;;tópica;ativo
+23/09/2026;FRA-6FCBD3;Sulfadiazina 1% pote 400 g;Sulfadiazina;1%;;pote 400 g;;;;ativo
+23/09/2026;FRA-A33C65;Pirazinamida comprimido 500 mg;Pirazinamida;500 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-76DDB8;Rifampicina cápsula 300 mg;Rifampicina;300 mg;cápsula;;;;oral;ativo
+23/09/2026;FRA-2C0FBB;Rifampicina 2% suspensão frasco 60 ml;Rifampicina;2%;suspensão;frasco 60 ml;;;;ativo
+23/09/2026;FRA-5BF828;Pirazinamida + Rifampicina + Etambutol + Isoniazida (COCXIP) - 1ª fase;Pirazinamida + Rifampicina + Etambutol + Isoniazida (COCXIP) - 1ª fase;;;;;;;ativo
+23/09/2026;FRA-706CEE;Isoniazida comprimido 100 mg;Isoniazida;100 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-B6D8CA;Isoniazida 75 mg + Rifampicina 150 mg - 2ª fase;Isoniazida;75 mg;;;;;;ativo
+23/09/2026;FRA-7A2932;Vitaminas do Complexo B;Vitaminas do Complexo B;;;;;;;ativo
+23/09/2026;FRA-830010;Alendronato de sódio comprimido de 10 e 70 mg;Alendronato de sódio;70 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-A3516B;Carbonato de Cálcio + Vitamina D comprimido com cálcio 500 mg + Vitamina D 200 UI;Carbonato de Cálcio + Vitamina D;500 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-4052AC;Albendazol comprimido mastigável 400 mg;Albendazol;400 mg;comprimido mastigável;;;;oral;ativo
+23/09/2026;FRA-3C6CDA;Benzoato de benzila solução tópica 30% frasco 60 ml;Benzoato de benzila;30%;solução tópica;frasco 60 ml;;;tópica;ativo
+23/09/2026;FRA-D498A1;Mebendazol comprimido de 10 mg;Mebendazol;10 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-4F0429;Mebendazol 100 mg/ml frasco 30 ml;Mebendazol;100 mg/ml;;frasco 30 ml;;;;ativo
+23/09/2026;FRA-1397B7;Metronidazol comprimido 250 mg;Metronidazol;250 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-63EC47;Metronidazol 40 mg/ml frasco 100 mg;Metronidazol;40 mg/ml;;frasco 100 mg;;;;ativo
+23/09/2026;FRA-AA0613;Metronidazol creme vaginal 500 mg/5 g bisnaga com 50 g + aplicadores;Metronidazol;500 mg;creme vaginal;bisnaga;;;vaginal;ativo
+23/09/2026;FRA-030E6B;Praziquantel 500 mg;Praziquantel;500 mg;;;;;;ativo
+23/09/2026;FRA-E46B64;Biperideno comprimido 2 mg;Biperideno;2 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-7C1D14;Levodopa + Carbidopa comprimido (levodopa 200 mg + carbidopa 50 mg);Levodopa + Carbidopa;200 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-408F5F;Levodopa + Carbidopa comprimido (levodopa 250 mg + carbidopa 25 mg);Levodopa + Carbidopa;250 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-027BAA;Levodopa + Benserazida comprimido (levodopa 200 mg + benserazida 50 mg);Levodopa + Benserazida;200 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-9C337F;Clorpromazina comprimido 25 mg;Clorpromazina;25 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-524E1B;Clorpromazina comprimido 100 mg;Clorpromazina;100 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-47A776;Haloperidol comprimido 5 mg;Haloperidol;5 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-80AE44;Haloperidol gotas 2 mg/1 ml frasco 30 ml;Haloperidol;2 mg/1 ml;gotas;frasco 30 ml;;;;ativo
+23/09/2026;FRA-A4261B;Levomepromazina comprimido 25 mg;Levomepromazina;25 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-4C1F2B;Levomepromazina 4% gotas frasco 20 ml;Levomepromazina;4%;gotas;frasco 20 ml;;;;ativo
+23/09/2026;FRA-5856D2;Álcool 70% almotolia 100 ml;Álcool;70%;;;;;;ativo
+23/09/2026;FRA-F822B5;Álcool 70% frasco 1.000 ml;Álcool;70%;;frasco 1.000 ml;;;;ativo
+23/09/2026;FRA-761EC6;Clorexidina 2% almotolia 100 ml;Clorexidina;2%;;;;;;ativo
+23/09/2026;FRA-59A2ED;Polivinilpirrolidona Iodo PVPI degermante almotolia 100 ml;Polivinilpirrolidona Iodo PVPI degermante almotolia;100 ml;;;;;;ativo
+23/09/2026;FRA-1BFE8D;Omeprazol cápsula 20 mg;Omeprazol;20 mg;cápsula;;;;oral;ativo
+23/09/2026;FRA-D5A08D;Cimetidina comprimido 200 mg;Cimetidina;200 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-4C0B94;Ranitidina comprimido 150 mg;Ranitidina;150 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-8B82AA;Ranitidina ampola 50 mg/2 ml;Ranitidina ampola;50 mg/2 ml;;ampola 50 mg;;;;ativo
+23/09/2026;FRA-AD7FE5;Diosmina + Hesperidina comprimido (diosmina 450 mg + hesperidina 50 mg);Diosmina + Hesperidina;450 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-7F16BA;Cinarizina comprimido 75 mg;Cinarizina;75 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-9219D7;Aciclovir comprimido 200 mg;Aciclovir;200 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-76817F;Nifedipina sublingual 10 mg;Nifedipina sublingual;10 mg;;;;;sublingual;ativo
+23/09/2026;FRA-95D48F;Nifedipina comprimido 20 mg;Nifedipina;20 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-C4B07E;Nimodipina comprimido 30 mg;Nimodipina;30 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-C64678;Aminofilina comprimido 100 mg;Aminofilina;100 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-4BC9D0;Aminofilina ampola 240 mg/10 ml;Aminofilina ampola;240 mg/10 ml;;ampola 240 mg;;;;ativo
+23/09/2026;FRA-3AF83B;Fenoterol 0,5% gotas frasco 20 ml;Fenoterol;0,5%;gotas;frasco 20 ml;;;;ativo
+23/09/2026;FRA-DFC968;Ipratrópio 0,025% gotas frasco 20 ml;Ipratrópio;0,025%;gotas;frasco 20 ml;;;;ativo
+23/09/2026;FRA-8EE298;Salbutamol spray 100 mcg/dose frasco 200 doses;Salbutamol;100 mcg/dose;spray;frasco 200 doses;;;;ativo
+23/09/2026;FRA-512815;Salbutamol xarope 2 mg/5 ml frasco 100 ml;Salbutamol;2 mg/5 ml;xarope;frasco 100 ml;;;oral;ativo
+23/09/2026;FRA-9B725E;Terbutalina ampola 0,5 mg/1 ml;Terbutalina ampola;0,5 mg/1 ml;;ampola 0,5 mg;;;;ativo
+23/09/2026;FRA-85B60F;Digoxina comprimido 0,25 mg;Digoxina;0,25 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-789586;Colagenase mono 1,2 UI/g bisnaga 30 g + espátula;Colagenase mono;1,2 UI;;bisnaga 30 g;;;;ativo
+23/09/2026;FRA-9D35E5;Benzalcônio + Sódio Cloreto solução nasal (benzalcônio 0,1 mg + sódio cloreto 9 mg)/ml frasco 30 ml;Benzalcônio + Sódio Cloreto;0,1 mg;solução nasal;frasco 30 ml;;;nasal;ativo
+23/09/2026;FRA-D962A5;Espironolactona comprimido 25 mg;Espironolactona;25 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-EFBC1A;Furosemida comprimido 40 mg;Furosemida;40 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-38870D;Furosemida ampola 20 mg/2 ml;Furosemida ampola;20 mg/2 ml;;ampola 20 mg;;;;ativo
+23/09/2026;FRA-FBB6C2;Hidroclorotiazida comprimido 25 mg;Hidroclorotiazida;25 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-CD88D5;Água Destilada ampola 10 ml;Água Destilada ampola;10 ml;;ampola 10 ml;;;;ativo
+23/09/2026;FRA-41E943;Água Destilada frasco 250 ml;Água Destilada frasco;250 ml;;frasco 250 ml;;;;ativo
+23/09/2026;FRA-07C883;Bicarbonato de Sódio 8,4% ampola 10 ml;Bicarbonato de Sódio;8,4%;;ampola 10 ml;;;;ativo
+23/09/2026;FRA-B91EC7;Bicarbonato de Sódio 8,4% frasco 250 ml;Bicarbonato de Sódio;8,4%;;frasco 250 ml;;;;ativo
+23/09/2026;FRA-23033A;Cálcio Gluconato 10% (0,45 mEq/mL de Ca++) ampola 10 ml;Cálcio Gluconato;10%;;ampola 10 ml;;;;ativo
+23/09/2026;FRA-99929B;Glicose 5% bolsa 250 ml;Glicose;5%;;bolsa 250 ml;;;;ativo
+23/09/2026;FRA-5CB2F2;Glicose 25% ampola 10 ml;Glicose;25%;;ampola 10 ml;;;;ativo
+23/09/2026;FRA-3C146F;Magnésio Sulfato 10% (0,81 mEq/mL de Mg++) ampola 10 ml;Magnésio Sulfato;10%;;ampola 10 ml;;;;ativo
+23/09/2026;FRA-3C48E7;Potássio Cloreto 19,1% ampola 10 ml;Potássio Cloreto;19,1%;;ampola 10 ml;;;;ativo
+23/09/2026;FRA-3F6032;Solução de Ringer Lactato (cloreto de sódio 3 g + lactato de sódio 1,55 g + cloreto de potássio 0,15 g + cloreto de cálcio hidratado 0,1 g) bolsa 500 ml;Solução de Ringer Lactato (cloreto de sódio;3 g;solução;bolsa 500 ml;;;;ativo
+23/09/2026;FRA-C2C85D;Solução de Ringer (cloreto de sódio 4,3 g + cloreto de potássio 0,15 g + cloreto de cálcio hidratado 0,165 g) bolsa 500 ml;Solução de Ringer (cloreto de sódio;4,3 g;solução;bolsa 500 ml;;;;ativo
+23/09/2026;FRA-B18B94;Sódio Cloreto Soro Fisiológico 0,9% ampola 10 ml;Sódio Cloreto Soro Fisiológico;0,9%;;ampola 10 ml;;;;ativo
+23/09/2026;FRA-B19BCB;Sódio Cloreto 20% ampola 10 ml;Sódio Cloreto;20%;;ampola 10 ml;;;;ativo
+23/09/2026;FRA-817783;Cálcio Carbonato + Colecalciferol comprimido revestido (cálcio 500 mg + vit. D 200 UI);Cálcio Carbonato + Colecalciferol;500 mg;comprimido revestido;;;;oral;ativo
+23/09/2026;FRA-64D249;Adrenalina (Epinefrina) ampola 1 mg/1 ml;Adrenalina (Epinefrina) ampola;1 mg/1 ml;;ampola 1 mg;;;;ativo
+23/09/2026;FRA-8BC265;Noradrenalina (Norepinefrina) ampola 4 mg/4 ml;Noradrenalina (Norepinefrina) ampola;4 mg/4 ml;;ampola 4 mg;;;;ativo
+23/09/2026;FRA-D4B56A;Dobutamina ampola 250 mg/20 ml;Dobutamina ampola;250 mg/20 ml;;ampola 250 mg;;;;ativo
+23/09/2026;FRA-B69901;Dopamina ampola 50 mg/10 ml;Dopamina ampola;50 mg/10 ml;;ampola 50 mg;;;;ativo
+23/09/2026;FRA-A9ECB8;Talidomida comprimido 100 mg;Talidomida;100 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-46D614;Tratamento multibacilar (Hanseníase);Tratamento multibacilar (Hanseníase);;;;;;;ativo
+23/09/2026;FRA-9BB3ED;Tratamento Paucibacilar (Hanseníase);Tratamento Paucibacilar (Hanseníase);;;;;;;ativo
+23/09/2026;FRA-4D3DFD;Creme de uréia 10%;Creme de uréia;10%;creme;;;;tópica;ativo
+23/09/2026;FRA-D33DD1;Vitamina K (Fitomenadiona) ampola 10 mg/1 ml;Vitamina K (Fitomenadiona) ampola;10 mg/1 ml;;ampola 10 mg;;;;ativo
+23/09/2026;FRA-095DC6;Ácidos Graxos Essenciais + Associações loção frasco 200 ml;Ácidos Graxos Essenciais + Associações;200 ml;loção;frasco 200 ml;;;tópica;ativo
+23/09/2026;FRA-F07A27;Óxido de Zinco + Vit. A + Vit. D pomada (óxido de zinco 150 mg + vit. A 5.000 UI + vit. D 900 UI)/g bisnaga 45 g;Óxido de Zinco + Vit. A + Vit. D;150 mg;pomada;bisnaga 45 g;;;tópica;ativo
+23/09/2026;FRA-57D292;Vaselina Líquida almotolia 100 ml;Vaselina Líquida almotolia;100 ml;;;;;;ativo
+23/09/2026;FRA-47B3C3;Vaselina Sólida pote 20 g;Vaselina Sólida pote;20 g;;pote 20 g;;;;ativo
+23/09/2026;FRA-0F1944;Sinvastatina comprimido 10 mg;Sinvastatina;10 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-7C555C;Sinvastatina comprimido 20 mg;Sinvastatina;20 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-6984AB;Sinvastatina comprimido 40 mg;Sinvastatina;40 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-DDDB31;Midazolam ampola 15 mg/3 ml;Midazolam ampola;15 mg/3 ml;;ampola 15 mg;;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;;ativo
+23/09/2026;FRA-B91569;Midazolam ampola 50 mg/10 ml;Midazolam ampola;50 mg/10 ml;;ampola 50 mg;;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;;ativo
+23/09/2026;FRA-2C9A50;Glibenclamida 5 mg;Glibenclamida;5 mg;;;;;;ativo
+23/09/2026;FRA-18ACED;Insulina Humana NPH 100 U/mL frasco 10 ml;Insulina Humana NPH 100 U/mL frasco;10 ml;;frasco 10 ml;;;;ativo
+23/09/2026;FRA-1043C3;Insulina Humana Regular 100 U/ml frasco 10 ml;Insulina Humana Regular 100 U/ml frasco;10 ml;;frasco 10 ml;;;;ativo
+23/09/2026;FRA-0A9C81;Metformina comprimido 500 mg;Metformina;500 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-83B207;Metformina comprimido 850 mg;Metformina;850 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-E5DF89;L-Tiroxina comprimido 25 mcg;L-Tiroxina;25 mcg;comprimido;;;;oral;ativo
+23/09/2026;FRA-2F9EF7;L-Tiroxina comprimido 50 mcg;L-Tiroxina;50 mcg;comprimido;;;;oral;ativo
+23/09/2026;FRA-2C2CA5;L-Tiroxina comprimido 100 mcg;L-Tiroxina;100 mcg;comprimido;;;;oral;ativo
+23/09/2026;FRA-F2DF77;Fosfato de Sódio Dibásico + Fosfato de Sódio Monobásico (0,06 g + 0,16 g)/mL frasco 130 ml;Fosfato de Sódio Dibásico + Fosfato de Sódio Monobásico (;0,06 g + 0,16 g;;frasco 130 ml;;;;ativo
+23/09/2026;FRA-1B0F96;Óleo Mineral frasco 200 ml;Óleo Mineral frasco;200 ml;;frasco 200 ml;;;;ativo
+23/09/2026;FRA-28F259;Carbocisteína xarope infantil frasco 60 ml;Carbocisteína;60 ml;xarope;frasco 60 ml;;;oral;ativo
+23/09/2026;FRA-B5CB08;Estreptoquinase frasco-ampola 1.500.000 UI;Estreptoquinase frasco-ampola;1.500.000 UI;;frasco-ampola 1.500.000;;;;ativo
+23/09/2026;FRA-BB7DA6;Pentoxifilina ampola 100 mg/5 ml;Pentoxifilina ampola;100 mg/5 ml;;ampola 100 mg;;;;ativo
+23/09/2026;FRA-AED876;Polivitamínico gotas frasco 20 ml;Polivitamínico;20 ml;gotas;frasco 20 ml;;;;ativo
+23/09/2026;FRA-32300A;Polivitamínico + Sais Minerais drágea;Polivitamínico + Sais Minerais;;drágea;;;;oral;ativo
+23/09/2026;FRA-100A47;Vitamina A + Vitamina D3 gotas (vit. A 50.000 UI + vit. D3 10.000 UI)/ml frasco 10 ml;Vitamina A + Vitamina D3;50.000 UI;gotas;frasco 10 ml;;;;ativo
+23/09/2026;FRA-578E69;Vitamina B1 comprimido 300 mg;Vitamina B1;300 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-745DF7;Vitamina C ampola 500 g/5 ml;Vitamina C ampola;500 g;;ampola 500 g;;;;ativo
+23/09/2026;FRA-CD6BA1;Ácido Acetilsalicílico 100 mg, comprimidos;Ácido Acetilsalicílico;100 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-137349;Ácido Valpróico 250 mg, cápsulas;Ácido Valpróico;250 mg;cápsula;;;;oral;ativo
+23/09/2026;FRA-755F47;Ácido Valpróico 50 mg/ml, xarope;Ácido Valpróico;50 mg/ml;xarope;;;;oral;ativo
+23/09/2026;FRA-7184AA;Alendronato Sódico 70 mg, comprimidos;Alendronato Sódico;70 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-71E34D;Amitriptilina 25 mg, comprimidos;Amitriptilina;25 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-51DA58;Anlodipino 10 mg, comprimidos;Anlodipino;10 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-2600D8;Anlodipino 5 mg, comprimidos;Anlodipino;5 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-500C50;Azitromicina sol. 600 mg, frasco;Azitromicina sol.;600 mg;;frasco;;;;ativo
+23/09/2026;FRA-591008;Beclometasona 200 mcg - 100 doses, frasco;Beclometasona;200 mcg;;frasco;;;;ativo
+23/09/2026;FRA-D0BF6D;Beclometasona 250 mcg - 200 doses, frasco;Beclometasona;250 mcg;;frasco;;;;ativo
+23/09/2026;FRA-9E47CE;Beclometasona 50 mcg - spray inalatório uso nasal, frasco;Beclometasona;50 mcg;spray;frasco;;;nasal;ativo
+23/09/2026;FRA-3FDF31;Benzoato de Benzila 250 mg/ml, frasco;Benzoato de Benzila;250 mg/ml;;frasco;;;;ativo
+23/09/2026;FRA-2EC15D;Cálcio + ergocalciferol, comprimidos;Cálcio + ergocalciferol;;comprimido;;;;oral;ativo
+23/09/2026;FRA-FF3A45;Carbamazepina 20 mg/ml, suspensão oral, frasco;Carbamazepina;20 mg/ml;suspensão oral;frasco;;;oral;ativo
+23/09/2026;FRA-8827A7;Carbamazepina 200 mg, comprimidos;Carbamazepina;200 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-164C38;Carbocisteína 20 mg/ml, xarope infantil, frasco;Carbocisteína;20 mg/ml;xarope;frasco;UPA;;oral;ativo
+23/09/2026;FRA-420FFF;Cefalexina (Cloridrato ou Sal Sódico) 500 mg, comprimidos;Cefalexina (Cloridrato ou Sal Sódico);500 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;FRA-E0DB81;Cefalexina 250 mg/5 ml, suspensão, frasco;Cefalexina;250 mg/5 ml;suspensão;frasco;UPA;;;ativo
+23/09/2026;FRA-72945D;Clonazepam 2 mg, comprimidos;Clonazepam;2 mg;comprimido;;;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;FRA-835765;Clonazepam 2,5 mg/ml, sol. oral, frasco;Clonazepam;2,5 mg/ml;solução;frasco;;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;;ativo
+23/09/2026;FRA-B3A7CA;Clotrimazol 10 mg/g, creme dermatológico, bisnaga;Clotrimazol;10 mg/g;creme dermatológico;bisnaga;;;tópica;ativo
+23/09/2026;FRA-4BFF77;Codeína + Paracetamol (30 mg + 500 mg), comprimidos;Codeína + Paracetamol (;30 mg + 500 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-699303;Dexametasona 0,1% creme, bisnaga;Dexametasona;0,1%;creme;bisnaga;;;tópica;ativo
+23/09/2026;FRA-478E66;Dexclorfeniramina 0,4 mg/ml, sol. oral, frasco;Dexclorfeniramina;0,4 mg/ml;solução;frasco;UPA;;;ativo
+23/09/2026;FRA-2F5BA6;Diazepam 10 mg, comprimidos;Diazepam;10 mg;comprimido;;;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;FRA-3F188B;Diclofenaco de sódio 50 mg, comprimidos;Diclofenaco de sódio;50 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;FRA-92E5CD;Dipirona 500 mg, comprimidos;Dipirona;500 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;FRA-4F41BC;Dipirona sódica 500 mg/ml, gotas, frasco;Dipirona sódica;500 mg/ml;gotas;frasco;UPA;;;ativo
+23/09/2026;FRA-291861;Doxazosina 2 mg, comprimidos;Doxazosina;2 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-E690C5;Doxazosina 4 mg, comprimidos;Doxazosina;4 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-B7C274;Enalapril maleato 10 mg, comprimidos;Enalapril maleato;10 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-EDC0F7;Enalapril maleato 20 mg, comprimidos;Enalapril maleato;20 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-6B9771;Etinilestradiol + levonorgestrel 0,03 mg + 0,15 mg, comprimidos;Etinilestradiol + levonorgestrel;0,03 mg + 0,15 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-1ADB81;Fenobarbital 40 mg/ml, gotas, frasco;Fenobarbital;40 mg/ml;gotas;frasco;;;;ativo
+23/09/2026;FRA-358E84;Fluoxetina 20 mg, cápsula;Fluoxetina;20 mg;cápsula;;;;oral;ativo
+23/09/2026;FRA-884701;Haloperidol decanoato 70,62 mg, ampola;Haloperidol decanoato;70,62 mg;;ampola;;;;ativo
+23/09/2026;FRA-3C988E;Hidróxido de Alumínio 60 mg/ml, frasco;Hidróxido de Alumínio;60 mg/ml;;frasco;;;;ativo
+23/09/2026;FRA-4FDDC3;Ibuprofeno 300 mg, comprimidos;Ibuprofeno;300 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;FRA-C09994;Ibuprofeno 600 mg, comprimidos;Ibuprofeno;600 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-2B2CAA;Ibuprofeno gotas 50 mg/ml, frasco;Ibuprofeno;50 mg/ml;gotas;frasco;UPA;;;ativo
+23/09/2026;FRA-642593;Insulina NPH 100 UI, frasco;Insulina NPH;100 UI;;frasco;;;;ativo
+23/09/2026;FRA-E4CE18;Insulina Regular 100 UI, frasco;Insulina Regular;100 UI;;frasco;;;;ativo
+23/09/2026;FRA-812DE1;Levodopa + benserazida 100 mg + 25 mg, comprimidos;Levodopa + benserazida;100 mg + 25 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-CFB345;Levodopa + Carbidopa 200 mg + 50 mg, comprimidos;Levodopa + Carbidopa;200 mg + 50 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-0EBF97;Levodopa + Carbidopa 250 mg + 25 mg, comprimidos;Levodopa + Carbidopa;250 mg + 25 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-05BF70;Levomepromazina 100 mg, comprimidos;Levomepromazina;100 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-BE4AD6;Levonorgestrel 75 mg, comprimidos;Levonorgestrel;75 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-943A4B;Levotiroxina sódica 100 mcg, comprimidos;Levotiroxina sódica;100 mcg;comprimido;;;;oral;ativo
+23/09/2026;FRA-CB2F98;Levotiroxina sódica 25 mcg, comprimidos;Levotiroxina sódica;25 mcg;comprimido;;;;oral;ativo
+23/09/2026;FRA-6651EE;Levotiroxina sódica 50 mcg, comprimidos;Levotiroxina sódica;50 mcg;comprimido;;;;oral;ativo
+23/09/2026;FRA-DE2735;Loratadina xarope 1 mg/ml, frasco;Loratadina;1 mg/ml;xarope;frasco;UPA;;oral;ativo
+23/09/2026;FRA-B5B885;Losartana potássica 50 mg, comprimidos;Losartana potássica;50 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-3C17E8;Medroxiprogesterona 150 mg/ml, ampola;Medroxiprogesterona;150 mg/ml;;ampola;;;;ativo
+23/09/2026;FRA-F76B5F;Metronidazol creme vaginal, bisnaga;Metronidazol;;creme vaginal;bisnaga;;;vaginal;ativo
+23/09/2026;FRA-76D887;Metronidazol 40 mg/ml, suspensão oral, frasco;Metronidazol;40 mg/ml;suspensão oral;frasco;;;oral;ativo
+23/09/2026;FRA-CF861B;Neomicina + Bacitracina 5 mg/g + 250 UI/g, bisnaga;Neomicina + Bacitracina;5 mg/g + 250 UI;;bisnaga;;;;ativo
+23/09/2026;FRA-48D1D8;Nistatina 100.000 U/g, creme vaginal, bisnaga;Nistatina 100.000 U/g;;creme vaginal;bisnaga;;;vaginal;ativo
+23/09/2026;FRA-287919;Noretisterona 50 mg, comprimidos;Noretisterona;50 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-675C1D;Noretisterona 50 mg + Valerato de Estradiol 5 mg, ampola;Noretisterona;50 mg;;ampola;;;;ativo
+23/09/2026;FRA-542069;Paracetamol 200 mg/ml, gotas, frasco;Paracetamol;200 mg/ml;gotas;frasco;UPA;;;ativo
+23/09/2026;FRA-757247;Paracetamol 500 mg, comprimidos;Paracetamol;500 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;FRA-99BBB4;Polivitamínico gotas, frasco;Polivitamínico;;gotas;frasco;;;;ativo
+23/09/2026;FRA-4B7F68;Polivitamínico, drágeas;Polivitamínico;;drágea;;;;oral;ativo
+23/09/2026;FRA-41B866;Prednisolona fosfato sódico 1,34 mg/ml, frasco;Prednisolona fosfato sódico;1,34 mg/ml;;frasco;;;;ativo
+23/09/2026;FRA-1D4F9D;Prometazina 50 mg, comprimidos;Prometazina;50 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-7CF5FA;Sais para reidratação oral, envelope;Sais para reidratação oral, envelope;;;envelope;UPA;;;ativo
+23/09/2026;FRA-DFF0F5;Salbutamol 100 mcg, aerosol inalatório, frasco;Salbutamol;100 mcg;aerosol;frasco;;;inalatória;ativo
+23/09/2026;FRA-00F5F7;Salbutamol xarope 2 mg/5 ml;Salbutamol;2 mg/5 ml;xarope;;;;oral;ativo
+23/09/2026;FRA-152E39;Sertralina 50 mg, comprimidos;Sertralina;50 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-3F0D18;Sulfametoxazol + Trimetoprima 400 mg + 80 mg, comprimidos;Sulfametoxazol + Trimetoprima;400 mg + 80 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;FRA-11E615;Sulfametoxazol + Trimetoprima (200 mg + 40 mg)/5 ml, frasco;Sulfametoxazol + Trimetoprima (;200 mg + 40 mg;;frasco;UPA;;;ativo
+23/09/2026;FRA-443D8C;Sulfato Ferroso 25 mg/ml, frasco;Sulfato Ferroso;25 mg/ml;;frasco;;;;ativo
+23/09/2026;FRA-DFA142;Sulfato Ferroso 40 mg, comprimidos;Sulfato Ferroso;40 mg;comprimido;;;;oral;ativo
+23/09/2026;FRA-3EAC3C;Tramadol 50 mg, cápsula;Tramadol;50 mg;cápsula;;;;oral;ativo
+23/09/2026;FRA-328846;Venlafaxina 75 mg, cápsula;Venlafaxina;75 mg;cápsula;;;;oral;ativo
+23/09/2026;FRA-9C459F;Vitamina A + D, gotas, frasco;Vitamina A + D;;gotas;frasco;;;;ativo
+23/09/2026;FRA-7D5C30;ZnO + Vit. A + D pomada (Óxido de Zinco + Vit. A + D), bisnaga;ZnO + Vit. A + D;;pomada;bisnaga;;;tópica;ativo
+23/09/2026;FRA-30E5D8;Nitrazepam comprimido 5 mg;Nitrazepam;5 mg;comprimido;;;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo

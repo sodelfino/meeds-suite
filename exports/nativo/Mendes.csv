@@ -1,0 +1,358 @@
+﻿remume_versao;codigo_identificacao;descricao_original;principio_ativo;concentracao;forma_farmaceutica;apresentacao;local_dispensacao;restricao;via_administracao;situacao
+23/09/2026;MEN-6ABBBD;Acebrofilina - Xarope;Acebrofilina;;xarope;;;;oral;ativo
+23/09/2026;MEN-239254;Acetato de Medroxiprogesterona 150mg/ml - Suspensão Injetável;Acetato de Medroxiprogesterona;150mg/ml;suspensão injetável;;;;injetável;ativo
+23/09/2026;MEN-4C69D2;Acetilcisteína 200mg - Envelope;Acetilcisteína;200mg;;Envelope;;;;ativo
+23/09/2026;MEN-2D3DC9;Acetilcisteína 600mg - Envelope;Acetilcisteína;600mg;;Envelope;;;;ativo
+23/09/2026;MEN-A5F6C2;Acetofenida de Algestona + Enantato de Estradiol 150mg/ml+10mg/ml - Ampola;Acetofenida de Algestona + Enantato de Estradiol;150mg/ml +10mg/ml;;Ampola;;;;ativo
+23/09/2026;MEN-FEE1BF;Aciclovir 200mg - Comprimido;Aciclovir;200mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-CB7683;Aciclovir 200mg - Frasco Ampola;Aciclovir;200mg;;Frasco Ampola;;;;ativo
+23/09/2026;MEN-C2EDCA;Aciclovir 50mg/g - Creme Dermatológico;Aciclovir;50mg/g;creme dermatológico;;;;tópica;ativo
+23/09/2026;MEN-27ACFE;Ácido Acetilsalicílico 100mg - Comprimido;Ácido Acetilsalicílico;100mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-747759;Ácido Ascórbico 100mg/ml - Ampola;Ácido Ascórbico;100mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-D7DFBA;Ácido Fólico 5mg - Comprimido;Ácido Fólico;5mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-DAAF3F;Ácido Tranexâmico 250mg/5ml - Solução Injetável;Ácido Tranexâmico;250mg/5ml;solução injetável;;;;injetável;ativo
+23/09/2026;MEN-BE4CBB;Adenosina 3mg/ml - Ampola;Adenosina;3mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-26D303;Água Destilada - Frasco Ampola;Água Destilada - Frasco Ampola;;;Frasco Ampola;;;;ativo
+23/09/2026;MEN-C4D092;Albendazol 400mg - Comprimido Mastigável;Albendazol;400mg;comprimido mastigável;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-B17ECC;Albendazol 40mg/ml - Suspensão Oral;Albendazol;40mg/ml;suspensão oral;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-DACC99;Albumina 20% - Solução Injetável;Albumina;20%;solução injetável;;;;injetável;ativo
+23/09/2026;MEN-F428BB;Alendronato de Sódio 70mg - Comprimido;Alendronato de Sódio;70mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-9F8DB7;Alopurinol 100mg - Comprimido;Alopurinol;100mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-F2C211;Alopurinol 300mg - Comprimido;Alopurinol;300mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-1773A3;Alprazolam 1mg - Comprimido;Alprazolam;1mg;comprimido;;Farmácia Básica Municipal;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MEN-84C88D;Alteplase 50mg - Frasco Ampola;Alteplase;50mg;;Frasco Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-2F70E2;Ambroxol 15mg/5ml - Xarope;Ambroxol;15mg/5ml;xarope;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-EA7F8D;Aminofilina 100mg - Comprimido;Aminofilina;100mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-19998D;Aminofilina 24mg/ml - Ampola;Aminofilina;24mg/ml;;Ampola;;;;ativo
+23/09/2026;MEN-92CFCB;Amiodarona 50mg/ml - Ampola;Amiodarona;50mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-E5E307;Amoxicilina + Clavulanato 250mg+62,5mg/5ml - Suspensão Oral;Amoxicilina + Clavulanato;250mg +62,5mg;suspensão oral;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-CFACDC;Amoxicilina + Clavulanato 500mg+100mg - Frasco Ampola;Amoxicilina + Clavulanato;500mg +100mg;;Frasco Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-2A0862;Amoxicilina + Clavulanato 500mg+125mg - Cápsula;Amoxicilina + Clavulanato;500mg +125mg;cápsula;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-0C23C1;Amoxicilina + Clavulanato 50mg+12,5mg - Suspensão Oral;Amoxicilina + Clavulanato;50mg +12,5mg;suspensão oral;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-91546E;Amoxicilina + Clavulanato 875mg+125mg - Cápsula;Amoxicilina + Clavulanato;875mg +125mg;cápsula;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-4EAFE6;Amoxicilina 500mg - Cápsula;Amoxicilina;500mg;cápsula;;;;oral;ativo
+23/09/2026;MEN-6C7866;Amoxicilina 50mg/ml - Suspensão Oral;Amoxicilina;50mg/ml;suspensão oral;;;;oral;ativo
+23/09/2026;MEN-00EB9C;Ampicilina 500mg - Cápsula;Ampicilina;500mg;cápsula;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-27F402;Ampicilina Sódica 1g - Frasco Ampola;Ampicilina Sódica;1g;;Frasco Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-17AF7B;Ampicilina Sódica 500mg - Comprimido;Ampicilina Sódica;500mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-8DD562;Ampicilina Sódica 50mg/ml - Suspensão Oral;Ampicilina Sódica;50mg/ml;suspensão oral;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-D02565;Anestalcon 2% - Colírio;Anestalcon;2%;colírio;;;;oftálmica;ativo
+23/09/2026;MEN-F5AF72;Aripiprazol 10mg - Comprimido;Aripiprazol;10mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-838B5A;Atenolol 50mg - Comprimido;Atenolol;50mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-591F20;Atomoxetina 10mg - Comprimido;Atomoxetina;10mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-50FDCD;Atomoxetina 25mg - Comprimido;Atomoxetina;25mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-C961F7;Azitromicina 40mg/ml - Suspensão Oral;Azitromicina;40mg/ml;suspensão oral;;;;oral;ativo
+23/09/2026;MEN-0C0AFA;Azitromicina 500mg - Comprimido;Azitromicina;500mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-12EF4B;Azitromicina 500mg - Frasco Ampola;Azitromicina;500mg;;Frasco Ampola;;;;ativo
+23/09/2026;MEN-D39FCA;Benzilpenicilina Benzatina 1200000ui - Frasco Ampola;Benzilpenicilina Benzatina;1200000ui;;Frasco Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-1B5644;Benzilpenicilina Benzatina 600000ui - Frasco Ampola;Benzilpenicilina Benzatina;600000ui;;Frasco Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-42120B;Benzoato de Benzila 25% - Solução Tópica;Benzoato de Benzila;25%;solução tópica;;;;tópica;ativo
+23/09/2026;MEN-1ABADA;Besilato de Anlodipino 10mg - Comprimido;Besilato de Anlodipino;10mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-B3AA27;Besilato de Anlodipino 5mg - Comprimido;Besilato de Anlodipino;5mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-65B1D5;Bicarbonato de Sódio 10% - Ampola;Bicarbonato de Sódio;10%;;Ampola;;;;ativo
+23/09/2026;MEN-3E8527;Bicarbonato de Sódio 8,4% - Solução Injetável;Bicarbonato de Sódio;8,4%;solução injetável;;;;injetável;ativo
+23/09/2026;MEN-4ADFD0;Bisacodil 5mg - Comprimido;Bisacodil;5mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-D3B317;Bromazepam 6mg - Comprimido;Bromazepam;6mg;comprimido;;;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MEN-482F25;Brometo de Ipratrópio 0,25mg/ml - Solução Oral;Brometo de Ipratrópio;0,25mg/ml;solução oral;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-0BCBBA;Brometo de Ipratrópio 0,25mg/ml - Solução para Inalação;Brometo de Ipratrópio;0,25mg/ml;solução;;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-BC851C;Brometo de Rocurônio 10mg/ml - Solução Injetável;Brometo de Rocurônio;10mg/ml;solução injetável;;Uso Hospitalar (Rede Municipal);;injetável;ativo
+23/09/2026;MEN-353A08;Bromidrato de Fenoterol 5mg/ml - Solução para Nebulização;Bromidrato de Fenoterol;5mg/ml;solução;;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-476F7D;Bromoprida 10mg - Comprimido;Bromoprida;10mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-F3D363;Bromoprida 4mg/ml - Solução Oral;Bromoprida;4mg/ml;solução oral;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-2A84EA;Bromoprida 5mg/ml - Ampola;Bromoprida;5mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-0A8922;Budesonida 32mcg/dose - Spray Nasal;Budesonida;32mcg/dose;spray;;Farmácia Básica Municipal;;nasal;ativo
+23/09/2026;MEN-FB2617;Budesonida 50mcg/dose - Spray Nasal;Budesonida;50mcg/dose;spray;;Farmácia Básica Municipal;;nasal;ativo
+23/09/2026;MEN-5D733C;Bupropiona 150mg - Comprimido;Bupropiona;150mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-40AC52;Butilbrometo de Escopolamina 20mg/ml - Ampola;Butilbrometo de Escopolamina;20mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-9F9D7F;Butilescopolamina + Dipirona Sódica 10mg+250mg - Comprimido;Butilescopolamina + Dipirona Sódica;10mg +250mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-16465A;Captopril 25mg - Comprimido;Captopril;25mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-723161;Carbamazepina 200mg - Comprimido;Carbamazepina;200mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-76B90D;Carbamazepina 20mg/ml - Suspensão Oral;Carbamazepina;20mg/ml;suspensão oral;;;;oral;ativo
+23/09/2026;MEN-7C0C05;Carbonato de Cálcio + Colecalciferol 500mg+400ui - Comprimido;Carbonato de Cálcio + Colecalciferol;500mg +400ui;comprimido;;;;oral;ativo
+23/09/2026;MEN-BD4ABB;Carbonato de Cálcio 500mg - Comprimido;Carbonato de Cálcio;500mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-FD52ED;Carbonato de Lítio 300mg - Comprimido;Carbonato de Lítio;300mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-0EE599;Carvão Ativado - Pó;Carvão Ativado;;pó;;;;;ativo
+23/09/2026;MEN-822E81;Carvedilol 12,5mg - Comprimido;Carvedilol;12,5mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-986F54;Carvedilol 3,125mg - Comprimido;Carvedilol;3,125mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-9A4D36;Carvedilol 6,25mg - Comprimido;Carvedilol;6,25mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-80A4D6;Cefalexina 250mg/5ml - Suspensão Oral;Cefalexina;250mg/5ml;suspensão oral;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-214D40;Cefalexina 500mg - Comprimido;Cefalexina;500mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-8B2C9D;Cefalexina 50mg/ml - Suspensão Oral;Cefalexina;50mg/ml;suspensão oral;;;;oral;ativo
+23/09/2026;MEN-115012;Cefazolina 1g - Frasco Ampola;Cefazolina;1g;;Frasco Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-46C74F;Cefepima 1g - Frasco Ampola;Cefepima;1g;;Frasco Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-1A896A;Ceftazidima 1g - Frasco Ampola;Ceftazidima;1g;;Frasco Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-41CAB6;Ceftriaxona 1g - Frasco Ampola;Ceftriaxona;1g;;Frasco Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-64B306;Cetoconazol 200mg - Comprimido;Cetoconazol;200mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-6C8C87;Cetoprofeno 100mg - Frasco Ampola;Cetoprofeno;100mg;;Frasco Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-F95DDA;Cetoprofeno 50mg/ml - Ampola;Cetoprofeno;50mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-52A584;Cinarizina 75mg - Comprimido;Cinarizina;75mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-F50820;Ciprofloxacino 200mg/100ml - Bolsa;Ciprofloxacino;200mg/100ml;;Bolsa;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-B41538;Ciprofloxacino 500mg - Comprimido;Ciprofloxacino;500mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-DFF486;Citrato de Fentanila 0,05mg/ml - Ampola;Citrato de Fentanila;0,05mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-2702E3;Clindamicina 150mg/ml - Solução Injetável;Clindamicina;150mg/ml;solução injetável;;Uso Hospitalar (Rede Municipal);;injetável;ativo
+23/09/2026;MEN-829D1F;Clindamicina 300mg - Cápsula;Clindamicina;300mg;cápsula;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-4D1DBC;Clobazam 20mg - Comprimido;Clobazam;20mg;comprimido;;;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MEN-B2A902;Clofazimina + Rifampicina + Dapsona (Esquema MB) - Comprimido;Clofazimina + Rifampicina + Dapsona (Esquema MB);;comprimido;;;;oral;ativo
+23/09/2026;MEN-CC4FB8;Clonazepam 0,5mg - Comprimido;Clonazepam;0,5mg;comprimido;;;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MEN-34D93C;Clonazepam 2,5mg/ml - Solução Oral;Clonazepam;2,5mg/ml;solução oral;;;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MEN-A8319F;Clonazepam 2mg - Comprimido;Clonazepam;2mg;comprimido;;Farmácia Básica Municipal;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MEN-31D987;Clopidogrel 75mg - Comprimido;Clopidogrel;75mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-ED75E9;Cloreto de Potássio 10% - Ampola;Cloreto de Potássio;10%;;Ampola;;;;ativo
+23/09/2026;MEN-9077B7;Cloreto de Sódio 0,9% - Solução Injetável 100ml;Cloreto de Sódio;0,9%;solução injetável;;;;injetável;ativo
+23/09/2026;MEN-E0F94E;Cloreto de Sódio 0,9% - Solução Injetável 250ml;Cloreto de Sódio;0,9%;solução injetável;;;;injetável;ativo
+23/09/2026;MEN-97521E;Cloreto de Sódio 0,9% - Solução Injetável 500ml;Cloreto de Sódio;0,9%;solução injetável;;;;injetável;ativo
+23/09/2026;MEN-1B8153;Cloreto de Sódio 10% - Ampola;Cloreto de Sódio;10%;;Ampola;;;;ativo
+23/09/2026;MEN-CAA38B;Cloreto de Sódio 20% - Ampola;Cloreto de Sódio;20%;;Ampola;;;;ativo
+23/09/2026;MEN-48573E;Cloreto de Suxametônio 100mg - Ampola;Cloreto de Suxametônio;100mg;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-FF4269;Cloridrato de Ambroxol 15mg/5ml - Xarope Pediátrico;Cloridrato de Ambroxol;15mg/5ml;xarope;;;;oral;ativo
+23/09/2026;MEN-CD2E78;Cloridrato de Ambroxol 30mg/5ml - Xarope Adulto;Cloridrato de Ambroxol;30mg/5ml;xarope;;;;oral;ativo
+23/09/2026;MEN-D2F3F8;Cloridrato de Amiodarona 200mg - Comprimido;Cloridrato de Amiodarona;200mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-43F3A8;Cloridrato de Amitriptilina 25mg - Comprimido;Cloridrato de Amitriptilina;25mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-44247D;Cloridrato de Biperideno 2mg - Comprimido;Cloridrato de Biperideno;2mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-A93078;Cloridrato de Ciprofloxacino 500mg - Comprimido;Cloridrato de Ciprofloxacino;500mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-448DA0;Cloridrato de Clomipramina 25mg - Comprimido;Cloridrato de Clomipramina;25mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-8BC5C6;Cloridrato de Clorpromazina 100mg - Comprimido;Cloridrato de Clorpromazina;100mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-698DB6;Cloridrato de Clorpromazina 25mg - Ampola;Cloridrato de Clorpromazina;25mg;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-341B04;Cloridrato de Clorpromazina 25mg - Comprimido;Cloridrato de Clorpromazina;25mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-89393F;Cloridrato de Clorpromazina 40mg/ml - Solução Oral;Cloridrato de Clorpromazina;40mg/ml;solução oral;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-C02EDB;Cloridrato de Diltiazem 30mg - Comprimido;Cloridrato de Diltiazem;30mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-7DE32B;Cloridrato de Diltiazem 60mg - Comprimido;Cloridrato de Diltiazem;60mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-A774AE;Cloridrato de Etilefrina 10mg/ml - Ampola;Cloridrato de Etilefrina;10mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-DEEFEC;Cloridrato de Hidralazina 25mg - Comprimido;Cloridrato de Hidralazina;25mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-F9ED60;Cloridrato de Hidralazina 50mg - Comprimido;Cloridrato de Hidralazina;50mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-A00610;Cloridrato de Imipramina 25mg - Comprimido;Cloridrato de Imipramina;25mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-E4B0BE;Cloridrato de Metformina 500mg - Comprimido;Cloridrato de Metformina;500mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-50A84E;Cloridrato de Metformina 850mg - Comprimido;Cloridrato de Metformina;850mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-9386B2;Cloridrato de Metoclopramida 10mg - Comprimido;Cloridrato de Metoclopramida;10mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-55DEA2;Cloridrato de Metoclopramida 10mg/2ml - Ampola;Cloridrato de Metoclopramida;10mg/2ml;;Ampola;Farmácia Básica Municipal;;;ativo
+23/09/2026;MEN-F6B90C;Cloridrato de Metoclopramida 10ml - Solução Oral;Cloridrato de Metoclopramida;10ml;solução oral;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-1E09D5;Cloridrato de Metoclopramida 4mg/ml - Solução Oral;Cloridrato de Metoclopramida;4mg/ml;solução oral;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-E9098E;Cloridrato de Ondansetrona 2mg/ml - Ampola;Cloridrato de Ondansetrona;2mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-6B763E;Cloridrato de Prometazina 25mg - Comprimido;Cloridrato de Prometazina;25mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-F082D5;Cloridrato de Prometazina 2mg/ml - Ampola;Cloridrato de Prometazina;2mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-0EC1F0;Cloridrato de Propranolol 40mg - Comprimido;Cloridrato de Propranolol;40mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-2CBA03;Cloridrato de Tiamina 300mg - Comprimido;Cloridrato de Tiamina;300mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-C353FB;Cloridrato de Tioridazina 100mg - Comprimido;Cloridrato de Tioridazina;100mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-72DC0D;Cloridrato de Tioridazina 25mg - Comprimido;Cloridrato de Tioridazina;25mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-DB5277;Cloridrato de Tioridazina 50mg - Comprimido;Cloridrato de Tioridazina;50mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-D63911;Cloridrato de Tramadol 50mg/ml - Ampola;Cloridrato de Tramadol;50mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-6C0012;Cloridrato de Verapamil 80mg - Comprimido;Cloridrato de Verapamil;80mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-AAA67B;Clorpromazina 5mg/ml - Solução Injetável;Clorpromazina;5mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;MEN-236E1B;Codergocrina 0,3mg/ml - Ampola;Codergocrina;0,3mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-DCB0D0;Colagenase + Cloranfenicol 0,6u/g+0,1g/g - Pomada;Colagenase + Cloranfenicol 0,6u/g+;0,1g;pomada;;;;tópica;ativo
+23/09/2026;MEN-C929F4;Colagenase 0,6u/g - Pomada;Colagenase 0,6u/g;;pomada;;Uso Hospitalar (Rede Municipal);;tópica;ativo
+23/09/2026;MEN-40B6A4;Dapsona + Rifampicina (Esquema PB) - Comprimido;Dapsona + Rifampicina (Esquema PB);;comprimido;;;;oral;ativo
+23/09/2026;MEN-27D3CC;Decanoato de Haloperidol 50mg/ml - Solução Injetável;Decanoato de Haloperidol;50mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;MEN-7352E8;Deslanosídeo 0,2mg/ml - Ampola;Deslanosídeo;0,2mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-7F9DF2;Desvenlafaxina 50mg - Comprimido;Desvenlafaxina;50mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-584C19;Dexametasona 0,1% - Creme Dermatológico;Dexametasona;0,1%;creme dermatológico;;;;tópica;ativo
+23/09/2026;MEN-0E4A53;Dexametasona 1mg/g - Creme;Dexametasona;1mg/g;creme;;Uso Hospitalar (Rede Municipal);;tópica;ativo
+23/09/2026;MEN-54BE70;Dexametasona 1mg/ml - Suspensão Oftálmica;Dexametasona;1mg/ml;suspensão;;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-1C7C01;Dexametasona 4mg - Comprimido;Dexametasona;4mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-296E58;Dexametasona 4mg/ml - Ampola;Dexametasona;4mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-94A2D7;Diazepam 10mg - Comprimido;Diazepam;10mg;comprimido;;Uso Hospitalar (Rede Municipal);Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MEN-31FC25;Diazepam 5mg - Comprimido;Diazepam;5mg;comprimido;;Uso Hospitalar (Rede Municipal);Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;MEN-6549C9;Diazepam 5mg/ml - Ampola;Diazepam;5mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;;ativo
+23/09/2026;MEN-7E66F9;Diazepam 5mg/ml - Solução Injetável;Diazepam;5mg/ml;solução injetável;;Uso Hospitalar (Rede Municipal);Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;injetável;ativo
+23/09/2026;MEN-92727D;Diclofenaco de Sódio 50mg - Comprimido;Diclofenaco de Sódio;50mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-32DB59;Diclofenaco de Sódio 75mg/3ml - Ampola;Diclofenaco de Sódio;75mg/3ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-5860A3;Digoxina 0,25mg - Comprimido;Digoxina;0,25mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-660E3A;Dimeticona 40mg - Comprimido;Dimeticona;40mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-E1D6EA;Dinitrato de Isossorbida 10mg - Comprimido;Dinitrato de Isossorbida;10mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-349CE1;Dinitrato de Isossorbida 5mg - Comprimido Sublingual;Dinitrato de Isossorbida;5mg;comprimido sublingual;;Farmácia Básica Municipal;;sublingual;ativo
+23/09/2026;MEN-FD0316;Dipirona 500mg/ml - Ampola;Dipirona;500mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-0E3D97;Dipirona Sódica 500mg - Comprimido;Dipirona Sódica;500mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-35AD96;Dipirona Sódica 500mg/ml - Solução Oral;Dipirona Sódica;500mg/ml;solução oral;;;;oral;ativo
+23/09/2026;MEN-7C26CB;Dipropionato de Beclometasona 250mcg/dose - Spray Inalação Oral;Dipropionato de Beclometasona;250mcg/dose;spray;;Farmácia Básica Municipal;;;ativo
+23/09/2026;MEN-E762A5;Dobutamina 12,5mg/ml - Ampola;Dobutamina;12,5mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-F7BCB0;Dopamina 5mg/ml - Ampola;Dopamina;5mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-680C8E;Enantato de Noretisterona + Valerato de Estradiol 50mg+5mg - Solução Injetável;Enantato de Noretisterona + Valerato de Estradiol;50mg +5mg;solução injetável;;;;injetável;ativo
+23/09/2026;MEN-7C4818;Enoxaparina Sódica 20mg - Seringa Preenchida;Enoxaparina Sódica;20mg;;Seringa;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-AC89D7;Enoxaparina Sódica 40mg - Seringa Preenchida;Enoxaparina Sódica;40mg;;Seringa;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-500648;Enoxaparina Sódica 60mg - Seringa Preenchida;Enoxaparina Sódica;60mg;;Seringa;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-650AE9;Epinefrina 1mg/ml - Ampola;Epinefrina;1mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-86C495;Escitalopram 20mg - Comprimido;Escitalopram;20mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-5C3536;Escopolamina + Dipirona Sódica 10mg+250mg - Comprimido;Escopolamina + Dipirona Sódica;10mg +250mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-EB5CC2;Escopolamina + Dipirona Sódica 2,5g/5ml+25mg/5ml - Ampola;Escopolamina + Dipirona Sódica;25mg/5ml;;Ampola;;;;ativo
+23/09/2026;MEN-E8BDF4;Escopolamina + Dipirona Sódica 6,7mg/ml+333,4mg/ml - Solução Oral;Escopolamina + Dipirona Sódica;6,7mg/ml +333,4mg/ml;solução oral;;;;oral;ativo
+23/09/2026;MEN-ACEC1F;Espironolactona 25mg - Comprimido;Espironolactona;25mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-5F2BAB;Espironolactona 50mg - Comprimido;Espironolactona;50mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-E046C7;Espironolactona 50mg - Comprimido Revestido;Espironolactona;50mg;comprimido revestido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-C99178;Etomidato 2mg/ml - Ampola;Etomidato;2mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-D9AAE3;Fenitoína 100mg - Comprimido;Fenitoína;100mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-497145;Fenitoína Sódica 100mg - Comprimido;Fenitoína Sódica;100mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-1BCAB6;Fenitoína Sódica 50mg/ml - Ampola;Fenitoína Sódica;50mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-0F79F4;Fenobarbital 100mg - Comprimido;Fenobarbital;100mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-407162;Fenobarbital 100mg/ml - Solução Injetável;Fenobarbital;100mg/ml;solução injetável;;Farmácia Básica Municipal;;injetável;ativo
+23/09/2026;MEN-3F83ED;Fenobarbital 40mg/ml - Solução Oral;Fenobarbital;40mg/ml;solução oral;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-1A6F48;Fenobarbital Sódico 100mg - Comprimido;Fenobarbital Sódico;100mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-94EE1A;Fenobarbital Sódico 100mg/ml - Ampola;Fenobarbital Sódico;100mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-98810A;Finasterida 5mg - Comprimido;Finasterida;5mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-53E65C;Fitomenadiona 10mg/ml - Ampola;Fitomenadiona;10mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-D2FC43;Fluconazol 150mg - Cápsula;Fluconazol;150mg;cápsula;;;;oral;ativo
+23/09/2026;MEN-E79081;Fluconazol 200mg - Bolsa;Fluconazol;200mg;;Bolsa;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-3EECB0;Flumazenil 0,01mg/ml - Solução Injetável;Flumazenil;0,01mg/ml;solução injetável;;Uso Hospitalar (Rede Municipal);;injetável;ativo
+23/09/2026;MEN-035504;Fluoxetina 20mg - Comprimido;Fluoxetina;20mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-258A2E;Fosfato Dissódico de Prednisolona 1,34mg/ml - Solução Oral;Fosfato Dissódico de Prednisolona;1,34mg/ml;solução oral;;;;oral;ativo
+23/09/2026;MEN-DD19F9;Furosemida 10mg/ml - Ampola;Furosemida;10mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-63CF66;Furosemida 40mg - Comprimido;Furosemida;40mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-31FA6A;Gentamicina 80mg/2ml - Ampola;Gentamicina;80mg/2ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-665237;Glibenclamida 5mg - Comprimido;Glibenclamida;5mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-4C7411;Gliclazida 30mg - Comprimido;Gliclazida;30mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-B006AB;Gliconato de Cálcio 10% - Ampola;Gliconato de Cálcio;10%;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-E8A6A2;Glicose - Solução Injetável 500ml;Glicose;500ml;solução injetável;;;;injetável;ativo
+23/09/2026;MEN-52506A;Glicose 25% - Frasco Ampola;Glicose;25%;;Frasco Ampola;;;;ativo
+23/09/2026;MEN-10FD0F;Glicose 50% - Frasco Ampola;Glicose;50%;;Frasco Ampola;;;;ativo
+23/09/2026;MEN-810707;Haloperidol 1mg - Comprimido;Haloperidol;1mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-2C02FA;Haloperidol 2mg/ml - Solução Oral;Haloperidol;2mg/ml;solução oral;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-816B9A;Haloperidol 5mg - Comprimido;Haloperidol;5mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-7B95A6;Haloperidol 5mg/ml - Ampola;Haloperidol;5mg/ml;;Ampola;;;;ativo
+23/09/2026;MEN-A738CA;Haloperidol 5mg/ml - Solução Injetável;Haloperidol;5mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;MEN-CE6EFE;Heparina Sódica 5000ui/ml - Ampola;Heparina Sódica;5000ui/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-33C7A8;Hidralazina 20mg/ml - Ampola;Hidralazina;20mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-4CC1EB;Hidralazina 25mg - Comprimido;Hidralazina;25mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-F0D967;Hidroclorotiazida 25mg - Comprimido;Hidroclorotiazida;25mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-E30137;Hidroclorotiazida 50mg - Comprimido;Hidroclorotiazida;50mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-0C3F3C;Hidrocortisona 100mg - Frasco Ampola;Hidrocortisona;100mg;;Frasco Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-A969B1;Hidrocortisona 500mg - Frasco Ampola;Hidrocortisona;500mg;;Frasco Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-70B2B1;Hidróxido de Alumínio 6% - Suspensão Oral;Hidróxido de Alumínio;6%;suspensão oral;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-C5ABDE;Hidróxido de Alumínio 60mg/ml - Suspensão Oral;Hidróxido de Alumínio;60mg/ml;suspensão oral;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-AD9D13;Ibuprofeno 300mg - Comprimido;Ibuprofeno;300mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-38E82A;Ibuprofeno 50mg/ml - Suspensão Oral;Ibuprofeno;50mg/ml;suspensão oral;;;;oral;ativo
+23/09/2026;MEN-A2824F;Insulina Humana NPH 100ui/ml - Suspensão Injetável;Insulina Humana NPH;100ui/ml;suspensão injetável;;;;injetável;ativo
+23/09/2026;MEN-315AC6;Insulina NPH - Frasco Ampola;Insulina NPH - Frasco Ampola;;;Frasco Ampola;;;;ativo
+23/09/2026;MEN-EF22FF;Insulina Regular - Frasco Ampola;Insulina Regular - Frasco Ampola;;;Frasco Ampola;;;;ativo
+23/09/2026;MEN-FE3E00;Insulina Regular Humana 100ui/ml - Suspensão Injetável;Insulina Regular Humana;100ui/ml;suspensão injetável;;;;injetável;ativo
+23/09/2026;MEN-F4121B;Isoniazida 100mg - Comprimido;Isoniazida;100mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-F51910;Itraconazol 100mg - Cápsula;Itraconazol;100mg;cápsula;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-0F4A0F;Ivermectina 6mg - Comprimido;Ivermectina;6mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-7E0BB6;Lactulose 667mg/ml - Solução Oral;Lactulose;667mg/ml;solução oral;;;;oral;ativo
+23/09/2026;MEN-17575B;Lamotrigina 25mg - Comprimido;Lamotrigina;25mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-6DCDBD;Lamotrigina 50mg - Comprimido;Lamotrigina;50mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-BD67AE;Levodopa + Benserazida 100mg+25mg - Comprimido;Levodopa + Benserazida;100mg +25mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-52D250;Levodopa + Benserazida 200mg+50mg - Comprimido;Levodopa + Benserazida;200mg +50mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-19BB21;Levofloxacino 500mg - Comprimido;Levofloxacino;500mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-63F749;Levofloxacino 5mg/ml - Bolsa;Levofloxacino;5mg/ml;;Bolsa;;;;ativo
+23/09/2026;MEN-B8D07D;Levonorgestrel + Etinilestradiol 0,15mg+0,03mg - Comprimido;Levonorgestrel + Etinilestradiol;0,15mg +0,03mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-FEEDD3;Levonorgestrel 0,75mg - Comprimido;Levonorgestrel;0,75mg;comprimido;;Casa da Mulher;;oral;ativo
+23/09/2026;MEN-D29E0C;Levotiroxina Sódica 100mcg - Comprimido;Levotiroxina Sódica;100mcg;comprimido;;;;oral;ativo
+23/09/2026;MEN-0CE1AF;Levotiroxina Sódica 25mcg - Comprimido;Levotiroxina Sódica;25mcg;comprimido;;;;oral;ativo
+23/09/2026;MEN-2BBD0A;Levotiroxina Sódica 50mcg - Comprimido;Levotiroxina Sódica;50mcg;comprimido;;;;oral;ativo
+23/09/2026;MEN-AE9AB6;Lidocaína + Epinefrina 2% - Frasco Ampola;Lidocaína + Epinefrina;2%;;Frasco Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-9422BF;Lidocaína 10% - Spray;Lidocaína;10%;spray;;;;;ativo
+23/09/2026;MEN-98B784;Lidocaína 2% - Ampola;Lidocaína;2%;;Ampola;;;;ativo
+23/09/2026;MEN-1AD7FC;Lidocaína 2% - Geleia;Lidocaína;2%;geleia;;;;;ativo
+23/09/2026;MEN-AE4F01;Lidocaína 2% Sem Vasoconstritor - Frasco Ampola;Lidocaína;2%;;Frasco Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-ED0A6E;Loperamida 2mg - Comprimido;Loperamida;2mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-49BAD7;Loratadina 10mg - Comprimido;Loratadina;10mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-BCDAD1;Loratadina 1mg/ml - Solução Oral;Loratadina;1mg/ml;solução oral;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-652333;Losartana 50mg - Comprimido;Losartana;50mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-59FABA;Losartana Potássica 50mg - Comprimido;Losartana Potássica;50mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-25F1EB;Maleato de Dexclorfeniramina 0,4mg/ml - Solução Oral;Maleato de Dexclorfeniramina;0,4mg/ml;solução oral;;;;oral;ativo
+23/09/2026;MEN-C3B590;Maleato de Dexclorfeniramina 2mg - Comprimido;Maleato de Dexclorfeniramina;2mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-6507D1;Maleato de Enalapril 10mg - Comprimido;Maleato de Enalapril;10mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-7C07D5;Maleato de Enalapril 20mg - Comprimido;Maleato de Enalapril;20mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-53D7F7;Maleato de Enalapril 5mg - Comprimido;Maleato de Enalapril;5mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-41B82A;Maleato de Levomepromazina 100mg - Comprimido;Maleato de Levomepromazina;100mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-BF6BCE;Maleato de Levomepromazina 25mg - Comprimido;Maleato de Levomepromazina;25mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-E67BA5;Maleato de Timolol 0,5% - Solução Oftálmica;Maleato de Timolol;0,5%;solução oftálmica;;;;oftálmica;ativo
+23/09/2026;MEN-176D7A;Maleato de Timolol 5mg/ml - Solução Oftálmica;Maleato de Timolol;5mg/ml;solução oftálmica;;;;oftálmica;ativo
+23/09/2026;MEN-A9C8C3;Manitol 20% - Solução Injetável 250ml;Manitol;20%;solução injetável;;Uso Hospitalar (Rede Municipal);;injetável;ativo
+23/09/2026;MEN-14CEA4;Mebendazol 100mg - Comprimido;Mebendazol;100mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-D63421;Mebendazol 20mg/ml - Suspensão Oral;Mebendazol;20mg/ml;suspensão oral;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-85D6DC;Meropenem 1g - Frasco Ampola;Meropenem;1g;;Frasco Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-7BA494;Mesilato de Doxazosina 2mg - Comprimido;Mesilato de Doxazosina;2mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-2ABE7E;Metildopa 250mg - Comprimido;Metildopa;250mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-66F1AF;Metildopa 500mg - Comprimido;Metildopa;500mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-8935F0;Metronidazol 100mg/g - Creme Vaginal;Metronidazol;100mg/g;creme vaginal;;;;vaginal;ativo
+23/09/2026;MEN-3C8341;Metronidazol 250mg - Comprimido;Metronidazol;250mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-37B1A1;Metronidazol 40mg/ml - Suspensão Oral;Metronidazol;40mg/ml;suspensão oral;;;;oral;ativo
+23/09/2026;MEN-7977B7;Metronidazol 5mg/ml - Solução Injetável 100ml;Metronidazol;5mg/ml;solução injetável;;;;injetável;ativo
+23/09/2026;MEN-04FEB6;Midazolam 5mg/ml - Ampola;Midazolam;5mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;;ativo
+23/09/2026;MEN-A796EF;Mikania Glomerata (Guaco) - Xarope;Mikania Glomerata (Guaco);;xarope;;;;oral;ativo
+23/09/2026;MEN-7ACE78;Mononitrato de Isossorbida 20mg - Comprimido;Mononitrato de Isossorbida;20mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-2D669B;Mononitrato de Isossorbida 40mg - Comprimido;Mononitrato de Isossorbida;40mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-FBE06A;Naloxona 0,4mg/ml - Ampola;Naloxona;0,4mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-8F7715;Neomicina + Bacitracina 5mg/g+250ui/g - Pomada;Neomicina + Bacitracina;5mg/g +250ui;pomada;;;;tópica;ativo
+23/09/2026;MEN-0DBFD8;Nicotina 14mg - Adesivo Transdérmico;Nicotina;14mg;adesivo transdérmico;;Farmácia Básica Municipal;;transdérmica;ativo
+23/09/2026;MEN-E37CDA;Nicotina 21mg - Adesivo Transdérmico;Nicotina;21mg;adesivo transdérmico;;Farmácia Básica Municipal;;transdérmica;ativo
+23/09/2026;MEN-E33F73;Nicotina 2mg - Goma de Mascar;Nicotina;2mg;goma de mascar;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-38ABD7;Nicotina 2mg - Pastilha;Nicotina;2mg;pastilha;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-84773D;Nicotina 7mg - Adesivo Transdérmico;Nicotina;7mg;adesivo transdérmico;;Farmácia Básica Municipal;;transdérmica;ativo
+23/09/2026;MEN-136362;Nifedipino 10mg - Comprimido;Nifedipino;10mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-5617C7;Nifedipino 20mg - Comprimido;Nifedipino;20mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-E39FB5;Nifedipino 20mg - Comprimido de Liberação Prolongada;Nifedipino;20mg;comprimido de liberação prolongada;;;;oral;ativo
+23/09/2026;MEN-A1CBDC;Nimesulida 100mg - Comprimido;Nimesulida;100mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-CFE43E;Nimodipino 30mg - Comprimido;Nimodipino;30mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-1C33A9;Nistatina 100000ui/ml - Suspensão Oral;Nistatina;100000ui/ml;suspensão oral;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-F80EB7;Nistatina 25000ui/g - Creme;Nistatina;25000ui;creme;;Uso Hospitalar (Rede Municipal);;tópica;ativo
+23/09/2026;MEN-4D4D02;Nitrato de Miconazol 20mg/g - Creme Dermatológico;Nitrato de Miconazol;20mg/g;creme dermatológico;;;;tópica;ativo
+23/09/2026;MEN-9E5CB5;Nitrato de Miconazol 20mg/g - Creme Vaginal;Nitrato de Miconazol;20mg/g;creme vaginal;;;;vaginal;ativo
+23/09/2026;MEN-E52B76;Nitrofurantoína 100mg - Comprimido;Nitrofurantoína;100mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-327BA1;Nitroglicerina 5mg/ml - Ampola;Nitroglicerina;5mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-FAA448;Nitroprussiato de Sódio 50mg - Ampola;Nitroprussiato de Sódio;50mg;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-440376;Norepinefrina 8mg/4ml - Ampola;Norepinefrina;8mg/4ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-DD5F4C;Noretisterona 0,35mg - Comprimido;Noretisterona;0,35mg;comprimido;;Casa da Mulher;;oral;ativo
+23/09/2026;MEN-1ADB99;Norfloxacino 400mg - Comprimido Revestido;Norfloxacino;400mg;comprimido revestido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-7F783E;Ocitocina 5ui/ml - Ampola;Ocitocina;5ui/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-ABDDEB;Óleo Mineral - Solução Oral;Óleo Mineral;;solução oral;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-92C6CA;Omeprazol 20mg - Cápsula;Omeprazol;20mg;cápsula;;;;oral;ativo
+23/09/2026;MEN-4B7111;Omeprazol 40mg - Frasco Ampola;Omeprazol;40mg;;Frasco Ampola;;;;ativo
+23/09/2026;MEN-56B22B;Oxacilina 500mg - Frasco Ampola;Oxacilina;500mg;;Frasco Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-98DEF7;Paracetamol 200mg/ml - Solução Oral;Paracetamol;200mg/ml;solução oral;;;;oral;ativo
+23/09/2026;MEN-26D65C;Paracetamol 500mg - Comprimido;Paracetamol;500mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-289CDA;Pentoxifilina 400mg - Comprimido Revestido;Pentoxifilina;400mg;comprimido revestido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-C1FAD6;Periciazina 10mg - Comprimido;Periciazina;10mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-8BD040;Periciazina 40mg/ml - Solução Oral;Periciazina;40mg/ml;solução oral;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-C8EC07;Permetrina 50mg/ml - Loção Tópica;Permetrina;50mg/ml;loção;;;;tópica;ativo
+23/09/2026;MEN-A15EAD;Pirazinamida 3% - Suspensão Oral;Pirazinamida;3%;suspensão oral;;;;oral;ativo
+23/09/2026;MEN-58842F;PPD 1,5ml - Solução Injetável;PPD;1,5ml;solução injetável;;Farmácia Básica Municipal;;injetável;ativo
+23/09/2026;MEN-A3F24F;Prednisona 20mg - Comprimido;Prednisona;20mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-ADFBC6;Prednisona 5mg - Comprimido;Prednisona;5mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-BEBE8B;Propatilnitrato 10mg - Comprimido;Propatilnitrato;10mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-F59EA9;Propofol 1% - Solução Injetável;Propofol;1%;solução injetável;;Uso Hospitalar (Rede Municipal);;injetável;ativo
+23/09/2026;MEN-FECF0A;Propranolol 40mg - Comprimido;Propranolol;40mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-8A0050;Quetiapina 25mg - Comprimido;Quetiapina;25mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-12C425;Reidratante Oral 27,9g - Envelope;Reidratante Oral;27,9g;;Envelope;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-356559;Rifampicina + Isoniazida + Pirazinamida + Etambutol 150mg+75mg+400mg+275mg - Comprimido;Rifampicina + Isoniazida + Pirazinamida + Etambutol;150mg +75mg +400mg +275mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-0117BD;Rifampicina + Isoniazida 150mg+75mg - Comprimido;Rifampicina + Isoniazida;150mg +75mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-E6A74C;Rifampicina 2% - Suspensão Oral;Rifampicina;2%;suspensão oral;;;;oral;ativo
+23/09/2026;MEN-E33337;Ringer Lactato - Solução Injetável 500ml;Ringer Lactato;500ml;solução injetável;;;;injetável;ativo
+23/09/2026;MEN-94242B;Risperidona 1mg - Comprimido;Risperidona;1mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-6572DA;Risperidona 1mg/ml - Solução Oral;Risperidona;1mg/ml;solução oral;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-0AC85B;Risperidona 2mg - Comprimido;Risperidona;2mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-3F25FC;Sais para Reidratação Oral - Envelope;Sais para Reidratação Oral - Envelope;;;Envelope;;;;ativo
+23/09/2026;MEN-8D8F49;Salbutamol 2mg - Comprimido;Salbutamol;2mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-6CFE99;Salbutamol 2mg/5ml - Xarope;Salbutamol;2mg/5ml;xarope;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-715FF1;Sertralina 50mg - Comprimido;Sertralina;50mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-AA9F4D;Simeticona 75mg/ml - Solução Oral;Simeticona;75mg/ml;solução oral;;;;oral;ativo
+23/09/2026;MEN-CF840C;Sinvastatina 20mg - Comprimido;Sinvastatina;20mg;comprimido;;;;oral;ativo
+23/09/2026;MEN-84595A;Sinvastatina 20mg - Comprimido Revestido;Sinvastatina;20mg;comprimido revestido;;;;oral;ativo
+23/09/2026;MEN-24C582;Sinvastatina 40mg - Comprimido;Sinvastatina;40mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-ACD173;Sorbitol + Laurilsulfato de Sódio 714mg/g+7,70mg/g - Bisnaga;Sorbitol + Laurilsulfato de Sódio;714mg/g +7,70mg/g;;Bisnaga;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-EA5819;Sulfadiazina de Prata 1% - Creme;Sulfadiazina de Prata;1%;creme;;;;tópica;ativo
+23/09/2026;MEN-347874;Sulfadiazina de Prata 10mg/g - Creme;Sulfadiazina de Prata;10mg/g;creme;;;;tópica;ativo
+23/09/2026;MEN-F23042;Sulfametoxazol + Trimetoprima 400mg+80mg - Comprimido;Sulfametoxazol + Trimetoprima;400mg +80mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-47A973;Sulfametoxazol + Trimetoprima 40mg/ml+8mg/ml - Suspensão Oral;Sulfametoxazol + Trimetoprima;40mg/ml +8mg/ml;suspensão oral;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-25DFA3;Sulfato de Amicacina 250mg/2ml - Ampola;Sulfato de Amicacina;250mg/2ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-45E336;Sulfato de Atropina 0,25mg/ml - Ampola;Sulfato de Atropina;0,25mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-D73271;Sulfato de Magnésio 10% - Ampola;Sulfato de Magnésio;10%;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-958D24;Sulfato de Magnésio 50% - Ampola;Sulfato de Magnésio;50%;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-1D6CB1;Sulfato de Morfina 10mg/ml - Ampola;Sulfato de Morfina;10mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-32C45C;Sulfato de Salbutamol 100mcg/dose - Aerossol Oral;Sulfato de Salbutamol;100mcg/dose;aerossol;;Farmácia Básica Municipal;;inalatória;ativo
+23/09/2026;MEN-4B5A8E;Sulfato Ferroso 25mg/ml - Solução Oral;Sulfato Ferroso;25mg/ml;solução oral;;;;oral;ativo
+23/09/2026;MEN-B0EEC0;Sulfato Ferroso 40mg - Comprimido Revestido;Sulfato Ferroso;40mg;comprimido revestido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-FE8EFD;Talidomida 100mg - Comprimido;Talidomida;100mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-D945E5;Tartarato de Metoprolol 5mg/ml - Ampola;Tartarato de Metoprolol;5mg/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-EA5CF7;Tenoxicam 40mg - Frasco Ampola;Tenoxicam;40mg;;Frasco Ampola;;;;ativo
+23/09/2026;MEN-92D3EA;Topiramato 50mg - Comprimido;Topiramato;50mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-1ED6E1;Valproato de Sódio 250mg - Comprimido;Valproato de Sódio;250mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-8A3A4A;Valproato de Sódio 50mg/ml - Comprimido;Valproato de Sódio;50mg/ml;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-F04209;Valproato de Sódio 576mg - Comprimido;Valproato de Sódio;576mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-B4583D;Vancomicina 500mg - Frasco Ampola;Vancomicina;500mg;;Frasco Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-683063;Varfarina 5mg - Comprimido;Varfarina;5mg;comprimido;;Uso Hospitalar (Rede Municipal);;oral;ativo
+23/09/2026;MEN-43C280;Varfarina Sódica 5mg - Comprimido;Varfarina Sódica;5mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-D0CECC;Vasopressina 20ui/ml - Ampola;Vasopressina;20ui/ml;;Ampola;Uso Hospitalar (Rede Municipal);;;ativo
+23/09/2026;MEN-2227E5;Verapamil 80mg - Comprimido;Verapamil;80mg;comprimido;;Farmácia Básica Municipal;;oral;ativo
+23/09/2026;MEN-7CCBBD;Vitaminas do Complexo B - Ampola;Vitaminas do Complexo B - Ampola;;;Ampola;;;;ativo
+23/09/2026;MEN-546450;Vitaminas do Complexo B - Comprimido;Vitaminas do Complexo B;;comprimido;;;;oral;ativo

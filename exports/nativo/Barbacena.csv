@@ -1,0 +1,408 @@
+﻿remume_versao;codigo_identificacao;descricao_original;principio_ativo;concentracao;forma_farmaceutica;apresentacao;local_dispensacao;restricao;via_administracao;situacao
+23/09/2026;BAR-3DC5D6;Abacavir (ABC) - comprimido 300 mg;Abacavir (ABC);300 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-1CA23A;Abacavir (ABC) - solução oral 20 mg/mL;Abacavir (ABC);20 mg/mL;solução oral;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-2253A5;Aciclovir - comprimido 200 mg;Aciclovir;200 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-FAD6CD;Ácido acetilsalicílico - comprimido 100 mg;Ácido acetilsalicílico;100 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-31E453;Ácido Acetilsalicílico 100 mg - comprimido;Ácido Acetilsalicílico;100 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-D25F33;Ácido ascórbico (vitamina C) 100 mg/mL-5 mL - ampola;Ácido ascórbico (vitamina C);100 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-039320;Ácido fólico - comprimido 5 mg;Ácido fólico;5 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-0A3B61;Ácido folínico - comprimido 15 mg;Ácido folínico;15 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-B2EA2E;Ácido tranexâmico 50 mg-5 mL - ampola;Ácido tranexâmico;50 mg;;ampola;UPA;;;ativo
+23/09/2026;BAR-5A5A3E;Ácido valpróico - cápsula 250 mg;Ácido valpróico;250 mg;cápsula;;UBS;;oral;ativo
+23/09/2026;BAR-37FA14;Ácido valpróico - comprimido 500 mg;Ácido valpróico;500 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-A140E9;Ácido valpróico - solução oral/xarope 50 mg/mL;Ácido valpróico;50 mg/mL;solução oral;;UBS;;oral;ativo
+23/09/2026;BAR-719C0D;Adenosina 3 mg/mL -2 mL - ampola;Adenosina;3 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-7A24E6;Adrenalina (epinefrina), cloridrato ou hemitartarato - solução injetável 1mg/mL;Adrenalina (epinefrina), cloridrato ou hemitartarato;1mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-9EA173;Adrenalina 1 mg - 1 mL - ampola;Adrenalina;1 mg;;ampola;UPA;;;ativo
+23/09/2026;BAR-F6A78D;Água Destilada 10 mL - ampola;Água Destilada;10 mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-ADA8EF;Água Destilada 500 mL - ampola;Água Destilada;500 mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-30FB17;Água para injeção - solução injetável ampola 10 mL;Água para injeção;10 mL;solução injetável;ampola 10 mL;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-16986C;Albendazol - comprimido mastigável 400 mg;Albendazol;400 mg;comprimido mastigável;;UBS;;oral;ativo
+23/09/2026;BAR-A7BC42;Albendazol - solução oral 40 mg/mL;Albendazol;40 mg/mL;solução oral;;UBS;;oral;ativo
+23/09/2026;BAR-0EB453;Alendronato de sódio - comprimido 70 mg;Alendronato de sódio;70 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-7191B6;Alopurinol - comprimido 100 mg;Alopurinol;100 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-C8F5B0;Alopurinol - comprimido 300 mg;Alopurinol;300 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-09D131;Alteplase 50 mg - frasco/ampola;Alteplase;50 mg;;ampola;UPA;;;ativo
+23/09/2026;BAR-35E569;Aminofilina 24 mg/mL-10 mL - ampola;Aminofilina;24 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-E8EB06;Amiodarona cloridrato 200 mg - comprimido;Amiodarona cloridrato;200 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-41EE92;Amiodarona cloridrato 50 mg/mL - 3 mL - ampola;Amiodarona cloridrato;50 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-F44473;Amiodarona, cloridrato - comprimido 200 mg;Amiodarona, cloridrato;200 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-F69220;Amiodarona, cloridrato - solução injetável 50mg/mL;Amiodarona, cloridrato;50mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-60F3C0;Amitriptilina, cloridrato - comprimido 25 mg;Amitriptilina, cloridrato;25 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-36878C;Amoxicilina + clavulanato de potássio - comprimido 500 mg + 125 mg;Amoxicilina + clavulanato de potássio;500 mg + 125 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-2CBF55;Amoxicilina + clavulanato de potássio - pó para suspensão oral amoxicilina 250 mg/5mL + clavulanato de potássio 62,5mg/5mL;Amoxicilina + clavulanato de potássio;250 mg/5mL;pó para suspensão oral;;UBS;;oral;ativo
+23/09/2026;BAR-66EA5D;Amoxicilina + Clavulanato de Potássio 1 g EV - ampola;Amoxicilina + Clavulanato de Potássio;1 g;;ampola;UPA;;;ativo
+23/09/2026;BAR-A5D58A;Amoxicilina - cápsula 500 mg;Amoxicilina;500 mg;cápsula;;UBS;;oral;ativo
+23/09/2026;BAR-35A766;Amoxicilina - pó para suspensão oral 50 mg/mL;Amoxicilina;50 mg/mL;pó para suspensão oral;;UBS;;oral;ativo
+23/09/2026;BAR-930813;Ampicilina 1 g - ampola;Ampicilina;1 g;;ampola;UPA;;;ativo
+23/09/2026;BAR-16FD70;Anfotericina B - pó para solução injetável 50 mg em lipossomas de fosfatidilcolina hidrogenada fr-amp.;Anfotericina B;50 mg;pó para solução injetável;;CTA/CEM;;injetável;ativo
+23/09/2026;BAR-0A73B1;Anlodipino 10 mg - comprimido;Anlodipino;10 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-B8C77A;Anlodipino, besilato - comprimido 10 mg;Anlodipino, besilato;10 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-56591B;Anlodipino, besilato - comprimido 5 mg;Anlodipino, besilato;5 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-C6F2C7;Atazanavir, sulfato (ATV) - cápsula 200 mg;Atazanavir, sulfato (ATV);200 mg;cápsula;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-2A36B0;Atazanavir, sulfato (ATV) - cápsula 300 mg;Atazanavir, sulfato (ATV);300 mg;cápsula;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-59AC23;Atenolol - comprimido 50 mg;Atenolol;50 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-F3DE18;Atenolol 50 mg - comprimido;Atenolol;50 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-F97345;Atropina sulfato 0,25 mg - 1 mL - ampola;Atropina sulfato;0,25 mg;;ampola;UPA;;;ativo
+23/09/2026;BAR-C68E3D;Atropina, sulfato - solução injetável 0,25 mg/mL;Atropina, sulfato;0,25 mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-351A61;Azitromicina - comprimido 500 mg;Azitromicina;500 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-84CF62;Azitromicina - suspensão oral 40 mg/mL;Azitromicina;40 mg/mL;suspensão oral;;UBS;;oral;ativo
+23/09/2026;BAR-E3108F;Azitromicina 500 mg - comprimido;Azitromicina;500 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-9321B1;Beclometasona, dipropionato - aerossol oral 250mcg/dose;Beclometasona, dipropionato;250mcg/dose;aerossol;;UBS;;inalatória;ativo
+23/09/2026;BAR-7A4B95;Beclometasona, dipropionato - aerossol oral 50 mcg /dose;Beclometasona, dipropionato;50 mcg;aerossol;;UBS;;inalatória;ativo
+23/09/2026;BAR-C24DEF;Beclometasona, dipropionato - spray nasal 50 mcg/dose;Beclometasona, dipropionato;50 mcg/dose;spray;;UBS;;nasal;ativo
+23/09/2026;BAR-E2961F;Benzilpenicilina Benzatina 1.200.000 UI - frasco/ampola;Benzilpenicilina Benzatina;1.200.000 UI;;ampola;UPA;;;ativo
+23/09/2026;BAR-DE8FE0;Benzilpenicilina Potássica 6.000.000 UI - frasco/ampola;Benzilpenicilina Potássica;6.000.000 UI;;ampola;UPA;;;ativo
+23/09/2026;BAR-0D5811;Bicarbonato de sódio - solução injetável 84 mg/mL (8,4% - 1 mEq/mL);Bicarbonato de sódio;84 mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-EAC484;Bicarbonato de Sódio 8,4%- 250 mL - ampola;Bicarbonato de Sódio;8,4%;;ampola;UPA;;;ativo
+23/09/2026;BAR-EB4A42;Bicarbonato de Sódio 8,4%-10 mL - ampola;Bicarbonato de Sódio;8,4%;;ampola;UPA;;;ativo
+23/09/2026;BAR-93B134;Biperideno 5 mg/1 mL - ampola;Biperideno;5 mg/1 mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-A4CDAD;Biperideno, cloridrato - comprimido 2 mg;Biperideno, cloridrato;2 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-0365A1;Biperideno, lactato - solução injetável 5 mg/mL;Biperideno, lactato;5 mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-55CDAB;Bromoprida 5 mg/mL-2 mL - ampola;Bromoprida;5 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-9CAFA1;Budesonida - aquoso nasal 50 mcg;Budesonida;50 mcg;aquoso nasal;;UBS;;nasal;ativo
+23/09/2026;BAR-592732;Bupropiona, cloridrato - comprimido 150 mg;Bupropiona, cloridrato;150 mg;comprimido;;CAF;;oral;ativo
+23/09/2026;BAR-A46D87;Captopril - comprimido 25 mg;Captopril;25 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-A84304;Captopril 25 mg - comprimido;Captopril;25 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-3F986F;Carbamazepina - comprimido 200 mg;Carbamazepina;200 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-2FA3A9;Carbamazepina - solução oral 20 mg/mL;Carbamazepina;20 mg/mL;solução oral;;UBS;;oral;ativo
+23/09/2026;BAR-1247BC;Carbonato de cálcio + colecalciferol (vit. D) - comprimido equivalente a 500 mg de Ca++ e 400 UI de vitamina D;Carbonato de cálcio + colecalciferol (vit. D);500 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-09EAAE;Carbonato de cálcio - comprimido 1.250 mg (equivalente a 500 mg de Ca++);Carbonato de cálcio;1.250 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-F09BBF;Carbonato de lítio - comprimido 300 mg;Carbonato de lítio;300 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-A95C43;Carvão ativado pote 30 g - pó;Carvão ativado pote;30 g;pó;pote 30 g;UPA;;;ativo
+23/09/2026;BAR-148D0F;Carvedilol - comprimido 12,5 mg;Carvedilol;12,5 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-FE7EBF;Carvedilol - comprimido 25 mg;Carvedilol;25 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-B3E2A0;Carvedilol - comprimido 3,125 mg;Carvedilol;3,125 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-FC0BDD;Carvedilol - comprimido 6,25 mg;Carvedilol;6,25 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-454896;Cefalexina - comprimido 500 mg;Cefalexina;500 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-63ADA1;Cefalexina - suspensão oral 50 mg/mL;Cefalexina;50 mg/mL;suspensão oral;;UBS;;oral;ativo
+23/09/2026;BAR-725859;Ceftriaxona sódica - pó para solução injetável 500 mg fr-amp. EV;Ceftriaxona sódica;500 mg;pó para solução injetável;;CTA/CEM/UBS;;injetável;ativo
+23/09/2026;BAR-BDB5D5;Ceftriaxona Sódica 1 g solução injetável EV - pó;Ceftriaxona Sódica;1 g;solução injetável;;UPA;;injetável;ativo
+23/09/2026;BAR-967014;Cetoprofeno - solução injetável 50mg/mL;Cetoprofeno;50mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-1BC03C;Cetoprofeno I.m 50 mg/mL-2 mL - ampola;Cetoprofeno I.m;50 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-FAF088;Cimetidina 150 mg/mL 12 mL - ampola;Cimetidina;150 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-7A509A;Ciprofloxacino 2 mL/100 mL - frasco;Ciprofloxacino;2 mL;;frasco;UPA;;;ativo
+23/09/2026;BAR-C5B1E5;Ciprofloxacino cloridrato 500 mg - comprimido;Ciprofloxacino cloridrato;500 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-C98A1A;Ciprofloxacino, cloridrato - comprimido 500 mg;Ciprofloxacino, cloridrato;500 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-B9A667;Claritromicina - comprimido 500 mg;Claritromicina;500 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-FCE091;Claritromicina - suspensão oral 50 mg/mL;Claritromicina;50 mg/mL;suspensão oral;;UBS;;oral;ativo
+23/09/2026;BAR-2DC897;Clindamicina, cloridrato - cápsula 300 mg;Clindamicina, cloridrato;300 mg;cápsula;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-F7E817;Clindamicina, Fosfato 150 mg/mL AMP 4 mL - ampola;Clindamicina, Fosfato;150 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-99189B;Clomipramina, cloridrato - comprimido 25 mg;Clomipramina, cloridrato;25 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-7EBD3F;Clonazepam - solução oral gotas 2,5 mg/mL (0,25%);Clonazepam;2,5 mg/mL (0,25%);solução oral;;UBS;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;BAR-36D122;Clonazepam 2,5 mg/mL-20 mL - gotas;Clonazepam;2,5 mg/mL;gotas;;UPA;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;;ativo
+23/09/2026;BAR-214B6A;Clonidina 0,100 mg - comprimido;Clonidina;0,100 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-3388EE;Clonidina 150 mcg/mL 1 mL - ampola;Clonidina;150 mcg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-5DB648;Clopidogrel bissulfato 75 mg - comprimido;Clopidogrel bissulfato;75 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-27AAD6;Cloreto de Magnesio 10% AMP 10 mL - ampola;Cloreto de Magnesio;10%;;ampola;UPA;;;ativo
+23/09/2026;BAR-328878;Cloreto de potássio - solução injetável 19,1%;Cloreto de potássio;19,1%;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-7114E0;Cloreto de Potássio 10% -10 mL - ampola;Cloreto de Potássio;10%;;ampola;UPA;;;ativo
+23/09/2026;BAR-A850FF;Cloreto de Potássio 6% -100 mL - frasco;Cloreto de Potássio;6%;;frasco;UPA;;;ativo
+23/09/2026;BAR-6EE6ED;Cloreto de Potássio Xarope 6% -150 mL - frasco;Cloreto de Potássio;6%;xarope;frasco;UPA;;oral;ativo
+23/09/2026;BAR-4F7C79;Cloreto de sódio - solução injetável 0,9 % 100 mL sistema fechado;Cloreto de sódio;0,9 %;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-98C11B;Cloreto de sódio - solução injetável 0,9 % 500 mL sistema fechado;Cloreto de sódio;0,9 %;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-07C55C;Cloreto de sódio - solução injetável 20%;Cloreto de sódio;20%;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-6D432A;Cloreto de sódio - solução nasal 0,9%;Cloreto de sódio;0,9%;solução nasal;;UBS;;nasal;ativo
+23/09/2026;BAR-A71324;Cloreto de Sódio 0,9% - 100 mL - bolsa;Cloreto de Sódio;0,9%;;bolsa;UPA;;;ativo
+23/09/2026;BAR-628C04;Cloreto de Sódio 0,9% - 250 mL - bolsa;Cloreto de Sódio;0,9%;;bolsa;UPA;;;ativo
+23/09/2026;BAR-8D956E;Cloreto de Sódio 0,9% - 500 mL - bolsa;Cloreto de Sódio;0,9%;;bolsa;UPA;;;ativo
+23/09/2026;BAR-952478;Cloreto de Sódio 10% - 10 mL - ampola;Cloreto de Sódio;10%;;ampola;UPA;;;ativo
+23/09/2026;BAR-CD3786;Cloreto de Sódio 20% - 10 mL - ampola;Cloreto de Sódio;20%;;ampola;UPA;;;ativo
+23/09/2026;BAR-FE0713;Clorpromazina 100 mg - comprimido;Clorpromazina;100 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-E01B37;Clorpromazina 5 mg/mL-5 mL mL - ampola;Clorpromazina;5 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-FA2BCD;Clorpromazina, cloridrato - comprimido 100 mg;Clorpromazina, cloridrato;100 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-22C741;Clorpromazina, cloridrato - comprimido 25 mg;Clorpromazina, cloridrato;25 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-43FDE6;Clorpromazina, cloridrato - solução injetável 5 mg/mL;Clorpromazina, cloridrato;5 mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-9F7D96;Clorpromazina, cloridrato - solução oral gotas 40 mg/mL (4%);Clorpromazina, cloridrato;40 mg/mL (4%);solução oral;;UBS;;oral;ativo
+23/09/2026;BAR-EFFCCB;Colagenase + Cloranfenicol 0,6U/G +0,01 g/G - 30 g - pomada;Colagenase + Cloranfenicol 0,6U/G +;0,01 g;pomada;;UPA;;tópica;ativo
+23/09/2026;BAR-9D5E2E;Colagenase - pomada 0,6U/g;Colagenase;;pomada;;UBS;;tópica;ativo
+23/09/2026;BAR-9BFDE7;Dapsona - comprimido 100 mg;Dapsona;100 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-E3200F;Darunavir (DRV) - comprimido 600 mg;Darunavir (DRV);600 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-944F5F;Darunavir (DRV) - comprimido 75 mg;Darunavir (DRV);75 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-EE4AF7;Darunavir (DRV) - comprimido 800 mg;Darunavir (DRV);800 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-ECEB4C;Darunavir (DRV) - comprimido150 mg;Darunavir (DRV);150 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-069BE9;Deslanosídeo 0,2 mg/2 mL - ampola;Deslanosídeo;0,2 mg/2 mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-3AD07B;Dexametasona - comprimido 4mg;Dexametasona;4mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-2A8223;Dexametasona - creme 1 mg/g (0,1%);Dexametasona;1 mg/g (0,1%);creme;;UBS;;tópica;ativo
+23/09/2026;BAR-0357FB;Dexametasona fosfato 4 mg/2,5 mL - ampola;Dexametasona fosfato;4 mg/2,5 mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-1CD20E;Dexametasona, fosfato dissódico - solução injetável 4 mg/mL;Dexametasona, fosfato dissódico;4 mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-665DBA;Dexclorfeniramina 0,4 mg/mL FR 100 mL - xarope;Dexclorfeniramina;0,4 mg/mL;xarope;;UPA;;oral;ativo
+23/09/2026;BAR-823184;Dexclorfeniramina, maleato - comprimido 2mg;Dexclorfeniramina, maleato;2mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-CDBE03;Dexclorfeniramina, maleato - solução oral 0,4 mg/mL;Dexclorfeniramina, maleato;0,4 mg/mL;solução oral;;UBS;;oral;ativo
+23/09/2026;BAR-3CDD50;Diazepam - comprimido 10 mg;Diazepam;10 mg;comprimido;;UBS;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;BAR-E4311E;Diazepam - solução injetável 5mg/mL;Diazepam;5mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;injetável;ativo
+23/09/2026;BAR-49D91D;Diazepam 10 mg - comprimido;Diazepam;10 mg;comprimido;;UPA;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;BAR-1C74AF;Diazepam 5 mg - comprimido;Diazepam;5 mg;comprimido;;UPA;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;oral;ativo
+23/09/2026;BAR-B84BD6;Diazepam 5 mg/mL - 2 mL - ampola;Diazepam;5 mg/mL;;ampola;UPA;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;;ativo
+23/09/2026;BAR-E7EA0E;Diclofenaco Sódico 25 mg - 3 mL - ampola;Diclofenaco Sódico;25 mg;;ampola;UPA;;;ativo
+23/09/2026;BAR-CABFAE;Dieta Fresubin 1.2 Hp Fibre Eb 1000ml - frasco;Dieta Fresubin 1.2 Hp Fibre Eb;1000ml;;frasco;UPA;;;ativo
+23/09/2026;BAR-333147;Dieta Fresubin Energy Frutas - frasco;Dieta Fresubin Energy Frutas - frasco;;;frasco;UPA;;;ativo
+23/09/2026;BAR-A34700;Dieta FRESUBIN ORIGINAL 100 mL - frasco;Dieta FRESUBIN ORIGINAL;100 mL;;frasco;UPA;;;ativo
+23/09/2026;BAR-378A51;Digoxina - comprimido 0,25 mg;Digoxina;0,25 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-1798EE;Digoxina 0,25 mg - comprimido;Digoxina;0,25 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-497181;Dipirona sódica - comprimido 500 mg;Dipirona sódica;500 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-DF601D;Dipirona sódica - solução injetável 500 mg/mL;Dipirona sódica;500 mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-138190;Dipirona sódica - solução oral gotas 500 mg/mL;Dipirona sódica;500 mg/mL;solução oral;;UBS;;oral;ativo
+23/09/2026;BAR-0A8FE8;Dipirona Sódica 500 mg - comprimido;Dipirona Sódica;500 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-9BC48B;Dipirona Sódica 500 mg/mL - 10 mL - gotas;Dipirona Sódica;500 mg/mL;gotas;;UPA;;;ativo
+23/09/2026;BAR-E3ADA8;Dipirona Sódica 500 mg/mL- 2 mL - ampola;Dipirona Sódica;500 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-96C1C7;Dispositivo intra uterino (DIU) - DIU com Cobre modelo T 380 mm2;Dispositivo intra uterino (DIU) - DIU com Cobre modelo T 380 mm2;;;;CAF;;;ativo
+23/09/2026;BAR-C02AF5;Dobutamina 250 mg - 20 mL - ampola;Dobutamina;250 mg;;ampola;UPA;;;ativo
+23/09/2026;BAR-0BCC4B;Dolutegravir (DTG) - comprimido 50 mg;Dolutegravir (DTG);50 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-2FFE93;Dopamina 5 mg/mL - 10 mL - ampola;Dopamina;5 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-F46721;Efavirenz (EFZ) - cápsula 200 mg;Efavirenz (EFZ);200 mg;cápsula;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-8E185C;Efavirenz (EFZ) - comprimido 600 mg;Efavirenz (EFZ);600 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-0DB99B;Efavirenz (EFZ) - solução oral 30 mg/mL;Efavirenz (EFZ);30 mg/mL;solução oral;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-F1FFC1;Efavirenz + Lamivudina + Tenofovir desoproxila - Comprimido 600+300+300 mg;Efavirenz + Lamivudina + Tenofovir desoproxila;600+300+300 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-7A2579;Efedrina 50 mg - 10 mL - ampola;Efedrina;50 mg;;ampola;UPA;;;ativo
+23/09/2026;BAR-B2504B;Efedrina 50 mg/1 mL - ampola;Efedrina;50 mg/1 mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-55A429;Enalapril, maleato - comprimido 10 mg;Enalapril, maleato;10 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-6E8B99;Enalapril, maleato - comprimido 20 mg;Enalapril, maleato;20 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-1BC818;Enfuvirtida - pó liofílico para injetável 90 mg/mL;Enfuvirtida;90 mg/mL;pó;;CTA/CEM;;;ativo
+23/09/2026;BAR-0852E9;Enoxaparina sódica 20 mg -2,2 mL - seringa;Enoxaparina sódica;20 mg;;seringa;UPA;;;ativo
+23/09/2026;BAR-A88DA0;Enoxaparina sódica 40 mg - 0,4 mL - seringa;Enoxaparina sódica;40 mg;;seringa;UPA;;;ativo
+23/09/2026;BAR-3E775D;Enoxaparina sódica 60 mg - 0,6 mL - seringa;Enoxaparina sódica;60 mg;;seringa;UPA;;;ativo
+23/09/2026;BAR-C3D102;Entricitabina + Tenofovir desoproxila - Comprimido 200 + 245 (300 mg de fumarato de Tenofovir);Entricitabina + Tenofovir desoproxila;300 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-19F89F;Epinefrina bitartarato 0,001 mg-mL - ampola;Epinefrina bitartarato;0,001 mg;;ampola;UPA;;;ativo
+23/09/2026;BAR-2791AD;Escetamina 50 mg/mL - ampola;Escetamina;50 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-81D2C4;Escopolamina butilbrometo + Dipirona sódica 10 mg+250 mg - comprimido;Escopolamina butilbrometo + Dipirona sódica;10 mg +250 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-590B11;Escopolamina butilbrometo + Dipirona sódica 4 mg/mL+500 mg/mL AMP 5 mL - ampola;Escopolamina butilbrometo + Dipirona sódica;4 mg/mL +500 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-9D0EC2;Escopolamina butilbrometo 20 mg/mL - 1 mL - ampola;Escopolamina butilbrometo;20 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-FCC1A1;Escopolamina, butilbrometo - solução injetável 20 mg/mL;Escopolamina, butilbrometo;20 mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-5D438B;Espiramicina - comprimido 500 mg (equivalente a 1.500.000 UI);Espiramicina;500 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-38E91A;Espironolactona - comprimido 25 mg;Espironolactona;25 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-EA824C;Espironolactona 25 mg - comprimido;Espironolactona;25 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-1FB251;Estavudina - cápsula 30 mg;Estavudina;30 mg;cápsula;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-823D73;Estreptomicina, sulfato - pó para solução injetável 1 g + diluente fr-amp.;Estreptomicina, sulfato;1 g;pó para solução injetável;;CTA/CEM;;injetável;ativo
+23/09/2026;BAR-513E95;Etambutol, cloridrato - comprimido 400 mg;Etambutol, cloridrato;400 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-F0A4CE;Etilefrina 10 mg/mL-1 mL - ampola;Etilefrina;10 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-1E90C7;Etomidato 2 mg/mL - 10 mL - ampola;Etomidato;2 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-3F4F9E;Etravirina (ETR) - comprimido 200 mg;Etravirina (ETR);200 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-EFBF05;Fenitoína - comprimido 100 mg;Fenitoína;100 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-223EB5;Fenitoína - solução injetável 50 mg/mL;Fenitoína;50 mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-F7710D;Fenitoína Sódica 50 mg/mL - 5 mL - ampola;Fenitoína Sódica;50 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-725E80;Fenobarbital - comprimido 100 mg;Fenobarbital;100 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-85E06A;Fenobarbital - solução injetável 100 mg/mL;Fenobarbital;100 mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-22CC2F;Fenobarbital - solução oral gotas 40 mg/mL (4%);Fenobarbital;40 mg/mL (4%);solução oral;;UBS;;oral;ativo
+23/09/2026;BAR-FB8EA6;Fenobarbital Sódico 100 mg/mL - 2 mL - ampola;Fenobarbital Sódico;100 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-1E05DF;Fentanil Citrato 0,05 mg/mL - 10 mL - ampola;Fentanil Citrato;0,05 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-B4DEA5;Fitomenadiona (vitamina K) 10 mg/mL AMP 1 mL - ampola;Fitomenadiona (vitamina K);10 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-FFA61F;Fitomenadiona 10 mg - 1 mL - ampola;Fitomenadiona;10 mg;;ampola;UPA;;;ativo
+23/09/2026;BAR-E34957;Fluconazol - cápsula 150 mg;Fluconazol;150 mg;cápsula;;UBS;;oral;ativo
+23/09/2026;BAR-CF9AA2;Fluconazol 150 mg - comprimido;Fluconazol;150 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-EF3A2A;Flumazenil - Solução injetável 0,5mg/mL;Flumazenil;0,5mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-BD73B3;Flumazenil 0,1 mg/mL - 5 mL - ampola;Flumazenil;0,1 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-CA2BD4;Fluoxetina, cloridrato - cápsula 20 mg;Fluoxetina, cloridrato;20 mg;cápsula;;UBS;;oral;ativo
+23/09/2026;BAR-473764;Furosemida - comprimido 40 mg;Furosemida;40 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-8AA3C2;Furosemida - solução injetável 10 mg/mL;Furosemida;10 mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-39D92A;Furosemida 10 mg/mL- 2 mL - ampola;Furosemida;10 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-67FF07;Furosemida 40 mg - comprimido;Furosemida;40 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-782F10;Gentamicina sulfato 40 mg/mL - 1 mL - ampola;Gentamicina sulfato;40 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-AAF35D;Gentamicina, Sulfato 40 mg/mL AMP 2 mL - ampola;Gentamicina, Sulfato;40 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-BB6D8D;Glibenclamida - comprimido 5 mg;Glibenclamida;5 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-E9BA34;Glibenclamida 5 mg - comprimido;Glibenclamida;5 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-E3E813;Glicerina Clister 12% (120 mg/mL) 500 mL - frasco;Glicerina Clister;12%;;frasco;UPA;;;ativo
+23/09/2026;BAR-AE42CD;Gliclazida - comprimido de liberação prolongada 30 mg;Gliclazida;30 mg;comprimido de liberação prolongada;;UBS;;oral;ativo
+23/09/2026;BAR-478792;Gliclazida - comprimido de liberação prolongada 60 mg;Gliclazida;60 mg;comprimido de liberação prolongada;;UBS;;oral;ativo
+23/09/2026;BAR-25FF2B;Gliconato de Calcio 10% AMP 10 mL - ampola;Gliconato de Calcio;10%;;ampola;UPA;;;ativo
+23/09/2026;BAR-1D3B09;Glicose - solução injetável 50 mg/mL (5%) sistema fechado 500 mL;Glicose;50 mg/mL (5%);solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-B3D9DB;Glicose - solução injetável 500 mg/mL (50%);Glicose;500 mg/mL (50%);solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-693C3E;Glicose 25% - 10 mL - ampola;Glicose;25%;;ampola;UPA;;;ativo
+23/09/2026;BAR-F0E127;Glicose 5% - 250 mL - bolsa;Glicose;5%;;bolsa;UPA;;;ativo
+23/09/2026;BAR-E38FDA;Glicose 5% - 500 mL - bolsa;Glicose;5%;;bolsa;UPA;;;ativo
+23/09/2026;BAR-04F1AE;Glicose 50% - 10 mL - ampola;Glicose;50%;;ampola;UPA;;;ativo
+23/09/2026;BAR-22820F;Haloperidol - comprimido 1 mg;Haloperidol;1 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-608922;Haloperidol - comprimido 5 mg;Haloperidol;5 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-CB075B;Haloperidol - solução injetável 5 mg/mL;Haloperidol;5 mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-40D132;Haloperidol - solução oral gotas 2 mg/mL (0,2%);Haloperidol;2 mg/mL (0,2%);solução oral;;UBS;;oral;ativo
+23/09/2026;BAR-C516E3;Haloperidol 5 mg/mL-1 mL - ampola;Haloperidol;5 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-BDFA88;Haloperidol, decanoato - solução injetável 50 mg/ mL;Haloperidol, decanoato;50 mg;solução injetável;;UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-CE71E1;Heparina sódica - solução injetável 5.000 UI/0,25 mL (subcutâneo);Heparina sódica;5.000 UI;solução injetável;;CAF;;injetável;ativo
+23/09/2026;BAR-E590F0;Heparina Sódica 5.000 UI - 0,25 mL - ampola;Heparina Sódica;5.000 UI;;ampola;UPA;;;ativo
+23/09/2026;BAR-CC1B03;Heparina Sódica 5.000 UI/mL - 5 mL - frasco/ampola;Heparina Sódica;5.000 UI/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-A1E30A;Hidralazina cloridrato 20 mg/mL -1 mL - ampola;Hidralazina cloridrato;20 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-5F52D7;Hidralazina cloridrato 25 mg - drágea;Hidralazina cloridrato;25 mg;drágea;;UPA;;oral;ativo
+23/09/2026;BAR-B09ADC;Hidroclorotiazida - comprimido 25 mg;Hidroclorotiazida;25 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-4EFEFC;Hidroclorotiazida 25 mg - comprimido;Hidroclorotiazida;25 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-F6767E;Hidrocortisona succinato 100 mg - frasco/ampola;Hidrocortisona succinato;100 mg;;ampola;UPA;;;ativo
+23/09/2026;BAR-29DCA5;Hidrocortisona succinato 500 mg - frasco/ampola;Hidrocortisona succinato;500 mg;;ampola;UPA;;;ativo
+23/09/2026;BAR-F7609B;Hidrocortisona, succinato sódico - pó para solução injetável 500 mg fr-amp.;Hidrocortisona, succinato sódico;500 mg;pó para solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-C19FF9;Ibuprofeno - comprimido 600 mg;Ibuprofeno;600 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-5B5A82;Ibuprofeno - solução oral gotas 50 mg/mL;Ibuprofeno;50 mg/mL;solução oral;;UBS;;oral;ativo
+23/09/2026;BAR-80F7B7;Insulina humana NPH - caneta injetável 100 UI/mL;Insulina humana NPH - caneta;100 UI/mL;injetável;;CAF;;injetável;ativo
+23/09/2026;BAR-187F80;Insulina humana NPH - suspensão injetável 100 UI/mL;Insulina humana NPH;100 UI/mL;suspensão injetável;;CAF;;injetável;ativo
+23/09/2026;BAR-8FF460;Insulina humana regular - caneta injetável 100 UI/mL;Insulina humana regular - caneta;100 UI/mL;injetável;;CAF;;injetável;ativo
+23/09/2026;BAR-7F7012;Insulina humana regular - suspensão injetável 100 UI/mL;Insulina humana regular;100 UI/mL;suspensão injetável;;CAF;;injetável;ativo
+23/09/2026;BAR-FC5C9F;Insulina Nph 100 UI/mL - ampola;Insulina Nph;100 UI/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-EF731D;Insulina R 100 UI/mL - ampola;Insulina R;100 UI/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-AF4F0F;Ipratrópio brometo 0,25 mg/mL-20 mL - gotas;Ipratrópio brometo;0,25 mg/mL;gotas;;UPA;;;ativo
+23/09/2026;BAR-864A5A;Ipratrópio, brometo - solução inalante gotas 0,025%;Ipratrópio, brometo;0,025%;solução;;UBS;;;ativo
+23/09/2026;BAR-E78659;Isoniazida + rifampicina - comprimido 150 mg + 300 mg (dose plena);Isoniazida + rifampicina;150 mg + 300 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-DC2745;Isoniazida + rifampicina - comprimido 75 mg + 150 mg (meia dose);Isoniazida + rifampicina;75 mg + 150 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-06ABF2;Isoniazida + rifampicina - comprimido dispersível 50 mg + 75 mg;Isoniazida + rifampicina;50 mg + 75 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-942EDE;Isoniazida - comprimido 100 mg;Isoniazida;100 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-9AAC19;Isoniazida - comprimido 300 mg;Isoniazida;300 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-84D006;Isossorbida mononitrato 5 mg - comprimido sublingual;Isossorbida mononitrato;5 mg;comprimido sublingual;;UPA;;sublingual;ativo
+23/09/2026;BAR-0DD7BC;Isossorbida, dinitrato - comprimido sublingual 5 mg;Isossorbida, dinitrato;5 mg;comprimido sublingual;;CTA/CEM/UBS/CAPS;;sublingual;ativo
+23/09/2026;BAR-65F0CC;Isossorbida, mononitrato - comprimido 20 mg;Isossorbida, mononitrato;20 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-9FB891;Isossorbida, mononitrato - comprimido 40 mg;Isossorbida, mononitrato;40 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-B0F2B6;Itraconazol - cápsula 100 mg;Itraconazol;100 mg;cápsula;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-0178D1;Ivermectina - comprimido 6 mg;Ivermectina;6 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-4F7967;Lactulose 667 mg/mL - 120 mL - frasco;Lactulose;667 mg/mL;;frasco;UPA;;;ativo
+23/09/2026;BAR-5973D3;Lamivudina - comprimido 150 mg;Lamivudina;150 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-C58B94;Lamivudina - solução oral 10 mg/mL;Lamivudina;10 mg/mL;solução oral;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-F82416;Levodopa + benserazida - comprimido 100 mg + 25 mg;Levodopa + benserazida;100 mg + 25 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-1011C3;Levodopa + benserazida - comprimido 200 mg + 50 mg;Levodopa + benserazida;200 mg + 50 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-4484FA;Levonorgestrel + etinilestradiol - comprimido 0,15 mg + 0,03 mg;Levonorgestrel + etinilestradiol;0,15 mg + 0,03 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-857B26;Levotiroxina sódica - comprimido 100 mcg;Levotiroxina sódica;100 mcg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-04B05D;Levotiroxina sódica - comprimido 25 mcg;Levotiroxina sódica;25 mcg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-4C1CC4;Levotiroxina sódica - comprimido 50 mcg;Levotiroxina sódica;50 mcg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-EF01EC;Lidocaina cloridrato 2% S/V - 20 mL - frasco/ampola;Lidocaina cloridrato;2%;;ampola;UPA;;;ativo
+23/09/2026;BAR-869FED;Lidocaína cloridrato com vasoconstritor 2% - 30 g - geleia;Lidocaína cloridrato com vasoconstritor;2%;geleia;;UPA;;;ativo
+23/09/2026;BAR-EE72C5;Lidocaína cloridrato com vasoconstritor 2% C/V - 20 mL - frasco/ampola;Lidocaína cloridrato com vasoconstritor;2%;;ampola;UPA;;;ativo
+23/09/2026;BAR-06AF68;Lidocaína, cloridrato - gel 20 mg/g (2%);Lidocaína, cloridrato;20 mg/g (2%);gel;;CTA/CEM/UBS/CAPS;;tópica;ativo
+23/09/2026;BAR-8F3820;Lidocaína, cloridrato - solução injetável sem vasoconstritor 20 mg/mL (2%) fr amp. 20 mL;Lidocaína, cloridrato;20 mg/mL (2%);solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-D26099;Lopinavir + ritonavir(LPV/r) - comprimidos 100 mg + 25 mg;Lopinavir + ritonavir(LPV/r);100 mg + 25 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-CD0615;Loratadina - comprimido 10 mg;Loratadina;10 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-56D2B2;Loratadina - xarope 1 mg/mL;Loratadina;1 mg/mL;xarope;;UBS;;oral;ativo
+23/09/2026;BAR-5B0960;Losartana potássica - comprimido 50 mg;Losartana potássica;50 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-AB5BD7;Losartana Potássica 50 mg - comprimido;Losartana Potássica;50 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-A78958;Manitol 20% -250 mL - bolsa;Manitol;20%;;bolsa;UPA;;;ativo
+23/09/2026;BAR-D2FD93;Manitol 20%- 250 mL - frasco;Manitol;20%;;frasco;UPA;;;ativo
+23/09/2026;BAR-DA778F;Maraviroque (MVQ) - comprimido 150 mg;Maraviroque (MVQ);150 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-8EF071;Medroxiprogesterona, acetato - suspensão injetável 150 mg/mL;Medroxiprogesterona, acetato;150 mg/mL;suspensão injetável;;UBS;;injetável;ativo
+23/09/2026;BAR-1EDC45;Meglumina, antimoniato - solução injetável 300 mg/mL;Meglumina, antimoniato;300 mg/mL;solução injetável;;CTA/CEM;;injetável;ativo
+23/09/2026;BAR-39865D;Metformina cloridrato 850 mg - comprimido;Metformina cloridrato;850 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-833C41;Metformina, cloridrato - comprimido 500 mg;Metformina, cloridrato;500 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-EB6F2F;Metformina, cloridrato - comprimido 850 mg;Metformina, cloridrato;850 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-AB72BE;Metildopa - comprimido 250 mg;Metildopa;250 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-50DB6C;Metilprednisolona (acetato) 500 mg - PO - frasco/ampola;Metilprednisolona (acetato);500 mg;pó;ampola;UPA;;;ativo
+23/09/2026;BAR-73E6AE;Metoclopramida cloridrato 5 mg- 2 mL - ampola;Metoclopramida cloridrato;5 mg;;ampola;UPA;;;ativo
+23/09/2026;BAR-ADE2DD;Metoclopramida, cloridrato - comprimido 10 mg;Metoclopramida, cloridrato;10 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-B4EDB1;Metoclopramida, cloridrato - solução injetável 5 mg/mL;Metoclopramida, cloridrato;5 mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-365742;Metoclopramida, cloridrato - solução oral gotas 4 mg/mL;Metoclopramida, cloridrato;4 mg/mL;solução oral;;UBS;;oral;ativo
+23/09/2026;BAR-DB26EF;Metoprolol tartarato 1 mg/mL -5 mL - ampola;Metoprolol tartarato;1 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-9F89B5;Metoprolol, succinato - comprimido 100 mg;Metoprolol, succinato;100 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-F80D48;Metoprolol, succinato - comprimido 25 mg;Metoprolol, succinato;25 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-223A8D;Metoprolol, succinato - comprimido 50 mg;Metoprolol, succinato;50 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-AC5B66;Metronidazol - comprimido 250 mg;Metronidazol;250 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-F12D1E;Metronidazol - comprimido 400 mg;Metronidazol;400 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-435B6A;Metronidazol - creme ou gel vaginal 100 mg/g (10%);Metronidazol;100 mg/g (10%);creme;;UBS;;tópica;ativo
+23/09/2026;BAR-96F418;Metronidazol - suspensão oral 40 mg/mL (benzoilmetronidazol);Metronidazol;40 mg/mL;suspensão oral;;UBS;;oral;ativo
+23/09/2026;BAR-1F31BD;Metronidazol 250 mg - comprimido;Metronidazol;250 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-3AF11D;Metronidazol 500 mg - 100 mL - bolsa;Metronidazol;500 mg;;bolsa;UPA;;;ativo
+23/09/2026;BAR-FE6A9D;Miconazol, nitrato - creme dermatológico 20 mg/g (2%);Miconazol, nitrato;20 mg/g (2%);creme dermatológico;;UBS;;tópica;ativo
+23/09/2026;BAR-5CA349;Miconazol, nitrato - creme vaginal 20 mg/g;Miconazol, nitrato;20 mg/g;creme vaginal;;UBS;;vaginal;ativo
+23/09/2026;BAR-917DC5;Midazolam maleato 5 mg/mL - 3 mL - ampola;Midazolam maleato;5 mg/mL;;ampola;UPA;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;;ativo
+23/09/2026;BAR-6580E6;Midazolam maleato 50 mg/mL - 10 mL - ampola;Midazolam maleato;50 mg/mL;;ampola;UPA;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;;ativo
+23/09/2026;BAR-C134F9;Morfina sulfato 10 mg/mL - 1 mL - ampola;Morfina sulfato;10 mg/mL;;ampola;UPA;Notificação de Receita A (amarela) — entorpecente/psicotrópico, Portaria 344/98. Prescrição em receituário especial.;;ativo
+23/09/2026;BAR-C8C17A;Naloxona 0,4 mg/mL AMP 1 mL - ampola;Naloxona;0,4 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-64278B;Nevirapina (NVP) - comprimido 200 mg;Nevirapina (NVP);200 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-914B7B;Nevirapina (NVP) - suspensão oral 10 mg/mL;Nevirapina (NVP);10 mg/mL;suspensão oral;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-C538F8;Nicotina - adesivo transdérmico 14 mg;Nicotina;14 mg;adesivo transdérmico;;CAF;;transdérmica;ativo
+23/09/2026;BAR-625EEA;Nicotina - adesivo transdérmico 21 mg;Nicotina;21 mg;adesivo transdérmico;;CAF;;transdérmica;ativo
+23/09/2026;BAR-8539B8;Nicotina - adesivo transdérmico 7 mg;Nicotina;7 mg;adesivo transdérmico;;CAF;;transdérmica;ativo
+23/09/2026;BAR-C57973;Nifedipina 20 mg RETARD - comprimido;Nifedipina;20 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-C9C0A5;Nifedipino - comprimido 10mg;Nifedipino;10mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-539E6E;Nitrofurantoína - cápsula 100 mg;Nitrofurantoína;100 mg;cápsula;;UBS;;oral;ativo
+23/09/2026;BAR-5FC583;Nitroglicerina 50 mg - 10 mL - ampola;Nitroglicerina;50 mg;;ampola;UPA;;;ativo
+23/09/2026;BAR-F9D79C;Nitroprusseto de Sódio 25 mg - 2 mL - frasco/ampola;Nitroprusseto de Sódio;25 mg;;ampola;UPA;;;ativo
+23/09/2026;BAR-19183C;Nitroprusseto de sódio 25 mg-2 mL - ampola;Nitroprusseto de sódio;25 mg;;ampola;UPA;;;ativo
+23/09/2026;BAR-007709;Norepinefrina hemitartarato 2 mg - 4 mL - ampola;Norepinefrina hemitartarato;2 mg;;ampola;UPA;;;ativo
+23/09/2026;BAR-58E8A1;Noretisterona - comprimido 0,35 mg;Noretisterona;0,35 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-AE8B9D;Noretisterona, enantato + estradiol, valerato - solução injetável 50 mg/mL + 5 mg/mL;Noretisterona, enantato + estradiol, valerato;50 mg/mL + 5 mg/mL;solução injetável;;UBS;;injetável;ativo
+23/09/2026;BAR-07D073;Nortriptilina, cloridrato - comprimido 25 mg;Nortriptilina, cloridrato;25 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-C14E12;Nortriptilina, cloridrato - comprimido 50 mg;Nortriptilina, cloridrato;50 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-15C623;Óleo Mineral 100%-100 mL - frasco;Óleo Mineral;100%;;frasco;UPA;;;ativo
+23/09/2026;BAR-70D8F8;Omeprazol - cápsula 20 mg;Omeprazol;20 mg;cápsula;;UBS;;oral;ativo
+23/09/2026;BAR-35B64D;Omeprazol 20 mg - cápsula;Omeprazol;20 mg;cápsula;;UPA;;oral;ativo
+23/09/2026;BAR-409B68;Omeprazol 40 mg - frasco/ampola;Omeprazol;40 mg;;ampola;UPA;;;ativo
+23/09/2026;BAR-978464;Ondansetrona, cloridrato - comprimido 4 mg;Ondansetrona, cloridrato;4 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-9767AF;Ondansetrona, cloridrato - solução injetável 2mg/mL;Ondansetrona, cloridrato;2mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-803767;Ondasetrona cloridrato 2 mg/mL 2 mL - ampola;Ondasetrona cloridrato;2 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-344251;Ondasetrona cloridrato 4 mg - comprimido;Ondasetrona cloridrato;4 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-E39676;Oseltamivir - cápsula 30 mg;Oseltamivir;30 mg;cápsula;;CAF;;oral;ativo
+23/09/2026;BAR-86CA3A;Oseltamivir - cápsula 45 mg;Oseltamivir;45 mg;cápsula;;CAF;;oral;ativo
+23/09/2026;BAR-14584B;Oseltamivir - cápsula 75 mg;Oseltamivir;75 mg;cápsula;;CAF;;oral;ativo
+23/09/2026;BAR-A0F02F;Oxacilina sódica 500 mg - frasco/ampola;Oxacilina sódica;500 mg;;ampola;UPA;;;ativo
+23/09/2026;BAR-BAE347;Paracetamol - comprimido 500 mg;Paracetamol;500 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-8FFAEE;Paracetamol - solução oral gotas 200 mg/mL;Paracetamol;200 mg/mL;solução oral;;UBS;;oral;ativo
+23/09/2026;BAR-D17A2B;Paracetamol 200 mg/mL - 15 mL - gotas;Paracetamol;200 mg/mL;gotas;;UPA;;;ativo
+23/09/2026;BAR-4E7C8D;Paracetamol 500 mg - comprimido;Paracetamol;500 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-3EEA4E;Penicilina G benzatina - pó para suspensão injetável ou suspensão pronta para uso 1.200.000 UI fr-amp.;Penicilina G benzatina;1.200.000 UI;pó para suspensão injetável;;UBS;;injetável;ativo
+23/09/2026;BAR-F90C57;Penicilina G benzatina - pó para suspensão injetável ou suspensão pronta para uso 600.000 UI fr-amp.;Penicilina G benzatina;600.000 UI;pó para suspensão injetável;;UBS;;injetável;ativo
+23/09/2026;BAR-C86771;Permetrina - loção 50 mg/mL (5%);Permetrina;50 mg/mL (5%);loção;;UBS;;tópica;ativo
+23/09/2026;BAR-E94090;Pirazinamida - comprimido 500 mg;Pirazinamida;500 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-EC9BC4;Pirazinamida - comprimido para suspensão 150mg;Pirazinamida;150mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-D19A9A;Pirazinamida - suspensão oral 30 mg/mL;Pirazinamida;30 mg/mL;suspensão oral;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-33AD66;Piridoxina, cloridrato (vit. B6) - comprimido 40 mg;Piridoxina, cloridrato (vit. B6);40 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-FDE61D;Pirimetamina - comprimido 25 mg;Pirimetamina;25 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-0CF3A0;Poliestirenossulfonato de Calcio 900 mg/G - envelope;Poliestirenossulfonato de Calcio;900 mg/G;;envelope;UPA;;;ativo
+23/09/2026;BAR-571433;Praziquantel - comprimido 600 mg;Praziquantel;600 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-A6EE7C;Prednisolona 1 mg/mL - solução;Prednisolona;1 mg/mL;solução;;UPA;;;ativo
+23/09/2026;BAR-FF4BB9;Prednisolona, fosfato sódico - solução oral 3 mg/mL;Prednisolona, fosfato sódico;3 mg/mL;solução oral;;UBS;;oral;ativo
+23/09/2026;BAR-90C4E2;Prednisona - comprimido 20 mg;Prednisona;20 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-C7955D;Prednisona - comprimido 5 mg;Prednisona;5 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-87839F;Prednisona 20 mg - comprimido;Prednisona;20 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-16E6D9;Prometazina cloridrato - solução injetável 25 mg/mL;Prometazina cloridrato;25 mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-CCF99A;Prometazina cloridrato 25 mg/mL - 2 mL - ampola;Prometazina cloridrato;25 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-C8540F;Prometazina, cloridrato - comprimido 25 mg;Prometazina, cloridrato;25 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-C35B3C;Propranolol 40 mg - comprimido;Propranolol;40 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-1D7785;Propranolol, cloridrato - comprimido 40 mg;Propranolol, cloridrato;40 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-7706B5;Protamina ( Antidoto Heparina) 1000 UI mg/mL AMP 5 mL - ampola;Protamina ( Antidoto Heparina);1000 UI;;ampola;UPA;;;ativo
+23/09/2026;BAR-7A5AD8;Proximetacaína 5 mg/mL 0,5% - frasco;Proximetacaína;5 mg/mL;;frasco;UPA;;;ativo
+23/09/2026;BAR-BAEEF0;Raltegravir (RAL) - comprimido 100 mg;Raltegravir (RAL);100 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-1B7623;Raltegravir (RAL) - comprimido 400 mg;Raltegravir (RAL);400 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-6ECD2C;Raltegravir (RAL) - granulado para suspensão oral 100mg;Raltegravir (RAL);100mg;granulado;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-E61DD0;Rifampicina + Clofazimina + Dapsona - comprimido (300+150)+50+50 mg (poliquimioterapia única infantil);Rifampicina + Clofazimina + Dapsona;50+50 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-8DED07;Rifampicina + Clofazimina + Dapsona - comprimido (300+300)+(100+50)+100 mg (poliquimioterapia única adulto);Rifampicina + Clofazimina + Dapsona;100 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-11693D;Rifampicina + Isoniazida + Pirazinamida - comprimido dispersível 75 mg + 50 mg + 150mg;Rifampicina + Isoniazida + Pirazinamida;75 mg + 50 mg + 150mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-DD388F;Rifampicina + Pirazinamida + Etambutol + Isoniazida - comprimido 150+400+275+75 mg;Rifampicina + Pirazinamida + Etambutol + Isoniazida;150+400+275+75 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-15D0A9;Rifampicina - cápsula 300 mg;Rifampicina;300 mg;cápsula;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-128025;Rifampicina - suspensão oral 20 mg/mL (2%);Rifampicina;20 mg/mL (2%);suspensão oral;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-B67BD8;Rifapentina - comprimido 150mg;Rifapentina;150mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-520661;Ringer com Lactato 500 mL - bolsa;Ringer com Lactato;500 mL;;bolsa;UPA;;;ativo
+23/09/2026;BAR-A0354E;Ritonavir (RTV) - comprimido 100 mg;Ritonavir (RTV);100 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-B011B2;Ritonavir (RTV) - pó para suspensão oral 100 mg;Ritonavir (RTV);100 mg;pó para suspensão oral;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-222882;Rivaroxabana 15 mg - comprimido;Rivaroxabana;15 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-9D8FEC;Rocurônio 10 mg/5 mL - ampola;Rocurônio;10 mg/5 mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-6C4308;Sais para reidratação oral - pó para solução oral;Sais para reidratação oral;;pó para solução oral;;UBS;;oral;ativo
+23/09/2026;BAR-B62E54;Sais para reidratação oral ENV 28,9 g - pó;Sais para reidratação oral ENV;28,9 g;pó;;UPA;;;ativo
+23/09/2026;BAR-C148BF;Salbutamol 0,5 mg/mL - ampola;Salbutamol;0,5 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-01CA8A;Salbutamol sulfato 100 mcg - spray;Salbutamol sulfato;100 mcg;spray;;UPA;;;ativo
+23/09/2026;BAR-7996B4;Salbutamol sulfato 5 mg/mL - 120 mL - frasco;Salbutamol sulfato;5 mg/mL;;frasco;UPA;;;ativo
+23/09/2026;BAR-D35CCD;Salbutamol, sulfato - aerossol oral 100 mcg/dose;Salbutamol, sulfato;100 mcg/dose;aerossol;;UBS;;inalatória;ativo
+23/09/2026;BAR-D14012;Simeticona 75 mg/mL - 15 mL - frasco/gotas;Simeticona;75 mg/mL;gotas;frasco;UPA;;;ativo
+23/09/2026;BAR-B52128;Sinvastatina - comprimido 10 mg;Sinvastatina;10 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-4E55A0;Sinvastatina - comprimido 20 mg;Sinvastatina;20 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-D8EF48;Sinvastatina - comprimido 40 mg;Sinvastatina;40 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-09D2BF;Sinvastatina 20 mg - comprimido;Sinvastatina;20 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-B55FD1;Sulfadiazina - comprimido 500 mg;Sulfadiazina;500 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-B08FDF;Sulfadiazina de prata - creme 10 mg/g (1%);Sulfadiazina de prata;10 mg/g (1%);creme;;UBS;;tópica;ativo
+23/09/2026;BAR-A2D61B;Sulfadiazina de Prata 10 mg/G - 50 g - creme;Sulfadiazina de Prata;10 mg/G;creme;;UPA;;tópica;ativo
+23/09/2026;BAR-C2B234;Sulfametoxazol + trimetoprima - comprimido 400 mg + 80 mg;Sulfametoxazol + trimetoprima;400 mg + 80 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-81E66C;Sulfametoxazol + trimetoprima - suspensão oral 40 mg/mL + 8 mg/mL;Sulfametoxazol + trimetoprima;40 mg/mL + 8 mg/mL;suspensão oral;;UBS;;oral;ativo
+23/09/2026;BAR-64A81F;Sulfametoxazol + Trimetroprima 400 mg+80 mg - comprimido;Sulfametoxazol + Trimetroprima;400 mg +80 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-3F2610;Sulfato de Neomicina+bacitracina 5 mg/250 UI - pomada;Sulfato de Neomicina+bacitracina;5 mg;pomada;;UPA;;tópica;ativo
+23/09/2026;BAR-BB14B2;Sulfato ferroso - 125,545 mg comprimido equivalente a 40 mg de Fe++;Sulfato ferroso;125,545 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-E0F835;Sulfato ferroso - solução oral gotas 125 mg/mL (equivalente a 25 mg de Fe++);Sulfato ferroso;125 mg/mL;solução oral;;UBS;;oral;ativo
+23/09/2026;BAR-1E5A87;Sulfato Ferroso 40 mg - comprimido;Sulfato Ferroso;40 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-F91C6F;Sulfato Ferroso 40 mg - drágea;Sulfato Ferroso;40 mg;drágea;;UPA;;oral;ativo
+23/09/2026;BAR-B3E85C;Suxametonio 100 mg - frasco/ampola;Suxametonio;100 mg;;ampola;UPA;;;ativo
+23/09/2026;BAR-706D16;Talidomida - comprimido 100 mg;Talidomida;100 mg;comprimido;;CAF/CTA;;oral;ativo
+23/09/2026;BAR-7ABB09;Tenofovir desoproxila (TDF) + Lamivudina fumarato (3TC) - comprimido 300 mg + 300 mg;Tenofovir desoproxila (TDF) + Lamivudina fumarato (3TC);300 mg + 300 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-70DA57;Tenofovir desoproxila - comprimido 300 mg;Tenofovir desoproxila;300 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-4D584E;Tiamina 100 mg/mL- 1 mL SOL INJ - ampola;Tiamina;100 mg/mL;solução;ampola;UPA;;;ativo
+23/09/2026;BAR-992113;Tiamina, cloridrato (vit.B1) - solução injetável 100mg/mL;Tiamina, cloridrato (vit.B1);100mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-0419F3;Tiamina, cloridrato - comprimido 300 mg;Tiamina, cloridrato;300 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-208AC6;Tipranavir(TPV) - cápsula de 250 mg;Tipranavir(TPV);250 mg;cápsula;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-D16543;Tramadol - solução injetável 50 mg/mL;Tramadol;50 mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-261B37;Tramadol cloridrato 50 mg/mL - 2 mL - ampola;Tramadol cloridrato;50 mg/mL;;ampola;UPA;;;ativo
+23/09/2026;BAR-1055D3;Varfarina sódica - comprimido 5 mg;Varfarina sódica;5 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-D34481;Varfarina Sódica 5 mg - comprimido;Varfarina Sódica;5 mg;comprimido;;UPA;;oral;ativo
+23/09/2026;BAR-108419;Verapamil - comprimido 80 mg;Verapamil;80 mg;comprimido;;UBS;;oral;ativo
+23/09/2026;BAR-FEC593;Vitaminas do complexo B (tiamina, riboflavina, piridoxina, nicotinamida, dexpantenol) - solução injetável 4+1+2+20+3 mg/mL;Vitaminas do complexo B (tiamina, riboflavina, piridoxina, nicotinamida, dexpantenol);4+1+2+20+3 mg/mL;solução injetável;;CTA/CEM/UBS/CAPS;;injetável;ativo
+23/09/2026;BAR-F1B159;Zidovudina (AZT) + lamivudina (3TC) - comprimido 300 mg + 150 mg;Zidovudina (AZT) + lamivudina (3TC);300 mg + 150 mg;comprimido;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-DBF33D;Zidovudina (AZT) - cápsula 100 mg;Zidovudina (AZT);100 mg;cápsula;;CTA/CEM;;oral;ativo
+23/09/2026;BAR-164869;Zidovudina (AZT) - solução injetavel 10 mg/mL;Zidovudina (AZT);10 mg/mL;solução injetável;;CTA/CEM;;injetável;ativo
+23/09/2026;BAR-A617A4;Zidovudina (AZT) - solução oral 10 mg/mL;Zidovudina (AZT);10 mg/mL;solução oral;;CTA/CEM;;oral;ativo

@@ -1,0 +1,179 @@
+﻿remume_versao;codigo_identificacao;descricao_original;principio_ativo;concentracao;forma_farmaceutica;apresentacao;local_dispensacao;restricao;via_administracao;situacao
+23/09/2026;SET-4AB0AA;Aciclovir 200mg;Aciclovir;200mg;;;;;;ativo
+23/09/2026;SET-395335;Aciclovir 50mg/g 5%;Aciclovir;50mg/g;;;;;;ativo
+23/09/2026;SET-846A13;Ácido Acetil Salicílico 100mg;Ácido Acetil Salicílico;100mg;;;;;;ativo
+23/09/2026;SET-9D3510;Ácido Fólico 5mg;Ácido Fólico;5mg;;;;;;ativo
+23/09/2026;SET-4C49CD;Ácido Folínico 15mg;Ácido Folínico;15mg;;;;;;ativo
+23/09/2026;SET-C8E96A;Ácido Valproico 250mg;Ácido Valproico;250mg;;;;;;ativo
+23/09/2026;SET-52AF11;Ácido Valproico 250mg/5mL;Ácido Valproico;250mg/5mL;;;;;;ativo
+23/09/2026;SET-79997C;Ácido Valproico 500mg;Ácido Valproico;500mg;;;;;;ativo
+23/09/2026;SET-192CA8;Agulha para Caneta de Insulina;Agulha para Caneta de Insulina;;;;;;;ativo
+23/09/2026;SET-C4632F;Albendazol 400mg;Albendazol;400mg;;;;;;ativo
+23/09/2026;SET-7FA218;Albendazol 40mg/mL - Suspensão;Albendazol;40mg/mL;suspensão;;;;;ativo
+23/09/2026;SET-81F5DA;Alendronato de Sódio 70mg;Alendronato de Sódio;70mg;;;;;;ativo
+23/09/2026;SET-3156AE;Algestona Acetofenida 150mg/mL + Enantato de Estradiol 10mg/mL - Ampola;Algestona Acetofenida;150mg/mL;;Ampola;;;;ativo
+23/09/2026;SET-4F96E1;Alopurinol 100mg;Alopurinol;100mg;;;;;;ativo
+23/09/2026;SET-6CE3D1;Alopurinol 300mg;Alopurinol;300mg;;;;;;ativo
+23/09/2026;SET-D7C2A0;Amiodarona 200mg;Amiodarona;200mg;;;;;;ativo
+23/09/2026;SET-5CE283;Amitriptilina 25mg;Amitriptilina;25mg;;;;;;ativo
+23/09/2026;SET-CE9DF9;Amox. + Clav. 250mg + 62,5mg/5mL - Suspensão;Amox. + Clav.;250mg + 62,5mg;suspensão;;;;;ativo
+23/09/2026;SET-E7CF48;Amox. + Clav. 500mg + 125mg;Amox. + Clav.;500mg + 125mg;;;;;;ativo
+23/09/2026;SET-2056A9;Amoxicilina 250mg/5mL - Pó Suspensão;Amoxicilina;250mg/5mL;pó;;;;;ativo
+23/09/2026;SET-6EAB0E;Amoxicilina 500mg;Amoxicilina;500mg;;;;;;ativo
+23/09/2026;SET-A0F48B;Anlodipino 5mg;Anlodipino;5mg;;;;;;ativo
+23/09/2026;SET-2BF994;Atenolol 50mg;Atenolol;50mg;;;;;;ativo
+23/09/2026;SET-C04057;Azatioprina 50mg;Azatioprina;50mg;;;;;;ativo
+23/09/2026;SET-67ED9D;Azitromicina 500mg;Azitromicina;500mg;;;;;;ativo
+23/09/2026;SET-6EC25D;Azitromicina 600mg - Suspensão;Azitromicina;600mg;suspensão;;;;;ativo
+23/09/2026;SET-27E4FB;Beclometasona 200mcg - Spray Oral;Beclometasona;200mcg;spray;;;;;ativo
+23/09/2026;SET-ABF0E5;Beclometasona 250mcg - Spray Oral;Beclometasona;250mcg;spray;;;;;ativo
+23/09/2026;SET-0089A2;Beclometasona 50mcg - Spray Oral;Beclometasona;50mcg;spray;;;;;ativo
+23/09/2026;SET-7B0471;Benzilpenicilina Benzatina 1.200.000 UI;Benzilpenicilina Benzatina;1.200.000 UI;;;;;;ativo
+23/09/2026;SET-0D1649;Biperideno 2mg;Biperideno;2mg;;;;;;ativo
+23/09/2026;SET-C27BFC;Budesonida 50mcg;Budesonida;50mcg;;;;;;ativo
+23/09/2026;SET-ED7887;Captopril 25mg;Captopril;25mg;;;;;;ativo
+23/09/2026;SET-0578C7;Carbidopa + Levodopa 25mg/250mg;Carbidopa + Levodopa;25mg;;;;;;ativo
+23/09/2026;SET-9796B3;Carbon. de Cálcio 500mg + Vit. D 400 UI;Carbon. de Cálcio;500mg;;;;;;ativo
+23/09/2026;SET-3C6180;Carbonato de Cálcio 500mg;Carbonato de Cálcio;500mg;;;;;;ativo
+23/09/2026;SET-BEC4DA;Carbonato de Lítio 300mg;Carbonato de Lítio;300mg;;;;;;ativo
+23/09/2026;SET-D07348;Carmabazepina 200mg;Carmabazepina;200mg;;;;;;ativo
+23/09/2026;SET-E3CB28;Carmabazepina 20mg/mL;Carmabazepina;20mg/mL;;;;;;ativo
+23/09/2026;SET-C32838;Carvedilol 12,5mg;Carvedilol;12,5mg;;;;;;ativo
+23/09/2026;SET-2D3C1E;Carvedilol 3,125mg;Carvedilol;3,125mg;;;;;;ativo
+23/09/2026;SET-C6FF6D;Cefalexina 250mg/5mL;Cefalexina;250mg/5mL;;;;;;ativo
+23/09/2026;SET-465A57;Cefalexina 500mg;Cefalexina;500mg;;;;;;ativo
+23/09/2026;SET-7E21F0;Cetoconazol 200mg;Cetoconazol;200mg;;;;;;ativo
+23/09/2026;SET-51DDAA;Cetoconazol 20mg/g - Creme;Cetoconazol;20mg/g;creme;;;;tópica;ativo
+23/09/2026;SET-FB00B0;Claritromicina 500mg;Claritromicina;500mg;;;;;;ativo
+23/09/2026;SET-4A08E3;Claritromicina 50mg/mL - Suspensão;Claritromicina;50mg/mL;suspensão;;;;;ativo
+23/09/2026;SET-76FF77;Clomipramina 25mg;Clomipramina;25mg;;;;;;ativo
+23/09/2026;SET-770E9F;Clonazepam 2,5mg/mL;Clonazepam;2,5mg/mL;;;;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;;ativo
+23/09/2026;SET-5B31F8;Clonazepam 2mg;Clonazepam;2mg;;;;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;;ativo
+23/09/2026;SET-390479;Cloreto de Sódio 0,9%;Cloreto de Sódio;0,9%;;;;;;ativo
+23/09/2026;SET-D3A920;Clorpromazina 100mg;Clorpromazina;100mg;;;;;;ativo
+23/09/2026;SET-41C93F;Clorpromazina 25mg;Clorpromazina;25mg;;;;;;ativo
+23/09/2026;SET-346EF4;Clorpromazina 4% - Gotas;Clorpromazina;4%;gotas;;;;;ativo
+23/09/2026;SET-D5018F;Colagenase 1,2 UI;Colagenase;1,2 UI;;;;;;ativo
+23/09/2026;SET-4EAC26;Complexo B;Complexo B;;;;;;;ativo
+23/09/2026;SET-345D98;Desogestrel 75mcg;Desogestrel;75mcg;;;;;;ativo
+23/09/2026;SET-0684B7;Dexametasona 1% - Suspensão Oftálmica;Dexametasona;1%;suspensão;;;;;ativo
+23/09/2026;SET-A66AE2;Dexametasona 1mg/g - Creme;Dexametasona;1mg/g;creme;;;;tópica;ativo
+23/09/2026;SET-483910;Dexclorfeniramina 0,4mg/mL;Dexclorfeniramina;0,4mg/mL;;;;;;ativo
+23/09/2026;SET-CC99CA;Dexclorfeniramina 2mg;Dexclorfeniramina;2mg;;;;;;ativo
+23/09/2026;SET-DBA864;Diazepam 10mg;Diazepam;10mg;;;;Notificação de Receita B (azul) — psicotrópico, Portaria 344/98. Prescrição em receituário especial.;;ativo
+23/09/2026;SET-EFDCA6;Diclofenaco de Sódio 50mg;Diclofenaco de Sódio;50mg;;;;;;ativo
+23/09/2026;SET-68BC38;Digoxina 0,25mg;Digoxina;0,25mg;;;;;;ativo
+23/09/2026;SET-75090F;Dipirona 500mg;Dipirona;500mg;;;;;;ativo
+23/09/2026;SET-79853D;Dipirona 500mg/mL;Dipirona;500mg/mL;;;;;;ativo
+23/09/2026;SET-674522;Doxazosina 2mg;Doxazosina;2mg;;;;;;ativo
+23/09/2026;SET-00A1FB;Enalapril 10mg;Enalapril;10mg;;;;;;ativo
+23/09/2026;SET-8028DA;Enalapril 20mg;Enalapril;20mg;;;;;;ativo
+23/09/2026;SET-028053;Enalapril 5mg;Enalapril;5mg;;;;;;ativo
+23/09/2026;SET-DDF0F1;Espiramicina 1,5 M.U.I;Espiramicina 1,5 M.U.I;;;;;;;ativo
+23/09/2026;SET-8E3870;Espironolactona 25mg;Espironolactona;25mg;;;;;;ativo
+23/09/2026;SET-89D4C1;Fenitoina 100mg;Fenitoina;100mg;;;;;;ativo
+23/09/2026;SET-1FF80D;Fenobarbital 100mg;Fenobarbital;100mg;;;;;;ativo
+23/09/2026;SET-A39117;Fenobarbital 40mg/mL - Gotas;Fenobarbital;40mg/mL;gotas;;;;;ativo
+23/09/2026;SET-C1DBA3;Finasterida 5mg;Finasterida;5mg;;;;;;ativo
+23/09/2026;SET-85BCA2;Fluconazol 150mg;Fluconazol;150mg;;;;;;ativo
+23/09/2026;SET-DFEDCD;Fluoxetina 20mg;Fluoxetina;20mg;;;;;;ativo
+23/09/2026;SET-987F56;Furosemida 40mg;Furosemida;40mg;;;;;;ativo
+23/09/2026;SET-633E8F;Gentamicina 5mg/mL - Solução Oftálmica;Gentamicina;5mg/mL;solução oftálmica;;;;oftálmica;ativo
+23/09/2026;SET-7984A9;Glibenclamida 5mg;Glibenclamida;5mg;;;;;;ativo
+23/09/2026;SET-8D40AF;Gliclazida 30mg;Gliclazida;30mg;;;;;;ativo
+23/09/2026;SET-96D370;Gliclazida 60mg;Gliclazida;60mg;;;;;;ativo
+23/09/2026;SET-2ECB3F;Glicosimetro;Glicosimetro;;;;;;;ativo
+23/09/2026;SET-BEB66F;Haloperidol 1mg;Haloperidol;1mg;;;;;;ativo
+23/09/2026;SET-6F7E9F;Haloperidol 2mg/mL - Gotas;Haloperidol;2mg/mL;gotas;;;;;ativo
+23/09/2026;SET-D0635C;Haloperidol 5mg;Haloperidol;5mg;;;;;;ativo
+23/09/2026;SET-7B09C1;Haloperidol Decanoato 50mg/mL;Haloperidol Decanoato;50mg/mL;;;;;;ativo
+23/09/2026;SET-07044C;Hidralazina 25mg;Hidralazina;25mg;;;;;;ativo
+23/09/2026;SET-EB1118;Hidralazina 50mg;Hidralazina;50mg;;;;;;ativo
+23/09/2026;SET-8992CB;Hidroclorotiazida 25mg;Hidroclorotiazida;25mg;;;;;;ativo
+23/09/2026;SET-C5CEFE;Hidrocortisona 10mg/g 1% - Creme;Hidrocortisona;10mg/g;creme;;;;tópica;ativo
+23/09/2026;SET-6B885A;Hidróx de Al+Mg 60mg+40mg/mL - Suspensão Oral;Hidróx de Al+Mg;60mg +40mg/mL;suspensão oral;;;;oral;ativo
+23/09/2026;SET-3CF38E;Ibuprofeno 50mg/mL - Solução;Ibuprofeno;50mg/mL;solução;;;;;ativo
+23/09/2026;SET-315D81;Ibuprofeno 600mg;Ibuprofeno;600mg;;;;;;ativo
+23/09/2026;SET-4CA9AB;Imipramina 25mg;Imipramina;25mg;;;;;;ativo
+23/09/2026;SET-777858;Insulina NPH 100 UI/mL - Caneta 3mL;Insulina NPH;100 UI/mL;;;;;;ativo
+23/09/2026;SET-B1D612;Insulina NPH 100 UI/mL - Frasco 10mL;Insulina NPH;100 UI/mL;;Frasco 10mL;;;;ativo
+23/09/2026;SET-AF0270;Insulina Regular 100 UI/mL - Caneta 3mL;Insulina Regular;100 UI/mL;;;;;;ativo
+23/09/2026;SET-E7D8B8;Insulina Regular 100 UI/mL - Frasco 10mL;Insulina Regular;100 UI/mL;;Frasco 10mL;;;;ativo
+23/09/2026;SET-574794;Isossorbida 20mg;Isossorbida;20mg;;;;;;ativo
+23/09/2026;SET-7DD86A;Isossorbida 5mg - Sublingual;Isossorbida;5mg;;;;;sublingual;ativo
+23/09/2026;SET-CC9180;Itraconazol 100mg;Itraconazol;100mg;;;;;;ativo
+23/09/2026;SET-04BD6E;Ivermectina 6mg;Ivermectina;6mg;;;;;;ativo
+23/09/2026;SET-4EFCDA;Lancetas;Lancetas;;;;;;;ativo
+23/09/2026;SET-8D2AD9;Levodopa + Benserazida 100mg/25mg;Levodopa + Benserazida;100mg;;;;;;ativo
+23/09/2026;SET-94E596;Levodopa + Benserazida 200mg/50mg;Levodopa + Benserazida;200mg;;;;;;ativo
+23/09/2026;SET-96FE7C;Levomepromazine 100mg;Levomepromazine;100mg;;;;;;ativo
+23/09/2026;SET-B07176;Levomepromazine 25mg;Levomepromazine;25mg;;;;;;ativo
+23/09/2026;SET-FE8BFE;Levonorgestrel 0,15mg + Etinilestradiol 0,03mg;Levonorgestrel;0,15mg;;;;;;ativo
+23/09/2026;SET-D79831;Levonorgestrel 0,75mg;Levonorgestrel;0,75mg;;;;;;ativo
+23/09/2026;SET-58110D;Levotiroxina 100mcg;Levotiroxina;100mcg;;;;;;ativo
+23/09/2026;SET-A673CD;Levotiroxina 25mcg;Levotiroxina;25mcg;;;;;;ativo
+23/09/2026;SET-5D6AF8;Levotiroxina 50mcg;Levotiroxina;50mcg;;;;;;ativo
+23/09/2026;SET-89F3A4;Levotiroxina 75mcg;Levotiroxina;75mcg;;;;;;ativo
+23/09/2026;SET-D8BD29;Loratadina 10mg;Loratadina;10mg;;;;;;ativo
+23/09/2026;SET-FE6A26;Loratadina 1mg/mL - Suspensão;Loratadina;1mg/mL;suspensão;;;;;ativo
+23/09/2026;SET-AC5436;Losartana 100mg;Losartana;100mg;;;;;;ativo
+23/09/2026;SET-F1427E;Losartana 25mg;Losartana;25mg;;;;;;ativo
+23/09/2026;SET-DD3D29;Losartana 50mg;Losartana;50mg;;;;;;ativo
+23/09/2026;SET-BCB149;Mebendazol 100mg;Mebendazol;100mg;;;;;;ativo
+23/09/2026;SET-C43BA1;Mebendazol 20mg/mL - Suspensão;Mebendazol;20mg/mL;suspensão;;;;;ativo
+23/09/2026;SET-4956F9;Medroxiprogesterona 150mcg;Medroxiprogesterona;150mcg;;;;;;ativo
+23/09/2026;SET-DE2647;Metformina 850mg;Metformina;850mg;;;;;;ativo
+23/09/2026;SET-7D6BDA;Metildopa 250mg;Metildopa;250mg;;;;;;ativo
+23/09/2026;SET-B3A1D9;Metildopa 500mg;Metildopa;500mg;;;;;;ativo
+23/09/2026;SET-612055;Metoclopramida 10mg;Metoclopramida;10mg;;;;;;ativo
+23/09/2026;SET-3C3AA3;Metoclopramida 4mg/mL - Solução Oral;Metoclopramida;4mg/mL;solução oral;;;;oral;ativo
+23/09/2026;SET-FA8BFA;Metoprolol 25mg;Metoprolol;25mg;;;;;;ativo
+23/09/2026;SET-536D10;Metronidazol 100mg/g - Gel Vaginal;Metronidazol;100mg/g;gel;;;;tópica;ativo
+23/09/2026;SET-3725D6;Metronidazol 250mg;Metronidazol;250mg;;;;;;ativo
+23/09/2026;SET-863EAC;Metronidazol 40mg/mL - Suspensão;Metronidazol;40mg/mL;suspensão;;;;;ativo
+23/09/2026;SET-F6CBD0;Miconazol 2% - Loção;Miconazol;2%;loção;;;;tópica;ativo
+23/09/2026;SET-22F770;Miconazol 20mg/g - Creme Vaginal;Miconazol;20mg/g;creme vaginal;;;;vaginal;ativo
+23/09/2026;SET-3111FE;Montelucaste 10mg;Montelucaste;10mg;;;;;;ativo
+23/09/2026;SET-898329;Neomicina 5mg/g + Bacitracina 250 UI/g - Pomada;Neomicina;5mg/g;pomada;;;;tópica;ativo
+23/09/2026;SET-E4BF20;Nicotina 14mg - Adesivo;Nicotina;14mg;adesivo;;;;transdérmica;ativo
+23/09/2026;SET-ECA43D;Nicotina 21mg - Adesivo;Nicotina;21mg;adesivo;;;;transdérmica;ativo
+23/09/2026;SET-41F085;Nicotina 7mg - Adesivo;Nicotina;7mg;adesivo;;;;transdérmica;ativo
+23/09/2026;SET-607B53;Nistatina 100.000 UI/g - Creme Vaginal;Nistatina;100.000 UI;creme vaginal;;;;vaginal;ativo
+23/09/2026;SET-88CDED;Nitrofurantoína 100mg;Nitrofurantoína;100mg;;;;;;ativo
+23/09/2026;SET-AF92DC;Noretisterona + Estradiol 50mg+5mg/mL;Noretisterona + Estradiol;50mg +5mg/mL;;;;;;ativo
+23/09/2026;SET-2D461E;Noretisterona 0,35mg;Noretisterona;0,35mg;;;;;;ativo
+23/09/2026;SET-88808B;Nortripitilina 10mg;Nortripitilina;10mg;;;;;;ativo
+23/09/2026;SET-2EE806;Nortripitilina 25mg;Nortripitilina;25mg;;;;;;ativo
+23/09/2026;SET-A0844D;Nortripitilina 50mg;Nortripitilina;50mg;;;;;;ativo
+23/09/2026;SET-DDE683;Omeprazol 20mg;Omeprazol;20mg;;;;;;ativo
+23/09/2026;SET-6D0E57;Paracetamol 200mg/mL;Paracetamol;200mg/mL;;;;;;ativo
+23/09/2026;SET-6712CD;Paracetamol 500mg;Paracetamol;500mg;;;;;;ativo
+23/09/2026;SET-8C7DD1;Periciazina 4%;Periciazina;4%;;;;;;ativo
+23/09/2026;SET-E94DF2;Permetrina 5% - Loção;Permetrina;5%;loção;;;;tópica;ativo
+23/09/2026;SET-494719;Pirimetamina 25mg;Pirimetamina;25mg;;;;;;ativo
+23/09/2026;SET-688E93;Prednisolona 1mg/mL;Prednisolona;1mg/mL;;;;;;ativo
+23/09/2026;SET-F88842;Prednisolona 3mg/mL;Prednisolona;3mg/mL;;;;;;ativo
+23/09/2026;SET-94149C;Prednisona 20mg;Prednisona;20mg;;;;;;ativo
+23/09/2026;SET-27EBD9;Prednisona 5mg;Prednisona;5mg;;;;;;ativo
+23/09/2026;SET-FAAF09;Prometazina 25mg;Prometazina;25mg;;;;;;ativo
+23/09/2026;SET-5BB7F2;Propranolol 40mg;Propranolol;40mg;;;;;;ativo
+23/09/2026;SET-5F018C;Risperidona 1mg;Risperidona;1mg;;;;;;ativo
+23/09/2026;SET-007E9D;Risperidona 2mg;Risperidona;2mg;;;;;;ativo
+23/09/2026;SET-813BAF;Sais de Reidratação Oral;Sais de Reidratação Oral;;;;;;;ativo
+23/09/2026;SET-5F48BF;Salbutamol 100mcg;Salbutamol;100mcg;;;;;;ativo
+23/09/2026;SET-1EF859;Seringa com Agulha 100 UI;Seringa com Agulha;100 UI;;Seringa;;;;ativo
+23/09/2026;SET-C29496;Seringa com Agulha 50 UI;Seringa com Agulha;50 UI;;Seringa;;;;ativo
+23/09/2026;SET-77C6EE;Simeticona 75mg/mL;Simeticona;75mg/mL;;;;;;ativo
+23/09/2026;SET-EBCB3B;Sinvastatina 20mg;Sinvastatina;20mg;;;;;;ativo
+23/09/2026;SET-35EAD7;Sinvastatina 40mg;Sinvastatina;40mg;;;;;;ativo
+23/09/2026;SET-CE9956;Sulfadiazina 500mg;Sulfadiazina;500mg;;;;;;ativo
+23/09/2026;SET-894CD4;Sulfametoxazol + Trimetroprima 200mg+40mg/5mL - Suspensão Oral;Sulfametoxazol + Trimetroprima;200mg +40mg;suspensão oral;;;;oral;ativo
+23/09/2026;SET-795701;Sulfametoxazol + Trimetroprima 400mg+80mg;Sulfametoxazol + Trimetroprima;400mg +80mg;;;;;;ativo
+23/09/2026;SET-2D35A1;Sulfato Ferroso 125mg/mL;Sulfato Ferroso;125mg/mL;;;;;;ativo
+23/09/2026;SET-86E6F3;Sulfato Ferroso 40mg;Sulfato Ferroso;40mg;;;;;;ativo
+23/09/2026;SET-989B0A;Timolol 0,5% - Solução Oftálmica;Timolol;0,5%;solução oftálmica;;;;oftálmica;ativo
+23/09/2026;SET-E477CA;Tioridazina 50mg;Tioridazina;50mg;;;;;;ativo
+23/09/2026;SET-E67F62;Tiras de Glicemia;Tiras de Glicemia;;;;;;;ativo
+23/09/2026;SET-78BABE;Varfarina 5mg;Varfarina;5mg;;;;;;ativo
+23/09/2026;SET-C38816;Venlafaxina 75mg;Venlafaxina;75mg;;;;;;ativo
+23/09/2026;SET-A12E35;Verapamil 80mg;Verapamil;80mg;;;;;;ativo
