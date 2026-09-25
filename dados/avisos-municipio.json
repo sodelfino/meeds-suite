@@ -1,0 +1,29 @@
+{
+  "_leia_me": "Avisos que aparecem sozinhos DENTRO do atendimento, conforme o municipio do paciente. A chave e o nome do municipio como a prefeitura aparece no Meeds (sem 'Prefeitura Municipal de'); acento e maiuscula nao importam. 'pode' lista o que a teleconsulta resolve; 'naoPode' lista o que nao resolve e o que fazer no lugar. Edite e rode 'npm run build'.",
+  "municipios": {
+    "Barbacena": {
+      "titulo": "Município de Barbacena (UPA)",
+      "pode": [
+        "Medicação VO",
+        "Medicação IM",
+        "Atestado com critério"
+      ],
+      "naoPode": [
+        { "item": "Medicação EV", "fazer": "encaminhar ao presencial" },
+        { "item": "Exames", "fazer": "encaminhar ao presencial" }
+      ]
+    },
+    "Franco da Rocha": {
+      "titulo": "Município de Franco da Rocha (UPA)",
+      "pode": [
+        "Medicação para domicílio",
+        "Atestado com critério",
+        "Casos eletivos: encaminhar para UBS"
+      ],
+      "naoPode": [
+        { "item": "Medicação EV, IM e VO na unidade", "fazer": "encaminhar ao presencial" },
+        { "item": "Exames", "fazer": "encaminhar ao presencial" }
+      ]
+    }
+  }
+}

@@ -25,6 +25,7 @@
 
   var PREFIXOS_INSTITUCIONAIS = [
     "prefeitura municipal de ",
+    "prefeitura do municipio de ",
     "prefeitura de ",
     "municipio de ",
     "fundacao municipal de saude de ",

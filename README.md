@@ -35,6 +35,7 @@ desliga num painel, sem reinstalar nada.
 | 🔎 **Busca de CID-10** | Procura o código pelo nome da doença, na tabela completa, e preenche na própria linha do laudo aberto. |
 | 🧪 **Exames do município** | Mostra os exames que aquele município oferece — Betim, Macaé, Congonhas, Sete Lagoas e Piraí — com código, local de realização, especialidade, canal de encaminhamento, a marca de quem exige APAC/Laudo/Alto Custo (💰), e um aviso quando há uma regra específica daquele exame (idade mínima, documento a anexar, justificativa médica obrigatória). Macaé e Piraí também têm uma seção separada de **Encaminhamentos** — serviços de referência como CRA, Clínica do Autista, Especialidades Pediátricas e CEMAIA, que não são exame. O que não está na lista aparece como "não consta" — nunca como exame de outra cidade. |
 | 💊 **Consulta REMUME** | Consulta os medicamentos do município do atendimento (14 municípios: Barbacena, Betim, Conceição do Mato Dentro, Congonhas, Coronel Fabriciano, Franco da Rocha, Itaúna, Macaé, Mendes, Piracema, Piraí, Santa Bárbara, Sete Lagoas e Varginha). Aceita erro de digitação e nome comercial. Os medicamentos de Receita Amarela e Receita Azul (Portaria 344/98) vêm com um aviso: precisam ser prescritos separadamente, para transcrição em receita física por um médico presencial — essas duas receitas ainda não têm aprovação para prescrição digital. |
+| ⚠️ **Avisos do município** | Dentro do atendimento, mostra sozinho o que a teleconsulta resolve no município do paciente e o que deve ir para o presencial — hoje Barbacena e Franco da Rocha. Não aparece fora do atendimento; fechado no X, não volta naquele atendimento. |
 | 👁️ **Prévia do documento** | Mostra o PDF ao lado do formulário enquanto você preenche a APAC ou um laudo — o mesmo arquivo que será baixado. Sempre ativa. |
 
 Todas as funções têm um **tutorial guiado** (🎓) — as que têm painel próprio
@@ -106,6 +107,7 @@ Nada disso exige mexer em código:
 | Lista de medicamentos | `modules/remume/remumes.json` |
 | Exames e encaminhamentos por município | `dados/exames.json` (ver [COMO-ADICIONAR-MUNICIPIO-EXAMES.md](docs/COMO-ADICIONAR-MUNICIPIO-EXAMES.md)) |
 | Municípios e estabelecimentos (CNES) da APAC | `dados/apac.json` |
+| Regras por município (o aviso dentro do atendimento) | `dados/avisos-municipio.json` |
 | Rótulo que o Meeds mudou (ex: "Nome da Mãe") | `seletores.json` |
 | O que aparece no aviso de atualização | `dados/changelog.json` |
 | Códigos da CID-10 | `dados/cid10.json` |
@@ -145,7 +147,7 @@ descreva o que mudou em `dados/changelog.json`. O build avisa se você esquecer.
 bootloader.user.js     o único arquivo que o médico instala
 manifest.json          módulos, textos, versões, ordem dos botões
 seletores.json         rótulos de tela, atualizáveis sem gerar o pacote
-dados/                 formulários, APAC, exames, CID-10, marcas, changelog
+dados/                 formulários, APAC, exames, avisos por município, CID-10, marcas, changelog
 core/                  núcleo: dock, rede, leitura de tela, decisão, painel, tutorial
 modules/               uma pasta por função (+ _template para copiar)
 scripts/               build, sincronização e exportações

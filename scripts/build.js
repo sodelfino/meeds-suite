@@ -189,6 +189,25 @@ function main() {
       JSON.stringify(ap) + ";\n";
   }
 
+  /* --- avisos por municipio ---
+   * Embutido, como a APAC: o aviso tem que aparecer no instante em que o
+   * atendimento abre, sem depender de uma busca de rede. */
+  const CAMINHO_AVISOS = "dados/avisos-municipio.json";
+  let injecaoAvisos = "";
+  if (fs.existsSync(path.join(RAIZ, CAMINHO_AVISOS))) {
+    const av = JSON.parse(ler(CAMINHO_AVISOS)); // JSON quebrado falha o build
+    const muns = av.municipios || {};
+    Object.keys(muns).forEach((m) => {
+      const r = muns[m];
+      if (!r.titulo || !Array.isArray(r.pode) || !Array.isArray(r.naoPode)) {
+        throw new Error(`${CAMINHO_AVISOS}: "${m}" precisa de titulo, pode[] e naoPode[]`);
+      }
+    });
+    injecaoAvisos =
+      "\n  /* ===== " + CAMINHO_AVISOS + " ===== */\n  raiz.MEEDS_AVISOS_MUNICIPIO = " +
+      JSON.stringify(av) + ";\n";
+  }
+
   /* --- changelog ---
    * Vai embutido, e nao buscado em runtime: a notificacao de atualizacao
    * tem que funcionar mesmo sem internet, e o arquivo e pequeno. Ele e a
@@ -261,7 +280,7 @@ function main() {
   const injetar = (texto) => () => texto;
 
   const saida = bootloader
-    .replace(MARCADOR_NUCLEO, injetar(pecasNucleo.join("\n\n") + "\n" + injecaoDados + injecaoApac + injecaoMarcas + injecaoChangelog + "\n  " + inventario))
+    .replace(MARCADOR_NUCLEO, injetar(pecasNucleo.join("\n\n") + "\n" + injecaoDados + injecaoApac + injecaoAvisos + injecaoMarcas + injecaoChangelog + "\n  " + inventario))
     .replace(MARCADOR_MODULOS, injetar(pecasModulos.join("\n\n")))
     .replace(/@version\s+[\d.]+/, injetar(`@version      ${manifest.versao}`))
     .replace("__VERSAO__", injetar(manifest.versao));
