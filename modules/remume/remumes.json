@@ -1,8 +1,9 @@
 {
   "_meta": {
-    "atualizadoEm": "23/09/2026",
+    "atualizadoEm": "25/09/2026",
     "avisos": {
-      "Franco da Rocha": "Nesta unidade (UPA Franco da Rocha) só são atendidas fichas azuis — o fluxo já contempla receita e alta. Paciente que precisar de medicação administrada no local (oral, IM ou EV) ou que apresentar sinal de alarme deve ser encaminhado para atendimento presencial: nenhuma medicação é aplicada aqui."
+      "Franco da Rocha": "Nesta unidade (UPA Franco da Rocha) só são atendidas fichas azuis — o fluxo já contempla receita e alta. Paciente que precisar de medicação administrada no local (oral, IM ou EV) ou que apresentar sinal de alarme deve ser encaminhado para atendimento presencial: nenhuma medicação é aplicada aqui.",
+      "Barbacena": "Nesta unidade (UPA Barbacena) a teleconsulta cobre medicação VO e IM e atestado com critério. Medicação EV e exames não são feitos por aqui: encaminhe o paciente ao atendimento presencial."
     },
     "avisosItens": {
       "Franco da Rocha": [
@@ -29,6 +30,48 @@
         {
           "termo": "risperidona",
           "aviso": "Disponibilizado para paciente cujo CID não seja compatível para acesso via Componente Especializado da Assistência Farmacêutica Estadual (CEAF)."
+        }
+      ],
+      "Barbacena": [
+        {
+          "termo": "ampola",
+          "aviso": "Na UPA de Barbacena, pela teleconsulta só a aplicação IM. Se a via for EV, encaminhe o paciente ao presencial.",
+          "exceto": [
+            "bolsa",
+            "sistema fechado"
+          ]
+        },
+        {
+          "termo": "injetável",
+          "aviso": "Na UPA de Barbacena, pela teleconsulta só a aplicação IM. Se a via for EV, encaminhe o paciente ao presencial.",
+          "exceto": [
+            "bolsa",
+            "sistema fechado"
+          ]
+        },
+        {
+          "termo": "injetavel",
+          "aviso": "Na UPA de Barbacena, pela teleconsulta só a aplicação IM. Se a via for EV, encaminhe o paciente ao presencial.",
+          "exceto": [
+            "bolsa",
+            "sistema fechado"
+          ]
+        },
+        {
+          "termo": "fr-amp",
+          "aviso": "Na UPA de Barbacena, pela teleconsulta só a aplicação IM. Se a via for EV, encaminhe o paciente ao presencial.",
+          "exceto": [
+            "bolsa",
+            "sistema fechado"
+          ]
+        },
+        {
+          "termo": "bolsa",
+          "aviso": "Uso EV: na UPA de Barbacena, encaminhe o paciente ao presencial."
+        },
+        {
+          "termo": "sistema fechado",
+          "aviso": "Uso EV: na UPA de Barbacena, encaminhe o paciente ao presencial."
         }
       ]
     }

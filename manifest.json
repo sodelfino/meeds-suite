@@ -1,6 +1,6 @@
 {
   "nome": "Assistente Meeds",
-  "versao": "2.45.1",
+  "versao": "2.46.0",
   "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
   "repositorio": "https://github.com/sodelfino/meeds-suite",
   "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -142,7 +142,7 @@
       "id": "avisos-municipio",
       "nome": "Avisos do município",
       "descricao": "Dentro do atendimento, mostra sozinho o que a teleconsulta resolve no município do paciente e o que deve ir para o presencial (hoje: Barbacena e Franco da Rocha).",
-      "versao": "1.1.0",
+      "versao": "1.2.0",
       "arquivo": "modules/avisos-municipio/index.js",
       "apresentacao": {
         "formaBotao": "nenhum",
@@ -153,7 +153,7 @@
       "id": "remume",
       "nome": "Consulta REMUME",
       "descricao": "Consulta a lista de medicamentos do município do atendimento. Aceita erro de digitação e nome comercial — “buscopan” encontra escopolamina.",
-      "versao": "2.6.10",
+      "versao": "2.6.12",
       "arquivo": "modules/remume/index.js",
       "origem": "sodelfino/meeds-remume-assistant",
       "prioridadeBotao": 50,

@@ -53,7 +53,8 @@ function carregar() {
   definicao.start({
     dock: {
       criarAviso(spec) {
-        const a = { spec, visivel: true, fechar() { a.visivel = false; }, estaVisivel() { return a.visivel; } };
+        const a = { spec, visivel: true, fechar() { a.visivel = false; }, estaVisivel() { return a.visivel; },
+          atualizar(novo) { a.spec = Object.assign({}, a.spec, novo); } };
         avisos.push(a);
         return a;
       },
@@ -294,6 +295,39 @@ const atendimentoDe = (razao) => ({ id: ID, cliente: { razaoSocialNome: razao } 
   ok("a rede chegou atrasada dizendo Macaé: o cartão de Barbacena fecha", t.visiveis().length === 0);
   t.passar(1000);
   ok("e não reabre", t.visiveis().length === 0);
+}
+
+/* 17. ACHADO EM PRODUCAO (Jam 379c57a1, 25/09): o atendimento de Barbacena
+ *     chegou pela rede sem a prefeitura nos caminhos conhecidos, e o aviso
+ *     nao abriu embora o "Vinculos" dissesse BARBACENA. */
+{
+  const t = carregar();
+  t.ir("/atendimento/" + ID);
+  t.rede({ id: ID, status: 3, paciente: { nome: "X" } });
+  t.tela("PREFEITURA MUNICIPAL DE BARBACENAUPA BARBACENA");
+  ok("rede sem prefeitura + vínculo Barbacena: o aviso de Barbacena abre", t.visiveis().length === 1 && /Barbacena/.test(t.visiveis()[0].spec.titulo));
+}
+{
+  const t = carregar();
+  t.ir("/atendimento/" + ID);
+  t.rede({ id: ID });
+  t.tela("PREFEITURA MUNICIPAL DE MACAÉ");
+  ok("rede sem prefeitura + vínculo Macaé: nenhum aviso", t.visiveis().length === 0);
+}
+
+/* 18. Abre no MEIO da tela; "Entendi" leva ao canto, parado; o X fecha. */
+{
+  const t = carregar();
+  t.ir("/atendimento/" + ID);
+  t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA"));
+  const a = t.visiveis()[0];
+  ok("abre no meio da tela, pulsando", a && a.spec.centro === true && a.spec.destaque === "atencao");
+  const entendi = a && (a.spec.acoes || []).find((x) => x.rotulo === "Entendi");
+  ok("tem o botão Entendi, que não fecha o cartão", !!entendi && entendi.fecha === false);
+  entendi.aoClicar();
+  ok("Entendi: vai para o canto, âmbar e parado", a.spec.centro === false && a.spec.destaque === "atencao-calmo" && t.visiveis().length === 1);
+  t.ir("/atendimento/" + ID);
+  ok("e continua lá (não é tratado como dispensado)", t.visiveis().length === 1 && t.avisos.length === 1);
 }
 
 console.log("\n" + (falhas ? falhas + " FALHA(S)" : "todos passaram"));

@@ -103,8 +103,23 @@
     return raiz.MeedsSuiteDecisao.unicoOuNada(achados);
   }
 
+  /* Cidades que o atendimento DECLARA, conhecidas ou nao. Lista vazia quer
+   * dizer "a resposta nao trouxe a prefeitura nos lugares que conhecemos"
+   * — o que e diferente de "trouxe, e e outra cidade". Quem decide com
+   * base na rede precisa distinguir os dois: no primeiro caso a rede nao
+   * sabe, e outra fonte (a tela) pode responder. */
+  function cidadesDoAtendimento(atendimento) {
+    var vistas = [];
+    candidatosDoAtendimento(atendimento).forEach(function (c) {
+      var cidade = extrairNomeCidade(c);
+      if (cidade && vistas.indexOf(cidade) === -1) vistas.push(cidade);
+    });
+    return vistas;
+  }
+
   raiz.MeedsSuiteMunicipio = {
     detectar: detectar,
+    cidadesDoAtendimento: cidadesDoAtendimento,
     detectarNaTela: detectarNaTela,
     extrairNomeCidade: extrairNomeCidade,
   };

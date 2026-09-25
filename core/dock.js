@@ -38,6 +38,7 @@
   var elDock = null;
   var elToast = null;
   var elAvisos = null;
+  var elCentro = null; // aviso que PRECISA ser lido: no meio da tela
   var botoes = []; // { id, prioridade, el, visivel }
   var elAlca = null;
   var recolhido = false;
@@ -229,7 +230,21 @@
     "  background: #fffbeb; border-left-color: #d97706;",
     "  animation: ms-aviso-entra .28s cubic-bezier(.22,.9,.3,1), ms-aviso-pulsa .9s ease-in-out .3s 3;",
     "}",
-    ".ms-aviso-atencao .ms-aviso-titulo { color: #92400e; }",
+    ".ms-aviso-atencao .ms-aviso-titulo, .ms-aviso-atencao-calmo .ms-aviso-titulo { color: #92400e; }",
+    /* Depois de lido no centro, o cartao desce para o canto e fica la,
+       ambar e PARADO — ja cumpriu o papel de chamar o olho. */
+    ".ms-aviso.ms-aviso-atencao-calmo { background: #fffbeb; border-left-color: #d97706; }",
+    /* No meio da tela, para ser lido: maior, acima de tudo, sem fundo
+       escurecido — o Meeds continua visivel e clicavel em volta. */
+    "#avisos-centro {",
+    "  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);",
+    "  z-index: " + (Z_BASE + 6) + "; width: min(460px, calc(100vw - 32px));",
+    "  pointer-events: none;",
+    "}",
+    "#avisos-centro > * { pointer-events: auto; }",
+    "#avisos-centro .ms-aviso-titulo { font-size: 16px; }",
+    "#avisos-centro .ms-aviso-corpo { font-size: 14.5px; line-height: 1.65; padding: 8px 16px 14px; }",
+    "#avisos-centro .ms-aviso-btn { font-size: 13px; padding: 8px 16px; }",
     "@keyframes ms-aviso-pulsa {",
     "  0%, 100% { box-shadow: 0 10px 34px rgba(15,23,42,.28), 0 0 0 0 rgba(217,119,6,0); }",
     "  50% { box-shadow: 0 10px 34px rgba(15,23,42,.28), 0 0 0 5px rgba(217,119,6,.55); }",
@@ -310,6 +325,7 @@
       elDock = shadow.getElementById("dock");
       elToast = shadow.getElementById("toast");
       elAvisos = shadow.getElementById("avisos");
+      elCentro = shadow.getElementById("avisos-centro");
       return shadow;
     }
     host = document.createElement("div");
@@ -331,6 +347,10 @@
     elAvisos = document.createElement("div");
     elAvisos.id = "avisos";
     shadow.appendChild(elAvisos);
+
+    elCentro = document.createElement("div");
+    elCentro.id = "avisos-centro";
+    shadow.appendChild(elCentro);
 
     elToast = document.createElement("div");
     elToast.id = "toast";
@@ -800,8 +820,15 @@
     spec = spec || {};
 
     var el = document.createElement("div");
-    /* destaque: "atencao" -> ambar, pulsando 3x ao aparecer (ver CSS). */
-    el.className = "ms-aviso" + (spec.destaque === "atencao" ? " ms-aviso-atencao" : "");
+    function classes(s) {
+      /* destaque: "atencao" -> ambar, pulsando 3x ao aparecer;
+       * "atencao-calmo" -> ambar, parado (ver CSS). */
+      return "ms-aviso" + (s.destaque ? " ms-aviso-" + s.destaque : "");
+    }
+    function destino(s) {
+      /* centro: true -> no meio da tela (elCentro); senao, a pilha do canto. */
+      return s.centro && elCentro ? elCentro : elAvisos;
+    }
     var timer = null;
 
     function render(s) {
@@ -850,17 +877,20 @@
       if (el.parentNode) el.parentNode.removeChild(el);
     }
 
+    el.className = classes(spec);
     render(spec);
-    elAvisos.appendChild(el);
+    destino(spec).appendChild(el);
     agendarFechamento(spec.autoFecharMs);
 
     return {
       elemento: el,
       atualizar: function (novo) {
         spec = Object.assign({}, spec, novo || {});
+        el.className = classes(spec);
         render(spec);
-        // reaparece no fim da pilha, para o medico reparar na mudanca
-        if (el.parentNode) el.parentNode.appendChild(el);
+        // reaparece no fim da pilha (ou muda entre centro e canto), para o
+        // medico reparar na mudanca
+        if (el.parentNode) destino(spec).appendChild(el);
         agendarFechamento(spec.autoFecharMs);
       },
       fechar: fechar,

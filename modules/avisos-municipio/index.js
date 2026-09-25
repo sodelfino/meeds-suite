@@ -141,7 +141,21 @@
     }
     if (!municipio || !tabela[municipio]) return;
 
-    aberto = { id: id, municipio: municipio, aviso: d.dock.criarAviso(montarAviso(tabela[municipio])) };
+    /* Abre NO MEIO DA TELA, pulsando, para ser lido. "Entendi" manda o
+     * cartao para o canto, ambar e parado, onde fica como referencia ate
+     * o fim do atendimento. O X fecha de vez (naquele atendimento). */
+    var spec = montarAviso(tabela[municipio]);
+    spec.centro = true;
+    spec.acoes = [{
+      rotulo: "Entendi",
+      fecha: false,
+      aoClicar: function () {
+        if (aberto && aberto.aviso) {
+          aberto.aviso.atualizar({ centro: false, destaque: "atencao-calmo", acoes: [] });
+        }
+      },
+    }];
+    aberto = { id: id, municipio: municipio, aviso: d.dock.criarAviso(spec) };
   }
 
   raiz.MeedsSuite.registerModule({
@@ -158,8 +172,16 @@
       var m = RX_API_ATENDIMENTO.exec(evt.url || "");
       if (!m || !raiz.MeedsSuiteMunicipio) return;
       var json = evt.json();
-      var municipio = raiz.MeedsSuiteMunicipio.detectar(json, Object.keys(regras()));
       var id = m[1].toLowerCase();
+      /* ACHADO EM PRODUCAO (Jam de 25/09/2026, atendimento de Barbacena):
+       * a resposta do Meeds novo nao trouxe a prefeitura nos caminhos que
+       * conhecemos, e isso era gravado como "a rede decidiu: nenhuma
+       * cidade da lista" — o que bloqueava a leitura do "Vinculos", que
+       * mostrava BARBACENA. Agora, se a rede nao traz cidade NENHUMA, ela
+       * nao decide nada e a tela responde. So quando ela traz uma cidade
+       * (listada ou nao) e que a decisao e dela. */
+      if (!raiz.MeedsSuiteMunicipio.cidadesDoAtendimento(json).length) return;
+      var municipio = raiz.MeedsSuiteMunicipio.detectar(json, Object.keys(regras()));
       municipioPorAtendimento[id] = municipio || null;
       /* A rede desmentiu o cartao que a tela abriu (vinculo de uma cidade,
        * atendimento de outra): a rede vence. Fecha sem contar como

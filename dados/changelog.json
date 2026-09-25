@@ -2,6 +2,19 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.46.0",
+      "data": "2026-09-25",
+      "novidades": [
+        "REMUME de Barbacena com avisos da UPA: uma faixa no topo com o que a teleconsulta cobre (VO, IM, atestado), e em cada ampola ou item injetável o lembrete de que só vale a aplicação IM — EV vai ao presencial. Bolsas e soro em sistema fechado avisam que são EV."
+      ],
+      "melhorias": [
+        "O aviso do município agora abre no meio da tela, pulsando, para ser lido. \"Entendi\" leva o cartão para o canto, em âmbar e parado, onde fica como referência até o fim do atendimento."
+      ],
+      "correcoes": [
+        "O aviso do município não abria no Meeds em produção: a resposta do atendimento não trazia a prefeitura onde o Assistente procurava, e isso bloqueava a leitura do campo \"Vínculos\". Agora, quando a resposta não diz a cidade, vale o \"Vínculos\"."
+      ]
+    },
+    {
       "versao": "2.45.1",
       "data": "2026-09-25",
       "novidades": [],

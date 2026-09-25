@@ -769,7 +769,16 @@ function moverFocoResultado(delta) {
     var n = normalizarTexto(nome);
     return regras
       .filter(function (r) { return r && r.termo && r.aviso && n.indexOf(normalizarTexto(r.termo)) !== -1; })
-      .map(function (r) { return r.aviso; });
+      /* "exceto": a regra nao vale se o nome tiver algum destes termos —
+       * ex.: soro "solucao injetavel ... sistema fechado" e EV, entao o
+       * aviso de "so IM" de Barbacena nao se aplica a ele. */
+      .filter(function (r) {
+        return !(r.exceto || []).some(function (x) { return n.indexOf(normalizarTexto(x)) !== -1; });
+      })
+      .map(function (r) { return r.aviso; })
+      /* "solução injetável ampola" casa dois termos com o MESMO aviso:
+       * mostra uma vez so. */
+      .filter(function (aviso, i, todos) { return todos.indexOf(aviso) === i; });
   }
 
   function renderizarResultados() {
