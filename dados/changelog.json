@@ -2,6 +2,18 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.47.0",
+      "data": "2026-09-25",
+      "novidades": [
+        "Avisos por unidade: o aviso agora também lê a unidade do paciente no campo \"Vínculos\". Em Macaé: nas UPAs Barra e Lagomar e nos Prontos Socorros Imbetiba e Parque Aeroporto, lembra que não se prescreve encaminhamento para especialidades — orientar a UBS mais próxima; na Casa da Criança e do Adolescente e na Clínica do Autista, mostra público-alvo, atendimentos e fluxo.",
+        "Congonhas: em todo atendimento, lembra que os exames do laboratório da UPA vão juntos num pedido, e o que estiver fora da lista vai em pedido separado."
+      ],
+      "melhorias": [],
+      "correcoes": [
+        "O Meeds está renomeando os municípios de \"PREFEITURA MUNICIPAL DE MACAÉ\" para \"MACAÉ - RJ\". A REMUME, a APAC, os Exames e os avisos do município passam a reconhecer os dois formatos, inclusive a unidade que aparece embaixo no \"Vínculos\"."
+      ]
+    },
+    {
       "versao": "2.46.0",
       "data": "2026-09-25",
       "novidades": [

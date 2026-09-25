@@ -71,6 +71,12 @@ const PREFIXOS_INSTITUCIONAIS = [
 
 function extrairNomeCidade(razaoSocialNome) {
     if (!razaoSocialNome) return null;
+    /* O nucleo (core/municipio.js) sabe os DOIS formatos de nome de
+     * cliente: "PREFEITURA MUNICIPAL DE MACAÉ" e o novo "MACAÉ - RJ".
+     * A reserva abaixo so roda se este arquivo for carregado sozinho. */
+    if (raiz.MeedsSuiteMunicipio && typeof raiz.MeedsSuiteMunicipio.extrairNomeCidade === "function") {
+      return raiz.MeedsSuiteMunicipio.extrairNomeCidade(razaoSocialNome);
+    }
     let nome = normalizarTexto(razaoSocialNome);
     for (const prefixo of PREFIXOS_INSTITUCIONAIS) {
       if (nome.startsWith(prefixo)) {
@@ -78,7 +84,7 @@ function extrairNomeCidade(razaoSocialNome) {
         break;
       }
     }
-    return nome.trim();
+    return nome.replace(/\s*(?:[-–/]\s*[a-z]{2}|\([a-z]{2}\))$/, "").trim();
   }
 
 function detectarMunicipioDoAtendimento(atendimento) {
@@ -1051,6 +1057,7 @@ function moverFocoResultado(delta) {
     // receituario}. Ver tests/remume-receituario.test.js.
     _normalizarItemRemume: function (item) { return normalizarItemRemume(item); },
     _avisosDoItem: function (cidade, nome) { return avisosDoItem(cidade, nome); },
+    _detectarMunicipioDoAtendimento: function (json) { return detectarMunicipioDoAtendimento(json); },
     _definirRemumesParaTeste: function (dados) { Object.keys(REMUMES).forEach(function (k) { delete REMUMES[k]; }); Object.assign(REMUMES, dados); },
   });
 

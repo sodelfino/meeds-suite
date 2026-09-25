@@ -1,5 +1,5 @@
 {
-  "_leia_me": "Avisos que aparecem sozinhos DENTRO do atendimento, conforme o municipio do paciente. A chave e o nome do municipio como a prefeitura aparece no Meeds (sem 'Prefeitura Municipal de'); acento e maiuscula nao importam. 'pode' lista o que a teleconsulta resolve; 'naoPode' lista o que nao resolve e o que fazer no lugar. Edite e rode 'npm run build'.",
+  "_leia_me": "Avisos que aparecem sozinhos DENTRO do atendimento, conforme o municipio do paciente e, quando houver, a UNIDADE que aparece no campo 'Vinculos' do cartao do paciente. Chave do municipio: o nome como a prefeitura aparece no Meeds, sem 'Prefeitura Municipal de' (acento e maiuscula nao importam). Cada regra tem 'titulo' e ao menos uma destas listas: 'pode' (o que a teleconsulta resolve), 'naoPode' ({item, fazer}) e 'orientacoes' (texto livre, uma linha por item). 'unidades' (opcional) traz regras por unidade: a chave e so um rotulo; 'nomes' lista o nome da unidade EXATAMENTE como aparece no Vinculos (acento e maiuscula nao importam). A regra do municipio, se houver, aparece junto com a da unidade. Edite e rode 'npm run build'.",
   "municipios": {
     "Barbacena": {
       "titulo": "Município de Barbacena (UPA)",
@@ -9,8 +9,14 @@
         "Atestado com critério"
       ],
       "naoPode": [
-        { "item": "Medicação EV", "fazer": "encaminhar ao presencial" },
-        { "item": "Exames", "fazer": "encaminhar ao presencial" }
+        {
+          "item": "Medicação EV",
+          "fazer": "encaminhar ao presencial"
+        },
+        {
+          "item": "Exames",
+          "fazer": "encaminhar ao presencial"
+        }
       ]
     },
     "Franco da Rocha": {
@@ -21,8 +27,97 @@
         "Casos eletivos: encaminhar para UBS"
       ],
       "naoPode": [
-        { "item": "Medicação EV, IM e VO na unidade", "fazer": "encaminhar ao presencial" },
-        { "item": "Exames", "fazer": "encaminhar ao presencial" }
+        {
+          "item": "Medicação EV, IM e VO na unidade",
+          "fazer": "encaminhar ao presencial"
+        },
+        {
+          "item": "Exames",
+          "fazer": "encaminhar ao presencial"
+        }
+      ]
+    },
+    "Macaé": {
+      "unidades": {
+        "UPA Barra": {
+          "titulo": "Macaé — UPA Barra",
+          "nomes": [
+            "UPA UNIDADE DE PRONTO ATENDIMENTO BARRA"
+          ],
+          "naoPode": [
+            {
+              "item": "Encaminhamento para especialidades",
+              "fazer": "orientar o paciente a procurar a UBS mais próxima"
+            }
+          ]
+        },
+        "UPA Lagomar": {
+          "titulo": "Macaé — UPA Lagomar",
+          "nomes": [
+            "UPA UNIDADE DE PRONTO ATENDIMENTO LAGOMAR"
+          ],
+          "naoPode": [
+            {
+              "item": "Encaminhamento para especialidades",
+              "fazer": "orientar o paciente a procurar a UBS mais próxima"
+            }
+          ]
+        },
+        "PS Imbetiba": {
+          "titulo": "Macaé — Pronto Socorro Municipal Imbetiba",
+          "nomes": [
+            "PRONTO SOCORRO MUNICIPAL IMBETIBA"
+          ],
+          "naoPode": [
+            {
+              "item": "Encaminhamento para especialidades",
+              "fazer": "orientar o paciente a procurar a UBS mais próxima"
+            }
+          ]
+        },
+        "PS Parque Aeroporto": {
+          "titulo": "Macaé — Pronto Socorro Parque Aeroporto",
+          "nomes": [
+            "PRONTO SOCORRO PARQUE AEROPORTO"
+          ],
+          "naoPode": [
+            {
+              "item": "Encaminhamento para especialidades",
+              "fazer": "orientar o paciente a procurar a UBS mais próxima"
+            }
+          ]
+        },
+        "Casa da Criança": {
+          "titulo": "Macaé — Casa da Criança e do Adolescente",
+          "nomes": [
+            "CASA DA CRIANCA E DO ADOLESCENTE",
+            "CASA DA CRIANÇA E DO ADOLESCENTE"
+          ],
+          "orientacoes": [
+            "Público-alvo: crianças de 0 a 17 anos, 11 meses e 29 dias.",
+            "Atendimentos: fonoaudiologia, terapia ocupacional, fisioterapia e psicologia.",
+            "Fluxo: presencial. Encaminhar diretamente quando houver indicação de terapia.",
+            "O município não oferta neuropsicólogo nem psicopedagogo."
+          ]
+        },
+        "Clínica do Autista": {
+          "titulo": "Macaé — Clínica do Autista",
+          "nomes": [
+            "CLINICA DO AUTISTA",
+            "CLÍNICA DO AUTISTA"
+          ],
+          "orientacoes": [
+            "Público-alvo: crianças com TEA (Transtorno do Espectro Autista) de 2 a 11 anos, 11 meses e 29 dias.",
+            "Atendimentos: psiquiatria infantil, neuropediatria, serviço social, psicologia, fisioterapia, fonoaudiologia e nutrição.",
+            "Fluxo: atendimentos individuais e em grupo, incluindo grupo de apoio aos responsáveis."
+          ]
+        }
+      }
+    },
+    "Congonhas": {
+      "titulo": "Município de Congonhas (MG)",
+      "orientacoes": [
+        "Exames do laboratório da UPA devem ser pedidos juntos. Qualquer exame fora da lista deve ir em pedido separado — senão o paciente não consegue marcar. Consulte a listagem de exames do Assistente."
       ]
     }
   }

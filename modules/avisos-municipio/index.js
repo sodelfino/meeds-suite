@@ -24,7 +24,7 @@
   var timers = [];
   var municipioPorAtendimento = {}; // id do atendimento -> nome do municipio (so memoria)
   var dispensados = {};             // id do atendimento -> true se o medico fechou no X
-  var aberto = null;                // { id, municipio, aviso }
+  var aberto = null;                // { id, municipio, chave, aviso }
   var vistoDesde = {};              // id do atendimento -> quando a pagina dele apareceu
 
   /* A leitura pela tela so vale depois deste tempo SEM resposta da rede.
@@ -51,49 +51,63 @@
   }
 
   /* Leitura pela TELA, restrita ao campo "Vinculos" do cartao do paciente
-   * (ex.: "PREFEITURA MUNICIPAL DE MACAÉ / CENTRO DE SAUDE ..."). Procurar
-   * o nome em qualquer lugar da pagina nao serve: na gravacao de
-   * 24/09/2026, a tela de um atendimento de Macae mostrava ao mesmo tempo
-   * um aviso de fila com "PREFEITURA MUNICIPAL DE BARBACENA".
+   * — nunca o nome solto na pagina: na gravacao de 24/09/2026, a tela de um
+   * atendimento de Macae mostrava ao mesmo tempo um aviso de fila com
+   * "PREFEITURA MUNICIPAL DE BARBACENA".
    *
-   * So decide com EXATAMENTE uma prefeitura no vinculo e ela na lista —
+   * O Vinculos traz a CIDADE numa linha ("MACAÉ - RJ", ou no formato
+   * antigo "PREFEITURA MUNICIPAL DE MACAÉ") e a UNIDADE embaixo. Quem
+   * separa uma da outra, nos dois formatos, e core/municipio.js
+   * (analisarVinculo).
+   *
+   * So decide com EXATAMENTE uma cidade no vinculo e ela na lista —
    * paciente vinculado a duas cidades nao tem como saber qual e a do
    * atendimento, e ai o certo e nao mostrar. */
-  var PREFIXOS = [
-    "prefeitura municipal de ",
-    "prefeitura do municipio de ",
-    "prefeitura de ",
-    "municipio de ",
-    "fundacao municipal de saude de ",
-    "secretaria municipal de saude de ",
-  ];
+  function vinculo(nomes) {
+    var Dom = raiz.MeedsSuiteDom;
+    var M = raiz.MeedsSuiteMunicipio;
+    if (!Dom || !M || typeof Dom.lerLinhasPorRotulo !== "function") return null;
+    var linhas = Dom.lerLinhasPorRotulo(["Vínculos", "Vínculo"]);
+    return linhas ? M.analisarVinculo(linhas, nomes) : null;
+  }
 
   function municipioPeloVinculo(nomes) {
+    if (!nomes.length) return null;
+    var v = vinculo(nomes);
+    if (!v || v.cidades.length !== 1) return null;
     var Dom = raiz.MeedsSuiteDom;
-    if (!Dom || !nomes.length) return null;
-    var vinculo = Dom.lerValorPorRotulo(["Vínculos", "Vínculo"]);
-    var texto = Dom.normalizarTexto(vinculo || "");
-    if (!texto) return null;
-
-    var instituicoes = 0;
-    PREFIXOS.forEach(function (p) {
-      instituicoes += texto.split(p).length - 1;
-    });
-    /* "prefeitura de " esta contido em nenhum dos outros, mas "municipio
-     * de " esta dentro de "prefeitura do municipio de ": desconta. */
-    instituicoes -= texto.split("prefeitura do municipio de ").length - 1;
-    if (instituicoes !== 1) return null;
-
-    var achados = nomes.filter(function (m) {
-      var alvo = Dom.normalizarTexto(m);
-      return PREFIXOS.some(function (p) {
-        return texto.indexOf(p + alvo) !== -1;
-      });
-    });
+    var achados = nomes.filter(function (n) { return Dom.normalizarTexto(n) === v.cidades[0]; });
     return achados.length === 1 ? achados[0] : null;
   }
 
-  function montarAviso(r) {
+  function temConteudo(r) {
+    return !!(r && r.titulo &&
+      ((r.pode || []).length || (r.naoPode || []).length || (r.orientacoes || []).length));
+  }
+
+  /* UNIDADE, pelo "Vinculos" linha a linha: "PREFEITURA MUNICIPAL DE
+   * MACAÉ" em cima, "UPA UNIDADE DE PRONTO ATENDIMENTO BARRA" embaixo.
+   * So vale com EXATAMENTE uma prefeitura no vinculo, e ela sendo o
+   * municipio ja decidido — uma unidade de outra cidade nunca empresta a
+   * regra dela. O nome da unidade tem que bater INTEIRO (sem acento e sem
+   * caixa): "UPA ... BARRA" nao casa com "UPA ... BARRA DE SAO JOAO".
+   * Duas unidades com regra no mesmo vinculo: nao decide. */
+  function unidadeDoVinculo(municipio, regraMun) {
+    var unidades = regraMun && regraMun.unidades;
+    if (!unidades) return null;
+    var Dom = raiz.MeedsSuiteDom;
+    var v = vinculo(Object.keys(regras()));
+    if (!v || v.cidades.length !== 1 || v.cidades[0] !== Dom.normalizarTexto(municipio)) return null;
+
+    var achadas = Object.keys(unidades).filter(function (k) {
+      return (unidades[k].nomes || []).some(function (n) {
+        return v.unidades.indexOf(Dom.normalizarTexto(n)) !== -1;
+      });
+    });
+    return achadas.length === 1 ? { chave: achadas[0], regra: unidades[achadas[0]] } : null;
+  }
+
+  function linhasDe(r) {
     var corpo = [];
     (r.pode || []).forEach(function (item) {
       corpo.push("✅ " + item);
@@ -102,7 +116,28 @@
     (r.naoPode || []).forEach(function (n) {
       corpo.push("❌ " + n.item + (n.fazer ? " → " + n.fazer : ""));
     });
-    return { titulo: "⚠️ " + r.titulo, corpo: corpo, destaque: "atencao" };
+    if (corpo.length && (r.orientacoes || []).length) corpo.push("");
+    (r.orientacoes || []).forEach(function (o) {
+      corpo.push("📌 " + o);
+    });
+    return corpo;
+  }
+
+  /* Regra do municipio (se houver) + regra da unidade (se houver), num
+   * cartao so. O titulo e o da unidade quando ela existe. */
+  function montarAviso(regraMun, unidade) {
+    var partes = [];
+    if (temConteudo(regraMun)) partes.push(regraMun);
+    if (unidade && temConteudo(unidade.regra)) partes.push(unidade.regra);
+    if (!partes.length) return null;
+    var corpo = [];
+    partes.forEach(function (r, i) {
+      if (i > 0) { corpo.push(""); corpo.push(r.titulo + ":"); }
+      corpo = corpo.concat(linhasDe(r));
+    });
+    /* Com as duas, o titulo e o da unidade e cada bloco ganha o seu nome. */
+    if (partes.length > 1) corpo = [partes[0].titulo + ":"].concat(corpo);
+    return { titulo: "⚠️ " + partes[partes.length - 1].titulo, corpo: corpo, destaque: "atencao" };
   }
 
   function fechar() {
@@ -124,7 +159,7 @@
     var id = atendimentoDaPagina();
     if (!id) return fechar();
     if (aberto && aberto.id !== id) fechar();
-    if (aberto || dispensados[id]) return;
+    if (dispensados[id]) return;
 
     var tabela = regras();
     var municipio;
@@ -141,10 +176,18 @@
     }
     if (!municipio || !tabela[municipio]) return;
 
+    var unidade = unidadeDoVinculo(municipio, tabela[municipio]);
+    var spec = montarAviso(tabela[municipio], unidade);
+    if (!spec) return;
+    var chave = municipio + "|" + (unidade ? unidade.chave : "");
+    if (aberto && aberto.chave === chave) return;
+    /* A unidade apareceu (ou mudou) depois do cartao do municipio: troca
+     * o cartao, sem contar como "dispensado pelo medico". */
+    if (aberto) fechar();
+
     /* Abre NO MEIO DA TELA, pulsando, para ser lido. "Entendi" manda o
      * cartao para o canto, ambar e parado, onde fica como referencia ate
      * o fim do atendimento. O X fecha de vez (naquele atendimento). */
-    var spec = montarAviso(tabela[municipio]);
     spec.centro = true;
     spec.acoes = [{
       rotulo: "Entendi",
@@ -155,7 +198,7 @@
         }
       },
     }];
-    aberto = { id: id, municipio: municipio, aviso: d.dock.criarAviso(spec) };
+    aberto = { id: id, municipio: municipio, chave: chave, aviso: d.dock.criarAviso(spec) };
   }
 
   raiz.MeedsSuite.registerModule({

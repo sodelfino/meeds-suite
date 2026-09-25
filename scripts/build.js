@@ -197,10 +197,34 @@ function main() {
   if (fs.existsSync(path.join(RAIZ, CAMINHO_AVISOS))) {
     const av = JSON.parse(ler(CAMINHO_AVISOS)); // JSON quebrado falha o build
     const muns = av.municipios || {};
+    /* Uma regra = titulo + ao menos uma lista (pode, naoPode, orientacoes).
+     * O municipio pode ter so "unidades"; cada unidade precisa de "nomes"
+     * (como aparecem no Vinculos) e de uma regra valida. */
+    const listas = (r) => ["pode", "naoPode", "orientacoes"].filter((k) => r[k] !== undefined);
+    const regraValida = (r, onde) => {
+      const ls = listas(r);
+      if (!ls.length) return false;
+      ls.forEach((k) => {
+        if (!Array.isArray(r[k])) throw new Error(`${CAMINHO_AVISOS}: "${onde}".${k} precisa ser uma lista`);
+      });
+      if (!r.titulo) throw new Error(`${CAMINHO_AVISOS}: "${onde}" tem regra mas nao tem titulo`);
+      return true;
+    };
     Object.keys(muns).forEach((m) => {
       const r = muns[m];
-      if (!r.titulo || !Array.isArray(r.pode) || !Array.isArray(r.naoPode)) {
-        throw new Error(`${CAMINHO_AVISOS}: "${m}" precisa de titulo, pode[] e naoPode[]`);
+      const temRegra = regraValida(r, m);
+      const unidades = r.unidades || {};
+      Object.keys(unidades).forEach((u) => {
+        const ru = unidades[u];
+        if (!Array.isArray(ru.nomes) || !ru.nomes.length) {
+          throw new Error(`${CAMINHO_AVISOS}: unidade "${m} / ${u}" precisa de "nomes" (como aparece no Vinculos)`);
+        }
+        if (!regraValida(ru, m + " / " + u)) {
+          throw new Error(`${CAMINHO_AVISOS}: unidade "${m} / ${u}" precisa de pode, naoPode ou orientacoes`);
+        }
+      });
+      if (!temRegra && !Object.keys(unidades).length) {
+        throw new Error(`${CAMINHO_AVISOS}: "${m}" nao tem regra nem unidades`);
       }
     });
     injecaoAvisos =

@@ -37,17 +37,87 @@
     return Dom.normalizarTexto(s || "");
   }
 
-  /* "Prefeitura Municipal de Itauna" -> "itauna" */
+  /* DOIS FORMATOS DE NOME DE CLIENTE convivem no Meeds novo (25/09/2026):
+   *   antigo: "PREFEITURA MUNICIPAL DE MACAÉ"
+   *   novo:   "MACAÉ - RJ"   (so o municipio e a UF)
+   * A troca esta sendo feita cliente a cliente, entao os dois precisam
+   * funcionar ao mesmo tempo, e por tempo indeterminado. */
+  var UFS = ["ac", "al", "ap", "am", "ba", "ce", "df", "es", "go", "ma", "mt", "ms", "mg", "pa",
+    "pb", "pr", "pe", "pi", "rj", "rn", "rs", "ro", "rr", "sc", "sp", "se", "to"];
+  var RX_UF_FIM = new RegExp("\\s*(?:[-–/]\\s*(" + UFS.join("|") + ")|\\((" + UFS.join("|") + ")\\))$");
+
+  /* Instituicao que comeca no MEIO da linha (grudada na anterior). Os
+   * mais longos primeiro; "municipio de " sozinho fica de fora porque e
+   * pedaco de "prefeitura do municipio de ". */
+  var RX_INSTITUICAO_NO_MEIO = /(\S)(prefeitura municipal de |prefeitura do municipio de |fundacao municipal de saude de |secretaria municipal de saude de |secretaria de saude de |prefeitura de )/g;
+
+  function prefixoDe(nome) {
+    for (var i = 0; i < PREFIXOS_INSTITUCIONAIS.length; i++) {
+      if (nome.indexOf(PREFIXOS_INSTITUCIONAIS[i]) === 0) return PREFIXOS_INSTITUCIONAIS[i];
+    }
+    return null;
+  }
+
+  /* "Prefeitura Municipal de Itauna" -> "itauna"; "MACAÉ - RJ" -> "macae" */
   function extrairNomeCidade(razaoSocialNome) {
     var nome = normalizar(razaoSocialNome);
     if (!nome) return "";
-    for (var i = 0; i < PREFIXOS_INSTITUCIONAIS.length; i++) {
-      if (nome.indexOf(PREFIXOS_INSTITUCIONAIS[i]) === 0) {
-        nome = nome.slice(PREFIXOS_INSTITUCIONAIS[i].length);
-        break;
+    var p = prefixoDe(nome);
+    if (p) nome = nome.slice(p.length);
+    return nome.replace(RX_UF_FIM, "").trim();
+  }
+
+  /* O campo "Vinculos" do cartao do paciente, linha a linha: a linha da
+   * CIDADE (qualquer um dos dois formatos) e as linhas de UNIDADE embaixo.
+   *   ["MACAÉ - RJ", "CLINICA DO AUTISTA"]
+   *   ["PREFEITURA MUNICIPAL DE MACAÉ", "UPA ... BARRA"]
+   * Uma linha e de cidade se: tem prefixo institucional; OU termina em
+   * " - UF"; OU e EXATAMENTE o nome de um municipio conhecido (cliente
+   * renomeado sem a UF). Se a tela entregar as duas linhas grudadas
+   * ("MACAÉ - RJCLINICA DO AUTISTA"), a UF (ou, no formato antigo, o
+   * municipio conhecido) corta no lugar certo.
+   * Devolve { cidades: [normalizadas], unidades: [normalizadas] }. */
+  function analisarVinculo(linhas, nomesConhecidos) {
+    var conhecidos = (nomesConhecidos || []).map(normalizar);
+    var cidades = [];
+    var unidades = [];
+    /* Um "prefeitura ..." no MEIO de uma linha e outra instituicao que
+     * veio grudada ("...ubs centroprefeitura municipal de macae"): quebra
+     * ali, senao a segunda cidade some e um vinculo com DUAS cidades
+     * pareceria ter uma so. */
+    var separadas = [];
+    (linhas || []).forEach(function (bruta) {
+      var l = normalizar(bruta);
+      l = l.replace(RX_INSTITUICAO_NO_MEIO, "$1\n$2");
+      l.split("\n").forEach(function (x) { if (x.trim()) separadas.push(x.trim()); });
+    });
+    separadas.forEach(function (bruta) {
+      var l = bruta;
+      if (!l) return;
+      var p = prefixoDe(l);
+      if (p) {
+        var resto = l.slice(p.length).trim();
+        var alvo = conhecidos.filter(function (c) { return resto !== c && resto.indexOf(c) === 0; })[0];
+        if (alvo) {
+          cidades.push(alvo);
+          unidades.push(resto.slice(alvo.length).trim());
+        } else {
+          cidades.push(resto.replace(RX_UF_FIM, "").trim());
+        }
+        return;
       }
-    }
-    return nome.trim();
+      if (RX_UF_FIM.test(l)) return cidades.push(l.replace(RX_UF_FIM, "").trim());
+      if (conhecidos.indexOf(l) !== -1) return cidades.push(l);
+      /* "macae - rjclinica do autista": cidade + UF + unidade grudadas. */
+      var g = /^(.+?)\s*[-–]\s*([a-z]{2})(.+)$/.exec(l);
+      if (g && UFS.indexOf(g[2]) !== -1 && conhecidos.indexOf(g[1].trim()) !== -1) {
+        cidades.push(g[1].trim());
+        if (g[3].trim()) unidades.push(g[3].trim());
+        return;
+      }
+      unidades.push(l);
+    });
+    return { cidades: cidades, unidades: unidades.filter(Boolean) };
   }
 
   function candidatosDoAtendimento(atendimento) {
@@ -122,5 +192,6 @@
     cidadesDoAtendimento: cidadesDoAtendimento,
     detectarNaTela: detectarNaTela,
     extrairNomeCidade: extrairNomeCidade,
+    analisarVinculo: analisarVinculo,
   };
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);

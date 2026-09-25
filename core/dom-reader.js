@@ -75,6 +75,35 @@
     return null;
   }
 
+  /* Mesmo achado de lerValorPorRotulo, mas devolve o valor LINHA A
+   * LINHA. O campo "Vinculos" do Meeds novo mostra a prefeitura numa linha
+   * e a unidade na de baixo ("PREFEITURA MUNICIPAL DE MACAÉ" / "UPA ...");
+   * o textContent gruda as duas ("MACAÉUPA ..."), e ai nao da para
+   * comparar o nome da unidade inteiro. innerText respeita a quebra de
+   * linha que a tela mostra. Devolve null se nao achar o rotulo. */
+  function lerLinhasPorRotulo(variantes, folhasOpcional) {
+    var lista = Array.isArray(variantes) ? variantes : [variantes];
+    var folhas = folhasOpcional || coletarFolhas();
+    for (var v = 0; v < lista.length; v++) {
+      var alvo = normalizarTexto(lista[v]);
+      if (!alvo) continue;
+      for (var i = 0; i < folhas.length; i++) {
+        var el = folhas[i];
+        if (normalizarTexto(textoDe(el)) !== alvo) continue;
+        var prox = el.nextElementSibling;
+        if (!prox && el.parentElement) prox = el.parentElement.nextElementSibling;
+        if (!prox) continue;
+        var bruto = typeof prox.innerText === "string" && prox.innerText ? prox.innerText : textoDe(prox);
+        var linhas = String(bruto)
+          .split(/\n+/)
+          .map(function (l) { return l.trim(); })
+          .filter(Boolean);
+        if (linhas.length) return linhas;
+      }
+    }
+    return null;
+  }
+
   /* Procura um texto exato isolado na tela (ex: "Masculino"/"Feminino").
    * Devolve o primeiro valor mapeado que aparecer. */
   function lerPorTextoExato(mapa, folhasOpcional) {
@@ -216,6 +245,7 @@
     normalizarTexto: normalizarTexto,
     coletarFolhas: coletarFolhas,
     lerValorPorRotulo: lerValorPorRotulo,
+    lerLinhasPorRotulo: lerLinhasPorRotulo,
     lerPorTextoExato: lerPorTextoExato,
     lerAnteriorAoPadrao: lerAnteriorAoPadrao,
     lerContadorPorRotulo: lerContadorPorRotulo,

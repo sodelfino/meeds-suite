@@ -47,6 +47,8 @@ function carregar() {
   ctx.MeedsSuiteDom.textoDaPaginaNormalizado = () => ctx.textoDaPagina || "";
   /* O campo "Vinculos" do cartao do paciente, como a tela o mostraria. */
   ctx.MeedsSuiteDom.lerValorPorRotulo = (v) => (/v[ií]nculo/i.test(String(v)) ? ctx.vinculo || null : null);
+  /* O mesmo campo, linha a linha (prefeitura em cima, unidade embaixo). */
+  ctx.MeedsSuiteDom.lerLinhasPorRotulo = (v) => (/v[ií]nculo/i.test(String(v)) ? ctx.linhas || (ctx.vinculo ? [ctx.vinculo] : null) : null);
   vm.runInContext(fs.readFileSync(path.join(RAIZ, "core/municipio.js"), "utf8"), ctx);
   vm.runInContext(fs.readFileSync(path.join(RAIZ, "modules/avisos-municipio/index.js"), "utf8"), ctx);
 
@@ -328,6 +330,183 @@ const atendimentoDe = (razao) => ({ id: ID, cliente: { razaoSocialNome: razao } 
   ok("Entendi: vai para o canto, âmbar e parado", a.spec.centro === false && a.spec.destaque === "atencao-calmo" && t.visiveis().length === 1);
   t.ir("/atendimento/" + ID);
   ok("e continua lá (não é tratado como dispensado)", t.visiveis().length === 1 && t.avisos.length === 1);
+}
+
+/* ==================================================================
+ * UNIDADE (pedido de 25/09/2026): regras por unidade de Macae e regra
+ * do municipio de Congonhas.
+ * ================================================================== */
+const PMM = "PREFEITURA MUNICIPAL DE MACAÉ";
+function macae(linhas, opts) {
+  const t = carregar();
+  t.ctx.linhas = linhas;
+  t.ir("/atendimento/" + ID);
+  if (!opts || opts.rede !== false) t.rede(atendimentoDe(PMM));
+  t.passar(3100);
+  return t;
+}
+const textoDe = (a) => [a.spec.titulo].concat(a.spec.corpo).join("\n");
+
+[
+  ["UPA UNIDADE DE PRONTO ATENDIMENTO BARRA", "UPA Barra"],
+  ["UPA UNIDADE DE PRONTO ATENDIMENTO LAGOMAR", "UPA Lagomar"],
+  ["PRONTO SOCORRO MUNICIPAL IMBETIBA", "Imbetiba"],
+  ["PRONTO SOCORRO PARQUE AEROPORTO", "Parque Aeroporto"],
+].forEach(([unidade, rotulo]) => {
+  const t = macae([PMM, unidade]);
+  const v = t.visiveis();
+  ok("Macaé, " + rotulo + ": aviso de encaminhamento → UBS", v.length === 1 && v[0].spec.titulo.indexOf(rotulo) !== -1 &&
+     /Encaminhamento para especialidades.*UBS mais próxima/.test(textoDe(v[0])));
+});
+{
+  const t = macae([PMM, "Casa da Criança e do Adolescente"]);
+  const v = t.visiveis();
+  ok("Macaé, Casa da Criança (com acento, caixa mista): orientações", v.length === 1 &&
+     /0 a 17 anos/.test(textoDe(v[0])) && /neuropsicólogo nem psicopedagogo/.test(textoDe(v[0])));
+}
+{
+  const t = macae([PMM, "CLINICA DO AUTISTA"]);
+  const v = t.visiveis();
+  ok("Macaé, Clínica do Autista: orientações", v.length === 1 && /TEA/.test(textoDe(v[0])) && /grupo de apoio/.test(textoDe(v[0])));
+}
+{
+  const t = macae([PMM, "CENTRO DE SAUDE MOACYR SANTOS"]);
+  ok("Macaé, unidade SEM regra (Moacyr Santos): nenhum aviso", t.visiveis().length === 0);
+}
+{
+  const t = macae([PMM, "UPA UNIDADE DE PRONTO ATENDIMENTO BARRA DE SAO JOAO"]);
+  ok("nome parecido (…BARRA DE SÃO JOÃO) não casa com UPA Barra", t.visiveis().length === 0);
+}
+{
+  const t = macae([PMM]);
+  ok("Macaé sem unidade no vínculo: nenhum aviso", t.visiveis().length === 0);
+}
+{
+  const t = macae([PMM, "UPA UNIDADE DE PRONTO ATENDIMENTO BARRA", "PRONTO SOCORRO MUNICIPAL IMBETIBA"]);
+  ok("duas unidades com regra no vínculo: não decide, nenhum aviso", t.visiveis().length === 0);
+}
+{
+  /* Rede diz Macae, mas o vinculo e de OUTRA prefeitura com uma "UPA
+   * BARRA": a unidade nao pertence ao municipio do atendimento. */
+  const t = macae(["PREFEITURA MUNICIPAL DE BARBACENA", "UPA UNIDADE DE PRONTO ATENDIMENTO BARRA"]);
+  ok("unidade listada, mas no vínculo de outra prefeitura: nenhum aviso de Macaé", t.visiveis().length === 0);
+}
+{
+  /* Sem rede (iPad): Macae pelo vinculo e a unidade pela linha de baixo. */
+  const t = carregar();
+  t.ctx.vinculo = PMM + "UPA UNIDADE DE PRONTO ATENDIMENTO LAGOMAR";
+  t.ctx.linhas = [PMM, "UPA UNIDADE DE PRONTO ATENDIMENTO LAGOMAR"];
+  t.ir("/atendimento/" + ID);
+  t.passar(3100);
+  const v = t.visiveis();
+  ok("sem rede: Macaé + UPA Lagomar pelo vínculo", v.length === 1 && /Lagomar/.test(v[0].spec.titulo));
+}
+{
+  /* A unidade chega na tela DEPOIS da rede: o cartao aparece quando ela chega. */
+  const t = macae(null);
+  ok("rede disse Macaé, unidade ainda não na tela: nada ainda", t.visiveis().length === 0);
+  t.ctx.linhas = [PMM, "PRONTO SOCORRO PARQUE AEROPORTO"];
+  t.passar(1000);
+  ok("a unidade apareceu: o cartão abre", t.visiveis().length === 1 && /Parque Aeroporto/.test(t.visiveis()[0].spec.titulo));
+  t.passar(1000);
+  ok("e não abre outro a cada segundo", t.avisos.length === 1);
+}
+{
+  const t = carregar();
+  t.ir("/atendimento/" + ID);
+  t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE CONGONHAS"));
+  const v = t.visiveis();
+  ok("Congonhas: sempre mostra a orientação dos exames da UPA", v.length === 1 &&
+     /Congonhas/.test(v[0].spec.titulo) && /pedidos juntos/.test(textoDe(v[0])) && /pedido separado/.test(textoDe(v[0])));
+}
+{
+  const t = macae([PMM, "UPA UNIDADE DE PRONTO ATENDIMENTO BARRA"]);
+  t.ir("/pronto-atendimento");
+  ok("unidade de Macaé também não abre fora do atendimento", t.visiveis().length === 0);
+}
+
+/* 19. Textos REAIS dos Jams de 25/09 (6bcd8fd5 e 3fb8ec6e). */
+{
+  const t = macae(["PREFEITURA MUNICIPAL DE MACAE", "UPA UNIDADE DE PRONTO ATENDIMENTO BARRA"]);
+  ok("Jam real: 'MACAE' sem acento + UPA Barra", t.visiveis().length === 1 && /UPA Barra/.test(t.visiveis()[0].spec.titulo));
+}
+{
+  const t = macae(["PREFEITURA MUNICIPAL DE MACAEUPA UNIDADE DE PRONTO ATENDIMENTO BARRA"]);
+  ok("as duas linhas grudadas numa só: ainda acha a UPA Barra", t.visiveis().length === 1 && /UPA Barra/.test(t.visiveis()[0].spec.titulo));
+}
+{
+  const t = macae(["PREFEITURA MUNICIPAL DE MACAEUPA UNIDADE DE PRONTO ATENDIMENTO BARRA DE SAO JOAO"]);
+  ok("grudado com nome parecido: continua não casando", t.visiveis().length === 0);
+}
+{
+  const t = carregar();
+  t.ctx.linhas = ["PREFEITURA MUNICIPAL DE CONGONHAS", "PSF IDEAL"];
+  t.ctx.vinculo = "PREFEITURA MUNICIPAL DE CONGONHASPSF IDEAL";
+  t.ir("/atendimento/" + ID);
+  t.passar(3100);
+  ok("Jam real: Congonhas + PSF IDEAL, sem rede: aviso de Congonhas", t.visiveis().length === 1 && /Congonhas/.test(t.visiveis()[0].spec.titulo));
+}
+
+/* 20. FORMATO NOVO DE CLIENTE (25/09): "MACAÉ - RJ" em vez de
+ *     "PREFEITURA MUNICIPAL DE MACAÉ", com a unidade embaixo. */
+{
+  /* O print enviado: Vinculos = "MACAÉ - RJ" / "CLINICA DO AUTISTA", sem rede. */
+  const t = carregar();
+  t.ctx.linhas = ["MACAÉ - RJ", "CLINICA DO AUTISTA"];
+  t.ir("/atendimento/" + ID);
+  t.passar(3100);
+  const v = t.visiveis();
+  ok("print de 25/09 (MACAÉ - RJ / CLINICA DO AUTISTA), sem rede: aviso da Clínica do Autista",
+     v.length === 1 && /Clínica do Autista/.test(v[0].spec.titulo));
+}
+{
+  const t = carregar();
+  t.ctx.linhas = ["MACAÉ - RJ", "UPA UNIDADE DE PRONTO ATENDIMENTO BARRA"];
+  t.ir("/atendimento/" + ID);
+  t.rede(atendimentoDe("MACAÉ - RJ"));
+  ok("rede 'MACAÉ - RJ' + UPA Barra: aviso da UPA Barra", t.visiveis().length === 1 && /UPA Barra/.test(t.visiveis()[0].spec.titulo));
+}
+{
+  const t = carregar();
+  t.ir("/atendimento/" + ID);
+  t.rede(atendimentoDe("BARBACENA - MG"));
+  ok("rede 'BARBACENA - MG': aviso de Barbacena", t.visiveis().length === 1 && /Barbacena/.test(t.visiveis()[0].spec.titulo));
+}
+{
+  const t = carregar();
+  t.ir("/atendimento/" + ID);
+  t.rede(atendimentoDe("FRANCO DA ROCHA - SP"));
+  ok("rede 'FRANCO DA ROCHA - SP': aviso de Franco", t.visiveis().length === 1 && /Franco/.test(t.visiveis()[0].spec.titulo));
+}
+{
+  const t = carregar();
+  t.ctx.linhas = ["CONGONHAS - MG", "PSF IDEAL"];
+  t.ir("/atendimento/" + ID);
+  t.passar(3100);
+  ok("vínculo 'CONGONHAS - MG / PSF IDEAL', sem rede: aviso de Congonhas", t.visiveis().length === 1 && /Congonhas/.test(t.visiveis()[0].spec.titulo));
+}
+{
+  /* Rede no formato novo dizendo Macae; vinculo mostra Barbacena: a rede vence. */
+  const t = carregar();
+  t.ctx.linhas = ["BARBACENA - MG", "UPA BARBACENA"];
+  t.ir("/atendimento/" + ID);
+  t.rede(atendimentoDe("MACAÉ - RJ"));
+  t.passar(5000);
+  ok("rede 'MACAÉ - RJ' e vínculo Barbacena: nenhum aviso (nem de Barbacena, nem de unidade)", t.visiveis().length === 0);
+}
+{
+  const t = carregar();
+  t.ctx.linhas = ["MACAÉ - RJ", "BARBACENA - MG"];
+  t.ir("/atendimento/" + ID);
+  t.passar(3100);
+  ok("vínculo com duas cidades no formato novo, sem rede: nenhum aviso", t.visiveis().length === 0);
+}
+{
+  const t = carregar();
+  t.ctx.linhas = ["MARICÁ - RJ", "UPA UNIDADE DE PRONTO ATENDIMENTO BARRA"];
+  t.ir("/atendimento/" + ID);
+  t.passar(3100);
+  ok("cidade sem regra com unidade de nome igual ao de Macaé: nenhum aviso", t.visiveis().length === 0);
 }
 
 console.log("\n" + (falhas ? falhas + " FALHA(S)" : "todos passaram"));
