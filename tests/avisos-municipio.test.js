@@ -91,6 +91,7 @@ const atendimentoDe = (razao) => ({ id: ID, cliente: { razaoSocialNome: razao } 
   ok("lista o que pode (VO, IM, atestado)", /Medicação VO/.test(texto) && /Medicação IM/.test(texto) && /Atestado com critério/.test(texto));
   ok("lista o que nao pode e o que fazer", /Medicação EV.*presencial/.test(texto) && /Exames.*presencial/.test(texto));
   ok("nao some sozinho (sem autoFecharMs)", v.length && !v[0].spec.autoFecharMs);
+  ok("vem com destaque de atenção (âmbar, pulsa 3x)", v.length && v[0].spec.destaque === "atencao");
 
   t.ir("/pronto-atendimento");
   ok("saiu do atendimento: o aviso some", t.visiveis().length === 0);

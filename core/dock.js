@@ -220,6 +220,20 @@
        assentando no fim; um fade puro nao chama a atencao periferica, e
        e exatamente ela que este aviso precisa alcancar. */
     "@keyframes ms-aviso-entra { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }",
+    /* Aviso de ATENCAO (regras do municipio): ambar em vez de azul, e a
+       borda pulsa TRES vezes depois de assentar — chama o olho na chegada
+       e para. Um cartao que se mexe a consulta toda vira paisagem, e o
+       medico aprende a nao olhar. Quem pediu menos movimento ve so o
+       ambar (bloco prefers-reduced-motion abaixo). */
+    ".ms-aviso.ms-aviso-atencao {",
+    "  background: #fffbeb; border-left-color: #d97706;",
+    "  animation: ms-aviso-entra .28s cubic-bezier(.22,.9,.3,1), ms-aviso-pulsa .9s ease-in-out .3s 3;",
+    "}",
+    ".ms-aviso-atencao .ms-aviso-titulo { color: #92400e; }",
+    "@keyframes ms-aviso-pulsa {",
+    "  0%, 100% { box-shadow: 0 10px 34px rgba(15,23,42,.28), 0 0 0 0 rgba(217,119,6,0); }",
+    "  50% { box-shadow: 0 10px 34px rgba(15,23,42,.28), 0 0 0 5px rgba(217,119,6,.55); }",
+    "}",
     ".ms-aviso-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 12px 14px 0; }",
     ".ms-aviso-titulo { font-size: 13px; font-weight: 700; color: #123a7a; line-height: 1.3; }",
     ".ms-aviso-fechar { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 15px; line-height: 1; padding: 0 2px; flex-shrink: 0; }",
@@ -786,7 +800,8 @@
     spec = spec || {};
 
     var el = document.createElement("div");
-    el.className = "ms-aviso";
+    /* destaque: "atencao" -> ambar, pulsando 3x ao aparecer (ver CSS). */
+    el.className = "ms-aviso" + (spec.destaque === "atencao" ? " ms-aviso-atencao" : "");
     var timer = null;
 
     function render(s) {

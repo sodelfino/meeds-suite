@@ -102,7 +102,7 @@
     (r.naoPode || []).forEach(function (n) {
       corpo.push("❌ " + n.item + (n.fazer ? " → " + n.fazer : ""));
     });
-    return { titulo: "⚠️ " + r.titulo, corpo: corpo };
+    return { titulo: "⚠️ " + r.titulo, corpo: corpo, destaque: "atencao" };
   }
 
   function fechar() {
