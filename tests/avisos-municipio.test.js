@@ -317,17 +317,18 @@ const atendimentoDe = (razao) => ({ id: ID, cliente: { razaoSocialNome: razao } 
   ok("rede sem prefeitura + vínculo Macaé: nenhum aviso", t.visiveis().length === 0);
 }
 
-/* 18. Abre no MEIO da tela; "Entendi" leva ao canto, parado; o X fecha. */
+/* 18. Abre na LATERAL SUPERIOR (acima dos botoes), pulsando; "Entendi"
+ *     para a pulsacao e o cartao fica ali; o X fecha. */
 {
   const t = carregar();
   t.ir("/atendimento/" + ID);
   t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA"));
   const a = t.visiveis()[0];
-  ok("abre no meio da tela, pulsando", a && a.spec.centro === true && a.spec.destaque === "atencao");
+  ok("abre na lateral superior, pulsando (não no meio da tela)", a && a.spec.topo === true && !a.spec.centro && a.spec.destaque === "atencao");
   const entendi = a && (a.spec.acoes || []).find((x) => x.rotulo === "Entendi");
   ok("tem o botão Entendi, que não fecha o cartão", !!entendi && entendi.fecha === false);
   entendi.aoClicar();
-  ok("Entendi: vai para o canto, âmbar e parado", a.spec.centro === false && a.spec.destaque === "atencao-calmo" && t.visiveis().length === 1);
+  ok("Entendi: continua na lateral superior, âmbar e parado", a.spec.topo === true && a.spec.destaque === "atencao-calmo" && t.visiveis().length === 1);
   t.ir("/atendimento/" + ID);
   ok("e continua lá (não é tratado como dispensado)", t.visiveis().length === 1 && t.avisos.length === 1);
 }
@@ -362,12 +363,12 @@ const textoDe = (a) => [a.spec.titulo].concat(a.spec.corpo).join("\n");
   const t = macae([PMM, "Casa da Criança e do Adolescente"]);
   const v = t.visiveis();
   ok("Macaé, Casa da Criança (com acento, caixa mista): orientações", v.length === 1 &&
-     /0 a 17 anos/.test(textoDe(v[0])) && /neuropsicólogo nem psicopedagogo/.test(textoDe(v[0])));
+     /A unidade oferta atendimentos/.test(textoDe(v[0])) && /neuropsicólogo nem psicopedagogo/.test(textoDe(v[0])));
 }
 {
   const t = macae([PMM, "CLINICA DO AUTISTA"]);
   const v = t.visiveis();
-  ok("Macaé, Clínica do Autista: orientações", v.length === 1 && /TEA/.test(textoDe(v[0])) && /grupo de apoio/.test(textoDe(v[0])));
+  ok("Macaé, Clínica do Autista: orientações", v.length === 1 && /psiquiatria infantil/.test(textoDe(v[0])) && /grupo de apoio/.test(textoDe(v[0])));
 }
 {
   const t = macae([PMM, "CENTRO DE SAUDE MOACYR SANTOS"]);
@@ -507,6 +508,37 @@ const textoDe = (a) => [a.spec.titulo].concat(a.spec.corpo).join("\n");
   t.ir("/atendimento/" + ID);
   t.passar(3100);
   ok("cidade sem regra com unidade de nome igual ao de Macaé: nenhum aviso", t.visiveis().length === 0);
+}
+
+/* 21. Textos revisados (25/09): sem público-alvo; o destaque da Casa da
+ *     Criança vem primeiro; Piraí. */
+{
+  const t = macae([PMM, "CASA DA CRIANCA E DO ADOLESCENTE"]);
+  const v = t.visiveis();
+  const corpo = v.length ? v[0].spec.corpo : [];
+  ok("Casa da Criança: sem público-alvo", v.length === 1 && !/Público-alvo/.test(corpo.join("\n")));
+  ok("Casa da Criança: o que o município NÃO oferta vem em destaque, primeiro", /^❌ O município não oferta neuropsicólogo nem psicopedagogo$/.test(corpo[0] || ""));
+  ok("Casa da Criança: 'a unidade oferta atendimentos de…' e o fluxo", /A unidade oferta atendimentos de fonoaudiologia/.test(corpo.join("\n")) && /Fluxo: presencial/.test(corpo.join("\n")));
+}
+{
+  const t = macae([PMM, "CLINICA DO AUTISTA"]);
+  const v = t.visiveis();
+  ok("Clínica do Autista: sem público-alvo, com atendimentos e fluxo", v.length === 1 && !/Público-alvo/.test(textoDe(v[0])) && /psiquiatria infantil/.test(textoDe(v[0])));
+}
+[["PREFEITURA MUNICIPAL DE PIRAÍ", "formato antigo"], ["PIRAÍ - RJ", "formato novo"]].forEach(([nome, rot]) => {
+  const t = carregar();
+  t.ir("/atendimento/" + ID);
+  t.rede(atendimentoDe(nome));
+  const v = t.visiveis();
+  ok("Piraí (" + rot + "): aviso da regulação para o Rio e dos encaminhamentos detalhados", v.length === 1 &&
+     /Piraí \(RJ\)/.test(v[0].spec.titulo) && /SISREG/.test(textoDe(v[0])) && /classificação de risco/.test(textoDe(v[0])));
+});
+{
+  const t = carregar();
+  t.ctx.linhas = ["PIRAÍ - RJ", "UBS QUALQUER"];
+  t.ir("/pronto-atendimento");
+  t.rede(atendimentoDe("PIRAÍ - RJ"));
+  ok("Piraí também não abre fora do atendimento", t.visiveis().length === 0);
 }
 
 console.log("\n" + (falhas ? falhas + " FALHA(S)" : "todos passaram"));

@@ -93,11 +93,15 @@
             "CASA DA CRIANCA E DO ADOLESCENTE",
             "CASA DA CRIANÇA E DO ADOLESCENTE"
           ],
+          "naoPode": [
+            {
+              "item": "O município não oferta neuropsicólogo nem psicopedagogo",
+              "fazer": ""
+            }
+          ],
           "orientacoes": [
-            "Público-alvo: crianças de 0 a 17 anos, 11 meses e 29 dias.",
-            "Atendimentos: fonoaudiologia, terapia ocupacional, fisioterapia e psicologia.",
-            "Fluxo: presencial. Encaminhar diretamente quando houver indicação de terapia.",
-            "O município não oferta neuropsicólogo nem psicopedagogo."
+            "A unidade oferta atendimentos de fonoaudiologia, terapia ocupacional, fisioterapia e psicologia.",
+            "Fluxo: presencial. Encaminhar diretamente quando houver indicação de terapia."
           ]
         },
         "Clínica do Autista": {
@@ -107,7 +111,6 @@
             "CLÍNICA DO AUTISTA"
           ],
           "orientacoes": [
-            "Público-alvo: crianças com TEA (Transtorno do Espectro Autista) de 2 a 11 anos, 11 meses e 29 dias.",
             "Atendimentos: psiquiatria infantil, neuropediatria, serviço social, psicologia, fisioterapia, fonoaudiologia e nutrição.",
             "Fluxo: atendimentos individuais e em grupo, incluindo grupo de apoio aos responsáveis."
           ]
@@ -118,6 +121,13 @@
       "titulo": "Município de Congonhas (MG)",
       "orientacoes": [
         "Exames do laboratório da UPA devem ser pedidos juntos. Qualquer exame fora da lista deve ir em pedido separado — senão o paciente não consegue marcar. Consulte a listagem de exames do Assistente."
+      ]
+    },
+    "Piraí": {
+      "titulo": "Município de Piraí (RJ)",
+      "orientacoes": [
+        "Os exames pediátricos de alta/média complexidade e as especialidades pediátricas ambulatoriais não são realizados em Piraí — o atendimento ocorre no Rio de Janeiro, via regulação estadual/SISREG.",
+        "Os encaminhamentos devem estar o mais detalhados possível, com exames anexados e classificação de risco."
       ]
     }
   }

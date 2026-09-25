@@ -39,6 +39,7 @@
   var elToast = null;
   var elAvisos = null;
   var elCentro = null; // aviso que PRECISA ser lido: no meio da tela
+  var elTopo = null;   // aviso fixo na lateral superior direita
   var botoes = []; // { id, prioridade, el, visivel }
   var elAlca = null;
   var recolhido = false;
@@ -242,6 +243,29 @@
     "  pointer-events: none;",
     "}",
     "#avisos-centro > * { pointer-events: auto; }",
+    /* Lateral superior direita: abaixo do cabecalho do Meeds (~74px) e
+       acima da pilha de botoes. Fica a vista a consulta toda sem cobrir
+       o formulario, que ocupa o meio da tela. */
+    "#avisos-topo {",
+    /* A rolagem (para o cartao nunca descer sobre os botoes) corta o que
+       passa da caixa. Por isso aqui a sombra e curta e ha 14px de respiro:
+       sombra e anel da pulsacao cabem inteiros, sem moldura cortada. */
+    "  position: fixed; top: 74px; right: 10px; padding: 14px;",
+    "  z-index: " + (Z_BASE + 6) + "; width: min(428px, calc(100vw - 12px)); box-sizing: border-box;",
+    "  display: flex; flex-direction: column; gap: 10px; pointer-events: none;",
+    "  overflow-y: auto; overscroll-behavior: contain;",
+    "}",
+    "#avisos-topo > * { pointer-events: auto; }",
+    "#avisos-topo .ms-aviso { box-shadow: 0 4px 12px rgba(15,23,42,.22); }",
+    "#avisos-topo .ms-aviso.ms-aviso-atencao {",
+    "  animation: ms-aviso-entra .28s cubic-bezier(.22,.9,.3,1), ms-aviso-pulsa-topo .9s ease-in-out .3s 3;",
+    "}",
+    "@keyframes ms-aviso-pulsa-topo {",
+    "  0%, 100% { box-shadow: 0 4px 12px rgba(15,23,42,.22), 0 0 0 0 rgba(217,119,6,0); }",
+    "  50% { box-shadow: 0 4px 12px rgba(15,23,42,.22), 0 0 0 5px rgba(217,119,6,.55); }",
+    "}",
+    "#avisos-topo .ms-aviso-titulo { font-size: 14.5px; }",
+    "#avisos-topo .ms-aviso-corpo { font-size: 13.5px; line-height: 1.6; }",
     "#avisos-centro .ms-aviso-titulo { font-size: 16px; }",
     "#avisos-centro .ms-aviso-corpo { font-size: 14.5px; line-height: 1.65; padding: 8px 16px 14px; }",
     "#avisos-centro .ms-aviso-btn { font-size: 13px; padding: 8px 16px; }",
@@ -326,6 +350,7 @@
       elToast = shadow.getElementById("toast");
       elAvisos = shadow.getElementById("avisos");
       elCentro = shadow.getElementById("avisos-centro");
+      elTopo = shadow.getElementById("avisos-topo");
       return shadow;
     }
     host = document.createElement("div");
@@ -351,6 +376,13 @@
     elCentro = document.createElement("div");
     elCentro.id = "avisos-centro";
     shadow.appendChild(elCentro);
+
+    elTopo = document.createElement("div");
+    elTopo.id = "avisos-topo";
+    shadow.appendChild(elTopo);
+    /* A pilha e ancorada embaixo: mudar a altura da janela muda onde ela
+     * comeca, e o limite do aviso do topo tem que acompanhar. */
+    try { window.addEventListener("resize", reposicionarToast); } catch (e) { /* sem window */ }
 
     elToast = document.createElement("div");
     elToast.id = "toast";
@@ -533,6 +565,15 @@
     var largura = caixa ? caixa.width : 0;
 
     if (elToast) elToast.style.bottom = 24 + (altura > 0 ? altura + 12 : 0) + "px";
+
+    /* O aviso da lateral superior termina ANTES do primeiro botao da
+     * pilha. Numa tela baixa (ou com muitos botoes ligados) o cartao
+     * ganha rolagem em vez de cobrir um botao — achado no QA de
+     * 25/09/2026, numa janela de 600px de altura. */
+    if (elTopo) {
+      var teto = caixa && caixa.height > 0 ? caixa.top - 6 - 74 : window.innerHeight - 74 - 24;
+      elTopo.style.maxHeight = Math.max(140, teto) + "px";
+    }
 
     if (elAvisos) {
       /* Sem botao nenhum medido ainda, cai no mesmo 92px do CSS — o dock
@@ -826,8 +867,11 @@
       return "ms-aviso" + (s.destaque ? " ms-aviso-" + s.destaque : "");
     }
     function destino(s) {
-      /* centro: true -> no meio da tela (elCentro); senao, a pilha do canto. */
-      return s.centro && elCentro ? elCentro : elAvisos;
+      /* centro: true -> no meio da tela; topo: true -> lateral superior
+       * direita; senao, a pilha do canto de baixo. */
+      if (s.centro && elCentro) return elCentro;
+      if (s.topo && elTopo) return elTopo;
+      return elAvisos;
     }
     var timer = null;
 
@@ -880,6 +924,7 @@
     el.className = classes(spec);
     render(spec);
     destino(spec).appendChild(el);
+    if (spec.topo) reposicionarToast();
     agendarFechamento(spec.autoFecharMs);
 
     return {

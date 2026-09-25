@@ -185,16 +185,18 @@
      * o cartao, sem contar como "dispensado pelo medico". */
     if (aberto) fechar();
 
-    /* Abre NO MEIO DA TELA, pulsando, para ser lido. "Entendi" manda o
-     * cartao para o canto, ambar e parado, onde fica como referencia ate
-     * o fim do atendimento. O X fecha de vez (naquele atendimento). */
-    spec.centro = true;
+    /* Abre na LATERAL SUPERIOR DIREITA, acima dos botoes do Assistente,
+     * pulsando. "Entendi" para a pulsacao e o cartao fica ali, ambar e
+     * parado, como referencia ate o fim do atendimento. O X fecha de vez
+     * (naquele atendimento). Pedido de 25/09/2026: no meio da tela ele
+     * cobria o formulario do atendimento. */
+    spec.topo = true;
     spec.acoes = [{
       rotulo: "Entendi",
       fecha: false,
       aoClicar: function () {
         if (aberto && aberto.aviso) {
-          aberto.aviso.atualizar({ centro: false, destaque: "atencao-calmo", acoes: [] });
+          aberto.aviso.atualizar({ destaque: "atencao-calmo", acoes: [] });
         }
       },
     }];
