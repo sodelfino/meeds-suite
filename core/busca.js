@@ -297,15 +297,23 @@
    * conta e feita, nao a conta — por isso o REMUME nao muda de
    * comportamento.
    * ------------------------------------------------------------------ */
-  function criarIndice(itens, textoDe) {
-    const lista = itens || [];
-    const n = lista.length;
+  /* Registra o TOKEN da palavra `t` como pertencente ao item `i` dentro
+   * do vocabulario invertido (mutado em vocabulario). Um item pode
+   * repetir a mesma palavra; guardamos so uma vez, olhando so a ultima
+   * entrada (os tokens de um mesmo item chegam em sequencia). */
+  function indexarToken(vocabulario, t, i) {
+    let entrada = vocabulario[t];
+    if (!entrada) entrada = vocabulario[t] = { itens: [] };
+    if (entrada.itens[entrada.itens.length - 1] !== i) entrada.itens.push(i);
+  }
 
+  /* Preenche originais/normalizados/semEspaco (paralelos a `lista`) e
+   * o vocabulario invertido, palavra -> itens em que ela aparece. */
+  function indexarItens(lista, textoDe) {
+    const n = lista.length;
     const originais = new Array(n);
     const normalizados = new Array(n);
     const semEspaco = new Array(n);
-
-    /* palavra distinta -> { itens: [indices em que ela aparece] } */
     const vocabulario = Object.create(null);
 
     for (let i = 0; i < n; i++) {
@@ -319,24 +327,32 @@
 
       const tokens = tokenizarTexto(texto);
       for (let j = 0; j < tokens.length; j++) {
-        const t = tokens[j];
-        let entrada = vocabulario[t];
-        if (!entrada) entrada = vocabulario[t] = { itens: [] };
-        // um item pode repetir a mesma palavra; guardamos so uma vez
-        if (entrada.itens[entrada.itens.length - 1] !== i) entrada.itens.push(i);
+        indexarToken(vocabulario, tokens[j], i);
       }
     }
 
-    /* Palavras agrupadas por COMPRIMENTO. A aproximacao so precisa olhar
-     * as faixas de tamanho compativel com o que foi digitado — sem isto
-     * ela percorria as 8.391 palavras distintas so para descartar quase
-     * todas pelo tamanho. */
-    const palavras = Object.keys(vocabulario);
+    return { originais, normalizados, semEspaco, vocabulario };
+  }
+
+  /* Palavras agrupadas por COMPRIMENTO. A aproximacao so precisa olhar as
+   * faixas de tamanho compativel com o que foi digitado — sem isto ela
+   * percorria as 8.391 palavras distintas so para descartar quase todas
+   * pelo tamanho. */
+  function agruparPorTamanho(palavras) {
     const porTamanho = Object.create(null);
     for (let w = 0; w < palavras.length; w++) {
       const tam = palavras[w].length;
       (porTamanho[tam] || (porTamanho[tam] = [])).push(palavras[w]);
     }
+    return porTamanho;
+  }
+
+  function criarIndice(itens, textoDe) {
+    const lista = itens || [];
+    const n = lista.length;
+    const { originais, normalizados, semEspaco, vocabulario } = indexarItens(lista, textoDe);
+    const palavras = Object.keys(vocabulario);
+    const porTamanho = agruparPorTamanho(palavras);
 
     return {
       tamanho: n,
@@ -361,6 +377,180 @@
    *      palavras ja e maior que a distancia de edicao maxima, elas nao
    *      tem chance e nem sao comparadas.
    * ------------------------------------------------------------------ */
+  /* PASSAGEM 1 (por token): casamento exato por substring, varrendo o
+   * texto normalizado de cada item. Palavra GENERICA (aparece em mais de
+   * FRACAO_PALAVRA_GENERICA dos itens) nao escolhe item, so desempata —
+   * ver a nota longa mais abaixo, que explica por que. Devolve
+   * casouExato[i] (quais itens este token pegou), usado depois para a
+   * passagem de aproximacao nao pontuar de novo o que ja pontuou aqui. */
+  function pontuarExato(token, ctx, estado) {
+    const indice = ctx.indice;
+    const cfg = ctx.cfg;
+    const n = indice.tamanho;
+    const normalizados = indice.normalizados;
+    const casouExato = new Uint8Array(n);
+    let quantosExatos = 0;
+
+    for (let i = 0; i < n; i++) {
+      const pos = normalizados[i].indexOf(token);
+      if (pos === -1) continue;
+      casouExato[i] = 1;
+      quantosExatos++;
+      estado.exata[i] += 1.0;
+      if (pos === 0) estado.exata[i] += cfg.BONUS_COMECA_COM;
+    }
+
+    /* PALAVRA GENERICA NAO ESCOLHE ITEM, SO DESEMPATA.
+     *
+     * Numa REMUME, "comprimido" aparece em 44% da lista de Mendes e as
+     * siglas de unidade ("hpm", "upa", "ubs") em ate 80% da de Macae.
+     * Como qualquer token que casa marca o item como candidato,
+     * "acetilcisteina comprimido" devolvia 159 dos 357 itens de Mendes:
+     * os dois certos no topo e 157 de ruido atras, dentro de uma lista
+     * que a tela corta em 80. O medico rolava 80 linhas para achar 2.
+     *
+     * A medicao mostrou uma separacao limpa: acima de 30% so existem
+     * formas farmaceuticas e siglas de unidade — nenhum principio ativo
+     * chega perto disso em nenhum dos 11 municipios. Entao o corte por
+     * frequencia distingue exatamente o que precisamos, sem lista fixa
+     * de palavras (que quebraria justamente em Sete Lagoas, onde NENHUMA
+     * palavra passa de 10% porque o municipio nao publica forma
+     * farmaceutica).
+     *
+     * A palavra generica continua somando pontos: em "amoxicilina
+     * suspensao", "suspensao" segue empurrando a suspensao para cima —
+     * ela so nao pode, sozinha, trazer para a lista uma suspensao que
+     * nada tem a ver com amoxicilina.
+     *
+     * Isto so REMOVE item do resultado, nunca acrescenta: a regra de a
+     * REMUME do municipio ser a unica fonte de verdade continua valendo
+     * por construcao. */
+    const generico = quantosExatos > 0 && quantosExatos / n > cfg.FRACAO_PALAVRA_GENERICA;
+    for (let t = 0; t < n; t++) {
+      if (!casouExato[t]) continue;
+      if (generico) estado.tocadoGenerico[t] = 1;
+      else estado.tocado[t] = 1;
+    }
+
+    return { casouExato: casouExato, quantosExatos: quantosExatos };
+  }
+
+  /* PASSAGEM 3 (por token): aproximacao sobre o VOCABULARIO (palavras
+   * distintas), nao sobre os itens — e o que faz a CID-10 completa
+   * (8.391 palavras distintas) caber no tempo de uma tecla. So roda se a
+   * palavra digitada nao bateu exato o bastante (EXATOS_QUE_DISPENSAM_
+   * APROXIMACAO): uma palavra bem escrita nao precisa de aproximacao, e
+   * pular aqui nao muda quem aparece primeiro (exato sempre vale mais
+   * que fuzzy). Poda por comprimento: se a diferenca de tamanho ja passa
+   * da distancia maxima tolerada, a palavra nem entra na comparacao. */
+  /* Palavras do vocabulario cujo comprimento cabe na distancia maxima de
+   * edicao tolerada para este token — a poda que evita comparar contra
+   * as 8.391 palavras distintas da CID-10 inteira. */
+  function candidatasPorTamanho(indice, token) {
+    const distanciaMaxima = limiteDeDistancia(token.length);
+    let candidatas = [];
+    for (let tam = token.length - distanciaMaxima; tam <= token.length + distanciaMaxima; tam++) {
+      const faixa = indice.porTamanho && indice.porTamanho[tam];
+      if (faixa) candidatas = candidatas.concat(faixa);
+    }
+    return candidatas;
+  }
+
+  /* Melhor nota de aproximacao, POR ITEM, entre as palavras candidatas —
+   * um item pode conter mais de uma palavra parecida com o token; fica a
+   * maior. Itens que o token ja pontuou exato ficam de fora (o token nao
+   * pontua duas vezes no mesmo item). */
+  function melhorNotaPorItem(token, indice, cfg, casouExato) {
+    const candidatas = candidatasPorTamanho(indice, token);
+    let melhorPorItem = null;
+    for (let p = 0; p < candidatas.length; p++) {
+      const palavra = candidatas[p];
+      const score = fuzzyScore(token, palavra);
+      if (score < cfg.LIMIAR_FUZZY) continue;
+
+      if (!melhorPorItem) melhorPorItem = Object.create(null);
+      const dono = indice.vocabulario[palavra].itens;
+      for (let k = 0; k < dono.length; k++) {
+        const id = dono[k];
+        if (casouExato[id]) continue; // este token ja pontuou exato aqui
+        if (!(id in melhorPorItem) || melhorPorItem[id] < score) melhorPorItem[id] = score;
+      }
+    }
+    return melhorPorItem;
+  }
+
+  function pontuarAproximado(token, ctx, casouExato, estado) {
+    const melhorPorItem = melhorNotaPorItem(token, ctx.indice, ctx.cfg, casouExato);
+    if (!melhorPorItem) return;
+    for (const chave in melhorPorItem) {
+      const idFuzzy = +chave;
+      estado.fuzzy[idFuzzy] += melhorPorItem[idFuzzy] * 0.5;
+      estado.tocado[idFuzzy] = 1;
+    }
+  }
+
+  /* Se a busca inteira era generica — o medico digitou so "comprimido",
+   * ou so "UBS" — nao ha nada mais especifico para mostrar. Ai a palavra
+   * generica volta a escolher, senao a tela diria "nao consta" para um
+   * termo que existe na lista. */
+  function recuperarSoGenerico(n, estado) {
+    for (let v = 0; v < n; v++) {
+      if (estado.tocado[v]) return;
+    }
+    for (let w = 0; w < n; w++) {
+      if (estado.tocadoGenerico[w]) estado.tocado[w] = 1;
+    }
+  }
+
+  /* PASSAGEM 2: sinonimos, por frase inteira e com limite de palavra —
+   * ver a nota no topo do arquivo sobre por que fuzzy e sinonimo nunca
+   * se combinam. */
+  function aplicarSinonimos(tokens, ctx, sinonimos, estado) {
+    const indice = ctx.indice;
+    const cfg = ctx.cfg;
+    const frases = obterFrasesSinonimo(tokens, sinonimos);
+    const n = indice.tamanho;
+    for (let f = 0; f < frases.length; f++) {
+      const frase = frases[f];
+      const fraseSemEspaco = frase.replace(/\s+/g, "");
+      const vaiSemEspaco = frase.length >= 8;
+      for (let m = 0; m < n; m++) {
+        const bate =
+          casaComoPalavra(indice.normalizados[m], frase) ||
+          (vaiSemEspaco && indice.semEspaco[m].indexOf(fraseSemEspaco) !== -1);
+        if (bate) {
+          estado.exata[m] += cfg.PESO_SINONIMO;
+          estado.tocado[m] = 1;
+        }
+      }
+    }
+  }
+
+  function ordenarCandidatos(n, estado, limite) {
+    const candidatos = [];
+    for (let c = 0; c < n; c++) {
+      if (!estado.tocado[c]) continue;
+      const total = estado.exata[c] + estado.fuzzy[c];
+      if (total > 0) candidatos.push({ i: c, total: total, viaFuzzy: estado.exata[c] === 0 });
+    }
+    candidatos.sort(function (a, b) {
+      return b.total - a.total;
+    });
+    return { todos: candidatos, recortados: candidatos.slice(0, limite) };
+  }
+
+  /* ------------------------------------------------------------------
+   * buscar(termo, indice, opcoes) -> { itens, viaFuzzy, melhor, total }
+   * opcoes: { sinonimos, limite, config }
+   *
+   * Tres passagens, da mais barata para a mais cara:
+   *   1. casamento EXATO por substring, varrendo o texto normalizado;
+   *   2. sinonimos, por frase inteira e com limite de palavra;
+   *   3. APROXIMACAO, so sobre as palavras distintas e so as de
+   *      comprimento compativel — se a diferenca de tamanho entre duas
+   *      palavras ja e maior que a distancia de edicao maxima, elas nao
+   *      tem chance e nem sao comparadas.
+   * ------------------------------------------------------------------ */
   function buscar(termo, indice, opcoes) {
     opcoes = opcoes || {};
     const cfg = Object.assign({}, CONFIG_PADRAO, opcoes.config || {});
@@ -370,159 +560,28 @@
     }
 
     const n = indice.tamanho;
-    const exata = new Float64Array(n);
-    const fuzzy = new Float64Array(n);
-    const tocado = new Uint8Array(n);
-    const normalizados = indice.normalizados;
+    const estado = {
+      exata: new Float64Array(n),
+      fuzzy: new Float64Array(n),
+      tocado: new Uint8Array(n),
+      /* Itens que SO foram alcancados por palavra generica. Ficam de fora
+       * do resultado, a menos que nada mais tenha sido encontrado. */
+      tocadoGenerico: new Uint8Array(n),
+    };
 
-    /* Itens que SO foram alcancados por palavra generica. Ficam de fora
-     * do resultado, a menos que nada mais tenha sido encontrado. */
-    const tocadoGenerico = new Uint8Array(n);
-
+    const ctx = { indice: indice, cfg: cfg };
     for (let q = 0; q < tokens.length; q++) {
       const token = tokens[q];
-      const casouExato = new Uint8Array(n);
-
-      /* 1) exato */
-      let quantosExatos = 0;
-      for (let i = 0; i < n; i++) {
-        const pos = normalizados[i].indexOf(token);
-        if (pos === -1) continue;
-        casouExato[i] = 1;
-        quantosExatos++;
-        exata[i] += 1.0;
-        if (pos === 0) exata[i] += cfg.BONUS_COMECA_COM;
-      }
-
-      /* PALAVRA GENERICA NAO ESCOLHE ITEM, SO DESEMPATA.
-       *
-       * Numa REMUME, "comprimido" aparece em 44% da lista de Mendes e
-       * as siglas de unidade ("hpm", "upa", "ubs") em ate 80% da de
-       * Macae. Como qualquer token que casa marca o item como
-       * candidato, "acetilcisteina comprimido" devolvia 159 dos 357
-       * itens de Mendes: os dois certos no topo e 157 de ruido atras,
-       * dentro de uma lista que a tela corta em 80. O medico rolava 80
-       * linhas para achar 2.
-       *
-       * A medicao mostrou uma separacao limpa: acima de 30% so existem
-       * formas farmaceuticas e siglas de unidade — nenhum principio
-       * ativo chega perto disso em nenhum dos 11 municipios. Entao o
-       * corte por frequencia distingue exatamente o que precisamos, sem
-       * lista fixa de palavras (que quebraria justamente em Sete
-       * Lagoas, onde NENHUMA palavra passa de 10% porque o municipio
-       * nao publica forma farmaceutica).
-       *
-       * A palavra generica continua somando pontos: em "amoxicilina
-       * suspensao", "suspensao" segue empurrando a suspensao para cima
-       * — ela so nao pode, sozinha, trazer para a lista uma suspensao
-       * que nada tem a ver com amoxicilina.
-       *
-       * Isto so REMOVE item do resultado, nunca acrescenta: a regra de
-       * a REMUME do municipio ser a unica fonte de verdade continua
-       * valendo por construcao. */
-      const generico = quantosExatos > 0 && quantosExatos / n > cfg.FRACAO_PALAVRA_GENERICA;
-      for (let t = 0; t < n; t++) {
-        if (!casouExato[t]) continue;
-        if (generico) tocadoGenerico[t] = 1;
-        else tocado[t] = 1;
-      }
-
-      /* Palavra bem escrita nao precisa de aproximacao. Isto e o que
-       * mantem a busca rapida no caso comum: com a CID-10 completa,
-       * "fibrilacao atrial" caia de 147 ms para poucos milissegundos,
-       * porque as duas palavras existem na base e nenhuma delas precisa
-       * ser comparada contra as 8.391 palavras distintas.
-       * Um casamento exato sempre vale mais que um aproximado (1.0
-       * contra no maximo 0.45 por palavra), entao pular aqui nao muda
-       * quem aparece primeiro. */
+      const { casouExato, quantosExatos } = pontuarExato(token, ctx, estado);
       if (quantosExatos >= cfg.EXATOS_QUE_DISPENSAM_APROXIMACAO) continue;
-
-      /* 3) aproximacao sobre o vocabulario */
-      /* Poda por comprimento: se a diferenca de tamanho entre duas
-       * palavras ja passa da distancia maxima tolerada, nem calculamos a
-       * distancia de edicao — insercao e remocao custam 1 cada, entao
-       * nao ha como caber no limite. Usa a MESMA regra do fuzzyScore,
-       * para nao podar nada que ele aceitaria. */
-      const distanciaMaxima = limiteDeDistancia(token.length);
-      let melhorPorItem = null;
-
-      let candidatas = [];
-      for (let tam = token.length - distanciaMaxima; tam <= token.length + distanciaMaxima; tam++) {
-        const faixa = indice.porTamanho && indice.porTamanho[tam];
-        if (faixa) candidatas = candidatas.concat(faixa);
-      }
-
-      for (let p = 0; p < candidatas.length; p++) {
-        const palavra = candidatas[p];
-        const entrada = indice.vocabulario[palavra];
-        const score = fuzzyScore(token, palavra);
-        if (score < cfg.LIMIAR_FUZZY) continue;
-
-        if (!melhorPorItem) melhorPorItem = Object.create(null);
-        const dono = entrada.itens;
-        for (let k = 0; k < dono.length; k++) {
-          const id = dono[k];
-          if (casouExato[id]) continue; // este token ja pontuou exato aqui
-          if (!(id in melhorPorItem) || melhorPorItem[id] < score) melhorPorItem[id] = score;
-        }
-      }
-
-      if (melhorPorItem) {
-        for (const chave in melhorPorItem) {
-          const idFuzzy = +chave;
-          fuzzy[idFuzzy] += melhorPorItem[idFuzzy] * 0.5;
-          tocado[idFuzzy] = 1;
-        }
-      }
+      pontuarAproximado(token, ctx, casouExato, estado);
     }
 
-    /* Se a busca inteira era generica — o medico digitou so
-     * "comprimido", ou so "UBS" — nao ha nada mais especifico para
-     * mostrar. Ai a palavra generica volta a escolher, senao a tela
-     * diria "nao consta" para um termo que existe na lista. */
-    let achouAlgo = false;
-    for (let v = 0; v < n; v++) {
-      if (tocado[v]) {
-        achouAlgo = true;
-        break;
-      }
-    }
-    if (!achouAlgo) {
-      for (let w = 0; w < n; w++) {
-        if (tocadoGenerico[w]) tocado[w] = 1;
-      }
-    }
-
-    /* 2) sinonimos */
-    const frases = obterFrasesSinonimo(tokens, opcoes.sinonimos);
-    for (let f = 0; f < frases.length; f++) {
-      const frase = frases[f];
-      const fraseSemEspaco = frase.replace(/\s+/g, "");
-      const vaiSemEspaco = frase.length >= 8;
-      for (let m = 0; m < n; m++) {
-        const bate =
-          casaComoPalavra(normalizados[m], frase) ||
-          (vaiSemEspaco && indice.semEspaco[m].indexOf(fraseSemEspaco) !== -1);
-        if (bate) {
-          exata[m] += cfg.PESO_SINONIMO;
-          tocado[m] = 1;
-        }
-      }
-    }
-
-    /* ordena so o que pontuou */
-    const candidatos = [];
-    for (let c = 0; c < n; c++) {
-      if (!tocado[c]) continue;
-      const total = exata[c] + fuzzy[c];
-      if (total > 0) candidatos.push({ i: c, total: total, viaFuzzy: exata[c] === 0 });
-    }
-    candidatos.sort(function (a, b) {
-      return b.total - a.total;
-    });
+    recuperarSoGenerico(n, estado);
+    aplicarSinonimos(tokens, ctx, opcoes.sinonimos, estado);
 
     const limite = opcoes.limite || cfg.LIMITE_RESULTADOS;
-    const recortados = candidatos.slice(0, limite);
+    const { todos, recortados } = ordenarCandidatos(n, estado, limite);
 
     return {
       itens: recortados.map(function (x) {
@@ -530,9 +589,10 @@
       }),
       viaFuzzy: !!(recortados[0] && recortados[0].viaFuzzy),
       melhor: recortados[0] ? indice.originais[recortados[0].i] : null,
-      total: candidatos.length,
+      total: todos.length,
     };
   }
+
   raiz.MeedsSuiteBusca = {
     criarIndice: criarIndice,
     buscar: buscar,
