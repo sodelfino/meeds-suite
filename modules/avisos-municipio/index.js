@@ -147,49 +147,27 @@
     }
   }
 
-  function verificar() {
-    if (!d) return;
-
-    /* O medico fechou no X: vale para este atendimento ate o fim. */
-    if (aberto && !aberto.aviso.estaVisivel()) {
-      dispensados[aberto.id] = true;
-      aberto = null;
-    }
-
-    const id = atendimentoDaPagina();
-    if (!id) return fechar();
-    if (aberto && aberto.id !== id) fechar();
-    if (dispensados[id]) return;
-
-    const tabela = regras();
-    let municipio;
+  /* De que municipio e o atendimento. A rede, quando respondeu por ESTE
+   * atendimento, decide — inclusive quando diz "outro municipio"; ai nao
+   * cai para a leitura da tela. Sem a rede (Safari no iPad em escopo
+   * isolado, ou a chamada passou antes do script subir): so o campo
+   * "Vinculos", e so depois da espera pela rede. Devolve undefined
+   * enquanto ainda esta esperando. */
+  function municipioDoAtendimento(id, tabela) {
     if (Object.prototype.hasOwnProperty.call(municipioPorAtendimento, id)) {
-      /* A rede respondeu por ESTE atendimento: ela decide, inclusive
-       * quando diz "outro municipio". Nao cai para a leitura da tela. */
-      municipio = municipioPorAtendimento[id];
-    } else {
-      /* Sem a rede (Safari no iPad em escopo isolado, ou a chamada passou
-       * antes do script subir): so o campo "Vinculos" do cartao. */
-      if (!vistoDesde[id]) vistoDesde[id] = Date.now();
-      if (Date.now() - vistoDesde[id] < ESPERA_REDE_MS) return;
-      municipio = municipioPeloVinculo(Object.keys(tabela));
+      return municipioPorAtendimento[id];
     }
-    if (!municipio || !tabela[municipio]) return;
+    if (!vistoDesde[id]) vistoDesde[id] = Date.now();
+    if (Date.now() - vistoDesde[id] < ESPERA_REDE_MS) return undefined;
+    return municipioPeloVinculo(Object.keys(tabela));
+  }
 
-    const unidade = unidadeDoVinculo(municipio, tabela[municipio]);
-    const spec = montarAviso(tabela[municipio], unidade);
-    if (!spec) return;
-    const chave = municipio + "|" + (unidade ? unidade.chave : "");
-    if (aberto && aberto.chave === chave) return;
-    /* A unidade apareceu (ou mudou) depois do cartao do municipio: troca
-     * o cartao, sem contar como "dispensado pelo medico". */
-    if (aberto) fechar();
-
-    /* Abre na LATERAL SUPERIOR DIREITA, acima dos botoes do Assistente,
-     * pulsando. "Entendi" para a pulsacao e o cartao fica ali, ambar e
-     * parado, como referencia ate o fim do atendimento. O X fecha de vez
-     * (naquele atendimento). Pedido de 25/09/2026: no meio da tela ele
-     * cobria o formulario do atendimento. */
+  /* Abre na LATERAL SUPERIOR DIREITA, acima dos botoes do Assistente,
+   * pulsando. "Entendi" para a pulsacao e o cartao fica ali, ambar e
+   * parado, como referencia ate o fim do atendimento. O X fecha de vez
+   * (naquele atendimento). Pedido de 25/09/2026: no meio da tela ele
+   * cobria o formulario do atendimento. */
+  function abrirCartao(id, municipio, chave, spec) {
     spec.topo = true;
     spec.acoes = [{
       rotulo: "Entendi",
@@ -201,6 +179,43 @@
       },
     }];
     aberto = { id: id, municipio: municipio, chave: chave, aviso: d.dock.criarAviso(spec) };
+  }
+
+  /* O atendimento da tela que PODE receber aviso, ou null. Fecha o que
+   * nao vale mais: fora do atendimento, ou outro atendimento. */
+  function atendimentoParaAvisar() {
+    /* O medico fechou no X: vale para este atendimento ate o fim. */
+    if (aberto && !aberto.aviso.estaVisivel()) {
+      dispensados[aberto.id] = true;
+      aberto = null;
+    }
+    const id = atendimentoDaPagina();
+    if (!id) {
+      fechar();
+      return null;
+    }
+    if (aberto && aberto.id !== id) fechar();
+    return dispensados[id] ? null : id;
+  }
+
+  function verificar() {
+    if (!d) return;
+    const id = atendimentoParaAvisar();
+    if (!id) return;
+
+    const tabela = regras();
+    const municipio = municipioDoAtendimento(id, tabela);
+    if (!municipio || !tabela[municipio]) return;
+
+    const unidade = unidadeDoVinculo(municipio, tabela[municipio]);
+    const spec = montarAviso(tabela[municipio], unidade);
+    if (!spec) return;
+    const chave = municipio + "|" + (unidade ? unidade.chave : "");
+    if (aberto && aberto.chave === chave) return;
+    /* A unidade apareceu (ou mudou) depois do cartao do municipio: troca
+     * o cartao, sem contar como "dispensado pelo medico". */
+    if (aberto) fechar();
+    abrirCartao(id, municipio, chave, spec);
   }
 
   raiz.MeedsSuite.registerModule({

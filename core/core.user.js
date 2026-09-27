@@ -92,24 +92,27 @@
   const URL_SELETORES_PADRAO =
     "https://raw.githubusercontent.com/sodelfino/meeds-suite/main/seletores.json";
 
-  function validarSeletores(dados) {
-    if (!dados || typeof dados !== "object" || Array.isArray(dados)) return false;
-    const grupos = ["rotulos", "toasts"];
-    for (let i = 0; i < grupos.length; i++) {
-      const g = dados[grupos[i]];
-      if (g === undefined) continue;
-      if (!g || typeof g !== "object" || Array.isArray(g)) return false;
-      const chaves = Object.keys(g);
-      for (let j = 0; j < chaves.length; j++) {
-        const v = g[chaves[j]];
-        if (!Array.isArray(v)) return false;
-        for (let k = 0; k < v.length; k++) {
-          if (typeof v[k] !== "string") return false;
-        }
-      }
-    }
-    return true;
+  function ehObjetoSimples(x) {
+    return !!x && typeof x === "object" && !Array.isArray(x);
   }
+
+  /* Um grupo ("rotulos", "toasts") e um objeto cujo valor de cada chave
+   * e uma LISTA DE TEXTOS — dado, nunca codigo. */
+  function grupoDeSeletoresValido(g) {
+    if (!ehObjetoSimples(g)) return false;
+    return Object.keys(g).every(function (chave) {
+      const v = g[chave];
+      return Array.isArray(v) && v.every(function (x) { return typeof x === "string"; });
+    });
+  }
+
+  function validarSeletores(dados) {
+    if (!ehObjetoSimples(dados)) return false;
+    return ["rotulos", "toasts"].every(function (grupo) {
+      return dados[grupo] === undefined || grupoDeSeletoresValido(dados[grupo]);
+    });
+  }
+
 
   function atualizarSeletoresRemoto(url) {
     const alvo = url || URL_SELETORES_PADRAO;
@@ -260,31 +263,37 @@
    * Devolve o spec pronto para Dock.registrarBotao, ou null quando o
    * modulo nao tem botao (cid10 e previa-pdf acoplam-se a outra tela).
    * ------------------------------------------------------------------ */
+  /* Botao pela ficha do manifest (o caminho normal, D58). */
+  function specDaApresentacao(def, ficha, ap) {
+    if (ap.formaBotao === "nenhum" || !ap.icone) return null;
+    const comRotulo = ap.formaBotao === "rotulo";
+    return {
+      icone: ap.icone,
+      rotulo: comRotulo ? (ap.rotuloBotao || ficha.nome || "") : "",
+      variante: comRotulo ? undefined : "icone",
+      titulo: ap.cabecalho || ficha.nome || def.nome || "",
+      prioridade: typeof ficha.prioridadeBotao === "number" ? ficha.prioridadeBotao : undefined,
+    };
+  }
+
+  /* Reserva: botao declarado no proprio modulo (so para modulo em
+   * desenvolvimento, que ainda nao esta no manifest). */
+  function specDoProprioModulo(def) {
+    if (!def.botao) return null;
+    return {
+      icone: def.botao.icone,
+      rotulo: def.botao.rotulo,
+      variante: def.botao.variante,
+      titulo: def.botao.titulo || def.nome,
+      prioridade: def.botao.prioridade,
+    };
+  }
+
   function montarSpecBotao(def, ficha) {
     const ap = ficha && ficha.apresentacao;
-    if (ap) {
-      if (ap.formaBotao === "nenhum" || !ap.icone) return null;
-      const comRotulo = ap.formaBotao === "rotulo";
-      return {
-        icone: ap.icone,
-        rotulo: comRotulo ? (ap.rotuloBotao || ficha.nome || "") : "",
-        variante: comRotulo ? undefined : "icone",
-        titulo: ap.cabecalho || ficha.nome || def.nome || "",
-        prioridade:
-          typeof ficha.prioridadeBotao === "number" ? ficha.prioridadeBotao : undefined,
-      };
-    }
-    if (def.botao) {
-      return {
-        icone: def.botao.icone,
-        rotulo: def.botao.rotulo,
-        variante: def.botao.variante,
-        titulo: def.botao.titulo || def.nome,
-        prioridade: def.botao.prioridade,
-      };
-    }
-    return null;
+    return ap ? specDaApresentacao(def, ficha, ap) : specDoProprioModulo(def);
   }
+
 
   function listarModulos() {
     return registro.map(function (e) {
@@ -370,6 +379,46 @@
   /* ------------------------------------------------------------------
    * CICLO DE VIDA DE UM MODULO
    * ------------------------------------------------------------------ */
+  // Botao: a APRESENTACAO vem do manifest (montarSpecBotao), o dock
+  // POSICIONA, e o modulo so diz o que fazer no clique.
+  function registrarBotaoDoModulo(entrada, def, ficha) {
+    const specBotao = montarSpecBotao(def, ficha);
+    if (specBotao) {
+      specBotao.id = def.id;
+      specBotao.aoClicar = function () {
+        if (typeof entrada.aoClicarBotao !== "function") return;
+        try {
+          entrada.aoClicarBotao();
+        } catch (e) {
+          LOG.warn("[Assistente Meeds] clique falhou em", def.id, e);
+          avisarFalhaNoClique(entrada, specBotao);
+        }
+      };
+      return Dock.registrarBotao(specBotao);
+    }
+    return null;
+  }
+
+  // Assinaturas de rede declaradas no contrato — o nucleo assina por
+  // conta do modulo e guarda os cancelamentos para o stop().
+  function assinarRedeDoModulo(entrada, def) {
+    (def.assinaturasRede || []).forEach(function (assinatura) {
+      const cancelar = Net.assinar(
+        { regex: assinatura.regex, metodos: assinatura.metodos, idModulo: def.id },
+        function (evt) {
+          if (typeof def.aoCargaRede === "function") {
+            try {
+              def.aoCargaRede(evt);
+            } catch (e) {
+              LOG.warn("[Assistente Meeds] aoCargaRede falhou em", def.id, e);
+            }
+          }
+        }
+      );
+      entrada.cancelamentosRede.push(cancelar);
+    });
+  }
+
   function iniciarModulo(entrada) {
     if (entrada.rodando) return;
     const def = entrada.def;
@@ -378,42 +427,9 @@
       const storage = Storage.criarStorage(def.id);
       const config = storage.lerConfig(def.configPadrao || {});
 
-      // Botao: a APRESENTACAO vem do manifest (montarSpecBotao), o dock
-      // POSICIONA, e o modulo so diz o que fazer no clique.
-      let botaoHandle = null;
-      const specBotao = montarSpecBotao(def, ficha);
-      if (specBotao) {
-        specBotao.id = def.id;
-        specBotao.aoClicar = function () {
-          if (typeof entrada.aoClicarBotao !== "function") return;
-          try {
-            entrada.aoClicarBotao();
-          } catch (e) {
-            LOG.warn("[Assistente Meeds] clique falhou em", def.id, e);
-            avisarFalhaNoClique(entrada, specBotao);
-          }
-        };
-        botaoHandle = Dock.registrarBotao(specBotao);
-      }
-      entrada.botaoHandle = botaoHandle;
+      entrada.botaoHandle = registrarBotaoDoModulo(entrada, def, ficha);
 
-      // Assinaturas de rede declaradas no contrato — o nucleo assina por
-      // conta do modulo e guarda os cancelamentos para o stop().
-      (def.assinaturasRede || []).forEach(function (assinatura) {
-        const cancelar = Net.assinar(
-          { regex: assinatura.regex, metodos: assinatura.metodos, idModulo: def.id },
-          function (evt) {
-            if (typeof def.aoCargaRede === "function") {
-              try {
-                def.aoCargaRede(evt);
-              } catch (e) {
-                LOG.warn("[Assistente Meeds] aoCargaRede falhou em", def.id, e);
-              }
-            }
-          }
-        );
-        entrada.cancelamentosRede.push(cancelar);
-      });
+      assinarRedeDoModulo(entrada, def);
 
       const deps = {
         core: API,
@@ -443,7 +459,7 @@
         decisao: Decisao,
         auth: Auth,
         config: config,
-        botao: botaoHandle,
+        botao: entrada.botaoHandle,
         seletor: obterSeletor,
         /* o modulo avisa o nucleo qual funcao roda no clique do botao */
         aoClicarBotao: function (fn) {
@@ -606,6 +622,102 @@
     return mudou;
   }
 
+  /* Dock: host, estado recolhido e translucidez. */
+  function prepararDock() {
+  Dock.garantirHost();
+  /* Segunda camada contra dock duplicado: se sobrou um host de uma
+   * execucao anterior (SPA que remontou a pagina), remove o orfao. */
+  raiz.MeedsSuiteDiagnostico.limparDockOrfao("meeds-suite-dock-host");
+
+  /* Estado da caixa de botoes. Fica no mesmo armazenamento duravel
+   * das outras preferencias, entao sobrevive ao logout — recolheu,
+   * volta recolhido. Padrao: aberta, para quem nunca mexeu nao
+   * estranhar a tela. */
+  Dock.definirRecolhido(storageNucleo.ler("dock_recolhido", false) === true);
+  Dock.aoAlternarRecolhido(function (valor) {
+    storageNucleo.gravar("dock_recolhido", !!valor);
+  });
+
+  /* Translucidez em repouso: comportamento padrao, sem chave. O pedido
+   * que originou isto foi "que nao atrapalhe a visualizacao da tela",
+   * e o alarme — o unico que nao pode passar despercebido — ja e
+   * excecao e nunca fica translucido. A preferencia antiga deixa de
+   * valer, e a chave saiu do painel (ver D30). */
+  Dock.definirTranslucidez(true);
+  storageNucleo.remover("dock_translucido");
+  }
+
+  /* Migracoes de dados guardados de versoes anteriores (cadastro,
+   * historico, preferencias, modelos, laudos, municipio por CNES). Rodam
+   * antes de qualquer modulo subir, na mesma ordem de sempre. */
+  function rodarMigracoes() {
+  /* MIGRACAO DO CADASTRO — roda antes de qualquer modulo subir, para
+   * que o primeiro <select> de medicos ja apareca preenchido. */
+  Cadastro.migrarSeNecessario();
+  /* Tira do disco o nome completo de paciente que o historico do APAC
+   * gravava na versao anterior, convertendo para a referencia curta. */
+  raiz.MeedsSuiteHistorico.migrarHistoricoApac();
+  raiz.MeedsSuiteHistorico.migrarHistoricoApacGlobal();
+
+  /* A preferencia de ligado/desligado tambem e por id: sem isto, quem
+   * tinha desligado a APAC de Itauna veria a APAC global aparecer
+   * sozinha, e quem a tinha ligada perderia a escolha. */
+  (function migrarPreferenciaApac() {
+    const mapa = storageNucleo.ler("modulos", {}) || {};
+    if (Object.prototype.hasOwnProperty.call(mapa, "apac-itauna")) {
+      if (!Object.prototype.hasOwnProperty.call(mapa, "apac")) mapa.apac = mapa["apac-itauna"];
+      delete mapa["apac-itauna"];
+      storageNucleo.gravar("modulos", mapa);
+      LOG.debug("[Assistente Meeds] preferencia da APAC migrada de apac-itauna para apac.");
+    }
+  })();
+
+  /* Antes da APAC global o estabelecimento era salvo sem municipio.
+   * A regra de compatibilidade mostra esses cadastros em TODAS as
+   * cidades — o que ate a versao anterior era inofensivo (so existia
+   * Itauna) e agora deixaria o CNES de Itauna a um clique de sair numa
+   * APAC de Betim. Aqui o municipio e preenchido pelo CNES, que e
+   * unico e esta em dados/apac.json: e conferencia, nao adivinhacao.
+   * Quem tem um CNES que nao esta na tabela fica como estava. */
+  /* Antes da APAC global o estabelecimento era salvo sem municipio.
+   * A regra de compatibilidade mostra esses cadastros em TODAS as
+   * cidades — inofensivo enquanto so existia Itauna, mas agora isso
+   * deixaria o CNES de Itauna a um clique de sair numa APAC de Betim.
+   * O municipio e preenchido pelo CNES, que consta em dados/apac.json. */
+  /* Modelos salvos sob o id antigo da APAC seguem o mesmo caminho da
+   * preferencia e do historico — quem renomeia um modulo herda a
+   * obrigacao de levar junto o que o medico guardou nele. */
+  if (raiz.MeedsSuiteModelos) raiz.MeedsSuiteModelos.migrarId("apac-itauna", "apac");
+
+  preservarLaudosDeQuemJaUsava(storageNucleo, raiz.MeedsSuiteDiagnostico.boasVindasConcluidas());
+
+  (function carimbarMunicipioPeloCnes() {
+    const dados = raiz.MEEDS_DADOS_APAC;
+    if (!dados || !dados.municipios || !Cadastro || !Cadastro.preencherMunicipioPeloCnes) return;
+    const deQuemE = {};
+    Object.keys(dados.municipios).forEach(function (cidade) {
+      (dados.municipios[cidade].estabelecimentos || []).forEach(function (e) {
+        if (e && e.cnes) deQuemE[String(e.cnes).replace(/\D/g, "")] = cidade;
+      });
+    });
+    const mudou = Cadastro.preencherMunicipioPeloCnes(deQuemE);
+    if (mudou) LOG.debug("[Assistente Meeds] municipio preenchido em", mudou, "estabelecimento(s) pelo CNES.");
+  })();
+  }
+
+  /* O que o medico ve ao abrir, depois que tudo subiu: */
+  function avisosDeEntrada() {
+  /* Aviso de atualizacao: compara a versao atual com a ultima que o
+   * medico viu. Roda ANTES do diagnostico de propósito — quem acabou
+   * de instalar tem que ver as boas-vindas, nao um "atualizado". */
+  raiz.MeedsSuiteNovidades.verificar({ dock: Dock, versaoAtual: VERSAO_NUCLEO });
+
+  /* Boas-vindas na primeira vez e aviso se os scripts antigos ainda
+   * estiverem ativos (eles rodam em document-idle, entao a checagem
+   * espera alguns segundos antes de olhar o DOM). */
+  raiz.MeedsSuiteDiagnostico.verificar(Dock, storageNucleo);
+  }
+
   function iniciar(opcoes) {
     if (iniciado) return;
     opcoes = opcoes || {};
@@ -637,81 +749,11 @@
 
     storageNucleo = Storage.storageDoNucleo();
     if (raiz.MeedsSuiteNoturno) raiz.MeedsSuiteNoturno.iniciar();
-    Dock.garantirHost();
-    /* Segunda camada contra dock duplicado: se sobrou um host de uma
-     * execucao anterior (SPA que remontou a pagina), remove o orfao. */
-    raiz.MeedsSuiteDiagnostico.limparDockOrfao("meeds-suite-dock-host");
-
-    /* Estado da caixa de botoes. Fica no mesmo armazenamento duravel
-     * das outras preferencias, entao sobrevive ao logout — recolheu,
-     * volta recolhido. Padrao: aberta, para quem nunca mexeu nao
-     * estranhar a tela. */
-    Dock.definirRecolhido(storageNucleo.ler("dock_recolhido", false) === true);
-    Dock.aoAlternarRecolhido(function (valor) {
-      storageNucleo.gravar("dock_recolhido", !!valor);
-    });
-
-    /* Translucidez em repouso: comportamento padrao, sem chave. O pedido
-     * que originou isto foi "que nao atrapalhe a visualizacao da tela",
-     * e o alarme — o unico que nao pode passar despercebido — ja e
-     * excecao e nunca fica translucido. A preferencia antiga deixa de
-     * valer, e a chave saiu do painel (ver D30). */
-    Dock.definirTranslucidez(true);
-    storageNucleo.remover("dock_translucido");
+    prepararDock();
 
     // engrenagem: SEMPRE presente, mesmo com todos os modulos desligados
-    /* MIGRACAO DO CADASTRO — roda antes de qualquer modulo subir, para
-     * que o primeiro <select> de medicos ja apareca preenchido. */
-    Cadastro.migrarSeNecessario();
-    /* Tira do disco o nome completo de paciente que o historico do APAC
-     * gravava na versao anterior, convertendo para a referencia curta. */
-    raiz.MeedsSuiteHistorico.migrarHistoricoApac();
-    raiz.MeedsSuiteHistorico.migrarHistoricoApacGlobal();
-
-    /* A preferencia de ligado/desligado tambem e por id: sem isto, quem
-     * tinha desligado a APAC de Itauna veria a APAC global aparecer
-     * sozinha, e quem a tinha ligada perderia a escolha. */
-    (function migrarPreferenciaApac() {
-      const mapa = storageNucleo.ler("modulos", {}) || {};
-      if (Object.prototype.hasOwnProperty.call(mapa, "apac-itauna")) {
-        if (!Object.prototype.hasOwnProperty.call(mapa, "apac")) mapa.apac = mapa["apac-itauna"];
-        delete mapa["apac-itauna"];
-        storageNucleo.gravar("modulos", mapa);
-        LOG.debug("[Assistente Meeds] preferencia da APAC migrada de apac-itauna para apac.");
-      }
-    })();
-
-    /* Antes da APAC global o estabelecimento era salvo sem municipio.
-     * A regra de compatibilidade mostra esses cadastros em TODAS as
-     * cidades — o que ate a versao anterior era inofensivo (so existia
-     * Itauna) e agora deixaria o CNES de Itauna a um clique de sair numa
-     * APAC de Betim. Aqui o municipio e preenchido pelo CNES, que e
-     * unico e esta em dados/apac.json: e conferencia, nao adivinhacao.
-     * Quem tem um CNES que nao esta na tabela fica como estava. */
-    /* Antes da APAC global o estabelecimento era salvo sem municipio.
-     * A regra de compatibilidade mostra esses cadastros em TODAS as
-     * cidades — inofensivo enquanto so existia Itauna, mas agora isso
-     * deixaria o CNES de Itauna a um clique de sair numa APAC de Betim.
-     * O municipio e preenchido pelo CNES, que consta em dados/apac.json. */
-    /* Modelos salvos sob o id antigo da APAC seguem o mesmo caminho da
-     * preferencia e do historico — quem renomeia um modulo herda a
-     * obrigacao de levar junto o que o medico guardou nele. */
-    if (raiz.MeedsSuiteModelos) raiz.MeedsSuiteModelos.migrarId("apac-itauna", "apac");
-
-    preservarLaudosDeQuemJaUsava(storageNucleo, raiz.MeedsSuiteDiagnostico.boasVindasConcluidas());
-
-    (function carimbarMunicipioPeloCnes() {
-      const dados = raiz.MEEDS_DADOS_APAC;
-      if (!dados || !dados.municipios || !Cadastro || !Cadastro.preencherMunicipioPeloCnes) return;
-      const deQuemE = {};
-      Object.keys(dados.municipios).forEach(function (cidade) {
-        (dados.municipios[cidade].estabelecimentos || []).forEach(function (e) {
-          if (e && e.cnes) deQuemE[String(e.cnes).replace(/\D/g, "")] = cidade;
-        });
-      });
-      const mudou = Cadastro.preencherMunicipioPeloCnes(deQuemE);
-      if (mudou) LOG.debug("[Assistente Meeds] municipio preenchido em", mudou, "estabelecimento(s) pelo CNES.");
-    })();
+    /* Migracoes de dados guardados — rodam antes de qualquer modulo subir. */
+    rodarMigracoes();
 
     raiz.MeedsSuiteManager.montar({
       dock: Dock,
@@ -750,15 +792,7 @@
 
     atualizarSeletoresRemoto(opcoes.urlSeletores);
 
-    /* Aviso de atualizacao: compara a versao atual com a ultima que o
-     * medico viu. Roda ANTES do diagnostico de propósito — quem acabou
-     * de instalar tem que ver as boas-vindas, nao um "atualizado". */
-    raiz.MeedsSuiteNovidades.verificar({ dock: Dock, versaoAtual: VERSAO_NUCLEO });
-
-    /* Boas-vindas na primeira vez e aviso se os scripts antigos ainda
-     * estiverem ativos (eles rodam em document-idle, entao a checagem
-     * espera alguns segundos antes de olhar o DOM). */
-    raiz.MeedsSuiteDiagnostico.verificar(Dock, storageNucleo);
+    avisosDeEntrada();
 
     iniciado = true;
     LOG.debug("[Assistente Meeds] nucleo " + VERSAO_NUCLEO + " iniciado com " + registro.length + " modulo(s).");

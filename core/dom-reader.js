@@ -57,10 +57,13 @@
   /* Valor que aparece AO LADO de um rotulo. Aceita uma string ou uma
    * lista de variantes e devolve a primeira que casar — mesma estrategia
    * do CMD, agora com normalizacao de acento embutida. */
-  function lerValorPorRotulo(variantes, folhasOpcional) {
+  /* Percorre as variantes do rotulo, acha o leaf com esse texto e entrega
+   * o elemento AO LADO (irmao seguinte, ou o seguinte do pai) para
+   * `extrair`. Devolve o primeiro resultado nao vazio. Base comum de
+   * lerValorPorRotulo (texto) e lerLinhasPorRotulo (linhas). */
+  function procurarAoLadoDoRotulo(variantes, folhasOpcional, extrair) {
     const lista = Array.isArray(variantes) ? variantes : [variantes];
     const folhas = folhasOpcional || coletarFolhas();
-
     for (let v = 0; v < lista.length; v++) {
       const alvo = normalizarTexto(lista[v]);
       if (!alvo) continue;
@@ -69,10 +72,17 @@
         if (normalizarTexto(textoDe(el)) !== alvo) continue;
         let prox = el.nextElementSibling;
         if (!prox && el.parentElement) prox = el.parentElement.nextElementSibling;
-        if (prox && textoDe(prox)) return textoDe(prox);
+        const valor = prox ? extrair(prox) : null;
+        if (valor) return valor;
       }
     }
     return null;
+  }
+
+  function lerValorPorRotulo(variantes, folhasOpcional) {
+    return procurarAoLadoDoRotulo(variantes, folhasOpcional, function (prox) {
+      return textoDe(prox) || null;
+    });
   }
 
   /* Mesmo achado de lerValorPorRotulo, mas devolve o valor LINHA A
@@ -82,27 +92,16 @@
    * comparar o nome da unidade inteiro. innerText respeita a quebra de
    * linha que a tela mostra. Devolve null se nao achar o rotulo. */
   function lerLinhasPorRotulo(variantes, folhasOpcional) {
-    const lista = Array.isArray(variantes) ? variantes : [variantes];
-    const folhas = folhasOpcional || coletarFolhas();
-    for (let v = 0; v < lista.length; v++) {
-      const alvo = normalizarTexto(lista[v]);
-      if (!alvo) continue;
-      for (let i = 0; i < folhas.length; i++) {
-        const el = folhas[i];
-        if (normalizarTexto(textoDe(el)) !== alvo) continue;
-        let prox = el.nextElementSibling;
-        if (!prox && el.parentElement) prox = el.parentElement.nextElementSibling;
-        if (!prox) continue;
-        const bruto = typeof prox.innerText === "string" && prox.innerText ? prox.innerText : textoDe(prox);
-        const linhas = String(bruto)
-          .split(/\n+/)
-          .map(function (l) { return l.trim(); })
-          .filter(Boolean);
-        if (linhas.length) return linhas;
-      }
-    }
-    return null;
+    return procurarAoLadoDoRotulo(variantes, folhasOpcional, function (prox) {
+      const bruto = typeof prox.innerText === "string" && prox.innerText ? prox.innerText : textoDe(prox);
+      const linhas = String(bruto)
+        .split(/\n+/)
+        .map(function (l) { return l.trim(); })
+        .filter(Boolean);
+      return linhas.length ? linhas : null;
+    });
   }
+
 
   /* Procura um texto exato isolado na tela (ex: "Masculino"/"Feminino").
    * Devolve o primeiro valor mapeado que aparecer. */

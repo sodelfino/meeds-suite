@@ -132,7 +132,12 @@ export default defineConfig([
       // gate. Promova um destes para "error" quando a contagem chegar a zero.
       complexity: ["warn", 12],
       "max-depth": ["warn", 4],
-      "max-statements": ["warn", 20],
+      // ignoreTopLevelFunctions: todo arquivo de core/ e modules/ vive dentro
+      // de um envelope (function (raiz) { ... })(...) — o corpo do MODULO, nao
+      // uma funcao de verdade. Sem a opcao, cada arquivo acusava o envelope
+      // (22 avisos que nao apontavam para funcao nenhuma a dividir). As
+      // funcoes de dentro continuam medidas normalmente.
+      "max-statements": ["warn", 20, { ignoreTopLevelFunctions: true }],
       "max-params": ["warn", 4],
       "max-lines-per-function": [
         "warn",
