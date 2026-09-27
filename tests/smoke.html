@@ -268,87 +268,148 @@ window.__smokeLog = log;
     if (b) b.click();
   };
 
+  /* Toda cena CONFERE que a tela abriu. Antes, uma cena que falhava
+   * (botao que nao existe mais, modulo desligado) so deixava um aviso no
+   * console, e o script de captura fotografava as boas-vindas achando
+   * que estava tudo certo — foi assim que 6 das 11 telas do manual
+   * sairam erradas depois da v2.49.0, sem ninguem perceber. */
+  /* Espera a tela aparecer (ate 5 s) antes de declarar que falhou:
+   * novidades e o cartao do modo discreto surgem um pouco depois. */
+  var exigir = async function (sel, oQue) {
+    var limite = Date.now() + 5000;
+    for (;;) {
+      var e = q(sel);
+      var visivel = e && !e.closest(".ms-overlay[hidden]") && !e.hidden;
+      if (visivel) return e;
+      if (Date.now() > limite) throw new Error("nao abriu: " + (oQue || sel));
+      await esperar(150);
+    }
+  };
+  var clicarBotao = function (texto) {
+    var b = botao(texto);
+    if (!b) throw new Error("botao do dock nao encontrado: " + texto);
+    b.click();
+  };
+  /* Laudos entram DESLIGADOS numa instalacao nova (v2.49.0): a cena liga
+   * o que precisa mostrar, como o medico faria na engrenagem. */
+  var ligar = async function (id) {
+    window.MeedsSuite.definirHabilitado(id, true);
+    await esperar(700);
+  };
+  /* O icone do sino muda com o modo (🔔 🔉 🔕); o titulo ("Alarme: ...")
+   * nao. Procurar pelo icone falhava sempre que o modo gravado era outro. */
+  var botaoDoAlarme = function () {
+    return Array.from(shadow().querySelectorAll(".ms-btn")).find(function (b) {
+      return /^Alarme/.test(b.title || "");
+    });
+  };
+  var escolherModoDoAlarme = async function (modo) {
+    var sino = botaoDoAlarme();
+    if (!sino) throw new Error("botao do alarme nao encontrado");
+    sino.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
+    var radio = await exigir('.af-modal input[name="af-intensidade"][value="' + modo + '"]', "opcao " + modo + " do alarme");
+    radio.click();
+    await esperar(300);
+    var overlay = radio.closest(".ms-overlay");
+    if (overlay) overlay.hidden = true;
+    await esperar(300);
+  };
+  var abrirLaudo = async function () {
+    await ligar("lme-sete-lagoas");
+    clicarBotao("Sete Lagoas");
+    await esperar(1600);
+    await exigir("#lme-modal", "Laudo de Sete Lagoas");
+  };
+
   var CENAS = {
-    dock: async function () {},
+    dock: async function () {
+      await exigir(".ms-btn", "pilha de botoes");
+    },
 
     painel: async function () {
-      botao("⚙️").click();
+      clicarBotao("⚙️");
       await esperar(900);
+      await exigir(".msm-modal", "painel da engrenagem");
     },
 
     "alarme-ajustes": async function () {
-      botao("🔔").dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
+      var b = botaoDoAlarme();
+      if (!b) throw new Error("botao do alarme nao encontrado");
+      b.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
       await esperar(900);
+      await exigir(".af-modal", "ajustes do alarme");
     },
 
+    /* O modo do alarme fica GRAVADO no navegador, e clicar no sino
+     * percorre Completo -> Discreto -> Silencioso. A cena antiga clicava
+     * uma vez supondo "Completo" e, dependendo do que estava gravado,
+     * caia em Silencioso — sem cartao nenhum. Agora escolhe o modo
+     * direto nos ajustes. E simula DOIS pacientes: a primeira leitura da
+     * fila depois do boot e so a base, e nunca dispara (regra do alarme). */
     "alarme-completo": async function () {
+      await escolherModoDoAlarme("completo");
       simular("\\+1 na fila");
       await esperar(2600);
       simular("\\+1 na fila");
       await esperar(2600);
+      await exigir(".ms-banner", "faixa do alarme");
     },
 
     "alarme-discreto": async function () {
-      var b = botao("🔔");
-      b.click();                 // completo -> discreto
-      await esperar(700);
-      shadow().querySelectorAll(".ms-aviso .ms-aviso-fechar").forEach(function (x) { x.click(); });
+      await escolherModoDoAlarme("discreto");
       simular("\\+1 na fila");
       await esperar(2600);
-    },
-
-    apac: async function () {
-      botao("APAC").click();
-      await esperar(1600);
-      digitar("#apac-municipio-sel", "Itaúna");
-      await esperar(700);
-      q("#apac-proc-HOLTER").click();
-      digitar("#apac-cid1", "I48");
-      digitar("#apac-cid-desc", "Flutter e fibrilação atrial");
-      digitar("#apac-obs", "Paciente com palpitações recorrentes. Solicito Holter 24h.");
-      digitar("#apac-modelo-nome", "Holter rotina");
-      await esperar(600);
-    },
-
-    "apac-modelos": async function () {
-      botao("APAC").click();
-      await esperar(1600);
-      digitar("#apac-municipio-sel", "Itaúna");
-      await esperar(500);
-      q("#apac-proc-HOLTER").click();
-      digitar("#apac-cid1", "I48");
-      digitar("#apac-obs", "Solicito Holter 24h.");
-      digitar("#apac-modelo-nome", "Holter rotina");
-      q("#apac-modelo-criar").click();
-      await esperar(800);
-      q("#apac-proc-MAPA").click();
-      digitar("#apac-cid1", "I10");
-      digitar("#apac-obs", "Solicito MAPA 24h.");
-      digitar("#apac-modelo-nome", "MAPA rotina");
-      q("#apac-modelo-criar").click();
-      await esperar(900);
+      simular("\\+1 na fila");
+      await esperar(2600);
+      await exigir(".ms-aviso", "cartao do modo discreto");
     },
 
     remume: async function () {
-      botao("💊").click();
+      clicarBotao("REMUME");
       await esperar(1400);
+      await exigir(".rm-modal", "Consulta REMUME");
       digitar("input[placeholder*='amoxicilina']", "buscopan");
       await esperar(900);
     },
 
     laudo: async function () {
-      botao("Sete Lagoas").click();
-      await esperar(1600);
+      await abrirLaudo();
       digitar("#lme-proc-nome", "Fonoaudiologia");
       digitar("#lme-cid", "F80");
       digitar("#lme-justificativa", "Atraso de linguagem; necessita acompanhamento.");
       await esperar(500);
     },
 
+    /* Modelos salvos, mostrados no laudo (a APAC saiu do pacote na
+     * v2.49.0; antes esta cena era "apac-modelos"). */
+    modelos: async function () {
+      await abrirLaudo();
+      digitar("#lme-proc-nome", "Fonoaudiologia");
+      digitar("#lme-cid", "F80");
+      digitar("#lme-justificativa", "Atraso de linguagem; necessita acompanhamento.");
+      digitar("#lme-modelo-nome", "Fono rotina");
+      (await exigir("#lme-modelo-criar", "botao de salvar modelo")).click();
+      await esperar(500);
+      digitar("#lme-proc-nome", "Fisioterapia motora");
+      digitar("#lme-cid", "M54.5");
+      digitar("#lme-justificativa", "Lombalgia crônica; reabilitação.");
+      digitar("#lme-modelo-nome", "Fisio lombar");
+      (await exigir("#lme-modelo-criar", "botao de salvar modelo")).click();
+      await esperar(700);
+      if (!q("#lme-modelo-sel") || q("#lme-modelo-sel").options.length < 2) throw new Error("modelos nao foram criados");
+    },
+
+    /* Historico, mostrado no laudo (antes, dentro da APAC). Os registros
+     * sao de exemplo: o historico so grava iniciais e 3 digitos do CPF. */
     historico: async function () {
-      botao("APAC").click();
-      await esperar(1400);
-      q("#apac-historico-abrir").click();
+      [["MARIA APARECIDA DE SOUZA", "12345678909", "Fonoaudiologia"],
+       ["JOSE CARLOS DA SILVA", "98765432100", "Fisioterapia motora"]].forEach(function (r) {
+        window.MeedsSuiteHistorico.registrar("lme-sete-lagoas", {
+          nomePaciente: r[0], cpfPaciente: r[1], titulo: r[2], medico: "Dr. Exemplo", clinico: {},
+        });
+      });
+      await abrirLaudo();
+      (await exigir("#lme-historico-abrir", "botao de historico")).click();
       await esperar(800);
     },
 
@@ -359,6 +420,7 @@ window.__smokeLog = log;
         .gravar("2.20.0");
       N.verificar({ dock: window.MeedsSuiteDock, versaoAtual: window.MeedsSuite.versao });
       await esperar(1200);
+      await exigir(".msn-caixa", "tela de novidades");
     },
   };
 
@@ -423,17 +485,44 @@ window.__smokeLog = log;
     var sh = shadow();
     if (sh) sh.querySelectorAll(".ms-overlay").forEach(function (o) { o.hidden = true; });
 
-    var monta = CENAS[cena];
-    if (monta) { try { await monta(); } catch (e) { console.warn("cena falhou:", e); } }
-
-    /* As boas-vindas sobem alguns segundos depois do boot e caem por cima
-     * da cena. Some com elas AQUI, no fim, e nao so no comeco. */
-    var sh2 = shadow();
-    if (sh2) {
-      sh2.querySelectorAll(".ms-overlay").forEach(function (o) {
-        if (/Bem-vindo/i.test(o.textContent || "")) o.hidden = true;
+    /* As boas-vindas sobem ~1,2 s depois do boot. Esconder UMA vez no
+     * fim perdia a corrida quando a cena era rapida (a "dock" saia com as
+     * boas-vindas por cima). Agora um vigia esconde enquanto a cena roda
+     * e ate 3,5 s depois do boot, o que vier por ultimo. */
+    var inicio = Date.now();
+    var esconderBoasVindas = function () {
+      var s2 = shadow();
+      if (!s2) return;
+      s2.querySelectorAll(".ms-overlay").forEach(function (o) {
+        /* Boas-vindas e o tutorial da primeira vez ("O que esta funcao
+         * faz"): cada captura roda num navegador zerado, entao os dois
+         * abrem sozinhos e tampariam a tela que o manual quer mostrar. */
+        if (/Bem-vindo/i.test(o.textContent || "") || o.querySelector(".tut-modal")) o.hidden = true;
       });
+      s2.querySelectorAll(".tut-alvo-destaque").forEach(function (e) { e.classList.remove("tut-alvo-destaque"); });
+    };
+    var vigia = setInterval(esconderBoasVindas, 100);
+
+    var monta = CENAS[cena];
+    if (!monta) {
+      document.documentElement.setAttribute("data-cena-erro", "cena desconhecida: " + cena);
+    } else {
+      try {
+        await monta();
+      } catch (e) {
+        console.warn("cena falhou:", e);
+        /* Visivel na imagem E legivel pelo script de captura. */
+        document.documentElement.setAttribute("data-cena-erro", String(e && e.message || e));
+        var faixa = document.createElement("div");
+        faixa.textContent = "CENA FALHOU: " + (e && e.message || e);
+        faixa.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#b42318;color:#fff;font:600 16px system-ui;padding:12px 16px;";
+        document.body.appendChild(faixa);
+      }
     }
+
+    while (Date.now() - inicio < 3500) await esperar(100);
+    clearInterval(vigia);
+    esconderBoasVindas();
 
     await esperar(600);
     congelar();

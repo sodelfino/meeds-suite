@@ -28,9 +28,9 @@ function ok(nome, cond, obs) {
  * evento arbitrario + {once:true}). */
 function elementoFake(opcoes) {
   opcoes = opcoes || {};
-  var handlers = {};
-  var classes = {};
-  var el = {
+  const handlers = {};
+  const classes = {};
+  const el = {
     textContent: "",
     hidden: false,
     style: {},
@@ -64,17 +64,17 @@ function elementoFake(opcoes) {
  * handle minimo (fechar()) e guarda cada chamada para os testes
  * inspecionarem titulo/corpo/acoes. */
 function dockFake() {
-  var overlays = [];
-  var avisos = [];
+  const overlays = [];
+  const avisos = [];
   return {
     criarOverlay: function (opcoes) {
-      var porId = {};
-      var re = /id="([^"]+)"/g;
-      var m;
+      const porId = {};
+      const re = /id="([^"]+)"/g;
+      let m;
       while ((m = re.exec(opcoes.html))) porId[m[1]] = elementoFake();
-      var fechar = elementoFake(); // ".tut-fechar" (unico seletor por classe usado)
-      var aberto = false;
-      var overlay = {
+      const fechar = elementoFake(); // ".tut-fechar" (unico seletor por classe usado)
+      let aberto = false;
+      const overlay = {
         $: function (sel) {
           if (sel === ".tut-fechar") return fechar;
           if (sel.charAt(0) === "#") return porId[sel.slice(1)] || null;
@@ -88,8 +88,8 @@ function dockFake() {
       return overlay;
     },
     criarAviso: function (spec) {
-      var fechado = false;
-      var handle = { spec: spec, fechado: function () { return fechado; }, fechar: function () { fechado = true; } };
+      let fechado = false;
+      const handle = { spec: spec, fechado: function () { return fechado; }, fechar: function () { fechado = true; } };
       avisos.push(handle);
       return handle;
     },
@@ -99,8 +99,8 @@ function dockFake() {
 }
 
 function carregar() {
-  var armazenado = {};
-  var ctx = {
+  const armazenado = {};
+  const ctx = {
     console: { debug() {}, warn() {}, log() {} },
     setTimeout, clearTimeout, setInterval, clearInterval, Promise, Date, Math, JSON, Object, Array, String,
     MeedsSuiteStorage: {

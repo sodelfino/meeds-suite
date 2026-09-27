@@ -17,7 +17,7 @@
    * Assim o campo vai se montando enquanto o medico digita, em vez de
    * so mudar de cara no ultimo caractere. */
   function formatarCpf(valor) {
-    var d = soDigitos(valor).slice(0, 11);
+    const d = soDigitos(valor).slice(0, 11);
     if (d.length <= 3) return d;
     if (d.length <= 6) return d.slice(0, 3) + "." + d.slice(3);
     if (d.length <= 9) return d.slice(0, 3) + "." + d.slice(3, 6) + "." + d.slice(6);
@@ -39,15 +39,15 @@
     if (!input.getAttribute("placeholder")) input.setAttribute("placeholder", "000.000.000-00");
 
     input.addEventListener("input", function () {
-      var antes = input.value;
-      var posicao = input.selectionStart;
-      var digitosAntesDoCursor = soDigitos(antes.slice(0, posicao)).length;
+      const antes = input.value;
+      const posicao = input.selectionStart;
+      const digitosAntesDoCursor = soDigitos(antes.slice(0, posicao)).length;
 
       input.value = formatarCpf(antes);
 
       // recoloca o cursor depois do mesmo digito em que ele estava
-      var novaPos = 0;
-      var contados = 0;
+      let novaPos = 0;
+      let contados = 0;
       while (novaPos < input.value.length && contados < digitosAntesDoCursor) {
         if (/\d/.test(input.value[novaPos])) contados++;
         novaPos++;

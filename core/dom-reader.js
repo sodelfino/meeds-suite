@@ -38,10 +38,10 @@
    * document.querySelectorAll('body *') de novo a cada rotulo, o que em
    * telas grandes custava caro. */
   function coletarFolhas() {
-    var folhas = [];
+    const folhas = [];
     try {
-      var todos = document.querySelectorAll("body *");
-      for (var i = 0; i < todos.length; i++) {
+      const todos = document.querySelectorAll("body *");
+      for (let i = 0; i < todos.length; i++) {
         if (todos[i].children.length === 0) folhas.push(todos[i]);
       }
     } catch (e) {
@@ -58,16 +58,16 @@
    * lista de variantes e devolve a primeira que casar — mesma estrategia
    * do CMD, agora com normalizacao de acento embutida. */
   function lerValorPorRotulo(variantes, folhasOpcional) {
-    var lista = Array.isArray(variantes) ? variantes : [variantes];
-    var folhas = folhasOpcional || coletarFolhas();
+    const lista = Array.isArray(variantes) ? variantes : [variantes];
+    const folhas = folhasOpcional || coletarFolhas();
 
-    for (var v = 0; v < lista.length; v++) {
-      var alvo = normalizarTexto(lista[v]);
+    for (let v = 0; v < lista.length; v++) {
+      const alvo = normalizarTexto(lista[v]);
       if (!alvo) continue;
-      for (var i = 0; i < folhas.length; i++) {
-        var el = folhas[i];
+      for (let i = 0; i < folhas.length; i++) {
+        const el = folhas[i];
         if (normalizarTexto(textoDe(el)) !== alvo) continue;
-        var prox = el.nextElementSibling;
+        let prox = el.nextElementSibling;
         if (!prox && el.parentElement) prox = el.parentElement.nextElementSibling;
         if (prox && textoDe(prox)) return textoDe(prox);
       }
@@ -82,19 +82,19 @@
    * comparar o nome da unidade inteiro. innerText respeita a quebra de
    * linha que a tela mostra. Devolve null se nao achar o rotulo. */
   function lerLinhasPorRotulo(variantes, folhasOpcional) {
-    var lista = Array.isArray(variantes) ? variantes : [variantes];
-    var folhas = folhasOpcional || coletarFolhas();
-    for (var v = 0; v < lista.length; v++) {
-      var alvo = normalizarTexto(lista[v]);
+    const lista = Array.isArray(variantes) ? variantes : [variantes];
+    const folhas = folhasOpcional || coletarFolhas();
+    for (let v = 0; v < lista.length; v++) {
+      const alvo = normalizarTexto(lista[v]);
       if (!alvo) continue;
-      for (var i = 0; i < folhas.length; i++) {
-        var el = folhas[i];
+      for (let i = 0; i < folhas.length; i++) {
+        const el = folhas[i];
         if (normalizarTexto(textoDe(el)) !== alvo) continue;
-        var prox = el.nextElementSibling;
+        let prox = el.nextElementSibling;
         if (!prox && el.parentElement) prox = el.parentElement.nextElementSibling;
         if (!prox) continue;
-        var bruto = typeof prox.innerText === "string" && prox.innerText ? prox.innerText : textoDe(prox);
-        var linhas = String(bruto)
+        const bruto = typeof prox.innerText === "string" && prox.innerText ? prox.innerText : textoDe(prox);
+        const linhas = String(bruto)
           .split(/\n+/)
           .map(function (l) { return l.trim(); })
           .filter(Boolean);
@@ -107,14 +107,14 @@
   /* Procura um texto exato isolado na tela (ex: "Masculino"/"Feminino").
    * Devolve o primeiro valor mapeado que aparecer. */
   function lerPorTextoExato(mapa, folhasOpcional) {
-    var folhas = folhasOpcional || coletarFolhas();
-    var chaves = Object.keys(mapa).map(function (k) {
+    const folhas = folhasOpcional || coletarFolhas();
+    const chaves = Object.keys(mapa).map(function (k) {
       return { normalizado: normalizarTexto(k), valor: mapa[k] };
     });
-    for (var i = 0; i < folhas.length; i++) {
-      var t = normalizarTexto(textoDe(folhas[i]));
+    for (let i = 0; i < folhas.length; i++) {
+      const t = normalizarTexto(textoDe(folhas[i]));
       if (!t) continue;
-      for (var j = 0; j < chaves.length; j++) {
+      for (let j = 0; j < chaves.length; j++) {
         if (t === chaves[j].normalizado) return chaves[j].valor;
       }
     }
@@ -125,46 +125,46 @@
    * E como os tres geradores acham o nome do paciente: o nome fica logo
    * antes da linha "NN anos e MM meses" no cartao do paciente. */
   function lerAnteriorAoPadrao(regex, folhasOpcional) {
-    var folhas = folhasOpcional || coletarFolhas();
-    for (var i = 0; i < folhas.length; i++) {
-      var t = textoDe(folhas[i]);
+    const folhas = folhasOpcional || coletarFolhas();
+    for (let i = 0; i < folhas.length; i++) {
+      const t = textoDe(folhas[i]);
       if (!t || !regex.test(t)) continue;
-      var ant = folhas[i].previousElementSibling;
+      let ant = folhas[i].previousElementSibling;
       if (!ant && folhas[i].parentElement) ant = folhas[i].parentElement.previousElementSibling;
-      var texto = ant && textoDe(ant);
+      const texto = ant && textoDe(ant);
       if (texto && texto.length > 2 && !/^\d/.test(texto)) return texto;
       return null;
     }
     return null;
   }
 
-  var numeroPuroRx = /^\d{1,4}$/;
+  const numeroPuroRx = /^\d{1,4}$/;
 
   /* Contador numerico associado a um rotulo (ex: o card "Aguardando" do
    * dashboard). REGRA HERDADA DO ALARME DE FILA, agora no nucleo: se
    * houver mais de uma leitura candidata e elas nao baterem entre si,
    * devolve null — preferimos NAO decidir a arriscar um falso disparo. */
   function lerContadorPorRotulo(variantes, folhasOpcional) {
-    var lista = Array.isArray(variantes) ? variantes : [variantes];
-    var folhas = folhasOpcional || coletarFolhas();
-    var normalizadas = lista.map(normalizarTexto);
+    const lista = Array.isArray(variantes) ? variantes : [variantes];
+    const folhas = folhasOpcional || coletarFolhas();
+    const normalizadas = lista.map(normalizarTexto);
 
-    var rotulos = folhas.filter(function (el) {
+    const rotulos = folhas.filter(function (el) {
       return normalizadas.indexOf(normalizarTexto(textoDe(el))) !== -1;
     });
     if (rotulos.length === 0) return null;
 
-    var leituras = {};
-    var quantas = 0;
+    const leituras = {};
+    let quantas = 0;
     rotulos.forEach(function (rotulo) {
-      var pai = rotulo.parentElement;
+      const pai = rotulo.parentElement;
       if (!pai) return;
-      for (var i = 0; i < pai.children.length; i++) {
-        var irmao = pai.children[i];
+      for (let i = 0; i < pai.children.length; i++) {
+        const irmao = pai.children[i];
         if (irmao === rotulo) continue;
-        var t = textoDe(irmao);
+        const t = textoDe(irmao);
         if (numeroPuroRx.test(t)) {
-          var n = parseInt(t, 10);
+          const n = parseInt(t, 10);
           if (!(n in leituras)) {
             leituras[n] = true;
             quantas++;
@@ -191,7 +191,7 @@
    * APAC/LME/CMD faziam separado. Devolve so o que conseguiu ler; nunca
    * inventa valor. Os campos ficam em memoria e vao direto para o
    * formulario — nada e gravado em disco. */
-  var VARIANTES = {
+  const VARIANTES = {
     nascimento: ["Data de Nascimento", "Data de nascimento", "Nascimento", "Dt. Nascimento"],
     cpf: ["CPF", "C.P.F.", "CPF do paciente"],
     /* "Parentesco" confirmado pela sonda em 22/09/2026 (relatorio real
@@ -205,37 +205,37 @@
     telefone: ["Telefone", "Celular", "Contato"],
   };
 
-  var RX_IDADE = /^\d+\s*anos?(\s+e\s+\d+\s*m[eê]s(es)?)?$/i;
+  const RX_IDADE = /^\d+\s*anos?(\s+e\s+\d+\s*m[eê]s(es)?)?$/i;
 
   function lerPaciente() {
-    var folhas = coletarFolhas();
-    var out = {};
+    const folhas = coletarFolhas();
+    const out = {};
 
-    var nascimento = lerValorPorRotulo(VARIANTES.nascimento, folhas);
+    const nascimento = lerValorPorRotulo(VARIANTES.nascimento, folhas);
     if (nascimento) {
-      var m = nascimento.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+      const m = nascimento.match(/(\d{2})\/(\d{2})\/(\d{4})/);
       if (m) {
         out.nascimentoBR = m[1] + "/" + m[2] + "/" + m[3]; // dd/mm/aaaa (LME, CMD)
         out.nascimentoISO = m[3] + "-" + m[2] + "-" + m[1]; // aaaa-mm-dd (APAC, input date)
       }
     }
 
-    var cpf = lerValorPorRotulo(VARIANTES.cpf, folhas);
+    const cpf = lerValorPorRotulo(VARIANTES.cpf, folhas);
     if (cpf) out.cpf = cpf.replace(/\D/g, "");
 
-    var mae = lerValorPorRotulo(VARIANTES.mae, folhas);
+    const mae = lerValorPorRotulo(VARIANTES.mae, folhas);
     if (mae) out.nomeDaMae = mae;
 
-    var telefone = lerValorPorRotulo(VARIANTES.telefone, folhas);
+    const telefone = lerValorPorRotulo(VARIANTES.telefone, folhas);
     if (telefone) out.telefone = telefone;
 
     // sexo: le a PALAVRA exibida na tela, nao um enum de API. Decisao
     // herdada do APAC, onde o enum nunca pode ser confirmado com um caso
     // feminino real — a palavra na tela e o dado mais confiavel.
-    var sexo = lerPorTextoExato({ Masculino: "M", Feminino: "F" }, folhas);
+    const sexo = lerPorTextoExato({ Masculino: "M", Feminino: "F" }, folhas);
     if (sexo) out.sexo = sexo;
 
-    var nome = lerAnteriorAoPadrao(RX_IDADE, folhas);
+    const nome = lerAnteriorAoPadrao(RX_IDADE, folhas);
     if (nome) out.nome = nome;
 
     return out;

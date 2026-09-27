@@ -33,9 +33,12 @@
 (function (raiz) {
   "use strict";
 
-  var instalado = false;
-  var proximoId = 1;
-  var assinaturas = []; // { id, regex, metodos, callback, idModulo }
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
+  let instalado = false;
+  let proximoId = 1;
+  const assinaturas = []; // { id, regex, metodos, callback, idModulo }
 
   function normalizarMetodos(metodos) {
     if (!metodos || !metodos.length) return null; // null = qualquer metodo
@@ -47,7 +50,7 @@
   /* assinar({ regex, metodos, idModulo }, callback)
    * callback recebe { url, metodo, status, corpo, json() } */
   function assinar(spec, callback) {
-    var registro = {
+    const registro = {
       id: proximoId++,
       regex: spec.regex,
       metodos: normalizarMetodos(spec.metodos),
@@ -56,24 +59,24 @@
     };
     assinaturas.push(registro);
     return function cancelar() {
-      for (var i = assinaturas.length - 1; i >= 0; i--) {
+      for (let i = assinaturas.length - 1; i >= 0; i--) {
         if (assinaturas[i].id === registro.id) assinaturas.splice(i, 1);
       }
     };
   }
 
   function cancelarPorModulo(idModulo) {
-    for (var i = assinaturas.length - 1; i >= 0; i--) {
+    for (let i = assinaturas.length - 1; i >= 0; i--) {
       if (assinaturas[i].idModulo === idModulo) assinaturas.splice(i, 1);
     }
   }
 
   function interessadosEm(url, metodo) {
-    var saida = [];
-    for (var i = 0; i < assinaturas.length; i++) {
-      var a = assinaturas[i];
+    const saida = [];
+    for (let i = 0; i < assinaturas.length; i++) {
+      const a = assinaturas[i];
       if (a.metodos && a.metodos.indexOf(metodo) === -1) continue;
-      var bate = false;
+      let bate = false;
       try {
         bate = a.regex.test(url);
       } catch (e) {
@@ -88,19 +91,19 @@
   }
 
   function publicar(alvos, evento) {
-    for (var i = 0; i < alvos.length; i++) {
+    for (let i = 0; i < alvos.length; i++) {
       try {
         alvos[i].callback(evento);
       } catch (e) {
         // um assinante quebrado nunca pode derrubar os outros nem a pagina
-        console.warn("[Assistente Meeds] assinante de rede falhou:", alvos[i].idModulo, e);
+        LOG.warn("[Assistente Meeds] assinante de rede falhou:", alvos[i].idModulo, e);
       }
     }
   }
 
   function montarEvento(url, metodo, status, corpoTexto) {
-    var jsonCache;
-    var jsonParseado = false;
+    let jsonCache;
+    let jsonParseado = false;
     return {
       url: url,
       metodo: metodo,
@@ -127,8 +130,8 @@
     instalado = true;
 
     /* --- XMLHttpRequest --- */
-    var xhrOpenOriginal = XMLHttpRequest.prototype.open;
-    var xhrSendOriginal = XMLHttpRequest.prototype.send;
+    const xhrOpenOriginal = XMLHttpRequest.prototype.open;
+    const xhrSendOriginal = XMLHttpRequest.prototype.send;
 
     XMLHttpRequest.prototype.open = function (metodo, url) {
       this.__msMetodo = metodo;
@@ -139,9 +142,9 @@
     XMLHttpRequest.prototype.send = function () {
       this.addEventListener("load", function () {
         try {
-          var metodo = String(this.__msMetodo || "GET").toUpperCase();
-          var url = this.__msUrl || "";
-          var alvos = interessadosEm(url, metodo);
+          const metodo = String(this.__msMetodo || "GET").toUpperCase();
+          const url = this.__msUrl || "";
+          const alvos = interessadosEm(url, metodo);
           if (!alvos.length) return; // ninguem quer: nem le o corpo
           publicar(alvos, montarEvento(url, metodo, this.status, this.responseText));
         } catch (e) {
@@ -153,10 +156,10 @@
 
     /* --- fetch --- */
     if (typeof raiz.fetch === "function") {
-      var fetchOriginal = raiz.fetch;
+      const fetchOriginal = raiz.fetch;
       raiz.fetch = function (input, init) {
-        var url = "";
-        var metodo = "GET";
+        let url = "";
+        let metodo = "GET";
         try {
           url = typeof input === "string" ? input : (input && input.url) || "";
           metodo = String((init && init.method) || (input && input.method) || "GET").toUpperCase();
@@ -164,9 +167,9 @@
           /* segue com os padroes */
         }
 
-        var promessa = fetchOriginal.apply(this, arguments);
+        const promessa = fetchOriginal.apply(this, arguments);
 
-        var alvos = interessadosEm(url, metodo);
+        const alvos = interessadosEm(url, metodo);
         if (alvos.length) {
           promessa
             .then(function (resposta) {

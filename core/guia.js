@@ -38,7 +38,7 @@
 (function (raiz) {
   "use strict";
 
-  var CSS = [
+  const CSS = [
     ".msg-guia { display:flex; align-items:center; gap:10px; margin-bottom:12px; }",
     ".msg-barra { flex:1; height:6px; border-radius:99px; background:#e3ebe9; overflow:hidden; }",
     ".msg-preenchido { height:100%; width:0; border-radius:99px; background:#12958a; transition:width .25s ease; }",
@@ -68,22 +68,22 @@
    *   elementoDe(c) -> o elemento na tela, para apontar
    * ------------------------------------------------------------------ */
   function criar(spec) {
-    var aplicaveis = spec.aplicaveis;
-    var faltando = spec.faltando;
-    var elementoDe = spec.elementoDe;
-    var alvoAtual = null;
-    var timerDestaque = null;
+    const aplicaveis = spec.aplicaveis;
+    const faltando = spec.faltando;
+    const elementoDe = spec.elementoDe;
+    let alvoAtual = null;
+    let timerDestaque = null;
 
-    var caixa = document.createElement("div");
+    const caixa = document.createElement("div");
     caixa.className = "msg-guia";
     caixa.innerHTML =
       '<div class="msg-barra"><div class="msg-preenchido"></div></div>' +
       '<span class="msg-texto"></span>' +
       '<button type="button" class="msg-proximo" hidden></button>';
 
-    var barra = caixa.querySelector(".msg-preenchido");
-    var texto = caixa.querySelector(".msg-texto");
-    var proximo = caixa.querySelector(".msg-proximo");
+    const barra = caixa.querySelector(".msg-preenchido");
+    const texto = caixa.querySelector(".msg-texto");
+    const proximo = caixa.querySelector(".msg-proximo");
 
     function limparDestaque() {
       if (timerDestaque) { clearTimeout(timerDestaque); timerDestaque = null; }
@@ -92,7 +92,7 @@
 
     function apontar(campo) {
       limparDestaque();
-      var el = campo && elementoDe(campo);
+      const el = campo && elementoDe(campo);
       if (!el) return false;
       alvoAtual = el;
       el.classList.add("msg-alvo");
@@ -109,15 +109,15 @@
     }
 
     proximo.addEventListener("click", function () {
-      var falta = faltando();
+      const falta = faltando();
       if (falta.length) apontar(falta[0]);
     });
 
     function atualizar() {
-      var falta = faltando();
-      var total = aplicaveis().length;
-      var prontos = Math.max(0, total - falta.length);
-      var pct = total ? Math.round((prontos / total) * 100) : 100;
+      const falta = faltando();
+      const total = aplicaveis().length;
+      const prontos = Math.max(0, total - falta.length);
+      const pct = total ? Math.round((prontos / total) * 100) : 100;
 
       barra.style.width = pct + "%";
       barra.classList.toggle("completo", falta.length === 0);
@@ -138,7 +138,7 @@
       /* Usado pela emissao: em vez de so listar o que falta, leva o
        * medico ate o primeiro campo. */
       apontarPrimeiroPendente: function () {
-        var falta = faltando();
+        const falta = faltando();
         return falta.length ? apontar(falta[0]) : false;
       },
       limparDestaque: limparDestaque,

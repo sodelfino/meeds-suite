@@ -22,12 +22,12 @@
   "use strict";
 
   /* Estado do modulo. Recriado a cada start(), zerado a cada stop(). */
-  var d = null;        // dependencias entregues pelo nucleo
-  var overlay = null;  // janela do modulo, se tiver
-  var timers = [];     // guarde TODO setInterval aqui, para o stop limpar
+  let d = null;        // dependencias entregues pelo nucleo
+  let overlay = null;  // janela do modulo, se tiver
+  let timers = [];     // guarde TODO setInterval aqui, para o stop limpar
 
   /* CSS so do CONTEUDO da janela. Posicionamento e do nucleo. */
-  var CSS = [
+  const CSS = [
     ".tpl-modal { width:100%; max-width:520px; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); overflow:hidden; }",
     ".tpl-head { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 18px; display:flex; justify-content:space-between; align-items:center; }",
     ".tpl-head h2 { margin:0; font-size:15px; font-weight:700; }",
@@ -35,7 +35,7 @@
     ".tpl-body { padding:16px 18px; font-size:13px; color:#16221f; line-height:1.5; }",
   ].join("\n");
 
-  var HTML =
+  const HTML =
     '<div class="tpl-modal" role="dialog" aria-modal="true">' +
     '  <div class="tpl-head"><h2>TROQUE: título da janela</h2>' +
     '    <button type="button" class="tpl-fechar" aria-label="Fechar">&#10005;</button></div>' +
@@ -101,7 +101,7 @@
      * evt = { url, metodo, status, corpo, json() } */
     aoCargaRede: function (evt) {
       if (evt.status !== 200) return;
-      var dados = evt.json();
+      const dados = evt.json();
       if (!dados) return;
       // TROQUE: o que fazer com a resposta
     },

@@ -18,10 +18,10 @@
 
   /* Mesmo teste de escopo do nucleo: manda a PAGINA cravar uma marca.
    * Se ela chegar ate aqui, "aqui" e a pagina; senao, e o escopo isolado. */
-  var marca = "__meedsTesteEscopo";
-  var escopo = "isolado";
+  const marca = "__meedsTesteEscopo";
+  let escopo = "isolado";
   try {
-    var tag = document.createElement("script");
+    const tag = document.createElement("script");
     tag.textContent = "window['" + marca + "']=1;";
     (document.documentElement || document.head).appendChild(tag);
     tag.remove();
@@ -29,7 +29,7 @@
     delete window[marca];
   } catch (e) {}
 
-  var faixa = document.createElement("div");
+  const faixa = document.createElement("div");
   faixa.textContent =
     escopo === "pagina"
       ? "✅ Funcionou — escopo: PAGINA (tudo disponivel)"

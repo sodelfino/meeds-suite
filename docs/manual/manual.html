@@ -146,10 +146,10 @@
     <li>Alarme de fila — as três intensidades <span>Completo, discreto e silencioso</span></li>
     <li>Alarme — quando você não está na aba <span>Notificação do sistema e janela de aviso</span></li>
     <li>Ajustes do alarme <span>Som, volume e avisos</span></li>
-    <li>Gerador de APAC <span>Município, guia de preenchimento e prévia</span></li>
+    <li>APAC <span>Agora no próprio Meeds, em Prescrever</span></li>
     <li>Modelos salvos <span>Criar, aplicar e substituir — nos três geradores</span></li>
     <li>Consulta REMUME <span>Buscar medicamento por nome comercial ou errado</span></li>
-    <li>Laudos de Sete Lagoas e Conceição do Mato Dentro <span>Mesma lógica da APAC</span></li>
+    <li>Laudos de Sete Lagoas e Conceição do Mato Dentro <span>Guia de preenchimento, modelos e prévia</span></li>
     <li>Histórico de documentos <span>Reabrir a parte clínica de um laudo anterior</span></li>
     <li>Quando o Assistente é atualizado <span>A tela de novidades</span></li>
     <li>Privacidade — o que fica salvo e o que não fica <span>Leia se alguém perguntar</span></li>
@@ -174,7 +174,7 @@
 
   <table class="ref">
     <tr><td class="chave"><span class="icone">🔔</span> / 🔉 / 🔕</td><td>Alarme de fila. O ícone mostra a intensidade atual; um clique troca.</td></tr>
-    <tr><td class="chave"><span class="icone">📋</span> APAC</td><td>Gerador de APAC — Itaúna, Betim e Sete Lagoas.</td></tr>
+    <tr><td class="chave"><span class="icone">📋</span> APAC</td><td>Desativado desde a v2.49.0: use o gerador de APAC do próprio Meeds (Prescrever → APAC).</td></tr>
     <tr><td class="chave"><span class="icone">📄</span> Laudo</td><td>Laudo de Alto Custo de Sete Lagoas e de Conceição do Mato Dentro.</td></tr>
     <tr><td class="chave"><span class="icone">💊</span></td><td>Consulta à REMUME do município do atendimento.</td></tr>
     <tr><td class="chave"><span class="icone">⚙️</span></td><td>Configurações, cadastro e histórico de versões.</td></tr>
@@ -206,7 +206,7 @@
   <table class="ref">
     <tr><td class="chave">Funções</td><td>Liga e desliga cada recurso. Desligar tira o botão da tela na hora; nada é desinstalado.</td></tr>
     <tr><td class="chave">Médicos</td><td>Seu nome, CRM e CPF. Cadastre uma vez — vale para todos os laudos.</td></tr>
-    <tr><td class="chave">Unidades</td><td>Estabelecimentos e CNES usados na APAC. As unidades conhecidas aparecem sozinhas quando você escolhe o município.</td></tr>
+    <tr><td class="chave">Unidades</td><td>Estabelecimentos e CNES que eram usados pelo gerador de APAC do Assistente, hoje desativado. O cadastro fica guardado para quando ele voltar.</td></tr>
     <tr><td class="chave">Sobre</td><td>Versão, o que mudou em cada atualização, e o canal de feedback.</td></tr>
   </table>
 
@@ -361,44 +361,18 @@
 <section class="func">
   <header>
     <span class="num">06</span>
-    <h2>Gerador de APAC</h2>
-    <span class="onde">botão 📋 APAC</span>
+    <h2>APAC — agora no Meeds</h2>
+    <span class="onde">Prescrever → APAC, no próprio Meeds</span>
   </header>
 
-  <figure>
-    <img src="telas/apac.png" alt="Gerador de APAC com guia de preenchimento, modelos e município">
-    <figcaption>Guia de preenchimento no topo, modelos logo abaixo, e a prévia do documento ao lado.</figcaption>
-  </figure>
-
-  <h3>A ordem que importa</h3>
-  <ol class="passos">
-    <li><b>Município</b> é o primeiro campo. Ele libera as unidades daquela cidade — e trocar de município <b>zera o estabelecimento</b>, de propósito.</li>
-    <li>Os dados do paciente vêm sozinhos da tela do atendimento.</li>
-    <li>Procedimento, CID e texto do pedido são a parte clínica — a que os modelos guardam.</li>
-  </ol>
-
-  <div class="caixa nao">
-    <b>Por que trocar de município apaga o estabelecimento</b>
-    Uma APAC emitida com o CNES de outra cidade é devolvida pela regulação e o
-    paciente perde a vaga. O incômodo de escolher de novo é proposital.
-  </div>
-
-  <h3>O guia de preenchimento</h3>
-  <p>A barra no topo mostra quanto falta, e o texto ao lado diz qual é o próximo
-     campo pendente — <b>clique nele e a tela leva você até lá</b>. Se você tentar
-     gerar com campo faltando, o Assistente também leva até o primeiro.</p>
-  <p>Todos os campos ficam liberados o tempo todo. Preencha na ordem que quiser.</p>
-
-  <h3>A prévia do documento</h3>
-  <p>Abre sozinha ao lado do formulário e vai se montando enquanto você digita.
-     É o que mostra o campo trocado <b>antes</b> de virar papel. Se preferir sem
-     ela, clique em <b>👁 Prévia</b> — fica fechada naquele gerador para sempre.</p>
+  <p>O Meeds passou a ter um gerador de APAC próprio, dentro de
+     <b>Prescrever → APAC</b>. Por isso, desde a versão 2.49.0, o botão
+     📋 APAC do Assistente <b>não aparece mais</b>.</p>
 
   <div class="caixa">
-    <b>A tela mudou de paciente?</b>
-    Se o Meeds carregar outro atendimento enquanto você preenche, o formulário
-    <b>não troca sozinho</b>. Aparece um aviso dizendo quem entrou, e você escolhe
-    entre <b>Trocar para o paciente da tela</b> e <b>Continuar com este</b>.
+    <b>O gerador do Assistente não foi apagado</b>
+    Ele está guardado e pode voltar se o gerador do Meeds não atender algum
+    caso. Se isso acontecer com você, avise o suporte.
   </div>
 </section>
 
@@ -407,11 +381,11 @@
   <header>
     <span class="num">07</span>
     <h2>Modelos salvos</h2>
-    <span class="onde">APAC e os dois laudos</span>
+    <span class="onde">os dois laudos</span>
   </header>
 
   <figure>
-    <img src="telas/apac-modelos.png" alt="Painel de modelos salvos com dois modelos criados">
+    <img src="telas/modelos.png" alt="Laudo de Sete Lagoas com dois modelos salvos">
     <figcaption>Dois modelos criados. O botão diz o que vai fazer antes de você clicar.</figcaption>
   </figure>
 
@@ -441,7 +415,7 @@
 
   <div class="caixa">
     <b>Cada gerador tem os seus</b>
-    Os modelos da APAC não aparecem no laudo de Sete Lagoas, e vice-versa. Eles
+    Os modelos do laudo de Sete Lagoas não aparecem no de Conceição do Mato Dentro, e vice-versa. Eles
     ficam no seu navegador e sobrevivem a logout e atualização.
   </div>
 </section>
@@ -490,19 +464,38 @@
   </figure>
 
   <p>Preenchem o formulário oficial da prefeitura com os dados lidos da tela do
-     atendimento. Valem aqui as mesmas coisas da APAC:</p>
+     atendimento.</p>
 
+  <div class="caixa">
+    <b>Começam desligados</b>
+    Numa instalação nova, os dois laudos vêm desligados. Ligue o do seu
+    município em <b>⚙️ › Funções</b>, e o botão aparece na tela.
+  </div>
+
+  <h3>O guia de preenchimento</h3>
+  <p>A barra no topo mostra quanto falta, e o texto ao lado diz qual é o próximo
+     campo pendente — <b>clique nele e a tela leva você até lá</b>. Se você tentar
+     gerar com campo faltando, o Assistente também leva até o primeiro.</p>
+  <p>Todos os campos ficam liberados o tempo todo. Preencha na ordem que quiser.</p>
+
+  <h3>Também no laudo</h3>
   <ol class="passos">
-    <li>Guia de preenchimento no topo, apontando o próximo campo pendente.</li>
-    <li>Modelos salvos — independentes dos da APAC.</li>
-    <li>Prévia do documento aberta ao lado.</li>
+    <li>Modelos salvos — cada laudo tem os seus.</li>
+    <li>Prévia do documento aberta ao lado, montada enquanto você digita. Se preferir sem ela, clique em <b>👁 Prévia</b>.</li>
     <li>Busca de CID-10 dentro do campo: digite o código ou o nome da doença.</li>
   </ol>
 
   <div class="caixa">
+    <b>A tela mudou de paciente?</b>
+    Se o Meeds carregar outro atendimento enquanto você preenche, o formulário
+    <b>não troca sozinho</b>. Aparece um aviso dizendo quem entrou, e você escolhe
+    entre <b>Trocar para o paciente da tela</b> e <b>Continuar com este</b>.
+  </div>
+
+  <div class="caixa">
     <b>Estes dois são exclusivos do município</b>
     O formulário de Sete Lagoas e o de Conceição do Mato Dentro são próprios de
-    cada prefeitura. Só a APAC é nacional e atende vários municípios na mesma tela.
+    cada prefeitura.
   </div>
 </section>
 
@@ -515,7 +508,7 @@
   </header>
 
   <figure>
-    <img src="telas/historico.png" alt="Painel de histórico dentro do gerador de APAC">
+    <img src="telas/historico.png" alt="Painel de histórico dentro do laudo de Sete Lagoas">
     <figcaption>Os últimos documentos emitidos nesta máquina.</figcaption>
   </figure>
 
@@ -632,7 +625,7 @@
       <td>Ela precisa de tela larga e não abre no iPad. Se a sua tela é larga, clique em <b>👁 Prévia</b>.</td>
     </tr>
     <tr>
-      <td class="chave">A APAC não preenche o paciente</td>
+      <td class="chave">O laudo não preenche o paciente</td>
       <td>Clique em <b>🔄 Atualizar paciente</b> com o atendimento aberto na tela.</td>
     </tr>
     <tr>

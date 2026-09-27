@@ -164,7 +164,7 @@ function normalizarPraComparar(t) {
 }
 
 function ehPreparoBoilerplate(texto) {
-  var limpo = normalizarPraComparar(texto);
+  const limpo = normalizarPraComparar(texto);
   return (
     limpo === "" ||
     limpo.indexOf("preparo conforme orientacao do prestador") !== -1 ||
@@ -176,19 +176,19 @@ function ehPreparoBoilerplate(texto) {
  * vazio) se nada sobrou. */
 function limparLista(lista) {
   if (!Array.isArray(lista)) return undefined;
-  var limpa = lista.map((s) => String(s || "").trim()).filter(Boolean);
+  const limpa = lista.map((s) => String(s || "").trim()).filter(Boolean);
   return limpa.length ? limpa : undefined;
 }
 
 function limparString(s) {
-  var limpa = String(s || "").trim();
+  const limpa = String(s || "").trim();
   return limpa || undefined;
 }
 
 function orientacao(campos) {
   campos = campos || {};
 
-  var preparo = limparString(campos.preparo);
+  let preparo = limparString(campos.preparo);
   if (preparo && ehPreparoBoilerplate(preparo)) preparo = undefined;
 
   if (campos.fluxo && FLUXOS_VALIDOS.indexOf(campos.fluxo) === -1) {
@@ -204,7 +204,7 @@ function orientacao(campos) {
     );
   }
 
-  var saida = {
+  const saida = {
     faixaEtaria: limparString(campos.faixaEtaria),
     preparo: preparo,
     documentos: limparLista(campos.documentos),
@@ -221,7 +221,7 @@ function orientacao(campos) {
    * `orientacao: {}` nao ajuda ninguem — e pior que nao ter o campo,
    * porque obrigaria o renderizador a checar "existe mas esta vazio"
    * em vez de so checar "existe". */
-  var temConteudo = Object.keys(saida).some((k) => saida[k] !== undefined);
+  const temConteudo = Object.keys(saida).some((k) => saida[k] !== undefined);
   return temConteudo ? saida : undefined;
 }
 
@@ -783,7 +783,7 @@ function lerCongonhas() {
    * disciplina de nao escrever o objeto de orientacao a mao. */
   function exameLaboratorioUPA(nome, extras) {
     extras = extras || {};
-    var e = { nome: nome };
+    const e = { nome: nome };
     if (extras.justificativaObrigatoria) e.justificativaObrigatoria = true;
     e.orientacao = orientacao({
       faixaEtaria: extras.faixaEtaria,
@@ -1906,7 +1906,7 @@ const EXAMES_PIRAI_OUTROS_LOCAIS = [
   { nome: "Ecocardiograma (crianças maiores)", especialidade: ["Pediatria"] },
 ].map((e) => ({ ...e, justificativaObrigatoria: true }));
 
-var NOTA_REGULACAO_PEDIATRICA_RJ =
+const NOTA_REGULACAO_PEDIATRICA_RJ =
   "Disponibilizado pela Central Estadual de Regulação (SER) ou pelo SISREG, para serviço ofertado pelo " +
   "município do Rio de Janeiro. Atendimento ocorre na cidade do Rio de Janeiro — vaga sujeita a regulação " +
   "(apreciação e agendamento) por equipe externa (Central Estadual ou do município do Rio); não ocorre em " +

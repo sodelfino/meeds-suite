@@ -26,7 +26,7 @@
 (function (raiz) {
   "use strict";
 
-  var CSS = [
+  const CSS = [
     ".msf-modal { width:100%; max-width:520px; max-height:86vh; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); display:flex; flex-direction:column; overflow:hidden; }",
     ".msf-modal header { background:#17457f; color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
     ".msf-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
@@ -51,21 +51,21 @@
     ".msf-btn-sec:hover { background:#eef4fb; }",
   ].join("\n");
 
-  var TIPOS = [
+  const TIPOS = [
     { id: "problema", rotulo: "Algo não funcionou", prefixo: "[problema]" },
     { id: "ideia", rotulo: "Tenho uma ideia", prefixo: "[ideia]" },
     { id: "outro", rotulo: "Outro assunto", prefixo: "[feedback]" },
   ];
 
-  var overlay = null;
-  var ctx = null;
-  var tipoAtual = "problema";
+  let overlay = null;
+  let ctx = null;
+  let tipoAtual = "problema";
 
   /* Navegador em uma linha, sem o user-agent inteiro — que é longo,
    * ilegível e ainda funciona como impressão digital. */
   function navegadorCurto() {
-    var ua = navigator.userAgent || "";
-    var nome = /Edg\//.test(ua)
+    const ua = navigator.userAgent || "";
+    const nome = /Edg\//.test(ua)
       ? "Edge"
       : /Chrome\//.test(ua)
       ? "Chrome"
@@ -74,7 +74,7 @@
       : /Safari\//.test(ua)
       ? "Safari"
       : "navegador desconhecido";
-    var sistema = /Windows/.test(ua) ? "Windows" : /Mac OS/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : "";
+    const sistema = /Windows/.test(ua) ? "Windows" : /Mac OS/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : "";
     return [nome, sistema].filter(Boolean).join(" · ");
   }
 
@@ -99,19 +99,19 @@
   }
 
   function montarTexto() {
-    var escrito = overlay.$("#msf-texto").value.trim();
+    const escrito = overlay.$("#msf-texto").value.trim();
     return escrito + "\n\n" + assinaturaTecnica();
   }
 
   function assuntoAtual() {
-    var t = TIPOS.filter(function (x) {
+    const t = TIPOS.filter(function (x) {
       return x.id === tipoAtual;
     })[0];
     return "Assistente Meeds " + ctx.versao + " " + (t ? t.prefixo : "[feedback]");
   }
 
   function mostrarMensagem(texto, tipo) {
-    var caixa = overlay.$("#msf-mensagem");
+    const caixa = overlay.$("#msf-mensagem");
     caixa.innerHTML = texto
       ? '<div class="msf-' + (tipo || "ok") + '"></div>'
       : "";
@@ -119,13 +119,13 @@
   }
 
   function enviarPorEmail() {
-    var texto = overlay.$("#msf-texto").value.trim();
+    const texto = overlay.$("#msf-texto").value.trim();
     if (!texto) {
       mostrarMensagem("Escreva o que aconteceu antes de enviar — nem que seja uma linha.", "erro");
       overlay.$("#msf-texto").focus();
       return;
     }
-    var destino = (ctx.contato && ctx.contato.email) || "";
+    const destino = (ctx.contato && ctx.contato.email) || "";
     if (!destino) {
       mostrarMensagem(
         "Não há endereço de contato configurado nesta instalação. Use “Copiar” e mande o texto pelo canal que preferir.",
@@ -133,7 +133,7 @@
       );
       return;
     }
-    var url =
+    const url =
       "mailto:" + encodeURIComponent(destino) +
       "?subject=" + encodeURIComponent(assuntoAtual()) +
       "&body=" + encodeURIComponent(montarTexto());
@@ -149,13 +149,13 @@
   }
 
   function copiar() {
-    var texto = overlay.$("#msf-texto").value.trim();
+    const texto = overlay.$("#msf-texto").value.trim();
     if (!texto) {
       mostrarMensagem("Escreva o que aconteceu antes de copiar.", "erro");
       overlay.$("#msf-texto").focus();
       return;
     }
-    var completo = assuntoAtual() + "\n\n" + montarTexto();
+    const completo = assuntoAtual() + "\n\n" + montarTexto();
 
     function ok() {
       mostrarMensagem("Copiado. Cole no WhatsApp, no e-mail ou onde preferir.", "ok");
@@ -171,7 +171,7 @@
 
   function copiarFallback(texto, aoCopiar) {
     try {
-      var ta = document.createElement("textarea");
+      const ta = document.createElement("textarea");
       ta.value = texto;
       ta.style.position = "fixed";
       ta.style.opacity = "0";
@@ -190,7 +190,7 @@
     overlay.$$(".msf-tipo").forEach(function (b) {
       b.setAttribute("aria-pressed", String(b.getAttribute("data-tipo") === id));
     });
-    var campo = overlay.$("#msf-texto");
+    const campo = overlay.$("#msf-texto");
     campo.setAttribute(
       "placeholder",
       id === "problema"

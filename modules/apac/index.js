@@ -40,20 +40,20 @@
 (function (raiz) {
   "use strict";
 
-  var d = null;
-  var overlay = null;
-  var timers = [];
-  var procedimentoAtivo = null;
-  var pdfGerado = null;
-  var cache = null;    // ultimo payload de /api/v1/Atendimento/{uuid}
-  var cacheId = null;
-  var ultimaUrl = "";
+  let d = null;
+  let overlay = null;
+  let timers = [];
+  let procedimentoAtivo = null;
+  let pdfGerado = null;
+  let cache = null;    // ultimo payload de /api/v1/Atendimento/{uuid}
+  let cacheId = null;
+  let ultimaUrl = "";
 
   /* Cabecalho oficial (SUS/Ministerio da Saude), recorte fiel do
    * formulario real — ver modules/apac/assets/cabecalho-oficial.js.
    * "data:" prefixado aqui, nao no asset, para o asset continuar sendo
    * so o base64 puro (mais facil de trocar sem mexer em codigo). */
-  var CABECALHO_OFICIAL_PNG = raiz.MEEDS_APAC_CABECALHO_B64
+  const CABECALHO_OFICIAL_PNG = raiz.MEEDS_APAC_CABECALHO_B64
     ? "data:image/png;base64," + raiz.MEEDS_APAC_CABECALHO_B64
     : null;
 
@@ -63,7 +63,7 @@
    * este objeto reproduz a mesma interface por cima do overlay que o
    * dock do nucleo entrega. E a fronteira entre "codigo migrado sem
    * alteracao" e "codigo novo". */
-  var shadow = {
+  const shadow = {
     getElementById: function (id) {
       return overlay ? overlay.elemento.querySelector("#" + id) : null;
     },
@@ -85,22 +85,22 @@
    * @require nao ter exposto a lib no escopo esperado.
    * ---------------------------------------------------------------- */
   function resolverJsPDF() {
-    var escopos = [];
+    const escopos = [];
     try { escopos.push(raiz); } catch (e) {}
     try { if (typeof unsafeWindow !== "undefined") escopos.push(unsafeWindow); } catch (e) {}
     try { escopos.push(window); } catch (e) {}
     try { escopos.push(globalThis); } catch (e) {}
-    for (var i = 0; i < escopos.length; i++) {
-      var g = escopos[i];
+    for (let i = 0; i < escopos.length; i++) {
+      const g = escopos[i];
       if (g && g.jspdf && g.jspdf.jsPDF) return g.jspdf.jsPDF;
       if (g && g.jsPDF) return g.jsPDF;
     }
     return null;
   }
 
-  var jsPDFCarregandoPromise = null;
+  let jsPDFCarregandoPromise = null;
   function garantirJsPDF() {
-    var direto = resolverJsPDF();
+    const direto = resolverJsPDF();
     if (direto) return Promise.resolve(direto);
     if (jsPDFCarregandoPromise) return jsPDFCarregandoPromise;
     jsPDFCarregandoPromise = new Promise(function (resolve, reject) {
@@ -114,7 +114,7 @@
         onload: function (res) {
           try {
             (0, eval)(res.responseText);
-            var lib = resolverJsPDF();
+            const lib = resolverJsPDF();
             if (lib) resolve(lib);
             else reject(new Error("jsPDF avaliado mas não exposto."));
           } catch (e) {
@@ -141,15 +141,15 @@
    * completo, que a versao anterior gravava, sai do disco na migracao. */
 
   function formatarCpf(digits) {
-    var dd = (digits || "").replace(/\D/g, "").padStart(11, "0");
+    const dd = (digits || "").replace(/\D/g, "").padStart(11, "0");
     return dd.slice(0,3) + "." + dd.slice(3,6) + "." + dd.slice(6,9) + "-" + dd.slice(9,11);
   }
 
   /* ----------------------------------------------------------------
    * CAPTURA DO PACIENTE (rede + URL + leitura de tela)
    * ---------------------------------------------------------------- */
-  var ATEND_RE = /\/api\/v1\/Atendimento\/([0-9a-fA-F-]{36})(\?|$)/i;
-  var UUID_RE = /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/;
+  const ATEND_RE = /\/api\/v1\/Atendimento\/([0-9a-fA-F-]{36})(\?|$)/i;
+  const UUID_RE = /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/;
 
   /* ------------------------------------------------------------------
    * TROCA DE PACIENTE COM O FORMULARIO ABERTO
@@ -168,20 +168,20 @@
    * PDF, e trocar so o rotulo deixaria o documento com um nome e os
    * dados de outro, que e pior que o defeito original.
    * ------------------------------------------------------------------ */
-  var pendente = null; // { id, dados } — leitura nova, ainda nao aplicada
+  let pendente = null; // { id, dados } — leitura nova, ainda nao aplicada
 
   function formularioIdentificado() {
     if (!shadow) return false;
-    var nome = shadow.getElementById("apac-pac-nome");
-    var cpf = shadow.getElementById("apac-pac-cpf");
+    const nome = shadow.getElementById("apac-pac-nome");
+    const cpf = shadow.getElementById("apac-pac-cpf");
     return !!((nome && nome.value.trim()) || (cpf && cpf.value.trim()));
   }
 
   function aplicarPayload(id, dados, aPedidoDoMedico) {
     if (!dados || !dados.prontuario) return false;
 
-    var abertoEIdentificado = overlay && overlay.estaAberto() && formularioIdentificado();
-    var trocouDePaciente = !!(cacheId && id && id !== cacheId);
+    const abertoEIdentificado = overlay && overlay.estaAberto() && formularioIdentificado();
+    const trocouDePaciente = !!(cacheId && id && id !== cacheId);
 
     /* `aPedidoDoMedico` e a porta de saida: o botao "🔄 Atualizar
      * paciente" atravessa a protecao, porque ai a troca foi decidida por
@@ -210,13 +210,13 @@
   }
 
   function avisarTrocaDePaciente() {
-    var aviso = shadow && shadow.getElementById("apac-auto-aviso");
+    const aviso = shadow && shadow.getElementById("apac-auto-aviso");
     if (!aviso) return;
-    var nomeNovo = nomeDoPayload(pendente.dados);
+    const nomeNovo = nomeDoPayload(pendente.dados);
     aviso.style.display = "block";
     aviso.innerHTML = "";
 
-    var texto = document.createElement("div");
+    const texto = document.createElement("div");
     /* textContent, nunca innerHTML: aqui entra nome de paciente. */
     texto.textContent =
       "A tela do Meeds mudou para outro paciente" +
@@ -224,16 +224,16 @@
       ". Este formulário continua com o paciente que você começou — confira antes de gerar.";
     aviso.appendChild(texto);
 
-    var acoes = document.createElement("div");
+    const acoes = document.createElement("div");
     acoes.style.cssText = "display:flex; gap:8px; margin-top:8px;";
 
-    var trocar = document.createElement("button");
+    const trocar = document.createElement("button");
     trocar.type = "button";
     trocar.className = "apac-secondary";
     trocar.textContent = "Trocar para o paciente da tela";
     trocar.addEventListener("click", assumirPendente);
 
-    var manter = document.createElement("button");
+    const manter = document.createElement("button");
     manter.type = "button";
     manter.className = "apac-tertiary";
     manter.textContent = "Continuar com este";
@@ -254,7 +254,7 @@
     cacheId = pendente.id;
     pendente = null;
     preencherDoCache();
-    var aviso = shadow.getElementById("apac-auto-aviso");
+    const aviso = shadow.getElementById("apac-auto-aviso");
     if (aviso) {
       aviso.style.display = "block";
       aviso.textContent = "Paciente trocado. Os dados clínicos que você já tinha digitado continuam aí — confira.";
@@ -263,7 +263,7 @@
   }
 
   function idAtualDaUrl() {
-    var m = location.href.match(UUID_RE);
+    const m = location.href.match(UUID_RE);
     return m ? m[0] : null;
   }
 
@@ -280,7 +280,7 @@
   }
 
   function tentarAtualizarAutomaticamente() {
-    var idUrl = idAtualDaUrl();
+    const idUrl = idAtualDaUrl();
     if (idUrl && idUrl !== cacheId) buscarAtendimento(idUrl).catch(function () {});
   }
 
@@ -293,7 +293,7 @@
 
   function aplicarLeituraDaTela(dadosTela) {
     if (!overlay || !dadosTela) return 0;
-    var n = 0;
+    let n = 0;
     if (dadosTela.nome) { shadow.getElementById("apac-pac-nome").value = dadosTela.nome; n++; }
     if (dadosTela.cpf) { shadow.getElementById("apac-pac-cpf").value = formatarCpf(dadosTela.cpf); n++; }
     if (dadosTela.nascimentoISO) { shadow.getElementById("apac-pac-nasc").value = dadosTela.nascimentoISO; n++; }
@@ -306,33 +306,33 @@
 
   function preencherDoCache() {
     if (!cache || !cache.prontuario) return;
-    var ind = cache.prontuario.individuo || {};
-    var ficha = ind.fichaIndividual || {};
+    const ind = cache.prontuario.individuo || {};
+    const ficha = ind.fichaIndividual || {};
     if (ind.nome) shadow.getElementById("apac-pac-nome").value = ind.nome;
     if (ind.cpf) shadow.getElementById("apac-pac-cpf").value = formatarCpf(ind.cpf);
     if (ind.dataNascimento) shadow.getElementById("apac-pac-nasc").value = ind.dataNascimento.slice(0, 10);
     if (ficha.nomeDaMae) shadow.getElementById("apac-pac-mae").value = ficha.nomeDaMae;
     if (typeof ficha.sexo === "number") shadow.getElementById("apac-pac-sexo").value = ficha.sexo === 0 ? "M" : "F";
-    var aviso = shadow.getElementById("apac-auto-aviso");
+    const aviso = shadow.getElementById("apac-auto-aviso");
     aviso.style.display = "block";
     aviso.textContent = "Preenchido automaticamente. Confira antes de gerar.";
   }
 
   function forcarAtualizacao() {
-    var btn = shadow.getElementById("apac-refresh-modal");
-    var original = btn.textContent;
+    const btn = shadow.getElementById("apac-refresh-modal");
+    const original = btn.textContent;
     btn.textContent = "Atualizando…";
     btn.disabled = true;
 
     // 1) sempre le a tela primeiro — e instantaneo e nao depende de rede
     //    nem da URL conter o UUID do atendimento.
-    var camposDaTela = aplicarLeituraDaTela(lerDadosDaTela());
+    const camposDaTela = aplicarLeituraDaTela(lerDadosDaTela());
 
     // 2) tambem tenta a API quando a URL trouxer o UUID: os dados de la
     //    sao mais completos e completam o que a tela nao deu.
-    var id = idAtualDaUrl();
+    const id = idAtualDaUrl();
     if (!id) {
-      var aviso = shadow.getElementById("apac-auto-aviso");
+      const aviso = shadow.getElementById("apac-auto-aviso");
       aviso.style.display = "block";
       aviso.textContent = "Preenchido lendo a tela. Confira antes de gerar.";
       toast(
@@ -375,8 +375,8 @@
   /* O formulario da APAC e NACIONAL: o mesmo PDF vale para qualquer
    * municipio. O que muda e o ESTABELECIMENTO solicitante. Por isso o
    * catalogo vem do bloco comum e o municipio so escolhe a unidade. */
-  var BASE = raiz.MEEDS_DADOS_APAC || { _comum: {}, municipios: {} };
-  var COMUM = BASE._comum || {};
+  const BASE = raiz.MEEDS_DADOS_APAC || { _comum: {}, municipios: {} };
+  const COMUM = BASE._comum || {};
 
   function municipiosDisponiveis() {
     return Object.keys(BASE.municipios || {});
@@ -385,7 +385,7 @@
   /* Um municipio pode sobrescrever o catalogo comum, mas hoje nenhum
    * precisa — a lista de cardiologia e a mesma nos tres. */
   function dadosDoMunicipio(nome) {
-    var m = (BASE.municipios || {})[nome] || {};
+    const m = (BASE.municipios || {})[nome] || {};
     return {
       procedimentos: m.procedimentos || COMUM.procedimentos || {},
       ecoVariantes: m.ecoVariantes || COMUM.ecoVariantes || {},
@@ -395,20 +395,20 @@
     };
   }
 
-  var municipioAtual = null;
-  var cnesSelecionado = ""; // ver montarEstabelecimentos: a selecao viaja por CNES, nao por indice
-  var DADOS = dadosDoMunicipio(null);
+  let municipioAtual = null;
+  let cnesSelecionado = ""; // ver montarEstabelecimentos: a selecao viaja por CNES, nao por indice
+  const DADOS = dadosDoMunicipio(null);
 
-  var CATALOGO = DADOS.procedimentos;
-  var ECO_VARIANTES = DADOS.ecoVariantes;
-  var TERRITORIOS = DADOS.territorios;
-  var CID_DIC = DADOS.cids;
+  let CATALOGO = DADOS.procedimentos;
+  let ECO_VARIANTES = DADOS.ecoVariantes;
+  let TERRITORIOS = DADOS.territorios;
+  let CID_DIC = DADOS.cids;
 
 
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
-  var CSS = raiz.MeedsSuiteCabecalho.CSS + "\n" + raiz.MeedsSuiteHistorico.CSS + "\n" + raiz.MeedsSuiteModelos.CSS + "\n" + raiz.MeedsSuiteGuia.CSS + "\n" + "#apac-modal{\n      background:#fff; border-radius:6px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 8px 24px rgba(15,23,42,.2);\n    }\n    #apac-modal-head{\n      background:#17457f; color:#fff; padding:16px 20px; border-radius:6px 6px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #apac-modal-head h2{ margin:0; font-size:15px; }\n    #apac-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:5px; cursor:pointer; font-size:14px; }\n    #apac-body{ padding:18px 20px; }\n    .apac-sec{ margin-bottom:16px; }\n    .apac-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .apac-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .apac-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    #apac-body label{ display:block; font-size:10.5px; font-weight:700; color:#5b6c68; margin-bottom:4px; }\n    #apac-body input,#apac-body select,#apac-body textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8e6e3; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    #apac-body textarea{ min-height:56px; resize:vertical; }\n    .apac-proc-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }\n    .apac-proc-btn{ border:1.4px solid #d8e6e3; border-radius:9px; padding:9px; cursor:pointer; }\n    .apac-proc-btn:hover{ border-color:#17ab9e; }\n    .apac-proc-btn.sel{ border-color:#12958a; background:#e3f5f3; }\n    .apac-proc-btn .t{ font-size:11.5px; font-weight:700; }\n    .apac-proc-btn .c{ font-size:9.5px; color:#0e7a70; font-family:monospace; }\n    #apac-territorio-wrap{ display:none; margin-top:8px; }\n    #apac-territorio-wrap.show{ display:block; }\n    #apac-eco-variante-wrap{ display:none; margin-top:8px; }\n    #apac-eco-variante-wrap.show{ display:block; }\n    #apac-outro-wrap{ display:none; margin-top:8px; }\n    #apac-outro-wrap.show{ display:block; }\n    #apac-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    #apac-sec-assinatura{ border:1.5px dashed #17ab9e; border-radius:12px; padding:14px; background:#f9fdfc; }\n    .apac-opcoes-assinatura{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }\n    button.apac-primary{ background:#12958a; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.apac-primary:hover{ background:#0b6a62; }\n    button.apac-primary:disabled{ background:#a0c9c4; cursor:not-allowed; }\n    button.apac-secondary{ background:#fff; color:#0e7a70; border:1.4px solid #17ab9e; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.apac-secondary:hover{ background:#e3f5f3; }\n    button.apac-tertiary{ background:#f0f4f3; color:#0e7a70; border:1px solid #d8e6e3; border-radius:9px; padding:9px 14px; font-size:12px; font-weight:700; cursor:pointer; }\n    button.apac-tertiary:hover{ background:#e3f5f3; }\n    #apac-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #apac-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }\n    .apac-info-box{ background:#e8f4f8; color:#0e7a70; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:10px; line-height:1.4; }";
+  const CSS = raiz.MeedsSuiteCabecalho.CSS + "\n" + raiz.MeedsSuiteHistorico.CSS + "\n" + raiz.MeedsSuiteModelos.CSS + "\n" + raiz.MeedsSuiteGuia.CSS + "\n" + "#apac-modal{\n      background:#fff; border-radius:6px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 8px 24px rgba(15,23,42,.2);\n    }\n    #apac-modal-head{\n      background:#17457f; color:#fff; padding:16px 20px; border-radius:6px 6px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #apac-modal-head h2{ margin:0; font-size:15px; }\n    #apac-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:5px; cursor:pointer; font-size:14px; }\n    #apac-body{ padding:18px 20px; }\n    .apac-sec{ margin-bottom:16px; }\n    .apac-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .apac-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .apac-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    #apac-body label{ display:block; font-size:10.5px; font-weight:700; color:#5b6c68; margin-bottom:4px; }\n    #apac-body input,#apac-body select,#apac-body textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8e6e3; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    #apac-body textarea{ min-height:56px; resize:vertical; }\n    .apac-proc-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }\n    .apac-proc-btn{ border:1.4px solid #d8e6e3; border-radius:9px; padding:9px; cursor:pointer; }\n    .apac-proc-btn:hover{ border-color:#17ab9e; }\n    .apac-proc-btn.sel{ border-color:#12958a; background:#e3f5f3; }\n    .apac-proc-btn .t{ font-size:11.5px; font-weight:700; }\n    .apac-proc-btn .c{ font-size:9.5px; color:#0e7a70; font-family:monospace; }\n    #apac-territorio-wrap{ display:none; margin-top:8px; }\n    #apac-territorio-wrap.show{ display:block; }\n    #apac-eco-variante-wrap{ display:none; margin-top:8px; }\n    #apac-eco-variante-wrap.show{ display:block; }\n    #apac-outro-wrap{ display:none; margin-top:8px; }\n    #apac-outro-wrap.show{ display:block; }\n    #apac-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    #apac-sec-assinatura{ border:1.5px dashed #17ab9e; border-radius:12px; padding:14px; background:#f9fdfc; }\n    .apac-opcoes-assinatura{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }\n    button.apac-primary{ background:#12958a; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.apac-primary:hover{ background:#0b6a62; }\n    button.apac-primary:disabled{ background:#a0c9c4; cursor:not-allowed; }\n    button.apac-secondary{ background:#fff; color:#0e7a70; border:1.4px solid #17ab9e; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.apac-secondary:hover{ background:#e3f5f3; }\n    button.apac-tertiary{ background:#f0f4f3; color:#0e7a70; border:1px solid #d8e6e3; border-radius:9px; padding:9px 14px; font-size:12px; font-weight:700; cursor:pointer; }\n    button.apac-tertiary:hover{ background:#e3f5f3; }\n    #apac-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #apac-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }\n    .apac-info-box{ background:#e8f4f8; color:#0e7a70; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:10px; line-height:1.4; }";
 
-  var HTML = "<div id=\"apac-modal\">\n      " +
+  const HTML = "<div id=\"apac-modal\">\n      " +
     raiz.MeedsSuiteCabecalho.html({
       tom: "documento", titulo: "Gerador de APAC", idFechar: "apac-close",
       acoes: [
@@ -427,7 +427,7 @@
    * nao veio sozinho clique em Atualizar paciente" em vez de "campo
    * obrigatorio". O texto final e montado pelo nucleo
    * (core/mensagens.js), para o tom ser o mesmo em todos os modulos. */
-  var CAMPOS_OBRIGATORIOS = [
+  const CAMPOS_OBRIGATORIOS = [
       { id: "apac-medico-sel", descricao: "escolher o médico solicitante", rotulo: "Médico solicitante",
         comoResolver: "se a lista estiver vazia, cadastre-se no painel da engrenagem (⚙️)" },
       { id: "apac-medico-nome", descricao: "o nome do médico", rotulo: "Nome" },
@@ -464,7 +464,7 @@
     return CAMPOS_OBRIGATORIOS.filter(function (campo) {
       if (typeof campo.so === "function" && !campo.so()) return false;
       if (typeof campo.vazio === "function") return campo.vazio();
-      var el = shadow.getElementById(campo.id);
+      const el = shadow.getElementById(campo.id);
       return !el || !String(el.value || "").trim();
     });
   }
@@ -534,8 +534,8 @@
      * desenho nosso aproximando o emblema do SUS. Ver decisão D59 em
      * docs/ARQUITETURA.md e o comentário em assets/cabecalho-oficial.js. */
     if (CABECALHO_OFICIAL_PNG) {
-      var propCab = 2299 / 186; // largura/altura do recorte original, 300dpi
-      var altCab = CW / propCab;
+      const propCab = 2299 / 186; // largura/altura do recorte original, 300dpi
+      const altCab = CW / propCab;
       doc.addImage(CABECALHO_OFICIAL_PNG, 'PNG', M, y, CW, altCab);
       y += altCab;
     } else {
@@ -690,7 +690,7 @@
   /* O <select> e montado pelo nucleo (cadastro.montarSelect): ele cuida do
    * "cadastrar medico" e ja seleciona sozinho quando ha um so medico
    * cadastrado neste navegador. */
-  var seletorMedico = null;
+  let seletorMedico = null;
 
   /* ---- estabelecimento ----
    * A lista vem do cadastro do nucleo (⚙️ → Estabelecimentos), semeada
@@ -702,7 +702,7 @@
    * mais facil de emitir uma APAC com o CNES errado, que e glosada. */
   function aplicarMunicipio(nome) {
     municipioAtual = nome || null;
-    var d2 = dadosDoMunicipio(municipioAtual);
+    const d2 = dadosDoMunicipio(municipioAtual);
     CATALOGO = d2.procedimentos;
     ECO_VARIANTES = d2.ecoVariantes;
     TERRITORIOS = d2.territorios;
@@ -712,17 +712,17 @@
      * proposito incomodo: manter o que estava la e exatamente como se
      * emite uma APAC com o CNES de outro municipio sem perceber. */
     cnesSelecionado = "";
-    var selEstab = shadow.getElementById("apac-estab-sel");
+    const selEstab = shadow.getElementById("apac-estab-sel");
     if (selEstab) selEstab.value = "";
-    var cnes = shadow.getElementById("apac-estab-cnes");
+    const cnes = shadow.getElementById("apac-estab-cnes");
     if (cnes) cnes.value = "";
 
     semearEstabelecimentosDoMunicipio();
     montarEstabelecimentos();
 
-    var dica = shadow.getElementById("apac-municipio-dica");
+    const dica = shadow.getElementById("apac-municipio-dica");
     if (dica) {
-      var qtd = estabelecimentosVisiveis().length;
+      const qtd = estabelecimentosVisiveis().length;
       dica.textContent = !municipioAtual
         ? "Escolha o município para liberar as unidades solicitantes."
         : qtd
@@ -737,22 +737,22 @@
    * quem manda e a lista que o medico mantem. */
   function semearEstabelecimentosDoMunicipio() {
     if (!municipioAtual) return;
-    var sementes = (dadosDoMunicipio(municipioAtual).estabelecimentos || []).map(function (e) {
+    const sementes = (dadosDoMunicipio(municipioAtual).estabelecimentos || []).map(function (e) {
       return { nome: e.nome, cnes: e.cnes, municipio: municipioAtual };
     });
     if (sementes.length) d.cadastro.semearEstabelecimentos(sementes, municipioAtual);
   }
 
   function montarMunicipios() {
-    var sel = shadow.getElementById("apac-municipio-sel");
+    const sel = shadow.getElementById("apac-municipio-sel");
     if (!sel) return;
-    var lista = municipiosDisponiveis();
+    const lista = municipiosDisponiveis();
     sel.innerHTML = "";
-    var ph = document.createElement("option");
+    const ph = document.createElement("option");
     ph.value = ""; ph.textContent = "Selecione o município…"; ph.disabled = true; ph.selected = true;
     sel.appendChild(ph);
     lista.forEach(function (m) {
-      var o = document.createElement("option");
+      const o = document.createElement("option");
       o.value = m; o.textContent = m;
       sel.appendChild(o);
     });
@@ -766,11 +766,11 @@
   /* O municipio do atendimento aberto, quando da para saber com certeza.
    * MENOS CLIQUES: o medico nao deveria informar o que o sistema ja sabe. */
   function detectarMunicipio() {
-    var lista = municipiosDisponiveis();
-    var achado = raiz.MeedsSuiteMunicipio.detectar(cache, lista) ||
+    const lista = municipiosDisponiveis();
+    const achado = raiz.MeedsSuiteMunicipio.detectar(cache, lista) ||
                  raiz.MeedsSuiteMunicipio.detectarNaTela(lista);
     if (!achado || achado === municipioAtual) return;
-    var sel = shadow.getElementById("apac-municipio-sel");
+    const sel = shadow.getElementById("apac-municipio-sel");
     if (sel) sel.value = achado;
     aplicarMunicipio(achado);
   }
@@ -791,29 +791,29 @@
   }
 
   function estabelecimentoDaVez() {
-    var sel = shadow.getElementById("apac-estab-sel");
-    var v = sel ? sel.value : "";
+    const sel = shadow.getElementById("apac-estab-sel");
+    const v = sel ? sel.value : "";
     if (!/^\d+$/.test(v)) return null;
     return estabelecimentosVisiveis()[Number(v)] || null;
   }
 
   function estabelecimentoEscolhido() {
-    var e = estabelecimentoDaVez();
+    const e = estabelecimentoDaVez();
     return e ? e.nome : "";
   }
 
   function montarEstabelecimentos() {
-    var sel = shadow.getElementById("apac-estab-sel");
-    var lista = estabelecimentosVisiveis();
+    const sel = shadow.getElementById("apac-estab-sel");
+    const lista = estabelecimentosVisiveis();
     /* O que se guarda para restaurar e o CNES, NAO o indice: o indice e
      * posicional dentro do municipio, entao guardar "0" faria a selecao
      * virar o primeiro estabelecimento da cidade nova — outra unidade,
      * ja preenchida, sem o medico tocar em nada. */
-    var anterior = estabelecimentoDaVez();
-    var cnesAnterior = (anterior && anterior.cnes) || cnesSelecionado;
+    const anterior = estabelecimentoDaVez();
+    const cnesAnterior = (anterior && anterior.cnes) || cnesSelecionado;
     sel.innerHTML = "";
 
-    var ph = document.createElement("option");
+    const ph = document.createElement("option");
     ph.value = "";
     ph.textContent = lista.length ? "Selecione o estabelecimento…" : "Nenhum estabelecimento cadastrado";
     ph.disabled = true;
@@ -821,13 +821,13 @@
     sel.appendChild(ph);
 
     lista.forEach(function (e, i) {
-      var o = document.createElement("option");
+      const o = document.createElement("option");
       o.value = String(i);
       o.textContent = e.nome;
       sel.appendChild(o);
     });
 
-    var cadastrar = document.createElement("option");
+    const cadastrar = document.createElement("option");
     cadastrar.value = "__cadastrar";
     cadastrar.textContent = lista.length ? "＋ Cadastrar outro estabelecimento…" : "＋ Cadastrar estabelecimento…";
     sel.appendChild(cadastrar);
@@ -838,7 +838,7 @@
     if (lista.length === 1) {
       sel.value = "0";
     } else if (cnesAnterior) {
-      for (var k = 0; k < lista.length; k++) {
+      for (let k = 0; k < lista.length; k++) {
         if (lista[k].cnes === cnesAnterior) { sel.value = String(k); break; }
       }
     }
@@ -846,7 +846,7 @@
   }
 
   function refletirCnes() {
-    var e = estabelecimentoDaVez();
+    const e = estabelecimentoDaVez();
     cnesSelecionado = e ? e.cnes : "";
     shadow.getElementById("apac-estab-cnes").value = cnesSelecionado;
   }
@@ -866,10 +866,10 @@
   }
 
   function montarProcGrid() {
-    var grid = shadow.getElementById("apac-proc-grid");
+    const grid = shadow.getElementById("apac-proc-grid");
     Object.keys(CATALOGO).forEach(function (key) {
-      var p = CATALOGO[key];
-      var btn = document.createElement("div");
+      const p = CATALOGO[key];
+      const btn = document.createElement("div");
       btn.className = "apac-proc-btn";
       btn.id = "apac-proc-" + key;
       btn.innerHTML = '<div class="t">' + p.nome + '</div><div class="c">' + (p.codigo || "digitar manualmente") + "</div>";
@@ -886,10 +886,10 @@
     shadow.getElementById("apac-eco-variante-wrap").classList.toggle("show", key === "ECO");
     shadow.getElementById("apac-outro-wrap").classList.toggle("show", key === "OUTRO");
     if (key === "DOPPLER") {
-      var sel = shadow.getElementById("apac-territorio-sel");
+      const sel = shadow.getElementById("apac-territorio-sel");
       if (!sel.dataset.filled) {
         TERRITORIOS.forEach(function (t) {
-          var o = document.createElement("option");
+          const o = document.createElement("option");
           o.value = t; o.textContent = t;
           sel.appendChild(o);
         });
@@ -899,21 +899,21 @@
   }
 
   function autoDescricaoCid() {
-    var campo = shadow.getElementById("apac-cid1");
-    var cid = campo.value.trim().toUpperCase();
+    const campo = shadow.getElementById("apac-cid1");
+    const cid = campo.value.trim().toUpperCase();
     if (campo.value !== cid) campo.value = cid;
-    var desc = shadow.getElementById("apac-cid-desc");
+    const desc = shadow.getElementById("apac-cid-desc");
     if (CID_DIC[cid]) { desc.value = CID_DIC[cid]; desc.dataset.auto = "1"; }
     else if (desc.dataset.auto === "1") { desc.value = ""; desc.dataset.auto = ""; }
   }
 
   function limparErro() {
-    var el = shadow.getElementById("apac-erro");
+    const el = shadow.getElementById("apac-erro");
     el.style.display = "none";
     el.textContent = "";
   }
   function mostrarErro(msg) {
-    var el = shadow.getElementById("apac-erro");
+    const el = shadow.getElementById("apac-erro");
     el.textContent = msg;
     el.style.display = "block";
     el.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -957,7 +957,7 @@
       // (API) estar vazio ou desatualizado quando o medico clica.
       aplicarLeituraDaTela(lerDadosDaTela());
     } else {
-      var idTela = idAtualDaUrl();
+      const idTela = idAtualDaUrl();
       if (idTela && cacheId && idTela !== cacheId) {
         buscarAtendimento(idTela).catch(function () {});
       }
@@ -982,7 +982,7 @@
 
   function gerarPdf() {
     limparErro();
-    var faltam = camposFaltando();
+    const faltam = camposFaltando();
     if (faltam.length) {
       mostrarErro(mensagemDeCamposFaltando(faltam));
       /* Listar o que falta ainda deixa o medico procurando. Levar ate o
@@ -990,8 +990,8 @@
       if (guia) guia.apontarPrimeiroPendente();
       return;
     }
-    var btn = shadow.getElementById("apac-gerar");
-    var original = btn.textContent;
+    const btn = shadow.getElementById("apac-gerar");
+    const original = btn.textContent;
     btn.textContent = "Gerando…";
     btn.disabled = true;
     garantirJsPDF()
@@ -1008,9 +1008,9 @@
   }
 
   function baixarPdf(bytes, filename) {
-    var blob = new Blob([bytes], { type: "application/pdf" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
     a.href = url; a.download = filename;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
@@ -1028,20 +1028,20 @@
     toast("PDF baixado. Acesse assinador.iti.br, faça login com gov.br e assine o arquivo.", 7000);
   }
 
-  var historico = null;
+  let historico = null;
 
   /* Repoe a parte CLINICA de uma APAC anterior. A identificacao do
    * paciente NAO e reposta: continua vindo da tela do atendimento. */
   function reabrirDoHistorico(entrada) {
-    var c = entrada.clinico || {};
+    const c = entrada.clinico || {};
     if (c.procedimento) selecionarProc(c.procedimento);
     Object.keys(c).forEach(function (id) {
       if (id === "procedimento") return;
-      var el = shadow.getElementById(id);
+      const el = shadow.getElementById(id);
       if (el) el.value = c[id];
     });
     historico.esconder();
-    var aviso = shadow.getElementById("apac-auto-aviso");
+    const aviso = shadow.getElementById("apac-auto-aviso");
     aviso.style.display = "block";
     aviso.textContent =
       "Repus procedimento, CID e texto do pedido de “" + entrada.titulo + "”. " +
@@ -1062,10 +1062,10 @@
    * principal — o medico perderia o que ja tinha, sem perceber. */
   function preencherCidEmCampo(idCampo, alimentaDescricao) {
     return function (codigo, descricao) {
-      var campo = shadow.getElementById(idCampo);
+      const campo = shadow.getElementById(idCampo);
       if (campo) campo.value = codigo;
       if (!alimentaDescricao) return;
-      var desc = shadow.getElementById("apac-cid-desc");
+      const desc = shadow.getElementById("apac-cid-desc");
       if (desc && (!desc.value || desc.dataset.auto === "1")) {
         desc.value = descricao || "";
         desc.dataset.auto = "1";
@@ -1073,7 +1073,7 @@
     };
   }
 
-  var CAMPOS_CID = [
+  const CAMPOS_CID = [
     { id: "apac-cid1", alimentaDescricao: true },  // 37 - CID10 principal
     { id: "apac-cid2", alimentaDescricao: false }, // 38 - CID10 secundario
     { id: "apac-cid3", alimentaDescricao: false }, // 39 - associados
@@ -1103,7 +1103,7 @@
     });
     montarEstabelecimentos();
     shadow.getElementById("apac-estab-sel").addEventListener("change", function () {
-      var sel = shadow.getElementById("apac-estab-sel");
+      const sel = shadow.getElementById("apac-estab-sel");
       if (sel.value === "__cadastrar") {
         sel.value = "";
         refletirCnes();
@@ -1136,7 +1136,7 @@
    * proposito: se as duas divergirem, um campo passa a ser "clinico" num
    * lugar e "de paciente" no outro, e a fronteira deixa de valer.
    * ------------------------------------------------------------------ */
-  var CAMPOS_DO_MODELO = [
+  const CAMPOS_DO_MODELO = [
     "procedimento",
     "apac-territorio-sel",
     "apac-eco-variante-sel",
@@ -1162,14 +1162,14 @@
   }
 
   function lerCamposDoFormulario() {
-    var fora = {};
+    const fora = {};
     CAMPOS_DO_MODELO.forEach(function (id) {
       if (id === "procedimento") {
-        var p = procedimentoDoModelo();
+        const p = procedimentoDoModelo();
         if (p) fora.procedimento = p;
         return;
       }
-      var el = shadow.getElementById(id);
+      const el = shadow.getElementById(id);
       if (el && el.value) fora[id] = el.value;
     });
     return fora;
@@ -1177,10 +1177,10 @@
 
   function aplicarModelo(clinico) {
     if (!clinico) return 0;
-    var n = 0;
+    let n = 0;
     Object.keys(clinico).forEach(function (id) {
       if (id === "procedimento") { if (aplicarProcedimentoDoModelo(clinico[id])) n++; return; }
-      var el = shadow.getElementById(id);
+      const el = shadow.getElementById(id);
       if (!el) return;
       el.value = clinico[id];
       el.dispatchEvent(new Event("input", { bubbles: true }));
@@ -1191,34 +1191,34 @@
   }
 
   function montarModelos() {
-    var sel = shadow.getElementById("apac-modelo-sel");
+    const sel = shadow.getElementById("apac-modelo-sel");
     if (!sel) return;
-    var lista = Modelos().listar("apac");
-    var escolhido = sel.value;
+    const lista = Modelos().listar("apac");
+    const escolhido = sel.value;
 
     /* Sem nenhum modelo, a lista de escolha nao aparece: um seletor
      * vazio parece defeito. Aparece so o convite para criar o primeiro. */
-    var linhaSalvos = shadow.getElementById("apac-modelo-salvos");
-    var vazio = shadow.getElementById("apac-modelo-vazio");
+    const linhaSalvos = shadow.getElementById("apac-modelo-salvos");
+    const vazio = shadow.getElementById("apac-modelo-vazio");
     if (linhaSalvos) linhaSalvos.hidden = !lista.length;
     if (vazio) vazio.hidden = !!lista.length;
 
     sel.innerHTML = "";
-    var ph = document.createElement("option");
+    const ph = document.createElement("option");
     ph.value = "";
     ph.textContent = "Escolha um modelo para preencher\u2026";
     sel.appendChild(ph);
     lista.forEach(function (m) {
-      var o = document.createElement("option");
+      const o = document.createElement("option");
       o.value = m.nome;
       o.textContent = (m.padrao ? "\u2605 " : "") + m.nome;
       sel.appendChild(o);
     });
     if (escolhido) sel.value = escolhido;
 
-    var dica = shadow.getElementById("apac-modelo-dica");
+    const dica = shadow.getElementById("apac-modelo-dica");
     if (dica) {
-      var padrao = Modelos().padraoDe("apac");
+      const padrao = Modelos().padraoDe("apac");
       if (padrao) {
         dica.textContent = "\u2605 " + padrao.nome + " entra sozinho quando você abre este gerador com os campos clínicos vazios.";
       } else if (lista.length) {
@@ -1230,17 +1230,17 @@
   }
 
   function ligarModelos() {
-    var sel = shadow.getElementById("apac-modelo-sel");
+    const sel = shadow.getElementById("apac-modelo-sel");
     if (!sel) return;
-    var nome = shadow.getElementById("apac-modelo-nome");
+    const nome = shadow.getElementById("apac-modelo-nome");
 
     /* Escolher na lista preenche na hora — e o caminho de todo dia, e
      * um botao "Aplicar" a mais so acrescentaria clique. */
     sel.addEventListener("change", function () {
       if (!sel.value) return;
-      var m = Modelos().obter("apac", sel.value);
+      const m = Modelos().obter("apac", sel.value);
       if (!m) return;
-      var n = aplicarModelo(m.clinico);
+      const n = aplicarModelo(m.clinico);
       /* O campo de NOME nao e preenchido aqui — e essa linha, que existia
        * "para facilitar corrigir", fazia o medico perder modelo: ele
        * aplicava um, montava OUTRO procedimento, clicava em salvar e o
@@ -1255,7 +1255,7 @@
      * nome que ja existe corrige. O medico que salva "Holter rotina" de
      * novo esta acertando o dele, nao pedindo dois. */
     function criar() {
-      var r = Modelos().salvar("apac", nome.value, lerCamposDoFormulario(), CAMPOS_DO_MODELO);
+      const r = Modelos().salvar("apac", nome.value, lerCamposDoFormulario(), CAMPOS_DO_MODELO);
       if (!r.ok) { toast(r.erro, 6000); nome.focus(); return; }
       montarModelos();
       sel.value = r.nome;
@@ -1263,7 +1263,7 @@
        * modelo novo por padrao, em vez de uma substituicao por acidente. */
       if (!r.substituiu) nome.value = "";
       atualizarBotaoDeSalvar();
-      var quantos = Modelos().listar("apac").length;
+      const quantos = Modelos().listar("apac").length;
       toast(
         r.substituiu
           ? "Modelo \u201c" + r.nome + "\u201d substituído."
@@ -1276,10 +1276,10 @@
      * criar e substituir sao o mesmo gesto — e o medico so descobre qual
      * dos dois aconteceu quando o modelo antigo ja se foi. */
     function atualizarBotaoDeSalvar() {
-      var botao = shadow.getElementById("apac-modelo-criar");
+      const botao = shadow.getElementById("apac-modelo-criar");
       if (!botao) return;
-      var digitado = (nome.value || "").trim();
-      var existe = digitado && Modelos().obter("apac", digitado);
+      const digitado = (nome.value || "").trim();
+      const existe = digitado && Modelos().obter("apac", digitado);
       botao.textContent = existe ? "\u21bb Substituir \u201c" + digitado + "\u201d" : "\uff0b Salvar como modelo";
       botao.classList.toggle("substituir", !!existe);
     }
@@ -1294,7 +1294,7 @@
       if (!sel.value) { toast("Escolha um modelo na lista para ele vir preenchido sozinho.", 4000); return; }
       Modelos().definirPadrao("apac", sel.value);
       montarModelos();
-      var padrao = Modelos().padraoDe("apac");
+      const padrao = Modelos().padraoDe("apac");
       toast(
         padrao && padrao.nome === sel.value
           ? "\u201c" + sel.value + "\u201d agora vem preenchido sozinho ao abrir."
@@ -1329,10 +1329,10 @@
    * Entao um select so conta se o medico o tirou do valor inicial.
    * ------------------------------------------------------------------ */
   function campoFoiPreenchido(id) {
-    var el = shadow.getElementById(id);
+    const el = shadow.getElementById(id);
     if (!el || !el.value) return false;
     if (el.tagName === "SELECT") {
-      var primeira = el.options && el.options.length ? el.options[0].value : "";
+      const primeira = el.options && el.options.length ? el.options[0].value : "";
       return el.value !== primeira;
     }
     return true;
@@ -1340,8 +1340,8 @@
 
   function formularioClinicoVazio() {
     if (procedimentoDoModelo()) return false;
-    for (var i = 0; i < CAMPOS_DO_MODELO.length; i++) {
-      var id = CAMPOS_DO_MODELO[i];
+    for (let i = 0; i < CAMPOS_DO_MODELO.length; i++) {
+      const id = CAMPOS_DO_MODELO[i];
       if (id === "procedimento") continue;
       if (campoFoiPreenchido(id)) return false;
     }
@@ -1351,7 +1351,7 @@
   /* O modelo padrao so entra com a parte clinica VAZIA. Ele existe para
    * poupar digitacao, nunca para apagar o que o medico ja escreveu. */
   function aplicarModeloPadraoSeVazio() {
-    var padrao = Modelos().padraoDe("apac");
+    const padrao = Modelos().padraoDe("apac");
     if (!padrao) return;
     if (!formularioClinicoVazio()) return;
     aplicarModelo(padrao.clinico);
@@ -1366,7 +1366,7 @@
    * com o botao ainda recusando ensinaria o medico a nao confiar na
    * tela — por isso a fonte e uma so. Ver D32.
    * ------------------------------------------------------------------ */
-  var guia = null;
+  var guia = null; // eslint-disable-line no-var -- usada antes desta linha; com let/const daria erro de zona morta (TDZ)
 
   function camposAplicaveis() {
     return CAMPOS_OBRIGATORIOS.filter(function (campo) {
@@ -1387,13 +1387,13 @@
       },
     });
 
-    var corpo = shadow.getElementById("apac-body");
+    const corpo = shadow.getElementById("apac-body");
     if (corpo) corpo.insertBefore(guia.elemento, corpo.firstChild);
 
     /* Um ouvinte delegado no modal, nao um por campo: o formulario muda
      * de forma (grid de procedimento, campos condicionais) e ouvintes
      * por campo ficariam para tras. */
-    var modal = shadow.getElementById("apac-modal");
+    const modal = shadow.getElementById("apac-modal");
     if (modal) {
       modal.addEventListener("input", atualizarGuia);
       modal.addEventListener("change", atualizarGuia);
@@ -1481,9 +1481,9 @@
 
     aoCargaRede: function (evt) {
       if (evt.status !== 200) return;
-      var m = evt.url.match(ATEND_RE);
+      const m = evt.url.match(ATEND_RE);
       if (!m) return;
-      var json = evt.json();
+      const json = evt.json();
       if (json) aplicarPayload(m[1], json);
     },
 
@@ -1506,7 +1506,7 @@
        * continuam sendo texto livre, como sempre foram. */
       function anunciarCampoCid() {
         CAMPOS_CID.forEach(function (c) {
-          var campo = shadow.getElementById(c.id);
+          const campo = shadow.getElementById(c.id);
           if (!campo) return;
           deps.publicarEvento("cid:conectar-campo", {
             input: campo,

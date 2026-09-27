@@ -33,8 +33,11 @@
 (function (raiz) {
   "use strict";
 
-  var PREFIXO = "historico:";
-  var LIMITE = 30; // igual ao do APAC original
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
+  const PREFIXO = "historico:";
+  const LIMITE = 30; // igual ao do APAC original
 
   /* Mesmo caminho duravel do cadastro — ver core/storage.js. */
   function porta(chave) {
@@ -54,10 +57,10 @@
    * "MARIA APARECIDA DE SOUZA" + "12345678909" -> "M.A.S. · •••890"
    * Preposicoes ficam de fora das iniciais para o resultado ser legivel.
    * ------------------------------------------------------------------ */
-  var PARTICULAS = ["de", "da", "do", "das", "dos", "e"];
+  const PARTICULAS = ["de", "da", "do", "das", "dos", "e"];
 
   function referenciaDoPaciente(nome, cpf) {
-    var partes = [];
+    const partes = [];
     String(nome || "")
       .trim()
       .split(/\s+/)
@@ -67,16 +70,16 @@
         partes.push(palavra.charAt(0).toUpperCase() + ".");
       });
 
-    var digitos = String(cpf || "").replace(/\D/g, "");
-    var finalCpf = digitos.length >= 3 ? "•••" + digitos.slice(-3) : "";
+    const digitos = String(cpf || "").replace(/\D/g, "");
+    const finalCpf = digitos.length >= 3 ? "•••" + digitos.slice(-3) : "";
 
-    var iniciais = partes.slice(0, 4).join("");
+    const iniciais = partes.slice(0, 4).join("");
     if (!iniciais && !finalCpf) return "Paciente";
     return [iniciais, finalCpf].filter(Boolean).join(" · ");
   }
 
   function agoraLegivel() {
-    var d = new Date();
+    const d = new Date();
     return d.toLocaleString("pt-BR", {
       day: "2-digit",
       month: "2-digit",
@@ -99,7 +102,7 @@
    * ------------------------------------------------------------------ */
   function registrar(idModulo, entrada) {
     entrada = entrada || {};
-    var lista = listar(idModulo);
+    const lista = listar(idModulo);
     lista.unshift({
       quando: agoraLegivel(),
       paciente: referenciaDoPaciente(entrada.nomePaciente, entrada.cpfPaciente),
@@ -111,7 +114,7 @@
   }
 
   function listar(idModulo) {
-    var lista = ler(PREFIXO + idModulo, []);
+    const lista = ler(PREFIXO + idModulo, []);
     return Array.isArray(lista) ? lista : [];
   }
 
@@ -124,10 +127,10 @@
    * nome completo e descartado do disco na primeira execucao desta
    * versao. Roda uma vez; depois a chave antiga fica vazia. */
   function migrarHistoricoApac() {
-    var antigo = ler("apac_historico_v1", undefined);
+    const antigo = ler("apac_historico_v1", undefined);
     if (!Array.isArray(antigo) || antigo.length === 0) return 0;
 
-    var convertidas = antigo.map(function (e) {
+    const convertidas = antigo.map(function (e) {
       return {
         quando: e.quando || "",
         paciente: referenciaDoPaciente(e.paciente, ""),
@@ -137,17 +140,17 @@
       };
     });
 
-    var atual = listar("apac-itauna");
+    const atual = listar("apac-itauna");
     gravar(PREFIXO + "apac-itauna", convertidas.concat(atual).slice(0, LIMITE));
     gravar("apac_historico_v1", []); // o nome completo sai do disco
-    console.debug("[Assistente Meeds] historico do APAC migrado:", convertidas.length, "registro(s) sem nome completo.");
+    LOG.debug("[Assistente Meeds] historico do APAC migrado:", convertidas.length, "registro(s) sem nome completo.");
     return convertidas.length;
   }
 
   /* ------------------------------------------------------------------
    * PAINEL — o mesmo em todos os modulos, para um sexto ganhar pronto
    * ------------------------------------------------------------------ */
-  var CSS = [
+  const CSS = [
     ".msh-painel { border:1px solid #d8e6e3; border-radius:9px; padding:10px; margin-bottom:12px; background:#f7fbfa; }",
     ".msh-painel[hidden] { display:none; }",
     ".msh-topo { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:8px; }",
@@ -179,12 +182,12 @@
     elemento.hidden = true;
 
     function render() {
-      var lista = listar(idModulo);
-      var corpo = lista.length
+      const lista = listar(idModulo);
+      const corpo = lista.length
         ? lista
             .map(function (e, i) {
-              var meta = [e.quando, e.paciente, e.medico].filter(Boolean).join("  ·  ");
-              var temClinico = e.clinico && Object.keys(e.clinico).length > 0;
+              const meta = [e.quando, e.paciente, e.medico].filter(Boolean).join("  ·  ");
+              const temClinico = e.clinico && Object.keys(e.clinico).length > 0;
               return (
                 '<div class="msh-item">' +
                 '  <div class="msh-item-txt">' +
@@ -208,7 +211,7 @@
         corpo +
         '<div class="msh-nota">Guardamos apenas as iniciais e os três últimos dígitos do CPF — o suficiente para você reconhecer o atendimento, sem gravar dado de paciente no computador. “Reabrir” repõe a parte clínica; os dados do paciente vêm da tela.</div>';
 
-      var limpar = elemento.querySelector(".msh-limpar");
+      const limpar = elemento.querySelector(".msh-limpar");
       if (limpar) {
         limpar.addEventListener("click", function () {
           limparHistorico(idModulo);
@@ -217,7 +220,7 @@
       }
       elemento.querySelectorAll(".msh-reabrir").forEach(function (btn) {
         btn.addEventListener("click", function () {
-          var e = listar(idModulo)[Number(btn.getAttribute("data-i"))];
+          const e = listar(idModulo)[Number(btn.getAttribute("data-i"))];
           if (e && typeof opcoes.aoReabrir === "function") opcoes.aoReabrir(e);
         });
       });
@@ -230,7 +233,7 @@
     return {
       render: render,
       alternar: function () {
-        var abrindo = elemento.hidden;
+        const abrindo = elemento.hidden;
         elemento.hidden = !abrindo;
         if (abrindo) render();
         return abrindo;
@@ -246,12 +249,12 @@
    * migracao o medico abriria o historico e o veria vazio, como se os
    * documentos que ele emitiu tivessem sumido. */
   function migrarHistoricoApacGlobal() {
-    var antigo = listar("apac-itauna");
+    const antigo = listar("apac-itauna");
     if (!antigo.length) return 0;
-    var atual = listar("apac");
+    const atual = listar("apac");
     gravar(PREFIXO + "apac", antigo.concat(atual).slice(0, LIMITE));
     gravar(PREFIXO + "apac-itauna", []);
-    console.debug("[Assistente Meeds] historico da APAC migrado:", antigo.length, "registro(s).");
+    LOG.debug("[Assistente Meeds] historico da APAC migrado:", antigo.length, "registro(s).");
     return antigo.length;
   }
 

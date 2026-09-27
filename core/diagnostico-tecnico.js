@@ -38,17 +38,17 @@
 (function (raiz) {
   "use strict";
 
-  var JANELA_MS = 20 * 60 * 1000; // so o que aconteceu nos ultimos 20 min
-  var LIMITE_REDE = 60;
-  var LIMITE_CONSOLE = 60;
-  var LIMITE_CORPO = 500; // caracteres por corpo de resposta, truncado
-  var LIMITE_LINHA_CONSOLE = 500;
+  const JANELA_MS = 20 * 60 * 1000; // so o que aconteceu nos ultimos 20 min
+  const LIMITE_REDE = 60;
+  const LIMITE_CONSOLE = 60;
+  const LIMITE_CORPO = 500; // caracteres por corpo de resposta, truncado
+  const LIMITE_LINHA_CONSOLE = 500;
 
-  var redeBuffer = [];
-  var consoleBuffer = [];
-  var totalChamadas = 0;
-  var totalFalhas = 0;
-  var instalado = false;
+  const redeBuffer = [];
+  const consoleBuffer = [];
+  let totalChamadas = 0;
+  let totalFalhas = 0;
+  let instalado = false;
 
   /* Mascara qualquer sequencia longa de digito — CPF (11), CNS (15),
    * CNES (7), telefone, data numerica. Mantem so as pontas, para quem le
@@ -62,12 +62,12 @@
   }
 
   function truncar(texto, limite) {
-    var s = String(texto == null ? "" : texto);
+    const s = String(texto == null ? "" : texto);
     return s.length > limite ? s.slice(0, limite) + "… (+" + (s.length - limite) + " car.)" : s;
   }
 
   function podar(lista) {
-    var limite = Date.now() - JANELA_MS;
+    const limite = Date.now() - JANELA_MS;
     while (lista.length && lista[0].ts < limite) lista.shift();
   }
 
@@ -80,7 +80,7 @@
       { regex: /.*/, idModulo: "diagnostico-tecnico" },
       function (evt) {
         totalChamadas++;
-        var falhou = evt.status === 0 || evt.status >= 400;
+        const falhou = evt.status === 0 || evt.status >= 400;
         if (falhou) totalFalhas++;
         redeBuffer.push({
           ts: Date.now(),
@@ -101,11 +101,11 @@
    * ------------------------------------------------------------------ */
   function instalarEscutaDeConsole() {
     ["log", "info", "debug", "warn", "error"].forEach(function (nivel) {
-      var original = console[nivel];
+      const original = console[nivel];
       if (typeof original !== "function") return;
       console[nivel] = function () {
         try {
-          var texto = Array.prototype.slice
+          const texto = Array.prototype.slice
             .call(arguments)
             .map(function (a) {
               if (typeof a === "string") return a;
@@ -142,18 +142,18 @@
    * MONTAGEM DO TEXTO
    * ------------------------------------------------------------------ */
   function navegadorCurto() {
-    var ua = (raiz.navigator && raiz.navigator.userAgent) || "";
-    var nome = /Edg\//.test(ua) ? "Edge"
+    const ua = (raiz.navigator && raiz.navigator.userAgent) || "";
+    const nome = /Edg\//.test(ua) ? "Edge"
       : /Chrome\//.test(ua) ? "Chrome"
       : /Firefox\//.test(ua) ? "Firefox"
       : /Safari\//.test(ua) ? "Safari"
       : "navegador desconhecido";
-    var sistema = /Windows/.test(ua) ? "Windows" : /Mac OS/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : "";
+    const sistema = /Windows/.test(ua) ? "Windows" : /Mac OS/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : "";
     return [nome, sistema].filter(Boolean).join(" · ");
   }
 
   function horaCurta(ts) {
-    var d = new Date(ts);
+    const d = new Date(ts);
     function p2(n) { return String(n).padStart(2, "0"); }
     return p2(d.getHours()) + ":" + p2(d.getMinutes()) + ":" + p2(d.getSeconds());
   }
@@ -162,15 +162,15 @@
     podar(redeBuffer);
     podar(consoleBuffer);
 
-    var linhas = [];
+    const linhas = [];
     linhas.push("Assistente Meeds — diagnóstico técnico (uso interno)");
     linhas.push("Versão " + (ctx.versao || "?") + " · gerado em " + new Date().toLocaleString("pt-BR"));
 
-    var funcoes = (ctx.modulos || []).filter(function (m) { return m.habilitado; }).map(function (m) { return m.nome; });
+    const funcoes = (ctx.modulos || []).filter(function (m) { return m.habilitado; }).map(function (m) { return m.nome; });
     linhas.push("Funções ligadas: " + (funcoes.join(", ") || "nenhuma"));
     linhas.push("Navegador: " + navegadorCurto());
 
-    var diag = raiz.MeedsSuiteDiagnostico;
+    const diag = raiz.MeedsSuiteDiagnostico;
     if (diag && typeof diag.escopoDeExecucao === "function") {
       linhas.push(
         "Execução: " +
@@ -222,7 +222,7 @@
    * ------------------------------------------------------------------ */
   function copiarFallback(texto, aoCopiar, aoFalhar) {
     try {
-      var ta = document.createElement("textarea");
+      const ta = document.createElement("textarea");
       ta.value = texto;
       ta.style.position = "fixed";
       ta.style.opacity = "0";
@@ -237,7 +237,7 @@
   }
 
   function copiar(ctx, aoCopiar, aoFalhar) {
-    var texto = montarRelatorio(ctx);
+    const texto = montarRelatorio(ctx);
     if (raiz.navigator && raiz.navigator.clipboard && raiz.navigator.clipboard.writeText) {
       raiz.navigator.clipboard.writeText(texto).then(aoCopiar, function () {
         copiarFallback(texto, aoCopiar, aoFalhar);

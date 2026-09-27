@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Assistente Meeds - Por: Marcelo
 // @namespace    novetech-meeds-suite
-// @version      2.49.0
+// @version      2.49.1
 // @description  Assistente Meeds - Por: Marcelo. Alarme de fila, APAC de Itauna, laudos de Sete Lagoas e Conceicao do Mato Dentro e consulta a REMUME, numa instalacao unica. Cada funcao liga e desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
 // @author       Marcelo
 // @match        *://*.meeds.com.br/*
@@ -51,9 +51,52 @@
    * copiada cinco vezes. */
   if (window.self !== window.top) return;
 
-  var raiz = typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
+  const raiz = typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
 
-  /* ===== core/storage.js ===== */
+  /* ===== core/log.js ===== */
+/* ------------------------------------------------------------------
+ * core/log.js — o adaptador de log do Assistente
+ * ------------------------------------------------------------------
+ * O unico lugar do codigo de navegador que fala com o console
+ * diretamente. Todo o resto usa MeedsSuiteLog.debug/info/warn/error,
+ * e o lint (quality/no-direct-console, em "error") nao deixa voltar a
+ * espalhar console.* pelos arquivos.
+ *
+ * POR QUE UM ADAPTADOR, se ele so repassa: e o ponto unico para mudar o
+ * comportamento de log um dia (silenciar debug em producao, anexar a
+ * versao, mandar para o diagnostico) sem editar dezenas de arquivos.
+ * Hoje ele NAO muda nada — mesma mensagem, mesmo nivel, mesmo console.
+ *
+ * O console e procurado NA HORA da chamada, nao guardado na carga: o
+ * diagnostico tecnico (core/diagnostico-tecnico.js) troca console.warn e
+ * companhia por versoes que gravam o historico, e o log precisa passar
+ * por elas para continuar aparecendo em "copiar diagnostico".
+ *
+ * Carregado PRIMEIRO no nucleo (manifest.json), antes de qualquer
+ * arquivo que registre algo.
+ * ------------------------------------------------------------------ */
+(function (raiz) {
+  "use strict";
+
+  function repassar(nivel) {
+    return function () {
+      const c = raiz.console;
+      if (c && typeof c[nivel] === "function") c[nivel].apply(c, arguments);
+    };
+  }
+
+  raiz.MeedsSuiteLog = {
+    debug: repassar("debug"),
+    info: repassar("info"),
+    warn: repassar("warn"),
+    error: repassar("error"),
+    log: repassar("log"),
+    table: repassar("table"), // diagnostico da Sala de Espera, no console do navegador
+  };
+})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
+
+
+/* ===== core/storage.js ===== */
 /* ------------------------------------------------------------------
  * core/storage.js — configuracao por modulo, namespaced
  * ------------------------------------------------------------------
@@ -112,7 +155,7 @@
 (function (raiz) {
   "use strict";
 
-  var PREFIXO = "meeds-suite:";
+  const PREFIXO = "meeds-suite:";
 
   function chaveDe(idModulo, nome) {
     return PREFIXO + idModulo + ":" + nome;
@@ -126,7 +169,7 @@
 
   function lerLocal(chave, padrao) {
     try {
-      var cru = localStorage.getItem(chave);
+      const cru = localStorage.getItem(chave);
       if (cru === null) return padrao;
       return JSON.parse(cru);
     } catch (e) {
@@ -159,7 +202,7 @@
    * pode legitimamente ter sido gravada como undefined, e precisamos
    * distinguir "nunca gravado" de "gravado vazio" — e essa distincao
    * que decide se a migracao roda. */
-  var VAZIO = { __meedsVazio: true };
+  const VAZIO = { __meedsVazio: true };
 
   /* Comparar por identidade nao basta. GM_getValue devolve o proprio
    * objeto padrao quando a chave nao existe (identidade bate), mas um
@@ -197,10 +240,10 @@
    * das duas pontas — trocariamos um incomodo por uma perda. */
   function migrarSeNecessario(chave) {
     if (!temGM()) return VAZIO;
-    var duravel = lerDuravel(chave);
+    const duravel = lerDuravel(chave);
     if (!ehVazio(duravel)) return duravel;
 
-    var antigo = lerLocal(chave, VAZIO);
+    const antigo = lerLocal(chave, VAZIO);
     if (ehVazio(antigo)) return VAZIO;
 
     if (gravarDuravel(chave, antigo)) removerLocal(chave);
@@ -212,17 +255,17 @@
    * So entra em cena quando temGM() e falso. O cache em memoria e a
    * fonte que `ler()` consulta; o IndexedDB e o disco por tras dele. */
 
-  var BANCO = "meeds-suite";
-  var DEPOSITO = "preferencias";
-  var cache = null; /* null = ainda nao carregado */
-  var bancoAberto = null;
+  const BANCO = "meeds-suite";
+  const DEPOSITO = "preferencias";
+  let cache = null; /* null = ainda nao carregado */
+  let bancoAberto = null;
 
   function abrirBanco() {
     if (bancoAberto) return bancoAberto;
     bancoAberto = new Promise(function (resolver) {
-      var idb = typeof indexedDB !== "undefined" ? indexedDB : null;
+      const idb = typeof indexedDB !== "undefined" ? indexedDB : null;
       if (!idb) return resolver(null);
-      var req;
+      let req;
       try {
         req = idb.open(BANCO, 1);
       } catch (e) {
@@ -256,7 +299,7 @@
     abrirBanco().then(function (db) {
       if (!db) return;
       try {
-        var tx = db.transaction(DEPOSITO, "readwrite");
+        const tx = db.transaction(DEPOSITO, "readwrite");
         tx.objectStore(DEPOSITO).put(valor, chave);
       } catch (e) {
         /* preferencia nao persistiu; o cache em memoria segue valendo
@@ -286,17 +329,17 @@
       return Promise.resolve();
     }
     return abrirBanco().then(function (db) {
-      var mapa = {};
+      const mapa = {};
       return new Promise(function (resolver) {
         if (!db) return resolver(mapa);
-        var req;
+        let req;
         try {
           req = db.transaction(DEPOSITO, "readonly").objectStore(DEPOSITO).openCursor();
         } catch (e) {
           return resolver(mapa);
         }
         req.onsuccess = function () {
-          var c = req.result;
+          const c = req.result;
           if (!c) return resolver(mapa);
           mapa[c.key] = c.value;
           c["continue"]();
@@ -315,17 +358,17 @@
    * Copia para o banco o que ainda nao esta la — e, como na migracao do
    * Tampermonkey, so limpa a origem depois de a copia existir. */
   function migrarLocalParaBanco() {
-    var pendentes = [];
+    const pendentes = [];
     try {
-      for (var i = 0; i < localStorage.length; i++) {
-        var k = localStorage.key(i);
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
         if (k && k.indexOf(PREFIXO) === 0 && !Object.prototype.hasOwnProperty.call(cache, k)) pendentes.push(k);
       }
     } catch (e) {
       return;
     }
     pendentes.forEach(function (k) {
-      var v = lerLocal(k, VAZIO);
+      const v = lerLocal(k, VAZIO);
       if (ehVazio(v)) return;
       cache[k] = v;
       gravarNoBanco(k, v);
@@ -336,7 +379,7 @@
   /* ---- API interna usada pelos storages por modulo ---- */
 
   function lerBruto(chave, padrao) {
-    var valor = migrarSeNecessario(chave);
+    const valor = migrarSeNecessario(chave);
     if (!ehVazio(valor)) return valor;
     /* Safari/iPad: o cache foi preenchido por carregar() no boot. */
     if (cache && Object.prototype.hasOwnProperty.call(cache, chave)) return cache[chave];
@@ -406,9 +449,9 @@
        * do que estiver salvo — mesmo comportamento do carregarConfig()
        * original do alarme de fila. */
       lerConfig: function (configPadrao) {
-        var salvo = lerBruto(chaveDe(idModulo, "config"), {});
-        var saida = {};
-        var k;
+        const salvo = lerBruto(chaveDe(idModulo, "config"), {});
+        const saida = {};
+        let k;
         for (k in configPadrao) {
           if (Object.prototype.hasOwnProperty.call(configPadrao, k)) saida[k] = configPadrao[k];
         }
@@ -451,12 +494,12 @@
     return {
       ler: function (padrao) {
         if (temGM()) {
-          var v = lerDuravel(chaveGM);
+          const v = lerDuravel(chaveGM);
           if (!ehVazio(v)) return v;
         }
         if (cache && Object.prototype.hasOwnProperty.call(cache, chaveLocal)) return cache[chaveLocal];
 
-        var antigo = lerLocal(chaveLocal, VAZIO);
+        const antigo = lerLocal(chaveLocal, VAZIO);
         if (ehVazio(antigo)) return padrao;
 
         /* Achou so no localStorage: promove para o duravel AGORA. Sem
@@ -556,24 +599,27 @@
 (function (raiz) {
   "use strict";
 
-  var CHAVE = "noturno_ativo";
-  var INTERVALO_MS = 30 * 60 * 1000; // 30 em 30 minutos
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
 
-  var storage = null;
-  var timer = null;
+  const CHAVE = "noturno_ativo";
+  const INTERVALO_MS = 30 * 60 * 1000; // 30 em 30 minutos
+
+  let storage = null;
+  let timer = null;
 
   function simularAtividade() {
     try {
-      var doc = raiz.document;
+      const doc = raiz.document;
       if (!doc) return;
-      var x = Math.round((raiz.innerWidth || 800) / 2);
-      var y = Math.round((raiz.innerHeight || 600) / 2);
+      const x = Math.round((raiz.innerWidth || 800) / 2);
+      const y = Math.round((raiz.innerHeight || 600) / 2);
       doc.dispatchEvent(
         new MouseEvent("mousemove", { bubbles: true, cancelable: true, clientX: x, clientY: y })
       );
       doc.dispatchEvent(new Event("scroll", { bubbles: true, cancelable: true }));
       raiz.dispatchEvent(new Event("scroll", { bubbles: true, cancelable: true }));
-      console.debug("[Assistente Meeds] noturno: atividade simulada");
+      LOG.debug("[Assistente Meeds] noturno: atividade simulada");
     } catch (e) {
       /* nunca derruba o resto do Assistente por causa disto */
     }
@@ -598,7 +644,7 @@
   /* Liga/desliga e devolve o novo estado — quem chama (o botão no Sobre)
    * so precisa refletir o que isto devolve. */
   function alternar() {
-    var novo = !estaLigado();
+    const novo = !estaLigado();
     if (storage) storage.gravar(CHAVE, novo);
     if (novo) ligarTemporizador();
     else desligarTemporizador();
@@ -660,8 +706,8 @@
   }
 
   function elementoEstaVisivel(el) {
-    var rect = el.getBoundingClientRect();
-    var st = raiz.getComputedStyle(el);
+    const rect = el.getBoundingClientRect();
+    const st = raiz.getComputedStyle(el);
     return (
       rect.width > 0 &&
       rect.height > 0 &&
@@ -673,8 +719,8 @@
 
   function estaNaTelaDeLogin() {
     try {
-      var campos = document.querySelectorAll('input[type="password"]');
-      for (var i = 0; i < campos.length; i++) {
+      const campos = document.querySelectorAll('input[type="password"]');
+      for (let i = 0; i < campos.length; i++) {
         if (elementoEstaVisivel(campos[i])) return true;
       }
       return false;
@@ -730,31 +776,31 @@
 (function (raiz) {
   "use strict";
 
-  var ID_HOST = "meeds-suite-dock-host";
-  var Z_BASE = 2147483000;
+  const ID_HOST = "meeds-suite-dock-host";
+  const Z_BASE = 2147483000;
 
-  var shadow = null;
-  var elDock = null;
-  var elToast = null;
-  var elAvisos = null;
-  var elCentro = null; // aviso que PRECISA ser lido: no meio da tela
-  var elTopo = null;   // aviso fixo na lateral superior direita
-  var botoes = []; // { id, prioridade, el, visivel }
-  var elAlca = null;
-  var recolhido = false;
-  var aoAlternar = null;
-  var translucido = true;      // preferencia do medico (o nucleo carrega)
-  var timerAdormecer = null;
+  let shadow = null;
+  let elDock = null;
+  let elToast = null;
+  let elAvisos = null;
+  let elCentro = null; // aviso que PRECISA ser lido: no meio da tela
+  let elTopo = null;   // aviso fixo na lateral superior direita
+  const botoes = []; // { id, prioridade, el, visivel }
+  let elAlca = null;
+  let recolhido = false;
+  let aoAlternar = null;
+  let translucido = true;      // preferencia do medico (o nucleo carrega)
+  let timerAdormecer = null;
 
   /* Quanto tempo depois da ultima interacao a pilha volta a desaparecer.
    * 2,5s foi escolhido para cobrir o intervalo entre soltar o mouse e
    * decidir o proximo clique. Menos que isso e a pilha some enquanto o
    * medico ainda esta mirando; muito mais e ela deixa de sair do
    * caminho, que e o motivo de existir. */
-  var MS_ATE_ADORMECER = 2500;
-  var timerToast = null;
+  const MS_ATE_ADORMECER = 2500;
+  let timerToast = null;
 
-  var ESTILOS = [
+  const ESTILOS = [
     ":host { all: initial; }",
     "* { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; }",
 
@@ -1046,7 +1092,7 @@
 
   function garantirHost() {
     if (shadow) return shadow;
-    var host = document.getElementById(ID_HOST);
+    let host = document.getElementById(ID_HOST);
     if (host && host.shadowRoot) {
       shadow = host.shadowRoot;
       elDock = shadow.getElementById("dock");
@@ -1061,7 +1107,7 @@
     document.body.appendChild(host);
     shadow = host.attachShadow({ mode: "open" });
 
-    var estilo = document.createElement("style");
+    const estilo = document.createElement("style");
     estilo.textContent = ESTILOS;
     shadow.appendChild(estilo);
 
@@ -1164,7 +1210,7 @@
    * tocando nao pode desaparecer. */
   function recalcularAlerta() {
     if (!elDock) return;
-    var temAlerta = false;
+    let temAlerta = false;
     botoes.forEach(function (b) {
       if (!b.el.hidden && b.el.classList.contains("ms-ativo")) temAlerta = true;
     });
@@ -1188,7 +1234,7 @@
 
   function pintarAlca() {
     if (!elAlca) return;
-    var escondidos = 0;
+    let escondidos = 0;
     botoes.forEach(function (b) {
       if (!b.el.hidden && !b.el.classList.contains("ms-ativo")) escondidos++;
     });
@@ -1258,14 +1304,14 @@
    * ------------------------------------------------------------------ */
   function reposicionarToast() {
     if (!elDock) return;
-    var caixa = null;
+    let caixa = null;
     try {
       caixa = elDock.getBoundingClientRect();
     } catch (e) {
       caixa = null;
     }
-    var altura = caixa ? caixa.height : 0;
-    var largura = caixa ? caixa.width : 0;
+    const altura = caixa ? caixa.height : 0;
+    const largura = caixa ? caixa.width : 0;
 
     if (elToast) elToast.style.bottom = 24 + (altura > 0 ? altura + 12 : 0) + "px";
 
@@ -1274,14 +1320,14 @@
      * ganha rolagem em vez de cobrir um botao — achado no QA de
      * 25/09/2026, numa janela de 600px de altura. */
     if (elTopo) {
-      var teto = caixa && caixa.height > 0 ? caixa.top - 6 - 74 : window.innerHeight - 74 - 24;
+      const teto = caixa && caixa.height > 0 ? caixa.top - 6 - 74 : window.innerHeight - 74 - 24;
       elTopo.style.maxHeight = Math.max(140, teto) + "px";
     }
 
     if (elAvisos) {
       /* Sem botao nenhum medido ainda, cai no mesmo 92px do CSS — o dock
        * vazio nao tem o que cobrir, e a medida chega no primeiro botao. */
-      var afastamento = 24 + (largura > 0 ? largura + 16 : 68);
+      const afastamento = 24 + (largura > 0 ? largura + 16 : 68);
       elAvisos.style.right = afastamento + "px";
       /* O teto acompanha: com uma pilha larga numa janela estreita, o
        * cartao tem que encolher em vez de sair pela esquerda da tela. */
@@ -1297,22 +1343,22 @@
    * chave de la; senao texto/emoji, exatamente como antes. Preserva um
    * .ms-badge (contador) que outro caminho tenha anexado. */
   function pintarConteudoBotao(el, icone, rotulo, variante) {
-    var badge = el.querySelector(".ms-badge");
-    var svg =
+    const badge = el.querySelector(".ms-badge");
+    const svg =
       raiz.MeedsSuiteIcones && typeof raiz.MeedsSuiteIcones.obter === "function"
         ? raiz.MeedsSuiteIcones.obter(icone)
         : null;
-    var soIcone = variante === "icone" || variante === "engrenagem";
+    const soIcone = variante === "icone" || variante === "engrenagem";
 
     if (svg) {
       el.textContent = "";
-      var caixa = document.createElement("span");
+      const caixa = document.createElement("span");
       caixa.className = "ms-ico";
       caixa.setAttribute("aria-hidden", "true");
       caixa.innerHTML = svg; // constante do pacote, dentro do shadow root
       el.appendChild(caixa);
       if (rotulo && !soIcone) {
-        var rot = document.createElement("span");
+        const rot = document.createElement("span");
         rot.className = "ms-rot";
         rot.textContent = rotulo;
         el.appendChild(rot);
@@ -1332,7 +1378,7 @@
     garantirHost();
     removerBotao(spec.id); // idempotente: re-registrar substitui
 
-    var el = document.createElement("button");
+    const el = document.createElement("button");
     el.type = "button";
     el.className = "ms-btn";
     if (spec.variante === "icone") el.classList.add("ms-btn-icone");
@@ -1341,7 +1387,7 @@
     pintarConteudoBotao(el, spec.icone, spec.rotulo, spec.variante);
     if (typeof spec.aoClicar === "function") el.addEventListener("click", spec.aoClicar);
 
-    var registro = {
+    const registro = {
       id: spec.id,
       prioridade: typeof spec.prioridade === "number" ? spec.prioridade : 100,
       el: el,
@@ -1356,7 +1402,7 @@
         /* Preserva o contador: textContent apagaria o badge junto, e um
          * modulo que use os dois (icone que muda + contador) perderia o
          * numero na primeira troca de icone. */
-        var badge = el.querySelector(".ms-badge");
+        const badge = el.querySelector(".ms-badge");
         el.textContent = rotulo ? icone + " " + rotulo : icone;
         if (badge) el.appendChild(badge);
         reposicionarToast();
@@ -1376,13 +1422,13 @@
       },
       /* Contador no canto do botao. Passe 0 (ou nada) para esconder. */
       definirContador: function (n) {
-        var badge = el.querySelector(".ms-badge");
+        let badge = el.querySelector(".ms-badge");
         if (!badge) {
           badge = document.createElement("span");
           badge.className = "ms-badge";
           el.appendChild(badge);
         }
-        var valor = Number(n) || 0;
+        const valor = Number(n) || 0;
         badge.textContent = valor > 99 ? "99+" : String(valor);
         badge.hidden = valor <= 0;
       },
@@ -1405,7 +1451,7 @@
   }
 
   function removerBotao(id) {
-    for (var i = botoes.length - 1; i >= 0; i--) {
+    for (let i = botoes.length - 1; i >= 0; i--) {
       if (botoes[i].id === id) {
         if (botoes[i].el.parentNode) botoes[i].el.parentNode.removeChild(botoes[i].el);
         botoes.splice(i, 1);
@@ -1454,12 +1500,12 @@
   function criarOverlay(opcoes) {
     garantirHost();
     opcoes = opcoes || {};
-    var overlay = document.createElement("div");
+    const overlay = document.createElement("div");
     overlay.className = "ms-overlay";
     overlay.hidden = true;
 
     if (opcoes.estilo) {
-      var st = document.createElement("style");
+      const st = document.createElement("style");
       st.textContent = opcoes.estilo;
       shadow.appendChild(st);
       overlay.__estilo = st;
@@ -1509,7 +1555,7 @@
    * modulo so liga e desliga. */
   function criarMolduraAlerta() {
     garantirHost();
-    var moldura = document.createElement("div");
+    const moldura = document.createElement("div");
     moldura.className = "ms-moldura-alerta";
     moldura.hidden = true;
     shadow.appendChild(moldura);
@@ -1524,7 +1570,7 @@
    * nucleo — o modulo so diz o texto e o que o botao faz. */
   function criarBanner(html) {
     garantirHost();
-    var banner = document.createElement("div");
+    const banner = document.createElement("div");
     banner.className = "ms-banner";
     banner.hidden = true;
     banner.innerHTML = html;
@@ -1563,7 +1609,7 @@
     garantirHost();
     spec = spec || {};
 
-    var el = document.createElement("div");
+    const el = document.createElement("div");
     function classes(s) {
       /* destaque: "atencao" -> ambar, pulsando 3x ao aparecer;
        * "atencao-calmo" -> ambar, parado (ver CSS). */
@@ -1576,7 +1622,7 @@
       if (s.topo && elTopo) return elTopo;
       return elAvisos;
     }
-    var timer = null;
+    let timer = null;
 
     function render(s) {
       el.innerHTML =
@@ -1588,7 +1634,7 @@
       el.querySelector(".ms-aviso-titulo").textContent = s.titulo || "";
       // textContent, nunca innerHTML: o corpo pode carregar nome de
       // paciente, e nome nao pode virar HTML
-      var corpo = el.querySelector(".ms-aviso-corpo");
+      const corpo = el.querySelector(".ms-aviso-corpo");
       corpo.textContent = "";
       (Array.isArray(s.corpo) ? s.corpo : [s.corpo || ""]).forEach(function (linha, i) {
         if (i > 0) corpo.appendChild(document.createElement("br"));
@@ -1597,10 +1643,10 @@
 
       el.querySelector(".ms-aviso-fechar").addEventListener("click", fechar);
 
-      var caixa = el.querySelector(".ms-aviso-acoes");
+      const caixa = el.querySelector(".ms-aviso-acoes");
       if (caixa) {
         (s.acoes || []).forEach(function (acao) {
-          var b = document.createElement("button");
+          const b = document.createElement("button");
           b.type = "button";
           b.className = "ms-aviso-btn" + (acao.primario === false ? " ms-aviso-btn-sec" : "");
           b.textContent = acao.rotulo;
@@ -1651,7 +1697,7 @@
   /* Ponto de extensao para conteudo solto no shadow do nucleo (raro). */
   function adicionarEstilo(css) {
     garantirHost();
-    var st = document.createElement("style");
+    const st = document.createElement("style");
     st.textContent = css;
     shadow.appendChild(st);
     return st;
@@ -1723,7 +1769,7 @@
 (function (raiz) {
   "use strict";
 
-  var doc = typeof document !== "undefined" ? document : null;
+  const doc = typeof document !== "undefined" ? document : null;
 
   /* ------------------------------------------------------------------
    * ONDE ESTA A ATENCAO DO MEDICO
@@ -1742,7 +1788,7 @@
 
   function aoMudarAtencao(fn) {
     if (!doc || typeof fn !== "function") return function () {};
-    var mao = function () { fn(ondeEstaOMedico()); };
+    const mao = function () { fn(ondeEstaOMedico()); };
     doc.addEventListener("visibilitychange", mao);
     raiz.addEventListener("focus", mao);
     raiz.addEventListener("blur", mao);
@@ -1762,10 +1808,10 @@
    * reescreve o titulo ao navegar — sem ele, o contador sumiria na
    * primeira troca de tela.
    * ------------------------------------------------------------------ */
-  var PREFIXO_RX = /^\((\d+)\)\s+/;
-  var tituloLimpo = null;
-  var contagemNoTitulo = 0;
-  var reaplicador = null;
+  const PREFIXO_RX = /^\((\d+)\)\s+/;
+  let tituloLimpo = null;
+  let contagemNoTitulo = 0;
+  let reaplicador = null;
 
   function semPrefixo(texto) {
     return String(texto || "").replace(PREFIXO_RX, "");
@@ -1773,7 +1819,7 @@
 
   function aplicarTitulo() {
     if (!doc) return;
-    var desejado = contagemNoTitulo > 0 ? "(" + contagemNoTitulo + ") " + tituloLimpo : tituloLimpo;
+    const desejado = contagemNoTitulo > 0 ? "(" + contagemNoTitulo + ") " + tituloLimpo : tituloLimpo;
     if (doc.title !== desejado) doc.title = desejado;
   }
 
@@ -1782,7 +1828,7 @@
     if (tituloLimpo === null) tituloLimpo = semPrefixo(doc.title);
     /* Se a SPA trocou o titulo por conta propria, o novo titulo e que
      * vale — so tiramos o nosso prefixo antes de guardar. */
-    var atualSemPrefixo = semPrefixo(doc.title);
+    const atualSemPrefixo = semPrefixo(doc.title);
     if (atualSemPrefixo && atualSemPrefixo !== tituloLimpo) tituloLimpo = atualSemPrefixo;
 
     contagemNoTitulo = contagem > 0 ? contagem : 0;
@@ -1806,12 +1852,12 @@
    * Desenhado no canvas. A aba do Meeds costuma estar de fundo, e o
    * favicone e a unica parte dela que continua visivel na barra de abas.
    * ------------------------------------------------------------------ */
-  var faviconeOriginal = null;
-  var linkFavicone = null;
+  let faviconeOriginal = null;
+  let linkFavicone = null;
 
   function acharOuCriarLinkFavicone() {
     if (!doc) return null;
-    var link = doc.querySelector('link[rel~="icon"]');
+    let link = doc.querySelector('link[rel~="icon"]');
     if (!link) {
       link = doc.createElement("link");
       link.rel = "icon";
@@ -1822,11 +1868,11 @@
 
   function desenharFavicone(contagem) {
     try {
-      var lado = 64;
-      var canvas = doc.createElement("canvas");
+      const lado = 64;
+      const canvas = doc.createElement("canvas");
       canvas.width = lado;
       canvas.height = lado;
-      var ctx = canvas.getContext("2d");
+      const ctx = canvas.getContext("2d");
       if (!ctx) return null;
 
       /* Fundo neutro: nao tentamos redesenhar o favicone do Meeds por
@@ -1844,7 +1890,7 @@
       ctx.arc(lado / 2, lado / 2, lado / 2 - 4, 0, Math.PI * 2);
       ctx.fill();
 
-      var texto = contagem > 99 ? "99+" : String(contagem);
+      const texto = contagem > 99 ? "99+" : String(contagem);
       ctx.fillStyle = "#ffffff";
       ctx.font = "bold " + (texto.length > 2 ? 26 : 38) + "px system-ui, sans-serif";
       ctx.textAlign = "center";
@@ -1863,7 +1909,7 @@
       linkFavicone = linkFavicone || acharOuCriarLinkFavicone();
       if (!linkFavicone) return;
       if (faviconeOriginal === null) faviconeOriginal = linkFavicone.getAttribute("href") || "";
-      var url = desenharFavicone(contagem);
+      const url = desenharFavicone(contagem);
       if (url) linkFavicone.setAttribute("href", url);
     } catch (e) {
       /* silencioso: favicone e reforco, nunca pode quebrar a pagina */
@@ -1893,7 +1939,7 @@
    * cada funcao degrada em silencio, e o alarme na tela continua sendo o
    * canal principal.
    * ------------------------------------------------------------------ */
-  var TAG_PADRAO = "meeds-suite";
+  const TAG_PADRAO = "meeds-suite";
 
   function suportaNotificacao() {
     return typeof raiz.Notification === "function";
@@ -1909,7 +1955,7 @@
     if (raiz.Notification.permission === "granted") return Promise.resolve(true);
     if (raiz.Notification.permission === "denied") return Promise.resolve(false);
     try {
-      var r = raiz.Notification.requestPermission();
+      const r = raiz.Notification.requestPermission();
       /* Safari antigo usa callback em vez de promessa. */
       if (r && typeof r.then === "function") {
         return r.then(function (p) { return p === "granted"; }).catch(function () { return false; });
@@ -1923,10 +1969,10 @@
   }
 
   function notificar(opcoes) {
-    var o = opcoes || {};
+    const o = opcoes || {};
     if (permissaoDeNotificacao() !== "granted") return null;
     try {
-      var n = new raiz.Notification(o.titulo || "Assistente Meeds", {
+      const n = new raiz.Notification(o.titulo || "Assistente Meeds", {
         body: o.corpo || "",
         tag: o.tag || TAG_PADRAO,
         renotify: true,
@@ -1964,8 +2010,8 @@
    * nome de paciente. A janela pode ficar aberta atras de outras e
    * aparecer em compartilhamento de tela.
    * ------------------------------------------------------------------ */
-  var NOME_DA_JANELA = "meeds-aviso-fila";
-  var janelaAviso = null;
+  const NOME_DA_JANELA = "meeds-aviso-fila";
+  let janelaAviso = null;
 
   /* ------------------------------------------------------------------
    * iPad / iPhone: a janela nao existe, e nao adianta pedir permissao
@@ -1985,9 +2031,9 @@
    * um ponto de toque — mesma deteccao que a previa do PDF ja usa.
    * ------------------------------------------------------------------ */
   function ehIOS() {
-    var ua = (raiz.navigator && raiz.navigator.userAgent) || "";
+    const ua = (raiz.navigator && raiz.navigator.userAgent) || "";
     if (/Windows|Android/.test(ua)) return false;
-    var pareceApple = /iPad|iPhone|iPod|Macintosh/.test(ua);
+    const pareceApple = /iPad|iPhone|iPod|Macintosh/.test(ua);
     return pareceApple && ((raiz.navigator && raiz.navigator.maxTouchPoints) || 0) > 1;
   }
 
@@ -2004,13 +2050,13 @@
   }
 
   function abrirJanelaDeAviso(opcoes) {
-    var o = opcoes || {};
+    const o = opcoes || {};
     if (!suportaJanela()) return null;
-    var largura = 400, altura = 230;
-    var esq = Math.max(0, (raiz.screen && raiz.screen.width ? raiz.screen.width - largura - 30 : 40));
-    var topo = 60;
+    const largura = 400, altura = 230;
+    const esq = Math.max(0, (raiz.screen && raiz.screen.width ? raiz.screen.width - largura - 30 : 40));
+    const topo = 60;
 
-    var j;
+    let j;
     try {
       j = raiz.open(
         "",
@@ -2071,9 +2117,9 @@
    * perdido. O bloqueio cai sozinho quando a aba vai para o fundo, entao
    * ele e reconquistado quando ela volta.
    * ------------------------------------------------------------------ */
-  var travaTela = null;
-  var querTelaAcesa = false;
-  var vigiaTela = null;
+  let travaTela = null;
+  let querTelaAcesa = false;
+  let vigiaTela = null;
 
   function suportaTelaAcesa() {
     return !!(raiz.navigator && raiz.navigator.wakeLock && raiz.navigator.wakeLock.request);
@@ -2123,11 +2169,11 @@
    * de 3x cobre com folga o afunilamento normal de aba de fundo (que no
    * Chromium vai a um disparo por minuto) sem acusar falso positivo.
    * ------------------------------------------------------------------ */
-  var INTERVALO_PULSO_MS = 30000;
-  var TOLERANCIA_PULSO = 3;
-  var ultimoPulso = 0;
-  var pulso = null;
-  var ouvintesSuspensao = [];
+  const INTERVALO_PULSO_MS = 30000;
+  const TOLERANCIA_PULSO = 3;
+  let ultimoPulso = 0;
+  let pulso = null;
+  let ouvintesSuspensao = [];
 
   function aoAcordarDeSuspensao(fn) {
     if (typeof fn !== "function") return function () {};
@@ -2135,8 +2181,8 @@
     if (!pulso) {
       ultimoPulso = Date.now();
       pulso = setInterval(function () {
-        var agora = Date.now();
-        var atraso = agora - ultimoPulso;
+        const agora = Date.now();
+        const atraso = agora - ultimoPulso;
         ultimoPulso = agora;
         if (atraso <= INTERVALO_PULSO_MS * TOLERANCIA_PULSO) return;
         ouvintesSuspensao.forEach(function (o) {
@@ -2157,8 +2203,8 @@
    * MARCAR / LIMPAR — os dois unicos que um modulo costuma chamar
    * ------------------------------------------------------------------ */
   function marcar(opcoes) {
-    var o = opcoes || {};
-    var contagem = parseInt(o.contagem, 10) || 0;
+    const o = opcoes || {};
+    const contagem = parseInt(o.contagem, 10) || 0;
     marcarTitulo(contagem);
     if (contagem > 0) marcarFavicone(contagem);
     else limparFavicone();
@@ -2239,9 +2285,12 @@
 (function (raiz) {
   "use strict";
 
-  var instalado = false;
-  var proximoId = 1;
-  var assinaturas = []; // { id, regex, metodos, callback, idModulo }
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
+  let instalado = false;
+  let proximoId = 1;
+  const assinaturas = []; // { id, regex, metodos, callback, idModulo }
 
   function normalizarMetodos(metodos) {
     if (!metodos || !metodos.length) return null; // null = qualquer metodo
@@ -2253,7 +2302,7 @@
   /* assinar({ regex, metodos, idModulo }, callback)
    * callback recebe { url, metodo, status, corpo, json() } */
   function assinar(spec, callback) {
-    var registro = {
+    const registro = {
       id: proximoId++,
       regex: spec.regex,
       metodos: normalizarMetodos(spec.metodos),
@@ -2262,24 +2311,24 @@
     };
     assinaturas.push(registro);
     return function cancelar() {
-      for (var i = assinaturas.length - 1; i >= 0; i--) {
+      for (let i = assinaturas.length - 1; i >= 0; i--) {
         if (assinaturas[i].id === registro.id) assinaturas.splice(i, 1);
       }
     };
   }
 
   function cancelarPorModulo(idModulo) {
-    for (var i = assinaturas.length - 1; i >= 0; i--) {
+    for (let i = assinaturas.length - 1; i >= 0; i--) {
       if (assinaturas[i].idModulo === idModulo) assinaturas.splice(i, 1);
     }
   }
 
   function interessadosEm(url, metodo) {
-    var saida = [];
-    for (var i = 0; i < assinaturas.length; i++) {
-      var a = assinaturas[i];
+    const saida = [];
+    for (let i = 0; i < assinaturas.length; i++) {
+      const a = assinaturas[i];
       if (a.metodos && a.metodos.indexOf(metodo) === -1) continue;
-      var bate = false;
+      let bate = false;
       try {
         bate = a.regex.test(url);
       } catch (e) {
@@ -2294,19 +2343,19 @@
   }
 
   function publicar(alvos, evento) {
-    for (var i = 0; i < alvos.length; i++) {
+    for (let i = 0; i < alvos.length; i++) {
       try {
         alvos[i].callback(evento);
       } catch (e) {
         // um assinante quebrado nunca pode derrubar os outros nem a pagina
-        console.warn("[Assistente Meeds] assinante de rede falhou:", alvos[i].idModulo, e);
+        LOG.warn("[Assistente Meeds] assinante de rede falhou:", alvos[i].idModulo, e);
       }
     }
   }
 
   function montarEvento(url, metodo, status, corpoTexto) {
-    var jsonCache;
-    var jsonParseado = false;
+    let jsonCache;
+    let jsonParseado = false;
     return {
       url: url,
       metodo: metodo,
@@ -2333,8 +2382,8 @@
     instalado = true;
 
     /* --- XMLHttpRequest --- */
-    var xhrOpenOriginal = XMLHttpRequest.prototype.open;
-    var xhrSendOriginal = XMLHttpRequest.prototype.send;
+    const xhrOpenOriginal = XMLHttpRequest.prototype.open;
+    const xhrSendOriginal = XMLHttpRequest.prototype.send;
 
     XMLHttpRequest.prototype.open = function (metodo, url) {
       this.__msMetodo = metodo;
@@ -2345,9 +2394,9 @@
     XMLHttpRequest.prototype.send = function () {
       this.addEventListener("load", function () {
         try {
-          var metodo = String(this.__msMetodo || "GET").toUpperCase();
-          var url = this.__msUrl || "";
-          var alvos = interessadosEm(url, metodo);
+          const metodo = String(this.__msMetodo || "GET").toUpperCase();
+          const url = this.__msUrl || "";
+          const alvos = interessadosEm(url, metodo);
           if (!alvos.length) return; // ninguem quer: nem le o corpo
           publicar(alvos, montarEvento(url, metodo, this.status, this.responseText));
         } catch (e) {
@@ -2359,10 +2408,10 @@
 
     /* --- fetch --- */
     if (typeof raiz.fetch === "function") {
-      var fetchOriginal = raiz.fetch;
+      const fetchOriginal = raiz.fetch;
       raiz.fetch = function (input, init) {
-        var url = "";
-        var metodo = "GET";
+        let url = "";
+        let metodo = "GET";
         try {
           url = typeof input === "string" ? input : (input && input.url) || "";
           metodo = String((init && init.method) || (input && input.method) || "GET").toUpperCase();
@@ -2370,9 +2419,9 @@
           /* segue com os padroes */
         }
 
-        var promessa = fetchOriginal.apply(this, arguments);
+        const promessa = fetchOriginal.apply(this, arguments);
 
-        var alvos = interessadosEm(url, metodo);
+        const alvos = interessadosEm(url, metodo);
         if (alvos.length) {
           promessa
             .then(function (resposta) {
@@ -2478,17 +2527,17 @@
 (function (raiz) {
   "use strict";
 
-  var JANELA_MS = 20 * 60 * 1000; // so o que aconteceu nos ultimos 20 min
-  var LIMITE_REDE = 60;
-  var LIMITE_CONSOLE = 60;
-  var LIMITE_CORPO = 500; // caracteres por corpo de resposta, truncado
-  var LIMITE_LINHA_CONSOLE = 500;
+  const JANELA_MS = 20 * 60 * 1000; // so o que aconteceu nos ultimos 20 min
+  const LIMITE_REDE = 60;
+  const LIMITE_CONSOLE = 60;
+  const LIMITE_CORPO = 500; // caracteres por corpo de resposta, truncado
+  const LIMITE_LINHA_CONSOLE = 500;
 
-  var redeBuffer = [];
-  var consoleBuffer = [];
-  var totalChamadas = 0;
-  var totalFalhas = 0;
-  var instalado = false;
+  const redeBuffer = [];
+  const consoleBuffer = [];
+  let totalChamadas = 0;
+  let totalFalhas = 0;
+  let instalado = false;
 
   /* Mascara qualquer sequencia longa de digito — CPF (11), CNS (15),
    * CNES (7), telefone, data numerica. Mantem so as pontas, para quem le
@@ -2502,12 +2551,12 @@
   }
 
   function truncar(texto, limite) {
-    var s = String(texto == null ? "" : texto);
+    const s = String(texto == null ? "" : texto);
     return s.length > limite ? s.slice(0, limite) + "… (+" + (s.length - limite) + " car.)" : s;
   }
 
   function podar(lista) {
-    var limite = Date.now() - JANELA_MS;
+    const limite = Date.now() - JANELA_MS;
     while (lista.length && lista[0].ts < limite) lista.shift();
   }
 
@@ -2520,7 +2569,7 @@
       { regex: /.*/, idModulo: "diagnostico-tecnico" },
       function (evt) {
         totalChamadas++;
-        var falhou = evt.status === 0 || evt.status >= 400;
+        const falhou = evt.status === 0 || evt.status >= 400;
         if (falhou) totalFalhas++;
         redeBuffer.push({
           ts: Date.now(),
@@ -2541,11 +2590,11 @@
    * ------------------------------------------------------------------ */
   function instalarEscutaDeConsole() {
     ["log", "info", "debug", "warn", "error"].forEach(function (nivel) {
-      var original = console[nivel];
+      const original = console[nivel];
       if (typeof original !== "function") return;
       console[nivel] = function () {
         try {
-          var texto = Array.prototype.slice
+          const texto = Array.prototype.slice
             .call(arguments)
             .map(function (a) {
               if (typeof a === "string") return a;
@@ -2582,18 +2631,18 @@
    * MONTAGEM DO TEXTO
    * ------------------------------------------------------------------ */
   function navegadorCurto() {
-    var ua = (raiz.navigator && raiz.navigator.userAgent) || "";
-    var nome = /Edg\//.test(ua) ? "Edge"
+    const ua = (raiz.navigator && raiz.navigator.userAgent) || "";
+    const nome = /Edg\//.test(ua) ? "Edge"
       : /Chrome\//.test(ua) ? "Chrome"
       : /Firefox\//.test(ua) ? "Firefox"
       : /Safari\//.test(ua) ? "Safari"
       : "navegador desconhecido";
-    var sistema = /Windows/.test(ua) ? "Windows" : /Mac OS/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : "";
+    const sistema = /Windows/.test(ua) ? "Windows" : /Mac OS/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : "";
     return [nome, sistema].filter(Boolean).join(" · ");
   }
 
   function horaCurta(ts) {
-    var d = new Date(ts);
+    const d = new Date(ts);
     function p2(n) { return String(n).padStart(2, "0"); }
     return p2(d.getHours()) + ":" + p2(d.getMinutes()) + ":" + p2(d.getSeconds());
   }
@@ -2602,15 +2651,15 @@
     podar(redeBuffer);
     podar(consoleBuffer);
 
-    var linhas = [];
+    const linhas = [];
     linhas.push("Assistente Meeds — diagnóstico técnico (uso interno)");
     linhas.push("Versão " + (ctx.versao || "?") + " · gerado em " + new Date().toLocaleString("pt-BR"));
 
-    var funcoes = (ctx.modulos || []).filter(function (m) { return m.habilitado; }).map(function (m) { return m.nome; });
+    const funcoes = (ctx.modulos || []).filter(function (m) { return m.habilitado; }).map(function (m) { return m.nome; });
     linhas.push("Funções ligadas: " + (funcoes.join(", ") || "nenhuma"));
     linhas.push("Navegador: " + navegadorCurto());
 
-    var diag = raiz.MeedsSuiteDiagnostico;
+    const diag = raiz.MeedsSuiteDiagnostico;
     if (diag && typeof diag.escopoDeExecucao === "function") {
       linhas.push(
         "Execução: " +
@@ -2662,7 +2711,7 @@
    * ------------------------------------------------------------------ */
   function copiarFallback(texto, aoCopiar, aoFalhar) {
     try {
-      var ta = document.createElement("textarea");
+      const ta = document.createElement("textarea");
       ta.value = texto;
       ta.style.position = "fixed";
       ta.style.opacity = "0";
@@ -2677,7 +2726,7 @@
   }
 
   function copiar(ctx, aoCopiar, aoFalhar) {
-    var texto = montarRelatorio(ctx);
+    const texto = montarRelatorio(ctx);
     if (raiz.navigator && raiz.navigator.clipboard && raiz.navigator.clipboard.writeText) {
       raiz.navigator.clipboard.writeText(texto).then(aoCopiar, function () {
         copiarFallback(texto, aoCopiar, aoFalhar);
@@ -2742,10 +2791,10 @@
    * document.querySelectorAll('body *') de novo a cada rotulo, o que em
    * telas grandes custava caro. */
   function coletarFolhas() {
-    var folhas = [];
+    const folhas = [];
     try {
-      var todos = document.querySelectorAll("body *");
-      for (var i = 0; i < todos.length; i++) {
+      const todos = document.querySelectorAll("body *");
+      for (let i = 0; i < todos.length; i++) {
         if (todos[i].children.length === 0) folhas.push(todos[i]);
       }
     } catch (e) {
@@ -2762,16 +2811,16 @@
    * lista de variantes e devolve a primeira que casar — mesma estrategia
    * do CMD, agora com normalizacao de acento embutida. */
   function lerValorPorRotulo(variantes, folhasOpcional) {
-    var lista = Array.isArray(variantes) ? variantes : [variantes];
-    var folhas = folhasOpcional || coletarFolhas();
+    const lista = Array.isArray(variantes) ? variantes : [variantes];
+    const folhas = folhasOpcional || coletarFolhas();
 
-    for (var v = 0; v < lista.length; v++) {
-      var alvo = normalizarTexto(lista[v]);
+    for (let v = 0; v < lista.length; v++) {
+      const alvo = normalizarTexto(lista[v]);
       if (!alvo) continue;
-      for (var i = 0; i < folhas.length; i++) {
-        var el = folhas[i];
+      for (let i = 0; i < folhas.length; i++) {
+        const el = folhas[i];
         if (normalizarTexto(textoDe(el)) !== alvo) continue;
-        var prox = el.nextElementSibling;
+        let prox = el.nextElementSibling;
         if (!prox && el.parentElement) prox = el.parentElement.nextElementSibling;
         if (prox && textoDe(prox)) return textoDe(prox);
       }
@@ -2786,19 +2835,19 @@
    * comparar o nome da unidade inteiro. innerText respeita a quebra de
    * linha que a tela mostra. Devolve null se nao achar o rotulo. */
   function lerLinhasPorRotulo(variantes, folhasOpcional) {
-    var lista = Array.isArray(variantes) ? variantes : [variantes];
-    var folhas = folhasOpcional || coletarFolhas();
-    for (var v = 0; v < lista.length; v++) {
-      var alvo = normalizarTexto(lista[v]);
+    const lista = Array.isArray(variantes) ? variantes : [variantes];
+    const folhas = folhasOpcional || coletarFolhas();
+    for (let v = 0; v < lista.length; v++) {
+      const alvo = normalizarTexto(lista[v]);
       if (!alvo) continue;
-      for (var i = 0; i < folhas.length; i++) {
-        var el = folhas[i];
+      for (let i = 0; i < folhas.length; i++) {
+        const el = folhas[i];
         if (normalizarTexto(textoDe(el)) !== alvo) continue;
-        var prox = el.nextElementSibling;
+        let prox = el.nextElementSibling;
         if (!prox && el.parentElement) prox = el.parentElement.nextElementSibling;
         if (!prox) continue;
-        var bruto = typeof prox.innerText === "string" && prox.innerText ? prox.innerText : textoDe(prox);
-        var linhas = String(bruto)
+        const bruto = typeof prox.innerText === "string" && prox.innerText ? prox.innerText : textoDe(prox);
+        const linhas = String(bruto)
           .split(/\n+/)
           .map(function (l) { return l.trim(); })
           .filter(Boolean);
@@ -2811,14 +2860,14 @@
   /* Procura um texto exato isolado na tela (ex: "Masculino"/"Feminino").
    * Devolve o primeiro valor mapeado que aparecer. */
   function lerPorTextoExato(mapa, folhasOpcional) {
-    var folhas = folhasOpcional || coletarFolhas();
-    var chaves = Object.keys(mapa).map(function (k) {
+    const folhas = folhasOpcional || coletarFolhas();
+    const chaves = Object.keys(mapa).map(function (k) {
       return { normalizado: normalizarTexto(k), valor: mapa[k] };
     });
-    for (var i = 0; i < folhas.length; i++) {
-      var t = normalizarTexto(textoDe(folhas[i]));
+    for (let i = 0; i < folhas.length; i++) {
+      const t = normalizarTexto(textoDe(folhas[i]));
       if (!t) continue;
-      for (var j = 0; j < chaves.length; j++) {
+      for (let j = 0; j < chaves.length; j++) {
         if (t === chaves[j].normalizado) return chaves[j].valor;
       }
     }
@@ -2829,46 +2878,46 @@
    * E como os tres geradores acham o nome do paciente: o nome fica logo
    * antes da linha "NN anos e MM meses" no cartao do paciente. */
   function lerAnteriorAoPadrao(regex, folhasOpcional) {
-    var folhas = folhasOpcional || coletarFolhas();
-    for (var i = 0; i < folhas.length; i++) {
-      var t = textoDe(folhas[i]);
+    const folhas = folhasOpcional || coletarFolhas();
+    for (let i = 0; i < folhas.length; i++) {
+      const t = textoDe(folhas[i]);
       if (!t || !regex.test(t)) continue;
-      var ant = folhas[i].previousElementSibling;
+      let ant = folhas[i].previousElementSibling;
       if (!ant && folhas[i].parentElement) ant = folhas[i].parentElement.previousElementSibling;
-      var texto = ant && textoDe(ant);
+      const texto = ant && textoDe(ant);
       if (texto && texto.length > 2 && !/^\d/.test(texto)) return texto;
       return null;
     }
     return null;
   }
 
-  var numeroPuroRx = /^\d{1,4}$/;
+  const numeroPuroRx = /^\d{1,4}$/;
 
   /* Contador numerico associado a um rotulo (ex: o card "Aguardando" do
    * dashboard). REGRA HERDADA DO ALARME DE FILA, agora no nucleo: se
    * houver mais de uma leitura candidata e elas nao baterem entre si,
    * devolve null — preferimos NAO decidir a arriscar um falso disparo. */
   function lerContadorPorRotulo(variantes, folhasOpcional) {
-    var lista = Array.isArray(variantes) ? variantes : [variantes];
-    var folhas = folhasOpcional || coletarFolhas();
-    var normalizadas = lista.map(normalizarTexto);
+    const lista = Array.isArray(variantes) ? variantes : [variantes];
+    const folhas = folhasOpcional || coletarFolhas();
+    const normalizadas = lista.map(normalizarTexto);
 
-    var rotulos = folhas.filter(function (el) {
+    const rotulos = folhas.filter(function (el) {
       return normalizadas.indexOf(normalizarTexto(textoDe(el))) !== -1;
     });
     if (rotulos.length === 0) return null;
 
-    var leituras = {};
-    var quantas = 0;
+    const leituras = {};
+    let quantas = 0;
     rotulos.forEach(function (rotulo) {
-      var pai = rotulo.parentElement;
+      const pai = rotulo.parentElement;
       if (!pai) return;
-      for (var i = 0; i < pai.children.length; i++) {
-        var irmao = pai.children[i];
+      for (let i = 0; i < pai.children.length; i++) {
+        const irmao = pai.children[i];
         if (irmao === rotulo) continue;
-        var t = textoDe(irmao);
+        const t = textoDe(irmao);
         if (numeroPuroRx.test(t)) {
-          var n = parseInt(t, 10);
+          const n = parseInt(t, 10);
           if (!(n in leituras)) {
             leituras[n] = true;
             quantas++;
@@ -2895,7 +2944,7 @@
    * APAC/LME/CMD faziam separado. Devolve so o que conseguiu ler; nunca
    * inventa valor. Os campos ficam em memoria e vao direto para o
    * formulario — nada e gravado em disco. */
-  var VARIANTES = {
+  const VARIANTES = {
     nascimento: ["Data de Nascimento", "Data de nascimento", "Nascimento", "Dt. Nascimento"],
     cpf: ["CPF", "C.P.F.", "CPF do paciente"],
     /* "Parentesco" confirmado pela sonda em 22/09/2026 (relatorio real
@@ -2909,37 +2958,37 @@
     telefone: ["Telefone", "Celular", "Contato"],
   };
 
-  var RX_IDADE = /^\d+\s*anos?(\s+e\s+\d+\s*m[eê]s(es)?)?$/i;
+  const RX_IDADE = /^\d+\s*anos?(\s+e\s+\d+\s*m[eê]s(es)?)?$/i;
 
   function lerPaciente() {
-    var folhas = coletarFolhas();
-    var out = {};
+    const folhas = coletarFolhas();
+    const out = {};
 
-    var nascimento = lerValorPorRotulo(VARIANTES.nascimento, folhas);
+    const nascimento = lerValorPorRotulo(VARIANTES.nascimento, folhas);
     if (nascimento) {
-      var m = nascimento.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+      const m = nascimento.match(/(\d{2})\/(\d{2})\/(\d{4})/);
       if (m) {
         out.nascimentoBR = m[1] + "/" + m[2] + "/" + m[3]; // dd/mm/aaaa (LME, CMD)
         out.nascimentoISO = m[3] + "-" + m[2] + "-" + m[1]; // aaaa-mm-dd (APAC, input date)
       }
     }
 
-    var cpf = lerValorPorRotulo(VARIANTES.cpf, folhas);
+    const cpf = lerValorPorRotulo(VARIANTES.cpf, folhas);
     if (cpf) out.cpf = cpf.replace(/\D/g, "");
 
-    var mae = lerValorPorRotulo(VARIANTES.mae, folhas);
+    const mae = lerValorPorRotulo(VARIANTES.mae, folhas);
     if (mae) out.nomeDaMae = mae;
 
-    var telefone = lerValorPorRotulo(VARIANTES.telefone, folhas);
+    const telefone = lerValorPorRotulo(VARIANTES.telefone, folhas);
     if (telefone) out.telefone = telefone;
 
     // sexo: le a PALAVRA exibida na tela, nao um enum de API. Decisao
     // herdada do APAC, onde o enum nunca pode ser confirmado com um caso
     // feminino real — a palavra na tela e o dado mais confiavel.
-    var sexo = lerPorTextoExato({ Masculino: "M", Feminino: "F" }, folhas);
+    const sexo = lerPorTextoExato({ Masculino: "M", Feminino: "F" }, folhas);
     if (sexo) out.sexo = sexo;
 
-    var nome = lerAnteriorAoPadrao(RX_IDADE, folhas);
+    const nome = lerAnteriorAoPadrao(RX_IDADE, folhas);
     if (nome) out.nome = nome;
 
     return out;
@@ -2985,7 +3034,7 @@
 (function (raiz) {
   "use strict";
 
-  var PESOS_PADRAO = {
+  const PESOS_PADRAO = {
     rede: 1.0,      // resposta da propria API: o dado mais forte
     toast: 0.8,     // a plataforma decidiu que isso e um evento novo
     dom_contador: 0.6, // leitura de tela: bom reforco, sozinho e fraco
@@ -3000,10 +3049,10 @@
    *    (generaliza o LIMITE_FRESCOR_DOM_MS do alarme). */
   function criarDecisor(opcoes) {
     opcoes = opcoes || {};
-    var limiar = typeof opcoes.limiar === "number" ? opcoes.limiar : 1.0;
-    var validadeMs = typeof opcoes.validadeMs === "number" ? opcoes.validadeMs : 12000;
-    var pesos = Object.assign({}, PESOS_PADRAO, opcoes.pesos || {});
-    var votos = {}; // fonte -> { valor, peso, em }
+    let limiar = typeof opcoes.limiar === "number" ? opcoes.limiar : 1.0;
+    const validadeMs = typeof opcoes.validadeMs === "number" ? opcoes.validadeMs : 12000;
+    const pesos = Object.assign({}, PESOS_PADRAO, opcoes.pesos || {});
+    let votos = {}; // fonte -> { valor, peso, em }
 
     function agora() {
       return Date.now();
@@ -3027,10 +3076,10 @@
     }
 
     function votosValidos() {
-      var t = agora();
-      var lista = [];
+      const t = agora();
+      const lista = [];
       Object.keys(votos).forEach(function (fonte) {
-        var v = votos[fonte];
+        const v = votos[fonte];
         if (validadeMs > 0 && t - v.em > validadeMs) return; // sinal velho
         lista.push({ fonte: fonte, valor: v.valor, peso: v.peso, em: v.em });
       });
@@ -3043,18 +3092,18 @@
      * vantagem sobre o segundo colocado tambem chega la (senao a leitura
      * e ambigua — exatamente o caso "dois numeros candidatos"). */
     function decidir() {
-      var lista = votosValidos();
+      const lista = votosValidos();
       if (lista.length === 0) {
         return { valor: null, confianca: 0, decidiu: false, motivo: "sem-sinal", votos: lista };
       }
 
-      var grupos = {};
+      const grupos = {};
       lista.forEach(function (v) {
-        var chave = JSON.stringify(v.valor);
+        const chave = JSON.stringify(v.valor);
         grupos[chave] = (grupos[chave] || 0) + v.peso;
       });
 
-      var ordenados = Object.keys(grupos)
+      const ordenados = Object.keys(grupos)
         .map(function (chave) {
           return { chave: chave, valor: JSON.parse(chave), confianca: grupos[chave] };
         })
@@ -3062,9 +3111,9 @@
           return b.confianca - a.confianca;
         });
 
-      var lider = ordenados[0];
-      var segundo = ordenados[1];
-      var margem = lider.confianca - (segundo ? segundo.confianca : 0);
+      const lider = ordenados[0];
+      const segundo = ordenados[1];
+      const margem = lider.confianca - (segundo ? segundo.confianca : 0);
 
       if (lider.confianca < limiar) {
         return {
@@ -3111,7 +3160,7 @@
    * decidir se houver exatamente UM. E a regra que REMUME (municipio) e
    * alarme (contador) aplicavam na mao. */
   function unicoOuNada(candidatos) {
-    var unicos = [];
+    const unicos = [];
     (candidatos || []).forEach(function (c) {
       if (c === null || c === undefined) return;
       if (unicos.indexOf(c) === -1) unicos.push(c);
@@ -3147,7 +3196,7 @@
    * Assim o campo vai se montando enquanto o medico digita, em vez de
    * so mudar de cara no ultimo caractere. */
   function formatarCpf(valor) {
-    var d = soDigitos(valor).slice(0, 11);
+    const d = soDigitos(valor).slice(0, 11);
     if (d.length <= 3) return d;
     if (d.length <= 6) return d.slice(0, 3) + "." + d.slice(3);
     if (d.length <= 9) return d.slice(0, 3) + "." + d.slice(3, 6) + "." + d.slice(6);
@@ -3169,15 +3218,15 @@
     if (!input.getAttribute("placeholder")) input.setAttribute("placeholder", "000.000.000-00");
 
     input.addEventListener("input", function () {
-      var antes = input.value;
-      var posicao = input.selectionStart;
-      var digitosAntesDoCursor = soDigitos(antes.slice(0, posicao)).length;
+      const antes = input.value;
+      const posicao = input.selectionStart;
+      const digitosAntesDoCursor = soDigitos(antes.slice(0, posicao)).length;
 
       input.value = formatarCpf(antes);
 
       // recoloca o cursor depois do mesmo digito em que ele estava
-      var novaPos = 0;
-      var contados = 0;
+      let novaPos = 0;
+      let contados = 0;
       while (novaPos < input.value.length && contados < digitosAntesDoCursor) {
         if (/\d/.test(input.value[novaPos])) contados++;
         novaPos++;
@@ -3235,7 +3284,7 @@
 (function (raiz) {
   "use strict";
 
-  var Dom = raiz.MeedsSuiteDom;
+  const Dom = raiz.MeedsSuiteDom;
 
   function normalizarTexto(str) {
     return Dom.normalizarTexto(str);
@@ -3253,14 +3302,14 @@
    * na frente das cefaleias. Sao removidas SO do que a pessoa digitou, e
    * so quando sobra alguma palavra util — quem procurar literalmente por
    * "de" ainda encontra. */
-  var PALAVRAS_VAZIAS = [
+  const PALAVRAS_VAZIAS = [
     "de", "da", "do", "das", "dos", "e", "em", "no", "na", "nos", "nas",
     "a", "o", "as", "os", "ao", "aos", "com", "sem", "por", "para", "um", "uma",
   ];
 
   function tokensUteis(str) {
-    var todos = tokenizarTexto(str);
-    var uteis = todos.filter(function (t) {
+    const todos = tokenizarTexto(str);
+    const uteis = todos.filter(function (t) {
       return PALAVRAS_VAZIAS.indexOf(t) === -1;
     });
     return uteis.length ? uteis : todos;
@@ -3274,7 +3323,7 @@
    *   l/u   "mal"  ~ "mau"         m/n   "sim"  ~ "sin"
    *   i/y, v/w, q/k                x/s   "exame" ~ "esame"
    */
-  var PARES_PROXIMOS = {};
+  const PARES_PROXIMOS = {};
   [
     ["s", "z"], ["s", "c"], ["c", "z"], ["c", "k"], ["q", "k"],
     ["g", "j"], ["l", "u"], ["m", "n"], ["i", "y"], ["v", "w"],
@@ -3293,17 +3342,17 @@
    * remocao continuam custando 1: falta ou sobra de letra nao e confusao
    * de grafia. */
   function levenshtein(a, b) {
-    var m = a.length;
-    var n = b.length;
-    var dp = [];
-    for (var i = 0; i <= m; i++) {
+    const m = a.length;
+    const n = b.length;
+    const dp = [];
+    for (let i = 0; i <= m; i++) {
       dp[i] = [];
-      for (var j = 0; j <= n; j++) {
+      for (let j = 0; j <= n; j++) {
         dp[i][j] = i === 0 ? j : j === 0 ? i : 0;
       }
     }
-    for (var x = 1; x <= m; x++) {
-      for (var y = 1; y <= n; y++) {
+    for (let x = 1; x <= m; x++) {
+      for (let y = 1; y <= n; y++) {
         dp[x][y] = Math.min(
           dp[x - 1][y] + 1,
           dp[x][y - 1] + 1,
@@ -3339,9 +3388,9 @@
   function fuzzyScore(query, target) {
     if (query === target) return 1.0;
     if (target.indexOf(query) !== -1) return 0.9;
-    var maxLen = Math.max(query.length, target.length);
+    const maxLen = Math.max(query.length, target.length);
     if (maxLen === 0) return 1;
-    var distancia = levenshtein(query, target);
+    const distancia = levenshtein(query, target);
     if (distancia > limiteDeDistancia(query.length)) return 0;
     return 1 - distancia / maxLen;
   }
@@ -3361,7 +3410,7 @@
     return a.indexOf(b) === 0 || b.indexOf(a) === 0;
   }
 
-  var CONFIG_PADRAO = {
+  const CONFIG_PADRAO = {
     LIMITE_RESULTADOS: 80,
     LIMIAR_FUZZY: 0.6,
     BONUS_COMECA_COM: 0.2,
@@ -3414,7 +3463,7 @@
      * digitado, a frase "dor de cabeca" nunca dispararia: ela exige
      * todas as suas palavras, e o "de" ja tinha sido descartado da
      * digitacao. */
-    var palavras = frase.split(" ").filter(function (p) {
+    const palavras = frase.split(" ").filter(function (p) {
       return p.length > 0 && PALAVRAS_VAZIAS.indexOf(p) === -1;
     });
     if (palavras.length === 0) return false;
@@ -3433,15 +3482,15 @@
   }
 
   function obterFrasesSinonimo(tokensDigitados, sinonimos) {
-    var termoDigitadoCompleto = tokensDigitados.join(" ");
-    var frases = new Set();
+    const termoDigitadoCompleto = tokensDigitados.join(" ");
+    const frases = new Set();
     if (!sinonimos) return [];
 
     Object.keys(sinonimos).forEach(function (chave) {
-      var chaveFrase = normalizarFraseSinonimo(chave);
-      var sinonimosFrases = sinonimos[chave].map(normalizarFraseSinonimo);
+      const chaveFrase = normalizarFraseSinonimo(chave);
+      const sinonimosFrases = sinonimos[chave].map(normalizarFraseSinonimo);
 
-      var disparou =
+      const disparou =
         frasePodeDisparar(chaveFrase, tokensDigitados) ||
         sinonimosFrases.some(function (f) {
           return frasePodeDisparar(f, tokensDigitados);
@@ -3469,12 +3518,12 @@
    * baixa), entao "letra ou digito" basta como definicao de limite. */
   function casaComoPalavra(texto, frase) {
     if (!frase) return false;
-    var i = texto.indexOf(frase);
+    let i = texto.indexOf(frase);
     while (i !== -1) {
-      var antes = i === 0 ? "" : texto.charAt(i - 1);
-      var depois = texto.charAt(i + frase.length);
-      var limiteAntes = !antes || !/[a-z0-9]/.test(antes);
-      var limiteDepois = !depois || !/[a-z0-9]/.test(depois);
+      const antes = i === 0 ? "" : texto.charAt(i - 1);
+      const depois = texto.charAt(i + frase.length);
+      const limiteAntes = !antes || !/[a-z0-9]/.test(antes);
+      const limiteDepois = !depois || !/[a-z0-9]/.test(depois);
       if (limiteAntes && limiteDepois) return true;
       i = texto.indexOf(frase, i + 1);
     }
@@ -3505,29 +3554,29 @@
    * comportamento.
    * ------------------------------------------------------------------ */
   function criarIndice(itens, textoDe) {
-    var lista = itens || [];
-    var n = lista.length;
+    const lista = itens || [];
+    const n = lista.length;
 
-    var originais = new Array(n);
-    var normalizados = new Array(n);
-    var semEspaco = new Array(n);
+    const originais = new Array(n);
+    const normalizados = new Array(n);
+    const semEspaco = new Array(n);
 
     /* palavra distinta -> { itens: [indices em que ela aparece] } */
-    var vocabulario = Object.create(null);
+    const vocabulario = Object.create(null);
 
-    for (var i = 0; i < n; i++) {
-      var item = lista[i];
-      var texto = textoDe ? textoDe(item) : String(item);
-      var norm = normalizarTexto(texto);
+    for (let i = 0; i < n; i++) {
+      const item = lista[i];
+      const texto = textoDe ? textoDe(item) : String(item);
+      const norm = normalizarTexto(texto);
 
       originais[i] = item;
       normalizados[i] = norm;
       semEspaco[i] = norm.replace(/\s+/g, "");
 
-      var tokens = tokenizarTexto(texto);
-      for (var j = 0; j < tokens.length; j++) {
-        var t = tokens[j];
-        var entrada = vocabulario[t];
+      const tokens = tokenizarTexto(texto);
+      for (let j = 0; j < tokens.length; j++) {
+        const t = tokens[j];
+        let entrada = vocabulario[t];
         if (!entrada) entrada = vocabulario[t] = { itens: [] };
         // um item pode repetir a mesma palavra; guardamos so uma vez
         if (entrada.itens[entrada.itens.length - 1] !== i) entrada.itens.push(i);
@@ -3538,10 +3587,10 @@
      * as faixas de tamanho compativel com o que foi digitado — sem isto
      * ela percorria as 8.391 palavras distintas so para descartar quase
      * todas pelo tamanho. */
-    var palavras = Object.keys(vocabulario);
-    var porTamanho = Object.create(null);
-    for (var w = 0; w < palavras.length; w++) {
-      var tam = palavras[w].length;
+    const palavras = Object.keys(vocabulario);
+    const porTamanho = Object.create(null);
+    for (let w = 0; w < palavras.length; w++) {
+      const tam = palavras[w].length;
       (porTamanho[tam] || (porTamanho[tam] = [])).push(palavras[w]);
     }
 
@@ -3570,30 +3619,30 @@
    * ------------------------------------------------------------------ */
   function buscar(termo, indice, opcoes) {
     opcoes = opcoes || {};
-    var cfg = Object.assign({}, CONFIG_PADRAO, opcoes.config || {});
-    var tokens = tokensUteis(termo);
+    const cfg = Object.assign({}, CONFIG_PADRAO, opcoes.config || {});
+    const tokens = tokensUteis(termo);
     if (tokens.length === 0 || !indice || !indice.tamanho) {
       return { itens: [], viaFuzzy: false, melhor: null, total: 0 };
     }
 
-    var n = indice.tamanho;
-    var exata = new Float64Array(n);
-    var fuzzy = new Float64Array(n);
-    var tocado = new Uint8Array(n);
-    var normalizados = indice.normalizados;
+    const n = indice.tamanho;
+    const exata = new Float64Array(n);
+    const fuzzy = new Float64Array(n);
+    const tocado = new Uint8Array(n);
+    const normalizados = indice.normalizados;
 
     /* Itens que SO foram alcancados por palavra generica. Ficam de fora
      * do resultado, a menos que nada mais tenha sido encontrado. */
-    var tocadoGenerico = new Uint8Array(n);
+    const tocadoGenerico = new Uint8Array(n);
 
-    for (var q = 0; q < tokens.length; q++) {
-      var token = tokens[q];
-      var casouExato = new Uint8Array(n);
+    for (let q = 0; q < tokens.length; q++) {
+      const token = tokens[q];
+      const casouExato = new Uint8Array(n);
 
       /* 1) exato */
-      var quantosExatos = 0;
-      for (var i = 0; i < n; i++) {
-        var pos = normalizados[i].indexOf(token);
+      let quantosExatos = 0;
+      for (let i = 0; i < n; i++) {
+        const pos = normalizados[i].indexOf(token);
         if (pos === -1) continue;
         casouExato[i] = 1;
         quantosExatos++;
@@ -3627,8 +3676,8 @@
        * Isto so REMOVE item do resultado, nunca acrescenta: a regra de
        * a REMUME do municipio ser a unica fonte de verdade continua
        * valendo por construcao. */
-      var generico = quantosExatos > 0 && quantosExatos / n > cfg.FRACAO_PALAVRA_GENERICA;
-      for (var t = 0; t < n; t++) {
+      const generico = quantosExatos > 0 && quantosExatos / n > cfg.FRACAO_PALAVRA_GENERICA;
+      for (let t = 0; t < n; t++) {
         if (!casouExato[t]) continue;
         if (generico) tocadoGenerico[t] = 1;
         else tocado[t] = 1;
@@ -3650,33 +3699,33 @@
        * distancia de edicao — insercao e remocao custam 1 cada, entao
        * nao ha como caber no limite. Usa a MESMA regra do fuzzyScore,
        * para nao podar nada que ele aceitaria. */
-      var distanciaMaxima = limiteDeDistancia(token.length);
-      var melhorPorItem = null;
+      const distanciaMaxima = limiteDeDistancia(token.length);
+      let melhorPorItem = null;
 
-      var candidatas = [];
-      for (var tam = token.length - distanciaMaxima; tam <= token.length + distanciaMaxima; tam++) {
-        var faixa = indice.porTamanho && indice.porTamanho[tam];
+      let candidatas = [];
+      for (let tam = token.length - distanciaMaxima; tam <= token.length + distanciaMaxima; tam++) {
+        const faixa = indice.porTamanho && indice.porTamanho[tam];
         if (faixa) candidatas = candidatas.concat(faixa);
       }
 
-      for (var p = 0; p < candidatas.length; p++) {
-        var palavra = candidatas[p];
-        var entrada = indice.vocabulario[palavra];
-        var score = fuzzyScore(token, palavra);
+      for (let p = 0; p < candidatas.length; p++) {
+        const palavra = candidatas[p];
+        const entrada = indice.vocabulario[palavra];
+        const score = fuzzyScore(token, palavra);
         if (score < cfg.LIMIAR_FUZZY) continue;
 
         if (!melhorPorItem) melhorPorItem = Object.create(null);
-        var dono = entrada.itens;
-        for (var k = 0; k < dono.length; k++) {
-          var id = dono[k];
+        const dono = entrada.itens;
+        for (let k = 0; k < dono.length; k++) {
+          const id = dono[k];
           if (casouExato[id]) continue; // este token ja pontuou exato aqui
           if (!(id in melhorPorItem) || melhorPorItem[id] < score) melhorPorItem[id] = score;
         }
       }
 
       if (melhorPorItem) {
-        for (var chave in melhorPorItem) {
-          var idFuzzy = +chave;
+        for (const chave in melhorPorItem) {
+          const idFuzzy = +chave;
           fuzzy[idFuzzy] += melhorPorItem[idFuzzy] * 0.5;
           tocado[idFuzzy] = 1;
         }
@@ -3687,27 +3736,27 @@
      * "comprimido", ou so "UBS" — nao ha nada mais especifico para
      * mostrar. Ai a palavra generica volta a escolher, senao a tela
      * diria "nao consta" para um termo que existe na lista. */
-    var achouAlgo = false;
-    for (var v = 0; v < n; v++) {
+    let achouAlgo = false;
+    for (let v = 0; v < n; v++) {
       if (tocado[v]) {
         achouAlgo = true;
         break;
       }
     }
     if (!achouAlgo) {
-      for (var w = 0; w < n; w++) {
+      for (let w = 0; w < n; w++) {
         if (tocadoGenerico[w]) tocado[w] = 1;
       }
     }
 
     /* 2) sinonimos */
-    var frases = obterFrasesSinonimo(tokens, opcoes.sinonimos);
-    for (var f = 0; f < frases.length; f++) {
-      var frase = frases[f];
-      var fraseSemEspaco = frase.replace(/\s+/g, "");
-      var vaiSemEspaco = frase.length >= 8;
-      for (var m = 0; m < n; m++) {
-        var bate =
+    const frases = obterFrasesSinonimo(tokens, opcoes.sinonimos);
+    for (let f = 0; f < frases.length; f++) {
+      const frase = frases[f];
+      const fraseSemEspaco = frase.replace(/\s+/g, "");
+      const vaiSemEspaco = frase.length >= 8;
+      for (let m = 0; m < n; m++) {
+        const bate =
           casaComoPalavra(normalizados[m], frase) ||
           (vaiSemEspaco && indice.semEspaco[m].indexOf(fraseSemEspaco) !== -1);
         if (bate) {
@@ -3718,18 +3767,18 @@
     }
 
     /* ordena so o que pontuou */
-    var candidatos = [];
-    for (var c = 0; c < n; c++) {
+    const candidatos = [];
+    for (let c = 0; c < n; c++) {
       if (!tocado[c]) continue;
-      var total = exata[c] + fuzzy[c];
+      const total = exata[c] + fuzzy[c];
       if (total > 0) candidatos.push({ i: c, total: total, viaFuzzy: exata[c] === 0 });
     }
     candidatos.sort(function (a, b) {
       return b.total - a.total;
     });
 
-    var limite = opcoes.limite || cfg.LIMITE_RESULTADOS;
-    var recortados = candidatos.slice(0, limite);
+    const limite = opcoes.limite || cfg.LIMITE_RESULTADOS;
+    const recortados = candidatos.slice(0, limite);
 
     return {
       itens: recortados.map(function (x) {
@@ -3796,12 +3845,12 @@
    * ------------------------------------------------------------------ */
   function camposFaltando(faltas, opcoes) {
     opcoes = opcoes || {};
-    var acao = opcoes.acao || "concluir";
+    const acao = opcoes.acao || "concluir";
 
     if (faltas.length === 0) return "";
 
     if (faltas.length === 1) {
-      var f = faltas[0];
+      const f = faltas[0];
       return (
         "Não consegui " + acao + " porque falta " + f.descricao + ". " +
         "Preencha o campo “" + f.rotulo + "”" +
@@ -3810,10 +3859,10 @@
       );
     }
 
-    var rotulos = faltas.map(function (x) {
+    const rotulos = faltas.map(function (x) {
       return "“" + x.rotulo + "”";
     });
-    var dicas = faltas
+    const dicas = faltas
       .filter(function (x) {
         return x.comoResolver;
       })
@@ -3846,7 +3895,7 @@
   }
 
   /* Mensagens tecnicas recorrentes, num lugar so. */
-  var BIBLIOTECA_NAO_CARREGOU = function (nomeLib, detalhe) {
+  const BIBLIOTECA_NAO_CARREGOU = function (nomeLib, detalhe) {
     return erroTecnico(
       "gerar o PDF",
       "o componente que monta o arquivo (" + nomeLib + ") não carregou",
@@ -3890,9 +3939,9 @@
 (function (raiz) {
   "use strict";
 
-  var Dom = raiz.MeedsSuiteDom;
+  const Dom = raiz.MeedsSuiteDom;
 
-  var PREFIXOS_INSTITUCIONAIS = [
+  const PREFIXOS_INSTITUCIONAIS = [
     "prefeitura municipal de ",
     "prefeitura do municipio de ",
     "prefeitura de ",
@@ -3911,17 +3960,17 @@
    *   novo:   "MACAÉ - RJ"   (so o municipio e a UF)
    * A troca esta sendo feita cliente a cliente, entao os dois precisam
    * funcionar ao mesmo tempo, e por tempo indeterminado. */
-  var UFS = ["ac", "al", "ap", "am", "ba", "ce", "df", "es", "go", "ma", "mt", "ms", "mg", "pa",
+  const UFS = ["ac", "al", "ap", "am", "ba", "ce", "df", "es", "go", "ma", "mt", "ms", "mg", "pa",
     "pb", "pr", "pe", "pi", "rj", "rn", "rs", "ro", "rr", "sc", "sp", "se", "to"];
-  var RX_UF_FIM = new RegExp("\\s*(?:[-–/]\\s*(" + UFS.join("|") + ")|\\((" + UFS.join("|") + ")\\))$");
+  const RX_UF_FIM = new RegExp("\\s*(?:[-–/]\\s*(" + UFS.join("|") + ")|\\((" + UFS.join("|") + ")\\))$");
 
   /* Instituicao que comeca no MEIO da linha (grudada na anterior). Os
    * mais longos primeiro; "municipio de " sozinho fica de fora porque e
    * pedaco de "prefeitura do municipio de ". */
-  var RX_INSTITUICAO_NO_MEIO = /(\S)(prefeitura municipal de |prefeitura do municipio de |fundacao municipal de saude de |secretaria municipal de saude de |secretaria de saude de |prefeitura de )/g;
+  const RX_INSTITUICAO_NO_MEIO = /(\S)(prefeitura municipal de |prefeitura do municipio de |fundacao municipal de saude de |secretaria municipal de saude de |secretaria de saude de |prefeitura de )/g;
 
   function prefixoDe(nome) {
-    for (var i = 0; i < PREFIXOS_INSTITUCIONAIS.length; i++) {
+    for (let i = 0; i < PREFIXOS_INSTITUCIONAIS.length; i++) {
       if (nome.indexOf(PREFIXOS_INSTITUCIONAIS[i]) === 0) return PREFIXOS_INSTITUCIONAIS[i];
     }
     return null;
@@ -3929,9 +3978,9 @@
 
   /* "Prefeitura Municipal de Itauna" -> "itauna"; "MACAÉ - RJ" -> "macae" */
   function extrairNomeCidade(razaoSocialNome) {
-    var nome = normalizar(razaoSocialNome);
+    let nome = normalizar(razaoSocialNome);
     if (!nome) return "";
-    var p = prefixoDe(nome);
+    const p = prefixoDe(nome);
     if (p) nome = nome.slice(p.length);
     return nome.replace(RX_UF_FIM, "").trim();
   }
@@ -3947,26 +3996,26 @@
    * municipio conhecido) corta no lugar certo.
    * Devolve { cidades: [normalizadas], unidades: [normalizadas] }. */
   function analisarVinculo(linhas, nomesConhecidos) {
-    var conhecidos = (nomesConhecidos || []).map(normalizar);
-    var cidades = [];
-    var unidades = [];
+    const conhecidos = (nomesConhecidos || []).map(normalizar);
+    const cidades = [];
+    const unidades = [];
     /* Um "prefeitura ..." no MEIO de uma linha e outra instituicao que
      * veio grudada ("...ubs centroprefeitura municipal de macae"): quebra
      * ali, senao a segunda cidade some e um vinculo com DUAS cidades
      * pareceria ter uma so. */
-    var separadas = [];
+    const separadas = [];
     (linhas || []).forEach(function (bruta) {
-      var l = normalizar(bruta);
+      let l = normalizar(bruta);
       l = l.replace(RX_INSTITUICAO_NO_MEIO, "$1\n$2");
       l.split("\n").forEach(function (x) { if (x.trim()) separadas.push(x.trim()); });
     });
     separadas.forEach(function (bruta) {
-      var l = bruta;
+      const l = bruta;
       if (!l) return;
-      var p = prefixoDe(l);
+      const p = prefixoDe(l);
       if (p) {
-        var resto = l.slice(p.length).trim();
-        var alvo = conhecidos.filter(function (c) { return resto !== c && resto.indexOf(c) === 0; })[0];
+        const resto = l.slice(p.length).trim();
+        const alvo = conhecidos.filter(function (c) { return resto !== c && resto.indexOf(c) === 0; })[0];
         if (alvo) {
           cidades.push(alvo);
           unidades.push(resto.slice(alvo.length).trim());
@@ -3978,7 +4027,7 @@
       if (RX_UF_FIM.test(l)) return cidades.push(l.replace(RX_UF_FIM, "").trim());
       if (conhecidos.indexOf(l) !== -1) return cidades.push(l);
       /* "macae - rjclinica do autista": cidade + UF + unidade grudadas. */
-      var g = /^(.+?)\s*[-–]\s*([a-z]{2})(.+)$/.exec(l);
+      const g = /^(.+?)\s*[-–]\s*([a-z]{2})(.+)$/.exec(l);
       if (g && UFS.indexOf(g[2]) !== -1 && conhecidos.indexOf(g[1].trim()) !== -1) {
         cidades.push(g[1].trim());
         if (g[3].trim()) unidades.push(g[3].trim());
@@ -3990,7 +4039,7 @@
   }
 
   function candidatosDoAtendimento(atendimento) {
-    var lista = [];
+    const lista = [];
     if (!atendimento || typeof atendimento !== "object") return lista;
 
     if (atendimento.cliente && atendimento.cliente.razaoSocialNome) {
@@ -4000,13 +4049,13 @@
       lista.push(atendimento.paciente.cliente.razaoSocialNome);
     }
     if (atendimento.clienteId && Array.isArray(atendimento.clientes)) {
-      for (var i = 0; i < atendimento.clientes.length; i++) {
-        var c = atendimento.clientes[i];
+      for (let i = 0; i < atendimento.clientes.length; i++) {
+        const c = atendimento.clientes[i];
         if (c && c.id === atendimento.clienteId && c.razaoSocialNome) lista.push(c.razaoSocialNome);
       }
     }
     if (Array.isArray(atendimento.clientes) && atendimento.clientes.length === 1) {
-      var unico = atendimento.clientes[0];
+      const unico = atendimento.clientes[0];
       if (unico && unico.razaoSocialNome) lista.push(unico.razaoSocialNome);
     }
     return lista;
@@ -4016,14 +4065,14 @@
    * nomesConhecidos e a lista de municipios que o modulo aceita; o retorno
    * e sempre um item DELA, para quem chamou poder usar direto. */
   function detectar(atendimento, nomesConhecidos) {
-    var conhecidos = nomesConhecidos || [];
+    const conhecidos = nomesConhecidos || [];
     if (!conhecidos.length) return null;
 
-    var candidatos = candidatosDoAtendimento(atendimento);
-    for (var i = 0; i < candidatos.length; i++) {
-      var cidade = extrairNomeCidade(candidatos[i]);
+    const candidatos = candidatosDoAtendimento(atendimento);
+    for (let i = 0; i < candidatos.length; i++) {
+      const cidade = extrairNomeCidade(candidatos[i]);
       if (!cidade) continue;
-      for (var j = 0; j < conhecidos.length; j++) {
+      for (let j = 0; j < conhecidos.length; j++) {
         if (normalizar(conhecidos[j]) === cidade) return conhecidos[j];
       }
     }
@@ -4034,9 +4083,9 @@
    * texto da tela. So decide se achar EXATAMENTE UM — com dois na tela
    * (uma lista de clientes, por exemplo) escolher seria adivinhar. */
   function detectarNaTela(nomesConhecidos) {
-    var texto = Dom.textoDaPaginaNormalizado();
+    const texto = Dom.textoDaPaginaNormalizado();
     if (!texto) return null;
-    var achados = (nomesConhecidos || []).filter(function (m) {
+    const achados = (nomesConhecidos || []).filter(function (m) {
       return texto.indexOf(normalizar(m)) !== -1;
     });
     return raiz.MeedsSuiteDecisao.unicoOuNada(achados);
@@ -4048,9 +4097,9 @@
    * base na rede precisa distinguir os dois: no primeiro caso a rede nao
    * sabe, e outra fonte (a tela) pode responder. */
   function cidadesDoAtendimento(atendimento) {
-    var vistas = [];
+    const vistas = [];
     candidatosDoAtendimento(atendimento).forEach(function (c) {
-      var cidade = extrairNomeCidade(c);
+      const cidade = extrairNomeCidade(c);
       if (cidade && vistas.indexOf(cidade) === -1) vistas.push(cidade);
     });
     return vistas;
@@ -4105,16 +4154,19 @@
 (function (raiz) {
   "use strict";
 
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
   /* NUNCA TROQUE ESTAS CHAVES. Ver decisao 2 acima. */
-  var CHAVE = "medicos";
-  var CHAVE_ESTABELECIMENTOS = "estabelecimentos";
+  const CHAVE = "medicos";
+  const CHAVE_ESTABELECIMENTOS = "estabelecimentos";
 
   /* Chaves de formatos anteriores, lidas uma vez e apagadas depois de
    * migradas. Nao remova daqui sem ter certeza de que nenhum medico
    * ficou para tras numa versao antiga. */
-  var CHAVES_ANTIGAS = ["apac_medicos_v1"];
+  const CHAVES_ANTIGAS = ["apac_medicos_v1"];
 
-  var VERSAO_ESTRUTURA = 1;
+  const VERSAO_ESTRUTURA = 1;
 
   /* Uma linha por chave, e o resto e problema de core/storage.js:
    * ele decide entre GM (Tampermonkey) e IndexedDB (Safari/iPad) e
@@ -4194,9 +4246,9 @@
   }
 
   function listar() {
-    var guardado = lerBruto(CHAVE, null);
+    const guardado = lerBruto(CHAVE, null);
     if (!guardado) return [];
-    var lista = Array.isArray(guardado) ? guardado : guardado.medicos;
+    const lista = Array.isArray(guardado) ? guardado : guardado.medicos;
     if (!Array.isArray(lista)) return [];
     return lista.map(normalizarFicha).filter(function (f) {
       return f && f.nome;
@@ -4208,12 +4260,12 @@
   }
 
   function adicionar(ficha) {
-    var nova = normalizarFicha(ficha);
+    const nova = normalizarFicha(ficha);
     if (!nova || !nova.nome) return { ok: false, erro: "Informe pelo menos o nome do médico." };
-    var lista = listar();
-    var id = chaveDeIdentidade(nova);
-    var existente = -1;
-    for (var i = 0; i < lista.length; i++) {
+    const lista = listar();
+    const id = chaveDeIdentidade(nova);
+    let existente = -1;
+    for (let i = 0; i < lista.length; i++) {
       if (chaveDeIdentidade(lista[i]) === id) existente = i;
     }
     if (existente >= 0) lista[existente] = mesclarFichas(nova, lista[existente]);
@@ -4223,7 +4275,7 @@
   }
 
   function remover(indice) {
-    var lista = listar();
+    const lista = listar();
     if (indice < 0 || indice >= lista.length) return false;
     lista.splice(indice, 1);
     gravar(lista);
@@ -4239,12 +4291,12 @@
    * formato novo e apaga o antigo. Idempotente: rodar de novo nao
    * duplica nada, porque adicionar() mescla por nome. */
   function migrarSeNecessario() {
-    var migrados = 0;
+    let migrados = 0;
     CHAVES_ANTIGAS.forEach(function (chaveAntiga) {
-      var antigo = lerBruto(chaveAntiga, undefined);
+      const antigo = lerBruto(chaveAntiga, undefined);
       if (!Array.isArray(antigo) || antigo.length === 0) return;
       antigo.forEach(function (item) {
-        var f = normalizarFicha(item);
+        const f = normalizarFicha(item);
         if (f && f.nome) {
           adicionar(f);
           migrados++;
@@ -4253,7 +4305,7 @@
       apagarBruto(chaveAntiga);
     });
     if (migrados > 0) {
-      console.debug("[Assistente Meeds] cadastro migrado do formato antigo:", migrados, "medico(s).");
+      LOG.debug("[Assistente Meeds] cadastro migrado do formato antigo:", migrados, "medico(s).");
     }
     return migrados;
   }
@@ -4283,20 +4335,20 @@
   }
 
   function importar(textoJson) {
-    var dados;
+    let dados;
     try {
       dados = JSON.parse(textoJson);
     } catch (e) {
       return { ok: false, erro: "O arquivo não é um backup válido: não consegui ler o conteúdo dele." };
     }
-    var lista = Array.isArray(dados) ? dados : dados && dados.medicos;
+    const lista = Array.isArray(dados) ? dados : dados && dados.medicos;
     if (!Array.isArray(lista)) {
       return {
         ok: false,
         erro: 'O arquivo não parece um backup do Assistente Meeds: não encontrei a lista "medicos" dentro dele.',
       };
     }
-    var validos = lista.map(normalizarFicha).filter(function (f) {
+    const validos = lista.map(normalizarFicha).filter(function (f) {
       return f && f.nome;
     });
     if (validos.length === 0) {
@@ -4308,7 +4360,7 @@
 
     /* Unidades sao opcionais: um backup gerado antes desta versao nao
      * tem a lista, e continua valendo. */
-    var unidades = 0;
+    let unidades = 0;
     if (Array.isArray(dados.estabelecimentos)) {
       dados.estabelecimentos.forEach(function (e) {
         if (e && e.nome) { adicionarEstabelecimento(e); unidades++; }
@@ -4337,17 +4389,17 @@
    *   aoPedirCadastro(),          // abrir o painel de cadastro
    * }
    * ------------------------------------------------------------------ */
-  var VALOR_CADASTRAR = "__cadastrar";
+  const VALOR_CADASTRAR = "__cadastrar";
 
   function montarSelect(elemento, opcoes) {
     opcoes = opcoes || {};
 
     function atualizar() {
-      var lista = listar();
-      var anterior = elemento.value;
+      const lista = listar();
+      const anterior = elemento.value;
       elemento.innerHTML = "";
 
-      var ph = document.createElement("option");
+      const ph = document.createElement("option");
       ph.value = "";
       ph.textContent = lista.length ? "Selecione o médico…" : "Nenhum médico cadastrado ainda";
       ph.disabled = true;
@@ -4355,13 +4407,13 @@
       elemento.appendChild(ph);
 
       lista.forEach(function (ficha, i) {
-        var op = document.createElement("option");
+        const op = document.createElement("option");
         op.value = String(i);
         op.textContent = ficha.nome;
         elemento.appendChild(op);
       });
 
-      var cadastrar = document.createElement("option");
+      const cadastrar = document.createElement("option");
       cadastrar.value = VALOR_CADASTRAR;
       cadastrar.textContent = lista.length ? "＋ Cadastrar outro médico…" : "＋ Cadastrar médico…";
       elemento.appendChild(cadastrar);
@@ -4382,7 +4434,7 @@
         if (typeof opcoes.aoEscolher === "function") opcoes.aoEscolher(null);
         return;
       }
-      var ficha = listar()[Number(elemento.value)];
+      const ficha = listar()[Number(elemento.value)];
       if (typeof opcoes.aoEscolher === "function") opcoes.aoEscolher(ficha || null);
     });
 
@@ -4434,7 +4486,7 @@
   /* Estabelecimentos de um municipio. Sem municipio informado, devolve
    * todos — e o caso de quem cadastrou antes desta versao. */
   function listarEstabelecimentosDe(municipio) {
-    var todos = listarEstabelecimentos();
+    const todos = listarEstabelecimentos();
     if (!municipio) return todos;
     return todos.filter(function (e) {
       return !e.municipio || mesmoMunicipio(e.municipio, municipio);
@@ -4442,8 +4494,8 @@
   }
 
   function listarEstabelecimentos() {
-    var guardado = lerBruto(CHAVE_ESTABELECIMENTOS, null);
-    var lista = guardado && (Array.isArray(guardado) ? guardado : guardado.estabelecimentos);
+    const guardado = lerBruto(CHAVE_ESTABELECIMENTOS, null);
+    const lista = guardado && (Array.isArray(guardado) ? guardado : guardado.estabelecimentos);
     if (!Array.isArray(lista)) return [];
     return lista.map(normalizarEstabelecimento).filter(function (e) {
       return e && e.nome;
@@ -4455,12 +4507,12 @@
   }
 
   function adicionarEstabelecimento(item) {
-    var novo = normalizarEstabelecimento(item);
+    const novo = normalizarEstabelecimento(item);
     if (!novo || !novo.nome) return { ok: false, erro: "Informe o nome do estabelecimento." };
-    var lista = listarEstabelecimentos();
-    var id = novo.nome.toLowerCase();
-    var existente = -1;
-    for (var i = 0; i < lista.length; i++) {
+    const lista = listarEstabelecimentos();
+    const id = novo.nome.toLowerCase();
+    let existente = -1;
+    for (let i = 0; i < lista.length; i++) {
       if (lista[i].nome.toLowerCase() === id) existente = i;
     }
     if (existente >= 0) {
@@ -4476,7 +4528,7 @@
   }
 
   function removerEstabelecimento(indice) {
-    var lista = listarEstabelecimentos();
+    const lista = listarEstabelecimentos();
     if (indice < 0 || indice >= lista.length) return false;
     lista.splice(indice, 1);
     gravarEstabelecimentos(lista);
@@ -4492,15 +4544,15 @@
      * primeiro ja tinha sido semeado. E ela existe separada de "a lista
      * esta vazia" de proposito: quem apagou a unidade semeada nao quer
      * ela de volta na proxima recarga. */
-    var marca = "estabelecimentosSemeados" + (municipio ? ":" + municipio : "");
+    const marca = "estabelecimentosSemeados" + (municipio ? ":" + municipio : "");
     if (lerBruto(marca, false)) return 0;
-    var n = 0;
+    let n = 0;
     (sementes || []).forEach(function (s) {
       if (!s || !s.nome) return;
       /* Carimbar o municipio aqui NAO e detalhe: sem ele a semente fica
        * "sem municipio" e a regra de compatibilidade a mostra em TODAS as
        * cidades — ou seja, o CNES de Itauna apareceria na lista de Betim. */
-      var ficha = {};
+      const ficha = {};
       Object.keys(s).forEach(function (k) { ficha[k] = s[k]; });
       if (municipio && !ficha.municipio) ficha.municipio = municipio;
       adicionarEstabelecimento(ficha);
@@ -4516,15 +4568,15 @@
    * CNES e unico por estabelecimento: e conferencia, nao adivinhacao.
    * Quem tem CNES fora da tabela fica exatamente como estava. */
   function preencherMunicipioPeloCnes(mapaCnesParaMunicipio) {
-    var mapa = mapaCnesParaMunicipio || {};
-    var lista = listarEstabelecimentos();
-    var mudou = 0;
-    var nova = lista.map(function (e) {
+    const mapa = mapaCnesParaMunicipio || {};
+    const lista = listarEstabelecimentos();
+    let mudou = 0;
+    const nova = lista.map(function (e) {
       if (!e || e.municipio) return e;
-      var cidade = mapa[String(e.cnes || "").replace(/\D/g, "")];
+      const cidade = mapa[String(e.cnes || "").replace(/\D/g, "")];
       if (!cidade) return e;
       mudou++;
-      var ficha = {};
+      const ficha = {};
       Object.keys(e).forEach(function (k) { ficha[k] = e[k]; });
       ficha.municipio = cidade;
       return ficha;
@@ -4590,8 +4642,11 @@
 (function (raiz) {
   "use strict";
 
-  var PREFIXO = "historico:";
-  var LIMITE = 30; // igual ao do APAC original
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
+  const PREFIXO = "historico:";
+  const LIMITE = 30; // igual ao do APAC original
 
   /* Mesmo caminho duravel do cadastro — ver core/storage.js. */
   function porta(chave) {
@@ -4611,10 +4666,10 @@
    * "MARIA APARECIDA DE SOUZA" + "12345678909" -> "M.A.S. · •••890"
    * Preposicoes ficam de fora das iniciais para o resultado ser legivel.
    * ------------------------------------------------------------------ */
-  var PARTICULAS = ["de", "da", "do", "das", "dos", "e"];
+  const PARTICULAS = ["de", "da", "do", "das", "dos", "e"];
 
   function referenciaDoPaciente(nome, cpf) {
-    var partes = [];
+    const partes = [];
     String(nome || "")
       .trim()
       .split(/\s+/)
@@ -4624,16 +4679,16 @@
         partes.push(palavra.charAt(0).toUpperCase() + ".");
       });
 
-    var digitos = String(cpf || "").replace(/\D/g, "");
-    var finalCpf = digitos.length >= 3 ? "•••" + digitos.slice(-3) : "";
+    const digitos = String(cpf || "").replace(/\D/g, "");
+    const finalCpf = digitos.length >= 3 ? "•••" + digitos.slice(-3) : "";
 
-    var iniciais = partes.slice(0, 4).join("");
+    const iniciais = partes.slice(0, 4).join("");
     if (!iniciais && !finalCpf) return "Paciente";
     return [iniciais, finalCpf].filter(Boolean).join(" · ");
   }
 
   function agoraLegivel() {
-    var d = new Date();
+    const d = new Date();
     return d.toLocaleString("pt-BR", {
       day: "2-digit",
       month: "2-digit",
@@ -4656,7 +4711,7 @@
    * ------------------------------------------------------------------ */
   function registrar(idModulo, entrada) {
     entrada = entrada || {};
-    var lista = listar(idModulo);
+    const lista = listar(idModulo);
     lista.unshift({
       quando: agoraLegivel(),
       paciente: referenciaDoPaciente(entrada.nomePaciente, entrada.cpfPaciente),
@@ -4668,7 +4723,7 @@
   }
 
   function listar(idModulo) {
-    var lista = ler(PREFIXO + idModulo, []);
+    const lista = ler(PREFIXO + idModulo, []);
     return Array.isArray(lista) ? lista : [];
   }
 
@@ -4681,10 +4736,10 @@
    * nome completo e descartado do disco na primeira execucao desta
    * versao. Roda uma vez; depois a chave antiga fica vazia. */
   function migrarHistoricoApac() {
-    var antigo = ler("apac_historico_v1", undefined);
+    const antigo = ler("apac_historico_v1", undefined);
     if (!Array.isArray(antigo) || antigo.length === 0) return 0;
 
-    var convertidas = antigo.map(function (e) {
+    const convertidas = antigo.map(function (e) {
       return {
         quando: e.quando || "",
         paciente: referenciaDoPaciente(e.paciente, ""),
@@ -4694,17 +4749,17 @@
       };
     });
 
-    var atual = listar("apac-itauna");
+    const atual = listar("apac-itauna");
     gravar(PREFIXO + "apac-itauna", convertidas.concat(atual).slice(0, LIMITE));
     gravar("apac_historico_v1", []); // o nome completo sai do disco
-    console.debug("[Assistente Meeds] historico do APAC migrado:", convertidas.length, "registro(s) sem nome completo.");
+    LOG.debug("[Assistente Meeds] historico do APAC migrado:", convertidas.length, "registro(s) sem nome completo.");
     return convertidas.length;
   }
 
   /* ------------------------------------------------------------------
    * PAINEL — o mesmo em todos os modulos, para um sexto ganhar pronto
    * ------------------------------------------------------------------ */
-  var CSS = [
+  const CSS = [
     ".msh-painel { border:1px solid #d8e6e3; border-radius:9px; padding:10px; margin-bottom:12px; background:#f7fbfa; }",
     ".msh-painel[hidden] { display:none; }",
     ".msh-topo { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:8px; }",
@@ -4736,12 +4791,12 @@
     elemento.hidden = true;
 
     function render() {
-      var lista = listar(idModulo);
-      var corpo = lista.length
+      const lista = listar(idModulo);
+      const corpo = lista.length
         ? lista
             .map(function (e, i) {
-              var meta = [e.quando, e.paciente, e.medico].filter(Boolean).join("  ·  ");
-              var temClinico = e.clinico && Object.keys(e.clinico).length > 0;
+              const meta = [e.quando, e.paciente, e.medico].filter(Boolean).join("  ·  ");
+              const temClinico = e.clinico && Object.keys(e.clinico).length > 0;
               return (
                 '<div class="msh-item">' +
                 '  <div class="msh-item-txt">' +
@@ -4765,7 +4820,7 @@
         corpo +
         '<div class="msh-nota">Guardamos apenas as iniciais e os três últimos dígitos do CPF — o suficiente para você reconhecer o atendimento, sem gravar dado de paciente no computador. “Reabrir” repõe a parte clínica; os dados do paciente vêm da tela.</div>';
 
-      var limpar = elemento.querySelector(".msh-limpar");
+      const limpar = elemento.querySelector(".msh-limpar");
       if (limpar) {
         limpar.addEventListener("click", function () {
           limparHistorico(idModulo);
@@ -4774,7 +4829,7 @@
       }
       elemento.querySelectorAll(".msh-reabrir").forEach(function (btn) {
         btn.addEventListener("click", function () {
-          var e = listar(idModulo)[Number(btn.getAttribute("data-i"))];
+          const e = listar(idModulo)[Number(btn.getAttribute("data-i"))];
           if (e && typeof opcoes.aoReabrir === "function") opcoes.aoReabrir(e);
         });
       });
@@ -4787,7 +4842,7 @@
     return {
       render: render,
       alternar: function () {
-        var abrindo = elemento.hidden;
+        const abrindo = elemento.hidden;
         elemento.hidden = !abrindo;
         if (abrindo) render();
         return abrindo;
@@ -4803,12 +4858,12 @@
    * migracao o medico abriria o historico e o veria vazio, como se os
    * documentos que ele emitiu tivessem sumido. */
   function migrarHistoricoApacGlobal() {
-    var antigo = listar("apac-itauna");
+    const antigo = listar("apac-itauna");
     if (!antigo.length) return 0;
-    var atual = listar("apac");
+    const atual = listar("apac");
     gravar(PREFIXO + "apac", antigo.concat(atual).slice(0, LIMITE));
     gravar(PREFIXO + "apac-itauna", []);
-    console.debug("[Assistente Meeds] historico da APAC migrado:", antigo.length, "registro(s).");
+    LOG.debug("[Assistente Meeds] historico da APAC migrado:", antigo.length, "registro(s).");
     return antigo.length;
   }
 
@@ -4858,16 +4913,19 @@
 (function (raiz) {
   "use strict";
 
-  var CHAVE = "modelos";
-  var LIMITE_POR_MODULO = 20;
-  var LIMITE_NOME = 40;
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
+  const CHAVE = "modelos";
+  const LIMITE_POR_MODULO = 20;
+  const LIMITE_NOME = 40;
 
   function porta() {
     return raiz.MeedsSuiteStorage.duravel(CHAVE, "meeds-suite:" + CHAVE);
   }
 
   function tudo() {
-    var dados = porta().ler({});
+    const dados = porta().ler({});
     return dados && typeof dados === "object" && !Array.isArray(dados) ? dados : {};
   }
 
@@ -4883,18 +4941,18 @@
    * dia alguem acrescentar "cmd-pac-cpf" aquela lista por engano, ele
    * ainda assim nao entra no modelo.
    * ------------------------------------------------------------------ */
-  var CARA_DE_PACIENTE = /(^|-)(pac|paciente|cpf|nasc|nascimento|mae|sexo|nome-completo)(-|$)/i;
+  const CARA_DE_PACIENTE = /(^|-)(pac|paciente|cpf|nasc|nascimento|mae|sexo|nome-completo)(-|$)/i;
 
   function apenasClinico(bruto, permitidos) {
-    var saida = {};
+    const saida = {};
     if (!bruto || typeof bruto !== "object") return saida;
-    var chaves = Array.isArray(permitidos) && permitidos.length ? permitidos : Object.keys(bruto);
+    const chaves = Array.isArray(permitidos) && permitidos.length ? permitidos : Object.keys(bruto);
     chaves.forEach(function (chave) {
       if (CARA_DE_PACIENTE.test(chave)) {
-        console.warn("[Assistente Meeds] campo recusado no modelo por parecer dado de paciente:", chave);
+        LOG.warn("[Assistente Meeds] campo recusado no modelo por parecer dado de paciente:", chave);
         return;
       }
-      var valor = bruto[chave];
+      const valor = bruto[chave];
       if (valor === undefined || valor === null) return;
       if (typeof valor !== "string" && typeof valor !== "number") return;
       saida[chave] = String(valor);
@@ -4906,23 +4964,23 @@
    * API
    * ------------------------------------------------------------------ */
   function listar(idModulo) {
-    var lista = tudo()[idModulo];
+    const lista = tudo()[idModulo];
     return Array.isArray(lista) ? lista : [];
   }
 
   function padraoDe(idModulo) {
-    var lista = listar(idModulo);
-    for (var i = 0; i < lista.length; i++) {
+    const lista = listar(idModulo);
+    for (let i = 0; i < lista.length; i++) {
       if (lista[i] && lista[i].padrao) return lista[i];
     }
     return null;
   }
 
   function salvar(idModulo, nome, clinico, permitidos) {
-    var limpo = String(nome || "").trim().slice(0, LIMITE_NOME);
+    const limpo = String(nome || "").trim().slice(0, LIMITE_NOME);
     if (!limpo) return { ok: false, erro: "Dê um nome ao modelo para você reconhecê-lo depois." };
 
-    var campos = apenasClinico(clinico, permitidos);
+    const campos = apenasClinico(clinico, permitidos);
     if (!Object.keys(campos).length) {
       return {
         ok: false,
@@ -4930,18 +4988,18 @@
       };
     }
 
-    var dados = tudo();
-    var lista = Array.isArray(dados[idModulo]) ? dados[idModulo] : [];
+    const dados = tudo();
+    const lista = Array.isArray(dados[idModulo]) ? dados[idModulo] : [];
 
     /* Mesmo nome sobrescreve, em vez de criar um segundo igual: o medico
      * que salva "Holter rotina" de novo esta corrigindo o dele, nao
      * pedindo dois. */
-    var existente = -1;
-    for (var i = 0; i < lista.length; i++) {
+    let existente = -1;
+    for (let i = 0; i < lista.length; i++) {
       if (lista[i] && lista[i].nome === limpo) { existente = i; break; }
     }
 
-    var ficha = {
+    const ficha = {
       nome: limpo,
       clinico: campos,
       padrao: existente >= 0 ? !!lista[existente].padrao : false,
@@ -4963,9 +5021,9 @@
   }
 
   function remover(idModulo, nome) {
-    var dados = tudo();
-    var lista = Array.isArray(dados[idModulo]) ? dados[idModulo] : [];
-    var antes = lista.length;
+    const dados = tudo();
+    const lista = Array.isArray(dados[idModulo]) ? dados[idModulo] : [];
+    const antes = lista.length;
     dados[idModulo] = lista.filter(function (m) { return m && m.nome !== nome; });
     if (dados[idModulo].length === antes) return false;
     gravarTudo(dados);
@@ -4976,12 +5034,12 @@
    * padroes seria o Assistente escolhendo qual aplicar, e essa escolha e
    * do medico. */
   function definirPadrao(idModulo, nome) {
-    var dados = tudo();
-    var lista = Array.isArray(dados[idModulo]) ? dados[idModulo] : [];
-    var achou = false;
+    const dados = tudo();
+    const lista = Array.isArray(dados[idModulo]) ? dados[idModulo] : [];
+    let achou = false;
     lista.forEach(function (m) {
       if (!m) return;
-      var eu = m.nome === nome;
+      const eu = m.nome === nome;
       if (eu) achou = true;
       m.padrao = eu ? !m.padrao : false;
     });
@@ -4992,8 +5050,8 @@
   }
 
   function obter(idModulo, nome) {
-    var lista = listar(idModulo);
-    for (var i = 0; i < lista.length; i++) {
+    const lista = listar(idModulo);
+    for (let i = 0; i < lista.length; i++) {
       if (lista[i] && lista[i].nome === nome) return lista[i];
     }
     return null;
@@ -5002,9 +5060,9 @@
   /* Migracao de id, para o caso de um modulo ser renomeado (ja aconteceu
    * com apac-itauna -> apac). */
   function migrarId(idAntigo, idNovo) {
-    var dados = tudo();
+    const dados = tudo();
     if (!Array.isArray(dados[idAntigo]) || !dados[idAntigo].length) return 0;
-    var quantos = dados[idAntigo].length;
+    const quantos = dados[idAntigo].length;
     if (!Array.isArray(dados[idNovo])) dados[idNovo] = [];
     dados[idNovo] = dados[idNovo].concat(dados[idAntigo]);
     delete dados[idAntigo];
@@ -5012,7 +5070,7 @@
     return quantos;
   }
 
-  var CSS = [
+  const CSS = [
     ".msmod { background:#f6f9f8; border:1px solid #dfe9e7; border-radius:9px; padding:10px 12px; margin-bottom:12px; }",
     ".msmod-rot { font-size:10.5px; font-weight:700; color:#5b6c68; text-transform:uppercase; letter-spacing:.04em; margin-bottom:7px; }",
     ".msmod-linha { display:flex; gap:7px; align-items:center; flex-wrap:wrap; }",
@@ -5094,7 +5152,7 @@
 (function (raiz) {
   "use strict";
 
-  var CSS = [
+  const CSS = [
     ".msg-guia { display:flex; align-items:center; gap:10px; margin-bottom:12px; }",
     ".msg-barra { flex:1; height:6px; border-radius:99px; background:#e3ebe9; overflow:hidden; }",
     ".msg-preenchido { height:100%; width:0; border-radius:99px; background:#12958a; transition:width .25s ease; }",
@@ -5124,22 +5182,22 @@
    *   elementoDe(c) -> o elemento na tela, para apontar
    * ------------------------------------------------------------------ */
   function criar(spec) {
-    var aplicaveis = spec.aplicaveis;
-    var faltando = spec.faltando;
-    var elementoDe = spec.elementoDe;
-    var alvoAtual = null;
-    var timerDestaque = null;
+    const aplicaveis = spec.aplicaveis;
+    const faltando = spec.faltando;
+    const elementoDe = spec.elementoDe;
+    let alvoAtual = null;
+    let timerDestaque = null;
 
-    var caixa = document.createElement("div");
+    const caixa = document.createElement("div");
     caixa.className = "msg-guia";
     caixa.innerHTML =
       '<div class="msg-barra"><div class="msg-preenchido"></div></div>' +
       '<span class="msg-texto"></span>' +
       '<button type="button" class="msg-proximo" hidden></button>';
 
-    var barra = caixa.querySelector(".msg-preenchido");
-    var texto = caixa.querySelector(".msg-texto");
-    var proximo = caixa.querySelector(".msg-proximo");
+    const barra = caixa.querySelector(".msg-preenchido");
+    const texto = caixa.querySelector(".msg-texto");
+    const proximo = caixa.querySelector(".msg-proximo");
 
     function limparDestaque() {
       if (timerDestaque) { clearTimeout(timerDestaque); timerDestaque = null; }
@@ -5148,7 +5206,7 @@
 
     function apontar(campo) {
       limparDestaque();
-      var el = campo && elementoDe(campo);
+      const el = campo && elementoDe(campo);
       if (!el) return false;
       alvoAtual = el;
       el.classList.add("msg-alvo");
@@ -5165,15 +5223,15 @@
     }
 
     proximo.addEventListener("click", function () {
-      var falta = faltando();
+      const falta = faltando();
       if (falta.length) apontar(falta[0]);
     });
 
     function atualizar() {
-      var falta = faltando();
-      var total = aplicaveis().length;
-      var prontos = Math.max(0, total - falta.length);
-      var pct = total ? Math.round((prontos / total) * 100) : 100;
+      const falta = faltando();
+      const total = aplicaveis().length;
+      const prontos = Math.max(0, total - falta.length);
+      const pct = total ? Math.round((prontos / total) * 100) : 100;
 
       barra.style.width = pct + "%";
       barra.classList.toggle("completo", falta.length === 0);
@@ -5194,7 +5252,7 @@
       /* Usado pela emissao: em vez de so listar o que falta, leva o
        * medico ate o primeiro campo. */
       apontarPrimeiroPendente: function () {
-        var falta = faltando();
+        const falta = faltando();
         return falta.length ? apontar(falta[0]) : false;
       },
       limparDestaque: limparDestaque,
@@ -5231,7 +5289,7 @@
   /* Um tom por família de janela. O gerador de documento é azul; a
    * consulta (REMUME, Exames) é verde-água; o alarme é quente, porque
    * ele é o único que pode aparecer no meio de uma consulta. */
-  var TONS = {
+  const TONS = {
     /* Cores solidas (antes, gradientes): mesma familia de cada tom, mais
      * sobrias. O tom continua dizendo o tipo de janela — azul documento,
      * verde-agua consulta, vermelho alarme. */
@@ -5240,7 +5298,7 @@
     alarme: "#b42318",
   };
 
-  var CSS = [
+  const CSS = [
     ".msc-head {",
     "  color:#fff; padding:15px 18px; display:flex; align-items:flex-start;",
     "  justify-content:space-between; gap:12px;",
@@ -5278,9 +5336,9 @@
    *   idFechar: o id do botão X (cada módulo já tinha o seu).
    */
   function html(spec) {
-    var s = spec || {};
-    var tom = TONS[s.tom] || TONS.documento;
-    var acoes = (s.acoes || [])
+    const s = spec || {};
+    const tom = TONS[s.tom] || TONS.documento;
+    const acoes = (s.acoes || [])
       .map(function (a) {
         return (
           '<button type="button" class="msc-acao" id="' + esc(a.id) + '"' +
@@ -5338,11 +5396,11 @@
 (function (raiz) {
   "use strict";
 
-  var COMUM =
+  const COMUM =
     'xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" ' +
     'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
 
-  var ICONES = {
+  const ICONES = {
     /* APAC — documento com um visto: é uma autorização. */
     apac:
       "<svg " + COMUM + ">" +
@@ -5415,7 +5473,10 @@
 (function (raiz) {
   "use strict";
 
-  var MARCA_INSTANCIA = "__ASSISTENTE_MEEDS_ATIVO__";
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
+  const MARCA_INSTANCIA = "__ASSISTENTE_MEEDS_ATIVO__";
 
   /* ------------------------------------------------------------------
    * BOAS-VINDAS: UMA VEZ SO, PARA SEMPRE
@@ -5439,15 +5500,15 @@
    * _v2 aqui. Sem isso, ninguem ve de novo — que e o comportamento
    * desejado no dia a dia.
    * ------------------------------------------------------------------ */
-  var CHAVE_BOAS_VINDAS = "meeds_assistente_boas_vindas_v1";
-  var VALOR_CONCLUIDO = "concluido";
-  var CHAVE_ANTIGA_BOAS_VINDAS = "meeds-suite:_core:boasVindas";
+  const CHAVE_BOAS_VINDAS = "meeds_assistente_boas_vindas_v1";
+  const VALOR_CONCLUIDO = "concluido";
+  const CHAVE_ANTIGA_BOAS_VINDAS = "meeds-suite:_core:boasVindas";
 
   /* Caminho duravel unico — ver core/storage.js. A chave local aqui NAO
    * tem o prefixo "meeds-suite:" (e anterior a ele) e por isso escapa da
    * varredura de migracao do boot; quem a traz para o duravel e a
    * promocao na leitura, dentro do proprio storage. */
-  var portaBoasVindas = null;
+  let portaBoasVindas = null;
   function porta() {
     if (!portaBoasVindas) {
       portaBoasVindas = raiz.MeedsSuiteStorage.duravel(CHAVE_BOAS_VINDAS, CHAVE_BOAS_VINDAS);
@@ -5479,7 +5540,7 @@
   function reservarInstancia(versao) {
     try {
       if (raiz[MARCA_INSTANCIA]) {
-        console.warn(
+        LOG.warn(
           "[Assistente Meeds] ja existe uma instancia rodando nesta pagina (versao " +
             raiz[MARCA_INSTANCIA] +
             "). Esta execucao vai parar aqui para nao duplicar os botoes."
@@ -5498,8 +5559,8 @@
    * perdeu numa navegacao da SPA), removemos o orfao antes de montar. */
   function limparDockOrfao(idHost) {
     try {
-      var hosts = document.querySelectorAll("#" + idHost);
-      for (var i = 0; i < hosts.length - 1; i++) {
+      const hosts = document.querySelectorAll("#" + idHost);
+      for (let i = 0; i < hosts.length - 1; i++) {
         hosts[i].parentNode.removeChild(hosts[i]);
       }
       return hosts.length > 1;
@@ -5513,7 +5574,7 @@
    * Cada um deixa uma marca propria no DOM. Sao os seletores reais dos
    * cinco repositorios originais — se mudarem la, atualize aqui.
    * ------------------------------------------------------------------ */
-  var ANTIGOS = [
+  const ANTIGOS = [
     { seletor: "#af-fab", nome: "Meeds - Alarme de Fila (Plantao Noturno)" },
     { seletor: "#apac-host-root", nome: "Gerador de APAC Itaúna — Meeds + Assinatura" },
     { seletor: "#lme-host-root", nome: "Gerador de Laudo — Sete Lagoas (Meeds)" },
@@ -5522,7 +5583,7 @@
   ];
 
   function detectarAntigos() {
-    var achados = [];
+    const achados = [];
     ANTIGOS.forEach(function (a) {
       try {
         if (document.querySelector(a.seletor)) achados.push(a.nome);
@@ -5536,7 +5597,7 @@
   /* ------------------------------------------------------------------
    * 3) AVISOS NA TELA
    * ------------------------------------------------------------------ */
-  var CSS = [
+  const CSS = [
     ".msd-aviso { width:100%; max-width:520px; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; }",
     ".msd-aviso header { padding:16px 18px; color:#fff; display:flex; justify-content:space-between; align-items:center; gap:12px; }",
     ".msd-aviso header h2 { margin:0; font-size:15px; font-weight:700; }",
@@ -5563,7 +5624,7 @@
   }
 
   function avisarScriptsAntigos(dock, nomes, storage) {
-    var overlay = dock.criarOverlay({
+    const overlay = dock.criarOverlay({
       estilo: CSS,
       html:
         '<div class="msd-aviso msd-alerta" role="dialog" aria-modal="true">' +
@@ -5611,7 +5672,7 @@
      * botoes, clique fora, fechar a aba) ja conta como visto. */
     marcarBoasVindasConcluidas();
 
-    var overlay = dock.criarOverlay({
+    const overlay = dock.criarOverlay({
       estilo: CSS,
       /* Clicar fora fecha, como em qualquer aviso — e agora isso e
        * seguro, porque a marca ja foi gravada. */
@@ -5654,7 +5715,7 @@
    * esses casos e o medico ficaria com botao duplicado sem saber por que.
    * Tentamos algumas vezes, com intervalo crescente, e paramos assim que
    * encontrarmos algo (ou depois da ultima tentativa). */
-  var TENTATIVAS_MS = [4000, 10000, 20000, 45000];
+  const TENTATIVAS_MS = [4000, 10000, 20000, 45000];
 
   function verificar(dock, storage) {
     if (!boasVindasConcluidas()) {
@@ -5665,12 +5726,12 @@
 
     if (storage.ler("avisoScriptsAntigos", null) === "silenciado") return;
 
-    var jaAvisou = false;
+    let jaAvisou = false;
     TENTATIVAS_MS.forEach(function (atraso) {
       setTimeout(function () {
         if (jaAvisou) return;
         if (storage.ler("avisoScriptsAntigos", null) === "silenciado") return;
-        var achados = detectarAntigos();
+        const achados = detectarAntigos();
         if (achados.length) {
           jaAvisou = true;
           avisarScriptsAntigos(dock, achados, storage);
@@ -5690,12 +5751,12 @@
    * O teste: mandar a PAGINA definir uma marca. Se ela aparecer aqui, o
    * "aqui" e a propria pagina. Se nao aparecer — porque a marca ficou no
    * outro escopo, ou porque a CSP recusou a tag — nao e. */
-  var escopoLembrado = null;
+  let escopoLembrado = null;
   function escopoDeExecucao() {
     if (escopoLembrado) return escopoLembrado;
-    var marca = "__meedsEscopo" + String(MARCA_INSTANCIA).replace(/\W/g, "");
+    const marca = "__meedsEscopo" + String(MARCA_INSTANCIA).replace(/\W/g, "");
     try {
-      var tag = document.createElement("script");
+      const tag = document.createElement("script");
       tag.textContent = "window['" + marca + "']=1;";
       (document.documentElement || document.head).appendChild(tag);
       tag.remove();
@@ -5757,16 +5818,16 @@
   "use strict";
 
   /* NUNCA TROQUE ESTA CHAVE — o medico veria de novo avisos ja lidos. */
-  var CHAVE_VERSAO_VISTA = "ultima_versao_vista";
-  var CHAVE_SINAL_ABAS = "meeds-suite:aviso-versao-exibido";
+  const CHAVE_VERSAO_VISTA = "ultima_versao_vista";
+  const CHAVE_SINAL_ABAS = "meeds-suite:aviso-versao-exibido";
 
-  var changelog = { versoes: [] };
-  var overlay = null;
-  var ctx = null;
+  let changelog = { versoes: [] };
+  let overlay = null;
+  let ctx = null;
 
   /* Caminho duravel unico — ver core/storage.js. No iPad isto e o que
    * impede o "o que mudou" de reaparecer a cada login. */
-  var portaVersao = null;
+  let portaVersao = null;
   function porta() {
     if (!portaVersao) {
       portaVersao = raiz.MeedsSuiteStorage.duravel(CHAVE_VERSAO_VISTA, "meeds-suite:" + CHAVE_VERSAO_VISTA);
@@ -5775,7 +5836,7 @@
   }
 
   function lerVersaoVista() {
-    var v = porta().ler(null);
+    const v = porta().ler(null);
     return v === undefined ? null : v;
   }
 
@@ -5793,11 +5854,11 @@
   /* Compara "2.10.0" com "2.9.0" corretamente — comparacao de texto
    * diria que 2.10.0 e MENOR, e o medico deixaria de ver a novidade. */
   function compararVersoes(a, b) {
-    var pa = String(a || "0").split(".").map(Number);
-    var pb = String(b || "0").split(".").map(Number);
-    for (var i = 0; i < Math.max(pa.length, pb.length); i++) {
-      var x = pa[i] || 0;
-      var y = pb[i] || 0;
+    const pa = String(a || "0").split(".").map(Number);
+    const pb = String(b || "0").split(".").map(Number);
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+      const x = pa[i] || 0;
+      const y = pb[i] || 0;
       if (x !== y) return x > y ? 1 : -1;
     }
     return 0;
@@ -5816,7 +5877,7 @@
     })[0];
   }
 
-  var CSS = [
+  const CSS = [
     ".msn-caixa { width:100%; max-width:540px; max-height:84vh; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); display:flex; flex-direction:column; overflow:hidden; }",
     ".msn-caixa header { background:#17457f; color:#fff; padding:16px 18px; display:flex; justify-content:space-between; align-items:center; gap:12px; }",
     ".msn-caixa header h2 { margin:0; font-size:15px; font-weight:700; }",
@@ -5846,15 +5907,15 @@
     });
   }
 
-  var ROTULOS = [
+  const ROTULOS = [
     ["novidades", "Novidades"],
     ["melhorias", "Melhorias"],
     ["correcoes", "Correções"],
   ];
 
   function htmlDeUmaVersao(v, comCabecalho) {
-    var grupos = ROTULOS.map(function (par) {
-      var itens = v[par[0]] || [];
+    let grupos = ROTULOS.map(function (par) {
+      const itens = v[par[0]] || [];
       if (!itens.length) return "";
       return (
         '<div class="msn-grupo"><h3>' + par[1] + "</h3><ul>" +
@@ -5877,7 +5938,7 @@
   }
 
   function formatarData(iso) {
-    var m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
     return m ? m[3] + "/" + m[2] + "/" + m[1] : iso;
   }
 
@@ -5891,7 +5952,7 @@
    * medico pulou atualizacoes). */
   function mostrarAviso(versoes, versaoAtual) {
     montarOverlay();
-    var varias = versoes.length > 1;
+    const varias = versoes.length > 1;
 
     overlay.elemento.innerHTML =
       '<div class="msn-caixa" role="dialog" aria-modal="true">' +
@@ -5917,7 +5978,7 @@
     /* Atalho para a engrenagem. A tela de novidades e o unico momento em
      * que o medico esta lendo sobre uma funcao nova; mandar ele procurar
      * o botao depois e perder a metade que ia experimentar agora. */
-    var irConfigurar = overlay.$("#msn-configurar");
+    const irConfigurar = overlay.$("#msn-configurar");
     if (irConfigurar) {
       irConfigurar.addEventListener("click", function () {
         overlay.fechar();
@@ -5936,7 +5997,7 @@
   /* Historico completo, aberto pelo painel da engrenagem. Mesma fonte. */
   function mostrarHistorico(versaoAtual) {
     montarOverlay();
-    var lista = changelog.versoes || [];
+    const lista = changelog.versoes || [];
 
     overlay.elemento.innerHTML =
       '<div class="msn-caixa" role="dialog" aria-modal="true">' +
@@ -5962,8 +6023,8 @@
   function verificar(contexto) {
     ctx = contexto;
     changelog = raiz.MEEDS_CHANGELOG || { versoes: [] };
-    var atual = ctx.versaoAtual;
-    var vista = lerVersaoVista();
+    const atual = ctx.versaoAtual;
+    const vista = lerVersaoVista();
 
     // outra aba mostrou o aviso: fecha o daqui, para nao repetir
     try {
@@ -5982,7 +6043,7 @@
 
     if (compararVersoes(atual, vista) === 0) return { situacao: "sem-mudanca" };
 
-    var novas = versoesNaoVistas(vista, atual);
+    const novas = versoesNaoVistas(vista, atual);
     if (!novas.length) {
       // versao mudou mas ninguem descreveu no changelog: nao inventa
       gravarVersaoVista(atual);
@@ -6098,7 +6159,7 @@
 (function (raiz) {
   "use strict";
 
-  var CSS = [
+  const CSS = [
     ".tut-modal { background:#fff; border-radius:6px; width:100%; max-width:440px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; }",
     ".tut-head { background:#0f6b64; color:#fff; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
     ".tut-head h2 { margin:0; font-size:14px; font-weight:700; }",
@@ -6136,19 +6197,19 @@
   ].join("\n");
 
   /* idModulo -> { titulo, passos: [{ titulo, texto, icone?, alvo?, evento? }] } */
-  var registro = {};
+  const registro = {};
 
-  var overlay = null;
-  var refs = {};
-  var idAtual = null;
-  var passoAtual = 0;
-  var dockAtual = null;
+  let overlay = null;
+  const refs = {};
+  let idAtual = null;
+  let passoAtual = 0;
+  let dockAtual = null;
 
   /* --- estado do passo GUIADO em curso (D65) --- */
-  var avisoGuiado = null;   // handle de d.dock.criarAviso()
-  var alvoDestacado = null; // elemento com .tut-alvo-destaque aplicado
-  var listenerGuiado = null; // { el, tipo, fn } — para remover ao sair
-  var vigiaAlvo = null;      // setInterval que detecta o alvo sumindo
+  let avisoGuiado = null;   // handle de d.dock.criarAviso()
+  let alvoDestacado = null; // elemento com .tut-alvo-destaque aplicado
+  let listenerGuiado = null; // { el, tipo, fn } — para remover ao sair
+  let vigiaAlvo = null;      // setInterval que detecta o alvo sumindo
 
   function storage() {
     return raiz.MeedsSuiteStorage ? raiz.MeedsSuiteStorage.storageDoNucleo() : null;
@@ -6173,12 +6234,12 @@
   }
 
   function jaViu(idModulo) {
-    var s = storage();
+    const s = storage();
     return !!(s && s.ler(chaveVisto(idModulo), false));
   }
 
   function marcarVisto(idModulo) {
-    var s = storage();
+    const s = storage();
     if (s) s.gravar(chaveVisto(idModulo), true);
   }
 
@@ -6268,8 +6329,8 @@
 
   function pintarPasso() {
     limparPassoGuiado();
-    var spec = registro[idAtual];
-    var passo = spec.passos[passoAtual];
+    const spec = registro[idAtual];
+    const passo = spec.passos[passoAtual];
 
     if (passo.alvo) {
       if (overlay) overlay.fechar();
@@ -6281,7 +6342,7 @@
   }
 
   function pintarPassoCarrossel(spec, passo) {
-    var total = spec.passos.length;
+    const total = spec.passos.length;
     overlay.abrir();
 
     refs.tituloModulo.textContent = "🎓 " + (spec.titulo || "Tutorial");
@@ -6306,8 +6367,8 @@
       avancar();
       return;
     }
-    var total = spec.passos.length;
-    var elAlvo = elementoVisivel(passo.alvo()) ? passo.alvo() : null;
+    const total = spec.passos.length;
+    const elAlvo = elementoVisivel(passo.alvo()) ? passo.alvo() : null;
 
     avisoGuiado = dockAtual.criarAviso({
       titulo: "🎓 " + (passo.titulo || "Sua vez") + " · " + (passoAtual + 1) + "/" + total,
@@ -6320,8 +6381,8 @@
     elAlvo.classList.add("tut-alvo-destaque");
     alvoDestacado = elAlvo;
 
-    var tipo = passo.evento || "click";
-    var fn = function () {
+    const tipo = passo.evento || "click";
+    const fn = function () {
       avancarDoGuiado();
     };
     elAlvo.addEventListener(tipo, fn, { once: true });
@@ -6341,7 +6402,7 @@
   }
 
   function avancar() {
-    var spec = registro[idAtual];
+    const spec = registro[idAtual];
     if (passoAtual < spec.passos.length - 1) {
       passoAtual++;
       pintarPasso();
@@ -6358,7 +6419,7 @@
    * ter visto é sempre permitido, não é ação de "primeira vez").
    * ------------------------------------------------------------------ */
   function iniciar(idModulo, opcoes) {
-    var spec = registro[idModulo];
+    const spec = registro[idModulo];
     if (!spec || !opcoes || !opcoes.dock) return false;
     montarOverlay(opcoes.dock);
     dockAtual = opcoes.dock;
@@ -6430,7 +6491,7 @@
 (function (raiz) {
   "use strict";
 
-  var CSS = [
+  const CSS = [
     ".msf-modal { width:100%; max-width:520px; max-height:86vh; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); display:flex; flex-direction:column; overflow:hidden; }",
     ".msf-modal header { background:#17457f; color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
     ".msf-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
@@ -6455,21 +6516,21 @@
     ".msf-btn-sec:hover { background:#eef4fb; }",
   ].join("\n");
 
-  var TIPOS = [
+  const TIPOS = [
     { id: "problema", rotulo: "Algo não funcionou", prefixo: "[problema]" },
     { id: "ideia", rotulo: "Tenho uma ideia", prefixo: "[ideia]" },
     { id: "outro", rotulo: "Outro assunto", prefixo: "[feedback]" },
   ];
 
-  var overlay = null;
-  var ctx = null;
-  var tipoAtual = "problema";
+  let overlay = null;
+  let ctx = null;
+  let tipoAtual = "problema";
 
   /* Navegador em uma linha, sem o user-agent inteiro — que é longo,
    * ilegível e ainda funciona como impressão digital. */
   function navegadorCurto() {
-    var ua = navigator.userAgent || "";
-    var nome = /Edg\//.test(ua)
+    const ua = navigator.userAgent || "";
+    const nome = /Edg\//.test(ua)
       ? "Edge"
       : /Chrome\//.test(ua)
       ? "Chrome"
@@ -6478,7 +6539,7 @@
       : /Safari\//.test(ua)
       ? "Safari"
       : "navegador desconhecido";
-    var sistema = /Windows/.test(ua) ? "Windows" : /Mac OS/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : "";
+    const sistema = /Windows/.test(ua) ? "Windows" : /Mac OS/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : "";
     return [nome, sistema].filter(Boolean).join(" · ");
   }
 
@@ -6503,19 +6564,19 @@
   }
 
   function montarTexto() {
-    var escrito = overlay.$("#msf-texto").value.trim();
+    const escrito = overlay.$("#msf-texto").value.trim();
     return escrito + "\n\n" + assinaturaTecnica();
   }
 
   function assuntoAtual() {
-    var t = TIPOS.filter(function (x) {
+    const t = TIPOS.filter(function (x) {
       return x.id === tipoAtual;
     })[0];
     return "Assistente Meeds " + ctx.versao + " " + (t ? t.prefixo : "[feedback]");
   }
 
   function mostrarMensagem(texto, tipo) {
-    var caixa = overlay.$("#msf-mensagem");
+    const caixa = overlay.$("#msf-mensagem");
     caixa.innerHTML = texto
       ? '<div class="msf-' + (tipo || "ok") + '"></div>'
       : "";
@@ -6523,13 +6584,13 @@
   }
 
   function enviarPorEmail() {
-    var texto = overlay.$("#msf-texto").value.trim();
+    const texto = overlay.$("#msf-texto").value.trim();
     if (!texto) {
       mostrarMensagem("Escreva o que aconteceu antes de enviar — nem que seja uma linha.", "erro");
       overlay.$("#msf-texto").focus();
       return;
     }
-    var destino = (ctx.contato && ctx.contato.email) || "";
+    const destino = (ctx.contato && ctx.contato.email) || "";
     if (!destino) {
       mostrarMensagem(
         "Não há endereço de contato configurado nesta instalação. Use “Copiar” e mande o texto pelo canal que preferir.",
@@ -6537,7 +6598,7 @@
       );
       return;
     }
-    var url =
+    const url =
       "mailto:" + encodeURIComponent(destino) +
       "?subject=" + encodeURIComponent(assuntoAtual()) +
       "&body=" + encodeURIComponent(montarTexto());
@@ -6553,13 +6614,13 @@
   }
 
   function copiar() {
-    var texto = overlay.$("#msf-texto").value.trim();
+    const texto = overlay.$("#msf-texto").value.trim();
     if (!texto) {
       mostrarMensagem("Escreva o que aconteceu antes de copiar.", "erro");
       overlay.$("#msf-texto").focus();
       return;
     }
-    var completo = assuntoAtual() + "\n\n" + montarTexto();
+    const completo = assuntoAtual() + "\n\n" + montarTexto();
 
     function ok() {
       mostrarMensagem("Copiado. Cole no WhatsApp, no e-mail ou onde preferir.", "ok");
@@ -6575,7 +6636,7 @@
 
   function copiarFallback(texto, aoCopiar) {
     try {
-      var ta = document.createElement("textarea");
+      const ta = document.createElement("textarea");
       ta.value = texto;
       ta.style.position = "fixed";
       ta.style.opacity = "0";
@@ -6594,7 +6655,7 @@
     overlay.$$(".msf-tipo").forEach(function (b) {
       b.setAttribute("aria-pressed", String(b.getAttribute("data-tipo") === id));
     });
-    var campo = overlay.$("#msf-texto");
+    const campo = overlay.$("#msf-texto");
     campo.setAttribute(
       "placeholder",
       id === "problema"
@@ -6708,9 +6769,9 @@
 (function (raiz) {
   "use strict";
 
-  var Cadastro = raiz.MeedsSuiteCadastro;
+  const Cadastro = raiz.MeedsSuiteCadastro;
 
-  var ESTILO = [
+  const ESTILO = [
     ".msm-modal { background:#fff; border-radius:6px; width:100%; max-width:540px; max-height:86vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 8px 24px rgba(15,23,42,.2); }",
 
     /* cabecalho */
@@ -6814,15 +6875,15 @@
     ".msm-sobre-texto { font-size:11.5px; color:#5b6672; line-height:1.55; margin-bottom:8px; }",
   ].join("\n");
 
-  var ABAS = [
+  const ABAS = [
     { id: "funcoes", rotulo: "Funções", sub: "Ative apenas as funções que você usa" },
     { id: "medicos", rotulo: "Médicos", sub: "Cadastre uma vez; vale para todos os laudos" },
     { id: "unidades", rotulo: "Unidades", sub: "Estabelecimentos e CNES usados na APAC" },
     { id: "sobre", rotulo: "Sobre", sub: "Versão, novidades e feedback" },
   ];
 
-  var overlay = null;
-  var ctx = null;
+  let overlay = null;
+  let ctx = null;
 
   function escapeHtml(str) {
     return String(str == null ? "" : str).replace(/[&<>"']/g, function (c) {
@@ -6956,10 +7017,10 @@
      * que escopo ele caiu — e ate agora a unica forma de descobrir era
      * ligar o aparelho num Mac. Agora e abrir o Sobre. */
     (function () {
-      var linha = overlay.$("#msm-escopo");
-      var diag = raiz.MeedsSuiteDiagnostico;
+      const linha = overlay.$("#msm-escopo");
+      const diag = raiz.MeedsSuiteDiagnostico;
       if (!linha || !diag || !diag.escopoDeExecucao) return;
-      var partes = [
+      const partes = [
         diag.escopoDeExecucao() === "pagina"
           ? "Funcionando com todos os sinais"
           : "Modo restrito: o navegador isolou o Assistente, então o alarme de fila decide só pelo que aparece na tela",
@@ -6969,7 +7030,7 @@
        * "voltaram todos os botoes" tem a mesma causa raiz — o dado nao
        * estava num lugar que sobrevive ao logout — e ate agora nao havia
        * como saber isso sem abrir o console. */
-      var onde = raiz.MeedsSuiteStorage && raiz.MeedsSuiteStorage.ondeEstaGuardado
+      const onde = raiz.MeedsSuiteStorage && raiz.MeedsSuiteStorage.ondeEstaGuardado
         ? raiz.MeedsSuiteStorage.ondeEstaGuardado()
         : null;
       if (onde === "sessao") {
@@ -7003,7 +7064,7 @@
     overlay.$("#msm-estab-add").addEventListener("click", salvarEstabelecimento);
     montarMunicipiosDaUnidade();
     overlay.$("#msm-estab-cnes").addEventListener("input", function () {
-      var el = overlay.$("#msm-estab-cnes");
+      const el = overlay.$("#msm-estab-cnes");
       el.value = el.value.replace(/\D/g, "").slice(0, 12);
     });
     enterSalva(["#msm-estab-nome", "#msm-estab-cnes"], salvarEstabelecimento);
@@ -7024,8 +7085,8 @@
     });
 
     overlay.$("#msm-diagnostico-copiar").addEventListener("click", function () {
-      var caixa = overlay.$("#msm-diagnostico-mensagem");
-      var diagTec = raiz.MeedsSuiteDiagnosticoTecnico;
+      const caixa = overlay.$("#msm-diagnostico-mensagem");
+      const diagTec = raiz.MeedsSuiteDiagnosticoTecnico;
       if (!diagTec) return;
       diagTec.copiar(
         { versao: ctx.versaoNucleo, modulos: ctx.listarModulos() },
@@ -7040,9 +7101,9 @@
     });
 
     (function () {
-      var botaoNoturno = overlay.$("#msm-noturno");
+      const botaoNoturno = overlay.$("#msm-noturno");
       if (!botaoNoturno || !raiz.MeedsSuiteNoturno) return;
-      var refletir = function () {
+      const refletir = function () {
         botaoNoturno.setAttribute("aria-pressed", String(raiz.MeedsSuiteNoturno.estaLigado()));
       };
       refletir();
@@ -7067,8 +7128,8 @@
   /* O formulário fica fechado até ser pedido: a lista é o que se
    * consulta, o formulário é o que se usa uma vez. */
   function alternarForm(seletorBotao, seletorForm, seletorFoco, seletorCancelar) {
-    var botao = overlay.$(seletorBotao);
-    var form = overlay.$(seletorForm);
+    const botao = overlay.$(seletorBotao);
+    const form = overlay.$(seletorForm);
     botao.addEventListener("click", function () {
       form.hidden = false;
       botao.hidden = true;
@@ -7095,7 +7156,7 @@
   }
 
   function mostrarAba(id) {
-    var ficha = ABAS.filter(function (a) {
+    const ficha = ABAS.filter(function (a) {
       return a.id === id;
     })[0];
     overlay.$("#msm-sub").textContent = ficha ? ficha.sub : "";
@@ -7118,7 +7179,7 @@
     /* Quem chega de um atalho ("cadastrar médico" dentro de um laudo) cai
      * direto na aba certa, com o formulário já aberto — o atalho existe
      * justamente para poupar cliques. */
-    var destino = { medicos: "medicos", estabelecimentos: "unidades", sobre: "sobre" }[secao] || "funcoes";
+    const destino = { medicos: "medicos", estabelecimentos: "unidades", sobre: "sobre" }[secao] || "funcoes";
     mostrarAba(destino);
     overlay.abrir();
 
@@ -7141,8 +7202,8 @@
 
   /* ---------------- funções (módulos) ---------------- */
   function renderizarModulos() {
-    var lista = overlay.$("#msm-lista");
-    var todos = ctx.listarModulos();
+    const lista = overlay.$("#msm-lista");
+    const todos = ctx.listarModulos();
 
     /* Funcoes marcadas como sempre ativas nao entram na lista de chaves.
      * Elas melhoram o proprio formulario do laudo (a busca de CID dentro
@@ -7150,8 +7211,8 @@
      * uma chave para desliga-las so ofereceria um jeito de piorar o
      * formulario. Ficam citadas no rodape, para o medico saber que
      * existem. */
-    var modulos = todos.filter(function (m) { return !m.sempreAtivo; });
-    var fixos = todos.filter(function (m) { return m.sempreAtivo; });
+    const modulos = todos.filter(function (m) { return !m.sempreAtivo; });
+    const fixos = todos.filter(function (m) { return m.sempreAtivo; });
 
     if (!modulos.length && !fixos.length) {
       lista.innerHTML = '<div class="msm-vazio">Nenhuma função carregada neste pacote.</div>';
@@ -7200,8 +7261,8 @@
        * isso o nome vira botao clicavel quando `temTutorial`, em vez de
        * so texto — mesmo emoji, mesma funcao, formato menor porque a
        * linha inteira e mais discreta. */
-      var nomesFixos = fixos.map(function (m) {
-        var nome = "<b>" + escapeHtml(m.nome) + "</b>";
+      const nomesFixos = fixos.map(function (m) {
+        const nome = "<b>" + escapeHtml(m.nome) + "</b>";
         return m.temTutorial
           ? '<button type="button" class="msm-tutorial-fixo" data-tutorial="' + escapeHtml(m.id) +
             '" title="Ver tutorial de ' + escapeHtml(m.nome) + '">' + nome + " 🎓</button>"
@@ -7242,13 +7303,13 @@
 
   /* ---------------- médicos ---------------- */
   function mostrarMensagemMedicos(texto, tipo) {
-    var caixa = overlay.$("#msm-medicos-mensagem");
+    const caixa = overlay.$("#msm-medicos-mensagem");
     caixa.innerHTML = texto ? '<div class="msm-' + (tipo || "ok") + '">' + escapeHtml(texto) + "</div>" : "";
   }
 
   function renderizarMedicos() {
-    var lista = Cadastro.listar();
-    var box = overlay.$("#msm-medicos-lista");
+    const lista = Cadastro.listar();
+    const box = overlay.$("#msm-medicos-lista");
 
     if (!lista.length) {
       box.innerHTML =
@@ -7259,7 +7320,7 @@
 
     box.innerHTML = lista
       .map(function (m, i) {
-        var docs = [];
+        const docs = [];
         if (m.crm) docs.push("CRM " + m.crm);
         if (m.cpf) docs.push("CPF " + m.cpf);
         return (
@@ -7276,8 +7337,8 @@
 
     box.querySelectorAll(".msm-remover").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        var i = Number(btn.getAttribute("data-i"));
-        var alvo = Cadastro.listar()[i];
+        const i = Number(btn.getAttribute("data-i"));
+        const alvo = Cadastro.listar()[i];
         Cadastro.remover(i);
         renderizarMedicos();
         mostrarMensagemMedicos((alvo ? alvo.nome : "Médico") + " foi removido do cadastro.", "ok");
@@ -7287,7 +7348,7 @@
   }
 
   function salvarMedico() {
-    var nome = overlay.$("#msm-med-nome").value.trim();
+    const nome = overlay.$("#msm-med-nome").value.trim();
     if (!nome) {
       mostrarMensagemMedicos(
         "Não consegui salvar porque o nome está vazio. Preencha o campo “Nome completo” — é o único obrigatório.",
@@ -7297,7 +7358,7 @@
       return;
     }
 
-    var cpf = overlay.$("#msm-med-cpf").value.trim();
+    const cpf = overlay.$("#msm-med-cpf").value.trim();
     if (cpf && !raiz.MeedsSuiteFormatos.cpfCompleto(cpf)) {
       mostrarMensagemMedicos(
         "Não consegui salvar porque o CPF tem " + raiz.MeedsSuiteFormatos.soDigitos(cpf).length +
@@ -7308,7 +7369,7 @@
       return;
     }
 
-    var r = Cadastro.adicionar({ nome: nome, crm: overlay.$("#msm-med-crm").value.trim(), cpf: cpf });
+    const r = Cadastro.adicionar({ nome: nome, crm: overlay.$("#msm-med-crm").value.trim(), cpf: cpf });
     if (!r.ok) {
       mostrarMensagemMedicos(r.erro, "erro");
       return;
@@ -7331,7 +7392,7 @@
   }
 
   function fazerBackup() {
-    var lista = Cadastro.listar();
+    const lista = Cadastro.listar();
     if (!lista.length) {
       mostrarMensagemMedicos(
         "Não há o que salvar: nenhum médico cadastrado ainda. Cadastre pelo menos um e tente de novo.",
@@ -7339,9 +7400,9 @@
       );
       return;
     }
-    var blob = new Blob([Cadastro.exportar()], { type: "application/json" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
+    const blob = new Blob([Cadastro.exportar()], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
     a.href = url;
     a.download = "assistente-meeds-medicos.json";
     document.body.appendChild(a);
@@ -7357,13 +7418,13 @@
   }
 
   function restaurarBackup(ev) {
-    var arquivo = ev.target.files && ev.target.files[0];
+    const arquivo = ev.target.files && ev.target.files[0];
     ev.target.value = "";
     if (!arquivo) return;
 
-    var leitor = new FileReader();
+    const leitor = new FileReader();
     leitor.onload = function () {
-      var r = Cadastro.importar(String(leitor.result));
+      const r = Cadastro.importar(String(leitor.result));
       if (!r.ok) {
         mostrarMensagemMedicos(r.erro, "erro");
         return;
@@ -7388,7 +7449,7 @@
 
   /* ---------------- unidades ---------------- */
   function mostrarMensagemEstab(texto, tipo) {
-    var caixa = overlay.$("#msm-estab-mensagem");
+    const caixa = overlay.$("#msm-estab-mensagem");
     caixa.innerHTML = texto ? '<div class="msm-' + (tipo || "ok") + '">' + escapeHtml(texto) + "</div>" : "";
   }
 
@@ -7396,20 +7457,20 @@
    * administrador acrescenta um municipio editando dados e ele ja aparece
    * aqui, sem tocar em codigo. */
   function municipiosConhecidos() {
-    var d = raiz.MEEDS_DADOS_APAC;
+    const d = raiz.MEEDS_DADOS_APAC;
     return d && d.municipios ? Object.keys(d.municipios) : [];
   }
 
   function montarMunicipiosDaUnidade() {
-    var sel = overlay.$("#msm-estab-municipio");
+    const sel = overlay.$("#msm-estab-municipio");
     if (!sel) return;
     sel.innerHTML = "";
-    var ph = document.createElement("option");
+    const ph = document.createElement("option");
     ph.value = "";
     ph.textContent = "Selecione o município…";
     sel.appendChild(ph);
     municipiosConhecidos().forEach(function (m) {
-      var o = document.createElement("option");
+      const o = document.createElement("option");
       o.value = m;
       o.textContent = m;
       sel.appendChild(o);
@@ -7417,8 +7478,8 @@
   }
 
   function renderizarEstabelecimentos() {
-    var lista = Cadastro.listarEstabelecimentos();
-    var box = overlay.$("#msm-estab-lista");
+    const lista = Cadastro.listarEstabelecimentos();
+    const box = overlay.$("#msm-estab-lista");
 
     if (!lista.length) {
       box.innerHTML =
@@ -7447,8 +7508,8 @@
 
     box.querySelectorAll("[data-e]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        var i = Number(btn.getAttribute("data-e"));
-        var alvo = Cadastro.listarEstabelecimentos()[i];
+        const i = Number(btn.getAttribute("data-e"));
+        const alvo = Cadastro.listarEstabelecimentos()[i];
         Cadastro.removerEstabelecimento(i);
         renderizarEstabelecimentos();
         mostrarMensagemEstab((alvo ? alvo.nome : "Unidade") + " foi removida.", "ok");
@@ -7458,7 +7519,7 @@
   }
 
   function salvarEstabelecimento() {
-    var nome = overlay.$("#msm-estab-nome").value.trim();
+    const nome = overlay.$("#msm-estab-nome").value.trim();
     if (!nome) {
       mostrarMensagemEstab(
         "Não consegui salvar porque o nome está vazio. Preencha o campo “Nome da unidade”.",
@@ -7467,7 +7528,7 @@
       overlay.$("#msm-estab-nome").focus();
       return;
     }
-    var r = Cadastro.adicionarEstabelecimento({ nome: nome, cnes: overlay.$("#msm-estab-cnes").value });
+    const r = Cadastro.adicionarEstabelecimento({ nome: nome, cnes: overlay.$("#msm-estab-cnes").value });
     if (!r.ok) {
       mostrarMensagemEstab(r.erro, "erro");
       return;
@@ -7518,29 +7579,32 @@
 (function (raiz) {
   "use strict";
 
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
   /* FONTE UNICA DE VERSAO: manifest.json.
    * O build substitui o marcador abaixo pela versao de la e tambem
    * escreve o @version do userscript e o package.json. Nao edite a
    * versao aqui nem no bootloader — so no manifest.
    * O valor de reserva existe para o arquivo continuar rodavel solto,
    * fora do pacote (por exemplo num teste unitario). */
-  var VERSAO_NUCLEO = "2.49.0" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.49.0";
+  const VERSAO_NUCLEO = "2.49.1" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.49.1"; // eslint-disable-line no-constant-condition -- proposital: o build troca o marcador; solto (teste), vira "dev"
 
-  var Auth = raiz.MeedsSuiteAuth;
-  var Dock = raiz.MeedsSuiteDock;
-  var Net = raiz.MeedsSuiteNetwork;
-  var Dom = raiz.MeedsSuiteDom;
-  var Decisao = raiz.MeedsSuiteDecisao;
-  var Storage = raiz.MeedsSuiteStorage;
-  var Cadastro = raiz.MeedsSuiteCadastro;
+  const Auth = raiz.MeedsSuiteAuth;
+  const Dock = raiz.MeedsSuiteDock;
+  const Net = raiz.MeedsSuiteNetwork;
+  const Dom = raiz.MeedsSuiteDom;
+  const Decisao = raiz.MeedsSuiteDecisao;
+  const Storage = raiz.MeedsSuiteStorage;
+  const Cadastro = raiz.MeedsSuiteCadastro;
 
-  var registro = [];          // definicoes na ordem de registro
-  var ouvintesCadastro = [];  // modulos que redesenham a lista de medicos
-  var ouvintesEvento = {};    // barramento entre modulos (ver abaixo)
-  var porId = {};             // id -> { def, estado }
-  var iniciado = false;
-  var storageNucleo = null;
-  var manifesto = null;
+  const registro = [];          // definicoes na ordem de registro
+  let ouvintesCadastro = [];  // modulos que redesenham a lista de medicos
+  const ouvintesEvento = {};    // barramento entre modulos (ver abaixo)
+  const porId = {};             // id -> { def, estado }
+  let iniciado = false;
+  let storageNucleo = null;
+  let manifesto = null;
 
   /* ------------------------------------------------------------------
    * CONFIG REMOTA DE SELETORES (com fallback embutido)
@@ -7552,7 +7616,7 @@
    * o fallback embutido continua valendo — mesma estrategia ja provada
    * pelo remumes.json do Assistente REMUME.
    * ------------------------------------------------------------------ */
-  var SELETORES_FALLBACK = {
+  const SELETORES_FALLBACK = {
     rotulos: {
       nascimento: ["Data de Nascimento", "Data de nascimento", "Nascimento", "Dt. Nascimento"],
       cpf: ["CPF", "C.P.F.", "CPF do paciente"],
@@ -7581,22 +7645,22 @@
     },
   };
 
-  var seletores = JSON.parse(JSON.stringify(SELETORES_FALLBACK));
-  var URL_SELETORES_PADRAO =
+  const seletores = JSON.parse(JSON.stringify(SELETORES_FALLBACK));
+  const URL_SELETORES_PADRAO =
     "https://raw.githubusercontent.com/sodelfino/meeds-suite/main/seletores.json";
 
   function validarSeletores(dados) {
     if (!dados || typeof dados !== "object" || Array.isArray(dados)) return false;
-    var grupos = ["rotulos", "toasts"];
-    for (var i = 0; i < grupos.length; i++) {
-      var g = dados[grupos[i]];
+    const grupos = ["rotulos", "toasts"];
+    for (let i = 0; i < grupos.length; i++) {
+      const g = dados[grupos[i]];
       if (g === undefined) continue;
       if (!g || typeof g !== "object" || Array.isArray(g)) return false;
-      var chaves = Object.keys(g);
-      for (var j = 0; j < chaves.length; j++) {
-        var v = g[chaves[j]];
+      const chaves = Object.keys(g);
+      for (let j = 0; j < chaves.length; j++) {
+        const v = g[chaves[j]];
         if (!Array.isArray(v)) return false;
-        for (var k = 0; k < v.length; k++) {
+        for (let k = 0; k < v.length; k++) {
           if (typeof v[k] !== "string") return false;
         }
       }
@@ -7605,7 +7669,7 @@
   }
 
   function atualizarSeletoresRemoto(url) {
-    var alvo = url || URL_SELETORES_PADRAO;
+    const alvo = url || URL_SELETORES_PADRAO;
     try {
       return fetch(alvo, { cache: "no-store" })
         .then(function (r) {
@@ -7615,7 +7679,7 @@
         .then(function (dados) {
           if (!dados) return false;
           if (!validarSeletores(dados)) {
-            console.warn("[Assistente Meeds] seletores remotos com formato inesperado, mantendo fallback embutido.");
+            LOG.warn("[Assistente Meeds] seletores remotos com formato inesperado, mantendo fallback embutido.");
             return false;
           }
           // mescla por GRUPO, nao substitui o objeto inteiro: um arquivo
@@ -7628,7 +7692,7 @@
           return true;
         })
         .catch(function (e) {
-          console.warn("[Assistente Meeds] nao foi possivel buscar seletores remotos, usando fallback.", e);
+          LOG.warn("[Assistente Meeds] nao foi possivel buscar seletores remotos, usando fallback.", e);
           return false;
         });
     } catch (e) {
@@ -7637,9 +7701,9 @@
   }
 
   function obterSeletor(grupo, chave) {
-    var g = seletores[grupo] || {};
+    const g = seletores[grupo] || {};
     if (g[chave]) return g[chave].slice();
-    var f = (SELETORES_FALLBACK[grupo] || {})[chave];
+    const f = (SELETORES_FALLBACK[grupo] || {})[chave];
     return f ? f.slice() : [];
   }
 
@@ -7662,7 +7726,7 @@
    * ------------------------------------------------------------------ */
   function assinarEvento(nome, fn, idModulo) {
     if (!ouvintesEvento[nome]) ouvintesEvento[nome] = [];
-    var registro = { fn: fn, idModulo: idModulo || null };
+    const registro = { fn: fn, idModulo: idModulo || null };
     ouvintesEvento[nome].push(registro);
     return function cancelar() {
       ouvintesEvento[nome] = (ouvintesEvento[nome] || []).filter(function (o) {
@@ -7672,12 +7736,12 @@
   }
 
   function publicarEvento(nome, dados) {
-    var atenderam = 0;
+    let atenderam = 0;
     (ouvintesEvento[nome] || []).slice().forEach(function (o) {
       try {
         if (o.fn(dados) === true) atenderam++;
       } catch (e) {
-        console.warn("[Assistente Meeds] ouvinte do evento", nome, "falhou em", o.idModulo, e);
+        LOG.warn("[Assistente Meeds] ouvinte do evento", nome, "falhou em", o.idModulo, e);
       }
     });
     return atenderam;
@@ -7696,14 +7760,14 @@
    * ------------------------------------------------------------------ */
   function registerModule(def) {
     if (!def || !def.id) {
-      console.warn("[Assistente Meeds] registerModule chamado sem id, ignorando.");
+      LOG.warn("[Assistente Meeds] registerModule chamado sem id, ignorando.");
       return;
     }
     if (porId[def.id]) {
-      console.warn("[Assistente Meeds] modulo duplicado ignorado:", def.id);
+      LOG.warn("[Assistente Meeds] modulo duplicado ignorado:", def.id);
       return;
     }
-    var entrada = {
+    const entrada = {
       def: def,
       rodando: false,
       cancelamentosRede: [],
@@ -7731,7 +7795,7 @@
    * do painel e editar um arquivo de dados. */
   function fichaDoManifesto(id) {
     if (!manifesto || !Array.isArray(manifesto.modulos)) return null;
-    for (var i = 0; i < manifesto.modulos.length; i++) {
+    for (let i = 0; i < manifesto.modulos.length; i++) {
       if (manifesto.modulos[i].id === id) return manifesto.modulos[i];
     }
     return null;
@@ -7754,10 +7818,10 @@
    * modulo nao tem botao (cid10 e previa-pdf acoplam-se a outra tela).
    * ------------------------------------------------------------------ */
   function montarSpecBotao(def, ficha) {
-    var ap = ficha && ficha.apresentacao;
+    const ap = ficha && ficha.apresentacao;
     if (ap) {
       if (ap.formaBotao === "nenhum" || !ap.icone) return null;
-      var comRotulo = ap.formaBotao === "rotulo";
+      const comRotulo = ap.formaBotao === "rotulo";
       return {
         icone: ap.icone,
         rotulo: comRotulo ? (ap.rotuloBotao || ficha.nome || "") : "",
@@ -7781,7 +7845,7 @@
 
   function listarModulos() {
     return registro.map(function (e) {
-      var m = fichaDoManifesto(e.def.id) || {};
+      const m = fichaDoManifesto(e.def.id) || {};
       return {
         id: e.def.id,
         temAjustes: typeof e.abrirAjustes === "function",
@@ -7802,7 +7866,7 @@
    * criam botao nem ruido na tela — desligar so deixaria o formulario
    * pior, sem nada em troca. Por isso nao ha chave para elas no painel. */
   function sempreAtivo(id) {
-    var m = fichaDoManifesto(id);
+    const m = fichaDoManifesto(id);
     return !!(m && m.sempreAtivo);
   }
 
@@ -7825,7 +7889,7 @@
    * `sempreAtivo` ficou so com a previa do documento, onde a premissa
    * original continua valendo. */
   function padraoDoModulo(id) {
-    var m = fichaDoManifesto(id);
+    const m = fichaDoManifesto(id);
     return !m || m.padraoHabilitado !== false;
   }
 
@@ -7834,7 +7898,7 @@
    * depois de migrar. */
   function estaHabilitado(id) {
     if (sempreAtivo(id)) return true;
-    var mapa = storageNucleo ? storageNucleo.ler("modulos", {}) : {};
+    const mapa = storageNucleo ? storageNucleo.ler("modulos", {}) : {};
     /* Preferencia gravada sempre vence o padrao: se o medico ligou o
      * APAC uma vez, uma atualizacao nao pode desligar de novo. */
     if (mapa && Object.prototype.hasOwnProperty.call(mapa, id)) return !!mapa[id];
@@ -7846,14 +7910,14 @@
     if (sempreAtivo(id)) {
       /* Nao ha caminho na interface que chegue aqui, mas a regra vale
        * tambem para quem chamar pelo console. */
-      console.debug("[Assistente Meeds] " + id + " e sempre ativo; o pedido de desligar foi ignorado.");
+      LOG.debug("[Assistente Meeds] " + id + " e sempre ativo; o pedido de desligar foi ignorado.");
       return;
     }
-    var mapa = storageNucleo.ler("modulos", {}) || {};
+    const mapa = storageNucleo.ler("modulos", {}) || {};
     mapa[id] = !!valor;
     storageNucleo.gravar("modulos", mapa);
 
-    var entrada = porId[id];
+    const entrada = porId[id];
     if (!entrada) return;
     // HABILITAR/DESABILITAR NAO PODE EXIGIR RELOAD (requisito do contrato)
     if (valor && !entrada.rodando) iniciarModulo(entrada);
@@ -7865,16 +7929,16 @@
    * ------------------------------------------------------------------ */
   function iniciarModulo(entrada) {
     if (entrada.rodando) return;
-    var def = entrada.def;
-    var ficha = fichaDoManifesto(def.id);
+    const def = entrada.def;
+    const ficha = fichaDoManifesto(def.id);
     try {
-      var storage = Storage.criarStorage(def.id);
-      var config = storage.lerConfig(def.configPadrao || {});
+      const storage = Storage.criarStorage(def.id);
+      const config = storage.lerConfig(def.configPadrao || {});
 
       // Botao: a APRESENTACAO vem do manifest (montarSpecBotao), o dock
       // POSICIONA, e o modulo so diz o que fazer no clique.
-      var botaoHandle = null;
-      var specBotao = montarSpecBotao(def, ficha);
+      let botaoHandle = null;
+      const specBotao = montarSpecBotao(def, ficha);
       if (specBotao) {
         specBotao.id = def.id;
         specBotao.aoClicar = function () {
@@ -7882,7 +7946,7 @@
           try {
             entrada.aoClicarBotao();
           } catch (e) {
-            console.warn("[Assistente Meeds] clique falhou em", def.id, e);
+            LOG.warn("[Assistente Meeds] clique falhou em", def.id, e);
             avisarFalhaNoClique(entrada, specBotao);
           }
         };
@@ -7893,14 +7957,14 @@
       // Assinaturas de rede declaradas no contrato — o nucleo assina por
       // conta do modulo e guarda os cancelamentos para o stop().
       (def.assinaturasRede || []).forEach(function (assinatura) {
-        var cancelar = Net.assinar(
+        const cancelar = Net.assinar(
           { regex: assinatura.regex, metodos: assinatura.metodos, idModulo: def.id },
           function (evt) {
             if (typeof def.aoCargaRede === "function") {
               try {
                 def.aoCargaRede(evt);
               } catch (e) {
-                console.warn("[Assistente Meeds] aoCargaRede falhou em", def.id, e);
+                LOG.warn("[Assistente Meeds] aoCargaRede falhou em", def.id, e);
               }
             }
           }
@@ -7908,11 +7972,11 @@
         entrada.cancelamentosRede.push(cancelar);
       });
 
-      var deps = {
+      const deps = {
         core: API,
         network: {
           assinar: function (spec, cb) {
-            var cancelar = Net.assinar(
+            const cancelar = Net.assinar(
               { regex: spec.regex, metodos: spec.metodos, idModulo: def.id },
               cb
             );
@@ -7980,9 +8044,9 @@
 
       if (typeof def.start === "function") def.start(deps);
       entrada.rodando = true;
-      console.debug("[Assistente Meeds] modulo iniciado:", def.id, def.versao);
+      LOG.debug("[Assistente Meeds] modulo iniciado:", def.id, def.versao);
     } catch (e) {
-      console.error("[Assistente Meeds] falha ao iniciar modulo", def.id, e);
+      LOG.error("[Assistente Meeds] falha ao iniciar modulo", def.id, e);
       // Um modulo que explode no start nao pode derrubar os outros:
       // desfazemos o que ja foi criado e seguimos.
       pararModulo(entrada, true);
@@ -7996,8 +8060,8 @@
    * depois da janela aberta. Um aviso por modulo, que se atualiza em vez
    * de empilhar quando o medico tenta de novo. */
   function avisarFalhaNoClique(entrada, spec) {
-    var nome = (spec && (spec.titulo || spec.rotulo)) || entrada.def.nome || entrada.def.id;
-    var aviso = {
+    const nome = (spec && (spec.titulo || spec.rotulo)) || entrada.def.nome || entrada.def.id;
+    const aviso = {
       titulo: "Algo deu errado em " + nome,
       corpo: [
         "Um erro interno interrompeu esta função, e a janela pode não ter aberto por completo.",
@@ -8016,11 +8080,11 @@
   }
 
   function pararModulo(entrada, silencioso) {
-    var def = entrada.def;
+    const def = entrada.def;
     try {
       if (entrada.rodando && typeof def.stop === "function") def.stop();
     } catch (e) {
-      console.warn("[Assistente Meeds] stop() falhou em", def.id, e);
+      LOG.warn("[Assistente Meeds] stop() falhou em", def.id, e);
     }
     entrada.cancelamentosRede.forEach(function (cancelar) {
       try {
@@ -8047,13 +8111,13 @@
     entrada.abrirAjustes = null;
     entrada.iniciarTutorial = null;
     entrada.rodando = false;
-    if (!silencioso) console.debug("[Assistente Meeds] modulo parado:", def.id);
+    if (!silencioso) LOG.debug("[Assistente Meeds] modulo parado:", def.id);
   }
 
   /* ------------------------------------------------------------------
    * BOOTSTRAP
    * ------------------------------------------------------------------ */
-  var INTERVALO_RECHECAGEM_MS = 1500;
+  const INTERVALO_RECHECAGEM_MS = 1500;
 
   function recheckPeriodico() {
     // Regra unica de visibilidade que os 5 scripts implementavam cada um
@@ -8061,7 +8125,7 @@
     Dock.definirVisibilidadeGeral(Auth.estaLogado());
   }
 
-  var carregouPreferencias = false;
+  let carregouPreferencias = false;
 
   /* ------------------------------------------------------------------
    * LAUDOS DESLIGADOS NA PRIMEIRA INSTALACAO (v2.49.0) — sem desligar
@@ -8079,14 +8143,14 @@
    * Roda UMA vez por navegador; numa instalacao nova so grava a marca,
    * para que na proxima abertura — com as boas-vindas ja vistas — ela
    * nao seja confundida com quem ja usava. */
-  var LAUDOS_AGORA_DESLIGADOS = ["lme-sete-lagoas", "cmd"];
-  var MARCA_PADRAO_LAUDOS = "padrao_laudos_v2_49";
+  const LAUDOS_AGORA_DESLIGADOS = ["lme-sete-lagoas", "cmd"];
+  const MARCA_PADRAO_LAUDOS = "padrao_laudos_v2_49";
 
   function preservarLaudosDeQuemJaUsava(storage, jaUsava) {
     if (!storage || storage.ler(MARCA_PADRAO_LAUDOS, false) === true) return false;
-    var mudou = false;
+    let mudou = false;
     if (jaUsava) {
-      var mapa = storage.ler("modulos", {}) || {};
+      const mapa = storage.ler("modulos", {}) || {};
       LAUDOS_AGORA_DESLIGADOS.forEach(function (id) {
         if (!Object.prototype.hasOwnProperty.call(mapa, id)) {
           mapa[id] = true;
@@ -8119,7 +8183,7 @@
     if (!carregouPreferencias) {
       Storage.carregar()
         .catch(function (e) {
-          console.warn("[Assistente Meeds] preferencias nao carregaram, usando padroes.", e);
+          LOG.warn("[Assistente Meeds] preferencias nao carregaram, usando padroes.", e);
         })
         .then(function () {
           carregouPreferencias = true;
@@ -8165,12 +8229,12 @@
      * tinha desligado a APAC de Itauna veria a APAC global aparecer
      * sozinha, e quem a tinha ligada perderia a escolha. */
     (function migrarPreferenciaApac() {
-      var mapa = storageNucleo.ler("modulos", {}) || {};
+      const mapa = storageNucleo.ler("modulos", {}) || {};
       if (Object.prototype.hasOwnProperty.call(mapa, "apac-itauna")) {
         if (!Object.prototype.hasOwnProperty.call(mapa, "apac")) mapa.apac = mapa["apac-itauna"];
         delete mapa["apac-itauna"];
         storageNucleo.gravar("modulos", mapa);
-        console.debug("[Assistente Meeds] preferencia da APAC migrada de apac-itauna para apac.");
+        LOG.debug("[Assistente Meeds] preferencia da APAC migrada de apac-itauna para apac.");
       }
     })();
 
@@ -8194,16 +8258,16 @@
     preservarLaudosDeQuemJaUsava(storageNucleo, raiz.MeedsSuiteDiagnostico.boasVindasConcluidas());
 
     (function carimbarMunicipioPeloCnes() {
-      var dados = raiz.MEEDS_DADOS_APAC;
+      const dados = raiz.MEEDS_DADOS_APAC;
       if (!dados || !dados.municipios || !Cadastro || !Cadastro.preencherMunicipioPeloCnes) return;
-      var deQuemE = {};
+      const deQuemE = {};
       Object.keys(dados.municipios).forEach(function (cidade) {
         (dados.municipios[cidade].estabelecimentos || []).forEach(function (e) {
           if (e && e.cnes) deQuemE[String(e.cnes).replace(/\D/g, "")] = cidade;
         });
       });
-      var mudou = Cadastro.preencherMunicipioPeloCnes(deQuemE);
-      if (mudou) console.debug("[Assistente Meeds] municipio preenchido em", mudou, "estabelecimento(s) pelo CNES.");
+      const mudou = Cadastro.preencherMunicipioPeloCnes(deQuemE);
+      if (mudou) LOG.debug("[Assistente Meeds] municipio preenchido em", mudou, "estabelecimento(s) pelo CNES.");
     })();
 
     raiz.MeedsSuiteManager.montar({
@@ -8228,7 +8292,7 @@
           try {
             o.fn();
           } catch (e) {
-            console.warn("[Assistente Meeds] ouvinte de cadastro falhou em", o.idModulo, e);
+            LOG.warn("[Assistente Meeds] ouvinte de cadastro falhou em", o.idModulo, e);
           }
         });
       },
@@ -8254,10 +8318,10 @@
     raiz.MeedsSuiteDiagnostico.verificar(Dock, storageNucleo);
 
     iniciado = true;
-    console.debug("[Assistente Meeds] nucleo " + VERSAO_NUCLEO + " iniciado com " + registro.length + " modulo(s).");
+    LOG.debug("[Assistente Meeds] nucleo " + VERSAO_NUCLEO + " iniciado com " + registro.length + " modulo(s).");
   }
 
-  var API = {
+  var API = { // eslint-disable-line no-var -- usada antes desta linha; com let/const daria erro de zona morta (TDZ)
     versao: VERSAO_NUCLEO,
     novidades: raiz.MeedsSuiteNovidades,
     registerModule: registerModule,
@@ -8311,7 +8375,7 @@
 
 
   /* ===== dados/formularios.json ===== */
-  raiz.MEEDS_DADOS_FORMULARIOS = {"_leia_me":"Dados dos formularios: unidades de origem, catalogos de procedimento e listas de CID-10. Edite este arquivo e rode \"npm run build\" — as mudancas aparecem para os medicos sem precisar mexer em codigo. Ver docs/MANUAL-ADMIN.md.","lme-sete-lagoas":{"_leia_me":"Laudo Medico de Alto Custo de Sete Lagoas.","municipio":"SETE LAGOAS","origens":["SAÚDE AUDITIVA","UBS CIDADE DE DEUS","UBS BELO VALE"],"procedimentos":{"RM_CRANIO":{"nome":"Ressonância nuclear magnética de crânio","codigo":"02.07.01.006-4"},"RM_BASE_CRANIO":{"nome":"Ressonância nuclear magnética de base do crânio","codigo":"02.07.01.006-4"},"RM_SELA_TURCICA":{"nome":"Ressonância nuclear magnética de sela túrcica","codigo":"02.07.01.007-2"},"RM_ATM":{"nome":"Ressonância nuclear magnética de articulação temporomandibular (bilateral)","codigo":"02.07.01.002-1"},"ANGIO_RM_CEREBRAL":{"nome":"Angiorressonância cerebral","codigo":"02.07.01.001-3"},"RM_COLUNA_CERVICAL":{"nome":"Ressonância nuclear magnética de coluna cervical","codigo":"02.07.01.003-0"},"RM_COLUNA_TORACICA":{"nome":"Ressonância nuclear magnética de coluna torácica","codigo":"02.07.01.005-6"},"RM_COLUNA_LOMBOSSACRA":{"nome":"Ressonância nuclear magnética de coluna lombo-sacra","codigo":"02.07.01.004-8"},"RM_CORACAO_AORTA":{"nome":"Ressonância nuclear magnética de coração/aorta com cine","codigo":"02.07.02.001-9"},"RM_MEMBRO_SUPERIOR":{"nome":"Ressonância nuclear magnética de membro superior (unilateral)","codigo":"02.07.02.002-7"},"TC_CRANIO":{"nome":"Tomografia computadorizada do crânio","codigo":"02.06.01.007-9"},"TC_SELA_TURCICA":{"nome":"Tomografia computadorizada de sela túrcica","codigo":"02.06.01.006-0"},"TC_FACE_ATM":{"nome":"Tomografia computadorizada de face/seios da face/ATM","codigo":"02.06.01.004-4"},"TC_PESCOCO":{"nome":"Tomografia computadorizada do pescoço","codigo":"02.06.01.005-2"},"TC_COLUNA_CERVICAL":{"nome":"Tomografia computadorizada de coluna cervical (com ou sem contraste)","codigo":"02.06.01.001-0"},"TC_COLUNA_TORACICA":{"nome":"Tomografia computadorizada de coluna torácica (com ou sem contraste)","codigo":"02.06.01.003-6"},"TC_COLUNA_LOMBOSSACRA":{"nome":"Tomografia computadorizada de coluna lombo-sacra (com ou sem contraste)","codigo":"02.06.01.002-8"},"TC_TORAX":{"nome":"Tomografia computadorizada de tórax (sem contraste)","codigo":"02.06.02.003-1"},"TC_ABDOME_SUPERIOR":{"nome":"Tomografia computadorizada de abdome superior","codigo":"02.06.03.001-0"},"TC_PELVE":{"nome":"Tomografia computadorizada de pelve/bacia/abdome inferior","codigo":"02.06.03.003-7"},"TC_ARTIC_MEMBRO_SUP":{"nome":"Tomografia computadorizada de articulações de membro superior","codigo":"02.06.02.001-5"},"TC_ARTIC_MEMBRO_INF":{"nome":"Tomografia computadorizada de articulações de membro inferior","codigo":"02.06.03.002-9"},"TC_SEGMENTOS_APENDIC":{"nome":"Tomografia computadorizada de segmentos apendiculares (braço, antebraço, mão, coxa, perna, pé)","codigo":"02.06.02.002-3"},"DENSITOMETRIA_2SEG":{"nome":"Densitometria óssea (dois segmentos)","codigo":"02.04.06.002-8"},"DENSITOMETRIA_CORPO":{"nome":"Densitometria óssea (corpo inteiro)","codigo":"02.04.06.002-8"},"ENDOSCOPIA_DIGESTIVA_ALTA":{"nome":"Endoscopia digestiva alta (esofagogastroduodenoscopia)","codigo":"02.09.01.003-7"},"COLONOSCOPIA":{"nome":"Colonoscopia (coloscopia)","codigo":"02.09.01.002-9"},"ANGIOCORONARIOGRAFIA":{"nome":"Angiocoronariografia (cateterismo cardíaco)","codigo":"02.11.02.001-0"},"CINTILOGRAFIA_MIOCARDIO_ESTRESSE":{"nome":"Cintilografia de perfusão do miocárdio (estresse, mín. 3 projeções)","codigo":"02.08.01.002-5"},"CINTILOGRAFIA_MIOCARDIO_REPOUSO":{"nome":"Cintilografia de perfusão do miocárdio (repouso, mín. 3 projeções)","codigo":"02.08.01.003-3"},"ECOCARDIOGRAMA_TRANSTORACICO":{"nome":"Ecocardiograma transtorácico","codigo":"02.05.01.003-2"},"TESTE_ERGOMETRICO":{"nome":"Teste ergométrico (teste de esforço)","codigo":"02.11.02.006-0"},"HOLTER_24H":{"nome":"Holter 24 horas (eletrocardiograma dinâmico, 3 canais)","codigo":"02.11.02.004-4"},"MAPA_24H":{"nome":"MAPA 24 horas (monitorização ambulatorial da pressão arterial)","codigo":"02.11.02.005-2"},"RETOSSIGMOIDOSCOPIA":{"nome":"Retossigmoidoscopia (diagnóstica)","codigo":"02.09.01.005-3"},"COLANGIORRESSONANCIA":{"nome":"Ressonância magnética de vias biliares (colangiorressonância)","codigo":"02.07.03.004-9"},"CINTILOGRAFIA_OSSEA":{"nome":"Cintilografia de ossos com ou sem fluxo sanguíneo (corpo inteiro)","codigo":"02.08.05.003-5"},"CINTILOGRAFIA_RENAL":{"nome":"Cintilografia renal/renograma (qualitativa e/ou quantitativa)","codigo":"02.08.04.005-6"},"CINTILOGRAFIA_PULMONAR":{"nome":"Cintilografia de pulmão por perfusão (mínimo 4 projeções)","codigo":"02.08.07.004-4"},"CINTILOGRAFIA_TIREOIDE":{"nome":"Cintilografia de tireoide com ou sem captação","codigo":"02.08.03.002-6"},"CINTILOGRAFIA_PARATIREOIDE":{"nome":"Cintilografia de paratireoides","codigo":"02.08.03.001-8"},"LINFOCINTILOGRAFIA":{"nome":"Linfocintilografia","codigo":"02.08.08.004-0"},"CISTOCINTILOGRAFIA_DIRETA":{"nome":"Cistocintilografia direta","codigo":"02.08.04.006-4"},"ANGIOGRAFIA_CEREBRAL":{"nome":"Angiografia cerebral (4 vasos)","codigo":"02.10.01.001-0"},"ARTERIOGRAFIA_MEMBRO":{"nome":"Arteriografia de membro","codigo":"02.10.01.007-0"},"PAAF_TIREOIDE":{"nome":"Biópsia de tireoide ou paratireoide guiada por US (PAAF)","codigo":"02.01.01.047-0"},"IODOTERAPIA_ABLATIVA":{"nome":"Iodoterapia (dose ablativa) de carcinoma diferenciado da tireoide — 150 mCi","codigo":"03.04.09.001-8"},"ECOCARDIOGRAFIA_ESTRESSE":{"nome":"Ecocardiografia de estresse (físico ou farmacológico)","codigo":"02.05.01.001-6"},"SEDACAO_TC_RM":{"nome":"Sedação para exame (usar junto com o código da tomografia/ressonância)","codigo":"04.17.01.006-0"}},"cids":{"G43.0":"Enxaqueca sem aura (enxaqueca comum)","G43.8":"Outras formas de enxaqueca","P14.3":"Outras lesões do plexo braquial devidas a traumatismo de parto","L93":"Lúpus eritematoso","M18.0":"Artrose primária bilateral das primeiras articulações carpometacarpianas","M25.5":"Dor articular","R73.9":"Hiperglicemia não especificada","G00.9":"Meningite bacteriana não especificada","H90.3":"Perda de audição neurossensorial bilateral","F82":"Transtorno específico do desenvolvimento motor","F80.9":"Transtorno de desenvolvimento da fala ou linguagem não especificado","G43.9":"Enxaqueca não especificada","G44.1":"Cefaleia vascular, não classificada em outra parte","G40.9":"Epilepsia não especificada","G93.4":"Encefalopatia não especificada","R51":"Cefaleia","G80.9":"Paralisia cerebral não especificada","F84.0":"Autismo infantil","F70":"Retardo mental leve","F71":"Retardo mental moderado","Q90.9":"Síndrome de Down não especificada","P07.3":"Outros recém-nascidos pré-termo","M19.9":"Artrose não especificada","M79.1":"Mialgia","M54.5":"Dor lombar baixa","M54.2":"Cervicalgia","M06.9":"Artrite reumatoide não especificada","M32.9":"Lúpus eritematoso sistêmico não especificado","M81.9":"Osteoporose não especificada","M85.8":"Outros transtornos especificados da densidade e da estrutura ósseas","M47.9":"Espondilose não especificada","M51.1":"Transtornos de discos lombares e de outros discos intervertebrais com radiculopatia","E10.9":"Diabetes mellitus tipo 1 sem complicações","E11.9":"Diabetes mellitus tipo 2 sem complicações","E03.9":"Hipotireoidismo não especificado","E05.9":"Tireotoxicose não especificada","E66.9":"Obesidade não especificada","E78.0":"Hipercolesterolemia pura","I10":"Hipertensão essencial (primária)","J44.9":"Doença pulmonar obstrutiva crônica não especificada","N18.9":"Doença renal crônica não especificada","R07.4":"Dor torácica, não especificada"}},"cmd":{"_leia_me":"Laudo Medico de Alto Custo de Conceicao do Mato Dentro.","municipio":"CONCEIÇÃO DO MATO DENTRO","origens":["CEMO DR SEBASTIAO SOARES DOS SANTOS"],"procedimentos":{"RM_CRANIO":{"nome":"Ressonância nuclear magnética de crânio","codigo":"02.07.01.006-4"},"RM_BASE_CRANIO":{"nome":"Ressonância nuclear magnética de base do crânio","codigo":"02.07.01.006-4"},"RM_SELA_TURCICA":{"nome":"Ressonância nuclear magnética de sela túrcica","codigo":"02.07.01.007-2"},"RM_ATM":{"nome":"Ressonância nuclear magnética de articulação temporomandibular (bilateral)","codigo":"02.07.01.002-1"},"ANGIO_RM_CEREBRAL":{"nome":"Angiorressonância cerebral","codigo":"02.07.01.001-3"},"RM_COLUNA_CERVICAL":{"nome":"Ressonância nuclear magnética de coluna cervical","codigo":"02.07.01.003-0"},"RM_COLUNA_TORACICA":{"nome":"Ressonância nuclear magnética de coluna torácica","codigo":"02.07.01.005-6"},"RM_COLUNA_LOMBOSSACRA":{"nome":"Ressonância nuclear magnética de coluna lombo-sacra","codigo":"02.07.01.004-8"},"RM_CORACAO_AORTA":{"nome":"Ressonância nuclear magnética de coração/aorta com cine","codigo":"02.07.02.001-9"},"RM_MEMBRO_SUPERIOR":{"nome":"Ressonância nuclear magnética de membro superior (unilateral)","codigo":"02.07.02.002-7"},"TC_CRANIO":{"nome":"Tomografia computadorizada do crânio","codigo":"02.06.01.007-9"},"TC_SELA_TURCICA":{"nome":"Tomografia computadorizada de sela túrcica","codigo":"02.06.01.006-0"},"TC_FACE_ATM":{"nome":"Tomografia computadorizada de face/seios da face/ATM","codigo":"02.06.01.004-4"},"TC_PESCOCO":{"nome":"Tomografia computadorizada do pescoço","codigo":"02.06.01.005-2"},"TC_COLUNA_CERVICAL":{"nome":"Tomografia computadorizada de coluna cervical (com ou sem contraste)","codigo":"02.06.01.001-0"},"TC_COLUNA_TORACICA":{"nome":"Tomografia computadorizada de coluna torácica (com ou sem contraste)","codigo":"02.06.01.003-6"},"TC_COLUNA_LOMBOSSACRA":{"nome":"Tomografia computadorizada de coluna lombo-sacra (com ou sem contraste)","codigo":"02.06.01.002-8"},"TC_TORAX":{"nome":"Tomografia computadorizada de tórax (sem contraste)","codigo":"02.06.02.003-1"},"TC_ABDOME_SUPERIOR":{"nome":"Tomografia computadorizada de abdome superior","codigo":"02.06.03.001-0"},"TC_PELVE":{"nome":"Tomografia computadorizada de pelve/bacia/abdome inferior","codigo":"02.06.03.003-7"},"TC_ARTIC_MEMBRO_SUP":{"nome":"Tomografia computadorizada de articulações de membro superior","codigo":"02.06.02.001-5"},"TC_ARTIC_MEMBRO_INF":{"nome":"Tomografia computadorizada de articulações de membro inferior","codigo":"02.06.03.002-9"},"TC_SEGMENTOS_APENDIC":{"nome":"Tomografia computadorizada de segmentos apendiculares (braço, antebraço, mão, coxa, perna, pé)","codigo":"02.06.02.002-3"},"DENSITOMETRIA_2SEG":{"nome":"Densitometria óssea (dois segmentos)","codigo":"02.04.06.002-8"},"DENSITOMETRIA_CORPO":{"nome":"Densitometria óssea (corpo inteiro)","codigo":"02.04.06.002-8"},"ENDOSCOPIA_DIGESTIVA_ALTA":{"nome":"Endoscopia digestiva alta (esofagogastroduodenoscopia)","codigo":"02.09.01.003-7"},"COLONOSCOPIA":{"nome":"Colonoscopia (coloscopia)","codigo":"02.09.01.002-9"},"ANGIOCORONARIOGRAFIA":{"nome":"Angiocoronariografia (cateterismo cardíaco)","codigo":"02.11.02.001-0"},"CINTILOGRAFIA_MIOCARDIO_ESTRESSE":{"nome":"Cintilografia de perfusão do miocárdio (estresse, mín. 3 projeções)","codigo":"02.08.01.002-5"},"CINTILOGRAFIA_MIOCARDIO_REPOUSO":{"nome":"Cintilografia de perfusão do miocárdio (repouso, mín. 3 projeções)","codigo":"02.08.01.003-3"},"ECOCARDIOGRAMA_TRANSTORACICO":{"nome":"Ecocardiograma transtorácico","codigo":"02.05.01.003-2"},"TESTE_ERGOMETRICO":{"nome":"Teste ergométrico (teste de esforço)","codigo":"02.11.02.006-0"},"HOLTER_24H":{"nome":"Holter 24 horas (eletrocardiograma dinâmico, 3 canais)","codigo":"02.11.02.004-4"},"MAPA_24H":{"nome":"MAPA 24 horas (monitorização ambulatorial da pressão arterial)","codigo":"02.11.02.005-2"},"RETOSSIGMOIDOSCOPIA":{"nome":"Retossigmoidoscopia (diagnóstica)","codigo":"02.09.01.005-3"}},"cids":{"K83.8":"Outras doenças especificadas das vias biliares","I10":"Hipertensão essencial (primária)","I11.9":"Doença cardíaca hipertensiva sem insuficiência cardíaca","I15.9":"Hipertensão secundária não especificada","I20.0":"Angina instável","I20.9":"Angina pectoris, não especificada","I21.9":"Infarto agudo do miocárdio não especificado","I22.9":"Infarto do miocárdio recorrente não especificado","I24.9":"Doença isquêmica aguda do coração, não especificada","I25.1":"Doença aterosclerótica do coração","I25.9":"Doença isquêmica crônica do coração, não especificada","I27.9":"Doença cardiopulmonar não especificada","I34.0":"Insuficiência da valva mitral","I34.9":"Transtorno não-reumático da valva mitral, não especificado","I35.0":"Estenose aórtica","I35.9":"Transtorno da valva aórtica não especificado","I36.1":"Insuficiência não-reumática da valva tricúspide","I38":"Endocardite de valva não especificada","I42.0":"Cardiomiopatia dilatada","I42.9":"Cardiomiopatia não especificada","I44.2":"Bloqueio atrioventricular total","I45.9":"Transtorno de condução não especificado","I47.1":"Taquicardia supraventricular","I47.2":"Taquicardia ventricular","I48":"Flutter e fibrilação atrial","I48.9":"Flutter e fibrilação atrial","I49.5":"Síndrome do nó sinusal","I49.9":"Arritmia cardíaca não especificada","I50":"Insuficiência cardíaca","I50.9":"Insuficiência cardíaca não especificada","I51.7":"Cardiomegalia","I70.0":"Aterosclerose da aorta","I70.2":"Aterosclerose das artérias das extremidades","I71.4":"Aneurisma da aorta abdominal, sem menção de ruptura","I73.9":"Doença vascular periférica não especificada","I80.2":"Flebite e tromboflebite de outros vasos profundos dos membros inferiores","I82.9":"Embolia e trombose venosa não especificada","Q21.1":"Comunicação interatrial","Q24.9":"Malformação congênita do coração não especificada","E78.5":"Hiperlipidemia não especificada","R00.0":"Taquicardia não especificada","R00.1":"Bradicardia não especificada","R00.2":"Palpitações","R07.2":"Dor precordial","R42":"Tontura e instabilidade","R55":"Síncope e colapso","Z95.0":"Presença de marca-passo cardíaco","Z95.1":"Presença de enxerto de ponte aortocoronária","Z95.5":"Presença de implante e enxerto de angioplastia coronária","G43.0":"Enxaqueca sem aura (enxaqueca comum)","G43.8":"Outras formas de enxaqueca","G43.9":"Enxaqueca não especificada","G44.1":"Cefaleia vascular, não classificada em outra parte","G40.9":"Epilepsia não especificada","G93.4":"Encefalopatia não especificada","R51":"Cefaleia","G80.9":"Paralisia cerebral não especificada","F84.0":"Autismo infantil","F70":"Retardo mental leve","F71":"Retardo mental moderado","F82":"Transtorno específico do desenvolvimento motor","F80.9":"Transtorno de desenvolvimento da fala ou linguagem não especificado","Q90.9":"Síndrome de Down não especificada","P07.3":"Outros recém-nascidos pré-termo","P14.3":"Outras lesões do plexo braquial devidas a traumatismo de parto","L93":"Lúpus eritematoso","G00.9":"Meningite bacteriana não especificada","H90.3":"Perda de audição neurossensorial bilateral","M18.0":"Artrose primária bilateral das primeiras articulações carpometacarpianas","M19.9":"Artrose não especificada","M25.5":"Dor articular","M79.1":"Mialgia","M54.5":"Dor lombar baixa","M54.2":"Cervicalgia","M06.9":"Artrite reumatoide não especificada","M32.9":"Lúpus eritematoso sistêmico não especificado","M81.9":"Osteoporose não especificada","M85.8":"Outros transtornos especificados da densidade e da estrutura ósseas","M47.9":"Espondilose não especificada","M51.1":"Transtornos de discos lombares e de outros discos intervertebrais com radiculopatia","E10.9":"Diabetes mellitus tipo 1 sem complicações","E11.9":"Diabetes mellitus tipo 2 sem complicações","E03.9":"Hipotireoidismo não especificado","E05.9":"Tireotoxicose não especificada","E66.9":"Obesidade não especificada","E78.0":"Hipercolesterolemia pura","R73.9":"Hiperglicemia não especificada","J44.9":"Doença pulmonar obstrutiva crônica não especificada","N18.9":"Doença renal crônica não especificada","R07.4":"Dor torácica, não especificada"}}};
+  raiz.MEEDS_DADOS_FORMULARIOS = {"_leia_me":"Dados dos formularios: unidades de origem, catalogos de procedimento e listas de CID-10. Edite este arquivo e rode \"npm run build\" — as mudancas aparecem para os medicos sem precisar mexer em codigo. Ver docs/MANUAL-ADMIN.md.","lme-sete-lagoas":{"_leia_me":"Laudo Medico de Alto Custo de Sete Lagoas.","municipio":"SETE LAGOAS","origens":["SAÚDE AUDITIVA","UBS CIDADE DE DEUS","UBS BELO VALE"],"procedimentos":{"RM_CRANIO":{"nome":"Ressonância nuclear magnética de crânio","codigo":"02.07.01.006-4"},"RM_BASE_CRANIO":{"nome":"Ressonância nuclear magnética de base do crânio","codigo":"02.07.01.006-4"},"RM_SELA_TURCICA":{"nome":"Ressonância nuclear magnética de sela túrcica","codigo":"02.07.01.007-2"},"RM_ATM":{"nome":"Ressonância nuclear magnética de articulação temporomandibular (bilateral)","codigo":"02.07.01.002-1"},"ANGIO_RM_CEREBRAL":{"nome":"Angiorressonância cerebral","codigo":"02.07.01.001-3"},"RM_COLUNA_CERVICAL":{"nome":"Ressonância nuclear magnética de coluna cervical","codigo":"02.07.01.003-0"},"RM_COLUNA_TORACICA":{"nome":"Ressonância nuclear magnética de coluna torácica","codigo":"02.07.01.005-6"},"RM_COLUNA_LOMBOSSACRA":{"nome":"Ressonância nuclear magnética de coluna lombo-sacra","codigo":"02.07.01.004-8"},"RM_CORACAO_AORTA":{"nome":"Ressonância nuclear magnética de coração/aorta com cine","codigo":"02.07.02.001-9"},"RM_MEMBRO_SUPERIOR":{"nome":"Ressonância nuclear magnética de membro superior (unilateral)","codigo":"02.07.02.002-7"},"TC_CRANIO":{"nome":"Tomografia computadorizada do crânio","codigo":"02.06.01.007-9"},"TC_SELA_TURCICA":{"nome":"Tomografia computadorizada de sela túrcica","codigo":"02.06.01.006-0"},"TC_FACE_ATM":{"nome":"Tomografia computadorizada de face/seios da face/ATM","codigo":"02.06.01.004-4"},"TC_PESCOCO":{"nome":"Tomografia computadorizada do pescoço","codigo":"02.06.01.005-2"},"TC_COLUNA_CERVICAL":{"nome":"Tomografia computadorizada de coluna cervical (com ou sem contraste)","codigo":"02.06.01.001-0"},"TC_COLUNA_TORACICA":{"nome":"Tomografia computadorizada de coluna torácica (com ou sem contraste)","codigo":"02.06.01.003-6"},"TC_COLUNA_LOMBOSSACRA":{"nome":"Tomografia computadorizada de coluna lombo-sacra (com ou sem contraste)","codigo":"02.06.01.002-8"},"TC_TORAX":{"nome":"Tomografia computadorizada de tórax (sem contraste)","codigo":"02.06.02.003-1"},"TC_ABDOME_SUPERIOR":{"nome":"Tomografia computadorizada de abdome superior","codigo":"02.06.03.001-0"},"TC_PELVE":{"nome":"Tomografia computadorizada de pelve/bacia/abdome inferior","codigo":"02.06.03.003-7"},"TC_ARTIC_MEMBRO_SUP":{"nome":"Tomografia computadorizada de articulações de membro superior","codigo":"02.06.02.001-5"},"TC_ARTIC_MEMBRO_INF":{"nome":"Tomografia computadorizada de articulações de membro inferior","codigo":"02.06.03.002-9"},"TC_SEGMENTOS_APENDIC":{"nome":"Tomografia computadorizada de segmentos apendiculares (braço, antebraço, mão, coxa, perna, pé)","codigo":"02.06.02.002-3"},"DENSITOMETRIA_2SEG":{"nome":"Densitometria óssea (dois segmentos)","codigo":"02.04.06.002-8"},"DENSITOMETRIA_CORPO":{"nome":"Densitometria óssea (corpo inteiro)","codigo":"02.04.06.002-8"},"ENDOSCOPIA_DIGESTIVA_ALTA":{"nome":"Endoscopia digestiva alta (esofagogastroduodenoscopia)","codigo":"02.09.01.003-7"},"COLONOSCOPIA":{"nome":"Colonoscopia (coloscopia)","codigo":"02.09.01.002-9"},"ANGIOCORONARIOGRAFIA":{"nome":"Angiocoronariografia (cateterismo cardíaco)","codigo":"02.11.02.001-0"},"CINTILOGRAFIA_MIOCARDIO_ESTRESSE":{"nome":"Cintilografia de perfusão do miocárdio (estresse, mín. 3 projeções)","codigo":"02.08.01.002-5"},"CINTILOGRAFIA_MIOCARDIO_REPOUSO":{"nome":"Cintilografia de perfusão do miocárdio (repouso, mín. 3 projeções)","codigo":"02.08.01.003-3"},"ECOCARDIOGRAMA_TRANSTORACICO":{"nome":"Ecocardiograma transtorácico","codigo":"02.05.01.003-2"},"TESTE_ERGOMETRICO":{"nome":"Teste ergométrico (teste de esforço)","codigo":"02.11.02.006-0"},"HOLTER_24H":{"nome":"Holter 24 horas (eletrocardiograma dinâmico, 3 canais)","codigo":"02.11.02.004-4"},"MAPA_24H":{"nome":"MAPA 24 horas (monitorização ambulatorial da pressão arterial)","codigo":"02.11.02.005-2"},"RETOSSIGMOIDOSCOPIA":{"nome":"Retossigmoidoscopia (diagnóstica)","codigo":"02.09.01.005-3"},"COLANGIORRESSONANCIA":{"nome":"Ressonância magnética de vias biliares (colangiorressonância)","codigo":"02.07.03.004-9"},"CINTILOGRAFIA_OSSEA":{"nome":"Cintilografia de ossos com ou sem fluxo sanguíneo (corpo inteiro)","codigo":"02.08.05.003-5"},"CINTILOGRAFIA_RENAL":{"nome":"Cintilografia renal/renograma (qualitativa e/ou quantitativa)","codigo":"02.08.04.005-6"},"CINTILOGRAFIA_PULMONAR":{"nome":"Cintilografia de pulmão por perfusão (mínimo 4 projeções)","codigo":"02.08.07.004-4"},"CINTILOGRAFIA_TIREOIDE":{"nome":"Cintilografia de tireoide com ou sem captação","codigo":"02.08.03.002-6"},"CINTILOGRAFIA_PARATIREOIDE":{"nome":"Cintilografia de paratireoides","codigo":"02.08.03.001-8"},"LINFOCINTILOGRAFIA":{"nome":"Linfocintilografia","codigo":"02.08.08.004-0"},"CISTOCINTILOGRAFIA_DIRETA":{"nome":"Cistocintilografia direta","codigo":"02.08.04.006-4"},"ANGIOGRAFIA_CEREBRAL":{"nome":"Angiografia cerebral (4 vasos)","codigo":"02.10.01.001-0"},"ARTERIOGRAFIA_MEMBRO":{"nome":"Arteriografia de membro","codigo":"02.10.01.007-0"},"PAAF_TIREOIDE":{"nome":"Biópsia de tireoide ou paratireoide guiada por US (PAAF)","codigo":"02.01.01.047-0"},"IODOTERAPIA_ABLATIVA":{"nome":"Iodoterapia (dose ablativa) de carcinoma diferenciado da tireoide — 150 mCi","codigo":"03.04.09.001-8"},"ECOCARDIOGRAFIA_ESTRESSE":{"nome":"Ecocardiografia de estresse (físico ou farmacológico)","codigo":"02.05.01.001-6"},"SEDACAO_TC_RM":{"nome":"Sedação para exame (usar junto com o código da tomografia/ressonância)","codigo":"04.17.01.006-0"}},"cids":{"G43.0":"Enxaqueca sem aura (enxaqueca comum)","G43.8":"Outras formas de enxaqueca","P14.3":"Outras lesões do plexo braquial devidas a traumatismo de parto","L93":"Lúpus eritematoso","M18.0":"Artrose primária bilateral das primeiras articulações carpometacarpianas","M25.5":"Dor articular","R73.9":"Hiperglicemia não especificada","G00.9":"Meningite bacteriana não especificada","H90.3":"Perda de audição neurossensorial bilateral","F82":"Transtorno específico do desenvolvimento motor","F80.9":"Transtorno de desenvolvimento da fala ou linguagem não especificado","G43.9":"Enxaqueca não especificada","G44.1":"Cefaleia vascular, não classificada em outra parte","G40.9":"Epilepsia não especificada","G93.4":"Encefalopatia não especificada","R51":"Cefaleia","G80.9":"Paralisia cerebral não especificada","F84.0":"Autismo infantil","F70":"Retardo mental leve","F71":"Retardo mental moderado","Q90.9":"Síndrome de Down não especificada","P07.3":"Outros recém-nascidos pré-termo","M19.9":"Artrose não especificada","M79.1":"Mialgia","M54.5":"Dor lombar baixa","M54.2":"Cervicalgia","M06.9":"Artrite reumatoide não especificada","M32.9":"Lúpus eritematoso sistêmico não especificado","M81.9":"Osteoporose não especificada","M85.8":"Outros transtornos especificados da densidade e da estrutura ósseas","M47.9":"Espondilose não especificada","M51.1":"Transtornos de discos lombares e de outros discos intervertebrais com radiculopatia","E10.9":"Diabetes mellitus tipo 1 sem complicações","E11.9":"Diabetes mellitus tipo 2 sem complicações","E03.9":"Hipotireoidismo não especificado","E05.9":"Tireotoxicose não especificada","E66.9":"Obesidade não especificada","E78.0":"Hipercolesterolemia pura","I10":"Hipertensão essencial (primária)","J44.9":"Doença pulmonar obstrutiva crônica não especificada","N18.9":"Doença renal crônica não especificada","R07.4":"Dor torácica, não especificada"}},"cmd":{"_leia_me":"Laudo Medico de Alto Custo de Conceicao do Mato Dentro.","municipio":"CONCEIÇÃO DO MATO DENTRO","origens":["CEMO DR SEBASTIAO SOARES DOS SANTOS"],"procedimentos":{"RM_CRANIO":{"nome":"Ressonância nuclear magnética de crânio","codigo":"02.07.01.006-4"},"RM_BASE_CRANIO":{"nome":"Ressonância nuclear magnética de base do crânio","codigo":"02.07.01.006-4"},"RM_SELA_TURCICA":{"nome":"Ressonância nuclear magnética de sela túrcica","codigo":"02.07.01.007-2"},"RM_ATM":{"nome":"Ressonância nuclear magnética de articulação temporomandibular (bilateral)","codigo":"02.07.01.002-1"},"ANGIO_RM_CEREBRAL":{"nome":"Angiorressonância cerebral","codigo":"02.07.01.001-3"},"RM_COLUNA_CERVICAL":{"nome":"Ressonância nuclear magnética de coluna cervical","codigo":"02.07.01.003-0"},"RM_COLUNA_TORACICA":{"nome":"Ressonância nuclear magnética de coluna torácica","codigo":"02.07.01.005-6"},"RM_COLUNA_LOMBOSSACRA":{"nome":"Ressonância nuclear magnética de coluna lombo-sacra","codigo":"02.07.01.004-8"},"RM_CORACAO_AORTA":{"nome":"Ressonância nuclear magnética de coração/aorta com cine","codigo":"02.07.02.001-9"},"RM_MEMBRO_SUPERIOR":{"nome":"Ressonância nuclear magnética de membro superior (unilateral)","codigo":"02.07.02.002-7"},"TC_CRANIO":{"nome":"Tomografia computadorizada do crânio","codigo":"02.06.01.007-9"},"TC_SELA_TURCICA":{"nome":"Tomografia computadorizada de sela túrcica","codigo":"02.06.01.006-0"},"TC_FACE_ATM":{"nome":"Tomografia computadorizada de face/seios da face/ATM","codigo":"02.06.01.004-4"},"TC_PESCOCO":{"nome":"Tomografia computadorizada do pescoço","codigo":"02.06.01.005-2"},"TC_COLUNA_CERVICAL":{"nome":"Tomografia computadorizada de coluna cervical (com ou sem contraste)","codigo":"02.06.01.001-0"},"TC_COLUNA_TORACICA":{"nome":"Tomografia computadorizada de coluna torácica (com ou sem contraste)","codigo":"02.06.01.003-6"},"TC_COLUNA_LOMBOSSACRA":{"nome":"Tomografia computadorizada de coluna lombo-sacra (com ou sem contraste)","codigo":"02.06.01.002-8"},"TC_TORAX":{"nome":"Tomografia computadorizada de tórax (sem contraste)","codigo":"02.06.02.003-1"},"TC_ABDOME_SUPERIOR":{"nome":"Tomografia computadorizada de abdome superior","codigo":"02.06.03.001-0"},"TC_PELVE":{"nome":"Tomografia computadorizada de pelve/bacia/abdome inferior","codigo":"02.06.03.003-7"},"TC_ARTIC_MEMBRO_SUP":{"nome":"Tomografia computadorizada de articulações de membro superior","codigo":"02.06.02.001-5"},"TC_ARTIC_MEMBRO_INF":{"nome":"Tomografia computadorizada de articulações de membro inferior","codigo":"02.06.03.002-9"},"TC_SEGMENTOS_APENDIC":{"nome":"Tomografia computadorizada de segmentos apendiculares (braço, antebraço, mão, coxa, perna, pé)","codigo":"02.06.02.002-3"},"DENSITOMETRIA_2SEG":{"nome":"Densitometria óssea (dois segmentos)","codigo":"02.04.06.002-8"},"DENSITOMETRIA_CORPO":{"nome":"Densitometria óssea (corpo inteiro)","codigo":"02.04.06.002-8"},"ENDOSCOPIA_DIGESTIVA_ALTA":{"nome":"Endoscopia digestiva alta (esofagogastroduodenoscopia)","codigo":"02.09.01.003-7"},"COLONOSCOPIA":{"nome":"Colonoscopia (coloscopia)","codigo":"02.09.01.002-9"},"ANGIOCORONARIOGRAFIA":{"nome":"Angiocoronariografia (cateterismo cardíaco)","codigo":"02.11.02.001-0"},"CINTILOGRAFIA_MIOCARDIO_ESTRESSE":{"nome":"Cintilografia de perfusão do miocárdio (estresse, mín. 3 projeções)","codigo":"02.08.01.002-5"},"CINTILOGRAFIA_MIOCARDIO_REPOUSO":{"nome":"Cintilografia de perfusão do miocárdio (repouso, mín. 3 projeções)","codigo":"02.08.01.003-3"},"ECOCARDIOGRAMA_TRANSTORACICO":{"nome":"Ecocardiograma transtorácico","codigo":"02.05.01.003-2"},"TESTE_ERGOMETRICO":{"nome":"Teste ergométrico (teste de esforço)","codigo":"02.11.02.006-0"},"HOLTER_24H":{"nome":"Holter 24 horas (eletrocardiograma dinâmico, 3 canais)","codigo":"02.11.02.004-4"},"MAPA_24H":{"nome":"MAPA 24 horas (monitorização ambulatorial da pressão arterial)","codigo":"02.11.02.005-2"},"RETOSSIGMOIDOSCOPIA":{"nome":"Retossigmoidoscopia (diagnóstica)","codigo":"02.09.01.005-3"}},"cids":{"K83.8":"Outras doenças especificadas das vias biliares","I10":"Hipertensão essencial (primária)","I11.9":"Doença cardíaca hipertensiva sem insuficiência cardíaca","I15.9":"Hipertensão secundária não especificada","I20.0":"Angina instável","I20.9":"Angina pectoris, não especificada","I21.9":"Infarto agudo do miocárdio não especificado","I22.9":"Infarto do miocárdio recorrente não especificado","I24.9":"Doença isquêmica aguda do coração, não especificada","I25.1":"Doença aterosclerótica do coração","I25.9":"Doença isquêmica crônica do coração, não especificada","I27.9":"Doença cardiopulmonar não especificada","I34.0":"Insuficiência da valva mitral","I34.9":"Transtorno não-reumático da valva mitral, não especificado","I35.0":"Estenose aórtica","I35.9":"Transtorno da valva aórtica não especificado","I36.1":"Insuficiência não-reumática da valva tricúspide","I38":"Endocardite de valva não especificada","I42.0":"Cardiomiopatia dilatada","I42.9":"Cardiomiopatia não especificada","I44.2":"Bloqueio atrioventricular total","I45.9":"Transtorno de condução não especificado","I47.1":"Taquicardia supraventricular","I47.2":"Taquicardia ventricular","I48":"Flutter e fibrilação atrial","I49.5":"Síndrome do nó sinusal","I49.9":"Arritmia cardíaca não especificada","I50":"Insuficiência cardíaca","I50.9":"Insuficiência cardíaca não especificada","I51.7":"Cardiomegalia","I70.0":"Aterosclerose da aorta","I70.2":"Aterosclerose das artérias das extremidades","I71.4":"Aneurisma da aorta abdominal, sem menção de ruptura","I73.9":"Doença vascular periférica não especificada","I80.2":"Flebite e tromboflebite de outros vasos profundos dos membros inferiores","I82.9":"Embolia e trombose venosa não especificada","Q21.1":"Comunicação interatrial","Q24.9":"Malformação congênita do coração não especificada","E78.5":"Hiperlipidemia não especificada","R00.0":"Taquicardia não especificada","R00.1":"Bradicardia não especificada","R00.2":"Palpitações","R07.2":"Dor precordial","R42":"Tontura e instabilidade","R55":"Síncope e colapso","Z95.0":"Presença de marca-passo cardíaco","Z95.1":"Presença de enxerto de ponte aortocoronária","Z95.5":"Presença de implante e enxerto de angioplastia coronária","G43.0":"Enxaqueca sem aura (enxaqueca comum)","G43.8":"Outras formas de enxaqueca","G43.9":"Enxaqueca não especificada","G44.1":"Cefaleia vascular, não classificada em outra parte","G40.9":"Epilepsia não especificada","G93.4":"Encefalopatia não especificada","R51":"Cefaleia","G80.9":"Paralisia cerebral não especificada","F84.0":"Autismo infantil","F70":"Retardo mental leve","F71":"Retardo mental moderado","F82":"Transtorno específico do desenvolvimento motor","F80.9":"Transtorno de desenvolvimento da fala ou linguagem não especificado","Q90.9":"Síndrome de Down não especificada","P07.3":"Outros recém-nascidos pré-termo","P14.3":"Outras lesões do plexo braquial devidas a traumatismo de parto","L93":"Lúpus eritematoso","G00.9":"Meningite bacteriana não especificada","H90.3":"Perda de audição neurossensorial bilateral","M18.0":"Artrose primária bilateral das primeiras articulações carpometacarpianas","M19.9":"Artrose não especificada","M25.5":"Dor articular","M79.1":"Mialgia","M54.5":"Dor lombar baixa","M54.2":"Cervicalgia","M06.9":"Artrite reumatoide não especificada","M32.9":"Lúpus eritematoso sistêmico não especificado","M81.9":"Osteoporose não especificada","M85.8":"Outros transtornos especificados da densidade e da estrutura ósseas","M47.9":"Espondilose não especificada","M51.1":"Transtornos de discos lombares e de outros discos intervertebrais com radiculopatia","E10.9":"Diabetes mellitus tipo 1 sem complicações","E11.9":"Diabetes mellitus tipo 2 sem complicações","E03.9":"Hipotireoidismo não especificado","E05.9":"Tireotoxicose não especificada","E66.9":"Obesidade não especificada","E78.0":"Hipercolesterolemia pura","R73.9":"Hiperglicemia não especificada","J44.9":"Doença pulmonar obstrutiva crônica não especificada","N18.9":"Doença renal crônica não especificada","R07.4":"Dor torácica, não especificada"}}};
 
   /* ===== dados/apac.json ===== */
   raiz.MEEDS_DADOS_APAC = {"_leia_me":"APAC — Laudo para Solicitacao/Autorizacao de Procedimento Ambulatorial. O formulario e NACIONAL, do Ministerio da Saude: o mesmo PDF vale para qualquer municipio. O que muda de um para outro e o ESTABELECIMENTO solicitante (nome e CNES) — e so isso, hoje. Por isso o catalogo de procedimentos e CIDs fica em '_comum', compartilhado, e cada municipio lista apenas os seus estabelecimentos. Para acrescentar um municipio: crie um bloco em 'municipios' com os estabelecimentos dele e rode 'npm run build'. Nao e preciso mexer em codigo.","_comum":{"_leia_me":"Vale para TODOS os municipios. Se um dia um municipio precisar de lista propria, acrescente 'procedimentos' ou 'cids' dentro do bloco dele: o que estiver la substitui o comum.","procedimentos":{"HOLTER":{"nome":"Holter 24h","codigo":"02.11.02.004-4","label":"MONITORAMENTO PELO SISTEMA HOLTER 24 HS (3 CANAIS)"},"MAPA":{"nome":"MAPA 24h","codigo":"02.11.02.005-2","label":"MONITORIZAÇÃO AMBULATORIAL DE PRESSÃO ARTERIAL (MAPA)"},"TE":{"nome":"Teste Ergométrico","codigo":"02.11.02.006-0","label":"TESTE DE ESFORÇO / TESTE ERGOMÉTRICO"},"DOPPLER":{"nome":"Doppler vascular","codigo":"02.05.01.004-0","label":null},"CINTILO":{"nome":"Cintilografia miocárdio","codigo":"02.08.01.002-5","label":"CINTILOGRAFIA DE MIOCÁRDIO P/ AVALIAÇÃO DA PERFUSÃO EM SITUAÇÃO DE ESTRESSE (MÍNIMO 3 PROJEÇÕES)"},"ECO":{"nome":"Ecocardiograma","codigo":"02.05.01.003-2","label":null},"CATETER":{"nome":"Cateterismo cardíaco","codigo":"02.11.02.001-0","label":"CATETERISMO CARDÍACO (CINECORONARIOGRAFIA)"},"OUTRO":{"nome":"Outro procedimento…","codigo":"","label":null}},"ecoVariantes":{"REPOUSO":{"codigo":"02.05.01.003-2","nome":"ECOCARDIOGRAFIA TRANSTORACICA"},"ESTRESSE":{"codigo":"02.05.01.001-6","nome":"ECOCARDIOGRAFIA COM ESTRESSE"},"TRANSESOFAGICO":{"codigo":"02.05.01.002-4","nome":"ECOCARDIOGRAFIA BI-DIMENSIONAL TRANSESOFAGICO"}},"territorios":["DOPPLER DE ARTÉRIAS CARÓTIDAS E VERTEBRAIS","DOPPLER DE VEIAS CERVICAIS","DOPPLER AORTA ABDOMINAL","DOPPLER DE ARTÉRIAS RENAIS","DOPPLER ARTERIAL DE MEMBROS SUPERIORES","DOPPLER ARTERIAL DE MEMBROS INFERIORES","DOPPLER VENOSO DE MEMBROS SUPERIORES","DOPPLER VENOSO DE MEMBROS INFERIORES"],"cids":{"I10":"Hipertensão essencial (primária)","I11.9":"Doença cardíaca hipertensiva sem insuficiência cardíaca","I15.9":"Hipertensão secundária não especificada","I20.0":"Angina instável","I20.9":"Angina pectoris, não especificada","I21.9":"Infarto agudo do miocárdio não especificado","I22.9":"Infarto do miocárdio recorrente não especificado","I24.9":"Doença isquêmica aguda do coração, não especificada","I25.1":"Doença aterosclerótica do coração","I25.9":"Doença isquêmica crônica do coração, não especificada","I27.9":"Doença cardiopulmonar não especificada","I34.0":"Insuficiência da valva mitral","I34.9":"Transtorno não-reumático da valva mitral, não especificado","I35.0":"Estenose aórtica","I35.9":"Transtorno da valva aórtica não especificado","I36.1":"Insuficiência não-reumática da valva tricúspide","I38":"Endocardite de valva não especificada","I42.0":"Cardiomiopatia dilatada","I42.9":"Cardiomiopatia não especificada","I44.2":"Bloqueio atrioventricular total","I45.9":"Transtorno de condução não especificado","I47.1":"Taquicardia supraventricular","I47.2":"Taquicardia ventricular","I48":"Flutter e fibrilação atrial","I48.9":"Flutter e fibrilação atrial","I49.5":"Síndrome do nó sinusal","I49.9":"Arritmia cardíaca não especificada","I50":"Insuficiência cardíaca","I50.9":"Insuficiência cardíaca não especificada","I51.7":"Cardiomegalia","I70.0":"Aterosclerose da aorta","I70.2":"Aterosclerose das artérias das extremidades","I71.4":"Aneurisma da aorta abdominal, sem menção de ruptura","I73.9":"Doença vascular periférica não especificada","I80.2":"Flebite e tromboflebite de outros vasos profundos dos membros inferiores","I82.9":"Embolia e trombose venosa não especificada","Q21.1":"Comunicação interatrial","Q24.9":"Malformação congênita do coração não especificada","E11":"Diabetes mellitus não-insulino-dependente","E11.9":"Diabetes mellitus não-insulino-dependente - sem complicações","E78.0":"Hipercolesterolemia pura","E78.5":"Hiperlipidemia não especificada","R00.0":"Taquicardia não especificada","R00.1":"Bradicardia não especificada","R00.2":"Palpitações","R07.2":"Dor precordial","R07.4":"Dor torácica, não especificada","R42":"Tontura e instabilidade","R55":"Síncope e colapso","Z95.0":"Presença de marca-passo cardíaco","Z95.1":"Presença de enxerto de ponte aortocoronária","Z95.5":"Presença de implante e enxerto de angioplastia coronária"}},"municipios":{"Itaúna":{"estabelecimentos":[{"nome":"CENTRO DE ESPEC MEDICAS E ODONTO DR OVIDIO NOGUEIRA MACHADO","cnes":"2105578"}]},"Betim":{"_leia_me":"Estabelecimentos ainda nao informados. Ate serem preenchidos aqui, o medico cadastra o dele pelo painel da engrenagem, em Unidades.","estabelecimentos":[{"nome":"CENTRO R E ESPECIALIDADES DIVINO FERREIRA BRAGA","cnes":"2125943"}]},"Sete Lagoas":{"_leia_me":"Idem Betim. Atencao: Sete Lagoas tambem tem o Laudo de Alto Custo, que e outro documento, com formulario proprio da prefeitura — sao coisas diferentes.","estabelecimentos":[{"nome":"SAÚDE AUDITIVA","cnes":"6977073"},{"nome":"UBS CIDADE DE DEUS","cnes":"2209241"},{"nome":"UBS BELO VALE","cnes":"5358965"}]}}};
@@ -8323,10 +8387,10 @@
   raiz.MEEDS_MARCAS = {"_leia_me":"TRADUTOR de nome comercial para principio ativo. ATENCAO: esta tabela NUNCA e fonte de medicamento. Ela so ajuda a ENCONTRAR o item dentro da REMUME do municipio — a REMUME (modules/remume/remumes.json) e a unica fonte de verdade. Se o principio ativo traduzido nao estiver na REMUME daquele municipio, o Assistente avisa que nao consta e NAO oferece o item. Para acrescentar uma marca, copie um bloco abaixo e rode 'npm run build'. Ver docs/MANUAL-ADMIN.md.","_campos":{"marca":"O que o medico digita (nome comercial, sigla ou nome alternativo).","principioAtivo":"O nome que se procura dentro da REMUME.","observacao":"Opcional. Aparece so na documentacao, nao na tela."},"_total":252,"marcas":[{"marca":"AAS","principioAtivo":"Ácido acetilsalicílico","observacao":"Sigla de uso corrente."},{"marca":"Acetaminofeno","principioAtivo":"Paracetamol","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Acfol","principioAtivo":"Acido Folico","observacao":""},{"marca":"Actilyse","principioAtivo":"Alteplase","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Adalat","principioAtivo":"Nifedipino","observacao":""},{"marca":"Adalat Oros","principioAtivo":"Nifedipina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Addera","principioAtivo":"Colecalciferol","observacao":""},{"marca":"Adenocard","principioAtivo":"Adenosina","observacao":""},{"marca":"Advil","principioAtivo":"Ibuprofeno","observacao":""},{"marca":"Aerolin","principioAtivo":"Salbutamol","observacao":""},{"marca":"Akineton","principioAtivo":"Biperideno","observacao":""},{"marca":"Aldactone","principioAtivo":"Espironolactona","observacao":""},{"marca":"Aldomet","principioAtivo":"Metildopa","observacao":""},{"marca":"Alivium","principioAtivo":"Ibuprofeno","observacao":""},{"marca":"Allegra","principioAtivo":"Fexofenadina","observacao":""},{"marca":"Amox","principioAtivo":"Amoxicilina","observacao":""},{"marca":"Amoxil","principioAtivo":"Amoxicilina","observacao":""},{"marca":"Amplictil","principioAtivo":"Clorpromazina","observacao":""},{"marca":"Amytril","principioAtivo":"Amitriptilina","observacao":""},{"marca":"Ancoron","principioAtivo":"Amiodarona","observacao":""},{"marca":"Angipress","principioAtivo":"Atenolol","observacao":""},{"marca":"Antak","principioAtivo":"Ranitidina","observacao":""},{"marca":"Apresolina","principioAtivo":"Hidralazina","observacao":""},{"marca":"Apressolina","principioAtivo":"Hidralazina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Aprovel","principioAtivo":"Irbesartana","observacao":""},{"marca":"Aradois","principioAtivo":"Losartana","observacao":""},{"marca":"Asmafen","principioAtivo":"Aminofilina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Aspirina","principioAtivo":"Ácido acetilsalicílico","observacao":""},{"marca":"Astromicin","principioAtivo":"Azitromicina","observacao":""},{"marca":"Atensina","principioAtivo":"Clonidina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Atlansil","principioAtivo":"Amiodarona","observacao":""},{"marca":"Atrovent","principioAtivo":"Ipratropio","observacao":""},{"marca":"Bactrim","principioAtivo":"Sulfametoxazol","observacao":""},{"marca":"Bactroban","principioAtivo":"Mupirocina","observacao":""},{"marca":"Balcor","principioAtivo":"Diltiazem","observacao":""},{"marca":"Benerva","principioAtivo":"Tiamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Benzetacil","principioAtivo":"Penicilina","observacao":""},{"marca":"Buscopam Composto","principioAtivo":"Escopolamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Buscopan","principioAtivo":"Escopolamina","observacao":""},{"marca":"Buscopan","principioAtivo":"Butilbrometo","observacao":""},{"marca":"Buscopan Composto","principioAtivo":"Escopolamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Buscopan Simples","principioAtivo":"Escopolamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Busonid","principioAtivo":"Budesonida","observacao":""},{"marca":"Capoten","principioAtivo":"Captopril","observacao":""},{"marca":"Cardilol","principioAtivo":"Carvedilol","observacao":""},{"marca":"Cardizem","principioAtivo":"Diltiazem","observacao":""},{"marca":"Cataflam","principioAtivo":"Diclofenaco","observacao":""},{"marca":"Cimetidan","principioAtivo":"Cimetidina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Cipramil","principioAtivo":"Citalopram","observacao":""},{"marca":"Cipro","principioAtivo":"Ciprofloxacino","observacao":""},{"marca":"Ciproxin","principioAtivo":"Ciprofloxacino","observacao":""},{"marca":"Citalor","principioAtivo":"Atorvastatina","observacao":""},{"marca":"Citoneurin","principioAtivo":"Complexo B","observacao":""},{"marca":"Claritine","principioAtivo":"Loratadina","observacao":""},{"marca":"Clavulin","principioAtivo":"Clavulanato","observacao":""},{"marca":"Clenil","principioAtivo":"Beclometasona","observacao":""},{"marca":"Clexane","principioAtivo":"Enoxaparina","observacao":""},{"marca":"Clisterol","principioAtivo":"Glicerina Clister","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Clorana","principioAtivo":"Hidroclorotiazida","observacao":""},{"marca":"Combiron","principioAtivo":"Sulfato Ferroso","observacao":""},{"marca":"Coreg","principioAtivo":"Carvedilol","observacao":""},{"marca":"Coumadin","principioAtivo":"Varfarina","observacao":""},{"marca":"Cozaar","principioAtivo":"Losartana","observacao":""},{"marca":"Crestor","principioAtivo":"Rosuvastatina","observacao":""},{"marca":"Cymbalta","principioAtivo":"Duloxetina","observacao":""},{"marca":"Cytotec","principioAtivo":"Misoprostol","observacao":""},{"marca":"Daforin","principioAtivo":"Fluoxetina","observacao":""},{"marca":"Daktarin","principioAtivo":"Miconazol","observacao":""},{"marca":"Dalacin","principioAtivo":"Clindamicina","observacao":""},{"marca":"Dalacin C","principioAtivo":"Clindamicina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Daonil","principioAtivo":"Glibenclamida","observacao":""},{"marca":"Decadron","principioAtivo":"Dexametasona","observacao":""},{"marca":"Depakene","principioAtivo":"Valproato","observacao":""},{"marca":"Depakote","principioAtivo":"Valproato","observacao":""},{"marca":"Dermazine","principioAtivo":"Sulfadiazina Prata","observacao":""},{"marca":"Desalex","principioAtivo":"Desloratadina","observacao":""},{"marca":"Deslanol","principioAtivo":"Deslanosídeo","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Despacilina","principioAtivo":"Benzilpenicilina Potássica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Diamicron","principioAtivo":"Gliclazida","observacao":""},{"marca":"Digesan","principioAtivo":"Bromoprida","observacao":""},{"marca":"Dimorf","principioAtivo":"Morfina","observacao":""},{"marca":"Diovan","principioAtivo":"Valsartana","observacao":""},{"marca":"Diprivan","principioAtivo":"Propofol","observacao":""},{"marca":"Diprospan","principioAtivo":"Betametasona","observacao":""},{"marca":"Dobutrex","principioAtivo":"Dobutamina","observacao":""},{"marca":"Dormonid","principioAtivo":"Midazolam","observacao":""},{"marca":"Dulcolax","principioAtivo":"Bisacodil","observacao":""},{"marca":"Efexor","principioAtivo":"Venlafaxina","observacao":""},{"marca":"Efortil","principioAtivo":"Etilefrina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Eliquis","principioAtivo":"Apixabana","observacao":""},{"marca":"Elocom","principioAtivo":"Mometasona","observacao":""},{"marca":"Epinefrina","principioAtivo":"Adrenalina","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Esmeron","principioAtivo":"Rocurônio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Euthyrox","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Fenergan","principioAtivo":"Prometazina","observacao":""},{"marca":"Fenocris","principioAtivo":"Fenobarbital Sódico","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Fentanil","principioAtivo":"Fentanila","observacao":""},{"marca":"Flagyl","principioAtivo":"Metronidazol","observacao":""},{"marca":"Flixotide","principioAtivo":"Fluticasona","observacao":""},{"marca":"Fluconal","principioAtivo":"Fluconazol","observacao":""},{"marca":"Folacin","principioAtivo":"Acido Folico","observacao":""},{"marca":"Franol","principioAtivo":"Efedrina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Garamicina","principioAtivo":"Gentamicina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Gardenal","principioAtivo":"Fenobarbital","observacao":""},{"marca":"Gentamisan","principioAtivo":"Gentamicina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Glifage","principioAtivo":"Metformina","observacao":""},{"marca":"Glucoformin","principioAtivo":"Metformina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Haldol","principioAtivo":"Haloperidol","observacao":""},{"marca":"Hctz","principioAtivo":"Hidroclorotiazida","observacao":""},{"marca":"Hidantal","principioAtivo":"Fenitoina","observacao":""},{"marca":"Hidraplex","principioAtivo":"Sais para reidratação oral","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Higroton","principioAtivo":"Clortalidona","observacao":""},{"marca":"Hixizine","principioAtivo":"Hidroxizina","observacao":""},{"marca":"Humulin","principioAtivo":"Insulina","observacao":""},{"marca":"Hypnomidate","principioAtivo":"Etomidato","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Imosec","principioAtivo":"Loperamida","observacao":""},{"marca":"Inderal","principioAtivo":"Propranolol","observacao":""},{"marca":"Insunorm","principioAtivo":"Insulina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Iruxol","principioAtivo":"Colagenase","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Kanakion","principioAtivo":"Fitomenadiona","observacao":""},{"marca":"Kanakion Im/sc","principioAtivo":"Fitomenadiona","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Kcl","principioAtivo":"Cloreto de potássio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Keflex","principioAtivo":"Cefalexina","observacao":""},{"marca":"Keppra","principioAtivo":"Levetiracetam","observacao":""},{"marca":"Ketamin","principioAtivo":"Escetamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Klaricid","principioAtivo":"Claritromicina","observacao":""},{"marca":"Label","principioAtivo":"Ranitidina","observacao":""},{"marca":"Lactulona","principioAtivo":"Lactulose","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Lamisil","principioAtivo":"Terbinafina","observacao":""},{"marca":"Lanexat","principioAtivo":"Flumazenil","observacao":""},{"marca":"Lasix","principioAtivo":"Furosemida","observacao":""},{"marca":"Levaquin","principioAtivo":"Levofloxacino","observacao":""},{"marca":"Lexapro","principioAtivo":"Escitalopram","observacao":""},{"marca":"Lexotan","principioAtivo":"Bromazepam","observacao":""},{"marca":"Lioresal","principioAtivo":"Baclofeno","observacao":""},{"marca":"Lipitor","principioAtivo":"Atorvastatina","observacao":""},{"marca":"Liquemine","principioAtivo":"Heparina","observacao":""},{"marca":"Liquemine EV","principioAtivo":"Heparina Sódica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Liquemine Sc","principioAtivo":"Heparina Sódica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Lopressor","principioAtivo":"Metoprolol","observacao":""},{"marca":"Loranil","principioAtivo":"Loratadina","observacao":""},{"marca":"Lorax","principioAtivo":"Lorazepam","observacao":""},{"marca":"Losec","principioAtivo":"Omeprazol","observacao":""},{"marca":"Luftal","principioAtivo":"Simeticona","observacao":""},{"marca":"Lyrica","principioAtivo":"Pregabalina","observacao":""},{"marca":"Macrodantina","principioAtivo":"Nitrofurantoina","observacao":""},{"marca":"Manitol 20%","principioAtivo":"Manitol","observacao":""},{"marca":"Marcaina","principioAtivo":"Bupivacaina","observacao":""},{"marca":"Marevan","principioAtivo":"Varfarina","observacao":""},{"marca":"Metamizol","principioAtivo":"Dipirona","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Meticorten","principioAtivo":"Prednisona","observacao":""},{"marca":"Micardis","principioAtivo":"Telmisartana","observacao":""},{"marca":"Micostatin","principioAtivo":"Nistatina","observacao":""},{"marca":"Miosan","principioAtivo":"Ciclobenzaprina","observacao":""},{"marca":"Motilium","principioAtivo":"Domperidona","observacao":""},{"marca":"Movatec","principioAtivo":"Meloxicam","observacao":""},{"marca":"Nacl 0,9%.","principioAtivo":"Cloreto de Sódio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Nacl 20%.","principioAtivo":"Cloreto de Sódio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Narcan","principioAtivo":"Naloxona","observacao":""},{"marca":"Naropin","principioAtivo":"Ropivacaina","observacao":""},{"marca":"Nasonex","principioAtivo":"Mometasona","observacao":""},{"marca":"Natrilix","principioAtivo":"Indapamida","observacao":""},{"marca":"Nebacetin","principioAtivo":"Neomicina + bacitracina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Neocaina","principioAtivo":"Bupivacaina","observacao":""},{"marca":"Neozine","principioAtivo":"Levomepromazina","observacao":""},{"marca":"Nepresol","principioAtivo":"Hidralazina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Neurontin","principioAtivo":"Gabapentina","observacao":""},{"marca":"Nexium","principioAtivo":"Esomeprazol","observacao":""},{"marca":"Nipride","principioAtivo":"Nitroprusseto de Sódio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Nisulid","principioAtivo":"Nimesulida","observacao":""},{"marca":"Nizoral","principioAtivo":"Cetoconazol","observacao":""},{"marca":"Noradrenalina","principioAtivo":"Norepinefrina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Norepinefrina","principioAtivo":"Noradrenalina","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Norvasc","principioAtivo":"Anlodipino","observacao":""},{"marca":"Novalgina","principioAtivo":"Dipirona","observacao":""},{"marca":"Novolin","principioAtivo":"Insulina","observacao":""},{"marca":"Pantoc","principioAtivo":"Pantoprazol","observacao":""},{"marca":"Pantozol","principioAtivo":"Pantoprazol","observacao":""},{"marca":"Peprazol","principioAtivo":"Omeprazol","observacao":""},{"marca":"Plasil","principioAtivo":"Metoclopramida","observacao":""},{"marca":"Plavix","principioAtivo":"Clopidogrel","observacao":""},{"marca":"Polaramine","principioAtivo":"Dexclorfeniramina","observacao":""},{"marca":"Pradaxa","principioAtivo":"Dabigatrana","observacao":""},{"marca":"Prazol","principioAtivo":"Lansoprazol","observacao":""},{"marca":"Predi-medrol","principioAtivo":"Metilprednisolona","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Prelone","principioAtivo":"Prednisolona","observacao":""},{"marca":"Profenid","principioAtivo":"Cetoprofeno","observacao":""},{"marca":"Prolopa","principioAtivo":"Levodopa","observacao":""},{"marca":"Propecia","principioAtivo":"Finasterida","observacao":""},{"marca":"Propovan","principioAtivo":"Propofol","observacao":""},{"marca":"Proscar","principioAtivo":"Finasterida","observacao":""},{"marca":"Prostigmine","principioAtivo":"Neostigmina","observacao":""},{"marca":"Prostokos","principioAtivo":"Misoprostol","observacao":""},{"marca":"Prozac","principioAtivo":"Fluoxetina","observacao":""},{"marca":"Pulmicort","principioAtivo":"Budesonida","observacao":""},{"marca":"Puran T4","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Renitec","principioAtivo":"Enalapril","observacao":""},{"marca":"Revivan","principioAtivo":"Dopamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Ringer Lactato","principioAtivo":"Ringer","observacao":""},{"marca":"Risperdal","principioAtivo":"Risperidona","observacao":""},{"marca":"Rivotril","principioAtivo":"Clonazepam","observacao":""},{"marca":"Rocefin","principioAtivo":"Ceftriaxona","observacao":""},{"marca":"Scabin","principioAtivo":"Permetrina","observacao":""},{"marca":"Secotex","principioAtivo":"Tansulosina","observacao":""},{"marca":"Seloken","principioAtivo":"Metoprolol","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Selozok","principioAtivo":"Metoprolol","observacao":""},{"marca":"Seroquel","principioAtivo":"Quetiapina","observacao":""},{"marca":"Sevorane","principioAtivo":"Sevoflurano","observacao":""},{"marca":"Sf 0.9%","principioAtivo":"Soro Fisiologico","observacao":""},{"marca":"Sg 5%","principioAtivo":"Glicose","observacao":""},{"marca":"Singulair","principioAtivo":"Montelucaste","observacao":""},{"marca":"Sinvatrox","principioAtivo":"Sinvastatina","observacao":""},{"marca":"Solucortef","principioAtivo":"Hidrocortisona","observacao":""},{"marca":"Solumedrol","principioAtivo":"Metilprednisolona","observacao":""},{"marca":"Sorcal","principioAtivo":"Poliestirenossulfonato de Calcio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Soro Glicosado","principioAtivo":"Glicose","observacao":""},{"marca":"Staficilin","principioAtivo":"Oxacilina sódica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Succinil Colin","principioAtivo":"Suxametonio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Synthroid","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Syntocinon","principioAtivo":"Ocitocina","observacao":""},{"marca":"Tamiflu","principioAtivo":"Oseltamivir","observacao":""},{"marca":"Tavanic","principioAtivo":"Levofloxacino","observacao":""},{"marca":"Tegretol","principioAtivo":"Carbamazepina","observacao":""},{"marca":"Tolrest","principioAtivo":"Sertralina","observacao":""},{"marca":"Topamax","principioAtivo":"Topiramato","observacao":""},{"marca":"Tramal","principioAtivo":"Tramadol","observacao":""},{"marca":"Transamin","principioAtivo":"Acido Tranexamico","observacao":""},{"marca":"Triaxon","principioAtivo":"Ceftriaxona","observacao":""},{"marca":"Tridil","principioAtivo":"Nitroglicerina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Tryptanol","principioAtivo":"Amitriptilina","observacao":""},{"marca":"Tylenol","principioAtivo":"Paracetamol","observacao":""},{"marca":"Uroxacin","principioAtivo":"Norfloxacino","observacao":""},{"marca":"Valium","principioAtivo":"Diazepam","observacao":""},{"marca":"Valproico","principioAtivo":"Valproato","observacao":""},{"marca":"Valtrex","principioAtivo":"Valaciclovir","observacao":""},{"marca":"Viagra","principioAtivo":"Sildenafila","observacao":""},{"marca":"Vibramicina","principioAtivo":"Doxiciclina","observacao":""},{"marca":"Vitamina K","principioAtivo":"Fitomenadiona","observacao":""},{"marca":"Voltaren","principioAtivo":"Diclofenaco","observacao":""},{"marca":"Vonau","principioAtivo":"Ondansetrona","observacao":""},{"marca":"Xarelto","principioAtivo":"Rivaroxabana","observacao":""},{"marca":"Xylocaina","principioAtivo":"Lidocaina","observacao":""},{"marca":"Xylocaina 2% com","principioAtivo":"Lidocaína","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Xylocaina 2% Sem","principioAtivo":"Lidocaína","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Zitromax","principioAtivo":"Azitromicina","observacao":""},{"marca":"Zocor","principioAtivo":"Sinvastatina","observacao":""},{"marca":"Zofran","principioAtivo":"Ondansetrona","observacao":""},{"marca":"Zoloft","principioAtivo":"Sertralina","observacao":""},{"marca":"Zoltec","principioAtivo":"Fluconazol","observacao":""},{"marca":"Zovirax","principioAtivo":"Aciclovir","observacao":""},{"marca":"Zyprexa","principioAtivo":"Olanzapina","observacao":""},{"marca":"Zyrtec","principioAtivo":"Cetirizina","observacao":""}]};
 
   /* ===== dados/changelog.json ===== */
-  raiz.MEEDS_CHANGELOG = {"_leia_me":"Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.","versoes":[{"versao":"2.49.0","data":"2026-09-26","novidades":[],"melhorias":["O gerador de APAC do Assistente foi desativado: o Meeds agora tem um gerador de APAC próprio, dentro de Prescrever. O botão APAC sai da tela.","Visual mais sóbrio: botões e janelas com cantos menores, sombras discretas e cabeçalhos em cor sólida. Os avisos de alarme e do município continuam iguais.","Para quem instala agora, os laudos de Sete Lagoas e de Conceição do Mato Dentro começam desligados — é só ligar na ⚙️ engrenagem quando precisar. Quem já usava continua com eles ligados.","Nova mensagem de boas-vindas, com um atalho para conhecer as funções."],"correcoes":["Os botões \"Configurar\" e \"Ver tutorial\" do painel apareciam em fonte de código; agora usam a fonte normal."]},{"versao":"2.48.0","data":"2026-09-25","novidades":["Piraí: em todo atendimento, lembra que exames pediátricos de alta/média complexidade e especialidades pediátricas ambulatoriais são feitos no Rio de Janeiro, via regulação estadual/SISREG, e que os encaminhamentos devem ir detalhados, com exames anexados e classificação de risco."],"melhorias":["O aviso do município passa a abrir na lateral superior direita, acima dos botões do Assistente, sem cobrir o formulário do atendimento. \"Entendi\" para a pulsação e o aviso continua ali.","Casa da Criança e do Adolescente e Clínica do Autista: textos revisados, sem público-alvo. Na Casa da Criança, em destaque: o município não oferta neuropsicólogo nem psicopedagogo."],"correcoes":[]},{"versao":"2.47.0","data":"2026-09-25","novidades":["Avisos por unidade: o aviso agora também lê a unidade do paciente no campo \"Vínculos\". Em Macaé: nas UPAs Barra e Lagomar e nos Prontos Socorros Imbetiba e Parque Aeroporto, lembra que não se prescreve encaminhamento para especialidades — orientar a UBS mais próxima; na Casa da Criança e do Adolescente e na Clínica do Autista, mostra público-alvo, atendimentos e fluxo.","Congonhas: em todo atendimento, lembra que os exames do laboratório da UPA vão juntos num pedido, e o que estiver fora da lista vai em pedido separado."],"melhorias":[],"correcoes":["O Meeds está renomeando os municípios de \"PREFEITURA MUNICIPAL DE MACAÉ\" para \"MACAÉ - RJ\". A REMUME, a APAC, os Exames e os avisos do município passam a reconhecer os dois formatos, inclusive a unidade que aparece embaixo no \"Vínculos\"."]},{"versao":"2.46.0","data":"2026-09-25","novidades":["REMUME de Barbacena com avisos da UPA: uma faixa no topo com o que a teleconsulta cobre (VO, IM, atestado), e em cada ampola ou item injetável o lembrete de que só vale a aplicação IM — EV vai ao presencial. Bolsas e soro em sistema fechado avisam que são EV."],"melhorias":["O aviso do município agora abre no meio da tela, pulsando, para ser lido. \"Entendi\" leva o cartão para o canto, em âmbar e parado, onde fica como referência até o fim do atendimento."],"correcoes":["O aviso do município não abria no Meeds em produção: a resposta do atendimento não trazia a prefeitura onde o Assistente procurava, e isso bloqueava a leitura do campo \"Vínculos\". Agora, quando a resposta não diz a cidade, vale o \"Vínculos\"."]},{"versao":"2.45.1","data":"2026-09-25","novidades":[],"melhorias":["O aviso do município agora chama atenção: aparece em âmbar e pulsa três vezes ao surgir, depois fica parado. Quem ativou \"reduzir movimento\" no computador ou no iPad vê o cartão em âmbar, sem pulsar."],"correcoes":[]},{"versao":"2.45.0","data":"2026-09-25","novidades":["Avisos do município: dentro do atendimento de Barbacena ou de Franco da Rocha, aparece sozinho o que a teleconsulta resolve ali (medicação, atestado) e o que deve ser encaminhado ao presencial (medicação EV, exames). Não aparece na fila, no painel nem em nenhuma outra tela, e nunca para paciente de outro município. Fechando no X, não volta naquele atendimento. Funciona também no iPad."],"melhorias":[],"correcoes":[]},{"versao":"2.44.0","data":"2026-09-24","novidades":[],"melhorias":["O Assistente passa a acompanhar o Meeds novo, que entrou em produção. A leitura do cartão do paciente (usada pela APAC e pelos laudos) reconhece o campo \"Parentesco\", onde agora fica o nome da mãe."],"correcoes":["O alarme de fila não enxergava a fila do Meeds novo pela rede: a aba Aguardando agora é pedida com dois status juntos, e o alarme recusava essa consulta. Corrigido, sem confundir com a consulta que só alimenta o contador da aba.","O alarme também reconhece o aviso \"Novo paciente na fila de Pronto Atendimento\", além do \"Novo atendimento\"."]},{"versao":"2.43.17","data":"2026-09-23","novidades":["REMUME de Piracema-MG incluída na busca: 91 itens da Farmácia de Todos (Farmácia de Minas). Glicosímetro e tiras reagentes de glicemia aparecem com o aviso de que são só para diabetes tipo 1, tipo 2 em uso de insulina ou diabetes gestacional.","REMUME de Santa Bárbara-MG incluída na busca: 191 itens da REMUME 2024 (2ª edição, Portaria SMS nº 19/2023). Olanzapina e Risperidona aparecem com o aviso de que dependem do CID não ser compatível com o Componente Especializado da Assistência Farmacêutica Estadual."],"melhorias":[],"correcoes":[]},{"versao":"2.43.16","data":"2026-09-26","novidades":["Exames de Piraí incluídos: os 383 exames laboratoriais e de imagem realizados no próprio município, mais os 5 exames pediátricos de alta complexidade (Ecocardiograma Pediátrico, Ressonância, Tomografia, Oftalmologia de Alta Complexidade e Cloreto no Suor) que são encaminhados ao Rio de Janeiro via regulação estadual/SISREG.","Dois novos Encaminhamentos em Piraí: Especialidades Pediátricas Ambulatoriais (14 especialidades reguladas pelo SER/SISREG para o Rio de Janeiro) e o CEMAIA — Centro Especializado Multidisciplinar de Atendimento à Infância e Adolescência, o serviço municipal de referência psicossocial infantojuvenil, com o fluxo de encaminhamento de cada um."],"melhorias":[],"correcoes":[]},{"versao":"2.43.15","data":"2026-09-21","novidades":["Tutoriais do REMUME e do Alarme de Fila ganharam passos guiados: em vez de só ler e clicar em \"Próximo\", alguns passos agora pedem uma ação real (digitar uma busca, trocar de município, copiar um resultado, testar o som, ajustar o volume) — o elemento certo da tela pisca em destaque e o passo avança sozinho quando você faz a ação."],"melhorias":[],"correcoes":[]},{"versao":"2.43.12","data":"2026-09-21","novidades":[],"melhorias":[],"correcoes":["O aviso da REMUME de Franco da Rocha ficou mais completo e alinhado com a orientação oficial da RT médica: agora diz que a unidade atende só fichas azuis (receita e alta), e que tanto paciente que precisa de medicação no local (oral, IM ou EV) quanto paciente com sinal de alarme devem ser encaminhados para atendimento presencial."]},{"versao":"2.43.11","data":"2026-09-21","novidades":[],"melhorias":[],"correcoes":["O alarme podia voltar a tocar sozinho, a cada 5 minutos (ou a cada 2 no modo Discreto), depois de já ter sido silenciado — mesmo sem nenhum paciente novo e mesmo com a fila vazia. Acontecia quando você saía da tela da fila (para atender o paciente, por exemplo): sem ninguém olhando a fila, o alarme não tinha como confirmar se ainda havia alguém esperando, e passou a tratar essa dúvida como \"ainda tem gente\", voltando a soar. Agora, sem confirmação nenhuma, ele não toca — só volta a soar quando há prova de verdade, de que a fila ainda tem alguém ou de que já esvaziou."]},{"versao":"2.43.10","data":"2026-09-18","novidades":["REMUME de Franco da Rocha - SP incluída na busca, com destaque (📍 UPA) para os medicamentos confirmados na farmácia da UPA Franco da Rocha.","Ao selecionar Franco da Rocha, a tela do REMUME mostra um aviso fixo: o atendimento é exclusivo da UPA, então prescreva apenas para o paciente levar para casa — se for preciso medicar na própria unidade, encaminhe para atendimento presencial."],"melhorias":[],"correcoes":[]},{"versao":"2.43.8","data":"2026-09-17","novidades":[],"melhorias":["O aviso do modo 🔉 Discreto mudou de lugar: em vez de aparecer no canto de cima da tela, agora sobe do rodapé, ao lado dos botões do Assistente — perto de onde você já está olhando a fila. Ele sobe deslizando, como as janelinhas do antigo MSN, e os avisos mais novos ficam sempre embaixo, na altura do olhar.","Trocar a intensidade do alarme no meio de uma sirene agora para a sirene na hora. Antes, só o 🔕 Silencioso parava: quem trocava de 🔔 Completo para 🔉 Discreto continuava ouvindo a sirene e vendo a faixa vermelha por até 2 minutos. Se ainda houver paciente esperando, o lembrete do Discreto fica marcado para 2 minutos depois — sem som agora, mas sem esquecer de você."],"correcoes":["O alarme podia tocar sem paciente novo em três situações, todas corrigidas: quando o próprio Meeds anunciava \"Novo Atendimento\" com a fila marcando zero; quando você saía do Pronto Atendimento e voltava (o alarme comparava o número da tela antiga com o da tela nova e lia isso como gente chegando); e quando você voltava para a fila depois de vários minutos em outra tela (a fila inteira parecia nova). Em todos os casos o alarme agora recomeça a contagem em silêncio, em vez de tocar. Quando a leitura da fila é incerta, ele continua tocando — errar tocando é melhor que errar calando."]},{"versao":"2.43.7","data":"2026-09-16","novidades":[],"melhorias":[],"correcoes":["O alarme de fila dizia \"Novo paciente na fila\" mesmo quando não chegou ninguém novo — acontecia no lembrete de 2 em 2 minutos do modo Discreto (para o mesmo paciente que já estava esperando) e no modo Espera (que avisa sobre alguém que já estava na fila há muito tempo). O aviso agora diz \"Paciente ainda aguardando\" nesses dois casos, e só continua dizendo \"Novo paciente\" quando alguém chegou de fato."]},{"versao":"2.43.6","data":"2026-09-15","novidades":[],"melhorias":["Alarme de Fila, modo 🔉 Discreto: se o paciente que chegou continuar na fila, o cartão e as duas batidas voltam a cada 2 minutos, até ele ser atendido ou você trocar de intensidade. Antes, o Discreto avisava uma vez só e nunca mais — quem não reparasse na hora podia deixar um paciente esperando sem saber."],"correcoes":[]},{"versao":"2.43.5","data":"2026-09-15","novidades":[],"melhorias":["Alarme de Fila, modo 🔉 Discreto: o som curto agora toca duas vezes (antes era uma), espaçadas pelo mesmo intervalo do som escolhido — uma batida só passava despercebida num plantão barulhento."],"correcoes":[]},{"versao":"2.43.4","data":"2026-09-12","novidades":[],"melhorias":["Se um botão do Assistente encontrar um erro ao ser clicado, agora aparece um aviso no canto da tela dizendo o que houve e o que fazer — tentar de novo ou copiar o diagnóstico técnico em ⚙️ → Sobre. Antes, o clique simplesmente não fazia nada, e não dava para saber se era para esperar ou pedir ajuda."],"correcoes":["Quem tinha marcado um modelo com “★ Usar sempre” na APAC, no Laudo de Alto Custo de Conceição do Mato Dentro ou no Laudo de Sete Lagoas clicava no botão e a janela não abria. O problema começou na versão 2.28.1. Agora a janela abre normalmente e o modelo volta a entrar sozinho quando os campos clínicos estão vazios — sem nunca apagar o que você já escreveu."]},{"versao":"2.43.3","data":"2026-09-12","novidades":[],"melhorias":[],"correcoes":["O aviso “O alarme ficou parado” (o que aparece quando o navegador suspende a aba de fundo e o alarme não pôde tocar) não sumia sozinho e criava um cartão novo a cada vez — num plantão a tela terminava coberta por seis ou sete avisos iguais, todos precisando ser fechados à mão. Agora é um único aviso, que se fecha sozinho depois de 30 segundos e, se acontecer de novo, se atualiza dizendo quantas vezes já foi e quantos minutos somam, em vez de empilhar."]},{"versao":"2.43.1","data":"2026-09-11","novidades":[],"melhorias":[],"correcoes":["O \"Copiar diagnóstico técnico\" (⚙️ → Sobre) trazia só metadado e ficou raso demais na prática — faltava a URL completa, o corpo da resposta e o console inteiro, que é o que normalmente explica por que algo falhou. Agora traz tudo isso, como uma gravação traria. Continua mascarando automaticamente qualquer número de 6 ou mais dígitos (CPF, CNS, CNES, telefone) — é para uso interno, então envie só para quem está te ajudando a resolver."]},{"versao":"2.43.0","data":"2026-09-11","novidades":["Novo botão em ⚙️ → Sobre: \"Copiar diagnóstico técnico\". Quando algo dá errado e a equipe pede para ver o console e a rede, um clique copia um texto pronto — versão, funções ligadas, navegador e as chamadas que falharam nos últimos 15 minutos — para colar no WhatsApp ou e-mail. Sem nome, CPF ou qualquer dado de paciente: nunca o corpo de uma resposta, nunca a parte da URL onde costuma morar um parâmetro, e só as linhas de aviso que o próprio Assistente já escreve."],"melhorias":[],"correcoes":[]},{"versao":"2.42.2","data":"2026-09-11","novidades":["Assistente REMUME, nos 11 municípios: medicamentos que exigem Notificação de Receita A (amarela) ou B (azul) agora aparecem com um selo e um aviso — essas duas receitas ainda não têm aprovação para prescrição digital, então precisam ser prescritas separadamente dos demais itens, para transcrição por um médico presencial. 96 medicamentos marcados ao todo: Receita Amarela (morfina, fentanila, metadona, petidina, alfentanila) e Receita Azul (diazepam, midazolam, clonazepam, alprazolam, bromazepam, lorazepam, nitrazepam, clobazam)."],"correcoes":[],"melhorias":[]},{"versao":"2.42.0","data":"2026-09-11","novidades":[],"correcoes":["O cabeçalho da APAC agora é a imagem do formulário oficial do Ministério da Saúde — o emblema do SUS, \"Sistema Único de Saúde / Ministério da Saúde\" e o \"fls.1/2\" saem exatamente como no modelo real. Antes era um cabeçalho desenhado por aproximação, sem o emblema."],"melhorias":[]},{"versao":"2.41.0","data":"2026-09-10","novidades":[],"melhorias":["Os ícones dos botões de APAC, dos dois laudos, da REMUME e dos Exames passaram a ser desenhados, em vez de emoji. Ficam iguais em qualquer computador ou tablet — antes, dependendo do sistema, o da REMUME e o dos Exames saíam parecendo outra coisa. O sino do alarme e a engrenagem continuam como estavam."],"correcoes":[]},{"versao":"2.40.1","data":"2026-09-10","novidades":[],"melhorias":["No painel da engrenagem, o texto que explica cada função ficou do mesmo tamanho e no mesmo tom para todas: o que ela faz e quando serve, em uma ou duas frases. O do Alarme de Fila era o mais longo e listava as três intensidades — isso agora fica na tela de configuração, onde você escolhe."],"correcoes":[]},{"versao":"2.40.0","data":"2026-09-10","novidades":[],"melhorias":["O cabeçalho das janelas (APAC, os dois laudos, Exames e o Alarme) passou a ser desenhado num lugar só: mesmo espaçamento, mesmo botão de fechar e a mesma ordem de “Atualizar paciente” e “Histórico” em todas.","No painel da engrenagem, a linha “Sempre ativas” agora diz onde a Busca de CID-10 e a Prévia do documento aparecem — dentro dos formulários de APAC e de laudo."],"correcoes":[]},{"versao":"2.39.0","data":"2026-09-10","novidades":[],"melhorias":["Os botões da REMUME e dos Exames agora mostram o nome, como os de APAC e Laudo — antes eram só um ícone, e dois ícones parecidos no topo da pilha eram fáceis de confundir.","O botão do laudo de Conceição do Mato Dentro agora diz “Laudo — Conceição” em vez de “Laudo - CMD”. “CMD” era abreviação interna e não ajudava a encontrar o botão.","A janela dos dois laudos passou a se chamar “Laudo Médico de Alto Custo” nas duas cidades (a de Sete Lagoas dizia outra coisa), e a caixa de aviso no topo não está mais toda em maiúsculas.","Na janela dos laudos, os botões “🔄 Atualizar paciente” e “📜 Histórico” ficaram na mesma ordem da APAC."],"correcoes":[]},{"versao":"2.38.0","data":"2026-09-09","novidades":["Macaé ganhou a lista de exames por especialidade da SEMUSA: 66 exames de Cardiologia, Urologia, Neurologia, Otorrino e outras, somados aos 28 que já existiam da UPA Barra — 94 no total. Cada exame mostra a especialidade (alguns aparecem em mais de uma, como o Ecodoppler de Carótidas) e, quando o documento afirma, o canal por onde o pedido entra: SISREG, Central de Regulação do Município ou regulação estadual.","Congonhas entrou com a lista certa: 52 exames de laboratório da UPA 24h. Um aviso fixo no topo explica a regra da prefeitura — exames desta lista precisam ser pedidos juntos, e qualquer exame fora dela vai em pedido separado, senão o paciente não consegue marcar. A Baciloscopia para BAAR aparece com um selo \"Suspenso\", porque está parada pelo Ministério da Saúde desde a COVID-19."],"melhorias":[],"correcoes":["A lista antiga de Congonhas (16 procedimentos com a sigla APAC) estava errada: era o catálogo geral de procedimentos que exigem APAC — o mesmo usado no gerador de APAC para Itaúna, Betim e Sete Lagoas — mostrado por engano como se fosse a lista de exames de Congonhas. Foi removida e substituída pela lista real, acima. O gerador de APAC em si nunca teve esse erro.","Os avisos fixos de Macaé (consentimento para HIV, data de nascimento) e de Sete Lagoas (cadastro no GMUS/CADWEB, carimbo/contato) foram retirados do topo do painel."]},{"versao":"2.37.0","data":"2026-09-09","novidades":["Sete Lagoas ganhou os exames laboratoriais: mais 456 exames de bancada (hemograma, glicose, colesterol, sorologias, hormônios, e mais de 400 outros), todos com o código do contrato. Somados aos 65 que já estavam na função 🧪 Exames do município, Sete Lagoas passa a ter 521 exames."],"melhorias":[],"correcoes":[]},{"versao":"2.36.0","data":"2026-09-09","novidades":["Sete Lagoas entrou na função 🧪 Exames do município: 65 exames com o local de realização, quando exigem APAC/Laudo/Alto Custo, e um aviso ℹ️ para exames que têm regra própria — idade mínima, documento a anexar, como cadastrar. Vem das orientações da própria Central de Marcação da prefeitura."],"melhorias":["Nova sigla \"Alto Custo\", ao lado de APAC e Laudo: identifica os exames que exigem esse formulário específico, em vez do pedido de exame comum."],"correcoes":[]},{"versao":"2.35.0","data":"2026-09-09","novidades":[],"melhorias":["A lista de exames agora aparece inteira assim que você abre a função, em ordem alfabética — antes era preciso digitar três letras para ver qualquer coisa, o que obrigava a saber o nome antes de olhar. Os exames chegam de 100 em 100, com um botão “+ Mais” no fim da lista.","O campo de busca virou filtro: ele procura em toda a lista do município, inclusive nos itens que ainda não apareceram na tela. Aceita acento, maiúscula e erro de digitação. Apagar o texto traz a lista completa de volta na hora, e uma bolinha girando ao lado do campo mostra quando o filtro está trabalhando."],"correcoes":[]},{"versao":"2.34.1","data":"2026-09-08","novidades":[],"melhorias":[],"correcoes":["O Assistente deixou de ler o nome do paciente que entra na fila. Ele nunca aparecia na tela nem era salvo — o aviso de chegada sempre mostrou só o município —, mas continuava sendo lido e mantido na memória do navegador sem necessidade. Agora não é mais lido."]},{"versao":"2.34.0","data":"2026-09-08","novidades":["Nova função 🧪 Exames do município: mostra o que o município do paciente oferece, para você saber na hora de pedir e não dias depois. Começa com Betim (1.983 exames laboratoriais, com o código do contrato), Macaé (28 exames da UPA Barra, com o local de realização) e Congonhas (16 procedimentos marcados com a sigla APAC). O exame que não estiver na lista daquele município aparece como \"não consta\" — nunca como resultado de outra cidade."],"melhorias":["Em Macaé, o painel avisa antes de você pedir: sorologia de HIV exige consentimento assinado, e a data de nascimento é obrigatória na requisição. Eram regras que só existiam num PDF."],"correcoes":[]},{"versao":"2.33.1","data":"2026-09-08","novidades":[],"melhorias":[],"correcoes":["No iPad e no iPhone, a opção “Abrir também uma janela de aviso” aparecia como se funcionasse, e a tela chegava a mandar você liberar o pop-up na barra de endereço — que ali não existe. O Safari do iOS não abre janela separada. Agora a opção aparece desligada, com a explicação no lugar da instrução impossível. O som e a notificação do alarme continuam funcionando normalmente no tablet."]},{"versao":"2.33.0","data":"2026-09-08","novidades":[],"melhorias":["A prévia do documento agora abre mesmo para quem já a tinha fechado alguma vez: a preferência antiga foi zerada uma vez só, para todo mundo começar do padrão novo. Sua largura e seu zoom foram preservados. Depois disso, fechar volta a valer para sempre."],"correcoes":["Você só conseguia manter um modelo salvo por gerador. Ao escolher um modelo da lista, o nome dele ia para o campo de nome — então, quando você montava outro procedimento e clicava em salvar, o modelo anterior era substituído em silêncio e você perdia o antigo. Agora escolher um modelo não mexe no campo de nome, o campo se limpa depois de salvar, e o botão avisa antes: ele diz “Salvar como modelo” para nome novo e “↻ Substituir «X»”, em outra cor, quando o nome já existe."]},{"versao":"2.32.1","data":"2026-09-08","novidades":[],"melhorias":[],"correcoes":["Na tela de monitoramento, uma das consultas do Meeds pede dois estados ao mesmo tempo (aguardando e mais um). O alarme tratava essa lista como se fosse só a fila de espera, e podia contar — e anunciar — paciente que não estava aguardando. Agora só conta a consulta que pede exclusivamente “aguardando”."]},{"versao":"2.32.0","data":"2026-09-08","novidades":["Nova opção “Abrir também uma janela de aviso”, em ⚙️ › Alarme de fila. Quando chega paciente e você não está no Meeds, uma janela pequena aparece na barra de tarefas — e fica lá até você fechar, ao contrário da notificação, que some sozinha. Feita para quem trabalha com muitas janelas abertas. Ela nasce desligada; ao ligar, uma janela de amostra abre na hora para você ver como fica — e se o navegador bloquear, a tela diz onde liberar."],"melhorias":[],"correcoes":[]},{"versao":"2.31.0","data":"2026-09-08","novidades":["Sete sons novos no alarme, e agora são duas listas separadas: uma para o modo completo (que repete) e outra para o modo discreto (que toca uma vez). As sirenes foram feitas para repetir e soavam truncadas quando tocadas uma vez só. Entre os curtos: Toque duplo, Sino curto, Gota, Acorde suave e Dois cliques — este último para quem divide a sala. Entre os que repetem: Pulso grave, pensado para a madrugada, e Sirene lenta, menos estridente.","Escolher um som já toca uma amostra na hora, em vez de você ter que clicar em “Testar” depois."],"melhorias":[],"correcoes":["O botão “Ver a fila” no aviso de novo paciente nunca funcionou: em vez de abrir o Pronto Atendimento, respondia sempre “não mudei de tela porque você tem um documento aberto pela metade”. Ele foi removido. Clicar na notificação continua trazendo o Meeds para frente e silenciando."]},{"versao":"2.30.0","data":"2026-09-08","novidades":["Guia de preenchimento no topo da APAC e dos dois laudos: uma barra mostra quanto falta e o texto ao lado diz qual é o próximo campo pendente. Clique nele e a tela leva você até lá.","Quando a emissão é recusada por falta de campo, o Assistente agora leva você até o primeiro que falta, em vez de só listar os nomes.","A tela que aparece depois de uma atualização ganhou um botão “⚙️ Abrir configurações”, para você experimentar a novidade na hora em que está lendo sobre ela."],"melhorias":["Os campos continuam todos liberados o tempo todo. Você preenche na ordem que quiser — o guia mostra o caminho, não fecha a porta."],"correcoes":[]},{"versao":"2.29.0","data":"2026-09-08","novidades":[],"melhorias":["A prévia do documento passa a abrir sozinha nos três geradores. Se você fechar, ela fica fechada naquele gerador — a escolha continua sendo sua, mudou só de que lado ela começa. Em tela estreita e no iPad ela continua não abrindo, porque não caberia."],"correcoes":[]},{"versao":"2.28.1","data":"2026-09-08","novidades":[],"melhorias":["Ficou claro como criar um modelo. Agora existe um campo de nome na própria tela, ao lado do botão “Salvar como modelo” — antes o nome era pedido numa janelinha do navegador que passava despercebida. Enquanto você não tem nenhum modelo, a lista de escolha nem aparece: fica só o convite para criar o primeiro, explicando o que fazer."],"correcoes":[]},{"versao":"2.28.0","data":"2026-09-08","novidades":["Modelos salvos na APAC, no laudo de Sete Lagoas e no de Conceição do Mato Dentro. Preencha o procedimento, o CID e a justificativa que você mais repete, clique em 💾 Salvar atual e dê um nome. Da próxima vez, escolha na lista e tudo volta preenchido.","Marque um modelo com ★ Padrão e ele entra sozinho toda vez que você abrir o gerador — sem clicar em nada. Ele só preenche campo vazio: o que você já escreveu nunca é apagado."],"melhorias":["Os modelos ficam no seu navegador e sobrevivem a logout, limpeza do site e atualização do Assistente. Nenhum dado de paciente entra num modelo — nome, CPF, nascimento, mãe e sexo ficam de fora, porque um modelo é feito para ser usado com outra pessoa."],"correcoes":[]},{"versao":"2.27.0","data":"2026-09-04","novidades":[],"melhorias":[],"correcoes":["A APAC trocava o paciente sozinha enquanto você preenchia. Se a tela do Meeds carregasse outro atendimento, o formulário era reescrito por baixo — e o PDF saía com o nome errado sem você ver. Agora o paciente só troca se você mandar: o Assistente avisa que a tela mudou, diz quem entrou e deixa você escolher entre trocar ou continuar. Vale também ao reabrir o gerador depois de fechá-lo sem querer. O botão “🔄 Atualizar paciente” continua trocando na hora, porque aí a decisão é sua."]},{"versao":"2.26.0","data":"2026-09-04","novidades":["O aviso de novo paciente agora tem um atalho “Ver a fila”, tanto no cartão discreto quanto na faixa vermelha. E clicar na notificação do sistema faz o mesmo: traz o Meeds para frente e abre o Pronto Atendimento."],"melhorias":["O cartão discreto mostra o município do atendimento, e não o nome do paciente. O município é o que muda a sua decisão — é ele que diz qual REMUME e qual laudo valem.","O atalho nunca troca de tela por cima de um documento aberto: com uma APAC ou um laudo pela metade, ele avisa em vez de fazer você perder o que já digitou."],"correcoes":[]},{"versao":"2.25.0","data":"2026-09-04","novidades":["O botão do alarme agora tem três posições, como o botão de som do Waze. 🔔 Completo é o de sempre: sirene, faixa no topo e moldura. 🔉 Discreto mostra um cartão no canto com quem chegou e de onde, com um som curto — some sozinho e não bloqueia nada. 🔕 Silencioso deixa só o contador na aba. Um clique no botão troca entre eles."],"melhorias":["O alarme não tem mais um liga/desliga próprio escondido no botão: a função ligada já é o alarme ativo, e o quanto ele incomoda é a intensidade. Para desligar de vez, use a chave da função no painel da engrenagem."],"correcoes":["O contador da aba mostrava um número diferente do total da fila, principalmente na tela de monitoramento. Ele somava o mesmo paciente uma vez para cada aba e cada filtro de período abertos, e nunca esquecia os filtros que você tinha deixado para trás. Agora conta cada pessoa uma vez, esquece a aba abandonada e, acima de tudo, respeita o número que está no cartão “Aguardando” da sua tela."]},{"versao":"2.24.0","data":"2026-09-04","novidades":["Se o navegador suspender a aba do Meeds — o Edge faz isso de fábrica com abas de fundo —, o Assistente passa a avisar quando ela acorda: “esta aba ficou suspensa por X min e o alarme não pôde tocar”. Antes o alarme simplesmente ficava mudo e você não tinha como saber."],"melhorias":["No Edge, o pedido de permissão para avisar pelo sistema costuma ser silenciado pelo navegador, e o botão parecia não fazer nada. Agora a tela avisa para procurar o ícone de sino na barra de endereço."],"correcoes":[]},{"versao":"2.23.0","data":"2026-09-04","novidades":[],"melhorias":["Saíram três chaves de liga/desliga que não precisavam existir. Os botões discretos em repouso, o aviso pelo sistema e a tela que não apaga passaram a ser simplesmente como o Assistente funciona.","O aviso pelo sistema não é mais uma chave: a tela mostra o estado dele. Se o navegador ainda não autorizou, aparece um botão para autorizar; se as notificações estiverem bloqueadas, a tela diz onde liberar.","No painel da engrenagem, o antigo link “Ajustes” virou um botão que diz o que abre — “⚙️ Configurar Alarme de Fila”. Antes não ficava claro que a função tinha configuração própria."],"correcoes":[]},{"versao":"2.22.0","data":"2026-09-04","novidades":["O alarme de fila agora avisa mesmo quando você não está na aba do Meeds: aparece uma notificação do sistema, com o navegador minimizado inclusive. Clicar nela traz o Meeds para frente e silencia — se você não atender, o alarme volta em 5 minutos. Ative em ⚙️ › Alarme de fila.","A aba do navegador passa a mostrar quantos estão esperando, no título e no ícone: “(3) Meeds”. O número continua ali depois de você silenciar, porque os pacientes continuam na fila, e some sozinho quando a fila esvazia.","Nova opção para impedir a tela de apagar durante o plantão — feita para o iPad, onde alarme que toca com a tela apagada é alarme perdido."],"melhorias":["O banner do alarme agora diz por que está tocando: “3 aguardando · o mais antigo há pelo menos 12 min”.","O título da aba não pisca mais “NOVO PACIENTE NA FILA”. Piscar disputa sua atenção a cada segundo e sumia quando você trocava de tela; o contador fica parado e é legível de relance.","Quem usa “reduzir movimento” no computador ou no iPad não vê mais nada pulsando. O alarme continua igual: som, vermelho e texto."],"correcoes":["No painel do alarme, as bolinhas de escolha e as caixas de seleção apareciam acima do texto, em vez de ao lado."]},{"versao":"2.21.0","data":"2026-09-03","novidades":["O backup agora salva também as unidades cadastradas, não só os médicos. Quem troca de computador não perde mais a unidade que digitou à mão."],"melhorias":["Telas mais curtas: a de boas-vindas caiu de cinco parágrafos para dois, e o painel da engrenagem perdeu os textos que se repetiam.","A lista de funções não mostra mais um número de versão para cada uma. A versão do Assistente continua na aba Sobre.","Na aba Unidades, quando não há nenhuma cadastrada, a tela agora explica que elas aparecem sozinhas ao escolher o município na APAC — antes parecia que era preciso digitar tudo à mão."],"correcoes":["A tela de boas-vindas mandava usar o botão ✕ para recolher os botões, mas ele passou a ser o ⌄.","Na Consulta REMUME, o cabeçalho dizia “município não identificado” mesmo depois de você escolher o município na lista logo abaixo. Agora ele só aparece quando o município vem do próprio atendimento."]},{"versao":"2.20.0","data":"2026-09-03","novidades":["Os botões agora ficam translúcidos quando você não está usando, e voltam ao normal assim que você aproxima o mouse (ou toca, no iPad). Assim eles param de atrapalhar a leitura da tela. Dá para desligar em ⚙️ → Funções."],"melhorias":["Minimizar e expandir voltou a ser só no clique da alça. A caixa não abre mais sozinha quando o mouse passa perto do canto, nem fecha no meio do caminho quando você vai clicar num botão. O ícone virou ⌄ em vez de ✕, porque ele tira do caminho e não fecha nada."],"correcoes":["O alarme de fila nunca fica translúcido: se a fila encher, ele aparece inteiro mesmo com a caixa minimizada."]},{"versao":"2.19.1","data":"2026-09-03","novidades":["A APAC de Betim e a de Sete Lagoas já vêm com os estabelecimentos cadastrados: em Betim, o Centro R e Especialidades Divino Ferreira Braga; em Sete Lagoas, Saúde Auditiva, UBS Cidade de Deus e UBS Belo Vale — as mesmas do laudo de Sete Lagoas. Não é preciso digitar o CNES."],"melhorias":[],"correcoes":["Quando o município tinha mais de uma unidade, a primeira da lista aparecia escolhida sozinha e o CNES dela ia para a APAC sem você ter selecionado nada. Agora, com duas ou mais unidades, nenhuma vem marcada — e trocar de município limpa a escolha."]},{"versao":"2.19.0","data":"2026-09-03","novidades":["O gerador de APAC deixou de ser exclusivo de Itaúna. Agora o primeiro campo do formulário é o Município, e a mesma tela atende Itaúna, Betim e Sete Lagoas. Quando o atendimento identifica a cidade, ela já vem escolhida."],"melhorias":["O estabelecimento e o CNES passaram a ser guardados por município: ao trocar de cidade, a lista mostra só as unidades daquela cidade. Isso impede uma APAC sair com o CNES de outro município, que é motivo de devolução pela regulação.","As APACs que você já tinha gerado continuam no histórico e podem ser reabertas normalmente."],"correcoes":["Na tela de erro, o campo do médico solicitante era chamado de “Selecionar”. Agora aparece pelo nome."]},{"versao":"2.18.0","data":"2026-09-01","novidades":[],"melhorias":["A busca de CID-10 dentro dos laudos e a prévia do documento passam a ficar sempre ligadas. Elas não são funções separadas — são melhorias do próprio formulário —, então saíram da lista de liga/desliga do painel."],"correcoes":[]},{"versao":"2.17.1","data":"2026-09-01","novidades":["A REMUME de Barbacena agora inclui os 161 medicamentos padronizados da UPA, com o selo “UPA” ao lado de cada um. Os itens das UBS, CTA/CEM e CAF continuam como estavam."],"melhorias":["47 nomes comerciais novos na busca: procurar por “Atensina”, “Buscopan Composto”, “Lactulona” ou “Nipride” já encontra o princípio ativo."],"correcoes":[]},{"versao":"2.16.0","data":"2026-09-01","novidades":[],"melhorias":["A busca de medicamentos ficou muito mais direta. Procurar \"acetilcisteína comprimido\" devolvia 159 itens; agora devolve os 2 certos. Palavras como \"comprimido\", \"solução\" ou a sigla da unidade agora servem para ordenar o resultado, não para inchar a lista. Em Macaé, dois itens com dipirona que ficavam escondidos no fim da lista voltaram a aparecer."],"correcoes":["A sugestão \"você quis dizer\" mostrava nomes cortados no meio, como \"Piridoxina (Vitamina B\" em vez de \"Piridoxina (Vitamina B6)\". Corrigido em todos os municípios."]},{"versao":"2.15.0","data":"2026-09-01","novidades":["Os botões agora recolhem. O ✕ no canto guarda todos e libera a tela; no computador basta aproximar o mouse do canto para eles voltarem, e no iPad é um toque no ☰. Se a fila de espera encher, o alarme aparece sozinho mesmo com tudo recolhido."],"melhorias":["O painel Sobre agora informa se suas configurações estão sendo salvas de forma permanente neste navegador."],"correcoes":["No iPad, o cadastro de médicos, o histórico de laudos e as configurações se perdiam toda vez que você saía do Meeds. Agora ficam guardados de verdade."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":["A checagem de atualização ficou muito mais leve: o Tampermonkey passa a baixar 1 KB para saber se há versão nova, em vez de mais de 1 MB."],"correcoes":["Correções internas na Sala de Espera, que está em standby: a consulta de confirmação não estava sendo executada."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":[],"correcoes":["As funções que você desliga continuam desligadas depois do logout. Antes, o Meeds apagava a configuração ao sair e todos os botões voltavam no acesso seguinte. O que você já tinha configurado é aproveitado, não precisa remarcar nada."]},{"versao":"2.13.1","data":"2026-08-31","novidades":[],"melhorias":[],"correcoes":["No iPad, o Assistente aparecia instalado e mesmo assim não fazia nada: a proteção de conteúdo do Meeds bloqueava a execução. Corrigido. Se o navegador precisar isolar o Assistente, o alarme de fila passa a decidir só pelo que aparece na tela, e o painel Sobre avisa quando isso acontece."]},{"versao":"2.13.0","data":"2026-08-31","novidades":["Agora dá para usar o Assistente no iPad e no iPhone, pelo Safari, com o app gratuito Userscripts. O passo a passo está no guia do iPad."],"melhorias":[],"correcoes":[]},{"versao":"2.12.0","data":"2026-08-31","novidades":["Nova função “Prévia do documento”: veja o PDF ao lado do formulário enquanto preenche, nos geradores de APAC e de laudo. É o mesmo arquivo que será baixado — nada de aproximação."],"melhorias":["A prévia vem desligada; abra pelo botão 👁 Prévia no alto do gerador. O tamanho do painel fica do jeito que você deixar."],"correcoes":[]},{"versao":"2.11.0","data":"2026-08-31","novidades":["Agora dá para enviar feedback direto do painel: conte um problema ou uma ideia, e a mensagem vai pronta para quem cuida do Assistente."],"melhorias":["O painel da engrenagem foi reorganizado em abas — Funções, Médicos, Unidades e Sobre. Antes era tudo numa rolagem só.","Os formulários de cadastro começam fechados: a lista fica limpa, e o formulário abre quando você pede."],"correcoes":[]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["O contador da Sala de Espera passou a mostrar só quem realmente chegou — antes contava também quem tinha consulta marcada e ainda não tinha aparecido."],"correcoes":["A Sala de Espera não avisava quando o paciente agendado chegava. O aviso agora sai na hora em que a chegada é marcada na tela nativa.","Se a internet oscilasse, a fila podia parecer vazia por um instante. Agora a última leitura válida é mantida até a próxima tentativa."]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID passou a funcionar também nos campos de CID secundário e associados da APAC — antes só o principal tinha."],"correcoes":[]},{"versao":"2.9.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID-10 agora vive dentro do próprio campo do laudo. O botão separado saiu: havia dois caminhos para a mesma coisa.","Digitar o código sem o ponto funciona: “J069” encontra J06.9."],"correcoes":["O campo CID mostrava duas listas de sugestão ao mesmo tempo, uma por cima da outra.","Depois de escolher um CID, a lista de sugestões reaparecia sozinha."]},{"versao":"2.8.0","data":"2026-08-31","novidades":["O CID-10 agora fica dentro do próprio laudo: clique no campo CID, digite o nome da doença ou o código, escolha — o código e a descrição entram sozinhos. Vale nos três geradores."],"melhorias":["A busca de CID-10 ficou muito mais rápida e não trava mais a tela: buscas comuns que levavam mais de um segundo agora respondem quase na hora.","A lista de resultados mostra os 50 mais relevantes e diz quantos ficaram de fora, em vez de tentar desenhar milhares de linhas."],"correcoes":["A apresentação “Bem-vindo ao Assistente Meeds” aparecia toda vez que você abria o Meeds. Agora aparece uma vez só."]},{"versao":"2.7.0","data":"2026-08-31","novidades":["Nova função “Sala de Espera”: avisa, sem som, quando um paciente de consulta agendada chega — com o nome, a hora marcada e há quanto tempo espera.","O botão da Sala de Espera mostra quantos pacientes estão aguardando, e abre a lista completa."],"melhorias":["Vários pacientes chegando ao mesmo tempo viram um aviso só, que conta quantos são."],"correcoes":[]},{"versao":"2.6.0","data":"2026-08-30","novidades":["A consulta REMUME passou a entender nome comercial: digite “Tylenol” e ela mostra o paracetamol do seu município.","Quando o remédio procurado não é padronizado no município, o Assistente diz isso com todas as letras, em vez de mostrar uma lista vazia."],"melhorias":["A busca ficou mais tolerante a erro de digitação em português: “dipironá” encontra Dipirona e “cimvastatina” encontra Sinvastatina.","A lista de nomes comerciais saiu do código e virou um arquivo que o administrador edita sozinho."],"correcoes":[]},{"versao":"2.5.0","data":"2026-08-30","novidades":["Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.","O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."],"melhorias":["Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."],"correcoes":["O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."]},{"versao":"2.4.0","data":"2026-08-30","novidades":["Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.","O código escolhido na busca entra sozinho no laudo que estiver aberto.","Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.","Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."],"melhorias":["O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.","O CPF se formata sozinho enquanto você digita.","Com um único médico cadastrado, ele já vem selecionado nos laudos.","As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.","O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."],"correcoes":["O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.","Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."]},{"versao":"2.3.0","data":"2026-08-30","novidades":["Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."],"melhorias":["Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."],"correcoes":[]},{"versao":"2.2.0","data":"2026-08-30","novidades":["Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."],"melhorias":["Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."],"correcoes":["Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."]},{"versao":"2.0.0","data":"2026-08-30","novidades":["Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."],"melhorias":[],"correcoes":[]}]};
+  raiz.MEEDS_CHANGELOG = {"_leia_me":"Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.","versoes":[{"versao":"2.49.1","data":"2026-09-27","novidades":[],"melhorias":["Manual de treinamento atualizado: telas novas, e a APAC agora aparece como função do próprio Meeds.","Melhorias internas de qualidade do código, sem mudança no que você vê ou faz."],"correcoes":["Laudo de Conceição do Mato Dentro: saiu da lista de CID um código que não existe na tabela oficial (I48.9). O I48 — Flutter e fibrilação atrial — continua lá."]},{"versao":"2.49.0","data":"2026-09-26","novidades":[],"melhorias":["O gerador de APAC do Assistente foi desativado: o Meeds agora tem um gerador de APAC próprio, dentro de Prescrever. O botão APAC sai da tela.","Visual mais sóbrio: botões e janelas com cantos menores, sombras discretas e cabeçalhos em cor sólida. Os avisos de alarme e do município continuam iguais.","Para quem instala agora, os laudos de Sete Lagoas e de Conceição do Mato Dentro começam desligados — é só ligar na ⚙️ engrenagem quando precisar. Quem já usava continua com eles ligados.","Nova mensagem de boas-vindas, com um atalho para conhecer as funções."],"correcoes":["Os botões \"Configurar\" e \"Ver tutorial\" do painel apareciam em fonte de código; agora usam a fonte normal."]},{"versao":"2.48.0","data":"2026-09-25","novidades":["Piraí: em todo atendimento, lembra que exames pediátricos de alta/média complexidade e especialidades pediátricas ambulatoriais são feitos no Rio de Janeiro, via regulação estadual/SISREG, e que os encaminhamentos devem ir detalhados, com exames anexados e classificação de risco."],"melhorias":["O aviso do município passa a abrir na lateral superior direita, acima dos botões do Assistente, sem cobrir o formulário do atendimento. \"Entendi\" para a pulsação e o aviso continua ali.","Casa da Criança e do Adolescente e Clínica do Autista: textos revisados, sem público-alvo. Na Casa da Criança, em destaque: o município não oferta neuropsicólogo nem psicopedagogo."],"correcoes":[]},{"versao":"2.47.0","data":"2026-09-25","novidades":["Avisos por unidade: o aviso agora também lê a unidade do paciente no campo \"Vínculos\". Em Macaé: nas UPAs Barra e Lagomar e nos Prontos Socorros Imbetiba e Parque Aeroporto, lembra que não se prescreve encaminhamento para especialidades — orientar a UBS mais próxima; na Casa da Criança e do Adolescente e na Clínica do Autista, mostra público-alvo, atendimentos e fluxo.","Congonhas: em todo atendimento, lembra que os exames do laboratório da UPA vão juntos num pedido, e o que estiver fora da lista vai em pedido separado."],"melhorias":[],"correcoes":["O Meeds está renomeando os municípios de \"PREFEITURA MUNICIPAL DE MACAÉ\" para \"MACAÉ - RJ\". A REMUME, a APAC, os Exames e os avisos do município passam a reconhecer os dois formatos, inclusive a unidade que aparece embaixo no \"Vínculos\"."]},{"versao":"2.46.0","data":"2026-09-25","novidades":["REMUME de Barbacena com avisos da UPA: uma faixa no topo com o que a teleconsulta cobre (VO, IM, atestado), e em cada ampola ou item injetável o lembrete de que só vale a aplicação IM — EV vai ao presencial. Bolsas e soro em sistema fechado avisam que são EV."],"melhorias":["O aviso do município agora abre no meio da tela, pulsando, para ser lido. \"Entendi\" leva o cartão para o canto, em âmbar e parado, onde fica como referência até o fim do atendimento."],"correcoes":["O aviso do município não abria no Meeds em produção: a resposta do atendimento não trazia a prefeitura onde o Assistente procurava, e isso bloqueava a leitura do campo \"Vínculos\". Agora, quando a resposta não diz a cidade, vale o \"Vínculos\"."]},{"versao":"2.45.1","data":"2026-09-25","novidades":[],"melhorias":["O aviso do município agora chama atenção: aparece em âmbar e pulsa três vezes ao surgir, depois fica parado. Quem ativou \"reduzir movimento\" no computador ou no iPad vê o cartão em âmbar, sem pulsar."],"correcoes":[]},{"versao":"2.45.0","data":"2026-09-25","novidades":["Avisos do município: dentro do atendimento de Barbacena ou de Franco da Rocha, aparece sozinho o que a teleconsulta resolve ali (medicação, atestado) e o que deve ser encaminhado ao presencial (medicação EV, exames). Não aparece na fila, no painel nem em nenhuma outra tela, e nunca para paciente de outro município. Fechando no X, não volta naquele atendimento. Funciona também no iPad."],"melhorias":[],"correcoes":[]},{"versao":"2.44.0","data":"2026-09-24","novidades":[],"melhorias":["O Assistente passa a acompanhar o Meeds novo, que entrou em produção. A leitura do cartão do paciente (usada pela APAC e pelos laudos) reconhece o campo \"Parentesco\", onde agora fica o nome da mãe."],"correcoes":["O alarme de fila não enxergava a fila do Meeds novo pela rede: a aba Aguardando agora é pedida com dois status juntos, e o alarme recusava essa consulta. Corrigido, sem confundir com a consulta que só alimenta o contador da aba.","O alarme também reconhece o aviso \"Novo paciente na fila de Pronto Atendimento\", além do \"Novo atendimento\"."]},{"versao":"2.43.17","data":"2026-09-23","novidades":["REMUME de Piracema-MG incluída na busca: 91 itens da Farmácia de Todos (Farmácia de Minas). Glicosímetro e tiras reagentes de glicemia aparecem com o aviso de que são só para diabetes tipo 1, tipo 2 em uso de insulina ou diabetes gestacional.","REMUME de Santa Bárbara-MG incluída na busca: 191 itens da REMUME 2024 (2ª edição, Portaria SMS nº 19/2023). Olanzapina e Risperidona aparecem com o aviso de que dependem do CID não ser compatível com o Componente Especializado da Assistência Farmacêutica Estadual."],"melhorias":[],"correcoes":[]},{"versao":"2.43.16","data":"2026-09-26","novidades":["Exames de Piraí incluídos: os 383 exames laboratoriais e de imagem realizados no próprio município, mais os 5 exames pediátricos de alta complexidade (Ecocardiograma Pediátrico, Ressonância, Tomografia, Oftalmologia de Alta Complexidade e Cloreto no Suor) que são encaminhados ao Rio de Janeiro via regulação estadual/SISREG.","Dois novos Encaminhamentos em Piraí: Especialidades Pediátricas Ambulatoriais (14 especialidades reguladas pelo SER/SISREG para o Rio de Janeiro) e o CEMAIA — Centro Especializado Multidisciplinar de Atendimento à Infância e Adolescência, o serviço municipal de referência psicossocial infantojuvenil, com o fluxo de encaminhamento de cada um."],"melhorias":[],"correcoes":[]},{"versao":"2.43.15","data":"2026-09-21","novidades":["Tutoriais do REMUME e do Alarme de Fila ganharam passos guiados: em vez de só ler e clicar em \"Próximo\", alguns passos agora pedem uma ação real (digitar uma busca, trocar de município, copiar um resultado, testar o som, ajustar o volume) — o elemento certo da tela pisca em destaque e o passo avança sozinho quando você faz a ação."],"melhorias":[],"correcoes":[]},{"versao":"2.43.12","data":"2026-09-21","novidades":[],"melhorias":[],"correcoes":["O aviso da REMUME de Franco da Rocha ficou mais completo e alinhado com a orientação oficial da RT médica: agora diz que a unidade atende só fichas azuis (receita e alta), e que tanto paciente que precisa de medicação no local (oral, IM ou EV) quanto paciente com sinal de alarme devem ser encaminhados para atendimento presencial."]},{"versao":"2.43.11","data":"2026-09-21","novidades":[],"melhorias":[],"correcoes":["O alarme podia voltar a tocar sozinho, a cada 5 minutos (ou a cada 2 no modo Discreto), depois de já ter sido silenciado — mesmo sem nenhum paciente novo e mesmo com a fila vazia. Acontecia quando você saía da tela da fila (para atender o paciente, por exemplo): sem ninguém olhando a fila, o alarme não tinha como confirmar se ainda havia alguém esperando, e passou a tratar essa dúvida como \"ainda tem gente\", voltando a soar. Agora, sem confirmação nenhuma, ele não toca — só volta a soar quando há prova de verdade, de que a fila ainda tem alguém ou de que já esvaziou."]},{"versao":"2.43.10","data":"2026-09-18","novidades":["REMUME de Franco da Rocha - SP incluída na busca, com destaque (📍 UPA) para os medicamentos confirmados na farmácia da UPA Franco da Rocha.","Ao selecionar Franco da Rocha, a tela do REMUME mostra um aviso fixo: o atendimento é exclusivo da UPA, então prescreva apenas para o paciente levar para casa — se for preciso medicar na própria unidade, encaminhe para atendimento presencial."],"melhorias":[],"correcoes":[]},{"versao":"2.43.8","data":"2026-09-17","novidades":[],"melhorias":["O aviso do modo 🔉 Discreto mudou de lugar: em vez de aparecer no canto de cima da tela, agora sobe do rodapé, ao lado dos botões do Assistente — perto de onde você já está olhando a fila. Ele sobe deslizando, como as janelinhas do antigo MSN, e os avisos mais novos ficam sempre embaixo, na altura do olhar.","Trocar a intensidade do alarme no meio de uma sirene agora para a sirene na hora. Antes, só o 🔕 Silencioso parava: quem trocava de 🔔 Completo para 🔉 Discreto continuava ouvindo a sirene e vendo a faixa vermelha por até 2 minutos. Se ainda houver paciente esperando, o lembrete do Discreto fica marcado para 2 minutos depois — sem som agora, mas sem esquecer de você."],"correcoes":["O alarme podia tocar sem paciente novo em três situações, todas corrigidas: quando o próprio Meeds anunciava \"Novo Atendimento\" com a fila marcando zero; quando você saía do Pronto Atendimento e voltava (o alarme comparava o número da tela antiga com o da tela nova e lia isso como gente chegando); e quando você voltava para a fila depois de vários minutos em outra tela (a fila inteira parecia nova). Em todos os casos o alarme agora recomeça a contagem em silêncio, em vez de tocar. Quando a leitura da fila é incerta, ele continua tocando — errar tocando é melhor que errar calando."]},{"versao":"2.43.7","data":"2026-09-16","novidades":[],"melhorias":[],"correcoes":["O alarme de fila dizia \"Novo paciente na fila\" mesmo quando não chegou ninguém novo — acontecia no lembrete de 2 em 2 minutos do modo Discreto (para o mesmo paciente que já estava esperando) e no modo Espera (que avisa sobre alguém que já estava na fila há muito tempo). O aviso agora diz \"Paciente ainda aguardando\" nesses dois casos, e só continua dizendo \"Novo paciente\" quando alguém chegou de fato."]},{"versao":"2.43.6","data":"2026-09-15","novidades":[],"melhorias":["Alarme de Fila, modo 🔉 Discreto: se o paciente que chegou continuar na fila, o cartão e as duas batidas voltam a cada 2 minutos, até ele ser atendido ou você trocar de intensidade. Antes, o Discreto avisava uma vez só e nunca mais — quem não reparasse na hora podia deixar um paciente esperando sem saber."],"correcoes":[]},{"versao":"2.43.5","data":"2026-09-15","novidades":[],"melhorias":["Alarme de Fila, modo 🔉 Discreto: o som curto agora toca duas vezes (antes era uma), espaçadas pelo mesmo intervalo do som escolhido — uma batida só passava despercebida num plantão barulhento."],"correcoes":[]},{"versao":"2.43.4","data":"2026-09-12","novidades":[],"melhorias":["Se um botão do Assistente encontrar um erro ao ser clicado, agora aparece um aviso no canto da tela dizendo o que houve e o que fazer — tentar de novo ou copiar o diagnóstico técnico em ⚙️ → Sobre. Antes, o clique simplesmente não fazia nada, e não dava para saber se era para esperar ou pedir ajuda."],"correcoes":["Quem tinha marcado um modelo com “★ Usar sempre” na APAC, no Laudo de Alto Custo de Conceição do Mato Dentro ou no Laudo de Sete Lagoas clicava no botão e a janela não abria. O problema começou na versão 2.28.1. Agora a janela abre normalmente e o modelo volta a entrar sozinho quando os campos clínicos estão vazios — sem nunca apagar o que você já escreveu."]},{"versao":"2.43.3","data":"2026-09-12","novidades":[],"melhorias":[],"correcoes":["O aviso “O alarme ficou parado” (o que aparece quando o navegador suspende a aba de fundo e o alarme não pôde tocar) não sumia sozinho e criava um cartão novo a cada vez — num plantão a tela terminava coberta por seis ou sete avisos iguais, todos precisando ser fechados à mão. Agora é um único aviso, que se fecha sozinho depois de 30 segundos e, se acontecer de novo, se atualiza dizendo quantas vezes já foi e quantos minutos somam, em vez de empilhar."]},{"versao":"2.43.1","data":"2026-09-11","novidades":[],"melhorias":[],"correcoes":["O \"Copiar diagnóstico técnico\" (⚙️ → Sobre) trazia só metadado e ficou raso demais na prática — faltava a URL completa, o corpo da resposta e o console inteiro, que é o que normalmente explica por que algo falhou. Agora traz tudo isso, como uma gravação traria. Continua mascarando automaticamente qualquer número de 6 ou mais dígitos (CPF, CNS, CNES, telefone) — é para uso interno, então envie só para quem está te ajudando a resolver."]},{"versao":"2.43.0","data":"2026-09-11","novidades":["Novo botão em ⚙️ → Sobre: \"Copiar diagnóstico técnico\". Quando algo dá errado e a equipe pede para ver o console e a rede, um clique copia um texto pronto — versão, funções ligadas, navegador e as chamadas que falharam nos últimos 15 minutos — para colar no WhatsApp ou e-mail. Sem nome, CPF ou qualquer dado de paciente: nunca o corpo de uma resposta, nunca a parte da URL onde costuma morar um parâmetro, e só as linhas de aviso que o próprio Assistente já escreve."],"melhorias":[],"correcoes":[]},{"versao":"2.42.2","data":"2026-09-11","novidades":["Assistente REMUME, nos 11 municípios: medicamentos que exigem Notificação de Receita A (amarela) ou B (azul) agora aparecem com um selo e um aviso — essas duas receitas ainda não têm aprovação para prescrição digital, então precisam ser prescritas separadamente dos demais itens, para transcrição por um médico presencial. 96 medicamentos marcados ao todo: Receita Amarela (morfina, fentanila, metadona, petidina, alfentanila) e Receita Azul (diazepam, midazolam, clonazepam, alprazolam, bromazepam, lorazepam, nitrazepam, clobazam)."],"correcoes":[],"melhorias":[]},{"versao":"2.42.0","data":"2026-09-11","novidades":[],"correcoes":["O cabeçalho da APAC agora é a imagem do formulário oficial do Ministério da Saúde — o emblema do SUS, \"Sistema Único de Saúde / Ministério da Saúde\" e o \"fls.1/2\" saem exatamente como no modelo real. Antes era um cabeçalho desenhado por aproximação, sem o emblema."],"melhorias":[]},{"versao":"2.41.0","data":"2026-09-10","novidades":[],"melhorias":["Os ícones dos botões de APAC, dos dois laudos, da REMUME e dos Exames passaram a ser desenhados, em vez de emoji. Ficam iguais em qualquer computador ou tablet — antes, dependendo do sistema, o da REMUME e o dos Exames saíam parecendo outra coisa. O sino do alarme e a engrenagem continuam como estavam."],"correcoes":[]},{"versao":"2.40.1","data":"2026-09-10","novidades":[],"melhorias":["No painel da engrenagem, o texto que explica cada função ficou do mesmo tamanho e no mesmo tom para todas: o que ela faz e quando serve, em uma ou duas frases. O do Alarme de Fila era o mais longo e listava as três intensidades — isso agora fica na tela de configuração, onde você escolhe."],"correcoes":[]},{"versao":"2.40.0","data":"2026-09-10","novidades":[],"melhorias":["O cabeçalho das janelas (APAC, os dois laudos, Exames e o Alarme) passou a ser desenhado num lugar só: mesmo espaçamento, mesmo botão de fechar e a mesma ordem de “Atualizar paciente” e “Histórico” em todas.","No painel da engrenagem, a linha “Sempre ativas” agora diz onde a Busca de CID-10 e a Prévia do documento aparecem — dentro dos formulários de APAC e de laudo."],"correcoes":[]},{"versao":"2.39.0","data":"2026-09-10","novidades":[],"melhorias":["Os botões da REMUME e dos Exames agora mostram o nome, como os de APAC e Laudo — antes eram só um ícone, e dois ícones parecidos no topo da pilha eram fáceis de confundir.","O botão do laudo de Conceição do Mato Dentro agora diz “Laudo — Conceição” em vez de “Laudo - CMD”. “CMD” era abreviação interna e não ajudava a encontrar o botão.","A janela dos dois laudos passou a se chamar “Laudo Médico de Alto Custo” nas duas cidades (a de Sete Lagoas dizia outra coisa), e a caixa de aviso no topo não está mais toda em maiúsculas.","Na janela dos laudos, os botões “🔄 Atualizar paciente” e “📜 Histórico” ficaram na mesma ordem da APAC."],"correcoes":[]},{"versao":"2.38.0","data":"2026-09-09","novidades":["Macaé ganhou a lista de exames por especialidade da SEMUSA: 66 exames de Cardiologia, Urologia, Neurologia, Otorrino e outras, somados aos 28 que já existiam da UPA Barra — 94 no total. Cada exame mostra a especialidade (alguns aparecem em mais de uma, como o Ecodoppler de Carótidas) e, quando o documento afirma, o canal por onde o pedido entra: SISREG, Central de Regulação do Município ou regulação estadual.","Congonhas entrou com a lista certa: 52 exames de laboratório da UPA 24h. Um aviso fixo no topo explica a regra da prefeitura — exames desta lista precisam ser pedidos juntos, e qualquer exame fora dela vai em pedido separado, senão o paciente não consegue marcar. A Baciloscopia para BAAR aparece com um selo \"Suspenso\", porque está parada pelo Ministério da Saúde desde a COVID-19."],"melhorias":[],"correcoes":["A lista antiga de Congonhas (16 procedimentos com a sigla APAC) estava errada: era o catálogo geral de procedimentos que exigem APAC — o mesmo usado no gerador de APAC para Itaúna, Betim e Sete Lagoas — mostrado por engano como se fosse a lista de exames de Congonhas. Foi removida e substituída pela lista real, acima. O gerador de APAC em si nunca teve esse erro.","Os avisos fixos de Macaé (consentimento para HIV, data de nascimento) e de Sete Lagoas (cadastro no GMUS/CADWEB, carimbo/contato) foram retirados do topo do painel."]},{"versao":"2.37.0","data":"2026-09-09","novidades":["Sete Lagoas ganhou os exames laboratoriais: mais 456 exames de bancada (hemograma, glicose, colesterol, sorologias, hormônios, e mais de 400 outros), todos com o código do contrato. Somados aos 65 que já estavam na função 🧪 Exames do município, Sete Lagoas passa a ter 521 exames."],"melhorias":[],"correcoes":[]},{"versao":"2.36.0","data":"2026-09-09","novidades":["Sete Lagoas entrou na função 🧪 Exames do município: 65 exames com o local de realização, quando exigem APAC/Laudo/Alto Custo, e um aviso ℹ️ para exames que têm regra própria — idade mínima, documento a anexar, como cadastrar. Vem das orientações da própria Central de Marcação da prefeitura."],"melhorias":["Nova sigla \"Alto Custo\", ao lado de APAC e Laudo: identifica os exames que exigem esse formulário específico, em vez do pedido de exame comum."],"correcoes":[]},{"versao":"2.35.0","data":"2026-09-09","novidades":[],"melhorias":["A lista de exames agora aparece inteira assim que você abre a função, em ordem alfabética — antes era preciso digitar três letras para ver qualquer coisa, o que obrigava a saber o nome antes de olhar. Os exames chegam de 100 em 100, com um botão “+ Mais” no fim da lista.","O campo de busca virou filtro: ele procura em toda a lista do município, inclusive nos itens que ainda não apareceram na tela. Aceita acento, maiúscula e erro de digitação. Apagar o texto traz a lista completa de volta na hora, e uma bolinha girando ao lado do campo mostra quando o filtro está trabalhando."],"correcoes":[]},{"versao":"2.34.1","data":"2026-09-08","novidades":[],"melhorias":[],"correcoes":["O Assistente deixou de ler o nome do paciente que entra na fila. Ele nunca aparecia na tela nem era salvo — o aviso de chegada sempre mostrou só o município —, mas continuava sendo lido e mantido na memória do navegador sem necessidade. Agora não é mais lido."]},{"versao":"2.34.0","data":"2026-09-08","novidades":["Nova função 🧪 Exames do município: mostra o que o município do paciente oferece, para você saber na hora de pedir e não dias depois. Começa com Betim (1.983 exames laboratoriais, com o código do contrato), Macaé (28 exames da UPA Barra, com o local de realização) e Congonhas (16 procedimentos marcados com a sigla APAC). O exame que não estiver na lista daquele município aparece como \"não consta\" — nunca como resultado de outra cidade."],"melhorias":["Em Macaé, o painel avisa antes de você pedir: sorologia de HIV exige consentimento assinado, e a data de nascimento é obrigatória na requisição. Eram regras que só existiam num PDF."],"correcoes":[]},{"versao":"2.33.1","data":"2026-09-08","novidades":[],"melhorias":[],"correcoes":["No iPad e no iPhone, a opção “Abrir também uma janela de aviso” aparecia como se funcionasse, e a tela chegava a mandar você liberar o pop-up na barra de endereço — que ali não existe. O Safari do iOS não abre janela separada. Agora a opção aparece desligada, com a explicação no lugar da instrução impossível. O som e a notificação do alarme continuam funcionando normalmente no tablet."]},{"versao":"2.33.0","data":"2026-09-08","novidades":[],"melhorias":["A prévia do documento agora abre mesmo para quem já a tinha fechado alguma vez: a preferência antiga foi zerada uma vez só, para todo mundo começar do padrão novo. Sua largura e seu zoom foram preservados. Depois disso, fechar volta a valer para sempre."],"correcoes":["Você só conseguia manter um modelo salvo por gerador. Ao escolher um modelo da lista, o nome dele ia para o campo de nome — então, quando você montava outro procedimento e clicava em salvar, o modelo anterior era substituído em silêncio e você perdia o antigo. Agora escolher um modelo não mexe no campo de nome, o campo se limpa depois de salvar, e o botão avisa antes: ele diz “Salvar como modelo” para nome novo e “↻ Substituir «X»”, em outra cor, quando o nome já existe."]},{"versao":"2.32.1","data":"2026-09-08","novidades":[],"melhorias":[],"correcoes":["Na tela de monitoramento, uma das consultas do Meeds pede dois estados ao mesmo tempo (aguardando e mais um). O alarme tratava essa lista como se fosse só a fila de espera, e podia contar — e anunciar — paciente que não estava aguardando. Agora só conta a consulta que pede exclusivamente “aguardando”."]},{"versao":"2.32.0","data":"2026-09-08","novidades":["Nova opção “Abrir também uma janela de aviso”, em ⚙️ › Alarme de fila. Quando chega paciente e você não está no Meeds, uma janela pequena aparece na barra de tarefas — e fica lá até você fechar, ao contrário da notificação, que some sozinha. Feita para quem trabalha com muitas janelas abertas. Ela nasce desligada; ao ligar, uma janela de amostra abre na hora para você ver como fica — e se o navegador bloquear, a tela diz onde liberar."],"melhorias":[],"correcoes":[]},{"versao":"2.31.0","data":"2026-09-08","novidades":["Sete sons novos no alarme, e agora são duas listas separadas: uma para o modo completo (que repete) e outra para o modo discreto (que toca uma vez). As sirenes foram feitas para repetir e soavam truncadas quando tocadas uma vez só. Entre os curtos: Toque duplo, Sino curto, Gota, Acorde suave e Dois cliques — este último para quem divide a sala. Entre os que repetem: Pulso grave, pensado para a madrugada, e Sirene lenta, menos estridente.","Escolher um som já toca uma amostra na hora, em vez de você ter que clicar em “Testar” depois."],"melhorias":[],"correcoes":["O botão “Ver a fila” no aviso de novo paciente nunca funcionou: em vez de abrir o Pronto Atendimento, respondia sempre “não mudei de tela porque você tem um documento aberto pela metade”. Ele foi removido. Clicar na notificação continua trazendo o Meeds para frente e silenciando."]},{"versao":"2.30.0","data":"2026-09-08","novidades":["Guia de preenchimento no topo da APAC e dos dois laudos: uma barra mostra quanto falta e o texto ao lado diz qual é o próximo campo pendente. Clique nele e a tela leva você até lá.","Quando a emissão é recusada por falta de campo, o Assistente agora leva você até o primeiro que falta, em vez de só listar os nomes.","A tela que aparece depois de uma atualização ganhou um botão “⚙️ Abrir configurações”, para você experimentar a novidade na hora em que está lendo sobre ela."],"melhorias":["Os campos continuam todos liberados o tempo todo. Você preenche na ordem que quiser — o guia mostra o caminho, não fecha a porta."],"correcoes":[]},{"versao":"2.29.0","data":"2026-09-08","novidades":[],"melhorias":["A prévia do documento passa a abrir sozinha nos três geradores. Se você fechar, ela fica fechada naquele gerador — a escolha continua sendo sua, mudou só de que lado ela começa. Em tela estreita e no iPad ela continua não abrindo, porque não caberia."],"correcoes":[]},{"versao":"2.28.1","data":"2026-09-08","novidades":[],"melhorias":["Ficou claro como criar um modelo. Agora existe um campo de nome na própria tela, ao lado do botão “Salvar como modelo” — antes o nome era pedido numa janelinha do navegador que passava despercebida. Enquanto você não tem nenhum modelo, a lista de escolha nem aparece: fica só o convite para criar o primeiro, explicando o que fazer."],"correcoes":[]},{"versao":"2.28.0","data":"2026-09-08","novidades":["Modelos salvos na APAC, no laudo de Sete Lagoas e no de Conceição do Mato Dentro. Preencha o procedimento, o CID e a justificativa que você mais repete, clique em 💾 Salvar atual e dê um nome. Da próxima vez, escolha na lista e tudo volta preenchido.","Marque um modelo com ★ Padrão e ele entra sozinho toda vez que você abrir o gerador — sem clicar em nada. Ele só preenche campo vazio: o que você já escreveu nunca é apagado."],"melhorias":["Os modelos ficam no seu navegador e sobrevivem a logout, limpeza do site e atualização do Assistente. Nenhum dado de paciente entra num modelo — nome, CPF, nascimento, mãe e sexo ficam de fora, porque um modelo é feito para ser usado com outra pessoa."],"correcoes":[]},{"versao":"2.27.0","data":"2026-09-04","novidades":[],"melhorias":[],"correcoes":["A APAC trocava o paciente sozinha enquanto você preenchia. Se a tela do Meeds carregasse outro atendimento, o formulário era reescrito por baixo — e o PDF saía com o nome errado sem você ver. Agora o paciente só troca se você mandar: o Assistente avisa que a tela mudou, diz quem entrou e deixa você escolher entre trocar ou continuar. Vale também ao reabrir o gerador depois de fechá-lo sem querer. O botão “🔄 Atualizar paciente” continua trocando na hora, porque aí a decisão é sua."]},{"versao":"2.26.0","data":"2026-09-04","novidades":["O aviso de novo paciente agora tem um atalho “Ver a fila”, tanto no cartão discreto quanto na faixa vermelha. E clicar na notificação do sistema faz o mesmo: traz o Meeds para frente e abre o Pronto Atendimento."],"melhorias":["O cartão discreto mostra o município do atendimento, e não o nome do paciente. O município é o que muda a sua decisão — é ele que diz qual REMUME e qual laudo valem.","O atalho nunca troca de tela por cima de um documento aberto: com uma APAC ou um laudo pela metade, ele avisa em vez de fazer você perder o que já digitou."],"correcoes":[]},{"versao":"2.25.0","data":"2026-09-04","novidades":["O botão do alarme agora tem três posições, como o botão de som do Waze. 🔔 Completo é o de sempre: sirene, faixa no topo e moldura. 🔉 Discreto mostra um cartão no canto com quem chegou e de onde, com um som curto — some sozinho e não bloqueia nada. 🔕 Silencioso deixa só o contador na aba. Um clique no botão troca entre eles."],"melhorias":["O alarme não tem mais um liga/desliga próprio escondido no botão: a função ligada já é o alarme ativo, e o quanto ele incomoda é a intensidade. Para desligar de vez, use a chave da função no painel da engrenagem."],"correcoes":["O contador da aba mostrava um número diferente do total da fila, principalmente na tela de monitoramento. Ele somava o mesmo paciente uma vez para cada aba e cada filtro de período abertos, e nunca esquecia os filtros que você tinha deixado para trás. Agora conta cada pessoa uma vez, esquece a aba abandonada e, acima de tudo, respeita o número que está no cartão “Aguardando” da sua tela."]},{"versao":"2.24.0","data":"2026-09-04","novidades":["Se o navegador suspender a aba do Meeds — o Edge faz isso de fábrica com abas de fundo —, o Assistente passa a avisar quando ela acorda: “esta aba ficou suspensa por X min e o alarme não pôde tocar”. Antes o alarme simplesmente ficava mudo e você não tinha como saber."],"melhorias":["No Edge, o pedido de permissão para avisar pelo sistema costuma ser silenciado pelo navegador, e o botão parecia não fazer nada. Agora a tela avisa para procurar o ícone de sino na barra de endereço."],"correcoes":[]},{"versao":"2.23.0","data":"2026-09-04","novidades":[],"melhorias":["Saíram três chaves de liga/desliga que não precisavam existir. Os botões discretos em repouso, o aviso pelo sistema e a tela que não apaga passaram a ser simplesmente como o Assistente funciona.","O aviso pelo sistema não é mais uma chave: a tela mostra o estado dele. Se o navegador ainda não autorizou, aparece um botão para autorizar; se as notificações estiverem bloqueadas, a tela diz onde liberar.","No painel da engrenagem, o antigo link “Ajustes” virou um botão que diz o que abre — “⚙️ Configurar Alarme de Fila”. Antes não ficava claro que a função tinha configuração própria."],"correcoes":[]},{"versao":"2.22.0","data":"2026-09-04","novidades":["O alarme de fila agora avisa mesmo quando você não está na aba do Meeds: aparece uma notificação do sistema, com o navegador minimizado inclusive. Clicar nela traz o Meeds para frente e silencia — se você não atender, o alarme volta em 5 minutos. Ative em ⚙️ › Alarme de fila.","A aba do navegador passa a mostrar quantos estão esperando, no título e no ícone: “(3) Meeds”. O número continua ali depois de você silenciar, porque os pacientes continuam na fila, e some sozinho quando a fila esvazia.","Nova opção para impedir a tela de apagar durante o plantão — feita para o iPad, onde alarme que toca com a tela apagada é alarme perdido."],"melhorias":["O banner do alarme agora diz por que está tocando: “3 aguardando · o mais antigo há pelo menos 12 min”.","O título da aba não pisca mais “NOVO PACIENTE NA FILA”. Piscar disputa sua atenção a cada segundo e sumia quando você trocava de tela; o contador fica parado e é legível de relance.","Quem usa “reduzir movimento” no computador ou no iPad não vê mais nada pulsando. O alarme continua igual: som, vermelho e texto."],"correcoes":["No painel do alarme, as bolinhas de escolha e as caixas de seleção apareciam acima do texto, em vez de ao lado."]},{"versao":"2.21.0","data":"2026-09-03","novidades":["O backup agora salva também as unidades cadastradas, não só os médicos. Quem troca de computador não perde mais a unidade que digitou à mão."],"melhorias":["Telas mais curtas: a de boas-vindas caiu de cinco parágrafos para dois, e o painel da engrenagem perdeu os textos que se repetiam.","A lista de funções não mostra mais um número de versão para cada uma. A versão do Assistente continua na aba Sobre.","Na aba Unidades, quando não há nenhuma cadastrada, a tela agora explica que elas aparecem sozinhas ao escolher o município na APAC — antes parecia que era preciso digitar tudo à mão."],"correcoes":["A tela de boas-vindas mandava usar o botão ✕ para recolher os botões, mas ele passou a ser o ⌄.","Na Consulta REMUME, o cabeçalho dizia “município não identificado” mesmo depois de você escolher o município na lista logo abaixo. Agora ele só aparece quando o município vem do próprio atendimento."]},{"versao":"2.20.0","data":"2026-09-03","novidades":["Os botões agora ficam translúcidos quando você não está usando, e voltam ao normal assim que você aproxima o mouse (ou toca, no iPad). Assim eles param de atrapalhar a leitura da tela. Dá para desligar em ⚙️ → Funções."],"melhorias":["Minimizar e expandir voltou a ser só no clique da alça. A caixa não abre mais sozinha quando o mouse passa perto do canto, nem fecha no meio do caminho quando você vai clicar num botão. O ícone virou ⌄ em vez de ✕, porque ele tira do caminho e não fecha nada."],"correcoes":["O alarme de fila nunca fica translúcido: se a fila encher, ele aparece inteiro mesmo com a caixa minimizada."]},{"versao":"2.19.1","data":"2026-09-03","novidades":["A APAC de Betim e a de Sete Lagoas já vêm com os estabelecimentos cadastrados: em Betim, o Centro R e Especialidades Divino Ferreira Braga; em Sete Lagoas, Saúde Auditiva, UBS Cidade de Deus e UBS Belo Vale — as mesmas do laudo de Sete Lagoas. Não é preciso digitar o CNES."],"melhorias":[],"correcoes":["Quando o município tinha mais de uma unidade, a primeira da lista aparecia escolhida sozinha e o CNES dela ia para a APAC sem você ter selecionado nada. Agora, com duas ou mais unidades, nenhuma vem marcada — e trocar de município limpa a escolha."]},{"versao":"2.19.0","data":"2026-09-03","novidades":["O gerador de APAC deixou de ser exclusivo de Itaúna. Agora o primeiro campo do formulário é o Município, e a mesma tela atende Itaúna, Betim e Sete Lagoas. Quando o atendimento identifica a cidade, ela já vem escolhida."],"melhorias":["O estabelecimento e o CNES passaram a ser guardados por município: ao trocar de cidade, a lista mostra só as unidades daquela cidade. Isso impede uma APAC sair com o CNES de outro município, que é motivo de devolução pela regulação.","As APACs que você já tinha gerado continuam no histórico e podem ser reabertas normalmente."],"correcoes":["Na tela de erro, o campo do médico solicitante era chamado de “Selecionar”. Agora aparece pelo nome."]},{"versao":"2.18.0","data":"2026-09-01","novidades":[],"melhorias":["A busca de CID-10 dentro dos laudos e a prévia do documento passam a ficar sempre ligadas. Elas não são funções separadas — são melhorias do próprio formulário —, então saíram da lista de liga/desliga do painel."],"correcoes":[]},{"versao":"2.17.1","data":"2026-09-01","novidades":["A REMUME de Barbacena agora inclui os 161 medicamentos padronizados da UPA, com o selo “UPA” ao lado de cada um. Os itens das UBS, CTA/CEM e CAF continuam como estavam."],"melhorias":["47 nomes comerciais novos na busca: procurar por “Atensina”, “Buscopan Composto”, “Lactulona” ou “Nipride” já encontra o princípio ativo."],"correcoes":[]},{"versao":"2.16.0","data":"2026-09-01","novidades":[],"melhorias":["A busca de medicamentos ficou muito mais direta. Procurar \"acetilcisteína comprimido\" devolvia 159 itens; agora devolve os 2 certos. Palavras como \"comprimido\", \"solução\" ou a sigla da unidade agora servem para ordenar o resultado, não para inchar a lista. Em Macaé, dois itens com dipirona que ficavam escondidos no fim da lista voltaram a aparecer."],"correcoes":["A sugestão \"você quis dizer\" mostrava nomes cortados no meio, como \"Piridoxina (Vitamina B\" em vez de \"Piridoxina (Vitamina B6)\". Corrigido em todos os municípios."]},{"versao":"2.15.0","data":"2026-09-01","novidades":["Os botões agora recolhem. O ✕ no canto guarda todos e libera a tela; no computador basta aproximar o mouse do canto para eles voltarem, e no iPad é um toque no ☰. Se a fila de espera encher, o alarme aparece sozinho mesmo com tudo recolhido."],"melhorias":["O painel Sobre agora informa se suas configurações estão sendo salvas de forma permanente neste navegador."],"correcoes":["No iPad, o cadastro de médicos, o histórico de laudos e as configurações se perdiam toda vez que você saía do Meeds. Agora ficam guardados de verdade."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":["A checagem de atualização ficou muito mais leve: o Tampermonkey passa a baixar 1 KB para saber se há versão nova, em vez de mais de 1 MB."],"correcoes":["Correções internas na Sala de Espera, que está em standby: a consulta de confirmação não estava sendo executada."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":[],"correcoes":["As funções que você desliga continuam desligadas depois do logout. Antes, o Meeds apagava a configuração ao sair e todos os botões voltavam no acesso seguinte. O que você já tinha configurado é aproveitado, não precisa remarcar nada."]},{"versao":"2.13.1","data":"2026-08-31","novidades":[],"melhorias":[],"correcoes":["No iPad, o Assistente aparecia instalado e mesmo assim não fazia nada: a proteção de conteúdo do Meeds bloqueava a execução. Corrigido. Se o navegador precisar isolar o Assistente, o alarme de fila passa a decidir só pelo que aparece na tela, e o painel Sobre avisa quando isso acontece."]},{"versao":"2.13.0","data":"2026-08-31","novidades":["Agora dá para usar o Assistente no iPad e no iPhone, pelo Safari, com o app gratuito Userscripts. O passo a passo está no guia do iPad."],"melhorias":[],"correcoes":[]},{"versao":"2.12.0","data":"2026-08-31","novidades":["Nova função “Prévia do documento”: veja o PDF ao lado do formulário enquanto preenche, nos geradores de APAC e de laudo. É o mesmo arquivo que será baixado — nada de aproximação."],"melhorias":["A prévia vem desligada; abra pelo botão 👁 Prévia no alto do gerador. O tamanho do painel fica do jeito que você deixar."],"correcoes":[]},{"versao":"2.11.0","data":"2026-08-31","novidades":["Agora dá para enviar feedback direto do painel: conte um problema ou uma ideia, e a mensagem vai pronta para quem cuida do Assistente."],"melhorias":["O painel da engrenagem foi reorganizado em abas — Funções, Médicos, Unidades e Sobre. Antes era tudo numa rolagem só.","Os formulários de cadastro começam fechados: a lista fica limpa, e o formulário abre quando você pede."],"correcoes":[]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["O contador da Sala de Espera passou a mostrar só quem realmente chegou — antes contava também quem tinha consulta marcada e ainda não tinha aparecido."],"correcoes":["A Sala de Espera não avisava quando o paciente agendado chegava. O aviso agora sai na hora em que a chegada é marcada na tela nativa.","Se a internet oscilasse, a fila podia parecer vazia por um instante. Agora a última leitura válida é mantida até a próxima tentativa."]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID passou a funcionar também nos campos de CID secundário e associados da APAC — antes só o principal tinha."],"correcoes":[]},{"versao":"2.9.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID-10 agora vive dentro do próprio campo do laudo. O botão separado saiu: havia dois caminhos para a mesma coisa.","Digitar o código sem o ponto funciona: “J069” encontra J06.9."],"correcoes":["O campo CID mostrava duas listas de sugestão ao mesmo tempo, uma por cima da outra.","Depois de escolher um CID, a lista de sugestões reaparecia sozinha."]},{"versao":"2.8.0","data":"2026-08-31","novidades":["O CID-10 agora fica dentro do próprio laudo: clique no campo CID, digite o nome da doença ou o código, escolha — o código e a descrição entram sozinhos. Vale nos três geradores."],"melhorias":["A busca de CID-10 ficou muito mais rápida e não trava mais a tela: buscas comuns que levavam mais de um segundo agora respondem quase na hora.","A lista de resultados mostra os 50 mais relevantes e diz quantos ficaram de fora, em vez de tentar desenhar milhares de linhas."],"correcoes":["A apresentação “Bem-vindo ao Assistente Meeds” aparecia toda vez que você abria o Meeds. Agora aparece uma vez só."]},{"versao":"2.7.0","data":"2026-08-31","novidades":["Nova função “Sala de Espera”: avisa, sem som, quando um paciente de consulta agendada chega — com o nome, a hora marcada e há quanto tempo espera.","O botão da Sala de Espera mostra quantos pacientes estão aguardando, e abre a lista completa."],"melhorias":["Vários pacientes chegando ao mesmo tempo viram um aviso só, que conta quantos são."],"correcoes":[]},{"versao":"2.6.0","data":"2026-08-30","novidades":["A consulta REMUME passou a entender nome comercial: digite “Tylenol” e ela mostra o paracetamol do seu município.","Quando o remédio procurado não é padronizado no município, o Assistente diz isso com todas as letras, em vez de mostrar uma lista vazia."],"melhorias":["A busca ficou mais tolerante a erro de digitação em português: “dipironá” encontra Dipirona e “cimvastatina” encontra Sinvastatina.","A lista de nomes comerciais saiu do código e virou um arquivo que o administrador edita sozinho."],"correcoes":[]},{"versao":"2.5.0","data":"2026-08-30","novidades":["Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.","O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."],"melhorias":["Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."],"correcoes":["O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."]},{"versao":"2.4.0","data":"2026-08-30","novidades":["Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.","O código escolhido na busca entra sozinho no laudo que estiver aberto.","Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.","Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."],"melhorias":["O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.","O CPF se formata sozinho enquanto você digita.","Com um único médico cadastrado, ele já vem selecionado nos laudos.","As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.","O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."],"correcoes":["O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.","Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."]},{"versao":"2.3.0","data":"2026-08-30","novidades":["Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."],"melhorias":["Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."],"correcoes":[]},{"versao":"2.2.0","data":"2026-08-30","novidades":["Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."],"melhorias":["Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."],"correcoes":["Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."]},{"versao":"2.0.0","data":"2026-08-30","novidades":["Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."],"melhorias":[],"correcoes":[]}]};
 
   var __inv = {
-  "versao": "2.49.0",
+  "versao": "2.49.1",
   "contato": {
     "_leia_me": "Para onde vai o feedback do medico. O botao 'Enviar feedback' abre o programa de e-mail dele com esta mensagem ja escrita — nao ha servidor nem servico de terceiro no caminho. Troque o e-mail aqui se quem cuida do Assistente mudar.",
     "email": "marcelonovetech@gmail.com"
@@ -8451,7 +8515,7 @@
    * cobre o resto: duas copias instaladas no Tampermonkey, ou uma
    * reexecucao do script numa navegacao da SPA. Sem ela, apareciam dois
    * docks sobrepostos e o alarme tocava duas vezes. */
-  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.49.0")) return;
+  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.49.1")) return;
 
   /* 2) O hook de rede precisa existir ANTES de qualquer chamada da
    * aplicacao — por isso e instalado aqui, em document-start, e nao
@@ -8491,21 +8555,24 @@
 (function (raiz) {
   "use strict";
 
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
   /* ----------------------------------------------------------------
    * BIBLIOTECA DE SONS (Web Audio API — sem arquivo externo)
    * Copiada sem alteracao do script original: cada som define quanto
    * dura uma "unidade" (para espacar as repeticoes) e como toca-la.
    * Sintetizado por osciladores, entao funciona sem internet.
    * ---------------------------------------------------------------- */
-  var TIPOS_DE_SOM = {
+  const TIPOS_DE_SOM = {
     "sirene-classica": {
       nome: "Sirene clássica (2 notas)",
       curto: false,
       intervaloMs: 1100,
       tocar: function (ctx, volume) {
-        var agora = ctx.currentTime;
-        var osc = ctx.createOscillator();
-        var gain = ctx.createGain();
+        const agora = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
         osc.type = "square";
         osc.frequency.setValueAtTime(880, agora);
         osc.frequency.linearRampToValueAtTime(1320, agora + 0.35);
@@ -8524,9 +8591,9 @@
       curto: false,
       intervaloMs: 1050,
       tocar: function (ctx, volume) {
-        var agora = ctx.currentTime;
-        var osc = ctx.createOscillator();
-        var gain = ctx.createGain();
+        const agora = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
         osc.type = "sawtooth";
         osc.frequency.setValueAtTime(700, agora);
         osc.frequency.setValueAtTime(950, agora + 0.25);
@@ -8544,11 +8611,11 @@
       curto: false,
       intervaloMs: 700,
       tocar: function (ctx, volume) {
-        var base = ctx.currentTime;
-        for (var i = 0; i < 3; i++) {
-          var inicio = base + i * 0.2;
-          var osc = ctx.createOscillator();
-          var gain = ctx.createGain();
+        const base = ctx.currentTime;
+        for (let i = 0; i < 3; i++) {
+          const inicio = base + i * 0.2;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
           osc.type = "square";
           osc.frequency.setValueAtTime(1200, inicio);
           gain.gain.setValueAtTime(0.3 * volume, inicio);
@@ -8564,13 +8631,13 @@
       curto: false,
       intervaloMs: 2000,
       tocar: function (ctx, volume) {
-        var agora = ctx.currentTime;
+        const agora = ctx.currentTime;
         [
           { freq: 900, inicio: 0, duracao: 0.3 },
           { freq: 700, inicio: 0.3, duracao: 0.4 },
         ].forEach(function (n) {
-          var osc = ctx.createOscillator();
-          var gain = ctx.createGain();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
           osc.type = "sine";
           osc.frequency.setValueAtTime(n.freq, agora + n.inicio);
           gain.gain.setValueAtTime(0, agora + n.inicio);
@@ -8601,10 +8668,10 @@
       curto: true,
       intervaloMs: 1200,
       tocar: function (ctx, volume) {
-        var agora = ctx.currentTime;
+        const agora = ctx.currentTime;
         [{ f: 880, t: 0 }, { f: 1174.7, t: 0.13 }].forEach(function (n) {
-          var osc = ctx.createOscillator();
-          var g = ctx.createGain();
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
           osc.type = "triangle";
           osc.frequency.setValueAtTime(n.f, agora + n.t);
           g.gain.setValueAtTime(0.0001, agora + n.t);
@@ -8621,12 +8688,12 @@
       curto: true,
       intervaloMs: 1400,
       tocar: function (ctx, volume) {
-        var agora = ctx.currentTime;
+        const agora = ctx.currentTime;
         /* Um sino e a fundamental MAIS um parcial agudo que morre antes
          * dela — e o que separa "sino" de "bipe". */
         [{ f: 1568, v: 0.3, d: 0.9 }, { f: 2350, v: 0.12, d: 0.35 }].forEach(function (n) {
-          var osc = ctx.createOscillator();
-          var g = ctx.createGain();
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
           osc.type = "sine";
           osc.frequency.setValueAtTime(n.f, agora);
           g.gain.setValueAtTime(0.0001, agora);
@@ -8643,9 +8710,9 @@
       curto: true,
       intervaloMs: 900,
       tocar: function (ctx, volume) {
-        var agora = ctx.currentTime;
-        var osc = ctx.createOscillator();
-        var g = ctx.createGain();
+        const agora = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
         osc.type = "sine";
         osc.frequency.setValueAtTime(1250, agora);
         osc.frequency.exponentialRampToValueAtTime(620, agora + 0.14);
@@ -8662,11 +8729,11 @@
       curto: true,
       intervaloMs: 1600,
       tocar: function (ctx, volume) {
-        var agora = ctx.currentTime;
+        const agora = ctx.currentTime;
         [523.25, 659.25, 783.99].forEach(function (f, i) {
-          var t = i * 0.075;
-          var osc = ctx.createOscillator();
-          var g = ctx.createGain();
+          const t = i * 0.075;
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
           osc.type = "sine";
           osc.frequency.setValueAtTime(f, agora + t);
           g.gain.setValueAtTime(0.0001, agora + t);
@@ -8683,12 +8750,12 @@
       curto: true,
       intervaloMs: 800,
       tocar: function (ctx, volume) {
-        var agora = ctx.currentTime;
+        const agora = ctx.currentTime;
         /* Para quem divide a sala com outro profissional e nao quer que o
          * alarme vire assunto da consulta ao lado. */
         [0, 0.09].forEach(function (t) {
-          var osc = ctx.createOscillator();
-          var g = ctx.createGain();
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
           osc.type = "square";
           osc.frequency.setValueAtTime(2100, agora + t);
           g.gain.setValueAtTime(0.0001, agora + t);
@@ -8709,13 +8776,13 @@
       curto: false,
       intervaloMs: 1300,
       tocar: function (ctx, volume) {
-        var agora = ctx.currentTime;
+        const agora = ctx.currentTime;
         /* Grave atravessa parede e cansa menos que agudo. Pensado para a
          * madrugada, quando o estridente e justamente o que faz o medico
          * desligar o alarme — e perder o paciente seguinte. */
         [0, 0.42].forEach(function (t) {
-          var osc = ctx.createOscillator();
-          var g = ctx.createGain();
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
           osc.type = "sine";
           osc.frequency.setValueAtTime(196, agora + t);
           osc.frequency.linearRampToValueAtTime(233, agora + t + 0.3);
@@ -8733,9 +8800,9 @@
       curto: false,
       intervaloMs: 1500,
       tocar: function (ctx, volume) {
-        var agora = ctx.currentTime;
-        var osc = ctx.createOscillator();
-        var g = ctx.createGain();
+        const agora = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
         osc.type = "triangle";
         osc.frequency.setValueAtTime(560, agora);
         osc.frequency.linearRampToValueAtTime(760, agora + 0.55);
@@ -8751,7 +8818,7 @@
     },
 };
 
-  var CSS_PAINEL = [
+  const CSS_PAINEL = [
     raiz.MeedsSuiteCabecalho.CSS,
     ".af-modal { width: 100%; max-width: 380px; background: #fff; border-radius: 6px; box-shadow: 0 8px 24px rgba(15,23,42,.2); overflow: hidden; }",
     ".af-modal header { background: #b42318; color:#fff; padding:16px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
@@ -8783,7 +8850,7 @@
     "#af-liberar-aviso[hidden] { display:none; }",
   ].join("\n");
 
-  var CONFIG_PADRAO = {
+  const CONFIG_PADRAO = {
     ativo: false,
     modo: "imediato", // "imediato" | "espera"
     tempoEsperaMin: 5,
@@ -8817,7 +8884,7 @@
    * A escada de atencao (titulo, favicone, notificacao do sistema) vale
    * nos tres — ela e sobre ONDE avisar, nao sobre o quanto incomodar.
    * ------------------------------------------------------------------ */
-  var INTENSIDADES = {
+  const INTENSIDADES = {
     silencioso: {
       rotulo: "Silencioso",
       icone: "🔕",
@@ -8838,48 +8905,48 @@
     },
   };
 
-  var ORDEM_INTENSIDADE = ["completo", "discreto", "silencioso"];
+  const ORDEM_INTENSIDADE = ["completo", "discreto", "silencioso"];
 
   function intensidadeAtual() {
     return INTENSIDADES[config.intensidade] || INTENSIDADES.completo;
   }
 
   /* --- estado do modulo (recriado a cada start, zerado a cada stop) --- */
-  var d = null;          // deps do nucleo
-  var config = null;
-  var painel = null;
-  var banner = null;
-  var moldura = null; // moldura pulsante na borda da tela (plantao noturno)
-  var observerToast = null;
-  var timers = [];
+  let d = null;          // deps do nucleo
+  var config = null; // eslint-disable-line no-var -- usada antes desta linha; com let/const daria erro de zona morta (TDZ)
+  let painel = null;
+  let banner = null;
+  let moldura = null; // moldura pulsante na borda da tela (plantao noturno)
+  let observerToast = null;
+  let timers = [];
 
   // ids vistos na fila por "assinatura" de chamada -> Map<id, {primeiraVezVistoEm}>
-  var idsFilaPorAssinatura = new Map();
-  var idsJaAlertadosPorEspera = new Set();
-  var decisorFila = null; // fusao dos sinais sobre "tem gente esperando?"
-  var ultimoDisparoTs = 0;
-  var ultimaChegada = null;   // ficha de quem chegou, so para o cartao discreto
+  const idsFilaPorAssinatura = new Map();
+  const idsJaAlertadosPorEspera = new Set();
+  let decisorFila = null; // fusao dos sinais sobre "tem gente esperando?"
+  let ultimoDisparoTs = 0;
+  let ultimaChegada = null;   // ficha de quem chegou, so para o cartao discreto
 
-  var DEBOUNCE_MS = 2500;
-  var DURACAO_MAX_SOM_MS = 120000;      // trava de seguranca do som (2 min)
-  var COOLDOWN_REENGATE_MS = 5 * 60000; // toca de novo 5 min apos silenciar (modo Completo)
-  var LIMITE_FRESCOR_DOM_MS = 12000;    // 3x o intervalo de polling do DOM
-  var INTERVALO_RECHECAGEM_MS = 4000;
-  var INTERVALO_CHECAGEM_ESPERA_MS = 15000;
+  const DEBOUNCE_MS = 2500;
+  const DURACAO_MAX_SOM_MS = 120000;      // trava de seguranca do som (2 min)
+  const COOLDOWN_REENGATE_MS = 5 * 60000; // toca de novo 5 min apos silenciar (modo Completo)
+  const LIMITE_FRESCOR_DOM_MS = 12000;    // 3x o intervalo de polling do DOM
+  const INTERVALO_RECHECAGEM_MS = 4000;
+  const INTERVALO_CHECAGEM_ESPERA_MS = 15000;
   /* Modo Discreto: se o paciente que disparou o alarme continuar na fila,
    * o cartao e as duas batidas voltam a cada 2 min — mais curto que o
    * reengate do Completo (5 min) porque o Discreto e pensado para lembrar
    * com frequencia, sem interromper. Ver dispararAlarme() e
    * repiqueDeEsperaDiscreto(). */
-  var INTERVALO_REPIQUE_DISCRETO_MS = 2 * 60000;
+  const INTERVALO_REPIQUE_DISCRETO_MS = 2 * 60000;
 
-  var audioCtx = null;
-  var tocando = false;
-  var intervaloSirene = null;
-  var timeoutLimiteSirene = null;
-  var timeoutReengate = null;
-  var timeoutSomCurtoRepique = null;
-  var timeoutRepiqueDiscreto = null;
+  let audioCtx = null;
+  let tocando = false;
+  let intervaloSirene = null;
+  let timeoutLimiteSirene = null;
+  let timeoutReengate = null;
+  let timeoutSomCurtoRepique = null;
+  let timeoutRepiqueDiscreto = null;
 
   /* ----------------------------------------------------------------
    * SINALIZACAO CENTRAL
@@ -8916,14 +8983,14 @@
      * engoliria esse disparo de verdade no debounce.
      * ---------------------------------------------------------------- */
     if (origem === "toast-nativo" && filaDeEsperaEstaVazia()) {
-      console.debug("[Alarme Fila] toast ignorado: a fila esta comprovadamente vazia");
+      LOG.debug("[Alarme Fila] toast ignorado: a fila esta comprovadamente vazia");
       return;
     }
 
-    var agora = Date.now();
+    const agora = Date.now();
     if (agora - ultimoDisparoTs < DEBOUNCE_MS) return; // outro sinal ja tratou
     ultimoDisparoTs = agora;
-    console.debug("[Alarme Fila] disparo via " + origem);
+    LOG.debug("[Alarme Fila] disparo via " + origem);
     /* "tempo-de-espera" (modo Espera) reage a alguem que JA estava na
      * fila cruzar o limite de minutos — nao a uma chegada. O cartao nao
      * pode dizer "novo paciente" para isso. */
@@ -8931,24 +8998,24 @@
   }
 
   /* --- SINAL A: toast nativo "Novo Atendimento" ------------------- */
-  var TAMANHO_MAX_TEXTO_TOAST = 80;
+  const TAMANHO_MAX_TEXTO_TOAST = 80;
 
   function textosDeToast() {
     return d.seletor("toasts", "novoAtendimento");
   }
 
   function pareceToastNovoAtendimento(elemento) {
-    var alvos = textosDeToast().map(function (t) {
+    const alvos = textosDeToast().map(function (t) {
       return d.dom.normalizarTexto(t);
     });
-    var candidatos = [elemento].concat(Array.prototype.slice.call(elemento.querySelectorAll("*")));
-    for (var i = 0; i < candidatos.length; i++) {
-      var el = candidatos[i];
+    const candidatos = [elemento].concat(Array.prototype.slice.call(elemento.querySelectorAll("*")));
+    for (let i = 0; i < candidatos.length; i++) {
+      const el = candidatos[i];
       if (el.childElementCount > 0) continue;
-      var texto = (el.textContent || "").trim();
+      const texto = (el.textContent || "").trim();
       if (!texto || texto.length > TAMANHO_MAX_TEXTO_TOAST) continue;
-      var norm = d.dom.normalizarTexto(texto);
-      for (var j = 0; j < alvos.length; j++) {
+      const norm = d.dom.normalizarTexto(texto);
+      for (let j = 0; j < alvos.length; j++) {
         // exige que o texto do PROPRIO elemento (nao um resumo de tela
         // inteira) contenha o alvo — evita falso positivo com um botao
         // estatico "+ Novo Atendimento" em algum canto da aplicacao.
@@ -8959,7 +9026,7 @@
   }
 
   /* --- SINAL B: rede (fila de espera geral) ----------------------- */
-  var REGEX_ATENDIMENTO_LISTA = /\/api\/v1\/Atendimento\?/i;
+  const REGEX_ATENDIMENTO_LISTA = /\/api\/v1\/Atendimento\?/i;
 
   /* ------------------------------------------------------------------
    * QUAL CHAMADA E "A FILA DE ESPERA"
@@ -8995,7 +9062,7 @@
      * pareceria uma chegada nova. */
     if (/[?&]take=1(?:&|$)/i.test(url)) return false;
 
-    var status = (String(url).match(/[?&]StatusAtendimentoId=([^&]*)/gi) || [])
+    const status = (String(url).match(/[?&]StatusAtendimentoId=([^&]*)/gi) || [])
       .map(function (s) { return s.split("=")[1]; })
       .sort()
       .join(",");
@@ -9015,8 +9082,8 @@
   function extrairListaDeItens(json) {
     if (Array.isArray(json)) return json;
     if (json && typeof json === "object") {
-      var chaves = ["data", "items", "result", "results"];
-      for (var i = 0; i < chaves.length; i++) {
+      const chaves = ["data", "items", "result", "results"];
+      for (let i = 0; i < chaves.length; i++) {
         if (Array.isArray(json[chaves[i]])) return json[chaves[i]];
       }
     }
@@ -9025,12 +9092,12 @@
 
   function processarRespostaFilaDeEspera(url, json) {
     try {
-      var itens = extrairListaDeItens(json);
+      const itens = extrairListaDeItens(json);
       if (!itens) return; // formato inesperado: outros sinais cobrem
 
-      var agora = Date.now();
-      var assinatura = assinaturaDaChamada(url);
-      var mapaAnterior = idsFilaPorAssinatura.get(assinatura);
+      const agora = Date.now();
+      const assinatura = assinaturaDaChamada(url);
+      let mapaAnterior = idsFilaPorAssinatura.get(assinatura);
       /* Leitura velha nao serve de base para dizer "chegou alguem" (D62).
        * resumoDaFila() ja DESCARTA assinatura parada ha mais de
        * VALIDADE_ASSINATURA_MS — sem esta linha os dois calculos
@@ -9044,12 +9111,12 @@
       if (mapaAnterior && agora - (mapaAnterior.atualizadoEm || 0) > VALIDADE_ASSINATURA_MS) {
         mapaAnterior = null;
       }
-      var mapaAtual = new Map();
+      const mapaAtual = new Map();
 
       itens.forEach(function (item) {
-        var id = item && item.id;
+        const id = item && item.id;
         if (!id) return;
-        var jaVistoEm =
+        const jaVistoEm =
           mapaAnterior && mapaAnterior.has(id) ? mapaAnterior.get(id).primeiraVezVistoEm : agora;
         mapaAtual.set(id, { primeiraVezVistoEm: jaVistoEm, ficha: fichaDaChegada(item) });
       });
@@ -9058,7 +9125,7 @@
       // dispara, para nao soar por quem ja estava esperando antes de o
       // medico ligar o alarme.
       if (mapaAnterior) {
-        var novos = Array.from(mapaAtual.keys()).filter(function (id) {
+        const novos = Array.from(mapaAtual.keys()).filter(function (id) {
           return !mapaAnterior.has(id);
         });
         if (novos.length) {
@@ -9095,11 +9162,11 @@
    * do administrador, que troca de aba e de periodo (Hoje, Ontem,
    * Ultimos 30 dias): cada filtro vira uma assinatura, e a que o medico
    * abandonou nao pode continuar somando gente para sempre. */
-  var VALIDADE_ASSINATURA_MS = 120000;
+  var VALIDADE_ASSINATURA_MS = 120000; // eslint-disable-line no-var -- usada antes desta linha; com let/const daria erro de zona morta (TDZ)
 
   function esquecerAssinaturasVelhas() {
-    var limite = Date.now() - VALIDADE_ASSINATURA_MS;
-    var mortas = [];
+    const limite = Date.now() - VALIDADE_ASSINATURA_MS;
+    const mortas = [];
     idsFilaPorAssinatura.forEach(function (mapa, assinatura) {
       if ((mapa.atualizadoEm || 0) < limite) mortas.push(assinatura);
     });
@@ -9130,8 +9197,8 @@
    * ele que diz qual REMUME e qual laudo valem para aquele atendimento.
    * ------------------------------------------------------------------ */
   function porCaminho(objeto, caminho) {
-    var atual = objeto;
-    for (var i = 0; i < caminho.length; i++) {
+    let atual = objeto;
+    for (let i = 0; i < caminho.length; i++) {
       if (!atual || typeof atual !== "object") return null;
       atual = atual[caminho[i]];
     }
@@ -9139,7 +9206,7 @@
   }
 
   function fichaDaChegada(item) {
-    var ficha = { municipio: null };
+    const ficha = { municipio: null };
     if (!item || typeof item !== "object") return ficha;
     ficha.municipio = porCaminho(item, ["cliente", "razaoSocialNome"]);
     return ficha;
@@ -9169,8 +9236,8 @@
   function resumoDaFila() {
     esquecerAssinaturasVelhas();
 
-    var unicos = new Set();
-    var maisAntigo = null;
+    const unicos = new Set();
+    let maisAntigo = null;
     idsFilaPorAssinatura.forEach(function (mapa) {
       mapa.forEach(function (registro, id) {
         unicos.add(id);
@@ -9180,9 +9247,9 @@
       });
     });
 
-    var porRede = unicos.size;
-    var naTela = ultimoValorAguardandoDOM;
-    var quantos = naTela === null ? porRede : naTela;
+    const porRede = unicos.size;
+    const naTela = ultimoValorAguardandoDOM;
+    const quantos = naTela === null ? porRede : naTela;
 
     return {
       quantos: quantos,
@@ -9193,7 +9260,7 @@
   }
 
   function textoDoMotivo() {
-    var r = resumoDaFila();
+    const r = resumoDaFila();
     /* "Nao sei quantos" (quantos=0) e um sinal PROPRIO, independente de
      * a chegada ser nova ou de alguem que ja esperava (D61): resumoDaFila
      * e decisorFila sao dois calculos separados, e o segundo pode dizer
@@ -9202,8 +9269,8 @@
      * cartao do Discreto quanto para a faixa do Completo (o mesmo texto
      * alimenta os dois, ver atualizarTextoDoBanner). */
     if (!r.quantos) return "Aguardando atualização da fila";
-    var partes = [r.quantos + (r.quantos === 1 ? " aguardando" : " aguardando")];
-    var min = Math.floor(r.esperaMs / 60000);
+    const partes = [r.quantos + (r.quantos === 1 ? " aguardando" : " aguardando")];
+    const min = Math.floor(r.esperaMs / 60000);
     if (min >= 1) {
       partes.push((r.quantos === 1 ? "há pelo menos " : "o mais antigo há pelo menos ") + min + " min");
     }
@@ -9211,11 +9278,11 @@
   }
 
   /* --- SINAL C: contador "Aguardando" no DOM ---------------------- */
-  var ultimoValorAguardandoDOM = null;
-  var ultimaLeituraDOMEm = 0; // quando ultimoValorAguardandoDOM foi lido
+  var ultimoValorAguardandoDOM = null; // eslint-disable-line no-var -- usada antes desta linha; com let/const daria erro de zona morta (TDZ)
+  let ultimaLeituraDOMEm = 0; // quando ultimoValorAguardandoDOM foi lido
 
   function atualizarLeituraContadorAguardando() {
-    var valor = d.dom.lerContadorPorRotulo(d.seletor("rotulos", "contadorFila"));
+    const valor = d.dom.lerContadorPorRotulo(d.seletor("rotulos", "contadorFila"));
     if (valor !== null) {
       ultimoValorAguardandoDOM = valor;
       ultimaLeituraDOMEm = Date.now();
@@ -9227,10 +9294,10 @@
   }
 
   function tentarChecarContadorAguardando() {
-    var anterior = ultimoValorAguardandoDOM;
+    const anterior = ultimoValorAguardandoDOM;
     /* Idade da base ANTES de ler de novo — depois da leitura ela zera. */
-    var idadeDaBase = Date.now() - ultimaLeituraDOMEm;
-    var atual = atualizarLeituraContadorAguardando();
+    const idadeDaBase = Date.now() - ultimaLeituraDOMEm;
+    const atual = atualizarLeituraContadorAguardando();
     if (atual === null) return; // leitura ambigua: NAO decide
 
     /* "O numero subiu" so significa chegada se os dois numeros vierem da
@@ -9241,7 +9308,7 @@
      * Comparar o 0 da tela antiga com o 7 da tela nova e ler "chegaram
      * sete pacientes agora". Base velha vira base nova, sem disparo. */
     if (anterior !== null && idadeDaBase > LIMITE_FRESCOR_DOM_MS) {
-      console.debug("[Alarme Fila] contador voltou depois de " + Math.round(idadeDaBase / 1000) + "s: recomeçando a base");
+      LOG.debug("[Alarme Fila] contador voltou depois de " + Math.round(idadeDaBase / 1000) + "s: recomeçando a base");
       checarSeDeveSilenciarPorFilaVazia();
       return;
     }
@@ -9252,7 +9319,7 @@
 
   /* --- SINAL D: tempo de espera (modo "espera") ------------------- */
   function limparIdsAlertadosQueSairamDaFila() {
-    var idsAtuais = new Set();
+    const idsAtuais = new Set();
     idsFilaPorAssinatura.forEach(function (mapa) {
       mapa.forEach(function (_v, id) {
         idsAtuais.add(id);
@@ -9265,8 +9332,8 @@
 
   function checarLimiteDeEspera() {
     if (!config.ativo || config.modo !== "espera") return;
-    var limiteMs = config.tempoEsperaMin * 60000;
-    var agora = Date.now();
+    const limiteMs = config.tempoEsperaMin * 60000;
+    const agora = Date.now();
     idsFilaPorAssinatura.forEach(function (mapa) {
       mapa.forEach(function (info, id) {
         if (idsJaAlertadosPorEspera.has(id)) return;
@@ -9283,7 +9350,7 @@
    * ---------------------------------------------------------------- */
   function obterAudioContext() {
     if (!audioCtx) {
-      var Ctor = raiz.AudioContext || raiz.webkitAudioContext;
+      const Ctor = raiz.AudioContext || raiz.webkitAudioContext;
       if (!Ctor) return null;
       audioCtx = new Ctor();
     }
@@ -9292,8 +9359,8 @@
   }
 
   function somDoModo(curto) {
-    var id = curto ? config.somCurto : config.som;
-    var tipo = TIPOS_DE_SOM[id];
+    const id = curto ? config.somCurto : config.som;
+    const tipo = TIPOS_DE_SOM[id];
     if (tipo && !!tipo.curto === !!curto) return tipo;
     return TIPOS_DE_SOM[curto ? CONFIG_PADRAO.somCurto : CONFIG_PADRAO.som];
   }
@@ -9301,12 +9368,12 @@
   // Exposto so para teste: nao ha como verificar audio de verdade fora do
   // navegador, entao o teste confere QUANTAS VEZES e QUANDO o modulo pediu
   // para tocar — o resto (o som em si) ja e coberto por tests/som.test.js.
-  var chamadasDeSomParaTeste = [];
+  const chamadasDeSomParaTeste = [];
 
   function tocarSomAtual(curto) {
     chamadasDeSomParaTeste.push({ curto: !!curto, quando: Date.now() });
     try {
-      var ctx = obterAudioContext();
+      const ctx = obterAudioContext();
       if (!ctx) return;
       somDoModo(curto).tocar(ctx, config.volume / 100);
     } catch (e) {
@@ -9331,14 +9398,14 @@
   }
 
   function atualizarDistintivo() {
-    var A = atencao();
+    const A = atencao();
     if (!A) return;
     /* Le o cartao da tela AGORA. A resposta de rede chega antes do proximo
      * ciclo de leitura do DOM, entao sem isto o distintivo seria pintado
      * com o numero anterior — tipicamente zero — e sumiria por alguns
      * segundos bem no momento em que o paciente chegou. */
     atualizarLeituraContadorAguardando();
-    var r = resumoDaFila();
+    const r = resumoDaFila();
     if (r.quantos > 0) A.marcar({ contagem: r.quantos });
     else A.limpar();
   }
@@ -9349,10 +9416,10 @@
    * indo": traz a aba para frente e silencia com reengate, entao se ele
    * nao atender de fato o alarme volta em cinco minutos. */
   function avisarForaDaAba() {
-    var A = atencao();
+    const A = atencao();
     if (!A) return;
     if (A.ondeEstaOMedico() !== "fora") return;
-    var r = resumoDaFila();
+    const r = resumoDaFila();
 
     /* A janela e o degrau mais barulhento e o unico opcional: ela FICA na
      * barra de tarefas ate alguem fechar, enquanto a notificacao some
@@ -9425,13 +9492,13 @@
       /* Mesma correcao do reengate do Completo, ver haDecisaoSobreFila():
        * sem evidencia fresca, nao repica as cegas — so reagenda. */
       if (!haDecisaoSobreFila()) {
-        console.debug("[Alarme Fila] sem evidencia fresca da fila — repique do discreto reagendado em silencio");
+        LOG.debug("[Alarme Fila] sem evidencia fresca da fila — repique do discreto reagendado em silencio");
         agendarRepiqueDeEsperaDiscreto();
         return;
       }
 
       if (filaDeEsperaEstaVazia()) return; // paciente ja saiu da fila
-      console.debug("[Alarme Fila] paciente ainda esperando, repique do modo discreto");
+      LOG.debug("[Alarme Fila] paciente ainda esperando, repique do modo discreto");
       dispararAlarme("ainda-aguardando");
     }, INTERVALO_REPIQUE_DISCRETO_MS);
   }
@@ -9443,8 +9510,8 @@
    * (som, distintivo, notificacao) e identico nos dois casos. Ver D61. */
   function dispararAlarme(motivo) {
     if (tocando) return;
-    var forma = intensidadeAtual();
-    var ehAindaAguardando = motivo === "ainda-aguardando";
+    const forma = intensidadeAtual();
+    const ehAindaAguardando = motivo === "ainda-aguardando";
 
     /* O distintivo e a notificacao valem nos TRES modos: eles sao sobre
      * onde avisar, nao sobre o quanto incomodar. O que a intensidade
@@ -9458,7 +9525,7 @@
       // toca duas vezes, espacadas pelo intervalo natural do proprio som
       // (o mesmo intervaloMs que o modo completo usa para repetir a
       // sirene) — uma vez so passava despercebida num plantao barulhento
-      var tipoCurto = somDoModo(true);
+      const tipoCurto = somDoModo(true);
       tocarSomAtual(true);
       timeoutSomCurtoRepique = setTimeout(function () {
         timeoutSomCurtoRepique = null;
@@ -9470,7 +9537,7 @@
       atualizarTextoDoBanner(ehAindaAguardando);
       if (banner) banner.mostrar();
       if (moldura) moldura.mostrar();
-      var tipo = somDoModo(false);
+      const tipo = somDoModo(false);
       tocarSomAtual(false);
       intervaloSirene = setInterval(function () { tocarSomAtual(false); }, tipo.intervaloMs);
       // BUG JA CORRIGIDO NO ORIGINAL v1.4.0 E PRESERVADO AQUI: o limite de
@@ -9490,8 +9557,8 @@
    * ------------------------------------------------------------------ */
   function mostrarCartaoDeChegada(ehAindaAguardando) {
     if (!d || !d.dock || typeof d.dock.criarAviso !== "function") return;
-    var ficha = ultimaChegada || {};
-    var linhas = [];
+    const ficha = ultimaChegada || {};
+    const linhas = [];
     /* So o MUNICIPIO — e desde a v2.33.2 e o unico dado que o modulo
      * chega a ler. O cartao fica na tela por 12 s, atravessa troca de
      * aba e aparece em qualquer print que o medico tire; nome de
@@ -9561,7 +9628,7 @@
    * Se nenhum sinal for confiavel, NAO decide e o alarme continua
    * tocando — preferir errar tocando a errar calando. */
   function filaDeEsperaEstaVazia() {
-    var r = decisorFila.decidir();
+    const r = decisorFila.decidir();
     if (!r.decidiu) return false;
     return r.valor === false;
   }
@@ -9606,7 +9673,7 @@
   function checarSeDeveSilenciarPorFilaVazia() {
     if (!tocando) return;
     if (filaDeEsperaEstaVazia()) {
-      console.debug("[Alarme Fila] fila esvaziou, silenciando automaticamente");
+      LOG.debug("[Alarme Fila] fila esvaziou, silenciando automaticamente");
       silenciarAlarme(); // sem reengate: nao ha mais ninguem esperando
     }
   }
@@ -9622,13 +9689,13 @@
      * antes disso, a proxima tentativa decide direito. A corrente nunca
      * morre por falta de evidencia; ela so para de SOAR sem evidencia. */
     if (!haDecisaoSobreFila()) {
-      console.debug("[Alarme Fila] sem evidencia fresca da fila apos silenciar — reagendando em silencio, sem tocar");
+      LOG.debug("[Alarme Fila] sem evidencia fresca da fila apos silenciar — reagendando em silencio, sem tocar");
       timeoutReengate = setTimeout(tentarReengatarAlarme, COOLDOWN_REENGATE_MS);
       return;
     }
 
     if (filaDeEsperaEstaVazia()) return;
-    console.debug("[Alarme Fila] fila ainda cheia apos silenciar, tocando de novo");
+    LOG.debug("[Alarme Fila] fila ainda cheia apos silenciar, tocando de novo");
     /* Reengate do Completo: mesmo paciente de antes, nao um novo — hoje
      * este modo tem cartao:false, entao o titulo nem aparece, mas o
      * motivo certo evita que um ajuste futuro de intensidade reintroduza
@@ -9657,8 +9724,8 @@
         })
         .join("");
     }
-    var opcoesSom = opcoesDe(false);
-    var opcoesSomCurto = opcoesDe(true);
+    const opcoesSom = opcoesDe(false);
+    const opcoesSomCurto = opcoesDe(true);
 
     painel = d.dock.criarOverlay({
       estilo: CSS_PAINEL,
@@ -9714,7 +9781,7 @@
       });
     });
     painel.$("#af-tempo-espera").addEventListener("change", function () {
-      var v = parseInt(painel.$("#af-tempo-espera").value, 10);
+      const v = parseInt(painel.$("#af-tempo-espera").value, 10);
       config.tempoEsperaMin = Math.min(120, Math.max(1, v || CONFIG_PADRAO.tempoEsperaMin));
       painel.$("#af-tempo-espera").value = config.tempoEsperaMin;
       salvar();
@@ -9757,7 +9824,7 @@
        * em que o Chrome deixa abrir sem permissao previa, e serve de
        * teste — se for bloqueada, o medico descobre aqui e nao na
        * primeira chegada de paciente. */
-      var A = atencao();
+      const A = atencao();
       if (A && A.abrirJanelaDeAviso) {
         A.abrirJanelaDeAviso({ titulo: "Assim que ela vai aparecer", corpo: "Esta é a janela de aviso. Feche-a quando quiser." });
       }
@@ -9765,7 +9832,7 @@
     });
 
     painel.$("#af-liberar-aviso").addEventListener("click", function () {
-      var A = atencao();
+      const A = atencao();
       if (!A) return;
       A.pedirPermissaoDeNotificacao().then(function (liberou) {
         refletirEstadoDosAvisos();
@@ -9774,7 +9841,7 @@
          * Sem esta linha, o medico clica no botao e parece que nada
          * aconteceu — e ele conclui, com razao, que esta quebrado. */
         if (!liberou && A.permissaoDeNotificacao() === "default") {
-          var estado = painel.$("#af-avisar-estado");
+          const estado = painel.$("#af-avisar-estado");
           if (estado) {
             estado.textContent =
               "O navegador não mostrou a pergunta — ele silencia esse pedido por padrão. " +
@@ -9791,12 +9858,12 @@
    * oferece o unico passo que resolve, quando ha um. */
   function refletirEstadoDosAvisos() {
     if (!painel) return;
-    var A = atencao();
-    var estado = painel.$("#af-avisar-estado");
-    var botao = painel.$("#af-liberar-aviso");
+    const A = atencao();
+    const estado = painel.$("#af-avisar-estado");
+    const botao = painel.$("#af-liberar-aviso");
     if (!estado || !botao) return;
 
-    var permissao = A ? A.permissaoDeNotificacao() : "indisponivel";
+    const permissao = A ? A.permissaoDeNotificacao() : "indisponivel";
     botao.hidden = permissao !== "default";
 
     if (permissao === "granted") {
@@ -9821,11 +9888,11 @@
       estado.textContent += " A tela não apaga enquanto o Meeds estiver aberto.";
     }
 
-    var chaveJanela = painel.$("#af-janela");
-    var dicaJanela = painel.$("#af-janela-hint");
+    const chaveJanela = painel.$("#af-janela");
+    const dicaJanela = painel.$("#af-janela-hint");
     if (!chaveJanela || !dicaJanela) return;
 
-    var temJanela = !!(A && A.suportaJanela());
+    const temJanela = !!(A && A.suportaJanela());
     chaveJanela.disabled = !temJanela;
     chaveJanela.checked = !!config.janelaDeAviso && temJanela;
 
@@ -9858,7 +9925,7 @@
    * fila e o alarme nao toca — sem erro, sem aviso. Nao da para impedir
    * pela pagina, entao o minimo honesto e CONTAR ao medico que houve um
    * periodo sem vigilancia, em vez de deixa-lo achar que ninguem chegou. */
-  var cancelarVigiaSuspensao = null;
+  let cancelarVigiaSuspensao = null;
 
   /* UM aviso reaproveitado, nunca um por acordada.
    *
@@ -9880,10 +9947,10 @@
    * pede uma acao ("confira a fila"), entao precisa de tempo de leitura.
    * Mas sumir sozinho e requisito — um aviso permanente sobre algo que
    * JA passou nao ajuda em nada depois de lido. */
-  var AUTO_FECHAR_SUSPENSAO_MS = 30000;
-  var avisoSuspensao = null;
-  var vezesSuspensa = 0;
-  var minutosSuspensa = 0;
+  const AUTO_FECHAR_SUSPENSAO_MS = 30000;
+  let avisoSuspensao = null;
+  let vezesSuspensa = 0;
+  let minutosSuspensa = 0;
 
   function relatarSuspensao(min) {
     if (!d || !d.dock || typeof d.dock.criarAviso !== "function") return;
@@ -9900,7 +9967,7 @@
     vezesSuspensa += 1;
     minutosSuspensa += min;
 
-    var spec = {
+    const spec = {
       titulo: "O alarme ficou parado",
       corpo: [
         vezesSuspensa === 1
@@ -9920,11 +9987,11 @@
   }
 
   function vigiarSuspensaoDaAba() {
-    var A = atencao();
+    const A = atencao();
     if (!A || !A.aoAcordarDeSuspensao) return;
     cancelarVigiaSuspensao = A.aoAcordarDeSuspensao(function (atrasoMs) {
       if (!config.ativo) return; // alarme desligado: nao havia o que vigiar
-      var min = Math.round(atrasoMs / 60000);
+      const min = Math.round(atrasoMs / 60000);
       if (min < 2) return;
       relatarSuspensao(min);
     });
@@ -9953,12 +10020,12 @@
   function atualizarTextoDoBanner(ehAindaAguardando) {
     if (!banner) return;
     if (ehAindaAguardando !== undefined) {
-      var titulo = banner.$("#af-titulo");
+      const titulo = banner.$("#af-titulo");
       if (titulo) {
         titulo.textContent = ehAindaAguardando ? "🔔 Paciente ainda aguardando" : "🚨 Novo paciente na fila!";
       }
     }
-    var el = banner.$("#af-motivo");
+    const el = banner.$("#af-motivo");
     if (el) el.textContent = textoDoMotivo();
   }
 
@@ -9968,7 +10035,7 @@
 
   function refletirEstado() {
     if (d.botao) {
-      var forma = intensidadeAtual();
+      const forma = intensidadeAtual();
       d.botao.definirTexto(forma.icone);
       d.botao.definirClasse("ms-ativo", config.intensidade === "completo");
       d.botao.definirClasse("ms-neutro", config.intensidade !== "completo");
@@ -9988,7 +10055,7 @@
     painel.$$('input[name="af-intensidade"]').forEach(function (r) {
       r.checked = r.value === config.intensidade;
     });
-    var dica = painel.$("#af-intensidade-dica");
+    const dica = painel.$("#af-intensidade-dica");
     if (dica) dica.textContent = intensidadeAtual().resumo;
     refletirEstadoDosAvisos();
   }
@@ -10016,7 +10083,7 @@
     /* Aproveita o gesto de clique para destravar o audio: o navegador so
      * deixa tocar som depois de uma interacao do usuario. */
     obterAudioContext();
-    var i = ORDEM_INTENSIDADE.indexOf(config.intensidade);
+    const i = ORDEM_INTENSIDADE.indexOf(config.intensidade);
     config.intensidade = ORDEM_INTENSIDADE[(i + 1) % ORDEM_INTENSIDADE.length];
 
     /* QUALQUER troca de intensidade com a sirene tocando para a sirene
@@ -10159,7 +10226,7 @@
     aoCargaRede: function (evt) {
       if (evt.status !== 200) return;
       if (!ehChamadaFilaDeEspera(evt.url)) return;
-      var json = evt.json();
+      const json = evt.json();
       if (json) processarRespostaFilaDeEspera(evt.url, json);
     },
 
@@ -10237,9 +10304,9 @@
       }
 
       observerToast = new MutationObserver(function (mutacoes) {
-        for (var i = 0; i < mutacoes.length; i++) {
-          var nodes = mutacoes[i].addedNodes;
-          for (var j = 0; j < nodes.length; j++) {
+        for (let i = 0; i < mutacoes.length; i++) {
+          const nodes = mutacoes[i].addedNodes;
+          for (let j = 0; j < nodes.length; j++) {
             if (nodes[j].nodeType !== 1) continue;
             try {
               if (pareceToastNovoAtendimento(nodes[j])) {
@@ -10482,11 +10549,14 @@
 (function (raiz) {
   "use strict";
 
-  var URL_BASE =
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
+  const URL_BASE =
     "https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dados/cid10.json";
 
-  var d = null;
-  var cids = null;      // { codigo: descricao }
+  let d = null;
+  let cids = null;      // { codigo: descricao }
 
   /* O indice NAO e montado na carga da pagina.
    * Medido com a base completa: montar custa ~364 ms de thread
@@ -10495,19 +10565,19 @@
    * montado quando realmente precisa: na primeira busca. Se o navegador
    * oferecer tempo ocioso (requestIdleCallback), aproveitamos para
    * adiantar isso enquanto ninguem esta esperando. */
-  var indice = null;
-  var montandoIndice = false;
-  var estiloCampos = null;
+  let indice = null;
+  let montandoIndice = false;
+  let estiloCampos = null;
 
   /* Quantas sugestoes cabem no autocomplete de dentro do laudo. Menos que
    * na janela de busca: e uma lista flutuante sobre o formulario, nao
    * uma tela inteira. */
-  var MAX_SUGESTOES = 8;
+  const MAX_SUGESTOES = 8;
 
   /* Apelidos que o medico usa na boca do dia a dia. So AMPLIAM o que da
    * para digitar; nao alteram nenhuma descricao oficial. Mesmo mecanismo
    * dos sinonimos do REMUME (frase inteira, casamento exato). */
-  var SINONIMOS = {
+  const SINONIMOS = {
     infarto: ["iam", "ataque cardiaco"],
     /* "derrame" ficou de fora de proposito: em CID-10 ele tambem e
      * derrame pericardico (I31.3) e derrame pleural (J90), entao trazia
@@ -10532,7 +10602,7 @@
    * Nao ha medida em pixel de canto aqui: a lista se ancora no proprio
    * campo (top:100%), nao na janela. Quem posiciona coisa na tela
    * continua sendo o dock do nucleo. */
-  var CSS_CAMPO = [
+  const CSS_CAMPO = [
     ".cid-campo-wrap { position:relative; }",
     ".cid-sug { position:absolute; top:100%; left:0; right:0; z-index:5; background:#fff; border:1px solid #d8dfe6; border-top:none; border-radius:0 0 8px 8px; box-shadow:0 8px 20px rgba(0,0,0,.14); max-height:230px; overflow-y:auto; }",
     ".cid-sug[hidden] { display:none; }",
@@ -10608,14 +10678,14 @@
       })
       .then(function (dados) {
         if (!dados || !dados.cids || typeof dados.cids !== "object") {
-          console.warn("[CID-10] arquivo remoto com formato inesperado, mantendo a copia embutida.");
+          LOG.warn("[CID-10] arquivo remoto com formato inesperado, mantendo a copia embutida.");
           return false;
         }
         aplicarBase(dados.cids, true);
           return true;
       })
       .catch(function (e) {
-        console.warn("[CID-10] nao foi possivel baixar a base completa, usando a copia embutida.", e);
+        LOG.warn("[CID-10] nao foi possivel baixar a base completa, usando a copia embutida.", e);
         return false;
       });
   }
@@ -10635,39 +10705,39 @@
    * escolha. Se o modulo de CID estiver desligado, ninguem atende e o
    * campo segue funcionando como texto livre, como sempre foi.
    * ------------------------------------------------------------------ */
-  var camposConectados = [];
+  let camposConectados = [];
 
   function conectarCampo(pedido) {
-    var input = pedido && pedido.input;
+    const input = pedido && pedido.input;
     if (!input || input.__cidConectado) return false;
     input.__cidConectado = true;
 
     /* a lista precisa de um ancoradouro com position:relative */
-    var wrap = document.createElement("div");
+    const wrap = document.createElement("div");
     wrap.className = "cid-campo-wrap";
     input.parentNode.insertBefore(wrap, input);
     wrap.appendChild(input);
 
-    var sug = document.createElement("div");
+    const sug = document.createElement("div");
     sug.className = "cid-sug";
     sug.hidden = true;
     wrap.appendChild(sug);
 
-    var placeholderOriginal = input.getAttribute("placeholder");
+    const placeholderOriginal = input.getAttribute("placeholder");
     if (!placeholderOriginal || /digite ou escolha/i.test(placeholderOriginal)) {
       input.setAttribute("placeholder", "código ou nome da doença");
     }
     input.setAttribute("autocomplete", "off");
 
-    var itens = [];
-    var foco = -1;
-    var debounce = null;
+    let itens = [];
+    let foco = -1;
+    let debounce = null;
     /* Depois de escolher, o campo dispara "input" para o gerador reagir
      * (preencher a descricao, marcar o formulario como alterado). Esse
      * mesmo evento reabria a lista 180ms depois, agora com o codigo
      * recem-escolhido como termo — a lista "voltava" sozinha logo apos o
      * medico clicar. Esta marca ignora exatamente esse disparo. */
-    var ignorarProximoInput = false;
+    let ignorarProximoInput = false;
 
     function fechar() {
       sug.hidden = true;
@@ -10683,7 +10753,7 @@
     }
 
     function marcar(novo) {
-      var linhas = sug.querySelectorAll(".cid-sug-item");
+      const linhas = sug.querySelectorAll(".cid-sug-item");
       if (!linhas.length) return;
       if (linhas[foco]) linhas[foco].classList.remove("cid-sug-focado");
       foco = Math.min(Math.max(novo, 0), linhas.length - 1);
@@ -10692,13 +10762,13 @@
     }
 
     function abrirCom(termo) {
-      var texto = String(termo || "").trim();
+      const texto = String(termo || "").trim();
       if (texto.length < 2) {
         fechar();
         return;
       }
 
-      var r = raiz.MeedsSuiteBusca.buscar(texto, garantirIndice(), {
+      const r = raiz.MeedsSuiteBusca.buscar(texto, garantirIndice(), {
         sinonimos: SINONIMOS,
         limite: MAX_SUGESTOES,
         config: { PESO_SINONIMO: 2.2 },
@@ -10741,7 +10811,7 @@
     /* Os handlers ficam guardados para o stop() poder remove-los. Sem
      * isso, desligar o modulo desfazia o HTML mas deixava os ouvintes
      * presos no input — e religar empilharia um segundo conjunto. */
-    var handlers = {};
+    const handlers = {};
 
     handlers.input = function () {
       if (ignorarProximoInput) {
@@ -10945,21 +11015,21 @@
 (function (raiz) {
   "use strict";
 
-  var d = null;
-  var overlay = null;
-  var timers = [];
+  let d = null;
+  let overlay = null;
+  let timers = [];
 
   /* PDF base oficial, embutido em base64 pelo asset do modulo. */
-  var BASE_PDF_B64 = raiz.MEEDS_LME_BASE_PDF_B64;
+  const BASE_PDF_B64 = raiz.MEEDS_LME_BASE_PDF_B64;
 
   /* Nome herdado do original, para gerarPdf() continuar valendo sem
    * reescrita. */
-  var LME_BASE_PDF_B64 = BASE_PDF_B64;
+  const LME_BASE_PDF_B64 = BASE_PDF_B64;
 
   /* SHIM DE COMPATIBILIDADE — ver modules/apac-itauna/index.js.
    * Reproduz a interface shadow.getElementById() por cima do overlay do
    * dock, para o codigo migrado continuar valendo sem reescrita. */
-  var shadow = {
+  const shadow = {
     getElementById: function (id) {
       return overlay ? overlay.elemento.querySelector("#" + id) : null;
     },
@@ -10976,9 +11046,9 @@
   }
 
   function b64ToBytes(b64) {
-    var bin = atob(b64);
-    var bytes = new Uint8Array(bin.length);
-    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     return bytes;
   }
 
@@ -10987,20 +11057,20 @@
    * @require), com o mesmo fallback do original.
    * ---------------------------------------------------------------- */
   function resolverPdfLib() {
-    var escopos = [];
+    const escopos = [];
     try { escopos.push(raiz); } catch (e) {}
     try { if (typeof unsafeWindow !== "undefined") escopos.push(unsafeWindow); } catch (e) {}
     try { escopos.push(window); } catch (e) {}
     try { escopos.push(globalThis); } catch (e) {}
-    for (var i = 0; i < escopos.length; i++) {
+    for (let i = 0; i < escopos.length; i++) {
       if (escopos[i] && escopos[i].PDFLib) return escopos[i].PDFLib;
     }
     return null;
   }
 
-  var pdfLibCarregandoPromise = null;
+  let pdfLibCarregandoPromise = null;
   function garantirPdfLib() {
-    var direto = resolverPdfLib();
+    const direto = resolverPdfLib();
     if (direto) return Promise.resolve(direto);
     if (pdfLibCarregandoPromise) return pdfLibCarregandoPromise;
     pdfLibCarregandoPromise = new Promise(function (resolve, reject) {
@@ -11014,7 +11084,7 @@
         onload: function (res) {
           try {
             (0, eval)(res.responseText);
-            var lib = resolverPdfLib();
+            const lib = resolverPdfLib();
             if (lib) resolve(lib);
             else reject(new Error("pdf-lib avaliado mas não exposto."));
           } catch (e) { reject(e); }
@@ -11026,7 +11096,7 @@
   }
 
   function formatarCpf(digits) {
-    var dd = (digits || "").replace(/\D/g, "");
+    const dd = (digits || "").replace(/\D/g, "");
     if (dd.length !== 11) return digits || "";
     return dd.slice(0,3) + "." + dd.slice(3,6) + "." + dd.slice(6,9) + "-" + dd.slice(9,11);
   }
@@ -11035,8 +11105,8 @@
    * data ja formatada e ignora tudo que nao for digito. */
   function ativarMascaraData(input) {
     input.addEventListener("input", function () {
-      var dd = input.value.replace(/\D/g, "").slice(0, 8);
-      var out = dd;
+      const dd = input.value.replace(/\D/g, "").slice(0, 8);
+      let out = dd;
       if (dd.length > 4) out = dd.slice(0,2) + "/" + dd.slice(2,4) + "/" + dd.slice(4);
       else if (dd.length > 2) out = dd.slice(0,2) + "/" + dd.slice(2);
       input.value = out;
@@ -11044,7 +11114,7 @@
   }
 
   function mostrarSucesso(nomeArquivo) {
-    var el = shadow.getElementById("lme-sucesso");
+    const el = shadow.getElementById("lme-sucesso");
     el.innerHTML =
       "✅ <b>Laudo gerado e baixado.</b><br>Arquivo: <b>" + nomeArquivo + "</b> — procure na pasta de downloads do navegador. " +
       "Ele já ficou registrado no <b>📜 Histórico</b>, caso precise repetir depois.";
@@ -11053,26 +11123,26 @@
   }
 
   function limparSucesso() {
-    var el = shadow.getElementById("lme-sucesso");
+    const el = shadow.getElementById("lme-sucesso");
     if (el) { el.style.display = "none"; el.innerHTML = ""; }
   }
 
   function limparErro() {
-    var el = shadow.getElementById("lme-erro");
+    const el = shadow.getElementById("lme-erro");
     el.style.display = "none";
     el.textContent = "";
   }
   function mostrarErro(msg) {
-    var el = shadow.getElementById("lme-erro");
+    const el = shadow.getElementById("lme-erro");
     el.textContent = msg;
     el.style.display = "block";
     el.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   function baixarPdf(bytes, filename) {
-    var blob = new Blob([bytes], { type: "application/pdf" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
     a.href = url; a.download = filename;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
@@ -11087,17 +11157,17 @@
    * faltava) e ninguem deveria abrir um .js para isso.
    * Se o arquivo faltar, os padroes abaixo seguram — o modulo nunca
    * quebra por causa de dado ausente. */
-  var DADOS = (raiz.MEEDS_DADOS_FORMULARIOS || {})["lme-sete-lagoas"] || {};
+  const DADOS = (raiz.MEEDS_DADOS_FORMULARIOS || {})["lme-sete-lagoas"] || {};
 
-  var MUNICIPIO_FIXO = DADOS.municipio || "SETE LAGOAS";
-  var ORIGENS = DADOS.origens || [];
-  var CID_DIC = DADOS.cids || {};
-  var CATALOGO_PROCEDIMENTOS = DADOS.procedimentos || {};
+  const MUNICIPIO_FIXO = DADOS.municipio || "SETE LAGOAS";
+  const ORIGENS = DADOS.origens || [];
+  const CID_DIC = DADOS.cids || {};
+  const CATALOGO_PROCEDIMENTOS = DADOS.procedimentos || {};
 
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
-  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + raiz.MeedsSuiteModelos.CSS + "\n" + raiz.MeedsSuiteCabecalho.CSS + "\n" + raiz.MeedsSuiteGuia.CSS + "\n" + "#lme-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #lme-sucesso b{ color:#08574f; }\n" + "#lme-modal{\n      background:#fff; border-radius:6px; max-width:680px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 8px 24px rgba(15,23,42,.2);\n    }\n    #lme-modal-head{\n      background:#17457f; color:#fff; padding:16px 20px; border-radius:6px 6px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #lme-modal-head h2{ margin:0; font-size:15px; }\n    #lme-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:5px; cursor:pointer; font-size:14px; }\n    #lme-body{ padding:18px 20px; }\n    .lme-sec{ margin-bottom:16px; }\n    .lme-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .lme-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .lme-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    #lme-body label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    #lme-body input,#lme-body select,#lme-body textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    #lme-body textarea{ min-height:70px; resize:vertical; }\n    #lme-origem-outro-wrap{ display:none; margin-top:8px; }\n    #lme-origem-outro-wrap.show{ display:block; }\n    #lme-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .lme-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    button.lme-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.lme-primary:hover{ background:#123a7a; }\n    button.lme-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.lme-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.lme-secondary:hover{ background:#e8f0f8; }\n    #lme-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #lme-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
+  const CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + raiz.MeedsSuiteModelos.CSS + "\n" + raiz.MeedsSuiteCabecalho.CSS + "\n" + raiz.MeedsSuiteGuia.CSS + "\n" + "#lme-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #lme-sucesso b{ color:#08574f; }\n" + "#lme-modal{\n      background:#fff; border-radius:6px; max-width:680px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 8px 24px rgba(15,23,42,.2);\n    }\n    #lme-modal-head{\n      background:#17457f; color:#fff; padding:16px 20px; border-radius:6px 6px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #lme-modal-head h2{ margin:0; font-size:15px; }\n    #lme-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:5px; cursor:pointer; font-size:14px; }\n    #lme-body{ padding:18px 20px; }\n    .lme-sec{ margin-bottom:16px; }\n    .lme-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .lme-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .lme-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    #lme-body label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    #lme-body input,#lme-body select,#lme-body textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    #lme-body textarea{ min-height:70px; resize:vertical; }\n    #lme-origem-outro-wrap{ display:none; margin-top:8px; }\n    #lme-origem-outro-wrap.show{ display:block; }\n    #lme-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .lme-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    button.lme-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.lme-primary:hover{ background:#123a7a; }\n    button.lme-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.lme-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.lme-secondary:hover{ background:#e8f0f8; }\n    #lme-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #lme-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
 
-  var HTML = "<div id=\"lme-modal\">\n      " +
+  const HTML = "<div id=\"lme-modal\">\n      " +
     raiz.MeedsSuiteCabecalho.html({
       tom: "documento", titulo: "Laudo Médico de Alto Custo — Sete Lagoas", idFechar: "lme-close",
       acoes: [
@@ -11115,7 +11185,7 @@
    * nao veio sozinho clique em Atualizar paciente" em vez de "campo
    * obrigatorio". O texto final e montado pelo nucleo
    * (core/mensagens.js), para o tom ser o mesmo em todos os modulos. */
-  var CAMPOS_OBRIGATORIOS = [
+  const CAMPOS_OBRIGATORIOS = [
       { id: "lme-medico-sel", descricao: "escolher o médico solicitante", rotulo: "Médico solicitante",
         comoResolver: "se a lista estiver vazia, cadastre-se no painel da engrenagem (⚙️)" },
       { id: "lme-medico-nome", descricao: "o nome do médico", rotulo: "Nome" },
@@ -11142,7 +11212,7 @@
     return CAMPOS_OBRIGATORIOS.filter(function (campo) {
       if (typeof campo.so === "function" && !campo.so()) return false;
       if (typeof campo.vazio === "function") return campo.vazio();
-      var el = shadow.getElementById(campo.id);
+      const el = shadow.getElementById(campo.id);
       return !el || !String(el.value || "").trim();
     });
   }
@@ -11340,7 +11410,7 @@
       mostrarSucesso(filename);
       toast("Pronto — laudo de Sete Lagoas baixado.", 5000);
     } catch (e) {
-      var msg = e && e.message ? e.message : "";
+      const msg = e && e.message ? e.message : "";
       if (/pdf-lib|componente|rede/i.test(msg)) {
         /* biblioteca que nao carrega tem causa e solucao proprias — quase
          * sempre a rede da unidade bloqueando o CDN — e por isso a
@@ -11369,7 +11439,7 @@
    * cuida do "cadastrar medico" e do auto-preenchimento quando ha um so
    * medico cadastrado neste navegador. Aqui so dizemos o que fazer com a
    * ficha escolhida. */
-  var seletorMedico = null;
+  let seletorMedico = null;
 
   function preencherMedico(ficha) {
     shadow.getElementById("lme-medico-nome").value = ficha ? ficha.nome : "";
@@ -11388,13 +11458,13 @@
 
 
   function montarOrigens() {
-    var sel = shadow.getElementById("lme-origem-sel");
+    const sel = shadow.getElementById("lme-origem-sel");
     ORIGENS.forEach(function (o) {
-      var op = document.createElement("option");
+      const op = document.createElement("option");
       op.value = o; op.textContent = o;
       sel.appendChild(op);
     });
-    var outro = document.createElement("option");
+    const outro = document.createElement("option");
     outro.value = "outro"; outro.textContent = "Outra unidade…";
     sel.appendChild(outro);
     sel.addEventListener("change", function () {
@@ -11403,10 +11473,10 @@
   }
 
   function autoDescricaoCid() {
-    var campo = shadow.getElementById("lme-cid");
-    var cid = campo.value.trim().toUpperCase();
+    const campo = shadow.getElementById("lme-cid");
+    const cid = campo.value.trim().toUpperCase();
     if (campo.value !== cid) campo.value = cid;
-    var desc = shadow.getElementById("lme-diagnostico");
+    const desc = shadow.getElementById("lme-diagnostico");
     if (CID_DIC[cid] && (!desc.value || desc.dataset.auto === "1")) {
       desc.value = CID_DIC[cid]; desc.dataset.auto = "1";
     } else if (desc.dataset.auto === "1" && !CID_DIC[cid]) {
@@ -11415,10 +11485,10 @@
   }
 
   function montarProcList() {
-    var dl = shadow.getElementById("lme-proc-list");
+    const dl = shadow.getElementById("lme-proc-list");
     Object.keys(CATALOGO_PROCEDIMENTOS).forEach(function (k) {
-      var p = CATALOGO_PROCEDIMENTOS[k];
-      var o = document.createElement("option");
+      const p = CATALOGO_PROCEDIMENTOS[k];
+      const o = document.createElement("option");
       o.value = p.nome; o.label = p.nome + " (" + p.codigo + ")";
       dl.appendChild(o);
     });
@@ -11429,10 +11499,10 @@
    * procedimento conhecido, o codigo preenche sozinho — mas pode ser
    * sobrescrito a qualquer momento, na mao. */
   function autoPreencherCodigoProc() {
-    var nomeCampo = shadow.getElementById("lme-proc-nome");
-    var codigoCampo = shadow.getElementById("lme-proc-codigo");
-    var alvo = nomeCampo.value.trim().toLowerCase();
-    var achado = Object.keys(CATALOGO_PROCEDIMENTOS)
+    const nomeCampo = shadow.getElementById("lme-proc-nome");
+    const codigoCampo = shadow.getElementById("lme-proc-codigo");
+    const alvo = nomeCampo.value.trim().toLowerCase();
+    const achado = Object.keys(CATALOGO_PROCEDIMENTOS)
       .map(function (k) { return CATALOGO_PROCEDIMENTOS[k]; })
       .find(function (p) { return p.nome.toLowerCase() === alvo; });
     if (achado && (!codigoCampo.value || codigoCampo.dataset.auto === "1")) {
@@ -11444,7 +11514,7 @@
 
   function aplicarLeituraDaTela(dadosTela) {
     if (!overlay || !dadosTela) return 0;
-    var n = 0;
+    let n = 0;
     if (dadosTela.nome) { shadow.getElementById("lme-pac-nome").value = dadosTela.nome; n++; }
     if (dadosTela.cpf) { shadow.getElementById("lme-pac-cpf").value = formatarCpf(dadosTela.cpf); n++; }
     if (dadosTela.nascimentoBR) { shadow.getElementById("lme-pac-nasc").value = dadosTela.nascimentoBR; n++; }
@@ -11458,20 +11528,20 @@
    * Se o CPF lido da tela for diferente do que ja esta no formulario, o
    * formulario inteiro e resetado antes de aplicar a nova leitura. */
   function trocouDePaciente(dadosTela) {
-    var cpfTela = (dadosTela.cpf || "").replace(/\D/g, "");
-    var cpfForm = shadow.getElementById("lme-pac-cpf").value.replace(/\D/g, "");
+    const cpfTela = (dadosTela.cpf || "").replace(/\D/g, "");
+    const cpfForm = shadow.getElementById("lme-pac-cpf").value.replace(/\D/g, "");
     return !!cpfTela && !!cpfForm && cpfTela !== cpfForm;
   }
 
   function atualizarPaciente() {
-    var btn = shadow.getElementById("lme-refresh");
-    var original = btn.textContent;
+    const btn = shadow.getElementById("lme-refresh");
+    const original = btn.textContent;
     btn.textContent = "Atualizando…";
     btn.disabled = true;
-    var dadosTela = d.dom.lerPaciente();
+    const dadosTela = d.dom.lerPaciente();
     if (trocouDePaciente(dadosTela)) limparForm();
-    var n = aplicarLeituraDaTela(dadosTela);
-    var aviso = shadow.getElementById("lme-auto-aviso");
+    const n = aplicarLeituraDaTela(dadosTela);
+    const aviso = shadow.getElementById("lme-auto-aviso");
     aviso.style.display = "block";
     aviso.textContent = n > 0
       ? "Dados lidos da tela (" + n + " campo" + (n > 1 ? "s" : "") + "). Confira antes de gerar."
@@ -11482,7 +11552,7 @@
   }
 
   function abrirModal() {
-    var dadosTela = d.dom.lerPaciente();
+    const dadosTela = d.dom.lerPaciente();
     if (trocouDePaciente(dadosTela) || !shadow.getElementById("lme-pac-cpf").value.trim()) limparForm();
     aplicarLeituraDaTela(dadosTela);
     aplicarModeloPadraoSeVazio();
@@ -11505,15 +11575,15 @@
     limparErro();
   }
 
-  var historico = null;
+  let historico = null;
 
   /* Repoe a parte CLINICA de um documento anterior. Os dados do paciente
    * NAO sao repostos de proposito: continuam vindo da tela do atendimento,
    * o que evita que o dado de um paciente entre no laudo de outro. */
   function reabrirDoHistorico(entrada) {
-    var c = entrada.clinico || {};
+    const c = entrada.clinico || {};
     Object.keys(c).forEach(function (id) {
-      var el = shadow.getElementById(id);
+      const el = shadow.getElementById(id);
       if (el) el.value = c[id];
     });
     // a unidade "outra" tem um campo que so aparece quando selecionada
@@ -11522,7 +11592,7 @@
       shadow.getElementById("lme-origem-sel").value === "outro"
     );
     historico.esconder();
-    var aviso = shadow.getElementById("lme-auto-aviso");
+    const aviso = shadow.getElementById("lme-auto-aviso");
     aviso.style.display = "block";
     aviso.textContent =
       "Repus procedimento, CID e justificativa de “" + entrada.titulo + "”. " +
@@ -11534,9 +11604,9 @@
    * tanto pelo autocomplete de dentro do campo quanto pela janela de
    * busca separada — um caminho so, para os dois nunca divergirem. */
   function preencherCidEscolhido(codigo, descricao) {
-    var campo = shadow.getElementById("lme-cid");
+    const campo = shadow.getElementById("lme-cid");
     if (campo) campo.value = codigo;
-    var desc = shadow.getElementById("lme-diagnostico");
+    const desc = shadow.getElementById("lme-diagnostico");
     if (desc && (!desc.value || desc.dataset.auto === "1")) {
       desc.value = descricao || "";
       desc.dataset.auto = "1";
@@ -11580,7 +11650,7 @@
    * proposito: se as duas divergirem, um campo passa a ser "clinico" num
    * lugar e "de paciente" no outro, e a fronteira deixa de valer.
    * ------------------------------------------------------------------ */
-  var CAMPOS_DO_MODELO = [
+  const CAMPOS_DO_MODELO = [
     "lme-proc-nome",
     "lme-proc-codigo",
     "lme-cid",
@@ -11599,14 +11669,14 @@
   function aplicarProcedimentoDoModelo() { return false; }
 
   function lerCamposDoFormulario() {
-    var fora = {};
+    const fora = {};
     CAMPOS_DO_MODELO.forEach(function (id) {
       if (id === "procedimento") {
-        var p = procedimentoDoModelo();
+        const p = procedimentoDoModelo();
         if (p) fora.procedimento = p;
         return;
       }
-      var el = shadow.getElementById(id);
+      const el = shadow.getElementById(id);
       if (el && el.value) fora[id] = el.value;
     });
     return fora;
@@ -11614,10 +11684,10 @@
 
   function aplicarModelo(clinico) {
     if (!clinico) return 0;
-    var n = 0;
+    let n = 0;
     Object.keys(clinico).forEach(function (id) {
       if (id === "procedimento") { if (aplicarProcedimentoDoModelo(clinico[id])) n++; return; }
-      var el = shadow.getElementById(id);
+      const el = shadow.getElementById(id);
       if (!el) return;
       el.value = clinico[id];
       el.dispatchEvent(new Event("input", { bubbles: true }));
@@ -11628,34 +11698,34 @@
   }
 
   function montarModelos() {
-    var sel = shadow.getElementById("lme-modelo-sel");
+    const sel = shadow.getElementById("lme-modelo-sel");
     if (!sel) return;
-    var lista = Modelos().listar("lme-sete-lagoas");
-    var escolhido = sel.value;
+    const lista = Modelos().listar("lme-sete-lagoas");
+    const escolhido = sel.value;
 
     /* Sem nenhum modelo, a lista de escolha nao aparece: um seletor
      * vazio parece defeito. Aparece so o convite para criar o primeiro. */
-    var linhaSalvos = shadow.getElementById("lme-modelo-salvos");
-    var vazio = shadow.getElementById("lme-modelo-vazio");
+    const linhaSalvos = shadow.getElementById("lme-modelo-salvos");
+    const vazio = shadow.getElementById("lme-modelo-vazio");
     if (linhaSalvos) linhaSalvos.hidden = !lista.length;
     if (vazio) vazio.hidden = !!lista.length;
 
     sel.innerHTML = "";
-    var ph = document.createElement("option");
+    const ph = document.createElement("option");
     ph.value = "";
     ph.textContent = "Escolha um modelo para preencher\u2026";
     sel.appendChild(ph);
     lista.forEach(function (m) {
-      var o = document.createElement("option");
+      const o = document.createElement("option");
       o.value = m.nome;
       o.textContent = (m.padrao ? "\u2605 " : "") + m.nome;
       sel.appendChild(o);
     });
     if (escolhido) sel.value = escolhido;
 
-    var dica = shadow.getElementById("lme-modelo-dica");
+    const dica = shadow.getElementById("lme-modelo-dica");
     if (dica) {
-      var padrao = Modelos().padraoDe("lme-sete-lagoas");
+      const padrao = Modelos().padraoDe("lme-sete-lagoas");
       if (padrao) {
         dica.textContent = "\u2605 " + padrao.nome + " entra sozinho quando você abre este gerador com os campos clínicos vazios.";
       } else if (lista.length) {
@@ -11667,17 +11737,17 @@
   }
 
   function ligarModelos() {
-    var sel = shadow.getElementById("lme-modelo-sel");
+    const sel = shadow.getElementById("lme-modelo-sel");
     if (!sel) return;
-    var nome = shadow.getElementById("lme-modelo-nome");
+    const nome = shadow.getElementById("lme-modelo-nome");
 
     /* Escolher na lista preenche na hora — e o caminho de todo dia, e
      * um botao "Aplicar" a mais so acrescentaria clique. */
     sel.addEventListener("change", function () {
       if (!sel.value) return;
-      var m = Modelos().obter("lme-sete-lagoas", sel.value);
+      const m = Modelos().obter("lme-sete-lagoas", sel.value);
       if (!m) return;
-      var n = aplicarModelo(m.clinico);
+      const n = aplicarModelo(m.clinico);
       /* O campo de NOME nao e preenchido aqui — e essa linha, que existia
        * "para facilitar corrigir", fazia o medico perder modelo: ele
        * aplicava um, montava OUTRO procedimento, clicava em salvar e o
@@ -11692,7 +11762,7 @@
      * nome que ja existe corrige. O medico que salva "Holter rotina" de
      * novo esta acertando o dele, nao pedindo dois. */
     function criar() {
-      var r = Modelos().salvar("lme-sete-lagoas", nome.value, lerCamposDoFormulario(), CAMPOS_DO_MODELO);
+      const r = Modelos().salvar("lme-sete-lagoas", nome.value, lerCamposDoFormulario(), CAMPOS_DO_MODELO);
       if (!r.ok) { toast(r.erro, 6000); nome.focus(); return; }
       montarModelos();
       sel.value = r.nome;
@@ -11700,7 +11770,7 @@
        * modelo novo por padrao, em vez de uma substituicao por acidente. */
       if (!r.substituiu) nome.value = "";
       atualizarBotaoDeSalvar();
-      var quantos = Modelos().listar("lme-sete-lagoas").length;
+      const quantos = Modelos().listar("lme-sete-lagoas").length;
       toast(
         r.substituiu
           ? "Modelo \u201c" + r.nome + "\u201d substituído."
@@ -11713,10 +11783,10 @@
      * criar e substituir sao o mesmo gesto — e o medico so descobre qual
      * dos dois aconteceu quando o modelo antigo ja se foi. */
     function atualizarBotaoDeSalvar() {
-      var botao = shadow.getElementById("lme-modelo-criar");
+      const botao = shadow.getElementById("lme-modelo-criar");
       if (!botao) return;
-      var digitado = (nome.value || "").trim();
-      var existe = digitado && Modelos().obter("lme-sete-lagoas", digitado);
+      const digitado = (nome.value || "").trim();
+      const existe = digitado && Modelos().obter("lme-sete-lagoas", digitado);
       botao.textContent = existe ? "\u21bb Substituir \u201c" + digitado + "\u201d" : "\uff0b Salvar como modelo";
       botao.classList.toggle("substituir", !!existe);
     }
@@ -11731,7 +11801,7 @@
       if (!sel.value) { toast("Escolha um modelo na lista para ele vir preenchido sozinho.", 4000); return; }
       Modelos().definirPadrao("lme-sete-lagoas", sel.value);
       montarModelos();
-      var padrao = Modelos().padraoDe("lme-sete-lagoas");
+      const padrao = Modelos().padraoDe("lme-sete-lagoas");
       toast(
         padrao && padrao.nome === sel.value
           ? "\u201c" + sel.value + "\u201d agora vem preenchido sozinho ao abrir."
@@ -11766,10 +11836,10 @@
    * Entao um select so conta se o medico o tirou do valor inicial.
    * ------------------------------------------------------------------ */
   function campoFoiPreenchido(id) {
-    var el = shadow.getElementById(id);
+    const el = shadow.getElementById(id);
     if (!el || !el.value) return false;
     if (el.tagName === "SELECT") {
-      var primeira = el.options && el.options.length ? el.options[0].value : "";
+      const primeira = el.options && el.options.length ? el.options[0].value : "";
       return el.value !== primeira;
     }
     return true;
@@ -11777,8 +11847,8 @@
 
   function formularioClinicoVazio() {
     if (procedimentoDoModelo()) return false;
-    for (var i = 0; i < CAMPOS_DO_MODELO.length; i++) {
-      var id = CAMPOS_DO_MODELO[i];
+    for (let i = 0; i < CAMPOS_DO_MODELO.length; i++) {
+      const id = CAMPOS_DO_MODELO[i];
       if (id === "procedimento") continue;
       if (campoFoiPreenchido(id)) return false;
     }
@@ -11788,7 +11858,7 @@
   /* O modelo padrao so entra com a parte clinica VAZIA. Ele existe para
    * poupar digitacao, nunca para apagar o que o medico ja escreveu. */
   function aplicarModeloPadraoSeVazio() {
-    var padrao = Modelos().padraoDe("lme-sete-lagoas");
+    const padrao = Modelos().padraoDe("lme-sete-lagoas");
     if (!padrao) return;
     if (!formularioClinicoVazio()) return;
     aplicarModelo(padrao.clinico);
@@ -11803,7 +11873,7 @@
    * com o botao ainda recusando ensinaria o medico a nao confiar na
    * tela — por isso a fonte e uma so. Ver D32.
    * ------------------------------------------------------------------ */
-  var guia = null;
+  var guia = null; // eslint-disable-line no-var -- usada antes desta linha; com let/const daria erro de zona morta (TDZ)
 
   function camposAplicaveis() {
     return CAMPOS_OBRIGATORIOS.filter(function (campo) {
@@ -11821,13 +11891,13 @@
       },
     });
 
-    var corpo = shadow.getElementById("lme-body");
+    const corpo = shadow.getElementById("lme-body");
     if (corpo) corpo.insertBefore(guia.elemento, corpo.firstChild);
 
     /* Um ouvinte delegado no modal, nao um por campo: o formulario muda
      * de forma (grid de procedimento, campos condicionais) e ouvintes
      * por campo ficariam para tras. */
-    var modal = shadow.getElementById("lme-modal");
+    const modal = shadow.getElementById("lme-modal");
     if (modal) {
       modal.addEventListener("input", atualizarGuia);
       modal.addEventListener("change", atualizarGuia);
@@ -11924,7 +11994,7 @@
        * descricao entram sozinhos. Se aquele modulo estiver desligado,
        * ninguem atende e o campo continua sendo texto livre. */
       function anunciarCampoCid() {
-        var campo = shadow.getElementById("lme-cid");
+        const campo = shadow.getElementById("lme-cid");
         if (!campo) return;
         deps.publicarEvento("cid:conectar-campo", {
           input: campo,
@@ -12026,21 +12096,24 @@
 (function (raiz) {
   "use strict";
 
-  var d = null;
-  var overlay = null;
-  var timers = [];
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
+  let d = null;
+  let overlay = null;
+  let timers = [];
 
   /* PDF base oficial, embutido em base64 pelo asset do modulo. */
-  var BASE_PDF_B64 = raiz.MEEDS_CMD_BASE_PDF_B64;
+  const BASE_PDF_B64 = raiz.MEEDS_CMD_BASE_PDF_B64;
 
   /* Nome herdado do original, para gerarPdf() continuar valendo sem
    * reescrita. */
-  var CMD_BASE_PDF_B64 = BASE_PDF_B64;
+  const CMD_BASE_PDF_B64 = BASE_PDF_B64;
 
   /* SHIM DE COMPATIBILIDADE — ver modules/apac-itauna/index.js.
    * Reproduz a interface shadow.getElementById() por cima do overlay do
    * dock, para o codigo migrado continuar valendo sem reescrita. */
-  var shadow = {
+  const shadow = {
     getElementById: function (id) {
       return overlay ? overlay.elemento.querySelector("#" + id) : null;
     },
@@ -12057,9 +12130,9 @@
   }
 
   function b64ToBytes(b64) {
-    var bin = atob(b64);
-    var bytes = new Uint8Array(bin.length);
-    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     return bytes;
   }
 
@@ -12068,20 +12141,20 @@
    * @require), com o mesmo fallback do original.
    * ---------------------------------------------------------------- */
   function resolverPdfLib() {
-    var escopos = [];
+    const escopos = [];
     try { escopos.push(raiz); } catch (e) {}
     try { if (typeof unsafeWindow !== "undefined") escopos.push(unsafeWindow); } catch (e) {}
     try { escopos.push(window); } catch (e) {}
     try { escopos.push(globalThis); } catch (e) {}
-    for (var i = 0; i < escopos.length; i++) {
+    for (let i = 0; i < escopos.length; i++) {
       if (escopos[i] && escopos[i].PDFLib) return escopos[i].PDFLib;
     }
     return null;
   }
 
-  var pdfLibCarregandoPromise = null;
+  let pdfLibCarregandoPromise = null;
   function garantirPdfLib() {
-    var direto = resolverPdfLib();
+    const direto = resolverPdfLib();
     if (direto) return Promise.resolve(direto);
     if (pdfLibCarregandoPromise) return pdfLibCarregandoPromise;
     pdfLibCarregandoPromise = new Promise(function (resolve, reject) {
@@ -12095,7 +12168,7 @@
         onload: function (res) {
           try {
             (0, eval)(res.responseText);
-            var lib = resolverPdfLib();
+            const lib = resolverPdfLib();
             if (lib) resolve(lib);
             else reject(new Error("pdf-lib avaliado mas não exposto."));
           } catch (e) { reject(e); }
@@ -12107,7 +12180,7 @@
   }
 
   function formatarCpf(digits) {
-    var dd = (digits || "").replace(/\D/g, "");
+    const dd = (digits || "").replace(/\D/g, "");
     if (dd.length !== 11) return digits || "";
     return dd.slice(0,3) + "." + dd.slice(3,6) + "." + dd.slice(6,9) + "-" + dd.slice(9,11);
   }
@@ -12116,8 +12189,8 @@
    * data ja formatada e ignora tudo que nao for digito. */
   function ativarMascaraData(input) {
     input.addEventListener("input", function () {
-      var dd = input.value.replace(/\D/g, "").slice(0, 8);
-      var out = dd;
+      const dd = input.value.replace(/\D/g, "").slice(0, 8);
+      let out = dd;
       if (dd.length > 4) out = dd.slice(0,2) + "/" + dd.slice(2,4) + "/" + dd.slice(4);
       else if (dd.length > 2) out = dd.slice(0,2) + "/" + dd.slice(2);
       input.value = out;
@@ -12125,7 +12198,7 @@
   }
 
   function mostrarSucesso(nomeArquivo) {
-    var el = shadow.getElementById("cmd-sucesso");
+    const el = shadow.getElementById("cmd-sucesso");
     el.innerHTML =
       "✅ <b>Laudo gerado e baixado.</b><br>Arquivo: <b>" + nomeArquivo + "</b> — procure na pasta de downloads do navegador. " +
       "Ele já ficou registrado no <b>📜 Histórico</b>, caso precise repetir depois.";
@@ -12134,26 +12207,26 @@
   }
 
   function limparSucesso() {
-    var el = shadow.getElementById("cmd-sucesso");
+    const el = shadow.getElementById("cmd-sucesso");
     if (el) { el.style.display = "none"; el.innerHTML = ""; }
   }
 
   function limparErro() {
-    var el = shadow.getElementById("cmd-erro");
+    const el = shadow.getElementById("cmd-erro");
     el.style.display = "none";
     el.textContent = "";
   }
   function mostrarErro(msg) {
-    var el = shadow.getElementById("cmd-erro");
+    const el = shadow.getElementById("cmd-erro");
     el.textContent = msg;
     el.style.display = "block";
     el.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   function baixarPdf(bytes, filename) {
-    var blob = new Blob([bytes], { type: "application/pdf" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
     a.href = url; a.download = filename;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
@@ -12168,17 +12241,17 @@
    * faltava) e ninguem deveria abrir um .js para isso.
    * Se o arquivo faltar, os padroes abaixo seguram — o modulo nunca
    * quebra por causa de dado ausente. */
-  var DADOS = (raiz.MEEDS_DADOS_FORMULARIOS || {})["cmd"] || {};
+  const DADOS = (raiz.MEEDS_DADOS_FORMULARIOS || {})["cmd"] || {};
 
-  var MUNICIPIO_FIXO = DADOS.municipio || "CONCEIÇÃO DO MATO DENTRO";
-  var ORIGENS = DADOS.origens || [];
-  var CID_DIC = DADOS.cids || {};
-  var CATALOGO_PROCEDIMENTOS = DADOS.procedimentos || {};
+  const MUNICIPIO_FIXO = DADOS.municipio || "CONCEIÇÃO DO MATO DENTRO";
+  const ORIGENS = DADOS.origens || [];
+  const CID_DIC = DADOS.cids || {};
+  const CATALOGO_PROCEDIMENTOS = DADOS.procedimentos || {};
 
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
-  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + raiz.MeedsSuiteModelos.CSS + "\n" + raiz.MeedsSuiteCabecalho.CSS + "\n" + raiz.MeedsSuiteGuia.CSS + "\n" + "#cmd-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #cmd-sucesso b{ color:#08574f; }\n" + "#cmd-modal{\n      background:#fff; border-radius:6px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 8px 24px rgba(15,23,42,.2);\n    }\n    #cmd-modal-head{\n      background:#17457f; color:#fff; padding:16px 20px; border-radius:6px 6px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #cmd-modal-head h2{ margin:0; font-size:15px; }\n    #cmd-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:5px; cursor:pointer; font-size:14px; }\n    #cmd-body{ padding:18px 20px; }\n    .cmd-sec{ margin-bottom:16px; }\n    .cmd-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .cmd-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .cmd-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    .cmd-grid4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }\n    #cmd-body label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    #cmd-body input,#cmd-body select,#cmd-body textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    #cmd-body textarea{ min-height:90px; resize:vertical; }\n    #cmd-origem-outro-wrap{ display:none; margin-top:8px; }\n    #cmd-origem-outro-wrap.show{ display:block; }\n    #cmd-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .cmd-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    .cmd-contador{ text-align:right; font-size:10.5px; color:#8a97a4; margin-top:4px; }\n    button.cmd-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.cmd-primary:hover{ background:#123a7a; }\n    button.cmd-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.cmd-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.cmd-secondary:hover{ background:#e8f0f8; }\n    #cmd-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #cmd-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
+  const CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + raiz.MeedsSuiteModelos.CSS + "\n" + raiz.MeedsSuiteCabecalho.CSS + "\n" + raiz.MeedsSuiteGuia.CSS + "\n" + "#cmd-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #cmd-sucesso b{ color:#08574f; }\n" + "#cmd-modal{\n      background:#fff; border-radius:6px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 8px 24px rgba(15,23,42,.2);\n    }\n    #cmd-modal-head{\n      background:#17457f; color:#fff; padding:16px 20px; border-radius:6px 6px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #cmd-modal-head h2{ margin:0; font-size:15px; }\n    #cmd-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:5px; cursor:pointer; font-size:14px; }\n    #cmd-body{ padding:18px 20px; }\n    .cmd-sec{ margin-bottom:16px; }\n    .cmd-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .cmd-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .cmd-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    .cmd-grid4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }\n    #cmd-body label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    #cmd-body input,#cmd-body select,#cmd-body textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    #cmd-body textarea{ min-height:90px; resize:vertical; }\n    #cmd-origem-outro-wrap{ display:none; margin-top:8px; }\n    #cmd-origem-outro-wrap.show{ display:block; }\n    #cmd-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .cmd-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    .cmd-contador{ text-align:right; font-size:10.5px; color:#8a97a4; margin-top:4px; }\n    button.cmd-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.cmd-primary:hover{ background:#123a7a; }\n    button.cmd-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.cmd-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.cmd-secondary:hover{ background:#e8f0f8; }\n    #cmd-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #cmd-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
 
-  var HTML = "<div id=\"cmd-modal\">\n      " +
+  const HTML = "<div id=\"cmd-modal\">\n      " +
     raiz.MeedsSuiteCabecalho.html({
       tom: "documento", titulo: "Laudo Médico de Alto Custo — Conceição do Mato Dentro", idFechar: "cmd-close",
       acoes: [
@@ -12196,7 +12269,7 @@
    * nao veio sozinho clique em Atualizar paciente" em vez de "campo
    * obrigatorio". O texto final e montado pelo nucleo
    * (core/mensagens.js), para o tom ser o mesmo em todos os modulos. */
-  var CAMPOS_OBRIGATORIOS = [
+  const CAMPOS_OBRIGATORIOS = [
       { id: "cmd-medico-sel", descricao: "escolher o médico solicitante", rotulo: "Médico solicitante",
         comoResolver: "se a lista estiver vazia, cadastre-se no painel da engrenagem (⚙️)" },
       { id: "cmd-medico-nome", descricao: "o nome do médico", rotulo: "Nome" },
@@ -12219,7 +12292,7 @@
     return CAMPOS_OBRIGATORIOS.filter(function (campo) {
       if (typeof campo.so === "function" && !campo.so()) return false;
       if (typeof campo.vazio === "function") return campo.vazio();
-      var el = shadow.getElementById(campo.id);
+      const el = shadow.getElementById(campo.id);
       return !el || !String(el.value || "").trim();
     });
   }
@@ -12320,7 +12393,7 @@
         const justificativaQuebrada = wrapTexto(fontR, 9, justificativa, larguraCampo - 16);
         campoJustificativa.setText(justificativaQuebrada);
       } catch (e) {
-        console.warn('[CMD Laudo] Falha ao preencher justificativa_clinica:', e);
+        LOG.warn('[CMD Laudo] Falha ao preencher justificativa_clinica:', e);
         setTexto(form, 'justificativa_clinica', justificativa);
       }
       if (diagnostico) setTexto(form, 'diagnostico_inicial', diagnostico);
@@ -12388,7 +12461,7 @@
       mostrarSucesso(filename);
       toast("Pronto — laudo de Conceição do Mato Dentro baixado.", 5000);
     } catch (e) {
-      var msg = e && e.message ? e.message : "";
+      const msg = e && e.message ? e.message : "";
       if (/pdf-lib|componente|rede/i.test(msg)) {
         /* biblioteca que nao carrega tem causa e solucao proprias — quase
          * sempre a rede da unidade bloqueando o CDN — e por isso a
@@ -12419,27 +12492,27 @@
     try {
       form.getTextField(nomeCampo).setText(valor || "");
     } catch (e) {
-      console.warn("[CMD Laudo] Campo de texto nao encontrado no PDF:", nomeCampo, e);
+      LOG.warn("[CMD Laudo] Campo de texto nao encontrado no PDF:", nomeCampo, e);
     }
   }
 
   function setCheckbox(form, nomeCampo, marcado) {
     try {
-      var campo = form.getCheckBox(nomeCampo);
+      const campo = form.getCheckBox(nomeCampo);
       if (marcado) campo.check();
       else campo.uncheck();
     } catch (e) {
-      console.warn("[CMD Laudo] Checkbox nao encontrado no PDF:", nomeCampo, e);
+      LOG.warn("[CMD Laudo] Checkbox nao encontrado no PDF:", nomeCampo, e);
     }
   }
 
   /* O campo de justificativa do PDF oficial aceita 700 caracteres. O
    * contador e o corte vivem aqui para o medico ver o limite antes de
    * gerar, em vez de descobrir o texto truncado no PDF. */
-  var JUSTIFICATIVA_MAX = 700;
+  const JUSTIFICATIVA_MAX = 700;
 
   function atualizarContadorJustificativa() {
-    var campo = shadow.getElementById("cmd-justificativa");
+    const campo = shadow.getElementById("cmd-justificativa");
     if (!campo) return;
     if (campo.value.length > JUSTIFICATIVA_MAX) campo.value = campo.value.slice(0, JUSTIFICATIVA_MAX);
     shadow.getElementById("cmd-justificativa-contador").textContent =
@@ -12453,7 +12526,7 @@
    * cuida do "cadastrar medico" e do auto-preenchimento quando ha um so
    * medico cadastrado neste navegador. Aqui so dizemos o que fazer com a
    * ficha escolhida. */
-  var seletorMedico = null;
+  let seletorMedico = null;
 
   function preencherMedico(ficha) {
     shadow.getElementById("cmd-medico-nome").value = ficha ? ficha.nome : "";
@@ -12472,13 +12545,13 @@
 
 
   function montarOrigens() {
-    var sel = shadow.getElementById("cmd-origem-sel");
+    const sel = shadow.getElementById("cmd-origem-sel");
     ORIGENS.forEach(function (o) {
-      var op = document.createElement("option");
+      const op = document.createElement("option");
       op.value = o; op.textContent = o;
       sel.appendChild(op);
     });
-    var outro = document.createElement("option");
+    const outro = document.createElement("option");
     outro.value = "outro"; outro.textContent = "Outra unidade…";
     sel.appendChild(outro);
     sel.addEventListener("change", function () {
@@ -12487,10 +12560,10 @@
   }
 
   function autoDescricaoCid() {
-    var campo = shadow.getElementById("cmd-cid");
-    var cid = campo.value.trim().toUpperCase();
+    const campo = shadow.getElementById("cmd-cid");
+    const cid = campo.value.trim().toUpperCase();
     if (campo.value !== cid) campo.value = cid;
-    var desc = shadow.getElementById("cmd-diagnostico");
+    const desc = shadow.getElementById("cmd-diagnostico");
     if (CID_DIC[cid] && (!desc.value || desc.dataset.auto === "1")) {
       desc.value = CID_DIC[cid]; desc.dataset.auto = "1";
     } else if (desc.dataset.auto === "1" && !CID_DIC[cid]) {
@@ -12499,10 +12572,10 @@
   }
 
   function montarProcList() {
-    var dl = shadow.getElementById("cmd-proc-list");
+    const dl = shadow.getElementById("cmd-proc-list");
     Object.keys(CATALOGO_PROCEDIMENTOS).forEach(function (k) {
-      var p = CATALOGO_PROCEDIMENTOS[k];
-      var o = document.createElement("option");
+      const p = CATALOGO_PROCEDIMENTOS[k];
+      const o = document.createElement("option");
       o.value = p.nome; o.label = p.nome + " (" + p.codigo + ")";
       dl.appendChild(o);
     });
@@ -12513,10 +12586,10 @@
    * procedimento conhecido, o codigo preenche sozinho — mas pode ser
    * sobrescrito a qualquer momento, na mao. */
   function autoPreencherCodigoProc() {
-    var nomeCampo = shadow.getElementById("cmd-proc-nome");
-    var codigoCampo = shadow.getElementById("cmd-proc-codigo");
-    var alvo = nomeCampo.value.trim().toLowerCase();
-    var achado = Object.keys(CATALOGO_PROCEDIMENTOS)
+    const nomeCampo = shadow.getElementById("cmd-proc-nome");
+    const codigoCampo = shadow.getElementById("cmd-proc-codigo");
+    const alvo = nomeCampo.value.trim().toLowerCase();
+    const achado = Object.keys(CATALOGO_PROCEDIMENTOS)
       .map(function (k) { return CATALOGO_PROCEDIMENTOS[k]; })
       .find(function (p) { return p.nome.toLowerCase() === alvo; });
     if (achado && (!codigoCampo.value || codigoCampo.dataset.auto === "1")) {
@@ -12528,7 +12601,7 @@
 
   function aplicarLeituraDaTela(dadosTela) {
     if (!overlay || !dadosTela) return 0;
-    var n = 0;
+    let n = 0;
     if (dadosTela.nome) { shadow.getElementById("cmd-pac-nome").value = dadosTela.nome; n++; }
     if (dadosTela.cpf) { shadow.getElementById("cmd-pac-cpf").value = formatarCpf(dadosTela.cpf); n++; }
     if (dadosTela.nascimentoBR) { shadow.getElementById("cmd-pac-nasc").value = dadosTela.nascimentoBR; n++; }
@@ -12544,20 +12617,20 @@
    * Se o CPF lido da tela for diferente do que ja esta no formulario, o
    * formulario inteiro e resetado antes de aplicar a nova leitura. */
   function trocouDePaciente(dadosTela) {
-    var cpfTela = (dadosTela.cpf || "").replace(/\D/g, "");
-    var cpfForm = shadow.getElementById("cmd-pac-cpf").value.replace(/\D/g, "");
+    const cpfTela = (dadosTela.cpf || "").replace(/\D/g, "");
+    const cpfForm = shadow.getElementById("cmd-pac-cpf").value.replace(/\D/g, "");
     return !!cpfTela && !!cpfForm && cpfTela !== cpfForm;
   }
 
   function atualizarPaciente() {
-    var btn = shadow.getElementById("cmd-refresh");
-    var original = btn.textContent;
+    const btn = shadow.getElementById("cmd-refresh");
+    const original = btn.textContent;
     btn.textContent = "Atualizando…";
     btn.disabled = true;
-    var dadosTela = d.dom.lerPaciente();
+    const dadosTela = d.dom.lerPaciente();
     if (trocouDePaciente(dadosTela)) limparForm();
-    var n = aplicarLeituraDaTela(dadosTela);
-    var aviso = shadow.getElementById("cmd-auto-aviso");
+    const n = aplicarLeituraDaTela(dadosTela);
+    const aviso = shadow.getElementById("cmd-auto-aviso");
     aviso.style.display = "block";
     aviso.textContent = n > 0
       ? "Dados lidos da tela (" + n + " campo" + (n > 1 ? "s" : "") + "). Confira antes de gerar."
@@ -12568,7 +12641,7 @@
   }
 
   function abrirModal() {
-    var dadosTela = d.dom.lerPaciente();
+    const dadosTela = d.dom.lerPaciente();
     if (trocouDePaciente(dadosTela) || !shadow.getElementById("cmd-pac-cpf").value.trim()) limparForm();
     aplicarLeituraDaTela(dadosTela);
     aplicarModeloPadraoSeVazio();
@@ -12593,15 +12666,15 @@
     limparErro();
   }
 
-  var historico = null;
+  let historico = null;
 
   /* Repoe a parte CLINICA de um documento anterior. Os dados do paciente
    * NAO sao repostos de proposito: continuam vindo da tela do atendimento,
    * o que evita que o dado de um paciente entre no laudo de outro. */
   function reabrirDoHistorico(entrada) {
-    var c = entrada.clinico || {};
+    const c = entrada.clinico || {};
     Object.keys(c).forEach(function (id) {
-      var el = shadow.getElementById(id);
+      const el = shadow.getElementById(id);
       if (el) el.value = c[id];
     });
     // a unidade "outra" tem um campo que so aparece quando selecionada
@@ -12610,7 +12683,7 @@
       shadow.getElementById("cmd-origem-sel").value === "outro"
     );
     historico.esconder();
-    var aviso = shadow.getElementById("cmd-auto-aviso");
+    const aviso = shadow.getElementById("cmd-auto-aviso");
     aviso.style.display = "block";
     aviso.textContent =
       "Repus procedimento, CID e justificativa de “" + entrada.titulo + "”. " +
@@ -12622,9 +12695,9 @@
    * tanto pelo autocomplete de dentro do campo quanto pela janela de
    * busca separada — um caminho so, para os dois nunca divergirem. */
   function preencherCidEscolhido(codigo, descricao) {
-    var campo = shadow.getElementById("cmd-cid");
+    const campo = shadow.getElementById("cmd-cid");
     if (campo) campo.value = codigo;
-    var desc = shadow.getElementById("cmd-diagnostico");
+    const desc = shadow.getElementById("cmd-diagnostico");
     if (desc && (!desc.value || desc.dataset.auto === "1")) {
       desc.value = descricao || "";
       desc.dataset.auto = "1";
@@ -12669,7 +12742,7 @@
    * proposito: se as duas divergirem, um campo passa a ser "clinico" num
    * lugar e "de paciente" no outro, e a fronteira deixa de valer.
    * ------------------------------------------------------------------ */
-  var CAMPOS_DO_MODELO = [
+  const CAMPOS_DO_MODELO = [
     "cmd-proc-nome",
     "cmd-proc-codigo",
     "cmd-cid",
@@ -12688,14 +12761,14 @@
   function aplicarProcedimentoDoModelo() { return false; }
 
   function lerCamposDoFormulario() {
-    var fora = {};
+    const fora = {};
     CAMPOS_DO_MODELO.forEach(function (id) {
       if (id === "procedimento") {
-        var p = procedimentoDoModelo();
+        const p = procedimentoDoModelo();
         if (p) fora.procedimento = p;
         return;
       }
-      var el = shadow.getElementById(id);
+      const el = shadow.getElementById(id);
       if (el && el.value) fora[id] = el.value;
     });
     return fora;
@@ -12703,10 +12776,10 @@
 
   function aplicarModelo(clinico) {
     if (!clinico) return 0;
-    var n = 0;
+    let n = 0;
     Object.keys(clinico).forEach(function (id) {
       if (id === "procedimento") { if (aplicarProcedimentoDoModelo(clinico[id])) n++; return; }
-      var el = shadow.getElementById(id);
+      const el = shadow.getElementById(id);
       if (!el) return;
       el.value = clinico[id];
       el.dispatchEvent(new Event("input", { bubbles: true }));
@@ -12717,34 +12790,34 @@
   }
 
   function montarModelos() {
-    var sel = shadow.getElementById("cmd-modelo-sel");
+    const sel = shadow.getElementById("cmd-modelo-sel");
     if (!sel) return;
-    var lista = Modelos().listar("cmd");
-    var escolhido = sel.value;
+    const lista = Modelos().listar("cmd");
+    const escolhido = sel.value;
 
     /* Sem nenhum modelo, a lista de escolha nao aparece: um seletor
      * vazio parece defeito. Aparece so o convite para criar o primeiro. */
-    var linhaSalvos = shadow.getElementById("cmd-modelo-salvos");
-    var vazio = shadow.getElementById("cmd-modelo-vazio");
+    const linhaSalvos = shadow.getElementById("cmd-modelo-salvos");
+    const vazio = shadow.getElementById("cmd-modelo-vazio");
     if (linhaSalvos) linhaSalvos.hidden = !lista.length;
     if (vazio) vazio.hidden = !!lista.length;
 
     sel.innerHTML = "";
-    var ph = document.createElement("option");
+    const ph = document.createElement("option");
     ph.value = "";
     ph.textContent = "Escolha um modelo para preencher\u2026";
     sel.appendChild(ph);
     lista.forEach(function (m) {
-      var o = document.createElement("option");
+      const o = document.createElement("option");
       o.value = m.nome;
       o.textContent = (m.padrao ? "\u2605 " : "") + m.nome;
       sel.appendChild(o);
     });
     if (escolhido) sel.value = escolhido;
 
-    var dica = shadow.getElementById("cmd-modelo-dica");
+    const dica = shadow.getElementById("cmd-modelo-dica");
     if (dica) {
-      var padrao = Modelos().padraoDe("cmd");
+      const padrao = Modelos().padraoDe("cmd");
       if (padrao) {
         dica.textContent = "\u2605 " + padrao.nome + " entra sozinho quando você abre este gerador com os campos clínicos vazios.";
       } else if (lista.length) {
@@ -12756,17 +12829,17 @@
   }
 
   function ligarModelos() {
-    var sel = shadow.getElementById("cmd-modelo-sel");
+    const sel = shadow.getElementById("cmd-modelo-sel");
     if (!sel) return;
-    var nome = shadow.getElementById("cmd-modelo-nome");
+    const nome = shadow.getElementById("cmd-modelo-nome");
 
     /* Escolher na lista preenche na hora — e o caminho de todo dia, e
      * um botao "Aplicar" a mais so acrescentaria clique. */
     sel.addEventListener("change", function () {
       if (!sel.value) return;
-      var m = Modelos().obter("cmd", sel.value);
+      const m = Modelos().obter("cmd", sel.value);
       if (!m) return;
-      var n = aplicarModelo(m.clinico);
+      const n = aplicarModelo(m.clinico);
       /* O campo de NOME nao e preenchido aqui — e essa linha, que existia
        * "para facilitar corrigir", fazia o medico perder modelo: ele
        * aplicava um, montava OUTRO procedimento, clicava em salvar e o
@@ -12781,7 +12854,7 @@
      * nome que ja existe corrige. O medico que salva "Holter rotina" de
      * novo esta acertando o dele, nao pedindo dois. */
     function criar() {
-      var r = Modelos().salvar("cmd", nome.value, lerCamposDoFormulario(), CAMPOS_DO_MODELO);
+      const r = Modelos().salvar("cmd", nome.value, lerCamposDoFormulario(), CAMPOS_DO_MODELO);
       if (!r.ok) { toast(r.erro, 6000); nome.focus(); return; }
       montarModelos();
       sel.value = r.nome;
@@ -12789,7 +12862,7 @@
        * modelo novo por padrao, em vez de uma substituicao por acidente. */
       if (!r.substituiu) nome.value = "";
       atualizarBotaoDeSalvar();
-      var quantos = Modelos().listar("cmd").length;
+      const quantos = Modelos().listar("cmd").length;
       toast(
         r.substituiu
           ? "Modelo \u201c" + r.nome + "\u201d substituído."
@@ -12802,10 +12875,10 @@
      * criar e substituir sao o mesmo gesto — e o medico so descobre qual
      * dos dois aconteceu quando o modelo antigo ja se foi. */
     function atualizarBotaoDeSalvar() {
-      var botao = shadow.getElementById("cmd-modelo-criar");
+      const botao = shadow.getElementById("cmd-modelo-criar");
       if (!botao) return;
-      var digitado = (nome.value || "").trim();
-      var existe = digitado && Modelos().obter("cmd", digitado);
+      const digitado = (nome.value || "").trim();
+      const existe = digitado && Modelos().obter("cmd", digitado);
       botao.textContent = existe ? "\u21bb Substituir \u201c" + digitado + "\u201d" : "\uff0b Salvar como modelo";
       botao.classList.toggle("substituir", !!existe);
     }
@@ -12820,7 +12893,7 @@
       if (!sel.value) { toast("Escolha um modelo na lista para ele vir preenchido sozinho.", 4000); return; }
       Modelos().definirPadrao("cmd", sel.value);
       montarModelos();
-      var padrao = Modelos().padraoDe("cmd");
+      const padrao = Modelos().padraoDe("cmd");
       toast(
         padrao && padrao.nome === sel.value
           ? "\u201c" + sel.value + "\u201d agora vem preenchido sozinho ao abrir."
@@ -12855,10 +12928,10 @@
    * Entao um select so conta se o medico o tirou do valor inicial.
    * ------------------------------------------------------------------ */
   function campoFoiPreenchido(id) {
-    var el = shadow.getElementById(id);
+    const el = shadow.getElementById(id);
     if (!el || !el.value) return false;
     if (el.tagName === "SELECT") {
-      var primeira = el.options && el.options.length ? el.options[0].value : "";
+      const primeira = el.options && el.options.length ? el.options[0].value : "";
       return el.value !== primeira;
     }
     return true;
@@ -12866,8 +12939,8 @@
 
   function formularioClinicoVazio() {
     if (procedimentoDoModelo()) return false;
-    for (var i = 0; i < CAMPOS_DO_MODELO.length; i++) {
-      var id = CAMPOS_DO_MODELO[i];
+    for (let i = 0; i < CAMPOS_DO_MODELO.length; i++) {
+      const id = CAMPOS_DO_MODELO[i];
       if (id === "procedimento") continue;
       if (campoFoiPreenchido(id)) return false;
     }
@@ -12877,7 +12950,7 @@
   /* O modelo padrao so entra com a parte clinica VAZIA. Ele existe para
    * poupar digitacao, nunca para apagar o que o medico ja escreveu. */
   function aplicarModeloPadraoSeVazio() {
-    var padrao = Modelos().padraoDe("cmd");
+    const padrao = Modelos().padraoDe("cmd");
     if (!padrao) return;
     if (!formularioClinicoVazio()) return;
     aplicarModelo(padrao.clinico);
@@ -12892,7 +12965,7 @@
    * com o botao ainda recusando ensinaria o medico a nao confiar na
    * tela — por isso a fonte e uma so. Ver D32.
    * ------------------------------------------------------------------ */
-  var guia = null;
+  var guia = null; // eslint-disable-line no-var -- usada antes desta linha; com let/const daria erro de zona morta (TDZ)
 
   function camposAplicaveis() {
     return CAMPOS_OBRIGATORIOS.filter(function (campo) {
@@ -12910,13 +12983,13 @@
       },
     });
 
-    var corpo = shadow.getElementById("cmd-body");
+    const corpo = shadow.getElementById("cmd-body");
     if (corpo) corpo.insertBefore(guia.elemento, corpo.firstChild);
 
     /* Um ouvinte delegado no modal, nao um por campo: o formulario muda
      * de forma (grid de procedimento, campos condicionais) e ouvintes
      * por campo ficariam para tras. */
-    var modal = shadow.getElementById("cmd-modal");
+    const modal = shadow.getElementById("cmd-modal");
     if (modal) {
       modal.addEventListener("input", atualizarGuia);
       modal.addEventListener("change", atualizarGuia);
@@ -13003,7 +13076,7 @@
        * descricao entram sozinhos. Se aquele modulo estiver desligado,
        * ninguem atende e o campo continua sendo texto livre. */
       function anunciarCampoCid() {
-        var campo = shadow.getElementById("cmd-cid");
+        const campo = shadow.getElementById("cmd-cid");
         if (!campo) return;
         deps.publicarEvento("cid:conectar-campo", {
           input: campo,
@@ -13086,30 +13159,30 @@
 (function (raiz) {
   "use strict";
 
-  var d = null;
-  var timers = [];
-  var municipioPorAtendimento = {}; // id do atendimento -> nome do municipio (so memoria)
-  var dispensados = {};             // id do atendimento -> true se o medico fechou no X
-  var aberto = null;                // { id, municipio, chave, aviso }
-  var vistoDesde = {};              // id do atendimento -> quando a pagina dele apareceu
+  let d = null;
+  let timers = [];
+  let municipioPorAtendimento = {}; // id do atendimento -> nome do municipio (so memoria)
+  let dispensados = {};             // id do atendimento -> true se o medico fechou no X
+  let aberto = null;                // { id, municipio, chave, aviso }
+  let vistoDesde = {};              // id do atendimento -> quando a pagina dele apareceu
 
   /* A leitura pela tela so vale depois deste tempo SEM resposta da rede.
    * A chamada do atendimento costuma chegar em menos de 1 s; esperar
    * evita mostrar por um instante o cartao de uma cidade que a rede,
    * logo em seguida, desmentiria. */
-  var ESPERA_REDE_MS = 3000;
+  const ESPERA_REDE_MS = 3000;
 
-  var RX_PAGINA_ATENDIMENTO = /^\/atendimento\/([0-9a-fA-F-]{36})(?:\/|$)/;
-  var RX_API_ATENDIMENTO = /\/api\/v1\/atendimento\/([0-9a-fA-F-]{36})(?:[?#].*)?$/i;
+  const RX_PAGINA_ATENDIMENTO = /^\/atendimento\/([0-9a-fA-F-]{36})(?:\/|$)/;
+  const RX_API_ATENDIMENTO = /\/api\/v1\/atendimento\/([0-9a-fA-F-]{36})(?:[?#].*)?$/i;
 
   function regras() {
-    var dados = raiz.MEEDS_AVISOS_MUNICIPIO;
+    const dados = raiz.MEEDS_AVISOS_MUNICIPIO;
     return (dados && dados.municipios) || {};
   }
 
   function atendimentoDaPagina() {
     try {
-      var m = RX_PAGINA_ATENDIMENTO.exec((raiz.location && raiz.location.pathname) || "");
+      const m = RX_PAGINA_ATENDIMENTO.exec((raiz.location && raiz.location.pathname) || "");
       return m ? m[1].toLowerCase() : null;
     } catch (e) {
       return null;
@@ -13130,19 +13203,19 @@
    * paciente vinculado a duas cidades nao tem como saber qual e a do
    * atendimento, e ai o certo e nao mostrar. */
   function vinculo(nomes) {
-    var Dom = raiz.MeedsSuiteDom;
-    var M = raiz.MeedsSuiteMunicipio;
+    const Dom = raiz.MeedsSuiteDom;
+    const M = raiz.MeedsSuiteMunicipio;
     if (!Dom || !M || typeof Dom.lerLinhasPorRotulo !== "function") return null;
-    var linhas = Dom.lerLinhasPorRotulo(["Vínculos", "Vínculo"]);
+    const linhas = Dom.lerLinhasPorRotulo(["Vínculos", "Vínculo"]);
     return linhas ? M.analisarVinculo(linhas, nomes) : null;
   }
 
   function municipioPeloVinculo(nomes) {
     if (!nomes.length) return null;
-    var v = vinculo(nomes);
+    const v = vinculo(nomes);
     if (!v || v.cidades.length !== 1) return null;
-    var Dom = raiz.MeedsSuiteDom;
-    var achados = nomes.filter(function (n) { return Dom.normalizarTexto(n) === v.cidades[0]; });
+    const Dom = raiz.MeedsSuiteDom;
+    const achados = nomes.filter(function (n) { return Dom.normalizarTexto(n) === v.cidades[0]; });
     return achados.length === 1 ? achados[0] : null;
   }
 
@@ -13159,13 +13232,13 @@
    * caixa): "UPA ... BARRA" nao casa com "UPA ... BARRA DE SAO JOAO".
    * Duas unidades com regra no mesmo vinculo: nao decide. */
   function unidadeDoVinculo(municipio, regraMun) {
-    var unidades = regraMun && regraMun.unidades;
+    const unidades = regraMun && regraMun.unidades;
     if (!unidades) return null;
-    var Dom = raiz.MeedsSuiteDom;
-    var v = vinculo(Object.keys(regras()));
+    const Dom = raiz.MeedsSuiteDom;
+    const v = vinculo(Object.keys(regras()));
     if (!v || v.cidades.length !== 1 || v.cidades[0] !== Dom.normalizarTexto(municipio)) return null;
 
-    var achadas = Object.keys(unidades).filter(function (k) {
+    const achadas = Object.keys(unidades).filter(function (k) {
       return (unidades[k].nomes || []).some(function (n) {
         return v.unidades.indexOf(Dom.normalizarTexto(n)) !== -1;
       });
@@ -13174,7 +13247,7 @@
   }
 
   function linhasDe(r) {
-    var corpo = [];
+    const corpo = [];
     (r.pode || []).forEach(function (item) {
       corpo.push("✅ " + item);
     });
@@ -13192,11 +13265,11 @@
   /* Regra do municipio (se houver) + regra da unidade (se houver), num
    * cartao so. O titulo e o da unidade quando ela existe. */
   function montarAviso(regraMun, unidade) {
-    var partes = [];
+    const partes = [];
     if (temConteudo(regraMun)) partes.push(regraMun);
     if (unidade && temConteudo(unidade.regra)) partes.push(unidade.regra);
     if (!partes.length) return null;
-    var corpo = [];
+    let corpo = [];
     partes.forEach(function (r, i) {
       if (i > 0) { corpo.push(""); corpo.push(r.titulo + ":"); }
       corpo = corpo.concat(linhasDe(r));
@@ -13222,13 +13295,13 @@
       aberto = null;
     }
 
-    var id = atendimentoDaPagina();
+    const id = atendimentoDaPagina();
     if (!id) return fechar();
     if (aberto && aberto.id !== id) fechar();
     if (dispensados[id]) return;
 
-    var tabela = regras();
-    var municipio;
+    const tabela = regras();
+    let municipio;
     if (Object.prototype.hasOwnProperty.call(municipioPorAtendimento, id)) {
       /* A rede respondeu por ESTE atendimento: ela decide, inclusive
        * quando diz "outro municipio". Nao cai para a leitura da tela. */
@@ -13242,10 +13315,10 @@
     }
     if (!municipio || !tabela[municipio]) return;
 
-    var unidade = unidadeDoVinculo(municipio, tabela[municipio]);
-    var spec = montarAviso(tabela[municipio], unidade);
+    const unidade = unidadeDoVinculo(municipio, tabela[municipio]);
+    const spec = montarAviso(tabela[municipio], unidade);
     if (!spec) return;
-    var chave = municipio + "|" + (unidade ? unidade.chave : "");
+    const chave = municipio + "|" + (unidade ? unidade.chave : "");
     if (aberto && aberto.chave === chave) return;
     /* A unidade apareceu (ou mudou) depois do cartao do municipio: troca
      * o cartao, sem contar como "dispensado pelo medico". */
@@ -13280,10 +13353,10 @@
 
     aoCargaRede: function (evt) {
       if (evt.status !== 200) return;
-      var m = RX_API_ATENDIMENTO.exec(evt.url || "");
+      const m = RX_API_ATENDIMENTO.exec(evt.url || "");
       if (!m || !raiz.MeedsSuiteMunicipio) return;
-      var json = evt.json();
-      var id = m[1].toLowerCase();
+      const json = evt.json();
+      const id = m[1].toLowerCase();
       /* ACHADO EM PRODUCAO (Jam de 25/09/2026, atendimento de Barbacena):
        * a resposta do Meeds novo nao trouxe a prefeitura nos caminhos que
        * conhecemos, e isso era gravado como "a rede decidiu: nenhuma
@@ -13292,7 +13365,7 @@
        * nao decide nada e a tela responde. So quando ela traz uma cidade
        * (listada ou nao) e que a decisao e dela. */
       if (!raiz.MeedsSuiteMunicipio.cidadesDoAtendimento(json).length) return;
-      var municipio = raiz.MeedsSuiteMunicipio.detectar(json, Object.keys(regras()));
+      const municipio = raiz.MeedsSuiteMunicipio.detectar(json, Object.keys(regras()));
       municipioPorAtendimento[id] = municipio || null;
       /* A rede desmentiu o cartao que a tela abriu (vinculo de uma cidade,
        * atendimento de outra): a rede vence. Fecha sem contar como
@@ -16992,20 +17065,23 @@
 (function (raiz) {
   "use strict";
 
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
   /* Base de dados: comeca no fallback embutido (gerado por
    * scripts/sync-fallback.js) e e substituida pela versao remota assim
    * que a pagina carrega, se a busca der certo. */
-  var REMUMES = JSON.parse(JSON.stringify(raiz.MEEDS_REMUMES_FALLBACK || { _meta: {} }));
+  const REMUMES = JSON.parse(JSON.stringify(raiz.MEEDS_REMUMES_FALLBACK || { _meta: {} }));
 
-  var REMUMES_URL =
+  const REMUMES_URL =
     "https://raw.githubusercontent.com/sodelfino/meeds-suite/main/modules/remume/remumes.json";
 
-  var d = null;        // deps do nucleo
-  var refs = null;     // referencias da UI
-  var overlay = null;
-  var timers = [];
-  var atendimentoAtual = null;   // ultimo JSON de /api/v1/Atendimento/{id}
-  var municipioDetectado = null; // chave de REMUMES inferida da API/DOM
+  let d = null;        // deps do nucleo
+  let refs = null;     // referencias da UI
+  let overlay = null;
+  let timers = [];
+  let atendimentoAtual = null;   // ultimo JSON de /api/v1/Atendimento/{id}
+  let municipioDetectado = null; // chave de REMUMES inferida da API/DOM
 
   /* ----------------------------------------------------------------
    * HELPERS DE TEXTO — normalizarTexto agora vem do dom-reader do
@@ -17117,7 +17193,7 @@ function separarLocalAcesso(texto) {
    * entorpecentes/psicotropicos puros da Portaria 344/98, sem o desconto
    * de dose que tira alguns itens dessa exigencia (ver RECEITUARIO_AVISO
    * abaixo). Nao inventa: fica null quando a fonte nao informa. */
-  var RECEITUARIOS_VALIDOS = { amarela: true, azul: true };
+  const RECEITUARIOS_VALIDOS = { amarela: true, azul: true };
 
   /* Notificacao de Receita A (amarela) e B (azul) ainda nao tem
    * aprovacao para prescricao digital. Se o medicamento entrar
@@ -17125,7 +17201,7 @@ function separarLocalAcesso(texto) {
    * sai como esses receituarios exigem e o paciente pode nao
    * conseguir retirar na farmacia — precisa ir separado, para um
    * medico presencial transcrever na receita fisica correspondente. */
-  var RECEITUARIO_INFO = {
+  const RECEITUARIO_INFO = {
     amarela: {
       icone: "🟡",
       rotulo: "Receita Amarela",
@@ -17146,12 +17222,12 @@ function separarLocalAcesso(texto) {
 
   function normalizarItemRemume(item) {
     if (typeof item === "string") {
-      var semReceituario = separarReceituario(item);
-      var partes = separarLocalAcesso(semReceituario.texto);
+      const semReceituario = separarReceituario(item);
+      const partes = separarLocalAcesso(semReceituario.texto);
       return { nome: partes.nome, local: partes.local, receituario: semReceituario.receituario };
     }
     if (item && typeof item === "object") {
-      var receituario = RECEITUARIOS_VALIDOS[item.receituario] ? item.receituario : null;
+      const receituario = RECEITUARIOS_VALIDOS[item.receituario] ? item.receituario : null;
       return { nome: item.nome || "", local: item.local || null, receituario: receituario };
     }
     return { nome: String(item), local: null, receituario: null };
@@ -17235,11 +17311,11 @@ const FORMAS_FARMACEUTICAS_RX = new RegExp(
    *
    * O conteudo vem de dados/marcas-medicamentos.json, editavel pelo
    * administrador sem tocar em codigo. */
-  var MARCAS = (raiz.MEEDS_MARCAS && raiz.MEEDS_MARCAS.marcas) || [];
+  const MARCAS = (raiz.MEEDS_MARCAS && raiz.MEEDS_MARCAS.marcas) || [];
 
   /* Indice de busca das MARCAS (nao dos medicamentos): serve so para
    * reconhecer o nome comercial digitado, inclusive com erro leve. */
-  var _indiceMarcas = null;
+  let _indiceMarcas = null;
 
   function indiceDeMarcas() {
     if (!_indiceMarcas) {
@@ -17255,14 +17331,14 @@ const FORMAS_FARMACEUTICAS_RX = new RegExp(
    * MARCA — nao vale aproximar marca por fonetica, que abriria espaco
    * para traduzir para o farmaco errado. */
   function traduzirMarca(termo) {
-    var alvo = normalizarTexto(termo);
+    const alvo = normalizarTexto(termo);
     if (!alvo) return null;
 
-    for (var i = 0; i < MARCAS.length; i++) {
+    for (let i = 0; i < MARCAS.length; i++) {
       if (normalizarTexto(MARCAS[i].marca) === alvo) return MARCAS[i];
     }
 
-    var r = raiz.MeedsSuiteBusca.buscar(termo, indiceDeMarcas(), {
+    const r = raiz.MeedsSuiteBusca.buscar(termo, indiceDeMarcas(), {
       limite: 1,
       fonetica: false, // ver comentario acima
     });
@@ -17297,11 +17373,11 @@ function buscarMedicamentos(termo, cidade) {
      *
      * Em nenhum ponto um item entra no resultado vindo da tabela de
      * marcas: ela so muda O QUE se procura, nunca ONDE. */
-    var indice = obterIndiceBusca(cidade);
-    var marca = traduzirMarca(termo);
-    var termoDeBusca = marca ? marca.principioAtivo : termo;
+    const indice = obterIndiceBusca(cidade);
+    const marca = traduzirMarca(termo);
+    const termoDeBusca = marca ? marca.principioAtivo : termo;
 
-    var r = raiz.MeedsSuiteBusca.buscar(termoDeBusca, indice, {
+    const r = raiz.MeedsSuiteBusca.buscar(termoDeBusca, indice, {
       limite: CONFIG_BUSCA.LIMITE_RESULTADOS,
       config: CONFIG_BUSCA,
     });
@@ -17319,9 +17395,9 @@ function buscarMedicamentos(termo, cidade) {
       };
     }
 
-    var termoReconhecido = null;
+    let termoReconhecido = null;
     if (!marca && r.melhor && (r.viaFuzzy || r.viaFonetica)) {
-      var principioAtivo = extrairPrincipioAtivo(r.melhor.nome);
+      const principioAtivo = extrairPrincipioAtivo(r.melhor.nome);
       if (
         principioAtivo &&
         /* Quando o item nao tem concentracao nem forma onde cortar — e
@@ -17410,7 +17486,7 @@ function moverFocoResultado(delta) {
     }
   }
   /* ---- constantes auxiliares usadas pelo motor acima ---- */
-  var MARCADOR_LOCAL = "(Local de acesso:";
+  var MARCADOR_LOCAL = "(Local de acesso:"; // eslint-disable-line no-var -- usada antes desta linha; com let/const daria erro de zona morta (TDZ)
 
   function escapeHtml(str) {
     return String(str == null ? "" : str)
@@ -17421,8 +17497,8 @@ function moverFocoResultado(delta) {
 
   function encontrarMunicipioNaBase(nomeCidadeNormalizado) {
     if (!nomeCidadeNormalizado) return null;
-    var chaves = chavesMunicipios(REMUMES);
-    for (var i = 0; i < chaves.length; i++) {
+    const chaves = chavesMunicipios(REMUMES);
+    for (let i = 0; i < chaves.length; i++) {
       if (normalizarTexto(chaves[i]) === nomeCidadeNormalizado) return chaves[i];
     }
     return null;
@@ -17436,9 +17512,9 @@ function moverFocoResultado(delta) {
    * A regra "so decide se for unico" agora vem do decision-engine. */
   function detectarMunicipioNoDOM() {
     try {
-      var textoPagina = raiz.MeedsSuiteDom.textoDaPaginaNormalizado();
+      const textoPagina = raiz.MeedsSuiteDom.textoDaPaginaNormalizado();
       if (!textoPagina) return null;
-      var encontrados = chavesMunicipios(REMUMES).filter(function (chave) {
+      const encontrados = chavesMunicipios(REMUMES).filter(function (chave) {
         return textoPagina.indexOf(normalizarTexto(chave)) !== -1;
       });
       return raiz.MeedsSuiteDecisao.unicoOuNada(encontrados);
@@ -17451,17 +17527,17 @@ function moverFocoResultado(delta) {
    * Recalculado sozinho sempre que o array daquela cidade muda (ex:
    * depois da busca remota substituir os dados). A comparacao e por
    * IDENTIDADE do array, nao por conteudo — barata e suficiente. */
-  var _indiceBuscaPorCidade = new Map();
+  const _indiceBuscaPorCidade = new Map();
 
   function obterIndiceBusca(cidade) {
-    var lista = REMUMES[cidade] || [];
-    var cacheado = _indiceBuscaPorCidade.get(cidade);
+    const lista = REMUMES[cidade] || [];
+    const cacheado = _indiceBuscaPorCidade.get(cidade);
     if (cacheado && cacheado.origem === lista) return cacheado.indice;
 
     // normaliza os itens; o texto pesquisavel inclui o local de acesso,
     // para o medico poder digitar "HPM" e achar o que esta disponivel la
-    var itens = lista.map(normalizarItemRemume);
-    var indice = raiz.MeedsSuiteBusca.criarIndice(itens, function (item) {
+    const itens = lista.map(normalizarItemRemume);
+    const indice = raiz.MeedsSuiteBusca.criarIndice(itens, function (item) {
       return item.local ? item.nome + " " + item.local : item.nome;
     });
 
@@ -17470,8 +17546,8 @@ function moverFocoResultado(delta) {
   }
 
   /* ---- estado da navegacao por teclado ---- */
-  var itensRenderizados = [];
-  var indiceFocado = -1;
+  var itensRenderizados = []; // eslint-disable-line no-var -- usada antes desta linha; com let/const daria erro de zona morta (TDZ)
+  var indiceFocado = -1; // eslint-disable-line no-var -- usada antes desta linha; com let/const daria erro de zona morta (TDZ)
 
   /* ----------------------------------------------------------------
    * ATUALIZACAO REMOTA DA BASE
@@ -17483,7 +17559,7 @@ function moverFocoResultado(delta) {
    * ---------------------------------------------------------------- */
   function validarFormatoRemumes(dados) {
     if (!dados || typeof dados !== "object" || Array.isArray(dados)) return false;
-    var chaves = chavesMunicipios(dados);
+    const chaves = chavesMunicipios(dados);
     if (chaves.length === 0) return false;
     return chaves.every(function (chave) {
       return Array.isArray(dados[chave]);
@@ -17499,7 +17575,7 @@ function moverFocoResultado(delta) {
       .then(function (dadosRemotos) {
         if (!dadosRemotos) return false;
         if (!validarFormatoRemumes(dadosRemotos)) {
-          console.warn("[Assistente REMUME] JSON remoto com formato inesperado, mantendo copia local.");
+          LOG.warn("[Assistente REMUME] JSON remoto com formato inesperado, mantendo copia local.");
           return false;
         }
         Object.keys(REMUMES).forEach(function (chave) {
@@ -17511,7 +17587,7 @@ function moverFocoResultado(delta) {
         return true;
       })
       .catch(function (e) {
-        console.warn("[Assistente REMUME] nao foi possivel buscar a lista remota, usando copia local.", e);
+        LOG.warn("[Assistente REMUME] nao foi possivel buscar a lista remota, usando copia local.", e);
         return false;
       });
   }
@@ -17528,7 +17604,7 @@ function moverFocoResultado(delta) {
   function processarRespostaAtendimento(dadosJson) {
     try {
       atendimentoAtual = dadosJson;
-      var municipio = detectarMunicipioDoAtendimento(dadosJson) || detectarMunicipioNoDOM();
+      const municipio = detectarMunicipioDoAtendimento(dadosJson) || detectarMunicipioNoDOM();
       aplicarNovoMunicipioDetectado(municipio);
     } catch (e) {
       /* silencioso: nunca deve quebrar a pagina do Meeds */
@@ -17546,7 +17622,7 @@ function moverFocoResultado(delta) {
   /* ----------------------------------------------------------------
    * UI — o overlay vem posicionado do dock; aqui so o conteudo.
    * ---------------------------------------------------------------- */
-  var CSS = [
+  const CSS = [
     ".rm-modal { width:100%; max-width:640px; max-height:86vh; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); display:flex; flex-direction:column; overflow:hidden; }",
     ".rm-modal header { background:#17457f; color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
     ".rm-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
@@ -17620,7 +17696,7 @@ function moverFocoResultado(delta) {
 
     overlay.$(".rm-fechar").addEventListener("click", overlay.fechar);
 
-    var debounceBusca = null;
+    let debounceBusca = null;
     refs.select.addEventListener("change", renderizarResultados);
     refs.search.addEventListener("input", function () {
       clearTimeout(debounceBusca);
@@ -17638,7 +17714,7 @@ function moverFocoResultado(delta) {
         moverFocoResultado(-1);
       } else if (ev.key === "Enter") {
         ev.preventDefault();
-        var alvo = itensRenderizados[indiceFocado] || itensRenderizados[0];
+        const alvo = itensRenderizados[indiceFocado] || itensRenderizados[0];
         if (alvo) alvo.botaoCopiar.click();
       }
     });
@@ -17648,14 +17724,14 @@ function moverFocoResultado(delta) {
 
   function reconstruirOpcoesMunicipio() {
     if (!refs || !refs.select) return;
-    var valorAnterior = refs.select.value;
+    const valorAnterior = refs.select.value;
     refs.select.innerHTML = "";
     chavesMunicipios(REMUMES)
       .sort(function (a, b) {
         return a.localeCompare(b, "pt-BR");
       })
       .forEach(function (cidade) {
-        var opt = document.createElement("option");
+        const opt = document.createElement("option");
         opt.value = cidade;
         opt.textContent = cidade;
         refs.select.appendChild(opt);
@@ -17670,7 +17746,7 @@ function moverFocoResultado(delta) {
 
   function atualizarExibicaoMeta() {
     if (!refs || !refs.meta) return;
-    var meta = REMUMES._meta;
+    const meta = REMUMES._meta;
     if (meta && meta.atualizadoEm) {
       refs.meta.hidden = false;
       refs.meta.textContent = "Dados atualizados em " + meta.atualizadoEm;
@@ -17719,8 +17795,8 @@ function moverFocoResultado(delta) {
    * digitado — e sobre o ATENDIMENTO naquela cidade, nao sobre um item. */
   function atualizarAvisoMunicipio(cidade) {
     if (!refs || !refs.avisoMunicipio) return;
-    var avisos = REMUMES._meta && REMUMES._meta.avisos;
-    var texto = avisos && avisos[cidade];
+    const avisos = REMUMES._meta && REMUMES._meta.avisos;
+    const texto = avisos && avisos[cidade];
     if (texto) {
       refs.avisoMunicipio.hidden = false;
       refs.avisoMunicipio.textContent = "⚠️ " + texto;
@@ -17736,9 +17812,9 @@ function moverFocoResultado(delta) {
    * "ampola" pega tambem "frasco-ampola") e chega igual pelo JSON remoto e
    * pelo fallback embutido, ja que os dois carregam o _meta inteiro. */
   function avisosDoItem(cidade, nome) {
-    var regras = REMUMES._meta && REMUMES._meta.avisosItens && REMUMES._meta.avisosItens[cidade];
+    const regras = REMUMES._meta && REMUMES._meta.avisosItens && REMUMES._meta.avisosItens[cidade];
     if (!regras || !regras.length) return [];
-    var n = normalizarTexto(nome);
+    const n = normalizarTexto(nome);
     return regras
       .filter(function (r) { return r && r.termo && r.aviso && n.indexOf(normalizarTexto(r.termo)) !== -1; })
       /* "exceto": a regra nao vale se o nome tiver algum destes termos —
@@ -17755,16 +17831,16 @@ function moverFocoResultado(delta) {
 
   function renderizarResultados() {
     if (!refs) return;
-    var cidade = refs.select.value;
+    const cidade = refs.select.value;
     atualizarAvisoMunicipio(cidade);
-    var lista = REMUMES[cidade] || [];
-    var termo = refs.search.value.trim();
-    var termoNormalizado = normalizarTexto(termo);
+    const lista = REMUMES[cidade] || [];
+    const termo = refs.search.value.trim();
+    const termoNormalizado = normalizarTexto(termo);
 
-    var resultado = termoNormalizado
+    const resultado = termoNormalizado
       ? buscarMedicamentos(termo, cidade)
       : { itens: lista.map(normalizarItemRemume), termoReconhecido: null };
-    var filtrados = resultado.itens;
+    const filtrados = resultado.itens;
 
     refs.count.textContent = termo
       ? filtrados.length + " de " + lista.length + " medicamento(s)"
@@ -17799,7 +17875,7 @@ function moverFocoResultado(delta) {
     indiceFocado = -1;
 
     if (filtrados.length === 0) {
-      var vazio = document.createElement("li");
+      const vazio = document.createElement("li");
       vazio.className = "rm-vazio";
       vazio.textContent = resultado.naoConsta
         ? "Este município não padroniza esse medicamento. Considere uma alternativa que esteja na lista."
@@ -17810,14 +17886,14 @@ function moverFocoResultado(delta) {
       return;
     }
 
-    var fragment = document.createDocumentFragment();
+    const fragment = document.createDocumentFragment();
     filtrados.slice(0, 300).forEach(function (par) {
-      var li = document.createElement("li");
+      const li = document.createElement("li");
 
-      var principal = document.createElement("div");
+      const principal = document.createElement("div");
       principal.className = "rm-item-main";
 
-      var textoSpan = document.createElement("span");
+      const textoSpan = document.createElement("span");
       textoSpan.className = "rm-item-text";
       textoSpan.innerHTML = destacarTrecho(par.nome, termo);
       principal.appendChild(textoSpan);
@@ -17825,7 +17901,7 @@ function moverFocoResultado(delta) {
       // so sinaliza o local de acesso quando o municipio informa esse
       // dado na fonte; sem o dado nao ha nada a indicar
       if (par.local) {
-        var localSpan = document.createElement("span");
+        const localSpan = document.createElement("span");
         localSpan.className = "rm-local";
         localSpan.title = "Local de acesso informado pelo municipio";
         localSpan.textContent = "\u{1F4CD} " + par.local;
@@ -17834,9 +17910,9 @@ function moverFocoResultado(delta) {
 
       // selo de receita amarela/azul: so aparece quando o municipio marcou
       // o item na fonte (RECEITUARIOS_VALIDOS), nunca por deducao daqui
-      var infoReceituario = par.receituario ? RECEITUARIO_INFO[par.receituario] : null;
+      const infoReceituario = par.receituario ? RECEITUARIO_INFO[par.receituario] : null;
       if (infoReceituario) {
-        var receituarioSpan = document.createElement("span");
+        const receituarioSpan = document.createElement("span");
         receituarioSpan.className = "rm-receituario rm-receituario-" + par.receituario;
         receituarioSpan.title = infoReceituario.aviso;
         receituarioSpan.textContent = infoReceituario.icone + " " + infoReceituario.rotulo;
@@ -17847,20 +17923,20 @@ function moverFocoResultado(delta) {
       // linha de aviso completa, alem do selo: o alerta de seguranca nao
       // pode depender de o medico passar o mouse sobre o title do selo
       if (infoReceituario) {
-        var avisoDiv = document.createElement("div");
+        const avisoDiv = document.createElement("div");
         avisoDiv.className = "rm-aviso-receituario";
         avisoDiv.textContent = "⚠️ Atenção: " + infoReceituario.aviso;
         li.appendChild(avisoDiv);
       }
 
       avisosDoItem(cidade, par.nome).forEach(function (texto) {
-        var avisoItem = document.createElement("div");
+        const avisoItem = document.createElement("div");
         avisoItem.className = "rm-aviso-receituario";
         avisoItem.textContent = "\u26A0\uFE0F Atenção: " + texto;
         li.appendChild(avisoItem);
       });
 
-      var botaoCopiar = document.createElement("button");
+      const botaoCopiar = document.createElement("button");
       botaoCopiar.type = "button";
       botaoCopiar.className = "rm-copiar";
       botaoCopiar.title = "Copiar nome do medicamento";
@@ -17978,7 +18054,7 @@ function moverFocoResultado(delta) {
 
     aoCargaRede: function (evt) {
       if (evt.status !== 200) return;
-      var json = evt.json();
+      const json = evt.json();
       if (json) processarRespostaAtendimento(json);
     },
 
@@ -18096,15 +18172,18 @@ function moverFocoResultado(delta) {
 (function (raiz) {
   "use strict";
 
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
   /* Base: comeca no fallback embutido (gerado por scripts/sync-exames.js)
    * e e substituida pela versao remota quando ela chega. Mesma estrategia
    * do REMUME: funciona sem internet e atualiza sem redistribuir o
    * userscript para todos os medicos. */
-  var BASE = raiz.__MEEDS_EXAMES_FALLBACK__ || { municipios: {} };
-  var EXAMES_URL =
+  let BASE = raiz.__MEEDS_EXAMES_FALLBACK__ || { municipios: {} };
+  const EXAMES_URL =
     "https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dados/exames.json";
 
-  var CONFIG_BUSCA = {
+  const CONFIG_BUSCA = {
     /* Quantos itens entram na tela por vez. A lista de Betim tem 1.983:
      * desenhar tudo de uma vez trava a abertura do painel no notebook do
      * plantao, que e onde isso precisa funcionar. */
@@ -18128,9 +18207,9 @@ function moverFocoResultado(delta) {
    * menos que criar uma dependencia nova entre modulo e nucleo por tao
    * pouco. */
   function adiar(fn, ms) {
-    var timer = null;
+    let timer = null;
     return function () {
-      var args = arguments, esse = this;
+      const args = arguments, esse = this;
       if (timer) clearTimeout(timer);
       timer = setTimeout(function () {
         timer = null;
@@ -18139,13 +18218,13 @@ function moverFocoResultado(delta) {
     };
   }
 
-  var d = null;              // dependencias entregues pelo nucleo
-  var overlay = null;
-  var refs = {};
-  var municipioDetectado = null;
-  var municipioEscolhido = null;
-  var indicePorMunicipio = {};
-  var cancelarRede = null;
+  let d = null;              // dependencias entregues pelo nucleo
+  let overlay = null;
+  let refs = {};
+  let municipioDetectado = null;
+  let municipioEscolhido = null;
+  let indicePorMunicipio = {};
+  let cancelarRede = null;
 
   /* ------------------------------------------------------------------
    * ESTADO DA LISTA NA TELA
@@ -18161,9 +18240,9 @@ function moverFocoResultado(delta) {
    * lista parada no item 100 nao acharia nada — e o medico concluiria
    * que o municipio nao oferece.
    * ------------------------------------------------------------------ */
-  var ordenados = [];
-  var visiveis = [];
-  var desenhados = 0;
+  let ordenados = [];
+  let visiveis = [];
+  let desenhados = 0;
 
   /* ------------------------------------------------------------------
    * A BASE
@@ -18193,27 +18272,27 @@ function moverFocoResultado(delta) {
   }
 
   function examesDe(municipio) {
-    var b = blocoDe(municipio);
+    const b = blocoDe(municipio);
     return (b && Array.isArray(b.exames)) ? b.exames : [];
   }
 
   function siglaDe(codigo) {
-    var s = (BASE.siglas || {})[codigo];
+    const s = (BASE.siglas || {})[codigo];
     return s || { rotulo: codigo, titulo: "" };
   }
 
   function validarBase(dados) {
     if (!dados || typeof dados !== "object") return false;
     if (!dados.municipios || typeof dados.municipios !== "object") return false;
-    var chaves = Object.keys(dados.municipios).filter(function (k) {
+    const chaves = Object.keys(dados.municipios).filter(function (k) {
       return k.indexOf("_") !== 0;
     });
     if (!chaves.length) return false;
     /* Um bloco sem `exames` derrubaria a busca no primeiro uso. Melhor
      * recusar o arquivo inteiro e seguir com o embutido: uma base velha
      * e melhor que uma base quebrada. */
-    for (var i = 0; i < chaves.length; i++) {
-      var b = dados.municipios[chaves[i]];
+    for (let i = 0; i < chaves.length; i++) {
+      const b = dados.municipios[chaves[i]];
       if (!b || !Array.isArray(b.exames)) return false;
     }
     return true;
@@ -18226,7 +18305,7 @@ function moverFocoResultado(delta) {
         .then(function (dados) {
           if (!dados) return false;
           if (!validarBase(dados)) {
-            console.warn("[Assistente Meeds] exames.json remoto com formato inesperado; mantendo a base embutida.");
+            LOG.warn("[Assistente Meeds] exames.json remoto com formato inesperado; mantendo a base embutida.");
             return false;
           }
           BASE = dados;
@@ -18255,7 +18334,7 @@ function moverFocoResultado(delta) {
    * ------------------------------------------------------------------ */
   function indiceDe(municipio) {
     if (indicePorMunicipio[municipio]) return indicePorMunicipio[municipio];
-    var itens = examesDe(municipio);
+    const itens = examesDe(municipio);
     indicePorMunicipio[municipio] = raiz.MeedsSuiteBusca.criarIndice(itens, function (e) {
       return [e.nome, e.apelido || "", e.codigo || "", e.local || ""].join(" ");
     });
@@ -18306,19 +18385,19 @@ function moverFocoResultado(delta) {
    * Devolve INDICES de `ordenados`, e nao os itens: e o indice que
    * permite saber se aquele item ja esta desenhado na tela. */
   function indicesQuePassam(termo) {
-    var limpo = String(termo || "").trim();
-    var todos = ordenados.map(function (_, i) { return i; });
+    const limpo = String(termo || "").trim();
+    const todos = ordenados.map(function (_, i) { return i; });
     if (!limpo) return todos;
 
     if (limpo.length < CONFIG_BUSCA.MIN_CARACTERES_DIFUSO) {
-      var alvo = normalizar(limpo);
+      const alvo = normalizar(limpo);
       return todos.filter(function (i) {
-        var e = ordenados[i];
+        const e = ordenados[i];
         return normalizar([e.nome, e.codigo || "", e.local || ""].join(" ")).indexOf(alvo) !== -1;
       });
     }
 
-    var r = raiz.MeedsSuiteBusca.buscar(limpo, indiceDe(municipioEscolhido), {
+    const r = raiz.MeedsSuiteBusca.buscar(limpo, indiceDe(municipioEscolhido), {
       /* Sem teto: o filtro cobre a lista inteira, e a paginacao e que
        * decide quanto disso vai para a tela. Cortar aqui esconderia
        * resultado legitimo sem avisar ninguem. */
@@ -18335,11 +18414,11 @@ function moverFocoResultado(delta) {
      * buscar "acido folico" trazia "ÁCIDO 2-3 DIFOSFOGLICÉRICO" no topo,
      * porque vem antes no alfabeto — e o que a pessoa pediu ficava
      * enterrado no meio de setenta e quatro resultados. */
-    var posicao = new Map();
+    const posicao = new Map();
     ordenados.forEach(function (e, i) { posicao.set(e, i); });
-    var saida = [];
+    const saida = [];
     (r.itens || []).forEach(function (x) {
-      var i = posicao.get(x.item || x);
+      const i = posicao.get(x.item || x);
       if (i !== undefined) saida.push(i);
     });
     return saida;
@@ -18349,7 +18428,7 @@ function moverFocoResultado(delta) {
    * TELA
    * ------------------------------------------------------------------ */
 
-  var CSS = [
+  const CSS = [
     raiz.MeedsSuiteCabecalho.CSS,
     ".ex-modal { width:100%; max-width:560px; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; display:flex; flex-direction:column; max-height:82vh; }",
     ".ex-modal header { background:#0f6b64; color:#fff; padding:15px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
@@ -18475,7 +18554,7 @@ function moverFocoResultado(delta) {
   ].join("\n");
 
   function montarSelect() {
-    var lista = municipios();
+    const lista = municipios();
     refs.select.innerHTML = lista
       .map(function (m) {
         return '<option value="' + escapar(m) + '">' + escapar(m) + " (" + examesDe(m).length + ")</option>";
@@ -18493,14 +18572,14 @@ function moverFocoResultado(delta) {
   }
 
   function pintarCabecalho() {
-    var b = blocoDe(municipioEscolhido);
+    const b = blocoDe(municipioEscolhido);
     if (!b) return;
 
     /* A ORIGEM FICA VISIVEL SEMPRE. A lista de Betim vem de um contrato,
      * a de Macae de um PDF da unidade — o medico precisa saber com o que
      * esta lidando, e ha quanto tempo. Uma lista sem procedencia parece
      * oficial mesmo quando esta velha. */
-    var partes = [];
+    const partes = [];
     if (b.fonte) partes.push(b.fonte);
     if (b.atualizadoEm) partes.push("atualizado em " + formatarData(b.atualizadoEm));
     refs.origem.textContent = partes.join(" · ");
@@ -18536,7 +18615,7 @@ function moverFocoResultado(delta) {
    * ela. So Macae tem conteudo aqui hoje; para qualquer outro
    * municipio o botao fica oculto. */
   function pintarEncaminhamentos() {
-    var enc = blocoDeEncaminhamentosDe(municipioEscolhido);
+    const enc = blocoDeEncaminhamentosDe(municipioEscolhido);
     /* Troca de municipio: sempre recolhe. Ver o conteudo de Macae ainda
      * aberto depois de trocar para Betim (que nao tem nada) confundiria
      * mais do que ajudaria. */
@@ -18553,8 +18632,8 @@ function moverFocoResultado(delta) {
     refs.encaminhamentosBtn.textContent =
       "📋 Encaminhamentos / Serviços de referência (" + enc.servicos.length + ")";
 
-    var cartoes = enc.servicos.map(function (s) {
-      var linhas = "";
+    const cartoes = enc.servicos.map(function (s) {
+      let linhas = "";
       if (s.publicoAlvo) {
         linhas += '<div class="ex-enc-linha"><b>Público-alvo:</b> ' + escapar(s.publicoAlvo) + "</div>";
       }
@@ -18578,7 +18657,7 @@ function moverFocoResultado(delta) {
       );
     }).join("");
 
-    var notaGeral = enc.observacoes && enc.observacoes.length
+    const notaGeral = enc.observacoes && enc.observacoes.length
       ? '<div class="ex-enc-nota-geral">ℹ️ ' + enc.observacoes.map(escapar).join(" ") + "</div>"
       : "";
 
@@ -18590,7 +18669,7 @@ function moverFocoResultado(delta) {
   }
 
   function formatarData(iso) {
-    var m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
     return m ? m[3] + "/" + m[2] + "/" + m[1] : iso;
   }
 
@@ -18630,12 +18709,12 @@ function moverFocoResultado(delta) {
   /* Icone por VALOR de fluxo, nao um so para o campo: "para onde o
    * pedido vai" e mais legivel com um icone que muda conforme a
    * resposta do que com um icone fixo mais um texto ao lado. */
-  var ICONE_FLUXO = {
+  const ICONE_FLUXO = {
     FICA_NA_UNIDADE: "🏥",
     VAI_PARA_CENTRAL: "📤",
     OUTRO: "🔀",
   };
-  var ROTULO_FLUXO = {
+  const ROTULO_FLUXO = {
     FICA_NA_UNIDADE: "Fica na unidade",
     VAI_PARA_CENTRAL: "Vai para a Central",
     OUTRO: "Outro fluxo",
@@ -18648,7 +18727,7 @@ function moverFocoResultado(delta) {
    * que muda por valor) porque sao o mesmo TIPO de informacao — so
    * eixos diferentes — mas aparecem como linhas separadas quando um
    * exame tiver os dois, nunca fundidos numa frase so. */
-  var ICONE_CANAL = {
+  const ICONE_CANAL = {
     SISREG: "🗂️",
     CENTRAL_MUNICIPAL: "🏛️",
     REGULACAO_ESTADUAL: "🗺️",
@@ -18656,7 +18735,7 @@ function moverFocoResultado(delta) {
     LABORATORIO_UPA: "🧪",
     OUTRO: "🔀",
   };
-  var ROTULO_CANAL = {
+  const ROTULO_CANAL = {
     SISREG: "Via SISREG",
     CENTRAL_MUNICIPAL: "Via Central de Regulação do Município",
     REGULACAO_ESTADUAL: "Via regulação estadual",
@@ -18692,7 +18771,7 @@ function moverFocoResultado(delta) {
 
   function blocoDeOrientacao(o) {
     if (!o) return "";
-    var linhas = [];
+    const linhas = [];
 
     if (o.faixaEtaria) linhas.push(linhaDeOrientacao("🎂", "Faixa etária", o.faixaEtaria));
     if (o.preparo) linhas.push(linhaDeOrientacao("🩺", "Preparo", o.preparo));
@@ -18750,7 +18829,7 @@ function moverFocoResultado(delta) {
   }
 
   function elementoDoExame(e, indice) {
-    var meta = [];
+    const meta = [];
     if (e.codigo) meta.push('<span class="ex-selo">🔢 ' + escapar(e.codigo) + "</span>");
     if (e.local) meta.push('<span class="ex-selo">📍 ' + escapar(e.local) + "</span>");
     /* `especialidade` fica no `.ex-meta`, junto de codigo/local — e
@@ -18774,9 +18853,9 @@ function moverFocoResultado(delta) {
     if (e.status === "SUSPENSO") {
       meta.push('<span class="ex-selo ex-suspenso">⛔ Suspenso</span>');
     }
-    var sigla = e.exige ? siglaDe(e.exige) : null;
+    const sigla = e.exige ? siglaDe(e.exige) : null;
 
-    var li = document.createElement("li");
+    const li = document.createElement("li");
     li.className = "ex-item";
     /* `listitem`, e nao `option`: a linha tem um botao de copiar dentro,
      * e um `option` com controle interno confunde o leitor de tela — ele
@@ -18824,10 +18903,10 @@ function moverFocoResultado(delta) {
 
   /* Desenha o proximo bloco do conjunto que passou no filtro. */
   function desenharBloco() {
-    var ate = Math.min(desenhados + CONFIG_BUSCA.BLOCO, visiveis.length);
-    var pedaco = document.createDocumentFragment();
-    for (var k = desenhados; k < ate; k++) {
-      var i = visiveis[k];
+    const ate = Math.min(desenhados + CONFIG_BUSCA.BLOCO, visiveis.length);
+    const pedaco = document.createDocumentFragment();
+    for (let k = desenhados; k < ate; k++) {
+      const i = visiveis[k];
       pedaco.appendChild(elementoDoExame(ordenados[i], i));
     }
     refs.lista.appendChild(pedaco);
@@ -18836,13 +18915,13 @@ function moverFocoResultado(delta) {
   }
 
   function atualizarRodape() {
-    var restam = visiveis.length - desenhados;
+    const restam = visiveis.length - desenhados;
     refs.mais.textContent = restam > 0
       ? "+ Mais " + Math.min(CONFIG_BUSCA.BLOCO, restam) + " (faltam " + restam + ")"
       : "";
     refs.mais.classList.toggle("oculto", restam <= 0);
 
-    var termo = refs.busca.value.trim();
+    const termo = refs.busca.value.trim();
     refs.contagem.textContent = termo
       ? "mostrando " + desenhados + " de " + visiveis.length + " que casam · " +
         ordenados.length + " na lista de " + municipioEscolhido
@@ -18882,7 +18961,7 @@ function moverFocoResultado(delta) {
     refs.spinner.classList.add("oculto");
   }
 
-  var filtrarComAtraso = adiar(filtrarExames, CONFIG_BUSCA.DEBOUNCE_MS);
+  const filtrarComAtraso = adiar(filtrarExames, CONFIG_BUSCA.DEBOUNCE_MS);
 
   /* Carrega a lista do municipio escolhido, do zero. */
   function carregarMunicipio() {
@@ -18988,7 +19067,7 @@ function moverFocoResultado(delta) {
     refs.vazio = overlay.$("#ex-vazio");
 
     refs.encaminhamentosBtn.addEventListener("click", function () {
-      var abrindo = refs.encaminhamentos.classList.contains("oculto");
+      const abrindo = refs.encaminhamentos.classList.contains("oculto");
       refs.encaminhamentos.classList.toggle("oculto", !abrindo);
       refs.encaminhamentosBtn.setAttribute("aria-expanded", String(abrindo));
       if (abrindo && refs.rolagem) {
@@ -19036,7 +19115,7 @@ function moverFocoResultado(delta) {
   }
 
   function detectarNaTela() {
-    var M = raiz.MeedsSuiteMunicipio;
+    const M = raiz.MeedsSuiteMunicipio;
     if (!M) return;
     aplicarMunicipio(M.detectarNaTela(municipios()));
   }
@@ -19128,7 +19207,7 @@ function moverFocoResultado(delta) {
       cancelarRede = d.network.assinar(
         { regex: /\/api\/v1\/Atendimento\/[^/?]+(?:[?#].*)?$/i, metodos: ["GET"] },
         function (evt) {
-          var M = raiz.MeedsSuiteMunicipio;
+          const M = raiz.MeedsSuiteMunicipio;
           if (!M) return;
           evt.json().then(function (corpo) {
             if (corpo) aplicarMunicipio(M.detectar(corpo, municipios()));
@@ -19196,18 +19275,21 @@ function moverFocoResultado(delta) {
 (function (raiz) {
   "use strict";
 
-  var DEBOUNCE_MS = 700;          // dentro da faixa de 600 a 800 pedida
-  var LARGURA_MINIMA = 1100;      // abaixo disso o painel não é oferecido
-  var INATIVIDADE_MS = 10 * 60000; // 10 min parado: limpa a prévia da tela
-  var LARGURA_PADRAO = 460;
-  var LARGURA_MIN = 320;
-  var LARGURA_MAX = 900;
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
 
-  var d = null;
-  var geradores = {};   // id -> { ficha, elementos, estado }
-  var estiloGlobal = null;
+  const DEBOUNCE_MS = 700;          // dentro da faixa de 600 a 800 pedida
+  let LARGURA_MINIMA = 1100;      // abaixo disso o painel não é oferecido
+  const INATIVIDADE_MS = 10 * 60000; // 10 min parado: limpa a prévia da tela
+  const LARGURA_PADRAO = 460;
+  const LARGURA_MIN = 320;
+  const LARGURA_MAX = 900;
 
-  var CSS = [
+  let d = null;
+  let geradores = {};   // id -> { ficha, elementos, estado }
+  let estiloGlobal = null;
+
+  const CSS = [
     /* o modal do gerador e o painel viram colunas de uma mesma linha */
     ".pv-linha { display:flex; align-items:stretch; gap:14px; width:100%; justify-content:center; }",
     ".pv-painel { display:flex; flex-direction:column; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; flex-shrink:0; }",
@@ -19261,22 +19343,22 @@ function moverFocoResultado(delta) {
    * esses o medico ajustou de proposito. Depois disso, fechar volta a
    * valer para sempre.
    * ------------------------------------------------------------------ */
-  var MARCA_VIRADA = "previa_padrao_invertido";
+  const MARCA_VIRADA = "previa_padrao_invertido";
 
   function virarPadraoUmaVez() {
     if (d.storage.ler(MARCA_VIRADA, false) === true) return;
-    var todas = d.storage.ler("paineis", {}) || {};
+    const todas = d.storage.ler("paineis", {}) || {};
     Object.keys(todas).forEach(function (id) {
       if (todas[id] && typeof todas[id] === "object") delete todas[id].aberto;
     });
     d.storage.gravar("paineis", todas);
     d.storage.gravar(MARCA_VIRADA, true);
-    console.debug("[Assistente Meeds] previa: preferencia antiga de aberto/fechado zerada uma vez.");
+    LOG.debug("[Assistente Meeds] previa: preferencia antiga de aberto/fechado zerada uma vez.");
   }
 
   function lerPreferencia(id) {
-    var todas = d.storage.ler("paineis", {}) || {};
-    var p = todas[id] || {};
+    const todas = d.storage.ler("paineis", {}) || {};
+    const p = todas[id] || {};
     return {
       /* `!== false` e nao `=== true`: sem preferencia gravada, abre. */
       aberto: p.aberto !== false,
@@ -19286,7 +19368,7 @@ function moverFocoResultado(delta) {
   }
 
   function gravarPreferencia(id, mudanca) {
-    var todas = d.storage.ler("paineis", {}) || {};
+    const todas = d.storage.ler("paineis", {}) || {};
     todas[id] = Object.assign({}, todas[id] || {}, mudanca);
     d.storage.gravar("paineis", todas);
   }
@@ -19308,9 +19390,9 @@ function moverFocoResultado(delta) {
    * iPadOS 13+ se identifica como Mac no userAgent; o que separa os dois
    * e ter mais de um ponto de toque. */
   function ehIOS() {
-    var ua = navigator.userAgent || "";
+    const ua = navigator.userAgent || "";
     if (/Windows|Android/.test(ua)) return false;
-    var pareceApple = /iPad|iPhone|iPod|Macintosh/.test(ua);
+    const pareceApple = /iPad|iPhone|iPod|Macintosh/.test(ua);
     return pareceApple && (navigator.maxTouchPoints || 0) > 1;
   }
 
@@ -19325,25 +19407,25 @@ function moverFocoResultado(delta) {
   function registrarGerador(ficha) {
     if (!ficha || !ficha.id || geradores[ficha.id]) return false;
 
-    var modal = ficha.overlay && ficha.overlay.$(ficha.seletorModal);
+    const modal = ficha.overlay && ficha.overlay.$(ficha.seletorModal);
     if (!modal) return false;
 
-    var pref = lerPreferencia(ficha.id);
+    const pref = lerPreferencia(ficha.id);
 
     /* O modal passa a ser a primeira coluna de uma linha; o painel é a
      * segunda. Com o painel fechado, a linha tem uma coluna só e o
      * formulário fica exatamente como era. */
-    var linha = document.createElement("div");
+    const linha = document.createElement("div");
     linha.className = "pv-linha";
     modal.parentNode.insertBefore(linha, modal);
     linha.appendChild(modal);
 
-    var alca = document.createElement("div");
+    const alca = document.createElement("div");
     alca.className = "pv-alca";
     alca.hidden = true;
     linha.appendChild(alca);
 
-    var painel = document.createElement("div");
+    const painel = document.createElement("div");
     painel.className = "pv-painel";
     painel.hidden = true;
     painel.style.width = pref.largura + "px";
@@ -19362,16 +19444,16 @@ function moverFocoResultado(delta) {
 
     /* Botão de abrir/fechar, no cabeçalho do próprio gerador — não é um
      * botão novo no dock. */
-    var alternar = document.createElement("button");
+    const alternar = document.createElement("button");
     alternar.type = "button";
     alternar.className = "pv-alternar";
     alternar.setAttribute("aria-pressed", "false");
     alternar.textContent = "👁 Prévia";
     alternar.title = "Ver o documento enquanto preenche";
-    var cabecalho = modal.querySelector(".msc-acoes") || modal.firstElementChild;
+    const cabecalho = modal.querySelector(".msc-acoes") || modal.firstElementChild;
     if (cabecalho) cabecalho.insertBefore(alternar, cabecalho.firstChild);
 
-    var g = {
+    const g = {
       ficha: ficha,
       modal: modal,
       linha: linha,
@@ -19425,7 +19507,7 @@ function moverFocoResultado(delta) {
   }
 
   function atualizarDisponibilidade(g) {
-    var disponivel = cabe();
+    const disponivel = cabe();
     g.alternar.hidden = !disponivel;
     if (!disponivel && g.aberto) definirAberto(g, false, true);
   }
@@ -19447,10 +19529,10 @@ function moverFocoResultado(delta) {
   }
 
   function mudarZoom(g, direcao) {
-    var escala = ["page-fit", "50", "75", "100", "125", "150", "200"];
-    var atual = escala.indexOf(String(g.zoom));
+    const escala = ["page-fit", "50", "75", "100", "125", "150", "200"];
+    let atual = escala.indexOf(String(g.zoom));
     if (atual === -1) atual = 3;
-    var novo = Math.min(escala.length - 1, Math.max(0, atual + direcao));
+    const novo = Math.min(escala.length - 1, Math.max(0, atual + direcao));
     g.zoom = escala[novo];
     gravarPreferencia(g.ficha.id, { zoom: g.zoom });
     if (g.quadro && g.urlAtual) g.quadro.src = enderecoComVista(g);
@@ -19463,9 +19545,9 @@ function moverFocoResultado(delta) {
   }
 
   function ligarRedimensionamento(g) {
-    var arrastando = false;
-    var xInicial = 0;
-    var larguraInicial = 0;
+    let arrastando = false;
+    let xInicial = 0;
+    let larguraInicial = 0;
 
     g.handlers.mouseDown = function (ev) {
       arrastando = true;
@@ -19476,7 +19558,7 @@ function moverFocoResultado(delta) {
     };
     g.handlers.mouseMove = function (ev) {
       if (!arrastando) return;
-      var nova = Math.min(LARGURA_MAX, Math.max(LARGURA_MIN, larguraInicial - (ev.clientX - xInicial)));
+      const nova = Math.min(LARGURA_MAX, Math.max(LARGURA_MIN, larguraInicial - (ev.clientX - xInicial)));
       g.largura = Math.round(nova);
       g.painel.style.width = g.largura + "px";
     };
@@ -19496,7 +19578,7 @@ function moverFocoResultado(delta) {
    * AGENDAMENTO — o que evita a digitação engasgar
    * ------------------------------------------------------------------ */
   function assinaturaDoFormulario(g) {
-    var partes = [];
+    const partes = [];
     g.modal.querySelectorAll("input, select, textarea").forEach(function (campo) {
       partes.push(campo.id + "=" + (campo.value || ""));
     });
@@ -19516,7 +19598,7 @@ function moverFocoResultado(delta) {
   }
 
   function marcarDesatualizado(g, sim) {
-    var estado = g.painel.querySelector(".pv-estado");
+    const estado = g.painel.querySelector(".pv-estado");
     /* Só troca o TEXTO, nunca o tamanho do painel: mexer no layout aqui
      * faria a prévia saltar a cada tecla. */
     estado.textContent = sim ? "atualizando…" : g.ultimaLegenda || "";
@@ -19530,14 +19612,14 @@ function moverFocoResultado(delta) {
      * visibilidade reagenda. */
     if (document.hidden) return;
 
-    var assinatura = assinaturaDoFormulario(g);
+    const assinatura = assinaturaDoFormulario(g);
     if (assinatura === g.assinaturaAnterior) {
       marcarDesatualizado(g, false);
       return; // nada relevante mudou
     }
 
-    var minhaGeracao = ++g.geracao;
-    var t0 = performance.now();
+    const minhaGeracao = ++g.geracao;
+    const t0 = performance.now();
 
     Promise.resolve()
       .then(function () {
@@ -19549,7 +19631,7 @@ function moverFocoResultado(delta) {
         if (minhaGeracao !== g.geracao) return;
         if (!g.aberto) return;
 
-        var ms = performance.now() - t0;
+        const ms = performance.now() - t0;
         g.medidas.push(ms);
         g.renderizacoes++;
         g.assinaturaAnterior = assinatura;
@@ -19571,15 +19653,15 @@ function moverFocoResultado(delta) {
   }
 
   function mostrar(g, bytes) {
-    var blob = new Blob([bytes], { type: "application/pdf" });
-    var url = URL.createObjectURL(blob);
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
 
     /* Revoga a anterior ANTES de trocar: sem isso, cada tecla deixaria
      * um PDF pendurado em memória até a aba fechar. */
     if (g.urlAtual) URL.revokeObjectURL(g.urlAtual);
     g.urlAtual = url;
 
-    var vazio = g.painel.querySelector(".pv-vazio");
+    const vazio = g.painel.querySelector(".pv-vazio");
     if (vazio) vazio.remove();
 
     if (!g.quadro) {
@@ -19600,7 +19682,7 @@ function moverFocoResultado(delta) {
       URL.revokeObjectURL(g.urlAtual);
       g.urlAtual = null;
     }
-    var vazio = g.painel.querySelector(".pv-vazio");
+    let vazio = g.painel.querySelector(".pv-vazio");
     if (!vazio) {
       vazio = document.createElement("div");
       vazio.className = "pv-vazio";
@@ -19634,7 +19716,7 @@ function moverFocoResultado(delta) {
     }
     g.assinaturaAnterior = null;
     g.ultimaLegenda = "";
-    var vazio = g.painel.querySelector(".pv-vazio");
+    let vazio = g.painel.querySelector(".pv-vazio");
     if (!vazio) {
       vazio = document.createElement("div");
       vazio.className = "pv-vazio";
@@ -19659,8 +19741,8 @@ function moverFocoResultado(delta) {
     }
   }
 
-  var aoMudarTela = null;
-  var aoMudarVisibilidade = null;
+  let aoMudarTela = null;
+  let aoMudarVisibilidade = null;
 
   /* ----------------------------------------------------------------
    * TUTORIAL GUIADO — ver core/tutorial.js para o mecanismo.
@@ -19750,7 +19832,7 @@ function moverFocoResultado(delta) {
       aoMudarVisibilidade = function () {
         if (document.hidden) return;
         Object.keys(geradores).forEach(function (id) {
-          var g = geradores[id];
+          const g = geradores[id];
           if (g.aberto) agendar(g);
         });
       };
@@ -19775,7 +19857,7 @@ function moverFocoResultado(delta) {
     _teste: {
       estado: function () {
         return Object.keys(geradores).map(function (id) {
-          var g = geradores[id];
+          const g = geradores[id];
           return {
             id: id,
             aberto: g.aberto,
@@ -19814,7 +19896,7 @@ function moverFocoResultado(delta) {
         manifesto: raiz.__MEEDS_SUITE_MANIFESTO__ || null,
       });
     } catch (e) {
-      console.error("[Assistente Meeds] falha ao iniciar o nucleo:", e);
+      raiz.MeedsSuiteLog.error("[Assistente Meeds] falha ao iniciar o nucleo:", e);
     }
   }
 

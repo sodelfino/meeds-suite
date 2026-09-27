@@ -22,29 +22,32 @@
 (function (raiz) {
   "use strict";
 
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
   /* FONTE UNICA DE VERSAO: manifest.json.
    * O build substitui o marcador abaixo pela versao de la e tambem
    * escreve o @version do userscript e o package.json. Nao edite a
    * versao aqui nem no bootloader — so no manifest.
    * O valor de reserva existe para o arquivo continuar rodavel solto,
    * fora do pacote (por exemplo num teste unitario). */
-  var VERSAO_NUCLEO = "__MEEDS_VERSAO__" === "__MEEDS" + "_VERSAO__" ? "dev" : "__MEEDS_VERSAO__";
+  const VERSAO_NUCLEO = "__MEEDS_VERSAO__" === "__MEEDS" + "_VERSAO__" ? "dev" : "__MEEDS_VERSAO__"; // eslint-disable-line no-constant-condition -- proposital: o build troca o marcador; solto (teste), vira "dev"
 
-  var Auth = raiz.MeedsSuiteAuth;
-  var Dock = raiz.MeedsSuiteDock;
-  var Net = raiz.MeedsSuiteNetwork;
-  var Dom = raiz.MeedsSuiteDom;
-  var Decisao = raiz.MeedsSuiteDecisao;
-  var Storage = raiz.MeedsSuiteStorage;
-  var Cadastro = raiz.MeedsSuiteCadastro;
+  const Auth = raiz.MeedsSuiteAuth;
+  const Dock = raiz.MeedsSuiteDock;
+  const Net = raiz.MeedsSuiteNetwork;
+  const Dom = raiz.MeedsSuiteDom;
+  const Decisao = raiz.MeedsSuiteDecisao;
+  const Storage = raiz.MeedsSuiteStorage;
+  const Cadastro = raiz.MeedsSuiteCadastro;
 
-  var registro = [];          // definicoes na ordem de registro
-  var ouvintesCadastro = [];  // modulos que redesenham a lista de medicos
-  var ouvintesEvento = {};    // barramento entre modulos (ver abaixo)
-  var porId = {};             // id -> { def, estado }
-  var iniciado = false;
-  var storageNucleo = null;
-  var manifesto = null;
+  const registro = [];          // definicoes na ordem de registro
+  let ouvintesCadastro = [];  // modulos que redesenham a lista de medicos
+  const ouvintesEvento = {};    // barramento entre modulos (ver abaixo)
+  const porId = {};             // id -> { def, estado }
+  let iniciado = false;
+  let storageNucleo = null;
+  let manifesto = null;
 
   /* ------------------------------------------------------------------
    * CONFIG REMOTA DE SELETORES (com fallback embutido)
@@ -56,7 +59,7 @@
    * o fallback embutido continua valendo — mesma estrategia ja provada
    * pelo remumes.json do Assistente REMUME.
    * ------------------------------------------------------------------ */
-  var SELETORES_FALLBACK = {
+  const SELETORES_FALLBACK = {
     rotulos: {
       nascimento: ["Data de Nascimento", "Data de nascimento", "Nascimento", "Dt. Nascimento"],
       cpf: ["CPF", "C.P.F.", "CPF do paciente"],
@@ -85,22 +88,22 @@
     },
   };
 
-  var seletores = JSON.parse(JSON.stringify(SELETORES_FALLBACK));
-  var URL_SELETORES_PADRAO =
+  const seletores = JSON.parse(JSON.stringify(SELETORES_FALLBACK));
+  const URL_SELETORES_PADRAO =
     "https://raw.githubusercontent.com/sodelfino/meeds-suite/main/seletores.json";
 
   function validarSeletores(dados) {
     if (!dados || typeof dados !== "object" || Array.isArray(dados)) return false;
-    var grupos = ["rotulos", "toasts"];
-    for (var i = 0; i < grupos.length; i++) {
-      var g = dados[grupos[i]];
+    const grupos = ["rotulos", "toasts"];
+    for (let i = 0; i < grupos.length; i++) {
+      const g = dados[grupos[i]];
       if (g === undefined) continue;
       if (!g || typeof g !== "object" || Array.isArray(g)) return false;
-      var chaves = Object.keys(g);
-      for (var j = 0; j < chaves.length; j++) {
-        var v = g[chaves[j]];
+      const chaves = Object.keys(g);
+      for (let j = 0; j < chaves.length; j++) {
+        const v = g[chaves[j]];
         if (!Array.isArray(v)) return false;
-        for (var k = 0; k < v.length; k++) {
+        for (let k = 0; k < v.length; k++) {
           if (typeof v[k] !== "string") return false;
         }
       }
@@ -109,7 +112,7 @@
   }
 
   function atualizarSeletoresRemoto(url) {
-    var alvo = url || URL_SELETORES_PADRAO;
+    const alvo = url || URL_SELETORES_PADRAO;
     try {
       return fetch(alvo, { cache: "no-store" })
         .then(function (r) {
@@ -119,7 +122,7 @@
         .then(function (dados) {
           if (!dados) return false;
           if (!validarSeletores(dados)) {
-            console.warn("[Assistente Meeds] seletores remotos com formato inesperado, mantendo fallback embutido.");
+            LOG.warn("[Assistente Meeds] seletores remotos com formato inesperado, mantendo fallback embutido.");
             return false;
           }
           // mescla por GRUPO, nao substitui o objeto inteiro: um arquivo
@@ -132,7 +135,7 @@
           return true;
         })
         .catch(function (e) {
-          console.warn("[Assistente Meeds] nao foi possivel buscar seletores remotos, usando fallback.", e);
+          LOG.warn("[Assistente Meeds] nao foi possivel buscar seletores remotos, usando fallback.", e);
           return false;
         });
     } catch (e) {
@@ -141,9 +144,9 @@
   }
 
   function obterSeletor(grupo, chave) {
-    var g = seletores[grupo] || {};
+    const g = seletores[grupo] || {};
     if (g[chave]) return g[chave].slice();
-    var f = (SELETORES_FALLBACK[grupo] || {})[chave];
+    const f = (SELETORES_FALLBACK[grupo] || {})[chave];
     return f ? f.slice() : [];
   }
 
@@ -166,7 +169,7 @@
    * ------------------------------------------------------------------ */
   function assinarEvento(nome, fn, idModulo) {
     if (!ouvintesEvento[nome]) ouvintesEvento[nome] = [];
-    var registro = { fn: fn, idModulo: idModulo || null };
+    const registro = { fn: fn, idModulo: idModulo || null };
     ouvintesEvento[nome].push(registro);
     return function cancelar() {
       ouvintesEvento[nome] = (ouvintesEvento[nome] || []).filter(function (o) {
@@ -176,12 +179,12 @@
   }
 
   function publicarEvento(nome, dados) {
-    var atenderam = 0;
+    let atenderam = 0;
     (ouvintesEvento[nome] || []).slice().forEach(function (o) {
       try {
         if (o.fn(dados) === true) atenderam++;
       } catch (e) {
-        console.warn("[Assistente Meeds] ouvinte do evento", nome, "falhou em", o.idModulo, e);
+        LOG.warn("[Assistente Meeds] ouvinte do evento", nome, "falhou em", o.idModulo, e);
       }
     });
     return atenderam;
@@ -200,14 +203,14 @@
    * ------------------------------------------------------------------ */
   function registerModule(def) {
     if (!def || !def.id) {
-      console.warn("[Assistente Meeds] registerModule chamado sem id, ignorando.");
+      LOG.warn("[Assistente Meeds] registerModule chamado sem id, ignorando.");
       return;
     }
     if (porId[def.id]) {
-      console.warn("[Assistente Meeds] modulo duplicado ignorado:", def.id);
+      LOG.warn("[Assistente Meeds] modulo duplicado ignorado:", def.id);
       return;
     }
-    var entrada = {
+    const entrada = {
       def: def,
       rodando: false,
       cancelamentosRede: [],
@@ -235,7 +238,7 @@
    * do painel e editar um arquivo de dados. */
   function fichaDoManifesto(id) {
     if (!manifesto || !Array.isArray(manifesto.modulos)) return null;
-    for (var i = 0; i < manifesto.modulos.length; i++) {
+    for (let i = 0; i < manifesto.modulos.length; i++) {
       if (manifesto.modulos[i].id === id) return manifesto.modulos[i];
     }
     return null;
@@ -258,10 +261,10 @@
    * modulo nao tem botao (cid10 e previa-pdf acoplam-se a outra tela).
    * ------------------------------------------------------------------ */
   function montarSpecBotao(def, ficha) {
-    var ap = ficha && ficha.apresentacao;
+    const ap = ficha && ficha.apresentacao;
     if (ap) {
       if (ap.formaBotao === "nenhum" || !ap.icone) return null;
-      var comRotulo = ap.formaBotao === "rotulo";
+      const comRotulo = ap.formaBotao === "rotulo";
       return {
         icone: ap.icone,
         rotulo: comRotulo ? (ap.rotuloBotao || ficha.nome || "") : "",
@@ -285,7 +288,7 @@
 
   function listarModulos() {
     return registro.map(function (e) {
-      var m = fichaDoManifesto(e.def.id) || {};
+      const m = fichaDoManifesto(e.def.id) || {};
       return {
         id: e.def.id,
         temAjustes: typeof e.abrirAjustes === "function",
@@ -306,7 +309,7 @@
    * criam botao nem ruido na tela — desligar so deixaria o formulario
    * pior, sem nada em troca. Por isso nao ha chave para elas no painel. */
   function sempreAtivo(id) {
-    var m = fichaDoManifesto(id);
+    const m = fichaDoManifesto(id);
     return !!(m && m.sempreAtivo);
   }
 
@@ -329,7 +332,7 @@
    * `sempreAtivo` ficou so com a previa do documento, onde a premissa
    * original continua valendo. */
   function padraoDoModulo(id) {
-    var m = fichaDoManifesto(id);
+    const m = fichaDoManifesto(id);
     return !m || m.padraoHabilitado !== false;
   }
 
@@ -338,7 +341,7 @@
    * depois de migrar. */
   function estaHabilitado(id) {
     if (sempreAtivo(id)) return true;
-    var mapa = storageNucleo ? storageNucleo.ler("modulos", {}) : {};
+    const mapa = storageNucleo ? storageNucleo.ler("modulos", {}) : {};
     /* Preferencia gravada sempre vence o padrao: se o medico ligou o
      * APAC uma vez, uma atualizacao nao pode desligar de novo. */
     if (mapa && Object.prototype.hasOwnProperty.call(mapa, id)) return !!mapa[id];
@@ -350,14 +353,14 @@
     if (sempreAtivo(id)) {
       /* Nao ha caminho na interface que chegue aqui, mas a regra vale
        * tambem para quem chamar pelo console. */
-      console.debug("[Assistente Meeds] " + id + " e sempre ativo; o pedido de desligar foi ignorado.");
+      LOG.debug("[Assistente Meeds] " + id + " e sempre ativo; o pedido de desligar foi ignorado.");
       return;
     }
-    var mapa = storageNucleo.ler("modulos", {}) || {};
+    const mapa = storageNucleo.ler("modulos", {}) || {};
     mapa[id] = !!valor;
     storageNucleo.gravar("modulos", mapa);
 
-    var entrada = porId[id];
+    const entrada = porId[id];
     if (!entrada) return;
     // HABILITAR/DESABILITAR NAO PODE EXIGIR RELOAD (requisito do contrato)
     if (valor && !entrada.rodando) iniciarModulo(entrada);
@@ -369,16 +372,16 @@
    * ------------------------------------------------------------------ */
   function iniciarModulo(entrada) {
     if (entrada.rodando) return;
-    var def = entrada.def;
-    var ficha = fichaDoManifesto(def.id);
+    const def = entrada.def;
+    const ficha = fichaDoManifesto(def.id);
     try {
-      var storage = Storage.criarStorage(def.id);
-      var config = storage.lerConfig(def.configPadrao || {});
+      const storage = Storage.criarStorage(def.id);
+      const config = storage.lerConfig(def.configPadrao || {});
 
       // Botao: a APRESENTACAO vem do manifest (montarSpecBotao), o dock
       // POSICIONA, e o modulo so diz o que fazer no clique.
-      var botaoHandle = null;
-      var specBotao = montarSpecBotao(def, ficha);
+      let botaoHandle = null;
+      const specBotao = montarSpecBotao(def, ficha);
       if (specBotao) {
         specBotao.id = def.id;
         specBotao.aoClicar = function () {
@@ -386,7 +389,7 @@
           try {
             entrada.aoClicarBotao();
           } catch (e) {
-            console.warn("[Assistente Meeds] clique falhou em", def.id, e);
+            LOG.warn("[Assistente Meeds] clique falhou em", def.id, e);
             avisarFalhaNoClique(entrada, specBotao);
           }
         };
@@ -397,14 +400,14 @@
       // Assinaturas de rede declaradas no contrato — o nucleo assina por
       // conta do modulo e guarda os cancelamentos para o stop().
       (def.assinaturasRede || []).forEach(function (assinatura) {
-        var cancelar = Net.assinar(
+        const cancelar = Net.assinar(
           { regex: assinatura.regex, metodos: assinatura.metodos, idModulo: def.id },
           function (evt) {
             if (typeof def.aoCargaRede === "function") {
               try {
                 def.aoCargaRede(evt);
               } catch (e) {
-                console.warn("[Assistente Meeds] aoCargaRede falhou em", def.id, e);
+                LOG.warn("[Assistente Meeds] aoCargaRede falhou em", def.id, e);
               }
             }
           }
@@ -412,11 +415,11 @@
         entrada.cancelamentosRede.push(cancelar);
       });
 
-      var deps = {
+      const deps = {
         core: API,
         network: {
           assinar: function (spec, cb) {
-            var cancelar = Net.assinar(
+            const cancelar = Net.assinar(
               { regex: spec.regex, metodos: spec.metodos, idModulo: def.id },
               cb
             );
@@ -484,9 +487,9 @@
 
       if (typeof def.start === "function") def.start(deps);
       entrada.rodando = true;
-      console.debug("[Assistente Meeds] modulo iniciado:", def.id, def.versao);
+      LOG.debug("[Assistente Meeds] modulo iniciado:", def.id, def.versao);
     } catch (e) {
-      console.error("[Assistente Meeds] falha ao iniciar modulo", def.id, e);
+      LOG.error("[Assistente Meeds] falha ao iniciar modulo", def.id, e);
       // Um modulo que explode no start nao pode derrubar os outros:
       // desfazemos o que ja foi criado e seguimos.
       pararModulo(entrada, true);
@@ -500,8 +503,8 @@
    * depois da janela aberta. Um aviso por modulo, que se atualiza em vez
    * de empilhar quando o medico tenta de novo. */
   function avisarFalhaNoClique(entrada, spec) {
-    var nome = (spec && (spec.titulo || spec.rotulo)) || entrada.def.nome || entrada.def.id;
-    var aviso = {
+    const nome = (spec && (spec.titulo || spec.rotulo)) || entrada.def.nome || entrada.def.id;
+    const aviso = {
       titulo: "Algo deu errado em " + nome,
       corpo: [
         "Um erro interno interrompeu esta função, e a janela pode não ter aberto por completo.",
@@ -520,11 +523,11 @@
   }
 
   function pararModulo(entrada, silencioso) {
-    var def = entrada.def;
+    const def = entrada.def;
     try {
       if (entrada.rodando && typeof def.stop === "function") def.stop();
     } catch (e) {
-      console.warn("[Assistente Meeds] stop() falhou em", def.id, e);
+      LOG.warn("[Assistente Meeds] stop() falhou em", def.id, e);
     }
     entrada.cancelamentosRede.forEach(function (cancelar) {
       try {
@@ -551,13 +554,13 @@
     entrada.abrirAjustes = null;
     entrada.iniciarTutorial = null;
     entrada.rodando = false;
-    if (!silencioso) console.debug("[Assistente Meeds] modulo parado:", def.id);
+    if (!silencioso) LOG.debug("[Assistente Meeds] modulo parado:", def.id);
   }
 
   /* ------------------------------------------------------------------
    * BOOTSTRAP
    * ------------------------------------------------------------------ */
-  var INTERVALO_RECHECAGEM_MS = 1500;
+  const INTERVALO_RECHECAGEM_MS = 1500;
 
   function recheckPeriodico() {
     // Regra unica de visibilidade que os 5 scripts implementavam cada um
@@ -565,7 +568,7 @@
     Dock.definirVisibilidadeGeral(Auth.estaLogado());
   }
 
-  var carregouPreferencias = false;
+  let carregouPreferencias = false;
 
   /* ------------------------------------------------------------------
    * LAUDOS DESLIGADOS NA PRIMEIRA INSTALACAO (v2.49.0) — sem desligar
@@ -583,14 +586,14 @@
    * Roda UMA vez por navegador; numa instalacao nova so grava a marca,
    * para que na proxima abertura — com as boas-vindas ja vistas — ela
    * nao seja confundida com quem ja usava. */
-  var LAUDOS_AGORA_DESLIGADOS = ["lme-sete-lagoas", "cmd"];
-  var MARCA_PADRAO_LAUDOS = "padrao_laudos_v2_49";
+  const LAUDOS_AGORA_DESLIGADOS = ["lme-sete-lagoas", "cmd"];
+  const MARCA_PADRAO_LAUDOS = "padrao_laudos_v2_49";
 
   function preservarLaudosDeQuemJaUsava(storage, jaUsava) {
     if (!storage || storage.ler(MARCA_PADRAO_LAUDOS, false) === true) return false;
-    var mudou = false;
+    let mudou = false;
     if (jaUsava) {
-      var mapa = storage.ler("modulos", {}) || {};
+      const mapa = storage.ler("modulos", {}) || {};
       LAUDOS_AGORA_DESLIGADOS.forEach(function (id) {
         if (!Object.prototype.hasOwnProperty.call(mapa, id)) {
           mapa[id] = true;
@@ -623,7 +626,7 @@
     if (!carregouPreferencias) {
       Storage.carregar()
         .catch(function (e) {
-          console.warn("[Assistente Meeds] preferencias nao carregaram, usando padroes.", e);
+          LOG.warn("[Assistente Meeds] preferencias nao carregaram, usando padroes.", e);
         })
         .then(function () {
           carregouPreferencias = true;
@@ -669,12 +672,12 @@
      * tinha desligado a APAC de Itauna veria a APAC global aparecer
      * sozinha, e quem a tinha ligada perderia a escolha. */
     (function migrarPreferenciaApac() {
-      var mapa = storageNucleo.ler("modulos", {}) || {};
+      const mapa = storageNucleo.ler("modulos", {}) || {};
       if (Object.prototype.hasOwnProperty.call(mapa, "apac-itauna")) {
         if (!Object.prototype.hasOwnProperty.call(mapa, "apac")) mapa.apac = mapa["apac-itauna"];
         delete mapa["apac-itauna"];
         storageNucleo.gravar("modulos", mapa);
-        console.debug("[Assistente Meeds] preferencia da APAC migrada de apac-itauna para apac.");
+        LOG.debug("[Assistente Meeds] preferencia da APAC migrada de apac-itauna para apac.");
       }
     })();
 
@@ -698,16 +701,16 @@
     preservarLaudosDeQuemJaUsava(storageNucleo, raiz.MeedsSuiteDiagnostico.boasVindasConcluidas());
 
     (function carimbarMunicipioPeloCnes() {
-      var dados = raiz.MEEDS_DADOS_APAC;
+      const dados = raiz.MEEDS_DADOS_APAC;
       if (!dados || !dados.municipios || !Cadastro || !Cadastro.preencherMunicipioPeloCnes) return;
-      var deQuemE = {};
+      const deQuemE = {};
       Object.keys(dados.municipios).forEach(function (cidade) {
         (dados.municipios[cidade].estabelecimentos || []).forEach(function (e) {
           if (e && e.cnes) deQuemE[String(e.cnes).replace(/\D/g, "")] = cidade;
         });
       });
-      var mudou = Cadastro.preencherMunicipioPeloCnes(deQuemE);
-      if (mudou) console.debug("[Assistente Meeds] municipio preenchido em", mudou, "estabelecimento(s) pelo CNES.");
+      const mudou = Cadastro.preencherMunicipioPeloCnes(deQuemE);
+      if (mudou) LOG.debug("[Assistente Meeds] municipio preenchido em", mudou, "estabelecimento(s) pelo CNES.");
     })();
 
     raiz.MeedsSuiteManager.montar({
@@ -732,7 +735,7 @@
           try {
             o.fn();
           } catch (e) {
-            console.warn("[Assistente Meeds] ouvinte de cadastro falhou em", o.idModulo, e);
+            LOG.warn("[Assistente Meeds] ouvinte de cadastro falhou em", o.idModulo, e);
           }
         });
       },
@@ -758,10 +761,10 @@
     raiz.MeedsSuiteDiagnostico.verificar(Dock, storageNucleo);
 
     iniciado = true;
-    console.debug("[Assistente Meeds] nucleo " + VERSAO_NUCLEO + " iniciado com " + registro.length + " modulo(s).");
+    LOG.debug("[Assistente Meeds] nucleo " + VERSAO_NUCLEO + " iniciado com " + registro.length + " modulo(s).");
   }
 
-  var API = {
+  var API = { // eslint-disable-line no-var -- usada antes desta linha; com let/const daria erro de zona morta (TDZ)
     versao: VERSAO_NUCLEO,
     novidades: raiz.MeedsSuiteNovidades,
     registerModule: registerModule,

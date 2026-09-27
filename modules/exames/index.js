@@ -46,15 +46,18 @@
 (function (raiz) {
   "use strict";
 
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
   /* Base: comeca no fallback embutido (gerado por scripts/sync-exames.js)
    * e e substituida pela versao remota quando ela chega. Mesma estrategia
    * do REMUME: funciona sem internet e atualiza sem redistribuir o
    * userscript para todos os medicos. */
-  var BASE = raiz.__MEEDS_EXAMES_FALLBACK__ || { municipios: {} };
-  var EXAMES_URL =
+  let BASE = raiz.__MEEDS_EXAMES_FALLBACK__ || { municipios: {} };
+  const EXAMES_URL =
     "https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dados/exames.json";
 
-  var CONFIG_BUSCA = {
+  const CONFIG_BUSCA = {
     /* Quantos itens entram na tela por vez. A lista de Betim tem 1.983:
      * desenhar tudo de uma vez trava a abertura do painel no notebook do
      * plantao, que e onde isso precisa funcionar. */
@@ -78,9 +81,9 @@
    * menos que criar uma dependencia nova entre modulo e nucleo por tao
    * pouco. */
   function adiar(fn, ms) {
-    var timer = null;
+    let timer = null;
     return function () {
-      var args = arguments, esse = this;
+      const args = arguments, esse = this;
       if (timer) clearTimeout(timer);
       timer = setTimeout(function () {
         timer = null;
@@ -89,13 +92,13 @@
     };
   }
 
-  var d = null;              // dependencias entregues pelo nucleo
-  var overlay = null;
-  var refs = {};
-  var municipioDetectado = null;
-  var municipioEscolhido = null;
-  var indicePorMunicipio = {};
-  var cancelarRede = null;
+  let d = null;              // dependencias entregues pelo nucleo
+  let overlay = null;
+  let refs = {};
+  let municipioDetectado = null;
+  let municipioEscolhido = null;
+  let indicePorMunicipio = {};
+  let cancelarRede = null;
 
   /* ------------------------------------------------------------------
    * ESTADO DA LISTA NA TELA
@@ -111,9 +114,9 @@
    * lista parada no item 100 nao acharia nada — e o medico concluiria
    * que o municipio nao oferece.
    * ------------------------------------------------------------------ */
-  var ordenados = [];
-  var visiveis = [];
-  var desenhados = 0;
+  let ordenados = [];
+  let visiveis = [];
+  let desenhados = 0;
 
   /* ------------------------------------------------------------------
    * A BASE
@@ -143,27 +146,27 @@
   }
 
   function examesDe(municipio) {
-    var b = blocoDe(municipio);
+    const b = blocoDe(municipio);
     return (b && Array.isArray(b.exames)) ? b.exames : [];
   }
 
   function siglaDe(codigo) {
-    var s = (BASE.siglas || {})[codigo];
+    const s = (BASE.siglas || {})[codigo];
     return s || { rotulo: codigo, titulo: "" };
   }
 
   function validarBase(dados) {
     if (!dados || typeof dados !== "object") return false;
     if (!dados.municipios || typeof dados.municipios !== "object") return false;
-    var chaves = Object.keys(dados.municipios).filter(function (k) {
+    const chaves = Object.keys(dados.municipios).filter(function (k) {
       return k.indexOf("_") !== 0;
     });
     if (!chaves.length) return false;
     /* Um bloco sem `exames` derrubaria a busca no primeiro uso. Melhor
      * recusar o arquivo inteiro e seguir com o embutido: uma base velha
      * e melhor que uma base quebrada. */
-    for (var i = 0; i < chaves.length; i++) {
-      var b = dados.municipios[chaves[i]];
+    for (let i = 0; i < chaves.length; i++) {
+      const b = dados.municipios[chaves[i]];
       if (!b || !Array.isArray(b.exames)) return false;
     }
     return true;
@@ -176,7 +179,7 @@
         .then(function (dados) {
           if (!dados) return false;
           if (!validarBase(dados)) {
-            console.warn("[Assistente Meeds] exames.json remoto com formato inesperado; mantendo a base embutida.");
+            LOG.warn("[Assistente Meeds] exames.json remoto com formato inesperado; mantendo a base embutida.");
             return false;
           }
           BASE = dados;
@@ -205,7 +208,7 @@
    * ------------------------------------------------------------------ */
   function indiceDe(municipio) {
     if (indicePorMunicipio[municipio]) return indicePorMunicipio[municipio];
-    var itens = examesDe(municipio);
+    const itens = examesDe(municipio);
     indicePorMunicipio[municipio] = raiz.MeedsSuiteBusca.criarIndice(itens, function (e) {
       return [e.nome, e.apelido || "", e.codigo || "", e.local || ""].join(" ");
     });
@@ -256,19 +259,19 @@
    * Devolve INDICES de `ordenados`, e nao os itens: e o indice que
    * permite saber se aquele item ja esta desenhado na tela. */
   function indicesQuePassam(termo) {
-    var limpo = String(termo || "").trim();
-    var todos = ordenados.map(function (_, i) { return i; });
+    const limpo = String(termo || "").trim();
+    const todos = ordenados.map(function (_, i) { return i; });
     if (!limpo) return todos;
 
     if (limpo.length < CONFIG_BUSCA.MIN_CARACTERES_DIFUSO) {
-      var alvo = normalizar(limpo);
+      const alvo = normalizar(limpo);
       return todos.filter(function (i) {
-        var e = ordenados[i];
+        const e = ordenados[i];
         return normalizar([e.nome, e.codigo || "", e.local || ""].join(" ")).indexOf(alvo) !== -1;
       });
     }
 
-    var r = raiz.MeedsSuiteBusca.buscar(limpo, indiceDe(municipioEscolhido), {
+    const r = raiz.MeedsSuiteBusca.buscar(limpo, indiceDe(municipioEscolhido), {
       /* Sem teto: o filtro cobre a lista inteira, e a paginacao e que
        * decide quanto disso vai para a tela. Cortar aqui esconderia
        * resultado legitimo sem avisar ninguem. */
@@ -285,11 +288,11 @@
      * buscar "acido folico" trazia "ÁCIDO 2-3 DIFOSFOGLICÉRICO" no topo,
      * porque vem antes no alfabeto — e o que a pessoa pediu ficava
      * enterrado no meio de setenta e quatro resultados. */
-    var posicao = new Map();
+    const posicao = new Map();
     ordenados.forEach(function (e, i) { posicao.set(e, i); });
-    var saida = [];
+    const saida = [];
     (r.itens || []).forEach(function (x) {
-      var i = posicao.get(x.item || x);
+      const i = posicao.get(x.item || x);
       if (i !== undefined) saida.push(i);
     });
     return saida;
@@ -299,7 +302,7 @@
    * TELA
    * ------------------------------------------------------------------ */
 
-  var CSS = [
+  const CSS = [
     raiz.MeedsSuiteCabecalho.CSS,
     ".ex-modal { width:100%; max-width:560px; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; display:flex; flex-direction:column; max-height:82vh; }",
     ".ex-modal header { background:#0f6b64; color:#fff; padding:15px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
@@ -425,7 +428,7 @@
   ].join("\n");
 
   function montarSelect() {
-    var lista = municipios();
+    const lista = municipios();
     refs.select.innerHTML = lista
       .map(function (m) {
         return '<option value="' + escapar(m) + '">' + escapar(m) + " (" + examesDe(m).length + ")</option>";
@@ -443,14 +446,14 @@
   }
 
   function pintarCabecalho() {
-    var b = blocoDe(municipioEscolhido);
+    const b = blocoDe(municipioEscolhido);
     if (!b) return;
 
     /* A ORIGEM FICA VISIVEL SEMPRE. A lista de Betim vem de um contrato,
      * a de Macae de um PDF da unidade — o medico precisa saber com o que
      * esta lidando, e ha quanto tempo. Uma lista sem procedencia parece
      * oficial mesmo quando esta velha. */
-    var partes = [];
+    const partes = [];
     if (b.fonte) partes.push(b.fonte);
     if (b.atualizadoEm) partes.push("atualizado em " + formatarData(b.atualizadoEm));
     refs.origem.textContent = partes.join(" · ");
@@ -486,7 +489,7 @@
    * ela. So Macae tem conteudo aqui hoje; para qualquer outro
    * municipio o botao fica oculto. */
   function pintarEncaminhamentos() {
-    var enc = blocoDeEncaminhamentosDe(municipioEscolhido);
+    const enc = blocoDeEncaminhamentosDe(municipioEscolhido);
     /* Troca de municipio: sempre recolhe. Ver o conteudo de Macae ainda
      * aberto depois de trocar para Betim (que nao tem nada) confundiria
      * mais do que ajudaria. */
@@ -503,8 +506,8 @@
     refs.encaminhamentosBtn.textContent =
       "📋 Encaminhamentos / Serviços de referência (" + enc.servicos.length + ")";
 
-    var cartoes = enc.servicos.map(function (s) {
-      var linhas = "";
+    const cartoes = enc.servicos.map(function (s) {
+      let linhas = "";
       if (s.publicoAlvo) {
         linhas += '<div class="ex-enc-linha"><b>Público-alvo:</b> ' + escapar(s.publicoAlvo) + "</div>";
       }
@@ -528,7 +531,7 @@
       );
     }).join("");
 
-    var notaGeral = enc.observacoes && enc.observacoes.length
+    const notaGeral = enc.observacoes && enc.observacoes.length
       ? '<div class="ex-enc-nota-geral">ℹ️ ' + enc.observacoes.map(escapar).join(" ") + "</div>"
       : "";
 
@@ -540,7 +543,7 @@
   }
 
   function formatarData(iso) {
-    var m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
     return m ? m[3] + "/" + m[2] + "/" + m[1] : iso;
   }
 
@@ -580,12 +583,12 @@
   /* Icone por VALOR de fluxo, nao um so para o campo: "para onde o
    * pedido vai" e mais legivel com um icone que muda conforme a
    * resposta do que com um icone fixo mais um texto ao lado. */
-  var ICONE_FLUXO = {
+  const ICONE_FLUXO = {
     FICA_NA_UNIDADE: "🏥",
     VAI_PARA_CENTRAL: "📤",
     OUTRO: "🔀",
   };
-  var ROTULO_FLUXO = {
+  const ROTULO_FLUXO = {
     FICA_NA_UNIDADE: "Fica na unidade",
     VAI_PARA_CENTRAL: "Vai para a Central",
     OUTRO: "Outro fluxo",
@@ -598,7 +601,7 @@
    * que muda por valor) porque sao o mesmo TIPO de informacao — so
    * eixos diferentes — mas aparecem como linhas separadas quando um
    * exame tiver os dois, nunca fundidos numa frase so. */
-  var ICONE_CANAL = {
+  const ICONE_CANAL = {
     SISREG: "🗂️",
     CENTRAL_MUNICIPAL: "🏛️",
     REGULACAO_ESTADUAL: "🗺️",
@@ -606,7 +609,7 @@
     LABORATORIO_UPA: "🧪",
     OUTRO: "🔀",
   };
-  var ROTULO_CANAL = {
+  const ROTULO_CANAL = {
     SISREG: "Via SISREG",
     CENTRAL_MUNICIPAL: "Via Central de Regulação do Município",
     REGULACAO_ESTADUAL: "Via regulação estadual",
@@ -642,7 +645,7 @@
 
   function blocoDeOrientacao(o) {
     if (!o) return "";
-    var linhas = [];
+    const linhas = [];
 
     if (o.faixaEtaria) linhas.push(linhaDeOrientacao("🎂", "Faixa etária", o.faixaEtaria));
     if (o.preparo) linhas.push(linhaDeOrientacao("🩺", "Preparo", o.preparo));
@@ -700,7 +703,7 @@
   }
 
   function elementoDoExame(e, indice) {
-    var meta = [];
+    const meta = [];
     if (e.codigo) meta.push('<span class="ex-selo">🔢 ' + escapar(e.codigo) + "</span>");
     if (e.local) meta.push('<span class="ex-selo">📍 ' + escapar(e.local) + "</span>");
     /* `especialidade` fica no `.ex-meta`, junto de codigo/local — e
@@ -724,9 +727,9 @@
     if (e.status === "SUSPENSO") {
       meta.push('<span class="ex-selo ex-suspenso">⛔ Suspenso</span>');
     }
-    var sigla = e.exige ? siglaDe(e.exige) : null;
+    const sigla = e.exige ? siglaDe(e.exige) : null;
 
-    var li = document.createElement("li");
+    const li = document.createElement("li");
     li.className = "ex-item";
     /* `listitem`, e nao `option`: a linha tem um botao de copiar dentro,
      * e um `option` com controle interno confunde o leitor de tela — ele
@@ -774,10 +777,10 @@
 
   /* Desenha o proximo bloco do conjunto que passou no filtro. */
   function desenharBloco() {
-    var ate = Math.min(desenhados + CONFIG_BUSCA.BLOCO, visiveis.length);
-    var pedaco = document.createDocumentFragment();
-    for (var k = desenhados; k < ate; k++) {
-      var i = visiveis[k];
+    const ate = Math.min(desenhados + CONFIG_BUSCA.BLOCO, visiveis.length);
+    const pedaco = document.createDocumentFragment();
+    for (let k = desenhados; k < ate; k++) {
+      const i = visiveis[k];
       pedaco.appendChild(elementoDoExame(ordenados[i], i));
     }
     refs.lista.appendChild(pedaco);
@@ -786,13 +789,13 @@
   }
 
   function atualizarRodape() {
-    var restam = visiveis.length - desenhados;
+    const restam = visiveis.length - desenhados;
     refs.mais.textContent = restam > 0
       ? "+ Mais " + Math.min(CONFIG_BUSCA.BLOCO, restam) + " (faltam " + restam + ")"
       : "";
     refs.mais.classList.toggle("oculto", restam <= 0);
 
-    var termo = refs.busca.value.trim();
+    const termo = refs.busca.value.trim();
     refs.contagem.textContent = termo
       ? "mostrando " + desenhados + " de " + visiveis.length + " que casam · " +
         ordenados.length + " na lista de " + municipioEscolhido
@@ -832,7 +835,7 @@
     refs.spinner.classList.add("oculto");
   }
 
-  var filtrarComAtraso = adiar(filtrarExames, CONFIG_BUSCA.DEBOUNCE_MS);
+  const filtrarComAtraso = adiar(filtrarExames, CONFIG_BUSCA.DEBOUNCE_MS);
 
   /* Carrega a lista do municipio escolhido, do zero. */
   function carregarMunicipio() {
@@ -938,7 +941,7 @@
     refs.vazio = overlay.$("#ex-vazio");
 
     refs.encaminhamentosBtn.addEventListener("click", function () {
-      var abrindo = refs.encaminhamentos.classList.contains("oculto");
+      const abrindo = refs.encaminhamentos.classList.contains("oculto");
       refs.encaminhamentos.classList.toggle("oculto", !abrindo);
       refs.encaminhamentosBtn.setAttribute("aria-expanded", String(abrindo));
       if (abrindo && refs.rolagem) {
@@ -986,7 +989,7 @@
   }
 
   function detectarNaTela() {
-    var M = raiz.MeedsSuiteMunicipio;
+    const M = raiz.MeedsSuiteMunicipio;
     if (!M) return;
     aplicarMunicipio(M.detectarNaTela(municipios()));
   }
@@ -1078,7 +1081,7 @@
       cancelarRede = d.network.assinar(
         { regex: /\/api\/v1\/Atendimento\/[^/?]+(?:[?#].*)?$/i, metodos: ["GET"] },
         function (evt) {
-          var M = raiz.MeedsSuiteMunicipio;
+          const M = raiz.MeedsSuiteMunicipio;
           if (!M) return;
           evt.json().then(function (corpo) {
             if (corpo) aplicarMunicipio(M.detectar(corpo, municipios()));

@@ -34,7 +34,7 @@
 (function (raiz) {
   "use strict";
 
-  var doc = typeof document !== "undefined" ? document : null;
+  const doc = typeof document !== "undefined" ? document : null;
 
   /* ------------------------------------------------------------------
    * ONDE ESTA A ATENCAO DO MEDICO
@@ -53,7 +53,7 @@
 
   function aoMudarAtencao(fn) {
     if (!doc || typeof fn !== "function") return function () {};
-    var mao = function () { fn(ondeEstaOMedico()); };
+    const mao = function () { fn(ondeEstaOMedico()); };
     doc.addEventListener("visibilitychange", mao);
     raiz.addEventListener("focus", mao);
     raiz.addEventListener("blur", mao);
@@ -73,10 +73,10 @@
    * reescreve o titulo ao navegar — sem ele, o contador sumiria na
    * primeira troca de tela.
    * ------------------------------------------------------------------ */
-  var PREFIXO_RX = /^\((\d+)\)\s+/;
-  var tituloLimpo = null;
-  var contagemNoTitulo = 0;
-  var reaplicador = null;
+  const PREFIXO_RX = /^\((\d+)\)\s+/;
+  let tituloLimpo = null;
+  let contagemNoTitulo = 0;
+  let reaplicador = null;
 
   function semPrefixo(texto) {
     return String(texto || "").replace(PREFIXO_RX, "");
@@ -84,7 +84,7 @@
 
   function aplicarTitulo() {
     if (!doc) return;
-    var desejado = contagemNoTitulo > 0 ? "(" + contagemNoTitulo + ") " + tituloLimpo : tituloLimpo;
+    const desejado = contagemNoTitulo > 0 ? "(" + contagemNoTitulo + ") " + tituloLimpo : tituloLimpo;
     if (doc.title !== desejado) doc.title = desejado;
   }
 
@@ -93,7 +93,7 @@
     if (tituloLimpo === null) tituloLimpo = semPrefixo(doc.title);
     /* Se a SPA trocou o titulo por conta propria, o novo titulo e que
      * vale — so tiramos o nosso prefixo antes de guardar. */
-    var atualSemPrefixo = semPrefixo(doc.title);
+    const atualSemPrefixo = semPrefixo(doc.title);
     if (atualSemPrefixo && atualSemPrefixo !== tituloLimpo) tituloLimpo = atualSemPrefixo;
 
     contagemNoTitulo = contagem > 0 ? contagem : 0;
@@ -117,12 +117,12 @@
    * Desenhado no canvas. A aba do Meeds costuma estar de fundo, e o
    * favicone e a unica parte dela que continua visivel na barra de abas.
    * ------------------------------------------------------------------ */
-  var faviconeOriginal = null;
-  var linkFavicone = null;
+  let faviconeOriginal = null;
+  let linkFavicone = null;
 
   function acharOuCriarLinkFavicone() {
     if (!doc) return null;
-    var link = doc.querySelector('link[rel~="icon"]');
+    let link = doc.querySelector('link[rel~="icon"]');
     if (!link) {
       link = doc.createElement("link");
       link.rel = "icon";
@@ -133,11 +133,11 @@
 
   function desenharFavicone(contagem) {
     try {
-      var lado = 64;
-      var canvas = doc.createElement("canvas");
+      const lado = 64;
+      const canvas = doc.createElement("canvas");
       canvas.width = lado;
       canvas.height = lado;
-      var ctx = canvas.getContext("2d");
+      const ctx = canvas.getContext("2d");
       if (!ctx) return null;
 
       /* Fundo neutro: nao tentamos redesenhar o favicone do Meeds por
@@ -155,7 +155,7 @@
       ctx.arc(lado / 2, lado / 2, lado / 2 - 4, 0, Math.PI * 2);
       ctx.fill();
 
-      var texto = contagem > 99 ? "99+" : String(contagem);
+      const texto = contagem > 99 ? "99+" : String(contagem);
       ctx.fillStyle = "#ffffff";
       ctx.font = "bold " + (texto.length > 2 ? 26 : 38) + "px system-ui, sans-serif";
       ctx.textAlign = "center";
@@ -174,7 +174,7 @@
       linkFavicone = linkFavicone || acharOuCriarLinkFavicone();
       if (!linkFavicone) return;
       if (faviconeOriginal === null) faviconeOriginal = linkFavicone.getAttribute("href") || "";
-      var url = desenharFavicone(contagem);
+      const url = desenharFavicone(contagem);
       if (url) linkFavicone.setAttribute("href", url);
     } catch (e) {
       /* silencioso: favicone e reforco, nunca pode quebrar a pagina */
@@ -204,7 +204,7 @@
    * cada funcao degrada em silencio, e o alarme na tela continua sendo o
    * canal principal.
    * ------------------------------------------------------------------ */
-  var TAG_PADRAO = "meeds-suite";
+  const TAG_PADRAO = "meeds-suite";
 
   function suportaNotificacao() {
     return typeof raiz.Notification === "function";
@@ -220,7 +220,7 @@
     if (raiz.Notification.permission === "granted") return Promise.resolve(true);
     if (raiz.Notification.permission === "denied") return Promise.resolve(false);
     try {
-      var r = raiz.Notification.requestPermission();
+      const r = raiz.Notification.requestPermission();
       /* Safari antigo usa callback em vez de promessa. */
       if (r && typeof r.then === "function") {
         return r.then(function (p) { return p === "granted"; }).catch(function () { return false; });
@@ -234,10 +234,10 @@
   }
 
   function notificar(opcoes) {
-    var o = opcoes || {};
+    const o = opcoes || {};
     if (permissaoDeNotificacao() !== "granted") return null;
     try {
-      var n = new raiz.Notification(o.titulo || "Assistente Meeds", {
+      const n = new raiz.Notification(o.titulo || "Assistente Meeds", {
         body: o.corpo || "",
         tag: o.tag || TAG_PADRAO,
         renotify: true,
@@ -275,8 +275,8 @@
    * nome de paciente. A janela pode ficar aberta atras de outras e
    * aparecer em compartilhamento de tela.
    * ------------------------------------------------------------------ */
-  var NOME_DA_JANELA = "meeds-aviso-fila";
-  var janelaAviso = null;
+  const NOME_DA_JANELA = "meeds-aviso-fila";
+  let janelaAviso = null;
 
   /* ------------------------------------------------------------------
    * iPad / iPhone: a janela nao existe, e nao adianta pedir permissao
@@ -296,9 +296,9 @@
    * um ponto de toque — mesma deteccao que a previa do PDF ja usa.
    * ------------------------------------------------------------------ */
   function ehIOS() {
-    var ua = (raiz.navigator && raiz.navigator.userAgent) || "";
+    const ua = (raiz.navigator && raiz.navigator.userAgent) || "";
     if (/Windows|Android/.test(ua)) return false;
-    var pareceApple = /iPad|iPhone|iPod|Macintosh/.test(ua);
+    const pareceApple = /iPad|iPhone|iPod|Macintosh/.test(ua);
     return pareceApple && ((raiz.navigator && raiz.navigator.maxTouchPoints) || 0) > 1;
   }
 
@@ -315,13 +315,13 @@
   }
 
   function abrirJanelaDeAviso(opcoes) {
-    var o = opcoes || {};
+    const o = opcoes || {};
     if (!suportaJanela()) return null;
-    var largura = 400, altura = 230;
-    var esq = Math.max(0, (raiz.screen && raiz.screen.width ? raiz.screen.width - largura - 30 : 40));
-    var topo = 60;
+    const largura = 400, altura = 230;
+    const esq = Math.max(0, (raiz.screen && raiz.screen.width ? raiz.screen.width - largura - 30 : 40));
+    const topo = 60;
 
-    var j;
+    let j;
     try {
       j = raiz.open(
         "",
@@ -382,9 +382,9 @@
    * perdido. O bloqueio cai sozinho quando a aba vai para o fundo, entao
    * ele e reconquistado quando ela volta.
    * ------------------------------------------------------------------ */
-  var travaTela = null;
-  var querTelaAcesa = false;
-  var vigiaTela = null;
+  let travaTela = null;
+  let querTelaAcesa = false;
+  let vigiaTela = null;
 
   function suportaTelaAcesa() {
     return !!(raiz.navigator && raiz.navigator.wakeLock && raiz.navigator.wakeLock.request);
@@ -434,11 +434,11 @@
    * de 3x cobre com folga o afunilamento normal de aba de fundo (que no
    * Chromium vai a um disparo por minuto) sem acusar falso positivo.
    * ------------------------------------------------------------------ */
-  var INTERVALO_PULSO_MS = 30000;
-  var TOLERANCIA_PULSO = 3;
-  var ultimoPulso = 0;
-  var pulso = null;
-  var ouvintesSuspensao = [];
+  const INTERVALO_PULSO_MS = 30000;
+  const TOLERANCIA_PULSO = 3;
+  let ultimoPulso = 0;
+  let pulso = null;
+  let ouvintesSuspensao = [];
 
   function aoAcordarDeSuspensao(fn) {
     if (typeof fn !== "function") return function () {};
@@ -446,8 +446,8 @@
     if (!pulso) {
       ultimoPulso = Date.now();
       pulso = setInterval(function () {
-        var agora = Date.now();
-        var atraso = agora - ultimoPulso;
+        const agora = Date.now();
+        const atraso = agora - ultimoPulso;
         ultimoPulso = agora;
         if (atraso <= INTERVALO_PULSO_MS * TOLERANCIA_PULSO) return;
         ouvintesSuspensao.forEach(function (o) {
@@ -468,8 +468,8 @@
    * MARCAR / LIMPAR — os dois unicos que um modulo costuma chamar
    * ------------------------------------------------------------------ */
   function marcar(opcoes) {
-    var o = opcoes || {};
-    var contagem = parseInt(o.contagem, 10) || 0;
+    const o = opcoes || {};
+    const contagem = parseInt(o.contagem, 10) || 0;
     marcarTitulo(contagem);
     if (contagem > 0) marcarFavicone(contagem);
     else limparFavicone();

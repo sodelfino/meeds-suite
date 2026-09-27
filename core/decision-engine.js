@@ -22,7 +22,7 @@
 (function (raiz) {
   "use strict";
 
-  var PESOS_PADRAO = {
+  const PESOS_PADRAO = {
     rede: 1.0,      // resposta da propria API: o dado mais forte
     toast: 0.8,     // a plataforma decidiu que isso e um evento novo
     dom_contador: 0.6, // leitura de tela: bom reforco, sozinho e fraco
@@ -37,10 +37,10 @@
    *    (generaliza o LIMITE_FRESCOR_DOM_MS do alarme). */
   function criarDecisor(opcoes) {
     opcoes = opcoes || {};
-    var limiar = typeof opcoes.limiar === "number" ? opcoes.limiar : 1.0;
-    var validadeMs = typeof opcoes.validadeMs === "number" ? opcoes.validadeMs : 12000;
-    var pesos = Object.assign({}, PESOS_PADRAO, opcoes.pesos || {});
-    var votos = {}; // fonte -> { valor, peso, em }
+    let limiar = typeof opcoes.limiar === "number" ? opcoes.limiar : 1.0;
+    const validadeMs = typeof opcoes.validadeMs === "number" ? opcoes.validadeMs : 12000;
+    const pesos = Object.assign({}, PESOS_PADRAO, opcoes.pesos || {});
+    let votos = {}; // fonte -> { valor, peso, em }
 
     function agora() {
       return Date.now();
@@ -64,10 +64,10 @@
     }
 
     function votosValidos() {
-      var t = agora();
-      var lista = [];
+      const t = agora();
+      const lista = [];
       Object.keys(votos).forEach(function (fonte) {
-        var v = votos[fonte];
+        const v = votos[fonte];
         if (validadeMs > 0 && t - v.em > validadeMs) return; // sinal velho
         lista.push({ fonte: fonte, valor: v.valor, peso: v.peso, em: v.em });
       });
@@ -80,18 +80,18 @@
      * vantagem sobre o segundo colocado tambem chega la (senao a leitura
      * e ambigua — exatamente o caso "dois numeros candidatos"). */
     function decidir() {
-      var lista = votosValidos();
+      const lista = votosValidos();
       if (lista.length === 0) {
         return { valor: null, confianca: 0, decidiu: false, motivo: "sem-sinal", votos: lista };
       }
 
-      var grupos = {};
+      const grupos = {};
       lista.forEach(function (v) {
-        var chave = JSON.stringify(v.valor);
+        const chave = JSON.stringify(v.valor);
         grupos[chave] = (grupos[chave] || 0) + v.peso;
       });
 
-      var ordenados = Object.keys(grupos)
+      const ordenados = Object.keys(grupos)
         .map(function (chave) {
           return { chave: chave, valor: JSON.parse(chave), confianca: grupos[chave] };
         })
@@ -99,9 +99,9 @@
           return b.confianca - a.confianca;
         });
 
-      var lider = ordenados[0];
-      var segundo = ordenados[1];
-      var margem = lider.confianca - (segundo ? segundo.confianca : 0);
+      const lider = ordenados[0];
+      const segundo = ordenados[1];
+      const margem = lider.confianca - (segundo ? segundo.confianca : 0);
 
       if (lider.confianca < limiar) {
         return {
@@ -148,7 +148,7 @@
    * decidir se houver exatamente UM. E a regra que REMUME (municipio) e
    * alarme (contador) aplicavam na mao. */
   function unicoOuNada(candidatos) {
-    var unicos = [];
+    const unicos = [];
     (candidatos || []).forEach(function (c) {
       if (c === null || c === undefined) return;
       if (unicos.indexOf(c) === -1) unicos.push(c);

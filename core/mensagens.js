@@ -39,12 +39,12 @@
    * ------------------------------------------------------------------ */
   function camposFaltando(faltas, opcoes) {
     opcoes = opcoes || {};
-    var acao = opcoes.acao || "concluir";
+    const acao = opcoes.acao || "concluir";
 
     if (faltas.length === 0) return "";
 
     if (faltas.length === 1) {
-      var f = faltas[0];
+      const f = faltas[0];
       return (
         "Não consegui " + acao + " porque falta " + f.descricao + ". " +
         "Preencha o campo “" + f.rotulo + "”" +
@@ -53,10 +53,10 @@
       );
     }
 
-    var rotulos = faltas.map(function (x) {
+    const rotulos = faltas.map(function (x) {
       return "“" + x.rotulo + "”";
     });
-    var dicas = faltas
+    const dicas = faltas
       .filter(function (x) {
         return x.comoResolver;
       })
@@ -89,7 +89,7 @@
   }
 
   /* Mensagens tecnicas recorrentes, num lugar so. */
-  var BIBLIOTECA_NAO_CARREGOU = function (nomeLib, detalhe) {
+  const BIBLIOTECA_NAO_CARREGOU = function (nomeLib, detalhe) {
     return erroTecnico(
       "gerar o PDF",
       "o componente que monta o arquivo (" + nomeLib + ") não carregou",

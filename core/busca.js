@@ -28,7 +28,7 @@
 (function (raiz) {
   "use strict";
 
-  var Dom = raiz.MeedsSuiteDom;
+  const Dom = raiz.MeedsSuiteDom;
 
   function normalizarTexto(str) {
     return Dom.normalizarTexto(str);
@@ -46,14 +46,14 @@
    * na frente das cefaleias. Sao removidas SO do que a pessoa digitou, e
    * so quando sobra alguma palavra util — quem procurar literalmente por
    * "de" ainda encontra. */
-  var PALAVRAS_VAZIAS = [
+  const PALAVRAS_VAZIAS = [
     "de", "da", "do", "das", "dos", "e", "em", "no", "na", "nos", "nas",
     "a", "o", "as", "os", "ao", "aos", "com", "sem", "por", "para", "um", "uma",
   ];
 
   function tokensUteis(str) {
-    var todos = tokenizarTexto(str);
-    var uteis = todos.filter(function (t) {
+    const todos = tokenizarTexto(str);
+    const uteis = todos.filter(function (t) {
       return PALAVRAS_VAZIAS.indexOf(t) === -1;
     });
     return uteis.length ? uteis : todos;
@@ -67,7 +67,7 @@
    *   l/u   "mal"  ~ "mau"         m/n   "sim"  ~ "sin"
    *   i/y, v/w, q/k                x/s   "exame" ~ "esame"
    */
-  var PARES_PROXIMOS = {};
+  const PARES_PROXIMOS = {};
   [
     ["s", "z"], ["s", "c"], ["c", "z"], ["c", "k"], ["q", "k"],
     ["g", "j"], ["l", "u"], ["m", "n"], ["i", "y"], ["v", "w"],
@@ -86,17 +86,17 @@
    * remocao continuam custando 1: falta ou sobra de letra nao e confusao
    * de grafia. */
   function levenshtein(a, b) {
-    var m = a.length;
-    var n = b.length;
-    var dp = [];
-    for (var i = 0; i <= m; i++) {
+    const m = a.length;
+    const n = b.length;
+    const dp = [];
+    for (let i = 0; i <= m; i++) {
       dp[i] = [];
-      for (var j = 0; j <= n; j++) {
+      for (let j = 0; j <= n; j++) {
         dp[i][j] = i === 0 ? j : j === 0 ? i : 0;
       }
     }
-    for (var x = 1; x <= m; x++) {
-      for (var y = 1; y <= n; y++) {
+    for (let x = 1; x <= m; x++) {
+      for (let y = 1; y <= n; y++) {
         dp[x][y] = Math.min(
           dp[x - 1][y] + 1,
           dp[x][y - 1] + 1,
@@ -132,9 +132,9 @@
   function fuzzyScore(query, target) {
     if (query === target) return 1.0;
     if (target.indexOf(query) !== -1) return 0.9;
-    var maxLen = Math.max(query.length, target.length);
+    const maxLen = Math.max(query.length, target.length);
     if (maxLen === 0) return 1;
-    var distancia = levenshtein(query, target);
+    const distancia = levenshtein(query, target);
     if (distancia > limiteDeDistancia(query.length)) return 0;
     return 1 - distancia / maxLen;
   }
@@ -154,7 +154,7 @@
     return a.indexOf(b) === 0 || b.indexOf(a) === 0;
   }
 
-  var CONFIG_PADRAO = {
+  const CONFIG_PADRAO = {
     LIMITE_RESULTADOS: 80,
     LIMIAR_FUZZY: 0.6,
     BONUS_COMECA_COM: 0.2,
@@ -207,7 +207,7 @@
      * digitado, a frase "dor de cabeca" nunca dispararia: ela exige
      * todas as suas palavras, e o "de" ja tinha sido descartado da
      * digitacao. */
-    var palavras = frase.split(" ").filter(function (p) {
+    const palavras = frase.split(" ").filter(function (p) {
       return p.length > 0 && PALAVRAS_VAZIAS.indexOf(p) === -1;
     });
     if (palavras.length === 0) return false;
@@ -226,15 +226,15 @@
   }
 
   function obterFrasesSinonimo(tokensDigitados, sinonimos) {
-    var termoDigitadoCompleto = tokensDigitados.join(" ");
-    var frases = new Set();
+    const termoDigitadoCompleto = tokensDigitados.join(" ");
+    const frases = new Set();
     if (!sinonimos) return [];
 
     Object.keys(sinonimos).forEach(function (chave) {
-      var chaveFrase = normalizarFraseSinonimo(chave);
-      var sinonimosFrases = sinonimos[chave].map(normalizarFraseSinonimo);
+      const chaveFrase = normalizarFraseSinonimo(chave);
+      const sinonimosFrases = sinonimos[chave].map(normalizarFraseSinonimo);
 
-      var disparou =
+      const disparou =
         frasePodeDisparar(chaveFrase, tokensDigitados) ||
         sinonimosFrases.some(function (f) {
           return frasePodeDisparar(f, tokensDigitados);
@@ -262,12 +262,12 @@
    * baixa), entao "letra ou digito" basta como definicao de limite. */
   function casaComoPalavra(texto, frase) {
     if (!frase) return false;
-    var i = texto.indexOf(frase);
+    let i = texto.indexOf(frase);
     while (i !== -1) {
-      var antes = i === 0 ? "" : texto.charAt(i - 1);
-      var depois = texto.charAt(i + frase.length);
-      var limiteAntes = !antes || !/[a-z0-9]/.test(antes);
-      var limiteDepois = !depois || !/[a-z0-9]/.test(depois);
+      const antes = i === 0 ? "" : texto.charAt(i - 1);
+      const depois = texto.charAt(i + frase.length);
+      const limiteAntes = !antes || !/[a-z0-9]/.test(antes);
+      const limiteDepois = !depois || !/[a-z0-9]/.test(depois);
       if (limiteAntes && limiteDepois) return true;
       i = texto.indexOf(frase, i + 1);
     }
@@ -298,29 +298,29 @@
    * comportamento.
    * ------------------------------------------------------------------ */
   function criarIndice(itens, textoDe) {
-    var lista = itens || [];
-    var n = lista.length;
+    const lista = itens || [];
+    const n = lista.length;
 
-    var originais = new Array(n);
-    var normalizados = new Array(n);
-    var semEspaco = new Array(n);
+    const originais = new Array(n);
+    const normalizados = new Array(n);
+    const semEspaco = new Array(n);
 
     /* palavra distinta -> { itens: [indices em que ela aparece] } */
-    var vocabulario = Object.create(null);
+    const vocabulario = Object.create(null);
 
-    for (var i = 0; i < n; i++) {
-      var item = lista[i];
-      var texto = textoDe ? textoDe(item) : String(item);
-      var norm = normalizarTexto(texto);
+    for (let i = 0; i < n; i++) {
+      const item = lista[i];
+      const texto = textoDe ? textoDe(item) : String(item);
+      const norm = normalizarTexto(texto);
 
       originais[i] = item;
       normalizados[i] = norm;
       semEspaco[i] = norm.replace(/\s+/g, "");
 
-      var tokens = tokenizarTexto(texto);
-      for (var j = 0; j < tokens.length; j++) {
-        var t = tokens[j];
-        var entrada = vocabulario[t];
+      const tokens = tokenizarTexto(texto);
+      for (let j = 0; j < tokens.length; j++) {
+        const t = tokens[j];
+        let entrada = vocabulario[t];
         if (!entrada) entrada = vocabulario[t] = { itens: [] };
         // um item pode repetir a mesma palavra; guardamos so uma vez
         if (entrada.itens[entrada.itens.length - 1] !== i) entrada.itens.push(i);
@@ -331,10 +331,10 @@
      * as faixas de tamanho compativel com o que foi digitado — sem isto
      * ela percorria as 8.391 palavras distintas so para descartar quase
      * todas pelo tamanho. */
-    var palavras = Object.keys(vocabulario);
-    var porTamanho = Object.create(null);
-    for (var w = 0; w < palavras.length; w++) {
-      var tam = palavras[w].length;
+    const palavras = Object.keys(vocabulario);
+    const porTamanho = Object.create(null);
+    for (let w = 0; w < palavras.length; w++) {
+      const tam = palavras[w].length;
       (porTamanho[tam] || (porTamanho[tam] = [])).push(palavras[w]);
     }
 
@@ -363,30 +363,30 @@
    * ------------------------------------------------------------------ */
   function buscar(termo, indice, opcoes) {
     opcoes = opcoes || {};
-    var cfg = Object.assign({}, CONFIG_PADRAO, opcoes.config || {});
-    var tokens = tokensUteis(termo);
+    const cfg = Object.assign({}, CONFIG_PADRAO, opcoes.config || {});
+    const tokens = tokensUteis(termo);
     if (tokens.length === 0 || !indice || !indice.tamanho) {
       return { itens: [], viaFuzzy: false, melhor: null, total: 0 };
     }
 
-    var n = indice.tamanho;
-    var exata = new Float64Array(n);
-    var fuzzy = new Float64Array(n);
-    var tocado = new Uint8Array(n);
-    var normalizados = indice.normalizados;
+    const n = indice.tamanho;
+    const exata = new Float64Array(n);
+    const fuzzy = new Float64Array(n);
+    const tocado = new Uint8Array(n);
+    const normalizados = indice.normalizados;
 
     /* Itens que SO foram alcancados por palavra generica. Ficam de fora
      * do resultado, a menos que nada mais tenha sido encontrado. */
-    var tocadoGenerico = new Uint8Array(n);
+    const tocadoGenerico = new Uint8Array(n);
 
-    for (var q = 0; q < tokens.length; q++) {
-      var token = tokens[q];
-      var casouExato = new Uint8Array(n);
+    for (let q = 0; q < tokens.length; q++) {
+      const token = tokens[q];
+      const casouExato = new Uint8Array(n);
 
       /* 1) exato */
-      var quantosExatos = 0;
-      for (var i = 0; i < n; i++) {
-        var pos = normalizados[i].indexOf(token);
+      let quantosExatos = 0;
+      for (let i = 0; i < n; i++) {
+        const pos = normalizados[i].indexOf(token);
         if (pos === -1) continue;
         casouExato[i] = 1;
         quantosExatos++;
@@ -420,8 +420,8 @@
        * Isto so REMOVE item do resultado, nunca acrescenta: a regra de
        * a REMUME do municipio ser a unica fonte de verdade continua
        * valendo por construcao. */
-      var generico = quantosExatos > 0 && quantosExatos / n > cfg.FRACAO_PALAVRA_GENERICA;
-      for (var t = 0; t < n; t++) {
+      const generico = quantosExatos > 0 && quantosExatos / n > cfg.FRACAO_PALAVRA_GENERICA;
+      for (let t = 0; t < n; t++) {
         if (!casouExato[t]) continue;
         if (generico) tocadoGenerico[t] = 1;
         else tocado[t] = 1;
@@ -443,33 +443,33 @@
        * distancia de edicao — insercao e remocao custam 1 cada, entao
        * nao ha como caber no limite. Usa a MESMA regra do fuzzyScore,
        * para nao podar nada que ele aceitaria. */
-      var distanciaMaxima = limiteDeDistancia(token.length);
-      var melhorPorItem = null;
+      const distanciaMaxima = limiteDeDistancia(token.length);
+      let melhorPorItem = null;
 
-      var candidatas = [];
-      for (var tam = token.length - distanciaMaxima; tam <= token.length + distanciaMaxima; tam++) {
-        var faixa = indice.porTamanho && indice.porTamanho[tam];
+      let candidatas = [];
+      for (let tam = token.length - distanciaMaxima; tam <= token.length + distanciaMaxima; tam++) {
+        const faixa = indice.porTamanho && indice.porTamanho[tam];
         if (faixa) candidatas = candidatas.concat(faixa);
       }
 
-      for (var p = 0; p < candidatas.length; p++) {
-        var palavra = candidatas[p];
-        var entrada = indice.vocabulario[palavra];
-        var score = fuzzyScore(token, palavra);
+      for (let p = 0; p < candidatas.length; p++) {
+        const palavra = candidatas[p];
+        const entrada = indice.vocabulario[palavra];
+        const score = fuzzyScore(token, palavra);
         if (score < cfg.LIMIAR_FUZZY) continue;
 
         if (!melhorPorItem) melhorPorItem = Object.create(null);
-        var dono = entrada.itens;
-        for (var k = 0; k < dono.length; k++) {
-          var id = dono[k];
+        const dono = entrada.itens;
+        for (let k = 0; k < dono.length; k++) {
+          const id = dono[k];
           if (casouExato[id]) continue; // este token ja pontuou exato aqui
           if (!(id in melhorPorItem) || melhorPorItem[id] < score) melhorPorItem[id] = score;
         }
       }
 
       if (melhorPorItem) {
-        for (var chave in melhorPorItem) {
-          var idFuzzy = +chave;
+        for (const chave in melhorPorItem) {
+          const idFuzzy = +chave;
           fuzzy[idFuzzy] += melhorPorItem[idFuzzy] * 0.5;
           tocado[idFuzzy] = 1;
         }
@@ -480,27 +480,27 @@
      * "comprimido", ou so "UBS" — nao ha nada mais especifico para
      * mostrar. Ai a palavra generica volta a escolher, senao a tela
      * diria "nao consta" para um termo que existe na lista. */
-    var achouAlgo = false;
-    for (var v = 0; v < n; v++) {
+    let achouAlgo = false;
+    for (let v = 0; v < n; v++) {
       if (tocado[v]) {
         achouAlgo = true;
         break;
       }
     }
     if (!achouAlgo) {
-      for (var w = 0; w < n; w++) {
+      for (let w = 0; w < n; w++) {
         if (tocadoGenerico[w]) tocado[w] = 1;
       }
     }
 
     /* 2) sinonimos */
-    var frases = obterFrasesSinonimo(tokens, opcoes.sinonimos);
-    for (var f = 0; f < frases.length; f++) {
-      var frase = frases[f];
-      var fraseSemEspaco = frase.replace(/\s+/g, "");
-      var vaiSemEspaco = frase.length >= 8;
-      for (var m = 0; m < n; m++) {
-        var bate =
+    const frases = obterFrasesSinonimo(tokens, opcoes.sinonimos);
+    for (let f = 0; f < frases.length; f++) {
+      const frase = frases[f];
+      const fraseSemEspaco = frase.replace(/\s+/g, "");
+      const vaiSemEspaco = frase.length >= 8;
+      for (let m = 0; m < n; m++) {
+        const bate =
           casaComoPalavra(normalizados[m], frase) ||
           (vaiSemEspaco && indice.semEspaco[m].indexOf(fraseSemEspaco) !== -1);
         if (bate) {
@@ -511,18 +511,18 @@
     }
 
     /* ordena so o que pontuou */
-    var candidatos = [];
-    for (var c = 0; c < n; c++) {
+    const candidatos = [];
+    for (let c = 0; c < n; c++) {
       if (!tocado[c]) continue;
-      var total = exata[c] + fuzzy[c];
+      const total = exata[c] + fuzzy[c];
       if (total > 0) candidatos.push({ i: c, total: total, viaFuzzy: exata[c] === 0 });
     }
     candidatos.sort(function (a, b) {
       return b.total - a.total;
     });
 
-    var limite = opcoes.limite || cfg.LIMITE_RESULTADOS;
-    var recortados = candidatos.slice(0, limite);
+    const limite = opcoes.limite || cfg.LIMITE_RESULTADOS;
+    const recortados = candidatos.slice(0, limite);
 
     return {
       itens: recortados.map(function (x) {

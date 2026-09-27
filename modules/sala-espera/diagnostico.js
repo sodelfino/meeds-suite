@@ -30,16 +30,16 @@
   /* Apelido curto e NAO reversivel para o id do atendimento. Serve para
    * acompanhar o mesmo item entre duas fotos sem escrever o id real. */
   function apelido(id) {
-    var s = String(id || "");
-    var h = 5381;
-    for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+    const s = String(id || "");
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
     return "#" + h.toString(36).slice(0, 5);
   }
 
   /* Campos que PODEM representar a chegada do paciente. A lista e ampla
    * de proposito: o objetivo do diagnostico e descobrir qual deles a API
    * realmente usa, e nao confirmar um palpite. */
-  var CAMINHOS_CANDIDATOS = [
+  const CAMINHOS_CANDIDATOS = [
     "agendamento.checkinStatus",
     "agendamento.checkIn",
     "agendamento.checkin",
@@ -61,9 +61,9 @@
   ];
 
   function pegar(obj, caminho) {
-    var partes = caminho.split(".");
-    var atual = obj;
-    for (var i = 0; i < partes.length; i++) {
+    const partes = caminho.split(".");
+    let atual = obj;
+    for (let i = 0; i < partes.length; i++) {
       if (atual === null || atual === undefined) return undefined;
       atual = atual[partes[i]];
     }
@@ -76,7 +76,7 @@
   function valorSeguro(v) {
     if (v === null) return "null";
     if (v === undefined) return "ausente";
-    var t = typeof v;
+    const t = typeof v;
     if (t === "boolean") return v + " (booleano)";
     if (t === "number") return v + " (numero)";
     if (t === "string") {
@@ -98,8 +98,8 @@
     profundidade = profundidade || 0;
     if (profundidade > 2 || !obj || typeof obj !== "object") return saida;
     Object.keys(obj).forEach(function (k) {
-      var v = obj[k];
-      var caminho = prefixo ? prefixo + "." + k : k;
+      const v = obj[k];
+      const caminho = prefixo ? prefixo + "." + k : k;
       if (v && typeof v === "object" && !Array.isArray(v)) {
         formato(v, caminho, saida, profundidade + 1);
       } else {
@@ -111,9 +111,9 @@
 
   function fotografar(itens) {
     return itens.map(function (item) {
-      var candidatos = {};
+      const candidatos = {};
       CAMINHOS_CANDIDATOS.forEach(function (c) {
-        var v = pegar(item, c);
+        const v = pegar(item, c);
         if (v !== undefined) candidatos[c] = valorSeguro(v);
       });
       return {
@@ -125,14 +125,14 @@
   }
 
   function comparar(antes, depois) {
-    var porApelido = {};
+    const porApelido = {};
     antes.forEach(function (x) {
       porApelido[x.apelido] = x;
     });
 
-    var mudancas = [];
+    const mudancas = [];
     depois.forEach(function (agora) {
-      var antigo = porApelido[agora.apelido];
+      const antigo = porApelido[agora.apelido];
       if (!antigo) {
         mudancas.push({ item: agora.apelido, evento: "APARECEU", status: agora.statusAtendimentoId });
         return;

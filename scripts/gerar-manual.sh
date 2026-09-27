@@ -20,7 +20,7 @@ SAIDA="$RAIZ/docs/manual/Assistente-Meeds-Manual.pdf"
 
 FALTANDO=0
 for tela in dock painel alarme-ajustes alarme-completo alarme-discreto \
-            apac apac-modelos remume laudo historico novidades; do
+            remume laudo modelos historico novidades; do
   [ -f "$RAIZ/docs/manual/telas/$tela.png" ] || { echo "AVISO: falta a tela $tela.png"; FALTANDO=1; }
 done
 [ "$FALTANDO" = "1" ] && echo "Rode ./scripts/capturar-telas.sh antes."

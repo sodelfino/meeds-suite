@@ -29,9 +29,9 @@
 (function (raiz) {
   "use strict";
 
-  var Cadastro = raiz.MeedsSuiteCadastro;
+  const Cadastro = raiz.MeedsSuiteCadastro;
 
-  var ESTILO = [
+  const ESTILO = [
     ".msm-modal { background:#fff; border-radius:6px; width:100%; max-width:540px; max-height:86vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 8px 24px rgba(15,23,42,.2); }",
 
     /* cabecalho */
@@ -135,15 +135,15 @@
     ".msm-sobre-texto { font-size:11.5px; color:#5b6672; line-height:1.55; margin-bottom:8px; }",
   ].join("\n");
 
-  var ABAS = [
+  const ABAS = [
     { id: "funcoes", rotulo: "Funções", sub: "Ative apenas as funções que você usa" },
     { id: "medicos", rotulo: "Médicos", sub: "Cadastre uma vez; vale para todos os laudos" },
     { id: "unidades", rotulo: "Unidades", sub: "Estabelecimentos e CNES usados na APAC" },
     { id: "sobre", rotulo: "Sobre", sub: "Versão, novidades e feedback" },
   ];
 
-  var overlay = null;
-  var ctx = null;
+  let overlay = null;
+  let ctx = null;
 
   function escapeHtml(str) {
     return String(str == null ? "" : str).replace(/[&<>"']/g, function (c) {
@@ -277,10 +277,10 @@
      * que escopo ele caiu — e ate agora a unica forma de descobrir era
      * ligar o aparelho num Mac. Agora e abrir o Sobre. */
     (function () {
-      var linha = overlay.$("#msm-escopo");
-      var diag = raiz.MeedsSuiteDiagnostico;
+      const linha = overlay.$("#msm-escopo");
+      const diag = raiz.MeedsSuiteDiagnostico;
       if (!linha || !diag || !diag.escopoDeExecucao) return;
-      var partes = [
+      const partes = [
         diag.escopoDeExecucao() === "pagina"
           ? "Funcionando com todos os sinais"
           : "Modo restrito: o navegador isolou o Assistente, então o alarme de fila decide só pelo que aparece na tela",
@@ -290,7 +290,7 @@
        * "voltaram todos os botoes" tem a mesma causa raiz — o dado nao
        * estava num lugar que sobrevive ao logout — e ate agora nao havia
        * como saber isso sem abrir o console. */
-      var onde = raiz.MeedsSuiteStorage && raiz.MeedsSuiteStorage.ondeEstaGuardado
+      const onde = raiz.MeedsSuiteStorage && raiz.MeedsSuiteStorage.ondeEstaGuardado
         ? raiz.MeedsSuiteStorage.ondeEstaGuardado()
         : null;
       if (onde === "sessao") {
@@ -324,7 +324,7 @@
     overlay.$("#msm-estab-add").addEventListener("click", salvarEstabelecimento);
     montarMunicipiosDaUnidade();
     overlay.$("#msm-estab-cnes").addEventListener("input", function () {
-      var el = overlay.$("#msm-estab-cnes");
+      const el = overlay.$("#msm-estab-cnes");
       el.value = el.value.replace(/\D/g, "").slice(0, 12);
     });
     enterSalva(["#msm-estab-nome", "#msm-estab-cnes"], salvarEstabelecimento);
@@ -345,8 +345,8 @@
     });
 
     overlay.$("#msm-diagnostico-copiar").addEventListener("click", function () {
-      var caixa = overlay.$("#msm-diagnostico-mensagem");
-      var diagTec = raiz.MeedsSuiteDiagnosticoTecnico;
+      const caixa = overlay.$("#msm-diagnostico-mensagem");
+      const diagTec = raiz.MeedsSuiteDiagnosticoTecnico;
       if (!diagTec) return;
       diagTec.copiar(
         { versao: ctx.versaoNucleo, modulos: ctx.listarModulos() },
@@ -361,9 +361,9 @@
     });
 
     (function () {
-      var botaoNoturno = overlay.$("#msm-noturno");
+      const botaoNoturno = overlay.$("#msm-noturno");
       if (!botaoNoturno || !raiz.MeedsSuiteNoturno) return;
-      var refletir = function () {
+      const refletir = function () {
         botaoNoturno.setAttribute("aria-pressed", String(raiz.MeedsSuiteNoturno.estaLigado()));
       };
       refletir();
@@ -388,8 +388,8 @@
   /* O formulário fica fechado até ser pedido: a lista é o que se
    * consulta, o formulário é o que se usa uma vez. */
   function alternarForm(seletorBotao, seletorForm, seletorFoco, seletorCancelar) {
-    var botao = overlay.$(seletorBotao);
-    var form = overlay.$(seletorForm);
+    const botao = overlay.$(seletorBotao);
+    const form = overlay.$(seletorForm);
     botao.addEventListener("click", function () {
       form.hidden = false;
       botao.hidden = true;
@@ -416,7 +416,7 @@
   }
 
   function mostrarAba(id) {
-    var ficha = ABAS.filter(function (a) {
+    const ficha = ABAS.filter(function (a) {
       return a.id === id;
     })[0];
     overlay.$("#msm-sub").textContent = ficha ? ficha.sub : "";
@@ -439,7 +439,7 @@
     /* Quem chega de um atalho ("cadastrar médico" dentro de um laudo) cai
      * direto na aba certa, com o formulário já aberto — o atalho existe
      * justamente para poupar cliques. */
-    var destino = { medicos: "medicos", estabelecimentos: "unidades", sobre: "sobre" }[secao] || "funcoes";
+    const destino = { medicos: "medicos", estabelecimentos: "unidades", sobre: "sobre" }[secao] || "funcoes";
     mostrarAba(destino);
     overlay.abrir();
 
@@ -462,8 +462,8 @@
 
   /* ---------------- funções (módulos) ---------------- */
   function renderizarModulos() {
-    var lista = overlay.$("#msm-lista");
-    var todos = ctx.listarModulos();
+    const lista = overlay.$("#msm-lista");
+    const todos = ctx.listarModulos();
 
     /* Funcoes marcadas como sempre ativas nao entram na lista de chaves.
      * Elas melhoram o proprio formulario do laudo (a busca de CID dentro
@@ -471,8 +471,8 @@
      * uma chave para desliga-las so ofereceria um jeito de piorar o
      * formulario. Ficam citadas no rodape, para o medico saber que
      * existem. */
-    var modulos = todos.filter(function (m) { return !m.sempreAtivo; });
-    var fixos = todos.filter(function (m) { return m.sempreAtivo; });
+    const modulos = todos.filter(function (m) { return !m.sempreAtivo; });
+    const fixos = todos.filter(function (m) { return m.sempreAtivo; });
 
     if (!modulos.length && !fixos.length) {
       lista.innerHTML = '<div class="msm-vazio">Nenhuma função carregada neste pacote.</div>';
@@ -521,8 +521,8 @@
        * isso o nome vira botao clicavel quando `temTutorial`, em vez de
        * so texto — mesmo emoji, mesma funcao, formato menor porque a
        * linha inteira e mais discreta. */
-      var nomesFixos = fixos.map(function (m) {
-        var nome = "<b>" + escapeHtml(m.nome) + "</b>";
+      const nomesFixos = fixos.map(function (m) {
+        const nome = "<b>" + escapeHtml(m.nome) + "</b>";
         return m.temTutorial
           ? '<button type="button" class="msm-tutorial-fixo" data-tutorial="' + escapeHtml(m.id) +
             '" title="Ver tutorial de ' + escapeHtml(m.nome) + '">' + nome + " 🎓</button>"
@@ -563,13 +563,13 @@
 
   /* ---------------- médicos ---------------- */
   function mostrarMensagemMedicos(texto, tipo) {
-    var caixa = overlay.$("#msm-medicos-mensagem");
+    const caixa = overlay.$("#msm-medicos-mensagem");
     caixa.innerHTML = texto ? '<div class="msm-' + (tipo || "ok") + '">' + escapeHtml(texto) + "</div>" : "";
   }
 
   function renderizarMedicos() {
-    var lista = Cadastro.listar();
-    var box = overlay.$("#msm-medicos-lista");
+    const lista = Cadastro.listar();
+    const box = overlay.$("#msm-medicos-lista");
 
     if (!lista.length) {
       box.innerHTML =
@@ -580,7 +580,7 @@
 
     box.innerHTML = lista
       .map(function (m, i) {
-        var docs = [];
+        const docs = [];
         if (m.crm) docs.push("CRM " + m.crm);
         if (m.cpf) docs.push("CPF " + m.cpf);
         return (
@@ -597,8 +597,8 @@
 
     box.querySelectorAll(".msm-remover").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        var i = Number(btn.getAttribute("data-i"));
-        var alvo = Cadastro.listar()[i];
+        const i = Number(btn.getAttribute("data-i"));
+        const alvo = Cadastro.listar()[i];
         Cadastro.remover(i);
         renderizarMedicos();
         mostrarMensagemMedicos((alvo ? alvo.nome : "Médico") + " foi removido do cadastro.", "ok");
@@ -608,7 +608,7 @@
   }
 
   function salvarMedico() {
-    var nome = overlay.$("#msm-med-nome").value.trim();
+    const nome = overlay.$("#msm-med-nome").value.trim();
     if (!nome) {
       mostrarMensagemMedicos(
         "Não consegui salvar porque o nome está vazio. Preencha o campo “Nome completo” — é o único obrigatório.",
@@ -618,7 +618,7 @@
       return;
     }
 
-    var cpf = overlay.$("#msm-med-cpf").value.trim();
+    const cpf = overlay.$("#msm-med-cpf").value.trim();
     if (cpf && !raiz.MeedsSuiteFormatos.cpfCompleto(cpf)) {
       mostrarMensagemMedicos(
         "Não consegui salvar porque o CPF tem " + raiz.MeedsSuiteFormatos.soDigitos(cpf).length +
@@ -629,7 +629,7 @@
       return;
     }
 
-    var r = Cadastro.adicionar({ nome: nome, crm: overlay.$("#msm-med-crm").value.trim(), cpf: cpf });
+    const r = Cadastro.adicionar({ nome: nome, crm: overlay.$("#msm-med-crm").value.trim(), cpf: cpf });
     if (!r.ok) {
       mostrarMensagemMedicos(r.erro, "erro");
       return;
@@ -652,7 +652,7 @@
   }
 
   function fazerBackup() {
-    var lista = Cadastro.listar();
+    const lista = Cadastro.listar();
     if (!lista.length) {
       mostrarMensagemMedicos(
         "Não há o que salvar: nenhum médico cadastrado ainda. Cadastre pelo menos um e tente de novo.",
@@ -660,9 +660,9 @@
       );
       return;
     }
-    var blob = new Blob([Cadastro.exportar()], { type: "application/json" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
+    const blob = new Blob([Cadastro.exportar()], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
     a.href = url;
     a.download = "assistente-meeds-medicos.json";
     document.body.appendChild(a);
@@ -678,13 +678,13 @@
   }
 
   function restaurarBackup(ev) {
-    var arquivo = ev.target.files && ev.target.files[0];
+    const arquivo = ev.target.files && ev.target.files[0];
     ev.target.value = "";
     if (!arquivo) return;
 
-    var leitor = new FileReader();
+    const leitor = new FileReader();
     leitor.onload = function () {
-      var r = Cadastro.importar(String(leitor.result));
+      const r = Cadastro.importar(String(leitor.result));
       if (!r.ok) {
         mostrarMensagemMedicos(r.erro, "erro");
         return;
@@ -709,7 +709,7 @@
 
   /* ---------------- unidades ---------------- */
   function mostrarMensagemEstab(texto, tipo) {
-    var caixa = overlay.$("#msm-estab-mensagem");
+    const caixa = overlay.$("#msm-estab-mensagem");
     caixa.innerHTML = texto ? '<div class="msm-' + (tipo || "ok") + '">' + escapeHtml(texto) + "</div>" : "";
   }
 
@@ -717,20 +717,20 @@
    * administrador acrescenta um municipio editando dados e ele ja aparece
    * aqui, sem tocar em codigo. */
   function municipiosConhecidos() {
-    var d = raiz.MEEDS_DADOS_APAC;
+    const d = raiz.MEEDS_DADOS_APAC;
     return d && d.municipios ? Object.keys(d.municipios) : [];
   }
 
   function montarMunicipiosDaUnidade() {
-    var sel = overlay.$("#msm-estab-municipio");
+    const sel = overlay.$("#msm-estab-municipio");
     if (!sel) return;
     sel.innerHTML = "";
-    var ph = document.createElement("option");
+    const ph = document.createElement("option");
     ph.value = "";
     ph.textContent = "Selecione o município…";
     sel.appendChild(ph);
     municipiosConhecidos().forEach(function (m) {
-      var o = document.createElement("option");
+      const o = document.createElement("option");
       o.value = m;
       o.textContent = m;
       sel.appendChild(o);
@@ -738,8 +738,8 @@
   }
 
   function renderizarEstabelecimentos() {
-    var lista = Cadastro.listarEstabelecimentos();
-    var box = overlay.$("#msm-estab-lista");
+    const lista = Cadastro.listarEstabelecimentos();
+    const box = overlay.$("#msm-estab-lista");
 
     if (!lista.length) {
       box.innerHTML =
@@ -768,8 +768,8 @@
 
     box.querySelectorAll("[data-e]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        var i = Number(btn.getAttribute("data-e"));
-        var alvo = Cadastro.listarEstabelecimentos()[i];
+        const i = Number(btn.getAttribute("data-e"));
+        const alvo = Cadastro.listarEstabelecimentos()[i];
         Cadastro.removerEstabelecimento(i);
         renderizarEstabelecimentos();
         mostrarMensagemEstab((alvo ? alvo.nome : "Unidade") + " foi removida.", "ok");
@@ -779,7 +779,7 @@
   }
 
   function salvarEstabelecimento() {
-    var nome = overlay.$("#msm-estab-nome").value.trim();
+    const nome = overlay.$("#msm-estab-nome").value.trim();
     if (!nome) {
       mostrarMensagemEstab(
         "Não consegui salvar porque o nome está vazio. Preencha o campo “Nome da unidade”.",
@@ -788,7 +788,7 @@
       overlay.$("#msm-estab-nome").focus();
       return;
     }
-    var r = Cadastro.adicionarEstabelecimento({ nome: nome, cnes: overlay.$("#msm-estab-cnes").value });
+    const r = Cadastro.adicionarEstabelecimento({ nome: nome, cnes: overlay.$("#msm-estab-cnes").value });
     if (!r.ok) {
       mostrarMensagemEstab(r.erro, "erro");
       return;

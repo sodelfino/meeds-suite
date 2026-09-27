@@ -26,20 +26,23 @@
 (function (raiz) {
   "use strict";
 
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
   /* Base de dados: comeca no fallback embutido (gerado por
    * scripts/sync-fallback.js) e e substituida pela versao remota assim
    * que a pagina carrega, se a busca der certo. */
-  var REMUMES = JSON.parse(JSON.stringify(raiz.MEEDS_REMUMES_FALLBACK || { _meta: {} }));
+  const REMUMES = JSON.parse(JSON.stringify(raiz.MEEDS_REMUMES_FALLBACK || { _meta: {} }));
 
-  var REMUMES_URL =
+  const REMUMES_URL =
     "https://raw.githubusercontent.com/sodelfino/meeds-suite/main/modules/remume/remumes.json";
 
-  var d = null;        // deps do nucleo
-  var refs = null;     // referencias da UI
-  var overlay = null;
-  var timers = [];
-  var atendimentoAtual = null;   // ultimo JSON de /api/v1/Atendimento/{id}
-  var municipioDetectado = null; // chave de REMUMES inferida da API/DOM
+  let d = null;        // deps do nucleo
+  let refs = null;     // referencias da UI
+  let overlay = null;
+  let timers = [];
+  let atendimentoAtual = null;   // ultimo JSON de /api/v1/Atendimento/{id}
+  let municipioDetectado = null; // chave de REMUMES inferida da API/DOM
 
   /* ----------------------------------------------------------------
    * HELPERS DE TEXTO — normalizarTexto agora vem do dom-reader do
@@ -151,7 +154,7 @@ function separarLocalAcesso(texto) {
    * entorpecentes/psicotropicos puros da Portaria 344/98, sem o desconto
    * de dose que tira alguns itens dessa exigencia (ver RECEITUARIO_AVISO
    * abaixo). Nao inventa: fica null quando a fonte nao informa. */
-  var RECEITUARIOS_VALIDOS = { amarela: true, azul: true };
+  const RECEITUARIOS_VALIDOS = { amarela: true, azul: true };
 
   /* Notificacao de Receita A (amarela) e B (azul) ainda nao tem
    * aprovacao para prescricao digital. Se o medicamento entrar
@@ -159,7 +162,7 @@ function separarLocalAcesso(texto) {
    * sai como esses receituarios exigem e o paciente pode nao
    * conseguir retirar na farmacia — precisa ir separado, para um
    * medico presencial transcrever na receita fisica correspondente. */
-  var RECEITUARIO_INFO = {
+  const RECEITUARIO_INFO = {
     amarela: {
       icone: "🟡",
       rotulo: "Receita Amarela",
@@ -180,12 +183,12 @@ function separarLocalAcesso(texto) {
 
   function normalizarItemRemume(item) {
     if (typeof item === "string") {
-      var semReceituario = separarReceituario(item);
-      var partes = separarLocalAcesso(semReceituario.texto);
+      const semReceituario = separarReceituario(item);
+      const partes = separarLocalAcesso(semReceituario.texto);
       return { nome: partes.nome, local: partes.local, receituario: semReceituario.receituario };
     }
     if (item && typeof item === "object") {
-      var receituario = RECEITUARIOS_VALIDOS[item.receituario] ? item.receituario : null;
+      const receituario = RECEITUARIOS_VALIDOS[item.receituario] ? item.receituario : null;
       return { nome: item.nome || "", local: item.local || null, receituario: receituario };
     }
     return { nome: String(item), local: null, receituario: null };
@@ -269,11 +272,11 @@ const FORMAS_FARMACEUTICAS_RX = new RegExp(
    *
    * O conteudo vem de dados/marcas-medicamentos.json, editavel pelo
    * administrador sem tocar em codigo. */
-  var MARCAS = (raiz.MEEDS_MARCAS && raiz.MEEDS_MARCAS.marcas) || [];
+  const MARCAS = (raiz.MEEDS_MARCAS && raiz.MEEDS_MARCAS.marcas) || [];
 
   /* Indice de busca das MARCAS (nao dos medicamentos): serve so para
    * reconhecer o nome comercial digitado, inclusive com erro leve. */
-  var _indiceMarcas = null;
+  let _indiceMarcas = null;
 
   function indiceDeMarcas() {
     if (!_indiceMarcas) {
@@ -289,14 +292,14 @@ const FORMAS_FARMACEUTICAS_RX = new RegExp(
    * MARCA — nao vale aproximar marca por fonetica, que abriria espaco
    * para traduzir para o farmaco errado. */
   function traduzirMarca(termo) {
-    var alvo = normalizarTexto(termo);
+    const alvo = normalizarTexto(termo);
     if (!alvo) return null;
 
-    for (var i = 0; i < MARCAS.length; i++) {
+    for (let i = 0; i < MARCAS.length; i++) {
       if (normalizarTexto(MARCAS[i].marca) === alvo) return MARCAS[i];
     }
 
-    var r = raiz.MeedsSuiteBusca.buscar(termo, indiceDeMarcas(), {
+    const r = raiz.MeedsSuiteBusca.buscar(termo, indiceDeMarcas(), {
       limite: 1,
       fonetica: false, // ver comentario acima
     });
@@ -331,11 +334,11 @@ function buscarMedicamentos(termo, cidade) {
      *
      * Em nenhum ponto um item entra no resultado vindo da tabela de
      * marcas: ela so muda O QUE se procura, nunca ONDE. */
-    var indice = obterIndiceBusca(cidade);
-    var marca = traduzirMarca(termo);
-    var termoDeBusca = marca ? marca.principioAtivo : termo;
+    const indice = obterIndiceBusca(cidade);
+    const marca = traduzirMarca(termo);
+    const termoDeBusca = marca ? marca.principioAtivo : termo;
 
-    var r = raiz.MeedsSuiteBusca.buscar(termoDeBusca, indice, {
+    const r = raiz.MeedsSuiteBusca.buscar(termoDeBusca, indice, {
       limite: CONFIG_BUSCA.LIMITE_RESULTADOS,
       config: CONFIG_BUSCA,
     });
@@ -353,9 +356,9 @@ function buscarMedicamentos(termo, cidade) {
       };
     }
 
-    var termoReconhecido = null;
+    let termoReconhecido = null;
     if (!marca && r.melhor && (r.viaFuzzy || r.viaFonetica)) {
-      var principioAtivo = extrairPrincipioAtivo(r.melhor.nome);
+      const principioAtivo = extrairPrincipioAtivo(r.melhor.nome);
       if (
         principioAtivo &&
         /* Quando o item nao tem concentracao nem forma onde cortar — e
@@ -444,7 +447,7 @@ function moverFocoResultado(delta) {
     }
   }
   /* ---- constantes auxiliares usadas pelo motor acima ---- */
-  var MARCADOR_LOCAL = "(Local de acesso:";
+  var MARCADOR_LOCAL = "(Local de acesso:"; // eslint-disable-line no-var -- usada antes desta linha; com let/const daria erro de zona morta (TDZ)
 
   function escapeHtml(str) {
     return String(str == null ? "" : str)
@@ -455,8 +458,8 @@ function moverFocoResultado(delta) {
 
   function encontrarMunicipioNaBase(nomeCidadeNormalizado) {
     if (!nomeCidadeNormalizado) return null;
-    var chaves = chavesMunicipios(REMUMES);
-    for (var i = 0; i < chaves.length; i++) {
+    const chaves = chavesMunicipios(REMUMES);
+    for (let i = 0; i < chaves.length; i++) {
       if (normalizarTexto(chaves[i]) === nomeCidadeNormalizado) return chaves[i];
     }
     return null;
@@ -470,9 +473,9 @@ function moverFocoResultado(delta) {
    * A regra "so decide se for unico" agora vem do decision-engine. */
   function detectarMunicipioNoDOM() {
     try {
-      var textoPagina = raiz.MeedsSuiteDom.textoDaPaginaNormalizado();
+      const textoPagina = raiz.MeedsSuiteDom.textoDaPaginaNormalizado();
       if (!textoPagina) return null;
-      var encontrados = chavesMunicipios(REMUMES).filter(function (chave) {
+      const encontrados = chavesMunicipios(REMUMES).filter(function (chave) {
         return textoPagina.indexOf(normalizarTexto(chave)) !== -1;
       });
       return raiz.MeedsSuiteDecisao.unicoOuNada(encontrados);
@@ -485,17 +488,17 @@ function moverFocoResultado(delta) {
    * Recalculado sozinho sempre que o array daquela cidade muda (ex:
    * depois da busca remota substituir os dados). A comparacao e por
    * IDENTIDADE do array, nao por conteudo — barata e suficiente. */
-  var _indiceBuscaPorCidade = new Map();
+  const _indiceBuscaPorCidade = new Map();
 
   function obterIndiceBusca(cidade) {
-    var lista = REMUMES[cidade] || [];
-    var cacheado = _indiceBuscaPorCidade.get(cidade);
+    const lista = REMUMES[cidade] || [];
+    const cacheado = _indiceBuscaPorCidade.get(cidade);
     if (cacheado && cacheado.origem === lista) return cacheado.indice;
 
     // normaliza os itens; o texto pesquisavel inclui o local de acesso,
     // para o medico poder digitar "HPM" e achar o que esta disponivel la
-    var itens = lista.map(normalizarItemRemume);
-    var indice = raiz.MeedsSuiteBusca.criarIndice(itens, function (item) {
+    const itens = lista.map(normalizarItemRemume);
+    const indice = raiz.MeedsSuiteBusca.criarIndice(itens, function (item) {
       return item.local ? item.nome + " " + item.local : item.nome;
     });
 
@@ -504,8 +507,8 @@ function moverFocoResultado(delta) {
   }
 
   /* ---- estado da navegacao por teclado ---- */
-  var itensRenderizados = [];
-  var indiceFocado = -1;
+  var itensRenderizados = []; // eslint-disable-line no-var -- usada antes desta linha; com let/const daria erro de zona morta (TDZ)
+  var indiceFocado = -1; // eslint-disable-line no-var -- usada antes desta linha; com let/const daria erro de zona morta (TDZ)
 
   /* ----------------------------------------------------------------
    * ATUALIZACAO REMOTA DA BASE
@@ -517,7 +520,7 @@ function moverFocoResultado(delta) {
    * ---------------------------------------------------------------- */
   function validarFormatoRemumes(dados) {
     if (!dados || typeof dados !== "object" || Array.isArray(dados)) return false;
-    var chaves = chavesMunicipios(dados);
+    const chaves = chavesMunicipios(dados);
     if (chaves.length === 0) return false;
     return chaves.every(function (chave) {
       return Array.isArray(dados[chave]);
@@ -533,7 +536,7 @@ function moverFocoResultado(delta) {
       .then(function (dadosRemotos) {
         if (!dadosRemotos) return false;
         if (!validarFormatoRemumes(dadosRemotos)) {
-          console.warn("[Assistente REMUME] JSON remoto com formato inesperado, mantendo copia local.");
+          LOG.warn("[Assistente REMUME] JSON remoto com formato inesperado, mantendo copia local.");
           return false;
         }
         Object.keys(REMUMES).forEach(function (chave) {
@@ -545,7 +548,7 @@ function moverFocoResultado(delta) {
         return true;
       })
       .catch(function (e) {
-        console.warn("[Assistente REMUME] nao foi possivel buscar a lista remota, usando copia local.", e);
+        LOG.warn("[Assistente REMUME] nao foi possivel buscar a lista remota, usando copia local.", e);
         return false;
       });
   }
@@ -562,7 +565,7 @@ function moverFocoResultado(delta) {
   function processarRespostaAtendimento(dadosJson) {
     try {
       atendimentoAtual = dadosJson;
-      var municipio = detectarMunicipioDoAtendimento(dadosJson) || detectarMunicipioNoDOM();
+      const municipio = detectarMunicipioDoAtendimento(dadosJson) || detectarMunicipioNoDOM();
       aplicarNovoMunicipioDetectado(municipio);
     } catch (e) {
       /* silencioso: nunca deve quebrar a pagina do Meeds */
@@ -580,7 +583,7 @@ function moverFocoResultado(delta) {
   /* ----------------------------------------------------------------
    * UI — o overlay vem posicionado do dock; aqui so o conteudo.
    * ---------------------------------------------------------------- */
-  var CSS = [
+  const CSS = [
     ".rm-modal { width:100%; max-width:640px; max-height:86vh; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); display:flex; flex-direction:column; overflow:hidden; }",
     ".rm-modal header { background:#17457f; color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
     ".rm-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
@@ -654,7 +657,7 @@ function moverFocoResultado(delta) {
 
     overlay.$(".rm-fechar").addEventListener("click", overlay.fechar);
 
-    var debounceBusca = null;
+    let debounceBusca = null;
     refs.select.addEventListener("change", renderizarResultados);
     refs.search.addEventListener("input", function () {
       clearTimeout(debounceBusca);
@@ -672,7 +675,7 @@ function moverFocoResultado(delta) {
         moverFocoResultado(-1);
       } else if (ev.key === "Enter") {
         ev.preventDefault();
-        var alvo = itensRenderizados[indiceFocado] || itensRenderizados[0];
+        const alvo = itensRenderizados[indiceFocado] || itensRenderizados[0];
         if (alvo) alvo.botaoCopiar.click();
       }
     });
@@ -682,14 +685,14 @@ function moverFocoResultado(delta) {
 
   function reconstruirOpcoesMunicipio() {
     if (!refs || !refs.select) return;
-    var valorAnterior = refs.select.value;
+    const valorAnterior = refs.select.value;
     refs.select.innerHTML = "";
     chavesMunicipios(REMUMES)
       .sort(function (a, b) {
         return a.localeCompare(b, "pt-BR");
       })
       .forEach(function (cidade) {
-        var opt = document.createElement("option");
+        const opt = document.createElement("option");
         opt.value = cidade;
         opt.textContent = cidade;
         refs.select.appendChild(opt);
@@ -704,7 +707,7 @@ function moverFocoResultado(delta) {
 
   function atualizarExibicaoMeta() {
     if (!refs || !refs.meta) return;
-    var meta = REMUMES._meta;
+    const meta = REMUMES._meta;
     if (meta && meta.atualizadoEm) {
       refs.meta.hidden = false;
       refs.meta.textContent = "Dados atualizados em " + meta.atualizadoEm;
@@ -753,8 +756,8 @@ function moverFocoResultado(delta) {
    * digitado — e sobre o ATENDIMENTO naquela cidade, nao sobre um item. */
   function atualizarAvisoMunicipio(cidade) {
     if (!refs || !refs.avisoMunicipio) return;
-    var avisos = REMUMES._meta && REMUMES._meta.avisos;
-    var texto = avisos && avisos[cidade];
+    const avisos = REMUMES._meta && REMUMES._meta.avisos;
+    const texto = avisos && avisos[cidade];
     if (texto) {
       refs.avisoMunicipio.hidden = false;
       refs.avisoMunicipio.textContent = "⚠️ " + texto;
@@ -770,9 +773,9 @@ function moverFocoResultado(delta) {
    * "ampola" pega tambem "frasco-ampola") e chega igual pelo JSON remoto e
    * pelo fallback embutido, ja que os dois carregam o _meta inteiro. */
   function avisosDoItem(cidade, nome) {
-    var regras = REMUMES._meta && REMUMES._meta.avisosItens && REMUMES._meta.avisosItens[cidade];
+    const regras = REMUMES._meta && REMUMES._meta.avisosItens && REMUMES._meta.avisosItens[cidade];
     if (!regras || !regras.length) return [];
-    var n = normalizarTexto(nome);
+    const n = normalizarTexto(nome);
     return regras
       .filter(function (r) { return r && r.termo && r.aviso && n.indexOf(normalizarTexto(r.termo)) !== -1; })
       /* "exceto": a regra nao vale se o nome tiver algum destes termos —
@@ -789,16 +792,16 @@ function moverFocoResultado(delta) {
 
   function renderizarResultados() {
     if (!refs) return;
-    var cidade = refs.select.value;
+    const cidade = refs.select.value;
     atualizarAvisoMunicipio(cidade);
-    var lista = REMUMES[cidade] || [];
-    var termo = refs.search.value.trim();
-    var termoNormalizado = normalizarTexto(termo);
+    const lista = REMUMES[cidade] || [];
+    const termo = refs.search.value.trim();
+    const termoNormalizado = normalizarTexto(termo);
 
-    var resultado = termoNormalizado
+    const resultado = termoNormalizado
       ? buscarMedicamentos(termo, cidade)
       : { itens: lista.map(normalizarItemRemume), termoReconhecido: null };
-    var filtrados = resultado.itens;
+    const filtrados = resultado.itens;
 
     refs.count.textContent = termo
       ? filtrados.length + " de " + lista.length + " medicamento(s)"
@@ -833,7 +836,7 @@ function moverFocoResultado(delta) {
     indiceFocado = -1;
 
     if (filtrados.length === 0) {
-      var vazio = document.createElement("li");
+      const vazio = document.createElement("li");
       vazio.className = "rm-vazio";
       vazio.textContent = resultado.naoConsta
         ? "Este município não padroniza esse medicamento. Considere uma alternativa que esteja na lista."
@@ -844,14 +847,14 @@ function moverFocoResultado(delta) {
       return;
     }
 
-    var fragment = document.createDocumentFragment();
+    const fragment = document.createDocumentFragment();
     filtrados.slice(0, 300).forEach(function (par) {
-      var li = document.createElement("li");
+      const li = document.createElement("li");
 
-      var principal = document.createElement("div");
+      const principal = document.createElement("div");
       principal.className = "rm-item-main";
 
-      var textoSpan = document.createElement("span");
+      const textoSpan = document.createElement("span");
       textoSpan.className = "rm-item-text";
       textoSpan.innerHTML = destacarTrecho(par.nome, termo);
       principal.appendChild(textoSpan);
@@ -859,7 +862,7 @@ function moverFocoResultado(delta) {
       // so sinaliza o local de acesso quando o municipio informa esse
       // dado na fonte; sem o dado nao ha nada a indicar
       if (par.local) {
-        var localSpan = document.createElement("span");
+        const localSpan = document.createElement("span");
         localSpan.className = "rm-local";
         localSpan.title = "Local de acesso informado pelo municipio";
         localSpan.textContent = "\u{1F4CD} " + par.local;
@@ -868,9 +871,9 @@ function moverFocoResultado(delta) {
 
       // selo de receita amarela/azul: so aparece quando o municipio marcou
       // o item na fonte (RECEITUARIOS_VALIDOS), nunca por deducao daqui
-      var infoReceituario = par.receituario ? RECEITUARIO_INFO[par.receituario] : null;
+      const infoReceituario = par.receituario ? RECEITUARIO_INFO[par.receituario] : null;
       if (infoReceituario) {
-        var receituarioSpan = document.createElement("span");
+        const receituarioSpan = document.createElement("span");
         receituarioSpan.className = "rm-receituario rm-receituario-" + par.receituario;
         receituarioSpan.title = infoReceituario.aviso;
         receituarioSpan.textContent = infoReceituario.icone + " " + infoReceituario.rotulo;
@@ -881,20 +884,20 @@ function moverFocoResultado(delta) {
       // linha de aviso completa, alem do selo: o alerta de seguranca nao
       // pode depender de o medico passar o mouse sobre o title do selo
       if (infoReceituario) {
-        var avisoDiv = document.createElement("div");
+        const avisoDiv = document.createElement("div");
         avisoDiv.className = "rm-aviso-receituario";
         avisoDiv.textContent = "⚠️ Atenção: " + infoReceituario.aviso;
         li.appendChild(avisoDiv);
       }
 
       avisosDoItem(cidade, par.nome).forEach(function (texto) {
-        var avisoItem = document.createElement("div");
+        const avisoItem = document.createElement("div");
         avisoItem.className = "rm-aviso-receituario";
         avisoItem.textContent = "\u26A0\uFE0F Atenção: " + texto;
         li.appendChild(avisoItem);
       });
 
-      var botaoCopiar = document.createElement("button");
+      const botaoCopiar = document.createElement("button");
       botaoCopiar.type = "button";
       botaoCopiar.className = "rm-copiar";
       botaoCopiar.title = "Copiar nome do medicamento";
@@ -1012,7 +1015,7 @@ function moverFocoResultado(delta) {
 
     aoCargaRede: function (evt) {
       if (evt.status !== 200) return;
-      var json = evt.json();
+      const json = evt.json();
       if (json) processarRespostaAtendimento(json);
     },
 

@@ -23,21 +23,24 @@
 (function (raiz) {
   "use strict";
 
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
   /* ----------------------------------------------------------------
    * BIBLIOTECA DE SONS (Web Audio API — sem arquivo externo)
    * Copiada sem alteracao do script original: cada som define quanto
    * dura uma "unidade" (para espacar as repeticoes) e como toca-la.
    * Sintetizado por osciladores, entao funciona sem internet.
    * ---------------------------------------------------------------- */
-  var TIPOS_DE_SOM = {
+  const TIPOS_DE_SOM = {
     "sirene-classica": {
       nome: "Sirene clássica (2 notas)",
       curto: false,
       intervaloMs: 1100,
       tocar: function (ctx, volume) {
-        var agora = ctx.currentTime;
-        var osc = ctx.createOscillator();
-        var gain = ctx.createGain();
+        const agora = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
         osc.type = "square";
         osc.frequency.setValueAtTime(880, agora);
         osc.frequency.linearRampToValueAtTime(1320, agora + 0.35);
@@ -56,9 +59,9 @@
       curto: false,
       intervaloMs: 1050,
       tocar: function (ctx, volume) {
-        var agora = ctx.currentTime;
-        var osc = ctx.createOscillator();
-        var gain = ctx.createGain();
+        const agora = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
         osc.type = "sawtooth";
         osc.frequency.setValueAtTime(700, agora);
         osc.frequency.setValueAtTime(950, agora + 0.25);
@@ -76,11 +79,11 @@
       curto: false,
       intervaloMs: 700,
       tocar: function (ctx, volume) {
-        var base = ctx.currentTime;
-        for (var i = 0; i < 3; i++) {
-          var inicio = base + i * 0.2;
-          var osc = ctx.createOscillator();
-          var gain = ctx.createGain();
+        const base = ctx.currentTime;
+        for (let i = 0; i < 3; i++) {
+          const inicio = base + i * 0.2;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
           osc.type = "square";
           osc.frequency.setValueAtTime(1200, inicio);
           gain.gain.setValueAtTime(0.3 * volume, inicio);
@@ -96,13 +99,13 @@
       curto: false,
       intervaloMs: 2000,
       tocar: function (ctx, volume) {
-        var agora = ctx.currentTime;
+        const agora = ctx.currentTime;
         [
           { freq: 900, inicio: 0, duracao: 0.3 },
           { freq: 700, inicio: 0.3, duracao: 0.4 },
         ].forEach(function (n) {
-          var osc = ctx.createOscillator();
-          var gain = ctx.createGain();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
           osc.type = "sine";
           osc.frequency.setValueAtTime(n.freq, agora + n.inicio);
           gain.gain.setValueAtTime(0, agora + n.inicio);
@@ -133,10 +136,10 @@
       curto: true,
       intervaloMs: 1200,
       tocar: function (ctx, volume) {
-        var agora = ctx.currentTime;
+        const agora = ctx.currentTime;
         [{ f: 880, t: 0 }, { f: 1174.7, t: 0.13 }].forEach(function (n) {
-          var osc = ctx.createOscillator();
-          var g = ctx.createGain();
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
           osc.type = "triangle";
           osc.frequency.setValueAtTime(n.f, agora + n.t);
           g.gain.setValueAtTime(0.0001, agora + n.t);
@@ -153,12 +156,12 @@
       curto: true,
       intervaloMs: 1400,
       tocar: function (ctx, volume) {
-        var agora = ctx.currentTime;
+        const agora = ctx.currentTime;
         /* Um sino e a fundamental MAIS um parcial agudo que morre antes
          * dela — e o que separa "sino" de "bipe". */
         [{ f: 1568, v: 0.3, d: 0.9 }, { f: 2350, v: 0.12, d: 0.35 }].forEach(function (n) {
-          var osc = ctx.createOscillator();
-          var g = ctx.createGain();
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
           osc.type = "sine";
           osc.frequency.setValueAtTime(n.f, agora);
           g.gain.setValueAtTime(0.0001, agora);
@@ -175,9 +178,9 @@
       curto: true,
       intervaloMs: 900,
       tocar: function (ctx, volume) {
-        var agora = ctx.currentTime;
-        var osc = ctx.createOscillator();
-        var g = ctx.createGain();
+        const agora = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
         osc.type = "sine";
         osc.frequency.setValueAtTime(1250, agora);
         osc.frequency.exponentialRampToValueAtTime(620, agora + 0.14);
@@ -194,11 +197,11 @@
       curto: true,
       intervaloMs: 1600,
       tocar: function (ctx, volume) {
-        var agora = ctx.currentTime;
+        const agora = ctx.currentTime;
         [523.25, 659.25, 783.99].forEach(function (f, i) {
-          var t = i * 0.075;
-          var osc = ctx.createOscillator();
-          var g = ctx.createGain();
+          const t = i * 0.075;
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
           osc.type = "sine";
           osc.frequency.setValueAtTime(f, agora + t);
           g.gain.setValueAtTime(0.0001, agora + t);
@@ -215,12 +218,12 @@
       curto: true,
       intervaloMs: 800,
       tocar: function (ctx, volume) {
-        var agora = ctx.currentTime;
+        const agora = ctx.currentTime;
         /* Para quem divide a sala com outro profissional e nao quer que o
          * alarme vire assunto da consulta ao lado. */
         [0, 0.09].forEach(function (t) {
-          var osc = ctx.createOscillator();
-          var g = ctx.createGain();
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
           osc.type = "square";
           osc.frequency.setValueAtTime(2100, agora + t);
           g.gain.setValueAtTime(0.0001, agora + t);
@@ -241,13 +244,13 @@
       curto: false,
       intervaloMs: 1300,
       tocar: function (ctx, volume) {
-        var agora = ctx.currentTime;
+        const agora = ctx.currentTime;
         /* Grave atravessa parede e cansa menos que agudo. Pensado para a
          * madrugada, quando o estridente e justamente o que faz o medico
          * desligar o alarme — e perder o paciente seguinte. */
         [0, 0.42].forEach(function (t) {
-          var osc = ctx.createOscillator();
-          var g = ctx.createGain();
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
           osc.type = "sine";
           osc.frequency.setValueAtTime(196, agora + t);
           osc.frequency.linearRampToValueAtTime(233, agora + t + 0.3);
@@ -265,9 +268,9 @@
       curto: false,
       intervaloMs: 1500,
       tocar: function (ctx, volume) {
-        var agora = ctx.currentTime;
-        var osc = ctx.createOscillator();
-        var g = ctx.createGain();
+        const agora = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
         osc.type = "triangle";
         osc.frequency.setValueAtTime(560, agora);
         osc.frequency.linearRampToValueAtTime(760, agora + 0.55);
@@ -283,7 +286,7 @@
     },
 };
 
-  var CSS_PAINEL = [
+  const CSS_PAINEL = [
     raiz.MeedsSuiteCabecalho.CSS,
     ".af-modal { width: 100%; max-width: 380px; background: #fff; border-radius: 6px; box-shadow: 0 8px 24px rgba(15,23,42,.2); overflow: hidden; }",
     ".af-modal header { background: #b42318; color:#fff; padding:16px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
@@ -315,7 +318,7 @@
     "#af-liberar-aviso[hidden] { display:none; }",
   ].join("\n");
 
-  var CONFIG_PADRAO = {
+  const CONFIG_PADRAO = {
     ativo: false,
     modo: "imediato", // "imediato" | "espera"
     tempoEsperaMin: 5,
@@ -349,7 +352,7 @@
    * A escada de atencao (titulo, favicone, notificacao do sistema) vale
    * nos tres — ela e sobre ONDE avisar, nao sobre o quanto incomodar.
    * ------------------------------------------------------------------ */
-  var INTENSIDADES = {
+  const INTENSIDADES = {
     silencioso: {
       rotulo: "Silencioso",
       icone: "🔕",
@@ -370,48 +373,48 @@
     },
   };
 
-  var ORDEM_INTENSIDADE = ["completo", "discreto", "silencioso"];
+  const ORDEM_INTENSIDADE = ["completo", "discreto", "silencioso"];
 
   function intensidadeAtual() {
     return INTENSIDADES[config.intensidade] || INTENSIDADES.completo;
   }
 
   /* --- estado do modulo (recriado a cada start, zerado a cada stop) --- */
-  var d = null;          // deps do nucleo
-  var config = null;
-  var painel = null;
-  var banner = null;
-  var moldura = null; // moldura pulsante na borda da tela (plantao noturno)
-  var observerToast = null;
-  var timers = [];
+  let d = null;          // deps do nucleo
+  var config = null; // eslint-disable-line no-var -- usada antes desta linha; com let/const daria erro de zona morta (TDZ)
+  let painel = null;
+  let banner = null;
+  let moldura = null; // moldura pulsante na borda da tela (plantao noturno)
+  let observerToast = null;
+  let timers = [];
 
   // ids vistos na fila por "assinatura" de chamada -> Map<id, {primeiraVezVistoEm}>
-  var idsFilaPorAssinatura = new Map();
-  var idsJaAlertadosPorEspera = new Set();
-  var decisorFila = null; // fusao dos sinais sobre "tem gente esperando?"
-  var ultimoDisparoTs = 0;
-  var ultimaChegada = null;   // ficha de quem chegou, so para o cartao discreto
+  const idsFilaPorAssinatura = new Map();
+  const idsJaAlertadosPorEspera = new Set();
+  let decisorFila = null; // fusao dos sinais sobre "tem gente esperando?"
+  let ultimoDisparoTs = 0;
+  let ultimaChegada = null;   // ficha de quem chegou, so para o cartao discreto
 
-  var DEBOUNCE_MS = 2500;
-  var DURACAO_MAX_SOM_MS = 120000;      // trava de seguranca do som (2 min)
-  var COOLDOWN_REENGATE_MS = 5 * 60000; // toca de novo 5 min apos silenciar (modo Completo)
-  var LIMITE_FRESCOR_DOM_MS = 12000;    // 3x o intervalo de polling do DOM
-  var INTERVALO_RECHECAGEM_MS = 4000;
-  var INTERVALO_CHECAGEM_ESPERA_MS = 15000;
+  const DEBOUNCE_MS = 2500;
+  const DURACAO_MAX_SOM_MS = 120000;      // trava de seguranca do som (2 min)
+  const COOLDOWN_REENGATE_MS = 5 * 60000; // toca de novo 5 min apos silenciar (modo Completo)
+  const LIMITE_FRESCOR_DOM_MS = 12000;    // 3x o intervalo de polling do DOM
+  const INTERVALO_RECHECAGEM_MS = 4000;
+  const INTERVALO_CHECAGEM_ESPERA_MS = 15000;
   /* Modo Discreto: se o paciente que disparou o alarme continuar na fila,
    * o cartao e as duas batidas voltam a cada 2 min — mais curto que o
    * reengate do Completo (5 min) porque o Discreto e pensado para lembrar
    * com frequencia, sem interromper. Ver dispararAlarme() e
    * repiqueDeEsperaDiscreto(). */
-  var INTERVALO_REPIQUE_DISCRETO_MS = 2 * 60000;
+  const INTERVALO_REPIQUE_DISCRETO_MS = 2 * 60000;
 
-  var audioCtx = null;
-  var tocando = false;
-  var intervaloSirene = null;
-  var timeoutLimiteSirene = null;
-  var timeoutReengate = null;
-  var timeoutSomCurtoRepique = null;
-  var timeoutRepiqueDiscreto = null;
+  let audioCtx = null;
+  let tocando = false;
+  let intervaloSirene = null;
+  let timeoutLimiteSirene = null;
+  let timeoutReengate = null;
+  let timeoutSomCurtoRepique = null;
+  let timeoutRepiqueDiscreto = null;
 
   /* ----------------------------------------------------------------
    * SINALIZACAO CENTRAL
@@ -448,14 +451,14 @@
      * engoliria esse disparo de verdade no debounce.
      * ---------------------------------------------------------------- */
     if (origem === "toast-nativo" && filaDeEsperaEstaVazia()) {
-      console.debug("[Alarme Fila] toast ignorado: a fila esta comprovadamente vazia");
+      LOG.debug("[Alarme Fila] toast ignorado: a fila esta comprovadamente vazia");
       return;
     }
 
-    var agora = Date.now();
+    const agora = Date.now();
     if (agora - ultimoDisparoTs < DEBOUNCE_MS) return; // outro sinal ja tratou
     ultimoDisparoTs = agora;
-    console.debug("[Alarme Fila] disparo via " + origem);
+    LOG.debug("[Alarme Fila] disparo via " + origem);
     /* "tempo-de-espera" (modo Espera) reage a alguem que JA estava na
      * fila cruzar o limite de minutos — nao a uma chegada. O cartao nao
      * pode dizer "novo paciente" para isso. */
@@ -463,24 +466,24 @@
   }
 
   /* --- SINAL A: toast nativo "Novo Atendimento" ------------------- */
-  var TAMANHO_MAX_TEXTO_TOAST = 80;
+  const TAMANHO_MAX_TEXTO_TOAST = 80;
 
   function textosDeToast() {
     return d.seletor("toasts", "novoAtendimento");
   }
 
   function pareceToastNovoAtendimento(elemento) {
-    var alvos = textosDeToast().map(function (t) {
+    const alvos = textosDeToast().map(function (t) {
       return d.dom.normalizarTexto(t);
     });
-    var candidatos = [elemento].concat(Array.prototype.slice.call(elemento.querySelectorAll("*")));
-    for (var i = 0; i < candidatos.length; i++) {
-      var el = candidatos[i];
+    const candidatos = [elemento].concat(Array.prototype.slice.call(elemento.querySelectorAll("*")));
+    for (let i = 0; i < candidatos.length; i++) {
+      const el = candidatos[i];
       if (el.childElementCount > 0) continue;
-      var texto = (el.textContent || "").trim();
+      const texto = (el.textContent || "").trim();
       if (!texto || texto.length > TAMANHO_MAX_TEXTO_TOAST) continue;
-      var norm = d.dom.normalizarTexto(texto);
-      for (var j = 0; j < alvos.length; j++) {
+      const norm = d.dom.normalizarTexto(texto);
+      for (let j = 0; j < alvos.length; j++) {
         // exige que o texto do PROPRIO elemento (nao um resumo de tela
         // inteira) contenha o alvo — evita falso positivo com um botao
         // estatico "+ Novo Atendimento" em algum canto da aplicacao.
@@ -491,7 +494,7 @@
   }
 
   /* --- SINAL B: rede (fila de espera geral) ----------------------- */
-  var REGEX_ATENDIMENTO_LISTA = /\/api\/v1\/Atendimento\?/i;
+  const REGEX_ATENDIMENTO_LISTA = /\/api\/v1\/Atendimento\?/i;
 
   /* ------------------------------------------------------------------
    * QUAL CHAMADA E "A FILA DE ESPERA"
@@ -527,7 +530,7 @@
      * pareceria uma chegada nova. */
     if (/[?&]take=1(?:&|$)/i.test(url)) return false;
 
-    var status = (String(url).match(/[?&]StatusAtendimentoId=([^&]*)/gi) || [])
+    const status = (String(url).match(/[?&]StatusAtendimentoId=([^&]*)/gi) || [])
       .map(function (s) { return s.split("=")[1]; })
       .sort()
       .join(",");
@@ -547,8 +550,8 @@
   function extrairListaDeItens(json) {
     if (Array.isArray(json)) return json;
     if (json && typeof json === "object") {
-      var chaves = ["data", "items", "result", "results"];
-      for (var i = 0; i < chaves.length; i++) {
+      const chaves = ["data", "items", "result", "results"];
+      for (let i = 0; i < chaves.length; i++) {
         if (Array.isArray(json[chaves[i]])) return json[chaves[i]];
       }
     }
@@ -557,12 +560,12 @@
 
   function processarRespostaFilaDeEspera(url, json) {
     try {
-      var itens = extrairListaDeItens(json);
+      const itens = extrairListaDeItens(json);
       if (!itens) return; // formato inesperado: outros sinais cobrem
 
-      var agora = Date.now();
-      var assinatura = assinaturaDaChamada(url);
-      var mapaAnterior = idsFilaPorAssinatura.get(assinatura);
+      const agora = Date.now();
+      const assinatura = assinaturaDaChamada(url);
+      let mapaAnterior = idsFilaPorAssinatura.get(assinatura);
       /* Leitura velha nao serve de base para dizer "chegou alguem" (D62).
        * resumoDaFila() ja DESCARTA assinatura parada ha mais de
        * VALIDADE_ASSINATURA_MS — sem esta linha os dois calculos
@@ -576,12 +579,12 @@
       if (mapaAnterior && agora - (mapaAnterior.atualizadoEm || 0) > VALIDADE_ASSINATURA_MS) {
         mapaAnterior = null;
       }
-      var mapaAtual = new Map();
+      const mapaAtual = new Map();
 
       itens.forEach(function (item) {
-        var id = item && item.id;
+        const id = item && item.id;
         if (!id) return;
-        var jaVistoEm =
+        const jaVistoEm =
           mapaAnterior && mapaAnterior.has(id) ? mapaAnterior.get(id).primeiraVezVistoEm : agora;
         mapaAtual.set(id, { primeiraVezVistoEm: jaVistoEm, ficha: fichaDaChegada(item) });
       });
@@ -590,7 +593,7 @@
       // dispara, para nao soar por quem ja estava esperando antes de o
       // medico ligar o alarme.
       if (mapaAnterior) {
-        var novos = Array.from(mapaAtual.keys()).filter(function (id) {
+        const novos = Array.from(mapaAtual.keys()).filter(function (id) {
           return !mapaAnterior.has(id);
         });
         if (novos.length) {
@@ -627,11 +630,11 @@
    * do administrador, que troca de aba e de periodo (Hoje, Ontem,
    * Ultimos 30 dias): cada filtro vira uma assinatura, e a que o medico
    * abandonou nao pode continuar somando gente para sempre. */
-  var VALIDADE_ASSINATURA_MS = 120000;
+  var VALIDADE_ASSINATURA_MS = 120000; // eslint-disable-line no-var -- usada antes desta linha; com let/const daria erro de zona morta (TDZ)
 
   function esquecerAssinaturasVelhas() {
-    var limite = Date.now() - VALIDADE_ASSINATURA_MS;
-    var mortas = [];
+    const limite = Date.now() - VALIDADE_ASSINATURA_MS;
+    const mortas = [];
     idsFilaPorAssinatura.forEach(function (mapa, assinatura) {
       if ((mapa.atualizadoEm || 0) < limite) mortas.push(assinatura);
     });
@@ -662,8 +665,8 @@
    * ele que diz qual REMUME e qual laudo valem para aquele atendimento.
    * ------------------------------------------------------------------ */
   function porCaminho(objeto, caminho) {
-    var atual = objeto;
-    for (var i = 0; i < caminho.length; i++) {
+    let atual = objeto;
+    for (let i = 0; i < caminho.length; i++) {
       if (!atual || typeof atual !== "object") return null;
       atual = atual[caminho[i]];
     }
@@ -671,7 +674,7 @@
   }
 
   function fichaDaChegada(item) {
-    var ficha = { municipio: null };
+    const ficha = { municipio: null };
     if (!item || typeof item !== "object") return ficha;
     ficha.municipio = porCaminho(item, ["cliente", "razaoSocialNome"]);
     return ficha;
@@ -701,8 +704,8 @@
   function resumoDaFila() {
     esquecerAssinaturasVelhas();
 
-    var unicos = new Set();
-    var maisAntigo = null;
+    const unicos = new Set();
+    let maisAntigo = null;
     idsFilaPorAssinatura.forEach(function (mapa) {
       mapa.forEach(function (registro, id) {
         unicos.add(id);
@@ -712,9 +715,9 @@
       });
     });
 
-    var porRede = unicos.size;
-    var naTela = ultimoValorAguardandoDOM;
-    var quantos = naTela === null ? porRede : naTela;
+    const porRede = unicos.size;
+    const naTela = ultimoValorAguardandoDOM;
+    const quantos = naTela === null ? porRede : naTela;
 
     return {
       quantos: quantos,
@@ -725,7 +728,7 @@
   }
 
   function textoDoMotivo() {
-    var r = resumoDaFila();
+    const r = resumoDaFila();
     /* "Nao sei quantos" (quantos=0) e um sinal PROPRIO, independente de
      * a chegada ser nova ou de alguem que ja esperava (D61): resumoDaFila
      * e decisorFila sao dois calculos separados, e o segundo pode dizer
@@ -734,8 +737,8 @@
      * cartao do Discreto quanto para a faixa do Completo (o mesmo texto
      * alimenta os dois, ver atualizarTextoDoBanner). */
     if (!r.quantos) return "Aguardando atualização da fila";
-    var partes = [r.quantos + (r.quantos === 1 ? " aguardando" : " aguardando")];
-    var min = Math.floor(r.esperaMs / 60000);
+    const partes = [r.quantos + (r.quantos === 1 ? " aguardando" : " aguardando")];
+    const min = Math.floor(r.esperaMs / 60000);
     if (min >= 1) {
       partes.push((r.quantos === 1 ? "há pelo menos " : "o mais antigo há pelo menos ") + min + " min");
     }
@@ -743,11 +746,11 @@
   }
 
   /* --- SINAL C: contador "Aguardando" no DOM ---------------------- */
-  var ultimoValorAguardandoDOM = null;
-  var ultimaLeituraDOMEm = 0; // quando ultimoValorAguardandoDOM foi lido
+  var ultimoValorAguardandoDOM = null; // eslint-disable-line no-var -- usada antes desta linha; com let/const daria erro de zona morta (TDZ)
+  let ultimaLeituraDOMEm = 0; // quando ultimoValorAguardandoDOM foi lido
 
   function atualizarLeituraContadorAguardando() {
-    var valor = d.dom.lerContadorPorRotulo(d.seletor("rotulos", "contadorFila"));
+    const valor = d.dom.lerContadorPorRotulo(d.seletor("rotulos", "contadorFila"));
     if (valor !== null) {
       ultimoValorAguardandoDOM = valor;
       ultimaLeituraDOMEm = Date.now();
@@ -759,10 +762,10 @@
   }
 
   function tentarChecarContadorAguardando() {
-    var anterior = ultimoValorAguardandoDOM;
+    const anterior = ultimoValorAguardandoDOM;
     /* Idade da base ANTES de ler de novo — depois da leitura ela zera. */
-    var idadeDaBase = Date.now() - ultimaLeituraDOMEm;
-    var atual = atualizarLeituraContadorAguardando();
+    const idadeDaBase = Date.now() - ultimaLeituraDOMEm;
+    const atual = atualizarLeituraContadorAguardando();
     if (atual === null) return; // leitura ambigua: NAO decide
 
     /* "O numero subiu" so significa chegada se os dois numeros vierem da
@@ -773,7 +776,7 @@
      * Comparar o 0 da tela antiga com o 7 da tela nova e ler "chegaram
      * sete pacientes agora". Base velha vira base nova, sem disparo. */
     if (anterior !== null && idadeDaBase > LIMITE_FRESCOR_DOM_MS) {
-      console.debug("[Alarme Fila] contador voltou depois de " + Math.round(idadeDaBase / 1000) + "s: recomeçando a base");
+      LOG.debug("[Alarme Fila] contador voltou depois de " + Math.round(idadeDaBase / 1000) + "s: recomeçando a base");
       checarSeDeveSilenciarPorFilaVazia();
       return;
     }
@@ -784,7 +787,7 @@
 
   /* --- SINAL D: tempo de espera (modo "espera") ------------------- */
   function limparIdsAlertadosQueSairamDaFila() {
-    var idsAtuais = new Set();
+    const idsAtuais = new Set();
     idsFilaPorAssinatura.forEach(function (mapa) {
       mapa.forEach(function (_v, id) {
         idsAtuais.add(id);
@@ -797,8 +800,8 @@
 
   function checarLimiteDeEspera() {
     if (!config.ativo || config.modo !== "espera") return;
-    var limiteMs = config.tempoEsperaMin * 60000;
-    var agora = Date.now();
+    const limiteMs = config.tempoEsperaMin * 60000;
+    const agora = Date.now();
     idsFilaPorAssinatura.forEach(function (mapa) {
       mapa.forEach(function (info, id) {
         if (idsJaAlertadosPorEspera.has(id)) return;
@@ -815,7 +818,7 @@
    * ---------------------------------------------------------------- */
   function obterAudioContext() {
     if (!audioCtx) {
-      var Ctor = raiz.AudioContext || raiz.webkitAudioContext;
+      const Ctor = raiz.AudioContext || raiz.webkitAudioContext;
       if (!Ctor) return null;
       audioCtx = new Ctor();
     }
@@ -824,8 +827,8 @@
   }
 
   function somDoModo(curto) {
-    var id = curto ? config.somCurto : config.som;
-    var tipo = TIPOS_DE_SOM[id];
+    const id = curto ? config.somCurto : config.som;
+    const tipo = TIPOS_DE_SOM[id];
     if (tipo && !!tipo.curto === !!curto) return tipo;
     return TIPOS_DE_SOM[curto ? CONFIG_PADRAO.somCurto : CONFIG_PADRAO.som];
   }
@@ -833,12 +836,12 @@
   // Exposto so para teste: nao ha como verificar audio de verdade fora do
   // navegador, entao o teste confere QUANTAS VEZES e QUANDO o modulo pediu
   // para tocar — o resto (o som em si) ja e coberto por tests/som.test.js.
-  var chamadasDeSomParaTeste = [];
+  const chamadasDeSomParaTeste = [];
 
   function tocarSomAtual(curto) {
     chamadasDeSomParaTeste.push({ curto: !!curto, quando: Date.now() });
     try {
-      var ctx = obterAudioContext();
+      const ctx = obterAudioContext();
       if (!ctx) return;
       somDoModo(curto).tocar(ctx, config.volume / 100);
     } catch (e) {
@@ -863,14 +866,14 @@
   }
 
   function atualizarDistintivo() {
-    var A = atencao();
+    const A = atencao();
     if (!A) return;
     /* Le o cartao da tela AGORA. A resposta de rede chega antes do proximo
      * ciclo de leitura do DOM, entao sem isto o distintivo seria pintado
      * com o numero anterior — tipicamente zero — e sumiria por alguns
      * segundos bem no momento em que o paciente chegou. */
     atualizarLeituraContadorAguardando();
-    var r = resumoDaFila();
+    const r = resumoDaFila();
     if (r.quantos > 0) A.marcar({ contagem: r.quantos });
     else A.limpar();
   }
@@ -881,10 +884,10 @@
    * indo": traz a aba para frente e silencia com reengate, entao se ele
    * nao atender de fato o alarme volta em cinco minutos. */
   function avisarForaDaAba() {
-    var A = atencao();
+    const A = atencao();
     if (!A) return;
     if (A.ondeEstaOMedico() !== "fora") return;
-    var r = resumoDaFila();
+    const r = resumoDaFila();
 
     /* A janela e o degrau mais barulhento e o unico opcional: ela FICA na
      * barra de tarefas ate alguem fechar, enquanto a notificacao some
@@ -957,13 +960,13 @@
       /* Mesma correcao do reengate do Completo, ver haDecisaoSobreFila():
        * sem evidencia fresca, nao repica as cegas — so reagenda. */
       if (!haDecisaoSobreFila()) {
-        console.debug("[Alarme Fila] sem evidencia fresca da fila — repique do discreto reagendado em silencio");
+        LOG.debug("[Alarme Fila] sem evidencia fresca da fila — repique do discreto reagendado em silencio");
         agendarRepiqueDeEsperaDiscreto();
         return;
       }
 
       if (filaDeEsperaEstaVazia()) return; // paciente ja saiu da fila
-      console.debug("[Alarme Fila] paciente ainda esperando, repique do modo discreto");
+      LOG.debug("[Alarme Fila] paciente ainda esperando, repique do modo discreto");
       dispararAlarme("ainda-aguardando");
     }, INTERVALO_REPIQUE_DISCRETO_MS);
   }
@@ -975,8 +978,8 @@
    * (som, distintivo, notificacao) e identico nos dois casos. Ver D61. */
   function dispararAlarme(motivo) {
     if (tocando) return;
-    var forma = intensidadeAtual();
-    var ehAindaAguardando = motivo === "ainda-aguardando";
+    const forma = intensidadeAtual();
+    const ehAindaAguardando = motivo === "ainda-aguardando";
 
     /* O distintivo e a notificacao valem nos TRES modos: eles sao sobre
      * onde avisar, nao sobre o quanto incomodar. O que a intensidade
@@ -990,7 +993,7 @@
       // toca duas vezes, espacadas pelo intervalo natural do proprio som
       // (o mesmo intervaloMs que o modo completo usa para repetir a
       // sirene) — uma vez so passava despercebida num plantao barulhento
-      var tipoCurto = somDoModo(true);
+      const tipoCurto = somDoModo(true);
       tocarSomAtual(true);
       timeoutSomCurtoRepique = setTimeout(function () {
         timeoutSomCurtoRepique = null;
@@ -1002,7 +1005,7 @@
       atualizarTextoDoBanner(ehAindaAguardando);
       if (banner) banner.mostrar();
       if (moldura) moldura.mostrar();
-      var tipo = somDoModo(false);
+      const tipo = somDoModo(false);
       tocarSomAtual(false);
       intervaloSirene = setInterval(function () { tocarSomAtual(false); }, tipo.intervaloMs);
       // BUG JA CORRIGIDO NO ORIGINAL v1.4.0 E PRESERVADO AQUI: o limite de
@@ -1022,8 +1025,8 @@
    * ------------------------------------------------------------------ */
   function mostrarCartaoDeChegada(ehAindaAguardando) {
     if (!d || !d.dock || typeof d.dock.criarAviso !== "function") return;
-    var ficha = ultimaChegada || {};
-    var linhas = [];
+    const ficha = ultimaChegada || {};
+    const linhas = [];
     /* So o MUNICIPIO — e desde a v2.33.2 e o unico dado que o modulo
      * chega a ler. O cartao fica na tela por 12 s, atravessa troca de
      * aba e aparece em qualquer print que o medico tire; nome de
@@ -1093,7 +1096,7 @@
    * Se nenhum sinal for confiavel, NAO decide e o alarme continua
    * tocando — preferir errar tocando a errar calando. */
   function filaDeEsperaEstaVazia() {
-    var r = decisorFila.decidir();
+    const r = decisorFila.decidir();
     if (!r.decidiu) return false;
     return r.valor === false;
   }
@@ -1138,7 +1141,7 @@
   function checarSeDeveSilenciarPorFilaVazia() {
     if (!tocando) return;
     if (filaDeEsperaEstaVazia()) {
-      console.debug("[Alarme Fila] fila esvaziou, silenciando automaticamente");
+      LOG.debug("[Alarme Fila] fila esvaziou, silenciando automaticamente");
       silenciarAlarme(); // sem reengate: nao ha mais ninguem esperando
     }
   }
@@ -1154,13 +1157,13 @@
      * antes disso, a proxima tentativa decide direito. A corrente nunca
      * morre por falta de evidencia; ela so para de SOAR sem evidencia. */
     if (!haDecisaoSobreFila()) {
-      console.debug("[Alarme Fila] sem evidencia fresca da fila apos silenciar — reagendando em silencio, sem tocar");
+      LOG.debug("[Alarme Fila] sem evidencia fresca da fila apos silenciar — reagendando em silencio, sem tocar");
       timeoutReengate = setTimeout(tentarReengatarAlarme, COOLDOWN_REENGATE_MS);
       return;
     }
 
     if (filaDeEsperaEstaVazia()) return;
-    console.debug("[Alarme Fila] fila ainda cheia apos silenciar, tocando de novo");
+    LOG.debug("[Alarme Fila] fila ainda cheia apos silenciar, tocando de novo");
     /* Reengate do Completo: mesmo paciente de antes, nao um novo — hoje
      * este modo tem cartao:false, entao o titulo nem aparece, mas o
      * motivo certo evita que um ajuste futuro de intensidade reintroduza
@@ -1189,8 +1192,8 @@
         })
         .join("");
     }
-    var opcoesSom = opcoesDe(false);
-    var opcoesSomCurto = opcoesDe(true);
+    const opcoesSom = opcoesDe(false);
+    const opcoesSomCurto = opcoesDe(true);
 
     painel = d.dock.criarOverlay({
       estilo: CSS_PAINEL,
@@ -1246,7 +1249,7 @@
       });
     });
     painel.$("#af-tempo-espera").addEventListener("change", function () {
-      var v = parseInt(painel.$("#af-tempo-espera").value, 10);
+      const v = parseInt(painel.$("#af-tempo-espera").value, 10);
       config.tempoEsperaMin = Math.min(120, Math.max(1, v || CONFIG_PADRAO.tempoEsperaMin));
       painel.$("#af-tempo-espera").value = config.tempoEsperaMin;
       salvar();
@@ -1289,7 +1292,7 @@
        * em que o Chrome deixa abrir sem permissao previa, e serve de
        * teste — se for bloqueada, o medico descobre aqui e nao na
        * primeira chegada de paciente. */
-      var A = atencao();
+      const A = atencao();
       if (A && A.abrirJanelaDeAviso) {
         A.abrirJanelaDeAviso({ titulo: "Assim que ela vai aparecer", corpo: "Esta é a janela de aviso. Feche-a quando quiser." });
       }
@@ -1297,7 +1300,7 @@
     });
 
     painel.$("#af-liberar-aviso").addEventListener("click", function () {
-      var A = atencao();
+      const A = atencao();
       if (!A) return;
       A.pedirPermissaoDeNotificacao().then(function (liberou) {
         refletirEstadoDosAvisos();
@@ -1306,7 +1309,7 @@
          * Sem esta linha, o medico clica no botao e parece que nada
          * aconteceu — e ele conclui, com razao, que esta quebrado. */
         if (!liberou && A.permissaoDeNotificacao() === "default") {
-          var estado = painel.$("#af-avisar-estado");
+          const estado = painel.$("#af-avisar-estado");
           if (estado) {
             estado.textContent =
               "O navegador não mostrou a pergunta — ele silencia esse pedido por padrão. " +
@@ -1323,12 +1326,12 @@
    * oferece o unico passo que resolve, quando ha um. */
   function refletirEstadoDosAvisos() {
     if (!painel) return;
-    var A = atencao();
-    var estado = painel.$("#af-avisar-estado");
-    var botao = painel.$("#af-liberar-aviso");
+    const A = atencao();
+    const estado = painel.$("#af-avisar-estado");
+    const botao = painel.$("#af-liberar-aviso");
     if (!estado || !botao) return;
 
-    var permissao = A ? A.permissaoDeNotificacao() : "indisponivel";
+    const permissao = A ? A.permissaoDeNotificacao() : "indisponivel";
     botao.hidden = permissao !== "default";
 
     if (permissao === "granted") {
@@ -1353,11 +1356,11 @@
       estado.textContent += " A tela não apaga enquanto o Meeds estiver aberto.";
     }
 
-    var chaveJanela = painel.$("#af-janela");
-    var dicaJanela = painel.$("#af-janela-hint");
+    const chaveJanela = painel.$("#af-janela");
+    const dicaJanela = painel.$("#af-janela-hint");
     if (!chaveJanela || !dicaJanela) return;
 
-    var temJanela = !!(A && A.suportaJanela());
+    const temJanela = !!(A && A.suportaJanela());
     chaveJanela.disabled = !temJanela;
     chaveJanela.checked = !!config.janelaDeAviso && temJanela;
 
@@ -1390,7 +1393,7 @@
    * fila e o alarme nao toca — sem erro, sem aviso. Nao da para impedir
    * pela pagina, entao o minimo honesto e CONTAR ao medico que houve um
    * periodo sem vigilancia, em vez de deixa-lo achar que ninguem chegou. */
-  var cancelarVigiaSuspensao = null;
+  let cancelarVigiaSuspensao = null;
 
   /* UM aviso reaproveitado, nunca um por acordada.
    *
@@ -1412,10 +1415,10 @@
    * pede uma acao ("confira a fila"), entao precisa de tempo de leitura.
    * Mas sumir sozinho e requisito — um aviso permanente sobre algo que
    * JA passou nao ajuda em nada depois de lido. */
-  var AUTO_FECHAR_SUSPENSAO_MS = 30000;
-  var avisoSuspensao = null;
-  var vezesSuspensa = 0;
-  var minutosSuspensa = 0;
+  const AUTO_FECHAR_SUSPENSAO_MS = 30000;
+  let avisoSuspensao = null;
+  let vezesSuspensa = 0;
+  let minutosSuspensa = 0;
 
   function relatarSuspensao(min) {
     if (!d || !d.dock || typeof d.dock.criarAviso !== "function") return;
@@ -1432,7 +1435,7 @@
     vezesSuspensa += 1;
     minutosSuspensa += min;
 
-    var spec = {
+    const spec = {
       titulo: "O alarme ficou parado",
       corpo: [
         vezesSuspensa === 1
@@ -1452,11 +1455,11 @@
   }
 
   function vigiarSuspensaoDaAba() {
-    var A = atencao();
+    const A = atencao();
     if (!A || !A.aoAcordarDeSuspensao) return;
     cancelarVigiaSuspensao = A.aoAcordarDeSuspensao(function (atrasoMs) {
       if (!config.ativo) return; // alarme desligado: nao havia o que vigiar
-      var min = Math.round(atrasoMs / 60000);
+      const min = Math.round(atrasoMs / 60000);
       if (min < 2) return;
       relatarSuspensao(min);
     });
@@ -1485,12 +1488,12 @@
   function atualizarTextoDoBanner(ehAindaAguardando) {
     if (!banner) return;
     if (ehAindaAguardando !== undefined) {
-      var titulo = banner.$("#af-titulo");
+      const titulo = banner.$("#af-titulo");
       if (titulo) {
         titulo.textContent = ehAindaAguardando ? "🔔 Paciente ainda aguardando" : "🚨 Novo paciente na fila!";
       }
     }
-    var el = banner.$("#af-motivo");
+    const el = banner.$("#af-motivo");
     if (el) el.textContent = textoDoMotivo();
   }
 
@@ -1500,7 +1503,7 @@
 
   function refletirEstado() {
     if (d.botao) {
-      var forma = intensidadeAtual();
+      const forma = intensidadeAtual();
       d.botao.definirTexto(forma.icone);
       d.botao.definirClasse("ms-ativo", config.intensidade === "completo");
       d.botao.definirClasse("ms-neutro", config.intensidade !== "completo");
@@ -1520,7 +1523,7 @@
     painel.$$('input[name="af-intensidade"]').forEach(function (r) {
       r.checked = r.value === config.intensidade;
     });
-    var dica = painel.$("#af-intensidade-dica");
+    const dica = painel.$("#af-intensidade-dica");
     if (dica) dica.textContent = intensidadeAtual().resumo;
     refletirEstadoDosAvisos();
   }
@@ -1548,7 +1551,7 @@
     /* Aproveita o gesto de clique para destravar o audio: o navegador so
      * deixa tocar som depois de uma interacao do usuario. */
     obterAudioContext();
-    var i = ORDEM_INTENSIDADE.indexOf(config.intensidade);
+    const i = ORDEM_INTENSIDADE.indexOf(config.intensidade);
     config.intensidade = ORDEM_INTENSIDADE[(i + 1) % ORDEM_INTENSIDADE.length];
 
     /* QUALQUER troca de intensidade com a sirene tocando para a sirene
@@ -1691,7 +1694,7 @@
     aoCargaRede: function (evt) {
       if (evt.status !== 200) return;
       if (!ehChamadaFilaDeEspera(evt.url)) return;
-      var json = evt.json();
+      const json = evt.json();
       if (json) processarRespostaFilaDeEspera(evt.url, json);
     },
 
@@ -1769,9 +1772,9 @@
       }
 
       observerToast = new MutationObserver(function (mutacoes) {
-        for (var i = 0; i < mutacoes.length; i++) {
-          var nodes = mutacoes[i].addedNodes;
-          for (var j = 0; j < nodes.length; j++) {
+        for (let i = 0; i < mutacoes.length; i++) {
+          const nodes = mutacoes[i].addedNodes;
+          for (let j = 0; j < nodes.length; j++) {
             if (nodes[j].nodeType !== 1) continue;
             try {
               if (pareceToastNovoAtendimento(nodes[j])) {

@@ -39,19 +39,19 @@ class FakeEl {
   }
   get nextElementSibling() {
     if (!this.parentElement) return null;
-    var irmaos = this.parentElement.children;
-    var i = irmaos.indexOf(this);
+    const irmaos = this.parentElement.children;
+    const i = irmaos.indexOf(this);
     return i >= 0 && i + 1 < irmaos.length ? irmaos[i + 1] : null;
   }
   get previousElementSibling() {
     if (!this.parentElement) return null;
-    var irmaos = this.parentElement.children;
-    var i = irmaos.indexOf(this);
+    const irmaos = this.parentElement.children;
+    const i = irmaos.indexOf(this);
     return i > 0 ? irmaos[i - 1] : null;
   }
   querySelectorAll() {
     // varredura recursiva simples o bastante para coletarFolhas()
-    var out = [];
+    const out = [];
     function visita(el) {
       out.push(el);
       el.children.forEach(visita);

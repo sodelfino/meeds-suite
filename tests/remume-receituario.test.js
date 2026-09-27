@@ -183,7 +183,7 @@ if (modulo) {
     }
 
     const cidades = Object.keys(REMUMES).filter((c) => c !== "_meta");
-    let divergencias = [];
+    const divergencias = [];
     cidades.forEach((c) => {
       REMUMES[c].forEach((item) => {
         const esperado = classificar(item.nome);

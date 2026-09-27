@@ -92,7 +92,7 @@ function verificarRegras(rel, conteudo) {
 
 function main() {
   const manifest = JSON.parse(fs.readFileSync(MANIFEST, "utf8"));
-  let bootloader = fs.readFileSync(BOOTLOADER, "utf8");
+  const bootloader = fs.readFileSync(BOOTLOADER, "utf8");
 
   if (!bootloader.includes(MARCADOR_NUCLEO) || !bootloader.includes(MARCADOR_MODULOS)) {
     throw new Error("bootloader.user.js perdeu um dos marcadores de injecao.");

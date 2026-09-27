@@ -142,13 +142,12 @@ export default defineConfig([
       // Baseline medida em 12/09/2026: 11 arquivos acima de 350 linhas.
       // Fica em "warn" ate a lista zerar; entao volta para "error".
       "quality/max-lines": ["warn", { max: 350 }],
-      // Baseline medida em 12/09/2026: 60 chamadas console.* diretas.
-      // Este projeto ainda nao tem adaptador de log -- quando tiver, aponte a
-      // mensagem para ele, adicione um bloco "off" DEPOIS deste para o proprio
-      // adaptador, e promova a regra para "error".
+      // O adaptador existe desde a v2.49.1 (core/log.js) e as 60 chamadas
+      // diretas foram migradas: a regra passou de "warn" para "error" — um
+      // console.* novo quebra o lint.
       "quality/no-direct-console": [
-        "warn",
-        { logger: "um adaptador de log do MeedsSuite (ainda nao existe)" },
+        "error",
+        { logger: "MeedsSuiteLog (core/log.js) ou a constante LOG do arquivo" },
       ],
     },
   },
@@ -187,6 +186,14 @@ export default defineConfig([
     },
   },
   {
+    // O proprio adaptador de log e o unico codigo de navegador que fala com
+    // o console.
+    files: ["core/log.js"],
+    rules: {
+      "quality/no-direct-console": "off",
+    },
+  },
+  {
     // Scripts de build/sync sao ferramentas de linha de comando: logar no
     // stdout e a interface deles, nao um vazamento de console de producao.
     files: ["scripts/**/*.js", "tests/**/*.js"],
@@ -212,6 +219,10 @@ export default defineConfig([
     "node_modules/**",
     // dist/ e saida do scripts/build.js -- codigo concatenado, nao autorado.
     "dist/**",
+    // Gerados por scripts/sync-*.js a partir de dados/ e remumes.json. Um
+    // `eslint --fix` aqui os tiraria de sincronia com a fonte (o --check
+    // do npm run verificar falharia) -- nao sao codigo autorado.
+    "modules/*/assets/**",
     "exports/**",
     "dados/**",
     "build/**",

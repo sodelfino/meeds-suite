@@ -27,7 +27,10 @@
 (function (raiz) {
   "use strict";
 
-  var MARCA_INSTANCIA = "__ASSISTENTE_MEEDS_ATIVO__";
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
+  const MARCA_INSTANCIA = "__ASSISTENTE_MEEDS_ATIVO__";
 
   /* ------------------------------------------------------------------
    * BOAS-VINDAS: UMA VEZ SO, PARA SEMPRE
@@ -51,15 +54,15 @@
    * _v2 aqui. Sem isso, ninguem ve de novo — que e o comportamento
    * desejado no dia a dia.
    * ------------------------------------------------------------------ */
-  var CHAVE_BOAS_VINDAS = "meeds_assistente_boas_vindas_v1";
-  var VALOR_CONCLUIDO = "concluido";
-  var CHAVE_ANTIGA_BOAS_VINDAS = "meeds-suite:_core:boasVindas";
+  const CHAVE_BOAS_VINDAS = "meeds_assistente_boas_vindas_v1";
+  const VALOR_CONCLUIDO = "concluido";
+  const CHAVE_ANTIGA_BOAS_VINDAS = "meeds-suite:_core:boasVindas";
 
   /* Caminho duravel unico — ver core/storage.js. A chave local aqui NAO
    * tem o prefixo "meeds-suite:" (e anterior a ele) e por isso escapa da
    * varredura de migracao do boot; quem a traz para o duravel e a
    * promocao na leitura, dentro do proprio storage. */
-  var portaBoasVindas = null;
+  let portaBoasVindas = null;
   function porta() {
     if (!portaBoasVindas) {
       portaBoasVindas = raiz.MeedsSuiteStorage.duravel(CHAVE_BOAS_VINDAS, CHAVE_BOAS_VINDAS);
@@ -91,7 +94,7 @@
   function reservarInstancia(versao) {
     try {
       if (raiz[MARCA_INSTANCIA]) {
-        console.warn(
+        LOG.warn(
           "[Assistente Meeds] ja existe uma instancia rodando nesta pagina (versao " +
             raiz[MARCA_INSTANCIA] +
             "). Esta execucao vai parar aqui para nao duplicar os botoes."
@@ -110,8 +113,8 @@
    * perdeu numa navegacao da SPA), removemos o orfao antes de montar. */
   function limparDockOrfao(idHost) {
     try {
-      var hosts = document.querySelectorAll("#" + idHost);
-      for (var i = 0; i < hosts.length - 1; i++) {
+      const hosts = document.querySelectorAll("#" + idHost);
+      for (let i = 0; i < hosts.length - 1; i++) {
         hosts[i].parentNode.removeChild(hosts[i]);
       }
       return hosts.length > 1;
@@ -125,7 +128,7 @@
    * Cada um deixa uma marca propria no DOM. Sao os seletores reais dos
    * cinco repositorios originais — se mudarem la, atualize aqui.
    * ------------------------------------------------------------------ */
-  var ANTIGOS = [
+  const ANTIGOS = [
     { seletor: "#af-fab", nome: "Meeds - Alarme de Fila (Plantao Noturno)" },
     { seletor: "#apac-host-root", nome: "Gerador de APAC Itaúna — Meeds + Assinatura" },
     { seletor: "#lme-host-root", nome: "Gerador de Laudo — Sete Lagoas (Meeds)" },
@@ -134,7 +137,7 @@
   ];
 
   function detectarAntigos() {
-    var achados = [];
+    const achados = [];
     ANTIGOS.forEach(function (a) {
       try {
         if (document.querySelector(a.seletor)) achados.push(a.nome);
@@ -148,7 +151,7 @@
   /* ------------------------------------------------------------------
    * 3) AVISOS NA TELA
    * ------------------------------------------------------------------ */
-  var CSS = [
+  const CSS = [
     ".msd-aviso { width:100%; max-width:520px; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; }",
     ".msd-aviso header { padding:16px 18px; color:#fff; display:flex; justify-content:space-between; align-items:center; gap:12px; }",
     ".msd-aviso header h2 { margin:0; font-size:15px; font-weight:700; }",
@@ -175,7 +178,7 @@
   }
 
   function avisarScriptsAntigos(dock, nomes, storage) {
-    var overlay = dock.criarOverlay({
+    const overlay = dock.criarOverlay({
       estilo: CSS,
       html:
         '<div class="msd-aviso msd-alerta" role="dialog" aria-modal="true">' +
@@ -223,7 +226,7 @@
      * botoes, clique fora, fechar a aba) ja conta como visto. */
     marcarBoasVindasConcluidas();
 
-    var overlay = dock.criarOverlay({
+    const overlay = dock.criarOverlay({
       estilo: CSS,
       /* Clicar fora fecha, como em qualquer aviso — e agora isso e
        * seguro, porque a marca ja foi gravada. */
@@ -266,7 +269,7 @@
    * esses casos e o medico ficaria com botao duplicado sem saber por que.
    * Tentamos algumas vezes, com intervalo crescente, e paramos assim que
    * encontrarmos algo (ou depois da ultima tentativa). */
-  var TENTATIVAS_MS = [4000, 10000, 20000, 45000];
+  const TENTATIVAS_MS = [4000, 10000, 20000, 45000];
 
   function verificar(dock, storage) {
     if (!boasVindasConcluidas()) {
@@ -277,12 +280,12 @@
 
     if (storage.ler("avisoScriptsAntigos", null) === "silenciado") return;
 
-    var jaAvisou = false;
+    let jaAvisou = false;
     TENTATIVAS_MS.forEach(function (atraso) {
       setTimeout(function () {
         if (jaAvisou) return;
         if (storage.ler("avisoScriptsAntigos", null) === "silenciado") return;
-        var achados = detectarAntigos();
+        const achados = detectarAntigos();
         if (achados.length) {
           jaAvisou = true;
           avisarScriptsAntigos(dock, achados, storage);
@@ -302,12 +305,12 @@
    * O teste: mandar a PAGINA definir uma marca. Se ela aparecer aqui, o
    * "aqui" e a propria pagina. Se nao aparecer — porque a marca ficou no
    * outro escopo, ou porque a CSP recusou a tag — nao e. */
-  var escopoLembrado = null;
+  let escopoLembrado = null;
   function escopoDeExecucao() {
     if (escopoLembrado) return escopoLembrado;
-    var marca = "__meedsEscopo" + String(MARCA_INSTANCIA).replace(/\W/g, "");
+    const marca = "__meedsEscopo" + String(MARCA_INSTANCIA).replace(/\W/g, "");
     try {
-      var tag = document.createElement("script");
+      const tag = document.createElement("script");
       tag.textContent = "window['" + marca + "']=1;";
       (document.documentElement || document.head).appendChild(tag);
       tag.remove();

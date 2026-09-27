@@ -30,16 +30,19 @@
 (function (raiz) {
   "use strict";
 
-  var CHAVE = "modelos";
-  var LIMITE_POR_MODULO = 20;
-  var LIMITE_NOME = 40;
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
+  const CHAVE = "modelos";
+  const LIMITE_POR_MODULO = 20;
+  const LIMITE_NOME = 40;
 
   function porta() {
     return raiz.MeedsSuiteStorage.duravel(CHAVE, "meeds-suite:" + CHAVE);
   }
 
   function tudo() {
-    var dados = porta().ler({});
+    const dados = porta().ler({});
     return dados && typeof dados === "object" && !Array.isArray(dados) ? dados : {};
   }
 
@@ -55,18 +58,18 @@
    * dia alguem acrescentar "cmd-pac-cpf" aquela lista por engano, ele
    * ainda assim nao entra no modelo.
    * ------------------------------------------------------------------ */
-  var CARA_DE_PACIENTE = /(^|-)(pac|paciente|cpf|nasc|nascimento|mae|sexo|nome-completo)(-|$)/i;
+  const CARA_DE_PACIENTE = /(^|-)(pac|paciente|cpf|nasc|nascimento|mae|sexo|nome-completo)(-|$)/i;
 
   function apenasClinico(bruto, permitidos) {
-    var saida = {};
+    const saida = {};
     if (!bruto || typeof bruto !== "object") return saida;
-    var chaves = Array.isArray(permitidos) && permitidos.length ? permitidos : Object.keys(bruto);
+    const chaves = Array.isArray(permitidos) && permitidos.length ? permitidos : Object.keys(bruto);
     chaves.forEach(function (chave) {
       if (CARA_DE_PACIENTE.test(chave)) {
-        console.warn("[Assistente Meeds] campo recusado no modelo por parecer dado de paciente:", chave);
+        LOG.warn("[Assistente Meeds] campo recusado no modelo por parecer dado de paciente:", chave);
         return;
       }
-      var valor = bruto[chave];
+      const valor = bruto[chave];
       if (valor === undefined || valor === null) return;
       if (typeof valor !== "string" && typeof valor !== "number") return;
       saida[chave] = String(valor);
@@ -78,23 +81,23 @@
    * API
    * ------------------------------------------------------------------ */
   function listar(idModulo) {
-    var lista = tudo()[idModulo];
+    const lista = tudo()[idModulo];
     return Array.isArray(lista) ? lista : [];
   }
 
   function padraoDe(idModulo) {
-    var lista = listar(idModulo);
-    for (var i = 0; i < lista.length; i++) {
+    const lista = listar(idModulo);
+    for (let i = 0; i < lista.length; i++) {
       if (lista[i] && lista[i].padrao) return lista[i];
     }
     return null;
   }
 
   function salvar(idModulo, nome, clinico, permitidos) {
-    var limpo = String(nome || "").trim().slice(0, LIMITE_NOME);
+    const limpo = String(nome || "").trim().slice(0, LIMITE_NOME);
     if (!limpo) return { ok: false, erro: "Dê um nome ao modelo para você reconhecê-lo depois." };
 
-    var campos = apenasClinico(clinico, permitidos);
+    const campos = apenasClinico(clinico, permitidos);
     if (!Object.keys(campos).length) {
       return {
         ok: false,
@@ -102,18 +105,18 @@
       };
     }
 
-    var dados = tudo();
-    var lista = Array.isArray(dados[idModulo]) ? dados[idModulo] : [];
+    const dados = tudo();
+    const lista = Array.isArray(dados[idModulo]) ? dados[idModulo] : [];
 
     /* Mesmo nome sobrescreve, em vez de criar um segundo igual: o medico
      * que salva "Holter rotina" de novo esta corrigindo o dele, nao
      * pedindo dois. */
-    var existente = -1;
-    for (var i = 0; i < lista.length; i++) {
+    let existente = -1;
+    for (let i = 0; i < lista.length; i++) {
       if (lista[i] && lista[i].nome === limpo) { existente = i; break; }
     }
 
-    var ficha = {
+    const ficha = {
       nome: limpo,
       clinico: campos,
       padrao: existente >= 0 ? !!lista[existente].padrao : false,
@@ -135,9 +138,9 @@
   }
 
   function remover(idModulo, nome) {
-    var dados = tudo();
-    var lista = Array.isArray(dados[idModulo]) ? dados[idModulo] : [];
-    var antes = lista.length;
+    const dados = tudo();
+    const lista = Array.isArray(dados[idModulo]) ? dados[idModulo] : [];
+    const antes = lista.length;
     dados[idModulo] = lista.filter(function (m) { return m && m.nome !== nome; });
     if (dados[idModulo].length === antes) return false;
     gravarTudo(dados);
@@ -148,12 +151,12 @@
    * padroes seria o Assistente escolhendo qual aplicar, e essa escolha e
    * do medico. */
   function definirPadrao(idModulo, nome) {
-    var dados = tudo();
-    var lista = Array.isArray(dados[idModulo]) ? dados[idModulo] : [];
-    var achou = false;
+    const dados = tudo();
+    const lista = Array.isArray(dados[idModulo]) ? dados[idModulo] : [];
+    let achou = false;
     lista.forEach(function (m) {
       if (!m) return;
-      var eu = m.nome === nome;
+      const eu = m.nome === nome;
       if (eu) achou = true;
       m.padrao = eu ? !m.padrao : false;
     });
@@ -164,8 +167,8 @@
   }
 
   function obter(idModulo, nome) {
-    var lista = listar(idModulo);
-    for (var i = 0; i < lista.length; i++) {
+    const lista = listar(idModulo);
+    for (let i = 0; i < lista.length; i++) {
       if (lista[i] && lista[i].nome === nome) return lista[i];
     }
     return null;
@@ -174,9 +177,9 @@
   /* Migracao de id, para o caso de um modulo ser renomeado (ja aconteceu
    * com apac-itauna -> apac). */
   function migrarId(idAntigo, idNovo) {
-    var dados = tudo();
+    const dados = tudo();
     if (!Array.isArray(dados[idAntigo]) || !dados[idAntigo].length) return 0;
-    var quantos = dados[idAntigo].length;
+    const quantos = dados[idAntigo].length;
     if (!Array.isArray(dados[idNovo])) dados[idNovo] = [];
     dados[idNovo] = dados[idNovo].concat(dados[idAntigo]);
     delete dados[idAntigo];
@@ -184,7 +187,7 @@
     return quantos;
   }
 
-  var CSS = [
+  const CSS = [
     ".msmod { background:#f6f9f8; border:1px solid #dfe9e7; border-radius:9px; padding:10px 12px; margin-bottom:12px; }",
     ".msmod-rot { font-size:10.5px; font-weight:700; color:#5b6c68; text-transform:uppercase; letter-spacing:.04em; margin-bottom:7px; }",
     ".msmod-linha { display:flex; gap:7px; align-items:center; flex-wrap:wrap; }",

@@ -56,7 +56,7 @@
 (function (raiz) {
   "use strict";
 
-  var PREFIXO = "meeds-suite:";
+  const PREFIXO = "meeds-suite:";
 
   function chaveDe(idModulo, nome) {
     return PREFIXO + idModulo + ":" + nome;
@@ -70,7 +70,7 @@
 
   function lerLocal(chave, padrao) {
     try {
-      var cru = localStorage.getItem(chave);
+      const cru = localStorage.getItem(chave);
       if (cru === null) return padrao;
       return JSON.parse(cru);
     } catch (e) {
@@ -103,7 +103,7 @@
    * pode legitimamente ter sido gravada como undefined, e precisamos
    * distinguir "nunca gravado" de "gravado vazio" — e essa distincao
    * que decide se a migracao roda. */
-  var VAZIO = { __meedsVazio: true };
+  const VAZIO = { __meedsVazio: true };
 
   /* Comparar por identidade nao basta. GM_getValue devolve o proprio
    * objeto padrao quando a chave nao existe (identidade bate), mas um
@@ -141,10 +141,10 @@
    * das duas pontas — trocariamos um incomodo por uma perda. */
   function migrarSeNecessario(chave) {
     if (!temGM()) return VAZIO;
-    var duravel = lerDuravel(chave);
+    const duravel = lerDuravel(chave);
     if (!ehVazio(duravel)) return duravel;
 
-    var antigo = lerLocal(chave, VAZIO);
+    const antigo = lerLocal(chave, VAZIO);
     if (ehVazio(antigo)) return VAZIO;
 
     if (gravarDuravel(chave, antigo)) removerLocal(chave);
@@ -156,17 +156,17 @@
    * So entra em cena quando temGM() e falso. O cache em memoria e a
    * fonte que `ler()` consulta; o IndexedDB e o disco por tras dele. */
 
-  var BANCO = "meeds-suite";
-  var DEPOSITO = "preferencias";
-  var cache = null; /* null = ainda nao carregado */
-  var bancoAberto = null;
+  const BANCO = "meeds-suite";
+  const DEPOSITO = "preferencias";
+  let cache = null; /* null = ainda nao carregado */
+  let bancoAberto = null;
 
   function abrirBanco() {
     if (bancoAberto) return bancoAberto;
     bancoAberto = new Promise(function (resolver) {
-      var idb = typeof indexedDB !== "undefined" ? indexedDB : null;
+      const idb = typeof indexedDB !== "undefined" ? indexedDB : null;
       if (!idb) return resolver(null);
-      var req;
+      let req;
       try {
         req = idb.open(BANCO, 1);
       } catch (e) {
@@ -200,7 +200,7 @@
     abrirBanco().then(function (db) {
       if (!db) return;
       try {
-        var tx = db.transaction(DEPOSITO, "readwrite");
+        const tx = db.transaction(DEPOSITO, "readwrite");
         tx.objectStore(DEPOSITO).put(valor, chave);
       } catch (e) {
         /* preferencia nao persistiu; o cache em memoria segue valendo
@@ -230,17 +230,17 @@
       return Promise.resolve();
     }
     return abrirBanco().then(function (db) {
-      var mapa = {};
+      const mapa = {};
       return new Promise(function (resolver) {
         if (!db) return resolver(mapa);
-        var req;
+        let req;
         try {
           req = db.transaction(DEPOSITO, "readonly").objectStore(DEPOSITO).openCursor();
         } catch (e) {
           return resolver(mapa);
         }
         req.onsuccess = function () {
-          var c = req.result;
+          const c = req.result;
           if (!c) return resolver(mapa);
           mapa[c.key] = c.value;
           c["continue"]();
@@ -259,17 +259,17 @@
    * Copia para o banco o que ainda nao esta la — e, como na migracao do
    * Tampermonkey, so limpa a origem depois de a copia existir. */
   function migrarLocalParaBanco() {
-    var pendentes = [];
+    const pendentes = [];
     try {
-      for (var i = 0; i < localStorage.length; i++) {
-        var k = localStorage.key(i);
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
         if (k && k.indexOf(PREFIXO) === 0 && !Object.prototype.hasOwnProperty.call(cache, k)) pendentes.push(k);
       }
     } catch (e) {
       return;
     }
     pendentes.forEach(function (k) {
-      var v = lerLocal(k, VAZIO);
+      const v = lerLocal(k, VAZIO);
       if (ehVazio(v)) return;
       cache[k] = v;
       gravarNoBanco(k, v);
@@ -280,7 +280,7 @@
   /* ---- API interna usada pelos storages por modulo ---- */
 
   function lerBruto(chave, padrao) {
-    var valor = migrarSeNecessario(chave);
+    const valor = migrarSeNecessario(chave);
     if (!ehVazio(valor)) return valor;
     /* Safari/iPad: o cache foi preenchido por carregar() no boot. */
     if (cache && Object.prototype.hasOwnProperty.call(cache, chave)) return cache[chave];
@@ -350,9 +350,9 @@
        * do que estiver salvo — mesmo comportamento do carregarConfig()
        * original do alarme de fila. */
       lerConfig: function (configPadrao) {
-        var salvo = lerBruto(chaveDe(idModulo, "config"), {});
-        var saida = {};
-        var k;
+        const salvo = lerBruto(chaveDe(idModulo, "config"), {});
+        const saida = {};
+        let k;
         for (k in configPadrao) {
           if (Object.prototype.hasOwnProperty.call(configPadrao, k)) saida[k] = configPadrao[k];
         }
@@ -395,12 +395,12 @@
     return {
       ler: function (padrao) {
         if (temGM()) {
-          var v = lerDuravel(chaveGM);
+          const v = lerDuravel(chaveGM);
           if (!ehVazio(v)) return v;
         }
         if (cache && Object.prototype.hasOwnProperty.call(cache, chaveLocal)) return cache[chaveLocal];
 
-        var antigo = lerLocal(chaveLocal, VAZIO);
+        const antigo = lerLocal(chaveLocal, VAZIO);
         if (ehVazio(antigo)) return padrao;
 
         /* Achou so no localStorage: promove para o duravel AGORA. Sem

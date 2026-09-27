@@ -36,16 +36,19 @@
 (function (raiz) {
   "use strict";
 
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
   /* NUNCA TROQUE ESTAS CHAVES. Ver decisao 2 acima. */
-  var CHAVE = "medicos";
-  var CHAVE_ESTABELECIMENTOS = "estabelecimentos";
+  const CHAVE = "medicos";
+  const CHAVE_ESTABELECIMENTOS = "estabelecimentos";
 
   /* Chaves de formatos anteriores, lidas uma vez e apagadas depois de
    * migradas. Nao remova daqui sem ter certeza de que nenhum medico
    * ficou para tras numa versao antiga. */
-  var CHAVES_ANTIGAS = ["apac_medicos_v1"];
+  const CHAVES_ANTIGAS = ["apac_medicos_v1"];
 
-  var VERSAO_ESTRUTURA = 1;
+  const VERSAO_ESTRUTURA = 1;
 
   /* Uma linha por chave, e o resto e problema de core/storage.js:
    * ele decide entre GM (Tampermonkey) e IndexedDB (Safari/iPad) e
@@ -125,9 +128,9 @@
   }
 
   function listar() {
-    var guardado = lerBruto(CHAVE, null);
+    const guardado = lerBruto(CHAVE, null);
     if (!guardado) return [];
-    var lista = Array.isArray(guardado) ? guardado : guardado.medicos;
+    const lista = Array.isArray(guardado) ? guardado : guardado.medicos;
     if (!Array.isArray(lista)) return [];
     return lista.map(normalizarFicha).filter(function (f) {
       return f && f.nome;
@@ -139,12 +142,12 @@
   }
 
   function adicionar(ficha) {
-    var nova = normalizarFicha(ficha);
+    const nova = normalizarFicha(ficha);
     if (!nova || !nova.nome) return { ok: false, erro: "Informe pelo menos o nome do médico." };
-    var lista = listar();
-    var id = chaveDeIdentidade(nova);
-    var existente = -1;
-    for (var i = 0; i < lista.length; i++) {
+    const lista = listar();
+    const id = chaveDeIdentidade(nova);
+    let existente = -1;
+    for (let i = 0; i < lista.length; i++) {
       if (chaveDeIdentidade(lista[i]) === id) existente = i;
     }
     if (existente >= 0) lista[existente] = mesclarFichas(nova, lista[existente]);
@@ -154,7 +157,7 @@
   }
 
   function remover(indice) {
-    var lista = listar();
+    const lista = listar();
     if (indice < 0 || indice >= lista.length) return false;
     lista.splice(indice, 1);
     gravar(lista);
@@ -170,12 +173,12 @@
    * formato novo e apaga o antigo. Idempotente: rodar de novo nao
    * duplica nada, porque adicionar() mescla por nome. */
   function migrarSeNecessario() {
-    var migrados = 0;
+    let migrados = 0;
     CHAVES_ANTIGAS.forEach(function (chaveAntiga) {
-      var antigo = lerBruto(chaveAntiga, undefined);
+      const antigo = lerBruto(chaveAntiga, undefined);
       if (!Array.isArray(antigo) || antigo.length === 0) return;
       antigo.forEach(function (item) {
-        var f = normalizarFicha(item);
+        const f = normalizarFicha(item);
         if (f && f.nome) {
           adicionar(f);
           migrados++;
@@ -184,7 +187,7 @@
       apagarBruto(chaveAntiga);
     });
     if (migrados > 0) {
-      console.debug("[Assistente Meeds] cadastro migrado do formato antigo:", migrados, "medico(s).");
+      LOG.debug("[Assistente Meeds] cadastro migrado do formato antigo:", migrados, "medico(s).");
     }
     return migrados;
   }
@@ -214,20 +217,20 @@
   }
 
   function importar(textoJson) {
-    var dados;
+    let dados;
     try {
       dados = JSON.parse(textoJson);
     } catch (e) {
       return { ok: false, erro: "O arquivo não é um backup válido: não consegui ler o conteúdo dele." };
     }
-    var lista = Array.isArray(dados) ? dados : dados && dados.medicos;
+    const lista = Array.isArray(dados) ? dados : dados && dados.medicos;
     if (!Array.isArray(lista)) {
       return {
         ok: false,
         erro: 'O arquivo não parece um backup do Assistente Meeds: não encontrei a lista "medicos" dentro dele.',
       };
     }
-    var validos = lista.map(normalizarFicha).filter(function (f) {
+    const validos = lista.map(normalizarFicha).filter(function (f) {
       return f && f.nome;
     });
     if (validos.length === 0) {
@@ -239,7 +242,7 @@
 
     /* Unidades sao opcionais: um backup gerado antes desta versao nao
      * tem a lista, e continua valendo. */
-    var unidades = 0;
+    let unidades = 0;
     if (Array.isArray(dados.estabelecimentos)) {
       dados.estabelecimentos.forEach(function (e) {
         if (e && e.nome) { adicionarEstabelecimento(e); unidades++; }
@@ -268,17 +271,17 @@
    *   aoPedirCadastro(),          // abrir o painel de cadastro
    * }
    * ------------------------------------------------------------------ */
-  var VALOR_CADASTRAR = "__cadastrar";
+  const VALOR_CADASTRAR = "__cadastrar";
 
   function montarSelect(elemento, opcoes) {
     opcoes = opcoes || {};
 
     function atualizar() {
-      var lista = listar();
-      var anterior = elemento.value;
+      const lista = listar();
+      const anterior = elemento.value;
       elemento.innerHTML = "";
 
-      var ph = document.createElement("option");
+      const ph = document.createElement("option");
       ph.value = "";
       ph.textContent = lista.length ? "Selecione o médico…" : "Nenhum médico cadastrado ainda";
       ph.disabled = true;
@@ -286,13 +289,13 @@
       elemento.appendChild(ph);
 
       lista.forEach(function (ficha, i) {
-        var op = document.createElement("option");
+        const op = document.createElement("option");
         op.value = String(i);
         op.textContent = ficha.nome;
         elemento.appendChild(op);
       });
 
-      var cadastrar = document.createElement("option");
+      const cadastrar = document.createElement("option");
       cadastrar.value = VALOR_CADASTRAR;
       cadastrar.textContent = lista.length ? "＋ Cadastrar outro médico…" : "＋ Cadastrar médico…";
       elemento.appendChild(cadastrar);
@@ -313,7 +316,7 @@
         if (typeof opcoes.aoEscolher === "function") opcoes.aoEscolher(null);
         return;
       }
-      var ficha = listar()[Number(elemento.value)];
+      const ficha = listar()[Number(elemento.value)];
       if (typeof opcoes.aoEscolher === "function") opcoes.aoEscolher(ficha || null);
     });
 
@@ -365,7 +368,7 @@
   /* Estabelecimentos de um municipio. Sem municipio informado, devolve
    * todos — e o caso de quem cadastrou antes desta versao. */
   function listarEstabelecimentosDe(municipio) {
-    var todos = listarEstabelecimentos();
+    const todos = listarEstabelecimentos();
     if (!municipio) return todos;
     return todos.filter(function (e) {
       return !e.municipio || mesmoMunicipio(e.municipio, municipio);
@@ -373,8 +376,8 @@
   }
 
   function listarEstabelecimentos() {
-    var guardado = lerBruto(CHAVE_ESTABELECIMENTOS, null);
-    var lista = guardado && (Array.isArray(guardado) ? guardado : guardado.estabelecimentos);
+    const guardado = lerBruto(CHAVE_ESTABELECIMENTOS, null);
+    const lista = guardado && (Array.isArray(guardado) ? guardado : guardado.estabelecimentos);
     if (!Array.isArray(lista)) return [];
     return lista.map(normalizarEstabelecimento).filter(function (e) {
       return e && e.nome;
@@ -386,12 +389,12 @@
   }
 
   function adicionarEstabelecimento(item) {
-    var novo = normalizarEstabelecimento(item);
+    const novo = normalizarEstabelecimento(item);
     if (!novo || !novo.nome) return { ok: false, erro: "Informe o nome do estabelecimento." };
-    var lista = listarEstabelecimentos();
-    var id = novo.nome.toLowerCase();
-    var existente = -1;
-    for (var i = 0; i < lista.length; i++) {
+    const lista = listarEstabelecimentos();
+    const id = novo.nome.toLowerCase();
+    let existente = -1;
+    for (let i = 0; i < lista.length; i++) {
       if (lista[i].nome.toLowerCase() === id) existente = i;
     }
     if (existente >= 0) {
@@ -407,7 +410,7 @@
   }
 
   function removerEstabelecimento(indice) {
-    var lista = listarEstabelecimentos();
+    const lista = listarEstabelecimentos();
     if (indice < 0 || indice >= lista.length) return false;
     lista.splice(indice, 1);
     gravarEstabelecimentos(lista);
@@ -423,15 +426,15 @@
      * primeiro ja tinha sido semeado. E ela existe separada de "a lista
      * esta vazia" de proposito: quem apagou a unidade semeada nao quer
      * ela de volta na proxima recarga. */
-    var marca = "estabelecimentosSemeados" + (municipio ? ":" + municipio : "");
+    const marca = "estabelecimentosSemeados" + (municipio ? ":" + municipio : "");
     if (lerBruto(marca, false)) return 0;
-    var n = 0;
+    let n = 0;
     (sementes || []).forEach(function (s) {
       if (!s || !s.nome) return;
       /* Carimbar o municipio aqui NAO e detalhe: sem ele a semente fica
        * "sem municipio" e a regra de compatibilidade a mostra em TODAS as
        * cidades — ou seja, o CNES de Itauna apareceria na lista de Betim. */
-      var ficha = {};
+      const ficha = {};
       Object.keys(s).forEach(function (k) { ficha[k] = s[k]; });
       if (municipio && !ficha.municipio) ficha.municipio = municipio;
       adicionarEstabelecimento(ficha);
@@ -447,15 +450,15 @@
    * CNES e unico por estabelecimento: e conferencia, nao adivinhacao.
    * Quem tem CNES fora da tabela fica exatamente como estava. */
   function preencherMunicipioPeloCnes(mapaCnesParaMunicipio) {
-    var mapa = mapaCnesParaMunicipio || {};
-    var lista = listarEstabelecimentos();
-    var mudou = 0;
-    var nova = lista.map(function (e) {
+    const mapa = mapaCnesParaMunicipio || {};
+    const lista = listarEstabelecimentos();
+    let mudou = 0;
+    const nova = lista.map(function (e) {
       if (!e || e.municipio) return e;
-      var cidade = mapa[String(e.cnes || "").replace(/\D/g, "")];
+      const cidade = mapa[String(e.cnes || "").replace(/\D/g, "")];
       if (!cidade) return e;
       mudou++;
-      var ficha = {};
+      const ficha = {};
       Object.keys(e).forEach(function (k) { ficha[k] = e[k]; });
       ficha.municipio = cidade;
       return ficha;

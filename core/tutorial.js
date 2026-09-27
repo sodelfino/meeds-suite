@@ -82,7 +82,7 @@
 (function (raiz) {
   "use strict";
 
-  var CSS = [
+  const CSS = [
     ".tut-modal { background:#fff; border-radius:6px; width:100%; max-width:440px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; }",
     ".tut-head { background:#0f6b64; color:#fff; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
     ".tut-head h2 { margin:0; font-size:14px; font-weight:700; }",
@@ -120,19 +120,19 @@
   ].join("\n");
 
   /* idModulo -> { titulo, passos: [{ titulo, texto, icone?, alvo?, evento? }] } */
-  var registro = {};
+  const registro = {};
 
-  var overlay = null;
-  var refs = {};
-  var idAtual = null;
-  var passoAtual = 0;
-  var dockAtual = null;
+  let overlay = null;
+  const refs = {};
+  let idAtual = null;
+  let passoAtual = 0;
+  let dockAtual = null;
 
   /* --- estado do passo GUIADO em curso (D65) --- */
-  var avisoGuiado = null;   // handle de d.dock.criarAviso()
-  var alvoDestacado = null; // elemento com .tut-alvo-destaque aplicado
-  var listenerGuiado = null; // { el, tipo, fn } — para remover ao sair
-  var vigiaAlvo = null;      // setInterval que detecta o alvo sumindo
+  let avisoGuiado = null;   // handle de d.dock.criarAviso()
+  let alvoDestacado = null; // elemento com .tut-alvo-destaque aplicado
+  let listenerGuiado = null; // { el, tipo, fn } — para remover ao sair
+  let vigiaAlvo = null;      // setInterval que detecta o alvo sumindo
 
   function storage() {
     return raiz.MeedsSuiteStorage ? raiz.MeedsSuiteStorage.storageDoNucleo() : null;
@@ -157,12 +157,12 @@
   }
 
   function jaViu(idModulo) {
-    var s = storage();
+    const s = storage();
     return !!(s && s.ler(chaveVisto(idModulo), false));
   }
 
   function marcarVisto(idModulo) {
-    var s = storage();
+    const s = storage();
     if (s) s.gravar(chaveVisto(idModulo), true);
   }
 
@@ -252,8 +252,8 @@
 
   function pintarPasso() {
     limparPassoGuiado();
-    var spec = registro[idAtual];
-    var passo = spec.passos[passoAtual];
+    const spec = registro[idAtual];
+    const passo = spec.passos[passoAtual];
 
     if (passo.alvo) {
       if (overlay) overlay.fechar();
@@ -265,7 +265,7 @@
   }
 
   function pintarPassoCarrossel(spec, passo) {
-    var total = spec.passos.length;
+    const total = spec.passos.length;
     overlay.abrir();
 
     refs.tituloModulo.textContent = "🎓 " + (spec.titulo || "Tutorial");
@@ -290,8 +290,8 @@
       avancar();
       return;
     }
-    var total = spec.passos.length;
-    var elAlvo = elementoVisivel(passo.alvo()) ? passo.alvo() : null;
+    const total = spec.passos.length;
+    const elAlvo = elementoVisivel(passo.alvo()) ? passo.alvo() : null;
 
     avisoGuiado = dockAtual.criarAviso({
       titulo: "🎓 " + (passo.titulo || "Sua vez") + " · " + (passoAtual + 1) + "/" + total,
@@ -304,8 +304,8 @@
     elAlvo.classList.add("tut-alvo-destaque");
     alvoDestacado = elAlvo;
 
-    var tipo = passo.evento || "click";
-    var fn = function () {
+    const tipo = passo.evento || "click";
+    const fn = function () {
       avancarDoGuiado();
     };
     elAlvo.addEventListener(tipo, fn, { once: true });
@@ -325,7 +325,7 @@
   }
 
   function avancar() {
-    var spec = registro[idAtual];
+    const spec = registro[idAtual];
     if (passoAtual < spec.passos.length - 1) {
       passoAtual++;
       pintarPasso();
@@ -342,7 +342,7 @@
    * ter visto é sempre permitido, não é ação de "primeira vez").
    * ------------------------------------------------------------------ */
   function iniciar(idModulo, opcoes) {
-    var spec = registro[idModulo];
+    const spec = registro[idModulo];
     if (!spec || !opcoes || !opcoes.dock) return false;
     montarOverlay(opcoes.dock);
     dockAtual = opcoes.dock;

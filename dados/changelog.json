@@ -2,6 +2,18 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.49.1",
+      "data": "2026-09-27",
+      "novidades": [],
+      "melhorias": [
+        "Manual de treinamento atualizado: telas novas, e a APAC agora aparece como função do próprio Meeds.",
+        "Melhorias internas de qualidade do código, sem mudança no que você vê ou faz."
+      ],
+      "correcoes": [
+        "Laudo de Conceição do Mato Dentro: saiu da lista de CID um código que não existe na tabela oficial (I48.9). O I48 — Flutter e fibrilação atrial — continua lá."
+      ]
+    },
+    {
       "versao": "2.49.0",
       "data": "2026-09-26",
       "novidades": [],

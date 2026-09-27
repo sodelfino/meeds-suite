@@ -26,11 +26,11 @@
 (function (raiz) {
   "use strict";
 
-  var COMUM =
+  const COMUM =
     'xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" ' +
     'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
 
-  var ICONES = {
+  const ICONES = {
     /* APAC — documento com um visto: é uma autorização. */
     apac:
       "<svg " + COMUM + ">" +

@@ -20,30 +20,30 @@
 (function (raiz) {
   "use strict";
 
-  var d = null;
-  var timers = [];
-  var municipioPorAtendimento = {}; // id do atendimento -> nome do municipio (so memoria)
-  var dispensados = {};             // id do atendimento -> true se o medico fechou no X
-  var aberto = null;                // { id, municipio, chave, aviso }
-  var vistoDesde = {};              // id do atendimento -> quando a pagina dele apareceu
+  let d = null;
+  let timers = [];
+  let municipioPorAtendimento = {}; // id do atendimento -> nome do municipio (so memoria)
+  let dispensados = {};             // id do atendimento -> true se o medico fechou no X
+  let aberto = null;                // { id, municipio, chave, aviso }
+  let vistoDesde = {};              // id do atendimento -> quando a pagina dele apareceu
 
   /* A leitura pela tela so vale depois deste tempo SEM resposta da rede.
    * A chamada do atendimento costuma chegar em menos de 1 s; esperar
    * evita mostrar por um instante o cartao de uma cidade que a rede,
    * logo em seguida, desmentiria. */
-  var ESPERA_REDE_MS = 3000;
+  const ESPERA_REDE_MS = 3000;
 
-  var RX_PAGINA_ATENDIMENTO = /^\/atendimento\/([0-9a-fA-F-]{36})(?:\/|$)/;
-  var RX_API_ATENDIMENTO = /\/api\/v1\/atendimento\/([0-9a-fA-F-]{36})(?:[?#].*)?$/i;
+  const RX_PAGINA_ATENDIMENTO = /^\/atendimento\/([0-9a-fA-F-]{36})(?:\/|$)/;
+  const RX_API_ATENDIMENTO = /\/api\/v1\/atendimento\/([0-9a-fA-F-]{36})(?:[?#].*)?$/i;
 
   function regras() {
-    var dados = raiz.MEEDS_AVISOS_MUNICIPIO;
+    const dados = raiz.MEEDS_AVISOS_MUNICIPIO;
     return (dados && dados.municipios) || {};
   }
 
   function atendimentoDaPagina() {
     try {
-      var m = RX_PAGINA_ATENDIMENTO.exec((raiz.location && raiz.location.pathname) || "");
+      const m = RX_PAGINA_ATENDIMENTO.exec((raiz.location && raiz.location.pathname) || "");
       return m ? m[1].toLowerCase() : null;
     } catch (e) {
       return null;
@@ -64,19 +64,19 @@
    * paciente vinculado a duas cidades nao tem como saber qual e a do
    * atendimento, e ai o certo e nao mostrar. */
   function vinculo(nomes) {
-    var Dom = raiz.MeedsSuiteDom;
-    var M = raiz.MeedsSuiteMunicipio;
+    const Dom = raiz.MeedsSuiteDom;
+    const M = raiz.MeedsSuiteMunicipio;
     if (!Dom || !M || typeof Dom.lerLinhasPorRotulo !== "function") return null;
-    var linhas = Dom.lerLinhasPorRotulo(["Vínculos", "Vínculo"]);
+    const linhas = Dom.lerLinhasPorRotulo(["Vínculos", "Vínculo"]);
     return linhas ? M.analisarVinculo(linhas, nomes) : null;
   }
 
   function municipioPeloVinculo(nomes) {
     if (!nomes.length) return null;
-    var v = vinculo(nomes);
+    const v = vinculo(nomes);
     if (!v || v.cidades.length !== 1) return null;
-    var Dom = raiz.MeedsSuiteDom;
-    var achados = nomes.filter(function (n) { return Dom.normalizarTexto(n) === v.cidades[0]; });
+    const Dom = raiz.MeedsSuiteDom;
+    const achados = nomes.filter(function (n) { return Dom.normalizarTexto(n) === v.cidades[0]; });
     return achados.length === 1 ? achados[0] : null;
   }
 
@@ -93,13 +93,13 @@
    * caixa): "UPA ... BARRA" nao casa com "UPA ... BARRA DE SAO JOAO".
    * Duas unidades com regra no mesmo vinculo: nao decide. */
   function unidadeDoVinculo(municipio, regraMun) {
-    var unidades = regraMun && regraMun.unidades;
+    const unidades = regraMun && regraMun.unidades;
     if (!unidades) return null;
-    var Dom = raiz.MeedsSuiteDom;
-    var v = vinculo(Object.keys(regras()));
+    const Dom = raiz.MeedsSuiteDom;
+    const v = vinculo(Object.keys(regras()));
     if (!v || v.cidades.length !== 1 || v.cidades[0] !== Dom.normalizarTexto(municipio)) return null;
 
-    var achadas = Object.keys(unidades).filter(function (k) {
+    const achadas = Object.keys(unidades).filter(function (k) {
       return (unidades[k].nomes || []).some(function (n) {
         return v.unidades.indexOf(Dom.normalizarTexto(n)) !== -1;
       });
@@ -108,7 +108,7 @@
   }
 
   function linhasDe(r) {
-    var corpo = [];
+    const corpo = [];
     (r.pode || []).forEach(function (item) {
       corpo.push("✅ " + item);
     });
@@ -126,11 +126,11 @@
   /* Regra do municipio (se houver) + regra da unidade (se houver), num
    * cartao so. O titulo e o da unidade quando ela existe. */
   function montarAviso(regraMun, unidade) {
-    var partes = [];
+    const partes = [];
     if (temConteudo(regraMun)) partes.push(regraMun);
     if (unidade && temConteudo(unidade.regra)) partes.push(unidade.regra);
     if (!partes.length) return null;
-    var corpo = [];
+    let corpo = [];
     partes.forEach(function (r, i) {
       if (i > 0) { corpo.push(""); corpo.push(r.titulo + ":"); }
       corpo = corpo.concat(linhasDe(r));
@@ -156,13 +156,13 @@
       aberto = null;
     }
 
-    var id = atendimentoDaPagina();
+    const id = atendimentoDaPagina();
     if (!id) return fechar();
     if (aberto && aberto.id !== id) fechar();
     if (dispensados[id]) return;
 
-    var tabela = regras();
-    var municipio;
+    const tabela = regras();
+    let municipio;
     if (Object.prototype.hasOwnProperty.call(municipioPorAtendimento, id)) {
       /* A rede respondeu por ESTE atendimento: ela decide, inclusive
        * quando diz "outro municipio". Nao cai para a leitura da tela. */
@@ -176,10 +176,10 @@
     }
     if (!municipio || !tabela[municipio]) return;
 
-    var unidade = unidadeDoVinculo(municipio, tabela[municipio]);
-    var spec = montarAviso(tabela[municipio], unidade);
+    const unidade = unidadeDoVinculo(municipio, tabela[municipio]);
+    const spec = montarAviso(tabela[municipio], unidade);
     if (!spec) return;
-    var chave = municipio + "|" + (unidade ? unidade.chave : "");
+    const chave = municipio + "|" + (unidade ? unidade.chave : "");
     if (aberto && aberto.chave === chave) return;
     /* A unidade apareceu (ou mudou) depois do cartao do municipio: troca
      * o cartao, sem contar como "dispensado pelo medico". */
@@ -214,10 +214,10 @@
 
     aoCargaRede: function (evt) {
       if (evt.status !== 200) return;
-      var m = RX_API_ATENDIMENTO.exec(evt.url || "");
+      const m = RX_API_ATENDIMENTO.exec(evt.url || "");
       if (!m || !raiz.MeedsSuiteMunicipio) return;
-      var json = evt.json();
-      var id = m[1].toLowerCase();
+      const json = evt.json();
+      const id = m[1].toLowerCase();
       /* ACHADO EM PRODUCAO (Jam de 25/09/2026, atendimento de Barbacena):
        * a resposta do Meeds novo nao trouxe a prefeitura nos caminhos que
        * conhecemos, e isso era gravado como "a rede decidiu: nenhuma
@@ -226,7 +226,7 @@
        * nao decide nada e a tela responde. So quando ela traz uma cidade
        * (listada ou nao) e que a decisao e dela. */
       if (!raiz.MeedsSuiteMunicipio.cidadesDoAtendimento(json).length) return;
-      var municipio = raiz.MeedsSuiteMunicipio.detectar(json, Object.keys(regras()));
+      const municipio = raiz.MeedsSuiteMunicipio.detectar(json, Object.keys(regras()));
       municipioPorAtendimento[id] = municipio || null;
       /* A rede desmentiu o cartao que a tela abriu (vinculo de uma cidade,
        * atendimento de outra): a rede vence. Fecha sem contar como

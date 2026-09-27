@@ -28,24 +28,27 @@
 (function (raiz) {
   "use strict";
 
-  var CHAVE = "noturno_ativo";
-  var INTERVALO_MS = 30 * 60 * 1000; // 30 em 30 minutos
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
 
-  var storage = null;
-  var timer = null;
+  const CHAVE = "noturno_ativo";
+  const INTERVALO_MS = 30 * 60 * 1000; // 30 em 30 minutos
+
+  let storage = null;
+  let timer = null;
 
   function simularAtividade() {
     try {
-      var doc = raiz.document;
+      const doc = raiz.document;
       if (!doc) return;
-      var x = Math.round((raiz.innerWidth || 800) / 2);
-      var y = Math.round((raiz.innerHeight || 600) / 2);
+      const x = Math.round((raiz.innerWidth || 800) / 2);
+      const y = Math.round((raiz.innerHeight || 600) / 2);
       doc.dispatchEvent(
         new MouseEvent("mousemove", { bubbles: true, cancelable: true, clientX: x, clientY: y })
       );
       doc.dispatchEvent(new Event("scroll", { bubbles: true, cancelable: true }));
       raiz.dispatchEvent(new Event("scroll", { bubbles: true, cancelable: true }));
-      console.debug("[Assistente Meeds] noturno: atividade simulada");
+      LOG.debug("[Assistente Meeds] noturno: atividade simulada");
     } catch (e) {
       /* nunca derruba o resto do Assistente por causa disto */
     }
@@ -70,7 +73,7 @@
   /* Liga/desliga e devolve o novo estado — quem chama (o botão no Sobre)
    * so precisa refletir o que isto devolve. */
   function alternar() {
-    var novo = !estaLigado();
+    const novo = !estaLigado();
     if (storage) storage.gravar(CHAVE, novo);
     if (novo) ligarTemporizador();
     else desligarTemporizador();

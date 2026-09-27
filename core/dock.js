@@ -31,31 +31,31 @@
 (function (raiz) {
   "use strict";
 
-  var ID_HOST = "meeds-suite-dock-host";
-  var Z_BASE = 2147483000;
+  const ID_HOST = "meeds-suite-dock-host";
+  const Z_BASE = 2147483000;
 
-  var shadow = null;
-  var elDock = null;
-  var elToast = null;
-  var elAvisos = null;
-  var elCentro = null; // aviso que PRECISA ser lido: no meio da tela
-  var elTopo = null;   // aviso fixo na lateral superior direita
-  var botoes = []; // { id, prioridade, el, visivel }
-  var elAlca = null;
-  var recolhido = false;
-  var aoAlternar = null;
-  var translucido = true;      // preferencia do medico (o nucleo carrega)
-  var timerAdormecer = null;
+  let shadow = null;
+  let elDock = null;
+  let elToast = null;
+  let elAvisos = null;
+  let elCentro = null; // aviso que PRECISA ser lido: no meio da tela
+  let elTopo = null;   // aviso fixo na lateral superior direita
+  const botoes = []; // { id, prioridade, el, visivel }
+  let elAlca = null;
+  let recolhido = false;
+  let aoAlternar = null;
+  let translucido = true;      // preferencia do medico (o nucleo carrega)
+  let timerAdormecer = null;
 
   /* Quanto tempo depois da ultima interacao a pilha volta a desaparecer.
    * 2,5s foi escolhido para cobrir o intervalo entre soltar o mouse e
    * decidir o proximo clique. Menos que isso e a pilha some enquanto o
    * medico ainda esta mirando; muito mais e ela deixa de sair do
    * caminho, que e o motivo de existir. */
-  var MS_ATE_ADORMECER = 2500;
-  var timerToast = null;
+  const MS_ATE_ADORMECER = 2500;
+  let timerToast = null;
 
-  var ESTILOS = [
+  const ESTILOS = [
     ":host { all: initial; }",
     "* { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; }",
 
@@ -347,7 +347,7 @@
 
   function garantirHost() {
     if (shadow) return shadow;
-    var host = document.getElementById(ID_HOST);
+    let host = document.getElementById(ID_HOST);
     if (host && host.shadowRoot) {
       shadow = host.shadowRoot;
       elDock = shadow.getElementById("dock");
@@ -362,7 +362,7 @@
     document.body.appendChild(host);
     shadow = host.attachShadow({ mode: "open" });
 
-    var estilo = document.createElement("style");
+    const estilo = document.createElement("style");
     estilo.textContent = ESTILOS;
     shadow.appendChild(estilo);
 
@@ -465,7 +465,7 @@
    * tocando nao pode desaparecer. */
   function recalcularAlerta() {
     if (!elDock) return;
-    var temAlerta = false;
+    let temAlerta = false;
     botoes.forEach(function (b) {
       if (!b.el.hidden && b.el.classList.contains("ms-ativo")) temAlerta = true;
     });
@@ -489,7 +489,7 @@
 
   function pintarAlca() {
     if (!elAlca) return;
-    var escondidos = 0;
+    let escondidos = 0;
     botoes.forEach(function (b) {
       if (!b.el.hidden && !b.el.classList.contains("ms-ativo")) escondidos++;
     });
@@ -559,14 +559,14 @@
    * ------------------------------------------------------------------ */
   function reposicionarToast() {
     if (!elDock) return;
-    var caixa = null;
+    let caixa = null;
     try {
       caixa = elDock.getBoundingClientRect();
     } catch (e) {
       caixa = null;
     }
-    var altura = caixa ? caixa.height : 0;
-    var largura = caixa ? caixa.width : 0;
+    const altura = caixa ? caixa.height : 0;
+    const largura = caixa ? caixa.width : 0;
 
     if (elToast) elToast.style.bottom = 24 + (altura > 0 ? altura + 12 : 0) + "px";
 
@@ -575,14 +575,14 @@
      * ganha rolagem em vez de cobrir um botao — achado no QA de
      * 25/09/2026, numa janela de 600px de altura. */
     if (elTopo) {
-      var teto = caixa && caixa.height > 0 ? caixa.top - 6 - 74 : window.innerHeight - 74 - 24;
+      const teto = caixa && caixa.height > 0 ? caixa.top - 6 - 74 : window.innerHeight - 74 - 24;
       elTopo.style.maxHeight = Math.max(140, teto) + "px";
     }
 
     if (elAvisos) {
       /* Sem botao nenhum medido ainda, cai no mesmo 92px do CSS — o dock
        * vazio nao tem o que cobrir, e a medida chega no primeiro botao. */
-      var afastamento = 24 + (largura > 0 ? largura + 16 : 68);
+      const afastamento = 24 + (largura > 0 ? largura + 16 : 68);
       elAvisos.style.right = afastamento + "px";
       /* O teto acompanha: com uma pilha larga numa janela estreita, o
        * cartao tem que encolher em vez de sair pela esquerda da tela. */
@@ -598,22 +598,22 @@
    * chave de la; senao texto/emoji, exatamente como antes. Preserva um
    * .ms-badge (contador) que outro caminho tenha anexado. */
   function pintarConteudoBotao(el, icone, rotulo, variante) {
-    var badge = el.querySelector(".ms-badge");
-    var svg =
+    const badge = el.querySelector(".ms-badge");
+    const svg =
       raiz.MeedsSuiteIcones && typeof raiz.MeedsSuiteIcones.obter === "function"
         ? raiz.MeedsSuiteIcones.obter(icone)
         : null;
-    var soIcone = variante === "icone" || variante === "engrenagem";
+    const soIcone = variante === "icone" || variante === "engrenagem";
 
     if (svg) {
       el.textContent = "";
-      var caixa = document.createElement("span");
+      const caixa = document.createElement("span");
       caixa.className = "ms-ico";
       caixa.setAttribute("aria-hidden", "true");
       caixa.innerHTML = svg; // constante do pacote, dentro do shadow root
       el.appendChild(caixa);
       if (rotulo && !soIcone) {
-        var rot = document.createElement("span");
+        const rot = document.createElement("span");
         rot.className = "ms-rot";
         rot.textContent = rotulo;
         el.appendChild(rot);
@@ -633,7 +633,7 @@
     garantirHost();
     removerBotao(spec.id); // idempotente: re-registrar substitui
 
-    var el = document.createElement("button");
+    const el = document.createElement("button");
     el.type = "button";
     el.className = "ms-btn";
     if (spec.variante === "icone") el.classList.add("ms-btn-icone");
@@ -642,7 +642,7 @@
     pintarConteudoBotao(el, spec.icone, spec.rotulo, spec.variante);
     if (typeof spec.aoClicar === "function") el.addEventListener("click", spec.aoClicar);
 
-    var registro = {
+    const registro = {
       id: spec.id,
       prioridade: typeof spec.prioridade === "number" ? spec.prioridade : 100,
       el: el,
@@ -657,7 +657,7 @@
         /* Preserva o contador: textContent apagaria o badge junto, e um
          * modulo que use os dois (icone que muda + contador) perderia o
          * numero na primeira troca de icone. */
-        var badge = el.querySelector(".ms-badge");
+        const badge = el.querySelector(".ms-badge");
         el.textContent = rotulo ? icone + " " + rotulo : icone;
         if (badge) el.appendChild(badge);
         reposicionarToast();
@@ -677,13 +677,13 @@
       },
       /* Contador no canto do botao. Passe 0 (ou nada) para esconder. */
       definirContador: function (n) {
-        var badge = el.querySelector(".ms-badge");
+        let badge = el.querySelector(".ms-badge");
         if (!badge) {
           badge = document.createElement("span");
           badge.className = "ms-badge";
           el.appendChild(badge);
         }
-        var valor = Number(n) || 0;
+        const valor = Number(n) || 0;
         badge.textContent = valor > 99 ? "99+" : String(valor);
         badge.hidden = valor <= 0;
       },
@@ -706,7 +706,7 @@
   }
 
   function removerBotao(id) {
-    for (var i = botoes.length - 1; i >= 0; i--) {
+    for (let i = botoes.length - 1; i >= 0; i--) {
       if (botoes[i].id === id) {
         if (botoes[i].el.parentNode) botoes[i].el.parentNode.removeChild(botoes[i].el);
         botoes.splice(i, 1);
@@ -755,12 +755,12 @@
   function criarOverlay(opcoes) {
     garantirHost();
     opcoes = opcoes || {};
-    var overlay = document.createElement("div");
+    const overlay = document.createElement("div");
     overlay.className = "ms-overlay";
     overlay.hidden = true;
 
     if (opcoes.estilo) {
-      var st = document.createElement("style");
+      const st = document.createElement("style");
       st.textContent = opcoes.estilo;
       shadow.appendChild(st);
       overlay.__estilo = st;
@@ -810,7 +810,7 @@
    * modulo so liga e desliga. */
   function criarMolduraAlerta() {
     garantirHost();
-    var moldura = document.createElement("div");
+    const moldura = document.createElement("div");
     moldura.className = "ms-moldura-alerta";
     moldura.hidden = true;
     shadow.appendChild(moldura);
@@ -825,7 +825,7 @@
    * nucleo — o modulo so diz o texto e o que o botao faz. */
   function criarBanner(html) {
     garantirHost();
-    var banner = document.createElement("div");
+    const banner = document.createElement("div");
     banner.className = "ms-banner";
     banner.hidden = true;
     banner.innerHTML = html;
@@ -864,7 +864,7 @@
     garantirHost();
     spec = spec || {};
 
-    var el = document.createElement("div");
+    const el = document.createElement("div");
     function classes(s) {
       /* destaque: "atencao" -> ambar, pulsando 3x ao aparecer;
        * "atencao-calmo" -> ambar, parado (ver CSS). */
@@ -877,7 +877,7 @@
       if (s.topo && elTopo) return elTopo;
       return elAvisos;
     }
-    var timer = null;
+    let timer = null;
 
     function render(s) {
       el.innerHTML =
@@ -889,7 +889,7 @@
       el.querySelector(".ms-aviso-titulo").textContent = s.titulo || "";
       // textContent, nunca innerHTML: o corpo pode carregar nome de
       // paciente, e nome nao pode virar HTML
-      var corpo = el.querySelector(".ms-aviso-corpo");
+      const corpo = el.querySelector(".ms-aviso-corpo");
       corpo.textContent = "";
       (Array.isArray(s.corpo) ? s.corpo : [s.corpo || ""]).forEach(function (linha, i) {
         if (i > 0) corpo.appendChild(document.createElement("br"));
@@ -898,10 +898,10 @@
 
       el.querySelector(".ms-aviso-fechar").addEventListener("click", fechar);
 
-      var caixa = el.querySelector(".ms-aviso-acoes");
+      const caixa = el.querySelector(".ms-aviso-acoes");
       if (caixa) {
         (s.acoes || []).forEach(function (acao) {
-          var b = document.createElement("button");
+          const b = document.createElement("button");
           b.type = "button";
           b.className = "ms-aviso-btn" + (acao.primario === false ? " ms-aviso-btn-sec" : "");
           b.textContent = acao.rotulo;
@@ -952,7 +952,7 @@
   /* Ponto de extensao para conteudo solto no shadow do nucleo (raro). */
   function adicionarEstilo(css) {
     garantirHost();
-    var st = document.createElement("style");
+    const st = document.createElement("style");
     st.textContent = css;
     shadow.appendChild(st);
     return st;

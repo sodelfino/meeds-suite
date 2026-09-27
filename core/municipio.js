@@ -21,9 +21,9 @@
 (function (raiz) {
   "use strict";
 
-  var Dom = raiz.MeedsSuiteDom;
+  const Dom = raiz.MeedsSuiteDom;
 
-  var PREFIXOS_INSTITUCIONAIS = [
+  const PREFIXOS_INSTITUCIONAIS = [
     "prefeitura municipal de ",
     "prefeitura do municipio de ",
     "prefeitura de ",
@@ -42,17 +42,17 @@
    *   novo:   "MACAÉ - RJ"   (so o municipio e a UF)
    * A troca esta sendo feita cliente a cliente, entao os dois precisam
    * funcionar ao mesmo tempo, e por tempo indeterminado. */
-  var UFS = ["ac", "al", "ap", "am", "ba", "ce", "df", "es", "go", "ma", "mt", "ms", "mg", "pa",
+  const UFS = ["ac", "al", "ap", "am", "ba", "ce", "df", "es", "go", "ma", "mt", "ms", "mg", "pa",
     "pb", "pr", "pe", "pi", "rj", "rn", "rs", "ro", "rr", "sc", "sp", "se", "to"];
-  var RX_UF_FIM = new RegExp("\\s*(?:[-–/]\\s*(" + UFS.join("|") + ")|\\((" + UFS.join("|") + ")\\))$");
+  const RX_UF_FIM = new RegExp("\\s*(?:[-–/]\\s*(" + UFS.join("|") + ")|\\((" + UFS.join("|") + ")\\))$");
 
   /* Instituicao que comeca no MEIO da linha (grudada na anterior). Os
    * mais longos primeiro; "municipio de " sozinho fica de fora porque e
    * pedaco de "prefeitura do municipio de ". */
-  var RX_INSTITUICAO_NO_MEIO = /(\S)(prefeitura municipal de |prefeitura do municipio de |fundacao municipal de saude de |secretaria municipal de saude de |secretaria de saude de |prefeitura de )/g;
+  const RX_INSTITUICAO_NO_MEIO = /(\S)(prefeitura municipal de |prefeitura do municipio de |fundacao municipal de saude de |secretaria municipal de saude de |secretaria de saude de |prefeitura de )/g;
 
   function prefixoDe(nome) {
-    for (var i = 0; i < PREFIXOS_INSTITUCIONAIS.length; i++) {
+    for (let i = 0; i < PREFIXOS_INSTITUCIONAIS.length; i++) {
       if (nome.indexOf(PREFIXOS_INSTITUCIONAIS[i]) === 0) return PREFIXOS_INSTITUCIONAIS[i];
     }
     return null;
@@ -60,9 +60,9 @@
 
   /* "Prefeitura Municipal de Itauna" -> "itauna"; "MACAÉ - RJ" -> "macae" */
   function extrairNomeCidade(razaoSocialNome) {
-    var nome = normalizar(razaoSocialNome);
+    let nome = normalizar(razaoSocialNome);
     if (!nome) return "";
-    var p = prefixoDe(nome);
+    const p = prefixoDe(nome);
     if (p) nome = nome.slice(p.length);
     return nome.replace(RX_UF_FIM, "").trim();
   }
@@ -78,26 +78,26 @@
    * municipio conhecido) corta no lugar certo.
    * Devolve { cidades: [normalizadas], unidades: [normalizadas] }. */
   function analisarVinculo(linhas, nomesConhecidos) {
-    var conhecidos = (nomesConhecidos || []).map(normalizar);
-    var cidades = [];
-    var unidades = [];
+    const conhecidos = (nomesConhecidos || []).map(normalizar);
+    const cidades = [];
+    const unidades = [];
     /* Um "prefeitura ..." no MEIO de uma linha e outra instituicao que
      * veio grudada ("...ubs centroprefeitura municipal de macae"): quebra
      * ali, senao a segunda cidade some e um vinculo com DUAS cidades
      * pareceria ter uma so. */
-    var separadas = [];
+    const separadas = [];
     (linhas || []).forEach(function (bruta) {
-      var l = normalizar(bruta);
+      let l = normalizar(bruta);
       l = l.replace(RX_INSTITUICAO_NO_MEIO, "$1\n$2");
       l.split("\n").forEach(function (x) { if (x.trim()) separadas.push(x.trim()); });
     });
     separadas.forEach(function (bruta) {
-      var l = bruta;
+      const l = bruta;
       if (!l) return;
-      var p = prefixoDe(l);
+      const p = prefixoDe(l);
       if (p) {
-        var resto = l.slice(p.length).trim();
-        var alvo = conhecidos.filter(function (c) { return resto !== c && resto.indexOf(c) === 0; })[0];
+        const resto = l.slice(p.length).trim();
+        const alvo = conhecidos.filter(function (c) { return resto !== c && resto.indexOf(c) === 0; })[0];
         if (alvo) {
           cidades.push(alvo);
           unidades.push(resto.slice(alvo.length).trim());
@@ -109,7 +109,7 @@
       if (RX_UF_FIM.test(l)) return cidades.push(l.replace(RX_UF_FIM, "").trim());
       if (conhecidos.indexOf(l) !== -1) return cidades.push(l);
       /* "macae - rjclinica do autista": cidade + UF + unidade grudadas. */
-      var g = /^(.+?)\s*[-–]\s*([a-z]{2})(.+)$/.exec(l);
+      const g = /^(.+?)\s*[-–]\s*([a-z]{2})(.+)$/.exec(l);
       if (g && UFS.indexOf(g[2]) !== -1 && conhecidos.indexOf(g[1].trim()) !== -1) {
         cidades.push(g[1].trim());
         if (g[3].trim()) unidades.push(g[3].trim());
@@ -121,7 +121,7 @@
   }
 
   function candidatosDoAtendimento(atendimento) {
-    var lista = [];
+    const lista = [];
     if (!atendimento || typeof atendimento !== "object") return lista;
 
     if (atendimento.cliente && atendimento.cliente.razaoSocialNome) {
@@ -131,13 +131,13 @@
       lista.push(atendimento.paciente.cliente.razaoSocialNome);
     }
     if (atendimento.clienteId && Array.isArray(atendimento.clientes)) {
-      for (var i = 0; i < atendimento.clientes.length; i++) {
-        var c = atendimento.clientes[i];
+      for (let i = 0; i < atendimento.clientes.length; i++) {
+        const c = atendimento.clientes[i];
         if (c && c.id === atendimento.clienteId && c.razaoSocialNome) lista.push(c.razaoSocialNome);
       }
     }
     if (Array.isArray(atendimento.clientes) && atendimento.clientes.length === 1) {
-      var unico = atendimento.clientes[0];
+      const unico = atendimento.clientes[0];
       if (unico && unico.razaoSocialNome) lista.push(unico.razaoSocialNome);
     }
     return lista;
@@ -147,14 +147,14 @@
    * nomesConhecidos e a lista de municipios que o modulo aceita; o retorno
    * e sempre um item DELA, para quem chamou poder usar direto. */
   function detectar(atendimento, nomesConhecidos) {
-    var conhecidos = nomesConhecidos || [];
+    const conhecidos = nomesConhecidos || [];
     if (!conhecidos.length) return null;
 
-    var candidatos = candidatosDoAtendimento(atendimento);
-    for (var i = 0; i < candidatos.length; i++) {
-      var cidade = extrairNomeCidade(candidatos[i]);
+    const candidatos = candidatosDoAtendimento(atendimento);
+    for (let i = 0; i < candidatos.length; i++) {
+      const cidade = extrairNomeCidade(candidatos[i]);
       if (!cidade) continue;
-      for (var j = 0; j < conhecidos.length; j++) {
+      for (let j = 0; j < conhecidos.length; j++) {
         if (normalizar(conhecidos[j]) === cidade) return conhecidos[j];
       }
     }
@@ -165,9 +165,9 @@
    * texto da tela. So decide se achar EXATAMENTE UM — com dois na tela
    * (uma lista de clientes, por exemplo) escolher seria adivinhar. */
   function detectarNaTela(nomesConhecidos) {
-    var texto = Dom.textoDaPaginaNormalizado();
+    const texto = Dom.textoDaPaginaNormalizado();
     if (!texto) return null;
-    var achados = (nomesConhecidos || []).filter(function (m) {
+    const achados = (nomesConhecidos || []).filter(function (m) {
       return texto.indexOf(normalizar(m)) !== -1;
     });
     return raiz.MeedsSuiteDecisao.unicoOuNada(achados);
@@ -179,9 +179,9 @@
    * base na rede precisa distinguir os dois: no primeiro caso a rede nao
    * sabe, e outra fonte (a tela) pode responder. */
   function cidadesDoAtendimento(atendimento) {
-    var vistas = [];
+    const vistas = [];
     candidatosDoAtendimento(atendimento).forEach(function (c) {
-      var cidade = extrairNomeCidade(c);
+      const cidade = extrairNomeCidade(c);
       if (cidade && vistas.indexOf(cidade) === -1) vistas.push(cidade);
     });
     return vistas;

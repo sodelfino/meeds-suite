@@ -35,18 +35,21 @@
 (function (raiz) {
   "use strict";
 
-  var DEBOUNCE_MS = 700;          // dentro da faixa de 600 a 800 pedida
-  var LARGURA_MINIMA = 1100;      // abaixo disso o painel não é oferecido
-  var INATIVIDADE_MS = 10 * 60000; // 10 min parado: limpa a prévia da tela
-  var LARGURA_PADRAO = 460;
-  var LARGURA_MIN = 320;
-  var LARGURA_MAX = 900;
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
 
-  var d = null;
-  var geradores = {};   // id -> { ficha, elementos, estado }
-  var estiloGlobal = null;
+  const DEBOUNCE_MS = 700;          // dentro da faixa de 600 a 800 pedida
+  let LARGURA_MINIMA = 1100;      // abaixo disso o painel não é oferecido
+  const INATIVIDADE_MS = 10 * 60000; // 10 min parado: limpa a prévia da tela
+  const LARGURA_PADRAO = 460;
+  const LARGURA_MIN = 320;
+  const LARGURA_MAX = 900;
 
-  var CSS = [
+  let d = null;
+  let geradores = {};   // id -> { ficha, elementos, estado }
+  let estiloGlobal = null;
+
+  const CSS = [
     /* o modal do gerador e o painel viram colunas de uma mesma linha */
     ".pv-linha { display:flex; align-items:stretch; gap:14px; width:100%; justify-content:center; }",
     ".pv-painel { display:flex; flex-direction:column; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; flex-shrink:0; }",
@@ -100,22 +103,22 @@
    * esses o medico ajustou de proposito. Depois disso, fechar volta a
    * valer para sempre.
    * ------------------------------------------------------------------ */
-  var MARCA_VIRADA = "previa_padrao_invertido";
+  const MARCA_VIRADA = "previa_padrao_invertido";
 
   function virarPadraoUmaVez() {
     if (d.storage.ler(MARCA_VIRADA, false) === true) return;
-    var todas = d.storage.ler("paineis", {}) || {};
+    const todas = d.storage.ler("paineis", {}) || {};
     Object.keys(todas).forEach(function (id) {
       if (todas[id] && typeof todas[id] === "object") delete todas[id].aberto;
     });
     d.storage.gravar("paineis", todas);
     d.storage.gravar(MARCA_VIRADA, true);
-    console.debug("[Assistente Meeds] previa: preferencia antiga de aberto/fechado zerada uma vez.");
+    LOG.debug("[Assistente Meeds] previa: preferencia antiga de aberto/fechado zerada uma vez.");
   }
 
   function lerPreferencia(id) {
-    var todas = d.storage.ler("paineis", {}) || {};
-    var p = todas[id] || {};
+    const todas = d.storage.ler("paineis", {}) || {};
+    const p = todas[id] || {};
     return {
       /* `!== false` e nao `=== true`: sem preferencia gravada, abre. */
       aberto: p.aberto !== false,
@@ -125,7 +128,7 @@
   }
 
   function gravarPreferencia(id, mudanca) {
-    var todas = d.storage.ler("paineis", {}) || {};
+    const todas = d.storage.ler("paineis", {}) || {};
     todas[id] = Object.assign({}, todas[id] || {}, mudanca);
     d.storage.gravar("paineis", todas);
   }
@@ -147,9 +150,9 @@
    * iPadOS 13+ se identifica como Mac no userAgent; o que separa os dois
    * e ter mais de um ponto de toque. */
   function ehIOS() {
-    var ua = navigator.userAgent || "";
+    const ua = navigator.userAgent || "";
     if (/Windows|Android/.test(ua)) return false;
-    var pareceApple = /iPad|iPhone|iPod|Macintosh/.test(ua);
+    const pareceApple = /iPad|iPhone|iPod|Macintosh/.test(ua);
     return pareceApple && (navigator.maxTouchPoints || 0) > 1;
   }
 
@@ -164,25 +167,25 @@
   function registrarGerador(ficha) {
     if (!ficha || !ficha.id || geradores[ficha.id]) return false;
 
-    var modal = ficha.overlay && ficha.overlay.$(ficha.seletorModal);
+    const modal = ficha.overlay && ficha.overlay.$(ficha.seletorModal);
     if (!modal) return false;
 
-    var pref = lerPreferencia(ficha.id);
+    const pref = lerPreferencia(ficha.id);
 
     /* O modal passa a ser a primeira coluna de uma linha; o painel é a
      * segunda. Com o painel fechado, a linha tem uma coluna só e o
      * formulário fica exatamente como era. */
-    var linha = document.createElement("div");
+    const linha = document.createElement("div");
     linha.className = "pv-linha";
     modal.parentNode.insertBefore(linha, modal);
     linha.appendChild(modal);
 
-    var alca = document.createElement("div");
+    const alca = document.createElement("div");
     alca.className = "pv-alca";
     alca.hidden = true;
     linha.appendChild(alca);
 
-    var painel = document.createElement("div");
+    const painel = document.createElement("div");
     painel.className = "pv-painel";
     painel.hidden = true;
     painel.style.width = pref.largura + "px";
@@ -201,16 +204,16 @@
 
     /* Botão de abrir/fechar, no cabeçalho do próprio gerador — não é um
      * botão novo no dock. */
-    var alternar = document.createElement("button");
+    const alternar = document.createElement("button");
     alternar.type = "button";
     alternar.className = "pv-alternar";
     alternar.setAttribute("aria-pressed", "false");
     alternar.textContent = "👁 Prévia";
     alternar.title = "Ver o documento enquanto preenche";
-    var cabecalho = modal.querySelector(".msc-acoes") || modal.firstElementChild;
+    const cabecalho = modal.querySelector(".msc-acoes") || modal.firstElementChild;
     if (cabecalho) cabecalho.insertBefore(alternar, cabecalho.firstChild);
 
-    var g = {
+    const g = {
       ficha: ficha,
       modal: modal,
       linha: linha,
@@ -264,7 +267,7 @@
   }
 
   function atualizarDisponibilidade(g) {
-    var disponivel = cabe();
+    const disponivel = cabe();
     g.alternar.hidden = !disponivel;
     if (!disponivel && g.aberto) definirAberto(g, false, true);
   }
@@ -286,10 +289,10 @@
   }
 
   function mudarZoom(g, direcao) {
-    var escala = ["page-fit", "50", "75", "100", "125", "150", "200"];
-    var atual = escala.indexOf(String(g.zoom));
+    const escala = ["page-fit", "50", "75", "100", "125", "150", "200"];
+    let atual = escala.indexOf(String(g.zoom));
     if (atual === -1) atual = 3;
-    var novo = Math.min(escala.length - 1, Math.max(0, atual + direcao));
+    const novo = Math.min(escala.length - 1, Math.max(0, atual + direcao));
     g.zoom = escala[novo];
     gravarPreferencia(g.ficha.id, { zoom: g.zoom });
     if (g.quadro && g.urlAtual) g.quadro.src = enderecoComVista(g);
@@ -302,9 +305,9 @@
   }
 
   function ligarRedimensionamento(g) {
-    var arrastando = false;
-    var xInicial = 0;
-    var larguraInicial = 0;
+    let arrastando = false;
+    let xInicial = 0;
+    let larguraInicial = 0;
 
     g.handlers.mouseDown = function (ev) {
       arrastando = true;
@@ -315,7 +318,7 @@
     };
     g.handlers.mouseMove = function (ev) {
       if (!arrastando) return;
-      var nova = Math.min(LARGURA_MAX, Math.max(LARGURA_MIN, larguraInicial - (ev.clientX - xInicial)));
+      const nova = Math.min(LARGURA_MAX, Math.max(LARGURA_MIN, larguraInicial - (ev.clientX - xInicial)));
       g.largura = Math.round(nova);
       g.painel.style.width = g.largura + "px";
     };
@@ -335,7 +338,7 @@
    * AGENDAMENTO — o que evita a digitação engasgar
    * ------------------------------------------------------------------ */
   function assinaturaDoFormulario(g) {
-    var partes = [];
+    const partes = [];
     g.modal.querySelectorAll("input, select, textarea").forEach(function (campo) {
       partes.push(campo.id + "=" + (campo.value || ""));
     });
@@ -355,7 +358,7 @@
   }
 
   function marcarDesatualizado(g, sim) {
-    var estado = g.painel.querySelector(".pv-estado");
+    const estado = g.painel.querySelector(".pv-estado");
     /* Só troca o TEXTO, nunca o tamanho do painel: mexer no layout aqui
      * faria a prévia saltar a cada tecla. */
     estado.textContent = sim ? "atualizando…" : g.ultimaLegenda || "";
@@ -369,14 +372,14 @@
      * visibilidade reagenda. */
     if (document.hidden) return;
 
-    var assinatura = assinaturaDoFormulario(g);
+    const assinatura = assinaturaDoFormulario(g);
     if (assinatura === g.assinaturaAnterior) {
       marcarDesatualizado(g, false);
       return; // nada relevante mudou
     }
 
-    var minhaGeracao = ++g.geracao;
-    var t0 = performance.now();
+    const minhaGeracao = ++g.geracao;
+    const t0 = performance.now();
 
     Promise.resolve()
       .then(function () {
@@ -388,7 +391,7 @@
         if (minhaGeracao !== g.geracao) return;
         if (!g.aberto) return;
 
-        var ms = performance.now() - t0;
+        const ms = performance.now() - t0;
         g.medidas.push(ms);
         g.renderizacoes++;
         g.assinaturaAnterior = assinatura;
@@ -410,15 +413,15 @@
   }
 
   function mostrar(g, bytes) {
-    var blob = new Blob([bytes], { type: "application/pdf" });
-    var url = URL.createObjectURL(blob);
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
 
     /* Revoga a anterior ANTES de trocar: sem isso, cada tecla deixaria
      * um PDF pendurado em memória até a aba fechar. */
     if (g.urlAtual) URL.revokeObjectURL(g.urlAtual);
     g.urlAtual = url;
 
-    var vazio = g.painel.querySelector(".pv-vazio");
+    const vazio = g.painel.querySelector(".pv-vazio");
     if (vazio) vazio.remove();
 
     if (!g.quadro) {
@@ -439,7 +442,7 @@
       URL.revokeObjectURL(g.urlAtual);
       g.urlAtual = null;
     }
-    var vazio = g.painel.querySelector(".pv-vazio");
+    let vazio = g.painel.querySelector(".pv-vazio");
     if (!vazio) {
       vazio = document.createElement("div");
       vazio.className = "pv-vazio";
@@ -473,7 +476,7 @@
     }
     g.assinaturaAnterior = null;
     g.ultimaLegenda = "";
-    var vazio = g.painel.querySelector(".pv-vazio");
+    let vazio = g.painel.querySelector(".pv-vazio");
     if (!vazio) {
       vazio = document.createElement("div");
       vazio.className = "pv-vazio";
@@ -498,8 +501,8 @@
     }
   }
 
-  var aoMudarTela = null;
-  var aoMudarVisibilidade = null;
+  let aoMudarTela = null;
+  let aoMudarVisibilidade = null;
 
   /* ----------------------------------------------------------------
    * TUTORIAL GUIADO — ver core/tutorial.js para o mecanismo.
@@ -589,7 +592,7 @@
       aoMudarVisibilidade = function () {
         if (document.hidden) return;
         Object.keys(geradores).forEach(function (id) {
-          var g = geradores[id];
+          const g = geradores[id];
           if (g.aberto) agendar(g);
         });
       };
@@ -614,7 +617,7 @@
     _teste: {
       estado: function () {
         return Object.keys(geradores).map(function (id) {
-          var g = geradores[id];
+          const g = geradores[id];
           return {
             id: id,
             aberto: g.aberto,

@@ -21,21 +21,21 @@
 (function (raiz) {
   "use strict";
 
-  var d = null;
-  var overlay = null;
-  var timers = [];
+  let d = null;
+  let overlay = null;
+  let timers = [];
 
   /* PDF base oficial, embutido em base64 pelo asset do modulo. */
-  var BASE_PDF_B64 = raiz.MEEDS_LME_BASE_PDF_B64;
+  const BASE_PDF_B64 = raiz.MEEDS_LME_BASE_PDF_B64;
 
   /* Nome herdado do original, para gerarPdf() continuar valendo sem
    * reescrita. */
-  var LME_BASE_PDF_B64 = BASE_PDF_B64;
+  const LME_BASE_PDF_B64 = BASE_PDF_B64;
 
   /* SHIM DE COMPATIBILIDADE — ver modules/apac-itauna/index.js.
    * Reproduz a interface shadow.getElementById() por cima do overlay do
    * dock, para o codigo migrado continuar valendo sem reescrita. */
-  var shadow = {
+  const shadow = {
     getElementById: function (id) {
       return overlay ? overlay.elemento.querySelector("#" + id) : null;
     },
@@ -52,9 +52,9 @@
   }
 
   function b64ToBytes(b64) {
-    var bin = atob(b64);
-    var bytes = new Uint8Array(bin.length);
-    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     return bytes;
   }
 
@@ -63,20 +63,20 @@
    * @require), com o mesmo fallback do original.
    * ---------------------------------------------------------------- */
   function resolverPdfLib() {
-    var escopos = [];
+    const escopos = [];
     try { escopos.push(raiz); } catch (e) {}
     try { if (typeof unsafeWindow !== "undefined") escopos.push(unsafeWindow); } catch (e) {}
     try { escopos.push(window); } catch (e) {}
     try { escopos.push(globalThis); } catch (e) {}
-    for (var i = 0; i < escopos.length; i++) {
+    for (let i = 0; i < escopos.length; i++) {
       if (escopos[i] && escopos[i].PDFLib) return escopos[i].PDFLib;
     }
     return null;
   }
 
-  var pdfLibCarregandoPromise = null;
+  let pdfLibCarregandoPromise = null;
   function garantirPdfLib() {
-    var direto = resolverPdfLib();
+    const direto = resolverPdfLib();
     if (direto) return Promise.resolve(direto);
     if (pdfLibCarregandoPromise) return pdfLibCarregandoPromise;
     pdfLibCarregandoPromise = new Promise(function (resolve, reject) {
@@ -90,7 +90,7 @@
         onload: function (res) {
           try {
             (0, eval)(res.responseText);
-            var lib = resolverPdfLib();
+            const lib = resolverPdfLib();
             if (lib) resolve(lib);
             else reject(new Error("pdf-lib avaliado mas não exposto."));
           } catch (e) { reject(e); }
@@ -102,7 +102,7 @@
   }
 
   function formatarCpf(digits) {
-    var dd = (digits || "").replace(/\D/g, "");
+    const dd = (digits || "").replace(/\D/g, "");
     if (dd.length !== 11) return digits || "";
     return dd.slice(0,3) + "." + dd.slice(3,6) + "." + dd.slice(6,9) + "-" + dd.slice(9,11);
   }
@@ -111,8 +111,8 @@
    * data ja formatada e ignora tudo que nao for digito. */
   function ativarMascaraData(input) {
     input.addEventListener("input", function () {
-      var dd = input.value.replace(/\D/g, "").slice(0, 8);
-      var out = dd;
+      const dd = input.value.replace(/\D/g, "").slice(0, 8);
+      let out = dd;
       if (dd.length > 4) out = dd.slice(0,2) + "/" + dd.slice(2,4) + "/" + dd.slice(4);
       else if (dd.length > 2) out = dd.slice(0,2) + "/" + dd.slice(2);
       input.value = out;
@@ -120,7 +120,7 @@
   }
 
   function mostrarSucesso(nomeArquivo) {
-    var el = shadow.getElementById("lme-sucesso");
+    const el = shadow.getElementById("lme-sucesso");
     el.innerHTML =
       "✅ <b>Laudo gerado e baixado.</b><br>Arquivo: <b>" + nomeArquivo + "</b> — procure na pasta de downloads do navegador. " +
       "Ele já ficou registrado no <b>📜 Histórico</b>, caso precise repetir depois.";
@@ -129,26 +129,26 @@
   }
 
   function limparSucesso() {
-    var el = shadow.getElementById("lme-sucesso");
+    const el = shadow.getElementById("lme-sucesso");
     if (el) { el.style.display = "none"; el.innerHTML = ""; }
   }
 
   function limparErro() {
-    var el = shadow.getElementById("lme-erro");
+    const el = shadow.getElementById("lme-erro");
     el.style.display = "none";
     el.textContent = "";
   }
   function mostrarErro(msg) {
-    var el = shadow.getElementById("lme-erro");
+    const el = shadow.getElementById("lme-erro");
     el.textContent = msg;
     el.style.display = "block";
     el.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   function baixarPdf(bytes, filename) {
-    var blob = new Blob([bytes], { type: "application/pdf" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
     a.href = url; a.download = filename;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
@@ -163,17 +163,17 @@
    * faltava) e ninguem deveria abrir um .js para isso.
    * Se o arquivo faltar, os padroes abaixo seguram — o modulo nunca
    * quebra por causa de dado ausente. */
-  var DADOS = (raiz.MEEDS_DADOS_FORMULARIOS || {})["lme-sete-lagoas"] || {};
+  const DADOS = (raiz.MEEDS_DADOS_FORMULARIOS || {})["lme-sete-lagoas"] || {};
 
-  var MUNICIPIO_FIXO = DADOS.municipio || "SETE LAGOAS";
-  var ORIGENS = DADOS.origens || [];
-  var CID_DIC = DADOS.cids || {};
-  var CATALOGO_PROCEDIMENTOS = DADOS.procedimentos || {};
+  const MUNICIPIO_FIXO = DADOS.municipio || "SETE LAGOAS";
+  const ORIGENS = DADOS.origens || [];
+  const CID_DIC = DADOS.cids || {};
+  const CATALOGO_PROCEDIMENTOS = DADOS.procedimentos || {};
 
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
-  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + raiz.MeedsSuiteModelos.CSS + "\n" + raiz.MeedsSuiteCabecalho.CSS + "\n" + raiz.MeedsSuiteGuia.CSS + "\n" + "#lme-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #lme-sucesso b{ color:#08574f; }\n" + "#lme-modal{\n      background:#fff; border-radius:6px; max-width:680px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 8px 24px rgba(15,23,42,.2);\n    }\n    #lme-modal-head{\n      background:#17457f; color:#fff; padding:16px 20px; border-radius:6px 6px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #lme-modal-head h2{ margin:0; font-size:15px; }\n    #lme-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:5px; cursor:pointer; font-size:14px; }\n    #lme-body{ padding:18px 20px; }\n    .lme-sec{ margin-bottom:16px; }\n    .lme-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .lme-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .lme-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    #lme-body label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    #lme-body input,#lme-body select,#lme-body textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    #lme-body textarea{ min-height:70px; resize:vertical; }\n    #lme-origem-outro-wrap{ display:none; margin-top:8px; }\n    #lme-origem-outro-wrap.show{ display:block; }\n    #lme-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .lme-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    button.lme-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.lme-primary:hover{ background:#123a7a; }\n    button.lme-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.lme-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.lme-secondary:hover{ background:#e8f0f8; }\n    #lme-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #lme-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
+  const CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + raiz.MeedsSuiteModelos.CSS + "\n" + raiz.MeedsSuiteCabecalho.CSS + "\n" + raiz.MeedsSuiteGuia.CSS + "\n" + "#lme-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #lme-sucesso b{ color:#08574f; }\n" + "#lme-modal{\n      background:#fff; border-radius:6px; max-width:680px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 8px 24px rgba(15,23,42,.2);\n    }\n    #lme-modal-head{\n      background:#17457f; color:#fff; padding:16px 20px; border-radius:6px 6px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #lme-modal-head h2{ margin:0; font-size:15px; }\n    #lme-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:5px; cursor:pointer; font-size:14px; }\n    #lme-body{ padding:18px 20px; }\n    .lme-sec{ margin-bottom:16px; }\n    .lme-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .lme-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .lme-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    #lme-body label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    #lme-body input,#lme-body select,#lme-body textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    #lme-body textarea{ min-height:70px; resize:vertical; }\n    #lme-origem-outro-wrap{ display:none; margin-top:8px; }\n    #lme-origem-outro-wrap.show{ display:block; }\n    #lme-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .lme-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    button.lme-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.lme-primary:hover{ background:#123a7a; }\n    button.lme-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.lme-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.lme-secondary:hover{ background:#e8f0f8; }\n    #lme-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #lme-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
 
-  var HTML = "<div id=\"lme-modal\">\n      " +
+  const HTML = "<div id=\"lme-modal\">\n      " +
     raiz.MeedsSuiteCabecalho.html({
       tom: "documento", titulo: "Laudo Médico de Alto Custo — Sete Lagoas", idFechar: "lme-close",
       acoes: [
@@ -191,7 +191,7 @@
    * nao veio sozinho clique em Atualizar paciente" em vez de "campo
    * obrigatorio". O texto final e montado pelo nucleo
    * (core/mensagens.js), para o tom ser o mesmo em todos os modulos. */
-  var CAMPOS_OBRIGATORIOS = [
+  const CAMPOS_OBRIGATORIOS = [
       { id: "lme-medico-sel", descricao: "escolher o médico solicitante", rotulo: "Médico solicitante",
         comoResolver: "se a lista estiver vazia, cadastre-se no painel da engrenagem (⚙️)" },
       { id: "lme-medico-nome", descricao: "o nome do médico", rotulo: "Nome" },
@@ -218,7 +218,7 @@
     return CAMPOS_OBRIGATORIOS.filter(function (campo) {
       if (typeof campo.so === "function" && !campo.so()) return false;
       if (typeof campo.vazio === "function") return campo.vazio();
-      var el = shadow.getElementById(campo.id);
+      const el = shadow.getElementById(campo.id);
       return !el || !String(el.value || "").trim();
     });
   }
@@ -416,7 +416,7 @@
       mostrarSucesso(filename);
       toast("Pronto — laudo de Sete Lagoas baixado.", 5000);
     } catch (e) {
-      var msg = e && e.message ? e.message : "";
+      const msg = e && e.message ? e.message : "";
       if (/pdf-lib|componente|rede/i.test(msg)) {
         /* biblioteca que nao carrega tem causa e solucao proprias — quase
          * sempre a rede da unidade bloqueando o CDN — e por isso a
@@ -445,7 +445,7 @@
    * cuida do "cadastrar medico" e do auto-preenchimento quando ha um so
    * medico cadastrado neste navegador. Aqui so dizemos o que fazer com a
    * ficha escolhida. */
-  var seletorMedico = null;
+  let seletorMedico = null;
 
   function preencherMedico(ficha) {
     shadow.getElementById("lme-medico-nome").value = ficha ? ficha.nome : "";
@@ -464,13 +464,13 @@
 
 
   function montarOrigens() {
-    var sel = shadow.getElementById("lme-origem-sel");
+    const sel = shadow.getElementById("lme-origem-sel");
     ORIGENS.forEach(function (o) {
-      var op = document.createElement("option");
+      const op = document.createElement("option");
       op.value = o; op.textContent = o;
       sel.appendChild(op);
     });
-    var outro = document.createElement("option");
+    const outro = document.createElement("option");
     outro.value = "outro"; outro.textContent = "Outra unidade…";
     sel.appendChild(outro);
     sel.addEventListener("change", function () {
@@ -479,10 +479,10 @@
   }
 
   function autoDescricaoCid() {
-    var campo = shadow.getElementById("lme-cid");
-    var cid = campo.value.trim().toUpperCase();
+    const campo = shadow.getElementById("lme-cid");
+    const cid = campo.value.trim().toUpperCase();
     if (campo.value !== cid) campo.value = cid;
-    var desc = shadow.getElementById("lme-diagnostico");
+    const desc = shadow.getElementById("lme-diagnostico");
     if (CID_DIC[cid] && (!desc.value || desc.dataset.auto === "1")) {
       desc.value = CID_DIC[cid]; desc.dataset.auto = "1";
     } else if (desc.dataset.auto === "1" && !CID_DIC[cid]) {
@@ -491,10 +491,10 @@
   }
 
   function montarProcList() {
-    var dl = shadow.getElementById("lme-proc-list");
+    const dl = shadow.getElementById("lme-proc-list");
     Object.keys(CATALOGO_PROCEDIMENTOS).forEach(function (k) {
-      var p = CATALOGO_PROCEDIMENTOS[k];
-      var o = document.createElement("option");
+      const p = CATALOGO_PROCEDIMENTOS[k];
+      const o = document.createElement("option");
       o.value = p.nome; o.label = p.nome + " (" + p.codigo + ")";
       dl.appendChild(o);
     });
@@ -505,10 +505,10 @@
    * procedimento conhecido, o codigo preenche sozinho — mas pode ser
    * sobrescrito a qualquer momento, na mao. */
   function autoPreencherCodigoProc() {
-    var nomeCampo = shadow.getElementById("lme-proc-nome");
-    var codigoCampo = shadow.getElementById("lme-proc-codigo");
-    var alvo = nomeCampo.value.trim().toLowerCase();
-    var achado = Object.keys(CATALOGO_PROCEDIMENTOS)
+    const nomeCampo = shadow.getElementById("lme-proc-nome");
+    const codigoCampo = shadow.getElementById("lme-proc-codigo");
+    const alvo = nomeCampo.value.trim().toLowerCase();
+    const achado = Object.keys(CATALOGO_PROCEDIMENTOS)
       .map(function (k) { return CATALOGO_PROCEDIMENTOS[k]; })
       .find(function (p) { return p.nome.toLowerCase() === alvo; });
     if (achado && (!codigoCampo.value || codigoCampo.dataset.auto === "1")) {
@@ -520,7 +520,7 @@
 
   function aplicarLeituraDaTela(dadosTela) {
     if (!overlay || !dadosTela) return 0;
-    var n = 0;
+    let n = 0;
     if (dadosTela.nome) { shadow.getElementById("lme-pac-nome").value = dadosTela.nome; n++; }
     if (dadosTela.cpf) { shadow.getElementById("lme-pac-cpf").value = formatarCpf(dadosTela.cpf); n++; }
     if (dadosTela.nascimentoBR) { shadow.getElementById("lme-pac-nasc").value = dadosTela.nascimentoBR; n++; }
@@ -534,20 +534,20 @@
    * Se o CPF lido da tela for diferente do que ja esta no formulario, o
    * formulario inteiro e resetado antes de aplicar a nova leitura. */
   function trocouDePaciente(dadosTela) {
-    var cpfTela = (dadosTela.cpf || "").replace(/\D/g, "");
-    var cpfForm = shadow.getElementById("lme-pac-cpf").value.replace(/\D/g, "");
+    const cpfTela = (dadosTela.cpf || "").replace(/\D/g, "");
+    const cpfForm = shadow.getElementById("lme-pac-cpf").value.replace(/\D/g, "");
     return !!cpfTela && !!cpfForm && cpfTela !== cpfForm;
   }
 
   function atualizarPaciente() {
-    var btn = shadow.getElementById("lme-refresh");
-    var original = btn.textContent;
+    const btn = shadow.getElementById("lme-refresh");
+    const original = btn.textContent;
     btn.textContent = "Atualizando…";
     btn.disabled = true;
-    var dadosTela = d.dom.lerPaciente();
+    const dadosTela = d.dom.lerPaciente();
     if (trocouDePaciente(dadosTela)) limparForm();
-    var n = aplicarLeituraDaTela(dadosTela);
-    var aviso = shadow.getElementById("lme-auto-aviso");
+    const n = aplicarLeituraDaTela(dadosTela);
+    const aviso = shadow.getElementById("lme-auto-aviso");
     aviso.style.display = "block";
     aviso.textContent = n > 0
       ? "Dados lidos da tela (" + n + " campo" + (n > 1 ? "s" : "") + "). Confira antes de gerar."
@@ -558,7 +558,7 @@
   }
 
   function abrirModal() {
-    var dadosTela = d.dom.lerPaciente();
+    const dadosTela = d.dom.lerPaciente();
     if (trocouDePaciente(dadosTela) || !shadow.getElementById("lme-pac-cpf").value.trim()) limparForm();
     aplicarLeituraDaTela(dadosTela);
     aplicarModeloPadraoSeVazio();
@@ -581,15 +581,15 @@
     limparErro();
   }
 
-  var historico = null;
+  let historico = null;
 
   /* Repoe a parte CLINICA de um documento anterior. Os dados do paciente
    * NAO sao repostos de proposito: continuam vindo da tela do atendimento,
    * o que evita que o dado de um paciente entre no laudo de outro. */
   function reabrirDoHistorico(entrada) {
-    var c = entrada.clinico || {};
+    const c = entrada.clinico || {};
     Object.keys(c).forEach(function (id) {
-      var el = shadow.getElementById(id);
+      const el = shadow.getElementById(id);
       if (el) el.value = c[id];
     });
     // a unidade "outra" tem um campo que so aparece quando selecionada
@@ -598,7 +598,7 @@
       shadow.getElementById("lme-origem-sel").value === "outro"
     );
     historico.esconder();
-    var aviso = shadow.getElementById("lme-auto-aviso");
+    const aviso = shadow.getElementById("lme-auto-aviso");
     aviso.style.display = "block";
     aviso.textContent =
       "Repus procedimento, CID e justificativa de “" + entrada.titulo + "”. " +
@@ -610,9 +610,9 @@
    * tanto pelo autocomplete de dentro do campo quanto pela janela de
    * busca separada — um caminho so, para os dois nunca divergirem. */
   function preencherCidEscolhido(codigo, descricao) {
-    var campo = shadow.getElementById("lme-cid");
+    const campo = shadow.getElementById("lme-cid");
     if (campo) campo.value = codigo;
-    var desc = shadow.getElementById("lme-diagnostico");
+    const desc = shadow.getElementById("lme-diagnostico");
     if (desc && (!desc.value || desc.dataset.auto === "1")) {
       desc.value = descricao || "";
       desc.dataset.auto = "1";
@@ -656,7 +656,7 @@
    * proposito: se as duas divergirem, um campo passa a ser "clinico" num
    * lugar e "de paciente" no outro, e a fronteira deixa de valer.
    * ------------------------------------------------------------------ */
-  var CAMPOS_DO_MODELO = [
+  const CAMPOS_DO_MODELO = [
     "lme-proc-nome",
     "lme-proc-codigo",
     "lme-cid",
@@ -675,14 +675,14 @@
   function aplicarProcedimentoDoModelo() { return false; }
 
   function lerCamposDoFormulario() {
-    var fora = {};
+    const fora = {};
     CAMPOS_DO_MODELO.forEach(function (id) {
       if (id === "procedimento") {
-        var p = procedimentoDoModelo();
+        const p = procedimentoDoModelo();
         if (p) fora.procedimento = p;
         return;
       }
-      var el = shadow.getElementById(id);
+      const el = shadow.getElementById(id);
       if (el && el.value) fora[id] = el.value;
     });
     return fora;
@@ -690,10 +690,10 @@
 
   function aplicarModelo(clinico) {
     if (!clinico) return 0;
-    var n = 0;
+    let n = 0;
     Object.keys(clinico).forEach(function (id) {
       if (id === "procedimento") { if (aplicarProcedimentoDoModelo(clinico[id])) n++; return; }
-      var el = shadow.getElementById(id);
+      const el = shadow.getElementById(id);
       if (!el) return;
       el.value = clinico[id];
       el.dispatchEvent(new Event("input", { bubbles: true }));
@@ -704,34 +704,34 @@
   }
 
   function montarModelos() {
-    var sel = shadow.getElementById("lme-modelo-sel");
+    const sel = shadow.getElementById("lme-modelo-sel");
     if (!sel) return;
-    var lista = Modelos().listar("lme-sete-lagoas");
-    var escolhido = sel.value;
+    const lista = Modelos().listar("lme-sete-lagoas");
+    const escolhido = sel.value;
 
     /* Sem nenhum modelo, a lista de escolha nao aparece: um seletor
      * vazio parece defeito. Aparece so o convite para criar o primeiro. */
-    var linhaSalvos = shadow.getElementById("lme-modelo-salvos");
-    var vazio = shadow.getElementById("lme-modelo-vazio");
+    const linhaSalvos = shadow.getElementById("lme-modelo-salvos");
+    const vazio = shadow.getElementById("lme-modelo-vazio");
     if (linhaSalvos) linhaSalvos.hidden = !lista.length;
     if (vazio) vazio.hidden = !!lista.length;
 
     sel.innerHTML = "";
-    var ph = document.createElement("option");
+    const ph = document.createElement("option");
     ph.value = "";
     ph.textContent = "Escolha um modelo para preencher\u2026";
     sel.appendChild(ph);
     lista.forEach(function (m) {
-      var o = document.createElement("option");
+      const o = document.createElement("option");
       o.value = m.nome;
       o.textContent = (m.padrao ? "\u2605 " : "") + m.nome;
       sel.appendChild(o);
     });
     if (escolhido) sel.value = escolhido;
 
-    var dica = shadow.getElementById("lme-modelo-dica");
+    const dica = shadow.getElementById("lme-modelo-dica");
     if (dica) {
-      var padrao = Modelos().padraoDe("lme-sete-lagoas");
+      const padrao = Modelos().padraoDe("lme-sete-lagoas");
       if (padrao) {
         dica.textContent = "\u2605 " + padrao.nome + " entra sozinho quando você abre este gerador com os campos clínicos vazios.";
       } else if (lista.length) {
@@ -743,17 +743,17 @@
   }
 
   function ligarModelos() {
-    var sel = shadow.getElementById("lme-modelo-sel");
+    const sel = shadow.getElementById("lme-modelo-sel");
     if (!sel) return;
-    var nome = shadow.getElementById("lme-modelo-nome");
+    const nome = shadow.getElementById("lme-modelo-nome");
 
     /* Escolher na lista preenche na hora — e o caminho de todo dia, e
      * um botao "Aplicar" a mais so acrescentaria clique. */
     sel.addEventListener("change", function () {
       if (!sel.value) return;
-      var m = Modelos().obter("lme-sete-lagoas", sel.value);
+      const m = Modelos().obter("lme-sete-lagoas", sel.value);
       if (!m) return;
-      var n = aplicarModelo(m.clinico);
+      const n = aplicarModelo(m.clinico);
       /* O campo de NOME nao e preenchido aqui — e essa linha, que existia
        * "para facilitar corrigir", fazia o medico perder modelo: ele
        * aplicava um, montava OUTRO procedimento, clicava em salvar e o
@@ -768,7 +768,7 @@
      * nome que ja existe corrige. O medico que salva "Holter rotina" de
      * novo esta acertando o dele, nao pedindo dois. */
     function criar() {
-      var r = Modelos().salvar("lme-sete-lagoas", nome.value, lerCamposDoFormulario(), CAMPOS_DO_MODELO);
+      const r = Modelos().salvar("lme-sete-lagoas", nome.value, lerCamposDoFormulario(), CAMPOS_DO_MODELO);
       if (!r.ok) { toast(r.erro, 6000); nome.focus(); return; }
       montarModelos();
       sel.value = r.nome;
@@ -776,7 +776,7 @@
        * modelo novo por padrao, em vez de uma substituicao por acidente. */
       if (!r.substituiu) nome.value = "";
       atualizarBotaoDeSalvar();
-      var quantos = Modelos().listar("lme-sete-lagoas").length;
+      const quantos = Modelos().listar("lme-sete-lagoas").length;
       toast(
         r.substituiu
           ? "Modelo \u201c" + r.nome + "\u201d substituído."
@@ -789,10 +789,10 @@
      * criar e substituir sao o mesmo gesto — e o medico so descobre qual
      * dos dois aconteceu quando o modelo antigo ja se foi. */
     function atualizarBotaoDeSalvar() {
-      var botao = shadow.getElementById("lme-modelo-criar");
+      const botao = shadow.getElementById("lme-modelo-criar");
       if (!botao) return;
-      var digitado = (nome.value || "").trim();
-      var existe = digitado && Modelos().obter("lme-sete-lagoas", digitado);
+      const digitado = (nome.value || "").trim();
+      const existe = digitado && Modelos().obter("lme-sete-lagoas", digitado);
       botao.textContent = existe ? "\u21bb Substituir \u201c" + digitado + "\u201d" : "\uff0b Salvar como modelo";
       botao.classList.toggle("substituir", !!existe);
     }
@@ -807,7 +807,7 @@
       if (!sel.value) { toast("Escolha um modelo na lista para ele vir preenchido sozinho.", 4000); return; }
       Modelos().definirPadrao("lme-sete-lagoas", sel.value);
       montarModelos();
-      var padrao = Modelos().padraoDe("lme-sete-lagoas");
+      const padrao = Modelos().padraoDe("lme-sete-lagoas");
       toast(
         padrao && padrao.nome === sel.value
           ? "\u201c" + sel.value + "\u201d agora vem preenchido sozinho ao abrir."
@@ -842,10 +842,10 @@
    * Entao um select so conta se o medico o tirou do valor inicial.
    * ------------------------------------------------------------------ */
   function campoFoiPreenchido(id) {
-    var el = shadow.getElementById(id);
+    const el = shadow.getElementById(id);
     if (!el || !el.value) return false;
     if (el.tagName === "SELECT") {
-      var primeira = el.options && el.options.length ? el.options[0].value : "";
+      const primeira = el.options && el.options.length ? el.options[0].value : "";
       return el.value !== primeira;
     }
     return true;
@@ -853,8 +853,8 @@
 
   function formularioClinicoVazio() {
     if (procedimentoDoModelo()) return false;
-    for (var i = 0; i < CAMPOS_DO_MODELO.length; i++) {
-      var id = CAMPOS_DO_MODELO[i];
+    for (let i = 0; i < CAMPOS_DO_MODELO.length; i++) {
+      const id = CAMPOS_DO_MODELO[i];
       if (id === "procedimento") continue;
       if (campoFoiPreenchido(id)) return false;
     }
@@ -864,7 +864,7 @@
   /* O modelo padrao so entra com a parte clinica VAZIA. Ele existe para
    * poupar digitacao, nunca para apagar o que o medico ja escreveu. */
   function aplicarModeloPadraoSeVazio() {
-    var padrao = Modelos().padraoDe("lme-sete-lagoas");
+    const padrao = Modelos().padraoDe("lme-sete-lagoas");
     if (!padrao) return;
     if (!formularioClinicoVazio()) return;
     aplicarModelo(padrao.clinico);
@@ -879,7 +879,7 @@
    * com o botao ainda recusando ensinaria o medico a nao confiar na
    * tela — por isso a fonte e uma so. Ver D32.
    * ------------------------------------------------------------------ */
-  var guia = null;
+  var guia = null; // eslint-disable-line no-var -- usada antes desta linha; com let/const daria erro de zona morta (TDZ)
 
   function camposAplicaveis() {
     return CAMPOS_OBRIGATORIOS.filter(function (campo) {
@@ -897,13 +897,13 @@
       },
     });
 
-    var corpo = shadow.getElementById("lme-body");
+    const corpo = shadow.getElementById("lme-body");
     if (corpo) corpo.insertBefore(guia.elemento, corpo.firstChild);
 
     /* Um ouvinte delegado no modal, nao um por campo: o formulario muda
      * de forma (grid de procedimento, campos condicionais) e ouvintes
      * por campo ficariam para tras. */
-    var modal = shadow.getElementById("lme-modal");
+    const modal = shadow.getElementById("lme-modal");
     if (modal) {
       modal.addEventListener("input", atualizarGuia);
       modal.addEventListener("change", atualizarGuia);
@@ -1000,7 +1000,7 @@
        * descricao entram sozinhos. Se aquele modulo estiver desligado,
        * ninguem atende e o campo continua sendo texto livre. */
       function anunciarCampoCid() {
-        var campo = shadow.getElementById("lme-cid");
+        const campo = shadow.getElementById("lme-cid");
         if (!campo) return;
         deps.publicarEvento("cid:conectar-campo", {
           input: campo,

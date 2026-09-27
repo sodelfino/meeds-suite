@@ -29,16 +29,16 @@
   "use strict";
 
   /* NUNCA TROQUE ESTA CHAVE — o medico veria de novo avisos ja lidos. */
-  var CHAVE_VERSAO_VISTA = "ultima_versao_vista";
-  var CHAVE_SINAL_ABAS = "meeds-suite:aviso-versao-exibido";
+  const CHAVE_VERSAO_VISTA = "ultima_versao_vista";
+  const CHAVE_SINAL_ABAS = "meeds-suite:aviso-versao-exibido";
 
-  var changelog = { versoes: [] };
-  var overlay = null;
-  var ctx = null;
+  let changelog = { versoes: [] };
+  let overlay = null;
+  let ctx = null;
 
   /* Caminho duravel unico — ver core/storage.js. No iPad isto e o que
    * impede o "o que mudou" de reaparecer a cada login. */
-  var portaVersao = null;
+  let portaVersao = null;
   function porta() {
     if (!portaVersao) {
       portaVersao = raiz.MeedsSuiteStorage.duravel(CHAVE_VERSAO_VISTA, "meeds-suite:" + CHAVE_VERSAO_VISTA);
@@ -47,7 +47,7 @@
   }
 
   function lerVersaoVista() {
-    var v = porta().ler(null);
+    const v = porta().ler(null);
     return v === undefined ? null : v;
   }
 
@@ -65,11 +65,11 @@
   /* Compara "2.10.0" com "2.9.0" corretamente — comparacao de texto
    * diria que 2.10.0 e MENOR, e o medico deixaria de ver a novidade. */
   function compararVersoes(a, b) {
-    var pa = String(a || "0").split(".").map(Number);
-    var pb = String(b || "0").split(".").map(Number);
-    for (var i = 0; i < Math.max(pa.length, pb.length); i++) {
-      var x = pa[i] || 0;
-      var y = pb[i] || 0;
+    const pa = String(a || "0").split(".").map(Number);
+    const pb = String(b || "0").split(".").map(Number);
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+      const x = pa[i] || 0;
+      const y = pb[i] || 0;
       if (x !== y) return x > y ? 1 : -1;
     }
     return 0;
@@ -88,7 +88,7 @@
     })[0];
   }
 
-  var CSS = [
+  const CSS = [
     ".msn-caixa { width:100%; max-width:540px; max-height:84vh; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); display:flex; flex-direction:column; overflow:hidden; }",
     ".msn-caixa header { background:#17457f; color:#fff; padding:16px 18px; display:flex; justify-content:space-between; align-items:center; gap:12px; }",
     ".msn-caixa header h2 { margin:0; font-size:15px; font-weight:700; }",
@@ -118,15 +118,15 @@
     });
   }
 
-  var ROTULOS = [
+  const ROTULOS = [
     ["novidades", "Novidades"],
     ["melhorias", "Melhorias"],
     ["correcoes", "Correções"],
   ];
 
   function htmlDeUmaVersao(v, comCabecalho) {
-    var grupos = ROTULOS.map(function (par) {
-      var itens = v[par[0]] || [];
+    let grupos = ROTULOS.map(function (par) {
+      const itens = v[par[0]] || [];
       if (!itens.length) return "";
       return (
         '<div class="msn-grupo"><h3>' + par[1] + "</h3><ul>" +
@@ -149,7 +149,7 @@
   }
 
   function formatarData(iso) {
-    var m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
     return m ? m[3] + "/" + m[2] + "/" + m[1] : iso;
   }
 
@@ -163,7 +163,7 @@
    * medico pulou atualizacoes). */
   function mostrarAviso(versoes, versaoAtual) {
     montarOverlay();
-    var varias = versoes.length > 1;
+    const varias = versoes.length > 1;
 
     overlay.elemento.innerHTML =
       '<div class="msn-caixa" role="dialog" aria-modal="true">' +
@@ -189,7 +189,7 @@
     /* Atalho para a engrenagem. A tela de novidades e o unico momento em
      * que o medico esta lendo sobre uma funcao nova; mandar ele procurar
      * o botao depois e perder a metade que ia experimentar agora. */
-    var irConfigurar = overlay.$("#msn-configurar");
+    const irConfigurar = overlay.$("#msn-configurar");
     if (irConfigurar) {
       irConfigurar.addEventListener("click", function () {
         overlay.fechar();
@@ -208,7 +208,7 @@
   /* Historico completo, aberto pelo painel da engrenagem. Mesma fonte. */
   function mostrarHistorico(versaoAtual) {
     montarOverlay();
-    var lista = changelog.versoes || [];
+    const lista = changelog.versoes || [];
 
     overlay.elemento.innerHTML =
       '<div class="msn-caixa" role="dialog" aria-modal="true">' +
@@ -234,8 +234,8 @@
   function verificar(contexto) {
     ctx = contexto;
     changelog = raiz.MEEDS_CHANGELOG || { versoes: [] };
-    var atual = ctx.versaoAtual;
-    var vista = lerVersaoVista();
+    const atual = ctx.versaoAtual;
+    const vista = lerVersaoVista();
 
     // outra aba mostrou o aviso: fecha o daqui, para nao repetir
     try {
@@ -254,7 +254,7 @@
 
     if (compararVersoes(atual, vista) === 0) return { situacao: "sem-mudanca" };
 
-    var novas = versoesNaoVistas(vista, atual);
+    const novas = versoesNaoVistas(vista, atual);
     if (!novas.length) {
       // versao mudou mas ninguem descreveu no changelog: nao inventa
       gravarVersaoVista(atual);

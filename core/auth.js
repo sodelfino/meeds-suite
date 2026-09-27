@@ -33,8 +33,8 @@
   }
 
   function elementoEstaVisivel(el) {
-    var rect = el.getBoundingClientRect();
-    var st = raiz.getComputedStyle(el);
+    const rect = el.getBoundingClientRect();
+    const st = raiz.getComputedStyle(el);
     return (
       rect.width > 0 &&
       rect.height > 0 &&
@@ -46,8 +46,8 @@
 
   function estaNaTelaDeLogin() {
     try {
-      var campos = document.querySelectorAll('input[type="password"]');
-      for (var i = 0; i < campos.length; i++) {
+      const campos = document.querySelectorAll('input[type="password"]');
+      for (let i = 0; i < campos.length; i++) {
         if (elementoEstaVisivel(campos[i])) return true;
       }
       return false;

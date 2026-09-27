@@ -23,7 +23,7 @@
   /* Um tom por família de janela. O gerador de documento é azul; a
    * consulta (REMUME, Exames) é verde-água; o alarme é quente, porque
    * ele é o único que pode aparecer no meio de uma consulta. */
-  var TONS = {
+  const TONS = {
     /* Cores solidas (antes, gradientes): mesma familia de cada tom, mais
      * sobrias. O tom continua dizendo o tipo de janela — azul documento,
      * verde-agua consulta, vermelho alarme. */
@@ -32,7 +32,7 @@
     alarme: "#b42318",
   };
 
-  var CSS = [
+  const CSS = [
     ".msc-head {",
     "  color:#fff; padding:15px 18px; display:flex; align-items:flex-start;",
     "  justify-content:space-between; gap:12px;",
@@ -70,9 +70,9 @@
    *   idFechar: o id do botão X (cada módulo já tinha o seu).
    */
   function html(spec) {
-    var s = spec || {};
-    var tom = TONS[s.tom] || TONS.documento;
-    var acoes = (s.acoes || [])
+    const s = spec || {};
+    const tom = TONS[s.tom] || TONS.documento;
+    const acoes = (s.acoes || [])
       .map(function (a) {
         return (
           '<button type="button" class="msc-acao" id="' + esc(a.id) + '"' +

@@ -51,51 +51,54 @@
 (function (raiz) {
   "use strict";
 
-  var INTERVALO_MS = 30000; // 30s, como o padrao de polling do proprio app
-  var AUTO_FECHAR_MS = 10000;
-  var STATUS_AGUARDANDO = 2;
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
 
-  var d = null;
-  var overlay = null;
-  var refs = null;
-  var timer = null;
-  var aoSair = null;
+  const INTERVALO_MS = 30000; // 30s, como o padrao de polling do proprio app
+  const AUTO_FECHAR_MS = 10000;
+  const STATUS_AGUARDANDO = 2;
 
-  var profissionalId = null;
-  var primeiraLeitura = true;
+  let d = null;
+  let overlay = null;
+  let refs = null;
+  let timer = null;
+  let aoSair = null;
+
+  let profissionalId = null;
+  let primeiraLeitura = true;
   /* Estado anterior de cada atendimento. Ver o bloco DETECCAO DE
    * CHEGADA: um Set de ids nao consegue representar transicao, e era
    * essa a causa do defeito. */
-  var estado = new Map();
-  var aguardando = [];        // ultima leitura, so em memoria
-  var aviso = null;           // aviso unico; novos pacientes ATUALIZAM ele
-  var chegadasNoAviso = [];
+  const estado = new Map();
+  let aguardando = [];        // ultima leitura, so em memoria
+  let aviso = null;           // aviso unico; novos pacientes ATUALIZAM ele
+  let chegadasNoAviso = [];
 
   /* Ultima resposta da API, so em memoria e so para o diagnostico
    * comparar duas leituras. Nunca vai para disco nem para o console. */
-  var ultimaRespostaCrua = null;
+  let ultimaRespostaCrua = null;
 
   /* Quantas consultas seguidas falharam. So para registro: o estado
    * anterior e preservado de qualquer jeito. */
-  var falhasSeguidas = 0;
+  let falhasSeguidas = 0;
 
   /* Trava da consulta de confirmacao — ela e disparada por um evento
    * (alguem sumiu do filtro) e nao pelo relogio, entao dois pollings
    * seguidos poderiam pedir a mesma confirmacao duas vezes. */
-  var confirmacaoEmAndamento = false;
+  let confirmacaoEmAndamento = false;
 
   /* ----------------------------------------------------------------
    * DESCOBERTA DO PROFISSIONAL
    * ---------------------------------------------------------------- */
-  var RX_PROFISSIONAL = /[?&]ProfissionalId=([^&]+)/i;
+  const RX_PROFISSIONAL = /[?&]ProfissionalId=([^&]+)/i;
 
   function capturarProfissional(url) {
-    var m = String(url || "").match(RX_PROFISSIONAL);
+    const m = String(url || "").match(RX_PROFISSIONAL);
     if (!m) return;
-    var id = decodeURIComponent(m[1]);
+    const id = decodeURIComponent(m[1]);
     if (!id || id === profissionalId) return;
     profissionalId = id;
-    console.debug("[Sala de espera] profissional identificado; iniciando consulta periodica.");
+    LOG.debug("[Sala de espera] profissional identificado; iniciando consulta periodica.");
     consultar(); // primeira leitura assim que souber quem e
   }
 
@@ -137,14 +140,14 @@
   }
 
   function hojeISO() {
-    var d0 = new Date();
-    var mes = String(d0.getMonth() + 1).padStart(2, "0");
-    var dia = String(d0.getDate()).padStart(2, "0");
+    const d0 = new Date();
+    const mes = String(d0.getMonth() + 1).padStart(2, "0");
+    const dia = String(d0.getDate()).padStart(2, "0");
     return d0.getFullYear() + "-" + mes + "-" + dia;
   }
 
   function montarUrlConfirmacao() {
-    var hoje = hojeISO();
+    const hoje = hojeISO();
     return (
       "/api/v1/Atendimento?ProfissionalId=" + encodeURIComponent(profissionalId) +
       "&Agendado=true" +
@@ -173,24 +176,24 @@
    * anterior terminar. Sem isso, uma resposta lenta faria as requisicoes
    * empilharem e duas respostas fora de ordem poderiam se sobrescrever,
    * fazendo a fila "piscar". */
-  var consultaEmAndamento = false;
+  let consultaEmAndamento = false;
 
   function consultar() {
     if (!profissionalId) return Promise.resolve();
     if (!d || !d.auth.estaLogado()) return Promise.resolve(); // nao consulta na tela de login
     if (consultaEmAndamento) {
-      console.debug("[Sala de espera] consulta anterior ainda em andamento; esta rodada foi pulada.");
+      LOG.debug("[Sala de espera] consulta anterior ainda em andamento; esta rodada foi pulada.");
       return Promise.resolve();
     }
 
     consultaEmAndamento = true;
     return buscar(montarUrl())
       .then(function (json) {
-        var itens = extrairItens(json);
+        const itens = extrairItens(json);
         if (!itens) {
           /* Formato inesperado: preferimos manter a ultima leitura boa a
            * esvaziar a fila com base numa resposta que nao entendemos. */
-          console.debug("[Sala de espera] resposta em formato inesperado; mantendo a ultima leitura.");
+          LOG.debug("[Sala de espera] resposta em formato inesperado; mantendo a ultima leitura.");
           return;
         }
         ultimaRespostaCrua = itens; // so em memoria, para o diagnostico
@@ -203,7 +206,7 @@
          * vazia — o medico acharia que nao ha ninguem esperando. A
          * proxima rodada tenta de novo. */
         falhasSeguidas++;
-        console.debug(
+        LOG.debug(
           "[Sala de espera] consulta falhou (" + falhasSeguidas + "x seguidas); " +
             "mantendo a ultima leitura valida e tentando na proxima rodada.",
           e.message
@@ -223,18 +226,18 @@
 
     buscar(montarUrlConfirmacao())
       .then(function (json) {
-        var itens = extrairItens(json);
+        const itens = extrairItens(json);
         if (!itens) return;
 
-        var chegaram = [];
+        const chegaram = [];
         itens.forEach(function (bruto) {
-          var p = normalizarItem(bruto);
+          const p = normalizarItem(bruto);
           if (ids.indexOf(p.id) === -1) return;
           if (p.chegou === true) chegaram.push(p);
         });
 
         if (!chegaram.length) return;
-        console.debug(
+        LOG.debug(
           "[Sala de espera] " + chegaram.length + " atendimento(s) sairam do filtro por CHEGADA, nao por saida."
         );
         chegaram.forEach(function (p) {
@@ -251,7 +254,7 @@
         anunciar(chegaram);
       })
       .catch(function (e) {
-        console.debug("[Sala de espera] confirmacao falhou; nada foi alterado.", e.message);
+        LOG.debug("[Sala de espera] confirmacao falhou; nada foi alterado.", e.message);
       })
       .then(function () {
         confirmacaoEmAndamento = false;
@@ -288,33 +291,33 @@
    * tamanho, data vira "data preenchida". Tudo local, nada enviado.
    * ---------------------------------------------------------------- */
   function diagnosticar(segundosEntreFotos) {
-    var Diag = raiz.MeedsSuiteSalaEsperaDiag;
-    var espera = (segundosEntreFotos || 45) * 1000;
+    const Diag = raiz.MeedsSuiteSalaEsperaDiag;
+    const espera = (segundosEntreFotos || 45) * 1000;
 
     if (!profissionalId) {
-      console.warn(
+      LOG.warn(
         "[Sala de espera] Ainda nao sei o seu ProfissionalId. Abra a tela de Consultas Agendadas uma vez e repita."
       );
       return Promise.resolve(null);
     }
 
-    console.log("%c[Sala de espera] Diagnostico iniciado", "font-weight:bold");
-    console.log("Consulta:", montarUrl().replace(/ProfissionalId=[^&]+/, "ProfissionalId=<voce>"));
-    console.log("Intervalo entre as fotos:", espera / 1000, "segundos.");
-    console.log("AGORA: peca para marcarem a chegada de um paciente na tela nativa.");
+    LOG.log("%c[Sala de espera] Diagnostico iniciado", "font-weight:bold");
+    LOG.log("Consulta:", montarUrl().replace(/ProfissionalId=[^&]+/, "ProfissionalId=<voce>"));
+    LOG.log("Intervalo entre as fotos:", espera / 1000, "segundos.");
+    LOG.log("AGORA: peca para marcarem a chegada de um paciente na tela nativa.");
 
     return consultar()
       .then(function () {
-        var antes = Diag.fotografar(ultimaRespostaCrua || []);
-        console.log("Foto 1 —", antes.length, "item(ns) na resposta:");
-        console.table(
+        const antes = Diag.fotografar(ultimaRespostaCrua || []);
+        LOG.log("Foto 1 —", antes.length, "item(ns) na resposta:");
+        LOG.table(
           antes.map(function (x) {
             return { item: x.apelido, status: x.statusAtendimentoId };
           })
         );
         if (ultimaRespostaCrua && ultimaRespostaCrua[0]) {
-          console.log("Formato de um item (nomes e tipos, sem conteudo):");
-          console.table(Diag.formato(ultimaRespostaCrua[0]));
+          LOG.log("Formato de um item (nomes e tipos, sem conteudo):");
+          LOG.table(Diag.formato(ultimaRespostaCrua[0]));
         }
         return new Promise(function (ok) {
           setTimeout(function () {
@@ -324,17 +327,17 @@
       })
       .then(function (antes) {
         return consultar().then(function () {
-          var depois = Diag.fotografar(ultimaRespostaCrua || []);
-          console.log("Foto 2 —", depois.length, "item(ns) na resposta.");
-          var mudancas = Diag.comparar(antes, depois);
+          const depois = Diag.fotografar(ultimaRespostaCrua || []);
+          LOG.log("Foto 2 —", depois.length, "item(ns) na resposta.");
+          const mudancas = Diag.comparar(antes, depois);
           if (!mudancas.length) {
-            console.warn(
+            LOG.warn(
               "Nada mudou entre as duas fotos. Se a chegada foi marcada neste intervalo, " +
                 "o atendimento provavelmente SAIU deste filtro — procure por SUMIU DA RESPOSTA."
             );
           } else {
-            console.log("%cO que mudou entre as duas fotos:", "font-weight:bold");
-            console.table(mudancas);
+            LOG.log("%cO que mudou entre as duas fotos:", "font-weight:bold");
+            LOG.table(mudancas);
           }
           return { antes: antes, depois: depois, mudancas: mudancas };
         });
@@ -357,7 +360,7 @@
    * "Nao sei" nao pode virar "nao chegou": isso faria o modulo avisar
    * uma chegada que nunca aconteceu, ou nunca avisar nenhuma.
    * ---------------------------------------------------------------- */
-  var CAMPOS_DE_CHEGADA = [
+  const CAMPOS_DE_CHEGADA = [
     ["agendamento", "checkinStatus"],
     ["agendamento", "checkIn"],
     ["agendamento", "checkin"],
@@ -377,7 +380,7 @@
   /* Qual campo a API realmente usou. Guardado so para o console de
    * depuracao e para a documentacao — e nome de campo, nao dado de
    * paciente. */
-  var campoDeChegadaUsado = null;
+  let campoDeChegadaUsado = null;
 
   function interpretarChegada(valor) {
     if (valor === true) return true;
@@ -387,7 +390,7 @@
     if (typeof valor === "number") return valor !== 0;
 
     if (typeof valor === "string") {
-      var v = valor.trim().toLowerCase();
+      const v = valor.trim().toLowerCase();
       if (v === "") return null;
       if (v === "true" || v === "1" || v === "sim") return true;
       if (v === "false" || v === "0" || v === "nao" || v === "não") return false;
@@ -399,19 +402,19 @@
   }
 
   function lerChegada(item) {
-    for (var i = 0; i < CAMPOS_DE_CHEGADA.length; i++) {
-      var par = CAMPOS_DE_CHEGADA[i];
-      var recipiente = par[0] ? item[par[0]] : item;
+    for (let i = 0; i < CAMPOS_DE_CHEGADA.length; i++) {
+      const par = CAMPOS_DE_CHEGADA[i];
+      const recipiente = par[0] ? item[par[0]] : item;
       if (!recipiente || typeof recipiente !== "object") continue;
       if (!(par[1] in recipiente)) continue;
 
-      var interpretado = interpretarChegada(recipiente[par[1]]);
+      const interpretado = interpretarChegada(recipiente[par[1]]);
       if (interpretado === null) continue; // campo existe mas nao diz nada
 
-      var nome = (par[0] ? par[0] + "." : "") + par[1];
+      const nome = (par[0] ? par[0] + "." : "") + par[1];
       if (campoDeChegadaUsado !== nome) {
         campoDeChegadaUsado = nome;
-        console.debug("[Sala de espera] chegada lida do campo:", nome);
+        LOG.debug("[Sala de espera] chegada lida do campo:", nome);
       }
       return interpretado;
     }
@@ -419,8 +422,8 @@
   }
 
   function normalizarItem(item) {
-    var gestao = item.gestaoHorario || {};
-    var cliente = item.cliente || {};
+    const gestao = item.gestaoHorario || {};
+    const cliente = item.cliente || {};
     return {
       id: String(item.id || item.agendamentoId || ""),
       status: item.statusAtendimentoId,
@@ -466,17 +469,17 @@
   }
 
   function processar(itens) {
-    var agora = itens.filter(function (p) {
+    const agora = itens.filter(function (p) {
       return !!p.id;
     });
 
-    var chegadasNovas = [];
-    var idsNestePoll = Object.create(null);
+    const chegadasNovas = [];
+    const idsNestePoll = Object.create(null);
 
     agora.forEach(function (p) {
       idsNestePoll[p.id] = true;
-      var anterior = estado.get(p.id);
-      var chegouAgora = chegouDeVerdade(p);
+      const anterior = estado.get(p.id);
+      const chegouAgora = chegouDeVerdade(p);
 
       if (!anterior) {
         /* Item que nao estava no estado. Na primeira leitura isso vale
@@ -512,7 +515,7 @@
     /* Quem nao veio nesta resposta perde o estado ativo: foi atendido,
      * cancelado, ou mudou para um status fora do filtro. Se voltar
      * depois aguardando, sera tratado como chegada nova. */
-    var sumiramSemTerChegado = [];
+    const sumiramSemTerChegado = [];
     estado.forEach(function (registro, id) {
       if (idsNestePoll[id]) return;
       /* Sumiu sem NUNCA ter chegado: pode ter sido atendido ou
@@ -544,24 +547,24 @@
    * ---------------------------------------------------------------- */
   function minutosDeEspera(horarioIso) {
     if (!horarioIso) return null;
-    var marcada = new Date(horarioIso);
+    const marcada = new Date(horarioIso);
     if (isNaN(marcada.getTime())) return null;
-    var minutos = Math.floor((Date.now() - marcada.getTime()) / 60000);
+    const minutos = Math.floor((Date.now() - marcada.getTime()) / 60000);
     return minutos > 0 ? minutos : null; // adiantado nao e atraso
   }
 
   function horaCurta(horarioIso) {
     if (!horarioIso) return null;
-    var dt = new Date(horarioIso);
+    const dt = new Date(horarioIso);
     if (isNaN(dt.getTime())) return null;
     return dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   }
 
   function linhaDoPaciente(p) {
-    var partes = [p.nome];
-    var hora = horaCurta(p.horario);
+    const partes = [p.nome];
+    const hora = horaCurta(p.horario);
     if (hora) partes.push("agendado para " + hora);
-    var espera = minutosDeEspera(p.horario);
+    const espera = minutosDeEspera(p.horario);
     if (espera) partes.push("esperando há " + espera + " min");
     return partes.join(" · ");
   }
@@ -591,10 +594,10 @@
     /* Se o aviso anterior ainda esta na tela, esta chegada se soma a
      * ele. Se nao esta, comeca uma contagem nova — senao um aviso de
      * meia hora atras inflaria o numero de agora. */
-    var visivel = aviso && aviso.estaVisivel();
+    const visivel = aviso && aviso.estaVisivel();
     chegadasNoAviso = visivel ? chegadasNoAviso.concat(novos) : novos.slice();
 
-    var conteudo = {
+    const conteudo = {
       titulo: titulo(chegadasNoAviso.length),
       /* O corpo lista no maximo seis linhas para nao virar uma parede de
        * texto, mas o TITULO continua contando todo mundo. */
@@ -626,7 +629,7 @@
   /* ----------------------------------------------------------------
    * PAINEL
    * ---------------------------------------------------------------- */
-  var CSS = [
+  const CSS = [
     ".se-modal { width:100%; max-width:520px; max-height:84vh; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); display:flex; flex-direction:column; overflow:hidden; }",
     ".se-modal header { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
     ".se-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
@@ -694,25 +697,25 @@
 
     refs.lista.innerHTML = "";
     aguardando.forEach(function (p) {
-      var espera = minutosDeEspera(p.horario);
-      var hora = horaCurta(p.horario);
+      const espera = minutosDeEspera(p.horario);
+      const hora = horaCurta(p.horario);
 
-      var linha = document.createElement("div");
+      const linha = document.createElement("div");
       linha.className = "se-item";
 
-      var dados = document.createElement("div");
+      const dados = document.createElement("div");
       dados.className = "se-dados";
-      var nome = document.createElement("div");
+      const nome = document.createElement("div");
       nome.className = "se-nome";
       nome.textContent = p.nome; // textContent: nome nao vira HTML
-      var meta = document.createElement("div");
+      const meta = document.createElement("div");
       meta.className = "se-meta";
       meta.textContent = hora ? "Agendado para " + hora : "Sem horário informado";
       dados.appendChild(nome);
       dados.appendChild(meta);
       linha.appendChild(dados);
 
-      var selo = document.createElement("span");
+      const selo = document.createElement("span");
       selo.className = "se-espera" + (espera && espera >= 15 ? " se-atrasado" : "");
       selo.textContent = espera ? espera + " min" : "no horário";
       linha.appendChild(selo);

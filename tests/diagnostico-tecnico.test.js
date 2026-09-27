@@ -28,10 +28,10 @@ function ok(nome, cond, obs) {
 }
 
 function carregar() {
-  var callbackAssinado = null;
-  var logsCapturados = [];
+  let callbackAssinado = null;
+  const logsCapturados = [];
 
-  var ctx = {
+  const ctx = {
     console: {
       log: function () { logsCapturados.push(["log"].concat(Array.prototype.slice.call(arguments))); },
       info: function () { logsCapturados.push(["info"].concat(Array.prototype.slice.call(arguments))); },

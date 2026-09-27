@@ -1,6 +1,6 @@
 {
   "nome": "Assistente Meeds",
-  "versao": "2.49.0",
+  "versao": "2.49.1",
   "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
   "repositorio": "https://github.com/sodelfino/meeds-suite",
   "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -8,6 +8,7 @@
   "_comentario_carregamento": "O pacote distribuido e AUTOCONTIDO: o build embute nucleo e modulos no .user.js final. Este manifesto e a fonte de verdade do build (ordem de concatenacao e versoes) e tambem o inventario que o painel de gerenciamento exibe. Carregamento REMOTO DE CODIGO esta desligado por padrao (ver docs/ARQUITETURA.md, decisao D1): buscar e executar JS remoto num sistema com dado de paciente seria uma superficie de execucao remota de codigo que nao se justifica. O que e atualizavel sem redeploy sao DADOS: seletores.json e modules/remume/remumes.json.",
   "carregamentoRemotoDeCodigo": false,
   "nucleo": [
+    "core/log.js",
     "core/storage.js",
     "core/noturno.js",
     "core/auth.js",

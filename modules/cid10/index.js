@@ -28,11 +28,14 @@
 (function (raiz) {
   "use strict";
 
-  var URL_BASE =
+  // Log pelo adaptador (core/log.js); console direto so se o arquivo rodar sozinho.
+  const LOG = raiz.MeedsSuiteLog || raiz.console || console;
+
+  const URL_BASE =
     "https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dados/cid10.json";
 
-  var d = null;
-  var cids = null;      // { codigo: descricao }
+  let d = null;
+  let cids = null;      // { codigo: descricao }
 
   /* O indice NAO e montado na carga da pagina.
    * Medido com a base completa: montar custa ~364 ms de thread
@@ -41,19 +44,19 @@
    * montado quando realmente precisa: na primeira busca. Se o navegador
    * oferecer tempo ocioso (requestIdleCallback), aproveitamos para
    * adiantar isso enquanto ninguem esta esperando. */
-  var indice = null;
-  var montandoIndice = false;
-  var estiloCampos = null;
+  let indice = null;
+  let montandoIndice = false;
+  let estiloCampos = null;
 
   /* Quantas sugestoes cabem no autocomplete de dentro do laudo. Menos que
    * na janela de busca: e uma lista flutuante sobre o formulario, nao
    * uma tela inteira. */
-  var MAX_SUGESTOES = 8;
+  const MAX_SUGESTOES = 8;
 
   /* Apelidos que o medico usa na boca do dia a dia. So AMPLIAM o que da
    * para digitar; nao alteram nenhuma descricao oficial. Mesmo mecanismo
    * dos sinonimos do REMUME (frase inteira, casamento exato). */
-  var SINONIMOS = {
+  const SINONIMOS = {
     infarto: ["iam", "ataque cardiaco"],
     /* "derrame" ficou de fora de proposito: em CID-10 ele tambem e
      * derrame pericardico (I31.3) e derrame pleural (J90), entao trazia
@@ -78,7 +81,7 @@
    * Nao ha medida em pixel de canto aqui: a lista se ancora no proprio
    * campo (top:100%), nao na janela. Quem posiciona coisa na tela
    * continua sendo o dock do nucleo. */
-  var CSS_CAMPO = [
+  const CSS_CAMPO = [
     ".cid-campo-wrap { position:relative; }",
     ".cid-sug { position:absolute; top:100%; left:0; right:0; z-index:5; background:#fff; border:1px solid #d8dfe6; border-top:none; border-radius:0 0 8px 8px; box-shadow:0 8px 20px rgba(0,0,0,.14); max-height:230px; overflow-y:auto; }",
     ".cid-sug[hidden] { display:none; }",
@@ -154,14 +157,14 @@
       })
       .then(function (dados) {
         if (!dados || !dados.cids || typeof dados.cids !== "object") {
-          console.warn("[CID-10] arquivo remoto com formato inesperado, mantendo a copia embutida.");
+          LOG.warn("[CID-10] arquivo remoto com formato inesperado, mantendo a copia embutida.");
           return false;
         }
         aplicarBase(dados.cids, true);
           return true;
       })
       .catch(function (e) {
-        console.warn("[CID-10] nao foi possivel baixar a base completa, usando a copia embutida.", e);
+        LOG.warn("[CID-10] nao foi possivel baixar a base completa, usando a copia embutida.", e);
         return false;
       });
   }
@@ -181,39 +184,39 @@
    * escolha. Se o modulo de CID estiver desligado, ninguem atende e o
    * campo segue funcionando como texto livre, como sempre foi.
    * ------------------------------------------------------------------ */
-  var camposConectados = [];
+  let camposConectados = [];
 
   function conectarCampo(pedido) {
-    var input = pedido && pedido.input;
+    const input = pedido && pedido.input;
     if (!input || input.__cidConectado) return false;
     input.__cidConectado = true;
 
     /* a lista precisa de um ancoradouro com position:relative */
-    var wrap = document.createElement("div");
+    const wrap = document.createElement("div");
     wrap.className = "cid-campo-wrap";
     input.parentNode.insertBefore(wrap, input);
     wrap.appendChild(input);
 
-    var sug = document.createElement("div");
+    const sug = document.createElement("div");
     sug.className = "cid-sug";
     sug.hidden = true;
     wrap.appendChild(sug);
 
-    var placeholderOriginal = input.getAttribute("placeholder");
+    const placeholderOriginal = input.getAttribute("placeholder");
     if (!placeholderOriginal || /digite ou escolha/i.test(placeholderOriginal)) {
       input.setAttribute("placeholder", "código ou nome da doença");
     }
     input.setAttribute("autocomplete", "off");
 
-    var itens = [];
-    var foco = -1;
-    var debounce = null;
+    let itens = [];
+    let foco = -1;
+    let debounce = null;
     /* Depois de escolher, o campo dispara "input" para o gerador reagir
      * (preencher a descricao, marcar o formulario como alterado). Esse
      * mesmo evento reabria a lista 180ms depois, agora com o codigo
      * recem-escolhido como termo — a lista "voltava" sozinha logo apos o
      * medico clicar. Esta marca ignora exatamente esse disparo. */
-    var ignorarProximoInput = false;
+    let ignorarProximoInput = false;
 
     function fechar() {
       sug.hidden = true;
@@ -229,7 +232,7 @@
     }
 
     function marcar(novo) {
-      var linhas = sug.querySelectorAll(".cid-sug-item");
+      const linhas = sug.querySelectorAll(".cid-sug-item");
       if (!linhas.length) return;
       if (linhas[foco]) linhas[foco].classList.remove("cid-sug-focado");
       foco = Math.min(Math.max(novo, 0), linhas.length - 1);
@@ -238,13 +241,13 @@
     }
 
     function abrirCom(termo) {
-      var texto = String(termo || "").trim();
+      const texto = String(termo || "").trim();
       if (texto.length < 2) {
         fechar();
         return;
       }
 
-      var r = raiz.MeedsSuiteBusca.buscar(texto, garantirIndice(), {
+      const r = raiz.MeedsSuiteBusca.buscar(texto, garantirIndice(), {
         sinonimos: SINONIMOS,
         limite: MAX_SUGESTOES,
         config: { PESO_SINONIMO: 2.2 },
@@ -287,7 +290,7 @@
     /* Os handlers ficam guardados para o stop() poder remove-los. Sem
      * isso, desligar o modulo desfazia o HTML mas deixava os ouvintes
      * presos no input — e religar empilharia um segundo conjunto. */
-    var handlers = {};
+    const handlers = {};
 
     handlers.input = function () {
       if (ignorarProximoInput) {

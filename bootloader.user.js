@@ -51,7 +51,7 @@
    * copiada cinco vezes. */
   if (window.self !== window.top) return;
 
-  var raiz = typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
+  const raiz = typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
 
   /* __MEEDS_SUITE_NUCLEO__ */
 
@@ -83,7 +83,7 @@
         manifesto: raiz.__MEEDS_SUITE_MANIFESTO__ || null,
       });
     } catch (e) {
-      console.error("[Assistente Meeds] falha ao iniciar o nucleo:", e);
+      raiz.MeedsSuiteLog.error("[Assistente Meeds] falha ao iniciar o nucleo:", e);
     }
   }
 
