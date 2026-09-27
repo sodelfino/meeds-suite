@@ -2,6 +2,20 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.49.0",
+      "data": "2026-09-26",
+      "novidades": [],
+      "melhorias": [
+        "O gerador de APAC do Assistente foi desativado: o Meeds agora tem um gerador de APAC próprio, dentro de Prescrever. O botão APAC sai da tela.",
+        "Visual mais sóbrio: botões e janelas com cantos menores, sombras discretas e cabeçalhos em cor sólida. Os avisos de alarme e do município continuam iguais.",
+        "Para quem instala agora, os laudos de Sete Lagoas e de Conceição do Mato Dentro começam desligados — é só ligar na ⚙️ engrenagem quando precisar. Quem já usava continua com eles ligados.",
+        "Nova mensagem de boas-vindas, com um atalho para conhecer as funções."
+      ],
+      "correcoes": [
+        "Os botões \"Configurar\" e \"Ver tutorial\" do painel apareciam em fonte de código; agora usam a fonte normal."
+      ]
+    },
+    {
       "versao": "2.48.0",
       "data": "2026-09-25",
       "novidades": [

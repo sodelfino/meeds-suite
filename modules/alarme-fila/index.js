@@ -285,8 +285,8 @@
 
   var CSS_PAINEL = [
     raiz.MeedsSuiteCabecalho.CSS,
-    ".af-modal { width: 100%; max-width: 380px; background: #fff; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden; }",
-    ".af-modal header { background: linear-gradient(135deg,#dc2626,#f97316); color:#fff; padding:16px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
+    ".af-modal { width: 100%; max-width: 380px; background: #fff; border-radius: 6px; box-shadow: 0 8px 24px rgba(15,23,42,.2); overflow: hidden; }",
+    ".af-modal header { background: #b42318; color:#fff; padding:16px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
     ".af-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
     ".af-fechar { background: rgba(255,255,255,.18); border:none; color:#fff; width:28px; height:28px; border-radius:8px; font-size:15px; cursor:pointer; flex-shrink:0; }",
     ".af-fechar:hover { background: rgba(255,255,255,.32); }",
@@ -307,7 +307,7 @@
     "#af-tempo-espera-linha input[type=number] { width:60px; padding:6px 8px; border-radius:8px; border:1.5px solid #cbd5e1; font-size:13px; }",
     ".af-body select { width:100%; box-sizing:border-box; padding:9px 10px; border-radius:10px; border:1.5px solid #cbd5e1; font-size:13.5px; color:#0f172a; background:#f8fafc; }",
     ".af-body input[type=range] { width:100%; }",
-    "#af-testar-som { width:100%; padding:10px; border-radius:10px; border:none; background:linear-gradient(135deg,#f97316,#dc2626); color:#fff; font-size:13.5px; font-weight:700; cursor:pointer; }",
+    "#af-testar-som { width:100%; padding:10px; border-radius:5px; border:none; background:#b42318; color:#fff; font-size:13.5px; font-weight:700; cursor:pointer; }",
     "#af-testar-som:hover { opacity:.92; }",
     ".af-estado { font-size:11.5px; color:#475569; line-height:1.5; }",
     "#af-liberar-aviso { margin-top:8px; padding:8px 14px; border-radius:9px; border:1.5px solid #1a4fa0; background:#fff; color:#1a4fa0; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer; }",

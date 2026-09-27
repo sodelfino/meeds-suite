@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Assistente Meeds - Por: Marcelo
 // @namespace    novetech-meeds-suite
-// @version      2.48.0
+// @version      2.49.0
 // @description  Assistente Meeds - Por: Marcelo. Alarme de fila, APAC de Itauna, laudos de Sete Lagoas e Conceicao do Mato Dentro e consulta a REMUME, numa instalacao unica. Cada funcao liga e desliga no painel da engrenagem. Nenhum dado de paciente e salvo em disco.
 // @author       Marcelo
 // @match        *://*.meeds.com.br/*
@@ -769,13 +769,17 @@
 
     ".ms-btn {",
     "  display: flex; align-items: center; justify-content: center; gap: 8px;",
-    "  background: #1a4fa0; color: #fff; border: none; border-radius: 999px;",
-    "  padding: 13px 19px; font-size: 13.5px; font-weight: 800; cursor: pointer;",
-    "  box-shadow: 0 8px 22px rgba(26,79,160,.4); line-height: 1.2; white-space: nowrap;",
-    "  transition: transform .15s ease, box-shadow .15s ease, background .15s ease;",
+    "  background: #1a4fa0; color: #fff; border: none; border-radius: 6px;",
+    "  padding: 11px 16px; font-size: 13px; font-weight: 600; cursor: pointer;",
+    "  box-shadow: 0 1px 3px rgba(15,23,42,.22); line-height: 1.2; white-space: nowrap;",
+    "  transition: background .12s ease, box-shadow .12s ease;",
     "}",
-    ".ms-btn:hover { background: #0f3373; transform: translateY(-1px); }",
-    ".ms-btn:active { transform: scale(.97); }",
+    ".ms-btn:hover { background: #163f80; box-shadow: 0 2px 6px rgba(15,23,42,.24); }",
+    ".ms-btn:active { background: #123a7a; }",
+    /* foco de teclado visivel e discreto: um anel fino, so quando e teclado */
+    ".ms-btn:focus-visible, .ms-aviso-btn:focus-visible, .ms-aviso-fechar:focus-visible {",
+    "  outline: 2px solid #60a5fa; outline-offset: 2px;",
+    "}",
     ".ms-btn[hidden] { display: none; }",
 
     /* icone SVG (core/icones.js): herda a cor do texto do botao */
@@ -788,7 +792,7 @@
     ".ms-btn.ms-btn-engrenagem {",
     "  width: 42px; height: 42px; font-size: 18px; padding: 0; border-radius: 50%;",
     "  background: #fff; color: #334155; border: 1px solid #e2e8f0;",
-    "  box-shadow: 0 2px 10px rgba(15,23,42,.22);",
+    "  box-shadow: 0 1px 3px rgba(15,23,42,.18);",
     "}",
     ".ms-btn.ms-btn-engrenagem:hover { background: #f1f5f9; }",
 
@@ -857,15 +861,15 @@
     /* estado ligado/alerta (usado pelo alarme de fila) */
     ".ms-btn.ms-ativo { background: linear-gradient(135deg, #f97316, #dc2626); box-shadow: 0 4px 18px rgba(220,38,38,.55); animation: ms-pulso 2.2s ease-in-out infinite; }",
     ".ms-btn.ms-ativo:hover { background: linear-gradient(135deg, #ea6a0c, #c31c1c); }",
-    ".ms-btn.ms-neutro { background: linear-gradient(135deg, #64748b, #475569); box-shadow: 0 4px 14px rgba(71,85,105,.45); }",
+    ".ms-btn.ms-neutro { background: #5b6778; box-shadow: 0 1px 3px rgba(15,23,42,.22); }",
     "@keyframes ms-pulso { 0%,100% { box-shadow: 0 4px 18px rgba(220,38,38,.55); } 50% { box-shadow: 0 4px 26px rgba(220,38,38,.9); } }",
 
     /* --- toast --- */
     "#toast {",
     "  position: fixed; right: 24px; bottom: 24px; z-index: " + (Z_BASE + 3) + ";",
-    "  background: #16221f; color: #fff; padding: 9px 14px; border-radius: 8px;",
+    "  background: #16221f; color: #fff; padding: 9px 14px; border-radius: 6px;",
     "  font-size: 12px; line-height: 1.4; max-width: 340px;",
-    "  box-shadow: 0 6px 16px rgba(0,0,0,.25);",
+    "  box-shadow: 0 2px 8px rgba(0,0,0,.2);",
     "}",
     "#toast[hidden] { display: none; }",
 
@@ -911,16 +915,16 @@
     "}",
     "#avisos > * { pointer-events: auto; }",
     ".ms-aviso {",
-    "  background: #fff; border-radius: 12px; width: 100%;",
-    "  box-shadow: 0 10px 34px rgba(15,23,42,.28); overflow: hidden;",
+    "  background: #fff; border-radius: 6px; width: 100%;",
+    "  box-shadow: 0 4px 14px rgba(15,23,42,.18); overflow: hidden;",
     "  border-left: 4px solid #1a4fa0;",
-    "  animation: ms-aviso-entra .28s cubic-bezier(.22,.9,.3,1);",
+    "  animation: ms-aviso-entra .18s ease-out;",
     "}",
     /* Sobe do rodape em vez de deslizar da direita. Os 26px e a saida
        desacelerada dao o "peso" do cartao do MSN — rapido no comeco,
        assentando no fim; um fade puro nao chama a atencao periferica, e
        e exatamente ela que este aviso precisa alcancar. */
-    "@keyframes ms-aviso-entra { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }",
+    "@keyframes ms-aviso-entra { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }",
     /* Aviso de ATENCAO (regras do municipio): ambar em vez de azul, e a
        borda pulsa TRES vezes depois de assentar — chama o olho na chegada
        e para. Um cartao que se mexe a consulta toda vira paisagem, e o
@@ -928,7 +932,7 @@
        ambar (bloco prefers-reduced-motion abaixo). */
     ".ms-aviso.ms-aviso-atencao {",
     "  background: #fffbeb; border-left-color: #d97706;",
-    "  animation: ms-aviso-entra .28s cubic-bezier(.22,.9,.3,1), ms-aviso-pulsa .9s ease-in-out .3s 3;",
+    "  animation: ms-aviso-entra .18s ease-out, ms-aviso-pulsa .9s ease-in-out .3s 3;",
     "}",
     ".ms-aviso-atencao .ms-aviso-titulo, .ms-aviso-atencao-calmo .ms-aviso-titulo { color: #92400e; }",
     /* Depois de lido no centro, o cartao desce para o canto e fica la,
@@ -957,7 +961,7 @@
     "#avisos-topo > * { pointer-events: auto; }",
     "#avisos-topo .ms-aviso { box-shadow: 0 4px 12px rgba(15,23,42,.22); }",
     "#avisos-topo .ms-aviso.ms-aviso-atencao {",
-    "  animation: ms-aviso-entra .28s cubic-bezier(.22,.9,.3,1), ms-aviso-pulsa-topo .9s ease-in-out .3s 3;",
+    "  animation: ms-aviso-entra .18s ease-out, ms-aviso-pulsa-topo .9s ease-in-out .3s 3;",
     "}",
     "@keyframes ms-aviso-pulsa-topo {",
     "  0%, 100% { box-shadow: 0 4px 12px rgba(15,23,42,.22), 0 0 0 0 rgba(217,119,6,0); }",
@@ -969,16 +973,16 @@
     "#avisos-centro .ms-aviso-corpo { font-size: 14.5px; line-height: 1.65; padding: 8px 16px 14px; }",
     "#avisos-centro .ms-aviso-btn { font-size: 13px; padding: 8px 16px; }",
     "@keyframes ms-aviso-pulsa {",
-    "  0%, 100% { box-shadow: 0 10px 34px rgba(15,23,42,.28), 0 0 0 0 rgba(217,119,6,0); }",
-    "  50% { box-shadow: 0 10px 34px rgba(15,23,42,.28), 0 0 0 5px rgba(217,119,6,.55); }",
+    "  0%, 100% { box-shadow: 0 4px 14px rgba(15,23,42,.18), 0 0 0 0 rgba(217,119,6,0); }",
+    "  50% { box-shadow: 0 4px 14px rgba(15,23,42,.18), 0 0 0 5px rgba(217,119,6,.55); }",
     "}",
     ".ms-aviso-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 12px 14px 0; }",
-    ".ms-aviso-titulo { font-size: 13px; font-weight: 700; color: #123a7a; line-height: 1.3; }",
+    ".ms-aviso-titulo { font-size: 13px; font-weight: 600; color: #123a7a; line-height: 1.3; }",
     ".ms-aviso-fechar { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 15px; line-height: 1; padding: 0 2px; flex-shrink: 0; }",
     ".ms-aviso-fechar:hover { color: #475569; }",
     ".ms-aviso-corpo { padding: 6px 14px 12px; font-size: 12.5px; line-height: 1.5; color: #16221f; }",
     ".ms-aviso-acoes { display: flex; gap: 8px; padding: 0 14px 12px; }",
-    ".ms-aviso-btn { background: #1a4fa0; color: #fff; border: none; border-radius: 7px; padding: 7px 13px; font-size: 12px; font-weight: 700; cursor: pointer; }",
+    ".ms-aviso-btn { background: #1a4fa0; color: #fff; border: none; border-radius: 5px; padding: 7px 13px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background .12s ease; }",
     ".ms-aviso-btn:hover { background: #123a7a; }",
     ".ms-aviso-btn-sec { background: #fff; color: #123a7a; border: 1.3px solid #cbd5e1; }",
     ".ms-aviso-btn-sec:hover { background: #eef4fb; }",
@@ -5228,33 +5232,37 @@
    * consulta (REMUME, Exames) é verde-água; o alarme é quente, porque
    * ele é o único que pode aparecer no meio de uma consulta. */
   var TONS = {
-    documento: "linear-gradient(135deg,#123a7a,#1a56ad)",
-    consulta: "linear-gradient(135deg,#0f766e,#0ea5a4)",
-    alarme: "linear-gradient(135deg,#dc2626,#f97316)",
+    /* Cores solidas (antes, gradientes): mesma familia de cada tom, mais
+     * sobrias. O tom continua dizendo o tipo de janela — azul documento,
+     * verde-agua consulta, vermelho alarme. */
+    documento: "#17457f",
+    consulta: "#0f6b64",
+    alarme: "#b42318",
   };
 
   var CSS = [
     ".msc-head {",
     "  color:#fff; padding:15px 18px; display:flex; align-items:flex-start;",
     "  justify-content:space-between; gap:12px;",
-    "  position:sticky; top:0; z-index:3; border-radius:16px 16px 0 0;",
+    "  position:sticky; top:0; z-index:3; border-radius:6px 6px 0 0;",
     "}",
     ".msc-head-txt { min-width:0; }",
-    ".msc-head h2 { margin:0; font-size:15px; font-weight:700; line-height:1.25; text-wrap:balance; }",
+    ".msc-head h2 { margin:0; font-size:15px; font-weight:600; line-height:1.25; text-wrap:balance; }",
     ".msc-sub { margin:3px 0 0; font-size:11.5px; line-height:1.35; opacity:.9; }",
     ".msc-acoes { display:flex; align-items:center; gap:8px; flex-shrink:0; }",
     ".msc-acao {",
-    "  background:rgba(255,255,255,.2); border:none; color:#fff; border-radius:999px;",
-    "  padding:5px 11px; font-size:11px; font-weight:700; font-family:inherit;",
+    "  background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.28); color:#fff; border-radius:5px;",
+    "  padding:4px 10px; font-size:11px; font-weight:600; font-family:inherit;",
     "  cursor:pointer; white-space:nowrap; line-height:1.3;",
     "}",
-    ".msc-acao:hover { background:rgba(255,255,255,.34); }",
+    ".msc-acao:hover { background:rgba(255,255,255,.26); }",
+    ".msc-acao:focus-visible, .msc-fechar:focus-visible { outline:2px solid #bfdbfe; outline-offset:2px; }",
     ".msc-fechar {",
     "  background:rgba(255,255,255,.2); border:none; color:#fff;",
-    "  width:28px; height:28px; border-radius:50%; flex-shrink:0;",
+    "  width:28px; height:28px; border-radius:5px; flex-shrink:0;",
     "  font-size:14px; line-height:1; cursor:pointer;",
     "}",
-    ".msc-fechar:hover { background:rgba(255,255,255,.34); }",
+    ".msc-fechar:hover { background:rgba(255,255,255,.3); }",
   ].join("\n");
 
   function esc(s) {
@@ -5529,11 +5537,11 @@
    * 3) AVISOS NA TELA
    * ------------------------------------------------------------------ */
   var CSS = [
-    ".msd-aviso { width:100%; max-width:520px; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); overflow:hidden; }",
+    ".msd-aviso { width:100%; max-width:520px; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; }",
     ".msd-aviso header { padding:16px 18px; color:#fff; display:flex; justify-content:space-between; align-items:center; gap:12px; }",
     ".msd-aviso header h2 { margin:0; font-size:15px; font-weight:700; }",
-    ".msd-alerta header { background:linear-gradient(135deg,#b45309,#f59e0b); }",
-    ".msd-boas-vindas header { background:linear-gradient(135deg,#123a7a,#1a56ad); }",
+    ".msd-alerta header { background:#a8520c; }",
+    ".msd-boas-vindas header { background:#17457f; }",
     ".msd-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; }",
     ".msd-corpo { padding:16px 18px; font-size:13px; line-height:1.6; color:#16221f; }",
     ".msd-corpo ol, .msd-corpo ul { margin:10px 0; padding-left:20px; }",
@@ -5612,14 +5620,14 @@
         "  <header><h2>Bem-vindo ao Assistente Meeds</h2>" +
         '  <button type="button" class="msd-fechar" aria-label="Fechar">&#10005;</button></header>' +
         '  <div class="msd-corpo">' +
-        "    <p>Os botões ficam no <b>canto inferior direito</b> da tela, depois que você entra no Meeds. " +
-        "       O <b>⌄</b> recolhe todos; aproxime o mouse do canto para eles voltarem.</p>" +
-        "    <p>No <b>⚙️</b> você liga e desliga cada função e cadastra seu nome e CRM — uma vez só, " +
-        "       para todos os laudos.</p>" +
+        "    <p>Seja bem-vindo! O Assistente Meeds foi criado para <b>apoiar você na jornada de " +
+        "       atendimento</b>.</p>" +
+        "    <p>Para conhecer o que ele faz, clique na <b>⚙️ engrenagem</b>, no canto inferior direito da " +
+        "       tela, e veja as funções disponíveis. Lá você liga e desliga cada uma quando quiser.</p>" +
         "  </div>" +
         '  <div class="msd-rodape">' +
-        '    <button type="button" class="msd-btn msd-btn-sec" id="msd-depois">Ver depois</button>' +
-        '    <button type="button" class="msd-btn" id="msd-cadastrar">Cadastrar agora</button>' +
+        '    <button type="button" class="msd-btn msd-btn-sec" id="msd-depois">Agora não</button>' +
+        '    <button type="button" class="msd-btn" id="msd-funcoes">Conhecer as funções</button>' +
         "  </div>" +
         "</div>",
     });
@@ -5630,9 +5638,9 @@
     }
     overlay.$(".msd-fechar").addEventListener("click", encerrar);
     overlay.$("#msd-depois").addEventListener("click", encerrar);
-    overlay.$("#msd-cadastrar").addEventListener("click", function () {
+    overlay.$("#msd-funcoes").addEventListener("click", function () {
       encerrar();
-      raiz.MeedsSuiteManager.abrir("medicos");
+      raiz.MeedsSuiteManager.abrir("funcoes");
     });
     overlay.abrir();
     return overlay;
@@ -5809,8 +5817,8 @@
   }
 
   var CSS = [
-    ".msn-caixa { width:100%; max-width:540px; max-height:84vh; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); display:flex; flex-direction:column; overflow:hidden; }",
-    ".msn-caixa header { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 18px; display:flex; justify-content:space-between; align-items:center; gap:12px; }",
+    ".msn-caixa { width:100%; max-width:540px; max-height:84vh; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); display:flex; flex-direction:column; overflow:hidden; }",
+    ".msn-caixa header { background:#17457f; color:#fff; padding:16px 18px; display:flex; justify-content:space-between; align-items:center; gap:12px; }",
     ".msn-caixa header h2 { margin:0; font-size:15px; font-weight:700; }",
     ".msn-versao { margin:2px 0 0; font-size:11.5px; opacity:.9; }",
     ".msn-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; }",
@@ -6091,8 +6099,8 @@
   "use strict";
 
   var CSS = [
-    ".tut-modal { background:#fff; border-radius:16px; width:100%; max-width:440px; box-shadow:0 20px 60px rgba(0,0,0,.35); overflow:hidden; }",
-    ".tut-head { background:linear-gradient(135deg,#0f766e,#0ea5a4); color:#fff; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
+    ".tut-modal { background:#fff; border-radius:6px; width:100%; max-width:440px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; }",
+    ".tut-head { background:#0f6b64; color:#fff; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
     ".tut-head h2 { margin:0; font-size:14px; font-weight:700; }",
     ".tut-fechar { background:rgba(255,255,255,.18); border:none; color:#fff; width:26px; height:26px; border-radius:8px; font-size:13px; cursor:pointer; flex-shrink:0; }",
     ".tut-fechar:hover { background:rgba(255,255,255,.32); }",
@@ -6423,14 +6431,14 @@
   "use strict";
 
   var CSS = [
-    ".msf-modal { width:100%; max-width:520px; max-height:86vh; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); display:flex; flex-direction:column; overflow:hidden; }",
-    ".msf-modal header { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
+    ".msf-modal { width:100%; max-width:520px; max-height:86vh; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); display:flex; flex-direction:column; overflow:hidden; }",
+    ".msf-modal header { background:#17457f; color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
     ".msf-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
     ".msf-sub { margin:3px 0 0; font-size:11.5px; opacity:.9; }",
     ".msf-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; }",
     ".msf-corpo { padding:15px 18px; overflow-y:auto; }",
     ".msf-tipos { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }",
-    ".msf-tipo { background:#fff; border:1.4px solid #d8dfe6; color:#5b6672; border-radius:999px; padding:7px 14px; font-size:12px; font-weight:700; font-family:inherit; cursor:pointer; }",
+    ".msf-tipo { background:#fff; border:1.4px solid #d8dfe6; color:#5b6672; border-radius:6px; padding:7px 14px; font-size:12px; font-weight:600; font-family:inherit; cursor:pointer; }",
     ".msf-tipo:hover { border-color:#1a56ad; color:#123a7a; }",
     ".msf-tipo[aria-pressed='true'] { background:#123a7a; border-color:#123a7a; color:#fff; }",
     ".msf-corpo label { display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }",
@@ -6703,14 +6711,14 @@
   var Cadastro = raiz.MeedsSuiteCadastro;
 
   var ESTILO = [
-    ".msm-modal { background:#fff; border-radius:16px; width:100%; max-width:540px; max-height:86vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,.35); }",
+    ".msm-modal { background:#fff; border-radius:6px; width:100%; max-width:540px; max-height:86vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 8px 24px rgba(15,23,42,.2); }",
 
     /* cabecalho */
-    ".msm-head { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:15px 18px 0; flex-shrink:0; }",
+    ".msm-head { background:#17457f; color:#fff; padding:15px 18px 0; flex-shrink:0; }",
     ".msm-head-topo { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
     ".msm-head h2 { margin:0; font-size:15px; font-weight:700; }",
     ".msm-head .msm-sub { margin:2px 0 0; font-size:11.5px; opacity:.85; }",
-    ".msm-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; }",
+    ".msm-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:5px; cursor:pointer; font-size:14px; flex-shrink:0; }",
     ".msm-fechar:hover { background:rgba(255,255,255,.34); }",
 
     /* abas */
@@ -6738,12 +6746,12 @@
     ".msm-tutorial-fixo { background:none; border:none; padding:0; font:inherit; font-size:11px; color:#8a97a4; cursor:pointer; text-decoration:underline dotted; }",
     ".msm-tutorial-fixo:hover { color:#0f766e; }",
     ".msm-tutorial-fixo b { color:inherit; }",
-    ".msm-ajustes { margin-top:7px; background:#fff; border:1.4px solid #c3d4ee; color:#1a4fa0; cursor:pointer; font-size:11.5px; font-family:inherit; font-weight:700; padding:6px 11px; border-radius:8px; }",
+    ".msm-ajustes { margin-top:7px; background:#fff; border:1.4px solid #c3d4ee; color:#1a4fa0; cursor:pointer; font-size:11.5px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-weight:600; padding:5px 10px; border-radius:5px; }",
     ".msm-ajustes:hover { background:#eef4ff; border-color:#1a4fa0; }",
     /* Mesma forma do botao de Ajustes, paleta verde-agua (a cor do
        tutorial em core/tutorial.js) para diferenciar as duas acoes
        sem depender so do texto/icone. */
-    ".msm-tutorial { margin-top:7px; background:#fff; border:1.4px solid #a7e0da; color:#0f766e; cursor:pointer; font-size:11.5px; font-family:inherit; font-weight:700; padding:6px 11px; border-radius:8px; }",
+    ".msm-tutorial { margin-top:7px; background:#fff; border:1.4px solid #a7e0da; color:#0f766e; cursor:pointer; font-size:11.5px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-weight:600; padding:5px 10px; border-radius:5px; }",
     ".msm-tutorial:hover { background:#effbf9; border-color:#0f766e; }",
 
     ".msm-switch { position:relative; width:44px; height:25px; flex-shrink:0; cursor:pointer; }",
@@ -7516,7 +7524,7 @@
    * versao aqui nem no bootloader — so no manifest.
    * O valor de reserva existe para o arquivo continuar rodavel solto,
    * fora do pacote (por exemplo num teste unitario). */
-  var VERSAO_NUCLEO = "2.48.0" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.48.0";
+  var VERSAO_NUCLEO = "2.49.0" === "__MEEDS" + "_VERSAO__" ? "dev" : "2.49.0";
 
   var Auth = raiz.MeedsSuiteAuth;
   var Dock = raiz.MeedsSuiteDock;
@@ -8055,6 +8063,42 @@
 
   var carregouPreferencias = false;
 
+  /* ------------------------------------------------------------------
+   * LAUDOS DESLIGADOS NA PRIMEIRA INSTALACAO (v2.49.0) — sem desligar
+   * de quem ja usava
+   * ------------------------------------------------------------------
+   * Laudo de Sete Lagoas e de Conceicao do Mato Dentro passaram a ter
+   * `padraoHabilitado: false`: so servem a quem atende o municipio, e o
+   * medico liga quando precisar. Mas o padrao so vale para quem NUNCA
+   * mexeu na chave — e quem ja tinha o Assistente e nunca mexeu estava
+   * com os dois ligados. Sem isto, a atualizacao tiraria o botao dessa
+   * pessoa sem ela pedir.
+   *
+   * Quem ja usava: a marca de "boas-vindas vistas" existe. Para essa
+   * pessoa, grava ligado o que ela tinha (so onde ela nunca escolheu).
+   * Roda UMA vez por navegador; numa instalacao nova so grava a marca,
+   * para que na proxima abertura — com as boas-vindas ja vistas — ela
+   * nao seja confundida com quem ja usava. */
+  var LAUDOS_AGORA_DESLIGADOS = ["lme-sete-lagoas", "cmd"];
+  var MARCA_PADRAO_LAUDOS = "padrao_laudos_v2_49";
+
+  function preservarLaudosDeQuemJaUsava(storage, jaUsava) {
+    if (!storage || storage.ler(MARCA_PADRAO_LAUDOS, false) === true) return false;
+    var mudou = false;
+    if (jaUsava) {
+      var mapa = storage.ler("modulos", {}) || {};
+      LAUDOS_AGORA_DESLIGADOS.forEach(function (id) {
+        if (!Object.prototype.hasOwnProperty.call(mapa, id)) {
+          mapa[id] = true;
+          mudou = true;
+        }
+      });
+      if (mudou) storage.gravar("modulos", mapa);
+    }
+    storage.gravar(MARCA_PADRAO_LAUDOS, true);
+    return mudou;
+  }
+
   function iniciar(opcoes) {
     if (iniciado) return;
     opcoes = opcoes || {};
@@ -8147,6 +8191,8 @@
      * obrigacao de levar junto o que o medico guardou nele. */
     if (raiz.MeedsSuiteModelos) raiz.MeedsSuiteModelos.migrarId("apac-itauna", "apac");
 
+    preservarLaudosDeQuemJaUsava(storageNucleo, raiz.MeedsSuiteDiagnostico.boasVindasConcluidas());
+
     (function carimbarMunicipioPeloCnes() {
       var dados = raiz.MEEDS_DADOS_APAC;
       if (!dados || !dados.municipios || !Cadastro || !Cadastro.preencherMunicipioPeloCnes) return;
@@ -8216,6 +8262,8 @@
     novidades: raiz.MeedsSuiteNovidades,
     registerModule: registerModule,
     listarModulos: listarModulos,
+    /* so para teste (tests/padrao-laudos.test.js) */
+    _preservarLaudosDeQuemJaUsava: preservarLaudosDeQuemJaUsava,
     estaHabilitado: estaHabilitado,
     definirHabilitado: definirHabilitado,
     iniciar: iniciar,
@@ -8275,10 +8323,10 @@
   raiz.MEEDS_MARCAS = {"_leia_me":"TRADUTOR de nome comercial para principio ativo. ATENCAO: esta tabela NUNCA e fonte de medicamento. Ela so ajuda a ENCONTRAR o item dentro da REMUME do municipio — a REMUME (modules/remume/remumes.json) e a unica fonte de verdade. Se o principio ativo traduzido nao estiver na REMUME daquele municipio, o Assistente avisa que nao consta e NAO oferece o item. Para acrescentar uma marca, copie um bloco abaixo e rode 'npm run build'. Ver docs/MANUAL-ADMIN.md.","_campos":{"marca":"O que o medico digita (nome comercial, sigla ou nome alternativo).","principioAtivo":"O nome que se procura dentro da REMUME.","observacao":"Opcional. Aparece so na documentacao, nao na tela."},"_total":252,"marcas":[{"marca":"AAS","principioAtivo":"Ácido acetilsalicílico","observacao":"Sigla de uso corrente."},{"marca":"Acetaminofeno","principioAtivo":"Paracetamol","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Acfol","principioAtivo":"Acido Folico","observacao":""},{"marca":"Actilyse","principioAtivo":"Alteplase","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Adalat","principioAtivo":"Nifedipino","observacao":""},{"marca":"Adalat Oros","principioAtivo":"Nifedipina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Addera","principioAtivo":"Colecalciferol","observacao":""},{"marca":"Adenocard","principioAtivo":"Adenosina","observacao":""},{"marca":"Advil","principioAtivo":"Ibuprofeno","observacao":""},{"marca":"Aerolin","principioAtivo":"Salbutamol","observacao":""},{"marca":"Akineton","principioAtivo":"Biperideno","observacao":""},{"marca":"Aldactone","principioAtivo":"Espironolactona","observacao":""},{"marca":"Aldomet","principioAtivo":"Metildopa","observacao":""},{"marca":"Alivium","principioAtivo":"Ibuprofeno","observacao":""},{"marca":"Allegra","principioAtivo":"Fexofenadina","observacao":""},{"marca":"Amox","principioAtivo":"Amoxicilina","observacao":""},{"marca":"Amoxil","principioAtivo":"Amoxicilina","observacao":""},{"marca":"Amplictil","principioAtivo":"Clorpromazina","observacao":""},{"marca":"Amytril","principioAtivo":"Amitriptilina","observacao":""},{"marca":"Ancoron","principioAtivo":"Amiodarona","observacao":""},{"marca":"Angipress","principioAtivo":"Atenolol","observacao":""},{"marca":"Antak","principioAtivo":"Ranitidina","observacao":""},{"marca":"Apresolina","principioAtivo":"Hidralazina","observacao":""},{"marca":"Apressolina","principioAtivo":"Hidralazina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Aprovel","principioAtivo":"Irbesartana","observacao":""},{"marca":"Aradois","principioAtivo":"Losartana","observacao":""},{"marca":"Asmafen","principioAtivo":"Aminofilina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Aspirina","principioAtivo":"Ácido acetilsalicílico","observacao":""},{"marca":"Astromicin","principioAtivo":"Azitromicina","observacao":""},{"marca":"Atensina","principioAtivo":"Clonidina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Atlansil","principioAtivo":"Amiodarona","observacao":""},{"marca":"Atrovent","principioAtivo":"Ipratropio","observacao":""},{"marca":"Bactrim","principioAtivo":"Sulfametoxazol","observacao":""},{"marca":"Bactroban","principioAtivo":"Mupirocina","observacao":""},{"marca":"Balcor","principioAtivo":"Diltiazem","observacao":""},{"marca":"Benerva","principioAtivo":"Tiamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Benzetacil","principioAtivo":"Penicilina","observacao":""},{"marca":"Buscopam Composto","principioAtivo":"Escopolamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Buscopan","principioAtivo":"Escopolamina","observacao":""},{"marca":"Buscopan","principioAtivo":"Butilbrometo","observacao":""},{"marca":"Buscopan Composto","principioAtivo":"Escopolamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Buscopan Simples","principioAtivo":"Escopolamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Busonid","principioAtivo":"Budesonida","observacao":""},{"marca":"Capoten","principioAtivo":"Captopril","observacao":""},{"marca":"Cardilol","principioAtivo":"Carvedilol","observacao":""},{"marca":"Cardizem","principioAtivo":"Diltiazem","observacao":""},{"marca":"Cataflam","principioAtivo":"Diclofenaco","observacao":""},{"marca":"Cimetidan","principioAtivo":"Cimetidina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Cipramil","principioAtivo":"Citalopram","observacao":""},{"marca":"Cipro","principioAtivo":"Ciprofloxacino","observacao":""},{"marca":"Ciproxin","principioAtivo":"Ciprofloxacino","observacao":""},{"marca":"Citalor","principioAtivo":"Atorvastatina","observacao":""},{"marca":"Citoneurin","principioAtivo":"Complexo B","observacao":""},{"marca":"Claritine","principioAtivo":"Loratadina","observacao":""},{"marca":"Clavulin","principioAtivo":"Clavulanato","observacao":""},{"marca":"Clenil","principioAtivo":"Beclometasona","observacao":""},{"marca":"Clexane","principioAtivo":"Enoxaparina","observacao":""},{"marca":"Clisterol","principioAtivo":"Glicerina Clister","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Clorana","principioAtivo":"Hidroclorotiazida","observacao":""},{"marca":"Combiron","principioAtivo":"Sulfato Ferroso","observacao":""},{"marca":"Coreg","principioAtivo":"Carvedilol","observacao":""},{"marca":"Coumadin","principioAtivo":"Varfarina","observacao":""},{"marca":"Cozaar","principioAtivo":"Losartana","observacao":""},{"marca":"Crestor","principioAtivo":"Rosuvastatina","observacao":""},{"marca":"Cymbalta","principioAtivo":"Duloxetina","observacao":""},{"marca":"Cytotec","principioAtivo":"Misoprostol","observacao":""},{"marca":"Daforin","principioAtivo":"Fluoxetina","observacao":""},{"marca":"Daktarin","principioAtivo":"Miconazol","observacao":""},{"marca":"Dalacin","principioAtivo":"Clindamicina","observacao":""},{"marca":"Dalacin C","principioAtivo":"Clindamicina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Daonil","principioAtivo":"Glibenclamida","observacao":""},{"marca":"Decadron","principioAtivo":"Dexametasona","observacao":""},{"marca":"Depakene","principioAtivo":"Valproato","observacao":""},{"marca":"Depakote","principioAtivo":"Valproato","observacao":""},{"marca":"Dermazine","principioAtivo":"Sulfadiazina Prata","observacao":""},{"marca":"Desalex","principioAtivo":"Desloratadina","observacao":""},{"marca":"Deslanol","principioAtivo":"Deslanosídeo","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Despacilina","principioAtivo":"Benzilpenicilina Potássica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Diamicron","principioAtivo":"Gliclazida","observacao":""},{"marca":"Digesan","principioAtivo":"Bromoprida","observacao":""},{"marca":"Dimorf","principioAtivo":"Morfina","observacao":""},{"marca":"Diovan","principioAtivo":"Valsartana","observacao":""},{"marca":"Diprivan","principioAtivo":"Propofol","observacao":""},{"marca":"Diprospan","principioAtivo":"Betametasona","observacao":""},{"marca":"Dobutrex","principioAtivo":"Dobutamina","observacao":""},{"marca":"Dormonid","principioAtivo":"Midazolam","observacao":""},{"marca":"Dulcolax","principioAtivo":"Bisacodil","observacao":""},{"marca":"Efexor","principioAtivo":"Venlafaxina","observacao":""},{"marca":"Efortil","principioAtivo":"Etilefrina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Eliquis","principioAtivo":"Apixabana","observacao":""},{"marca":"Elocom","principioAtivo":"Mometasona","observacao":""},{"marca":"Epinefrina","principioAtivo":"Adrenalina","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Esmeron","principioAtivo":"Rocurônio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Euthyrox","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Fenergan","principioAtivo":"Prometazina","observacao":""},{"marca":"Fenocris","principioAtivo":"Fenobarbital Sódico","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Fentanil","principioAtivo":"Fentanila","observacao":""},{"marca":"Flagyl","principioAtivo":"Metronidazol","observacao":""},{"marca":"Flixotide","principioAtivo":"Fluticasona","observacao":""},{"marca":"Fluconal","principioAtivo":"Fluconazol","observacao":""},{"marca":"Folacin","principioAtivo":"Acido Folico","observacao":""},{"marca":"Franol","principioAtivo":"Efedrina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Garamicina","principioAtivo":"Gentamicina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Gardenal","principioAtivo":"Fenobarbital","observacao":""},{"marca":"Gentamisan","principioAtivo":"Gentamicina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Glifage","principioAtivo":"Metformina","observacao":""},{"marca":"Glucoformin","principioAtivo":"Metformina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Haldol","principioAtivo":"Haloperidol","observacao":""},{"marca":"Hctz","principioAtivo":"Hidroclorotiazida","observacao":""},{"marca":"Hidantal","principioAtivo":"Fenitoina","observacao":""},{"marca":"Hidraplex","principioAtivo":"Sais para reidratação oral","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Higroton","principioAtivo":"Clortalidona","observacao":""},{"marca":"Hixizine","principioAtivo":"Hidroxizina","observacao":""},{"marca":"Humulin","principioAtivo":"Insulina","observacao":""},{"marca":"Hypnomidate","principioAtivo":"Etomidato","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Imosec","principioAtivo":"Loperamida","observacao":""},{"marca":"Inderal","principioAtivo":"Propranolol","observacao":""},{"marca":"Insunorm","principioAtivo":"Insulina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Iruxol","principioAtivo":"Colagenase","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Kanakion","principioAtivo":"Fitomenadiona","observacao":""},{"marca":"Kanakion Im/sc","principioAtivo":"Fitomenadiona","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Kcl","principioAtivo":"Cloreto de potássio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Keflex","principioAtivo":"Cefalexina","observacao":""},{"marca":"Keppra","principioAtivo":"Levetiracetam","observacao":""},{"marca":"Ketamin","principioAtivo":"Escetamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Klaricid","principioAtivo":"Claritromicina","observacao":""},{"marca":"Label","principioAtivo":"Ranitidina","observacao":""},{"marca":"Lactulona","principioAtivo":"Lactulose","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Lamisil","principioAtivo":"Terbinafina","observacao":""},{"marca":"Lanexat","principioAtivo":"Flumazenil","observacao":""},{"marca":"Lasix","principioAtivo":"Furosemida","observacao":""},{"marca":"Levaquin","principioAtivo":"Levofloxacino","observacao":""},{"marca":"Lexapro","principioAtivo":"Escitalopram","observacao":""},{"marca":"Lexotan","principioAtivo":"Bromazepam","observacao":""},{"marca":"Lioresal","principioAtivo":"Baclofeno","observacao":""},{"marca":"Lipitor","principioAtivo":"Atorvastatina","observacao":""},{"marca":"Liquemine","principioAtivo":"Heparina","observacao":""},{"marca":"Liquemine EV","principioAtivo":"Heparina Sódica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Liquemine Sc","principioAtivo":"Heparina Sódica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Lopressor","principioAtivo":"Metoprolol","observacao":""},{"marca":"Loranil","principioAtivo":"Loratadina","observacao":""},{"marca":"Lorax","principioAtivo":"Lorazepam","observacao":""},{"marca":"Losec","principioAtivo":"Omeprazol","observacao":""},{"marca":"Luftal","principioAtivo":"Simeticona","observacao":""},{"marca":"Lyrica","principioAtivo":"Pregabalina","observacao":""},{"marca":"Macrodantina","principioAtivo":"Nitrofurantoina","observacao":""},{"marca":"Manitol 20%","principioAtivo":"Manitol","observacao":""},{"marca":"Marcaina","principioAtivo":"Bupivacaina","observacao":""},{"marca":"Marevan","principioAtivo":"Varfarina","observacao":""},{"marca":"Metamizol","principioAtivo":"Dipirona","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Meticorten","principioAtivo":"Prednisona","observacao":""},{"marca":"Micardis","principioAtivo":"Telmisartana","observacao":""},{"marca":"Micostatin","principioAtivo":"Nistatina","observacao":""},{"marca":"Miosan","principioAtivo":"Ciclobenzaprina","observacao":""},{"marca":"Motilium","principioAtivo":"Domperidona","observacao":""},{"marca":"Movatec","principioAtivo":"Meloxicam","observacao":""},{"marca":"Nacl 0,9%.","principioAtivo":"Cloreto de Sódio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Nacl 20%.","principioAtivo":"Cloreto de Sódio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Narcan","principioAtivo":"Naloxona","observacao":""},{"marca":"Naropin","principioAtivo":"Ropivacaina","observacao":""},{"marca":"Nasonex","principioAtivo":"Mometasona","observacao":""},{"marca":"Natrilix","principioAtivo":"Indapamida","observacao":""},{"marca":"Nebacetin","principioAtivo":"Neomicina + bacitracina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Neocaina","principioAtivo":"Bupivacaina","observacao":""},{"marca":"Neozine","principioAtivo":"Levomepromazina","observacao":""},{"marca":"Nepresol","principioAtivo":"Hidralazina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Neurontin","principioAtivo":"Gabapentina","observacao":""},{"marca":"Nexium","principioAtivo":"Esomeprazol","observacao":""},{"marca":"Nipride","principioAtivo":"Nitroprusseto de Sódio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Nisulid","principioAtivo":"Nimesulida","observacao":""},{"marca":"Nizoral","principioAtivo":"Cetoconazol","observacao":""},{"marca":"Noradrenalina","principioAtivo":"Norepinefrina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Norepinefrina","principioAtivo":"Noradrenalina","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Norvasc","principioAtivo":"Anlodipino","observacao":""},{"marca":"Novalgina","principioAtivo":"Dipirona","observacao":""},{"marca":"Novolin","principioAtivo":"Insulina","observacao":""},{"marca":"Pantoc","principioAtivo":"Pantoprazol","observacao":""},{"marca":"Pantozol","principioAtivo":"Pantoprazol","observacao":""},{"marca":"Peprazol","principioAtivo":"Omeprazol","observacao":""},{"marca":"Plasil","principioAtivo":"Metoclopramida","observacao":""},{"marca":"Plavix","principioAtivo":"Clopidogrel","observacao":""},{"marca":"Polaramine","principioAtivo":"Dexclorfeniramina","observacao":""},{"marca":"Pradaxa","principioAtivo":"Dabigatrana","observacao":""},{"marca":"Prazol","principioAtivo":"Lansoprazol","observacao":""},{"marca":"Predi-medrol","principioAtivo":"Metilprednisolona","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Prelone","principioAtivo":"Prednisolona","observacao":""},{"marca":"Profenid","principioAtivo":"Cetoprofeno","observacao":""},{"marca":"Prolopa","principioAtivo":"Levodopa","observacao":""},{"marca":"Propecia","principioAtivo":"Finasterida","observacao":""},{"marca":"Propovan","principioAtivo":"Propofol","observacao":""},{"marca":"Proscar","principioAtivo":"Finasterida","observacao":""},{"marca":"Prostigmine","principioAtivo":"Neostigmina","observacao":""},{"marca":"Prostokos","principioAtivo":"Misoprostol","observacao":""},{"marca":"Prozac","principioAtivo":"Fluoxetina","observacao":""},{"marca":"Pulmicort","principioAtivo":"Budesonida","observacao":""},{"marca":"Puran T4","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Renitec","principioAtivo":"Enalapril","observacao":""},{"marca":"Revivan","principioAtivo":"Dopamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Ringer Lactato","principioAtivo":"Ringer","observacao":""},{"marca":"Risperdal","principioAtivo":"Risperidona","observacao":""},{"marca":"Rivotril","principioAtivo":"Clonazepam","observacao":""},{"marca":"Rocefin","principioAtivo":"Ceftriaxona","observacao":""},{"marca":"Scabin","principioAtivo":"Permetrina","observacao":""},{"marca":"Secotex","principioAtivo":"Tansulosina","observacao":""},{"marca":"Seloken","principioAtivo":"Metoprolol","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Selozok","principioAtivo":"Metoprolol","observacao":""},{"marca":"Seroquel","principioAtivo":"Quetiapina","observacao":""},{"marca":"Sevorane","principioAtivo":"Sevoflurano","observacao":""},{"marca":"Sf 0.9%","principioAtivo":"Soro Fisiologico","observacao":""},{"marca":"Sg 5%","principioAtivo":"Glicose","observacao":""},{"marca":"Singulair","principioAtivo":"Montelucaste","observacao":""},{"marca":"Sinvatrox","principioAtivo":"Sinvastatina","observacao":""},{"marca":"Solucortef","principioAtivo":"Hidrocortisona","observacao":""},{"marca":"Solumedrol","principioAtivo":"Metilprednisolona","observacao":""},{"marca":"Sorcal","principioAtivo":"Poliestirenossulfonato de Calcio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Soro Glicosado","principioAtivo":"Glicose","observacao":""},{"marca":"Staficilin","principioAtivo":"Oxacilina sódica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Succinil Colin","principioAtivo":"Suxametonio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Synthroid","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Syntocinon","principioAtivo":"Ocitocina","observacao":""},{"marca":"Tamiflu","principioAtivo":"Oseltamivir","observacao":""},{"marca":"Tavanic","principioAtivo":"Levofloxacino","observacao":""},{"marca":"Tegretol","principioAtivo":"Carbamazepina","observacao":""},{"marca":"Tolrest","principioAtivo":"Sertralina","observacao":""},{"marca":"Topamax","principioAtivo":"Topiramato","observacao":""},{"marca":"Tramal","principioAtivo":"Tramadol","observacao":""},{"marca":"Transamin","principioAtivo":"Acido Tranexamico","observacao":""},{"marca":"Triaxon","principioAtivo":"Ceftriaxona","observacao":""},{"marca":"Tridil","principioAtivo":"Nitroglicerina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Tryptanol","principioAtivo":"Amitriptilina","observacao":""},{"marca":"Tylenol","principioAtivo":"Paracetamol","observacao":""},{"marca":"Uroxacin","principioAtivo":"Norfloxacino","observacao":""},{"marca":"Valium","principioAtivo":"Diazepam","observacao":""},{"marca":"Valproico","principioAtivo":"Valproato","observacao":""},{"marca":"Valtrex","principioAtivo":"Valaciclovir","observacao":""},{"marca":"Viagra","principioAtivo":"Sildenafila","observacao":""},{"marca":"Vibramicina","principioAtivo":"Doxiciclina","observacao":""},{"marca":"Vitamina K","principioAtivo":"Fitomenadiona","observacao":""},{"marca":"Voltaren","principioAtivo":"Diclofenaco","observacao":""},{"marca":"Vonau","principioAtivo":"Ondansetrona","observacao":""},{"marca":"Xarelto","principioAtivo":"Rivaroxabana","observacao":""},{"marca":"Xylocaina","principioAtivo":"Lidocaina","observacao":""},{"marca":"Xylocaina 2% com","principioAtivo":"Lidocaína","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Xylocaina 2% Sem","principioAtivo":"Lidocaína","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Zitromax","principioAtivo":"Azitromicina","observacao":""},{"marca":"Zocor","principioAtivo":"Sinvastatina","observacao":""},{"marca":"Zofran","principioAtivo":"Ondansetrona","observacao":""},{"marca":"Zoloft","principioAtivo":"Sertralina","observacao":""},{"marca":"Zoltec","principioAtivo":"Fluconazol","observacao":""},{"marca":"Zovirax","principioAtivo":"Aciclovir","observacao":""},{"marca":"Zyprexa","principioAtivo":"Olanzapina","observacao":""},{"marca":"Zyrtec","principioAtivo":"Cetirizina","observacao":""}]};
 
   /* ===== dados/changelog.json ===== */
-  raiz.MEEDS_CHANGELOG = {"_leia_me":"Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.","versoes":[{"versao":"2.48.0","data":"2026-09-25","novidades":["Piraí: em todo atendimento, lembra que exames pediátricos de alta/média complexidade e especialidades pediátricas ambulatoriais são feitos no Rio de Janeiro, via regulação estadual/SISREG, e que os encaminhamentos devem ir detalhados, com exames anexados e classificação de risco."],"melhorias":["O aviso do município passa a abrir na lateral superior direita, acima dos botões do Assistente, sem cobrir o formulário do atendimento. \"Entendi\" para a pulsação e o aviso continua ali.","Casa da Criança e do Adolescente e Clínica do Autista: textos revisados, sem público-alvo. Na Casa da Criança, em destaque: o município não oferta neuropsicólogo nem psicopedagogo."],"correcoes":[]},{"versao":"2.47.0","data":"2026-09-25","novidades":["Avisos por unidade: o aviso agora também lê a unidade do paciente no campo \"Vínculos\". Em Macaé: nas UPAs Barra e Lagomar e nos Prontos Socorros Imbetiba e Parque Aeroporto, lembra que não se prescreve encaminhamento para especialidades — orientar a UBS mais próxima; na Casa da Criança e do Adolescente e na Clínica do Autista, mostra público-alvo, atendimentos e fluxo.","Congonhas: em todo atendimento, lembra que os exames do laboratório da UPA vão juntos num pedido, e o que estiver fora da lista vai em pedido separado."],"melhorias":[],"correcoes":["O Meeds está renomeando os municípios de \"PREFEITURA MUNICIPAL DE MACAÉ\" para \"MACAÉ - RJ\". A REMUME, a APAC, os Exames e os avisos do município passam a reconhecer os dois formatos, inclusive a unidade que aparece embaixo no \"Vínculos\"."]},{"versao":"2.46.0","data":"2026-09-25","novidades":["REMUME de Barbacena com avisos da UPA: uma faixa no topo com o que a teleconsulta cobre (VO, IM, atestado), e em cada ampola ou item injetável o lembrete de que só vale a aplicação IM — EV vai ao presencial. Bolsas e soro em sistema fechado avisam que são EV."],"melhorias":["O aviso do município agora abre no meio da tela, pulsando, para ser lido. \"Entendi\" leva o cartão para o canto, em âmbar e parado, onde fica como referência até o fim do atendimento."],"correcoes":["O aviso do município não abria no Meeds em produção: a resposta do atendimento não trazia a prefeitura onde o Assistente procurava, e isso bloqueava a leitura do campo \"Vínculos\". Agora, quando a resposta não diz a cidade, vale o \"Vínculos\"."]},{"versao":"2.45.1","data":"2026-09-25","novidades":[],"melhorias":["O aviso do município agora chama atenção: aparece em âmbar e pulsa três vezes ao surgir, depois fica parado. Quem ativou \"reduzir movimento\" no computador ou no iPad vê o cartão em âmbar, sem pulsar."],"correcoes":[]},{"versao":"2.45.0","data":"2026-09-25","novidades":["Avisos do município: dentro do atendimento de Barbacena ou de Franco da Rocha, aparece sozinho o que a teleconsulta resolve ali (medicação, atestado) e o que deve ser encaminhado ao presencial (medicação EV, exames). Não aparece na fila, no painel nem em nenhuma outra tela, e nunca para paciente de outro município. Fechando no X, não volta naquele atendimento. Funciona também no iPad."],"melhorias":[],"correcoes":[]},{"versao":"2.44.0","data":"2026-09-24","novidades":[],"melhorias":["O Assistente passa a acompanhar o Meeds novo, que entrou em produção. A leitura do cartão do paciente (usada pela APAC e pelos laudos) reconhece o campo \"Parentesco\", onde agora fica o nome da mãe."],"correcoes":["O alarme de fila não enxergava a fila do Meeds novo pela rede: a aba Aguardando agora é pedida com dois status juntos, e o alarme recusava essa consulta. Corrigido, sem confundir com a consulta que só alimenta o contador da aba.","O alarme também reconhece o aviso \"Novo paciente na fila de Pronto Atendimento\", além do \"Novo atendimento\"."]},{"versao":"2.43.17","data":"2026-09-23","novidades":["REMUME de Piracema-MG incluída na busca: 91 itens da Farmácia de Todos (Farmácia de Minas). Glicosímetro e tiras reagentes de glicemia aparecem com o aviso de que são só para diabetes tipo 1, tipo 2 em uso de insulina ou diabetes gestacional.","REMUME de Santa Bárbara-MG incluída na busca: 191 itens da REMUME 2024 (2ª edição, Portaria SMS nº 19/2023). Olanzapina e Risperidona aparecem com o aviso de que dependem do CID não ser compatível com o Componente Especializado da Assistência Farmacêutica Estadual."],"melhorias":[],"correcoes":[]},{"versao":"2.43.16","data":"2026-09-26","novidades":["Exames de Piraí incluídos: os 383 exames laboratoriais e de imagem realizados no próprio município, mais os 5 exames pediátricos de alta complexidade (Ecocardiograma Pediátrico, Ressonância, Tomografia, Oftalmologia de Alta Complexidade e Cloreto no Suor) que são encaminhados ao Rio de Janeiro via regulação estadual/SISREG.","Dois novos Encaminhamentos em Piraí: Especialidades Pediátricas Ambulatoriais (14 especialidades reguladas pelo SER/SISREG para o Rio de Janeiro) e o CEMAIA — Centro Especializado Multidisciplinar de Atendimento à Infância e Adolescência, o serviço municipal de referência psicossocial infantojuvenil, com o fluxo de encaminhamento de cada um."],"melhorias":[],"correcoes":[]},{"versao":"2.43.15","data":"2026-09-21","novidades":["Tutoriais do REMUME e do Alarme de Fila ganharam passos guiados: em vez de só ler e clicar em \"Próximo\", alguns passos agora pedem uma ação real (digitar uma busca, trocar de município, copiar um resultado, testar o som, ajustar o volume) — o elemento certo da tela pisca em destaque e o passo avança sozinho quando você faz a ação."],"melhorias":[],"correcoes":[]},{"versao":"2.43.12","data":"2026-09-21","novidades":[],"melhorias":[],"correcoes":["O aviso da REMUME de Franco da Rocha ficou mais completo e alinhado com a orientação oficial da RT médica: agora diz que a unidade atende só fichas azuis (receita e alta), e que tanto paciente que precisa de medicação no local (oral, IM ou EV) quanto paciente com sinal de alarme devem ser encaminhados para atendimento presencial."]},{"versao":"2.43.11","data":"2026-09-21","novidades":[],"melhorias":[],"correcoes":["O alarme podia voltar a tocar sozinho, a cada 5 minutos (ou a cada 2 no modo Discreto), depois de já ter sido silenciado — mesmo sem nenhum paciente novo e mesmo com a fila vazia. Acontecia quando você saía da tela da fila (para atender o paciente, por exemplo): sem ninguém olhando a fila, o alarme não tinha como confirmar se ainda havia alguém esperando, e passou a tratar essa dúvida como \"ainda tem gente\", voltando a soar. Agora, sem confirmação nenhuma, ele não toca — só volta a soar quando há prova de verdade, de que a fila ainda tem alguém ou de que já esvaziou."]},{"versao":"2.43.10","data":"2026-09-18","novidades":["REMUME de Franco da Rocha - SP incluída na busca, com destaque (📍 UPA) para os medicamentos confirmados na farmácia da UPA Franco da Rocha.","Ao selecionar Franco da Rocha, a tela do REMUME mostra um aviso fixo: o atendimento é exclusivo da UPA, então prescreva apenas para o paciente levar para casa — se for preciso medicar na própria unidade, encaminhe para atendimento presencial."],"melhorias":[],"correcoes":[]},{"versao":"2.43.8","data":"2026-09-17","novidades":[],"melhorias":["O aviso do modo 🔉 Discreto mudou de lugar: em vez de aparecer no canto de cima da tela, agora sobe do rodapé, ao lado dos botões do Assistente — perto de onde você já está olhando a fila. Ele sobe deslizando, como as janelinhas do antigo MSN, e os avisos mais novos ficam sempre embaixo, na altura do olhar.","Trocar a intensidade do alarme no meio de uma sirene agora para a sirene na hora. Antes, só o 🔕 Silencioso parava: quem trocava de 🔔 Completo para 🔉 Discreto continuava ouvindo a sirene e vendo a faixa vermelha por até 2 minutos. Se ainda houver paciente esperando, o lembrete do Discreto fica marcado para 2 minutos depois — sem som agora, mas sem esquecer de você."],"correcoes":["O alarme podia tocar sem paciente novo em três situações, todas corrigidas: quando o próprio Meeds anunciava \"Novo Atendimento\" com a fila marcando zero; quando você saía do Pronto Atendimento e voltava (o alarme comparava o número da tela antiga com o da tela nova e lia isso como gente chegando); e quando você voltava para a fila depois de vários minutos em outra tela (a fila inteira parecia nova). Em todos os casos o alarme agora recomeça a contagem em silêncio, em vez de tocar. Quando a leitura da fila é incerta, ele continua tocando — errar tocando é melhor que errar calando."]},{"versao":"2.43.7","data":"2026-09-16","novidades":[],"melhorias":[],"correcoes":["O alarme de fila dizia \"Novo paciente na fila\" mesmo quando não chegou ninguém novo — acontecia no lembrete de 2 em 2 minutos do modo Discreto (para o mesmo paciente que já estava esperando) e no modo Espera (que avisa sobre alguém que já estava na fila há muito tempo). O aviso agora diz \"Paciente ainda aguardando\" nesses dois casos, e só continua dizendo \"Novo paciente\" quando alguém chegou de fato."]},{"versao":"2.43.6","data":"2026-09-15","novidades":[],"melhorias":["Alarme de Fila, modo 🔉 Discreto: se o paciente que chegou continuar na fila, o cartão e as duas batidas voltam a cada 2 minutos, até ele ser atendido ou você trocar de intensidade. Antes, o Discreto avisava uma vez só e nunca mais — quem não reparasse na hora podia deixar um paciente esperando sem saber."],"correcoes":[]},{"versao":"2.43.5","data":"2026-09-15","novidades":[],"melhorias":["Alarme de Fila, modo 🔉 Discreto: o som curto agora toca duas vezes (antes era uma), espaçadas pelo mesmo intervalo do som escolhido — uma batida só passava despercebida num plantão barulhento."],"correcoes":[]},{"versao":"2.43.4","data":"2026-09-12","novidades":[],"melhorias":["Se um botão do Assistente encontrar um erro ao ser clicado, agora aparece um aviso no canto da tela dizendo o que houve e o que fazer — tentar de novo ou copiar o diagnóstico técnico em ⚙️ → Sobre. Antes, o clique simplesmente não fazia nada, e não dava para saber se era para esperar ou pedir ajuda."],"correcoes":["Quem tinha marcado um modelo com “★ Usar sempre” na APAC, no Laudo de Alto Custo de Conceição do Mato Dentro ou no Laudo de Sete Lagoas clicava no botão e a janela não abria. O problema começou na versão 2.28.1. Agora a janela abre normalmente e o modelo volta a entrar sozinho quando os campos clínicos estão vazios — sem nunca apagar o que você já escreveu."]},{"versao":"2.43.3","data":"2026-09-12","novidades":[],"melhorias":[],"correcoes":["O aviso “O alarme ficou parado” (o que aparece quando o navegador suspende a aba de fundo e o alarme não pôde tocar) não sumia sozinho e criava um cartão novo a cada vez — num plantão a tela terminava coberta por seis ou sete avisos iguais, todos precisando ser fechados à mão. Agora é um único aviso, que se fecha sozinho depois de 30 segundos e, se acontecer de novo, se atualiza dizendo quantas vezes já foi e quantos minutos somam, em vez de empilhar."]},{"versao":"2.43.1","data":"2026-09-11","novidades":[],"melhorias":[],"correcoes":["O \"Copiar diagnóstico técnico\" (⚙️ → Sobre) trazia só metadado e ficou raso demais na prática — faltava a URL completa, o corpo da resposta e o console inteiro, que é o que normalmente explica por que algo falhou. Agora traz tudo isso, como uma gravação traria. Continua mascarando automaticamente qualquer número de 6 ou mais dígitos (CPF, CNS, CNES, telefone) — é para uso interno, então envie só para quem está te ajudando a resolver."]},{"versao":"2.43.0","data":"2026-09-11","novidades":["Novo botão em ⚙️ → Sobre: \"Copiar diagnóstico técnico\". Quando algo dá errado e a equipe pede para ver o console e a rede, um clique copia um texto pronto — versão, funções ligadas, navegador e as chamadas que falharam nos últimos 15 minutos — para colar no WhatsApp ou e-mail. Sem nome, CPF ou qualquer dado de paciente: nunca o corpo de uma resposta, nunca a parte da URL onde costuma morar um parâmetro, e só as linhas de aviso que o próprio Assistente já escreve."],"melhorias":[],"correcoes":[]},{"versao":"2.42.2","data":"2026-09-11","novidades":["Assistente REMUME, nos 11 municípios: medicamentos que exigem Notificação de Receita A (amarela) ou B (azul) agora aparecem com um selo e um aviso — essas duas receitas ainda não têm aprovação para prescrição digital, então precisam ser prescritas separadamente dos demais itens, para transcrição por um médico presencial. 96 medicamentos marcados ao todo: Receita Amarela (morfina, fentanila, metadona, petidina, alfentanila) e Receita Azul (diazepam, midazolam, clonazepam, alprazolam, bromazepam, lorazepam, nitrazepam, clobazam)."],"correcoes":[],"melhorias":[]},{"versao":"2.42.0","data":"2026-09-11","novidades":[],"correcoes":["O cabeçalho da APAC agora é a imagem do formulário oficial do Ministério da Saúde — o emblema do SUS, \"Sistema Único de Saúde / Ministério da Saúde\" e o \"fls.1/2\" saem exatamente como no modelo real. Antes era um cabeçalho desenhado por aproximação, sem o emblema."],"melhorias":[]},{"versao":"2.41.0","data":"2026-09-10","novidades":[],"melhorias":["Os ícones dos botões de APAC, dos dois laudos, da REMUME e dos Exames passaram a ser desenhados, em vez de emoji. Ficam iguais em qualquer computador ou tablet — antes, dependendo do sistema, o da REMUME e o dos Exames saíam parecendo outra coisa. O sino do alarme e a engrenagem continuam como estavam."],"correcoes":[]},{"versao":"2.40.1","data":"2026-09-10","novidades":[],"melhorias":["No painel da engrenagem, o texto que explica cada função ficou do mesmo tamanho e no mesmo tom para todas: o que ela faz e quando serve, em uma ou duas frases. O do Alarme de Fila era o mais longo e listava as três intensidades — isso agora fica na tela de configuração, onde você escolhe."],"correcoes":[]},{"versao":"2.40.0","data":"2026-09-10","novidades":[],"melhorias":["O cabeçalho das janelas (APAC, os dois laudos, Exames e o Alarme) passou a ser desenhado num lugar só: mesmo espaçamento, mesmo botão de fechar e a mesma ordem de “Atualizar paciente” e “Histórico” em todas.","No painel da engrenagem, a linha “Sempre ativas” agora diz onde a Busca de CID-10 e a Prévia do documento aparecem — dentro dos formulários de APAC e de laudo."],"correcoes":[]},{"versao":"2.39.0","data":"2026-09-10","novidades":[],"melhorias":["Os botões da REMUME e dos Exames agora mostram o nome, como os de APAC e Laudo — antes eram só um ícone, e dois ícones parecidos no topo da pilha eram fáceis de confundir.","O botão do laudo de Conceição do Mato Dentro agora diz “Laudo — Conceição” em vez de “Laudo - CMD”. “CMD” era abreviação interna e não ajudava a encontrar o botão.","A janela dos dois laudos passou a se chamar “Laudo Médico de Alto Custo” nas duas cidades (a de Sete Lagoas dizia outra coisa), e a caixa de aviso no topo não está mais toda em maiúsculas.","Na janela dos laudos, os botões “🔄 Atualizar paciente” e “📜 Histórico” ficaram na mesma ordem da APAC."],"correcoes":[]},{"versao":"2.38.0","data":"2026-09-09","novidades":["Macaé ganhou a lista de exames por especialidade da SEMUSA: 66 exames de Cardiologia, Urologia, Neurologia, Otorrino e outras, somados aos 28 que já existiam da UPA Barra — 94 no total. Cada exame mostra a especialidade (alguns aparecem em mais de uma, como o Ecodoppler de Carótidas) e, quando o documento afirma, o canal por onde o pedido entra: SISREG, Central de Regulação do Município ou regulação estadual.","Congonhas entrou com a lista certa: 52 exames de laboratório da UPA 24h. Um aviso fixo no topo explica a regra da prefeitura — exames desta lista precisam ser pedidos juntos, e qualquer exame fora dela vai em pedido separado, senão o paciente não consegue marcar. A Baciloscopia para BAAR aparece com um selo \"Suspenso\", porque está parada pelo Ministério da Saúde desde a COVID-19."],"melhorias":[],"correcoes":["A lista antiga de Congonhas (16 procedimentos com a sigla APAC) estava errada: era o catálogo geral de procedimentos que exigem APAC — o mesmo usado no gerador de APAC para Itaúna, Betim e Sete Lagoas — mostrado por engano como se fosse a lista de exames de Congonhas. Foi removida e substituída pela lista real, acima. O gerador de APAC em si nunca teve esse erro.","Os avisos fixos de Macaé (consentimento para HIV, data de nascimento) e de Sete Lagoas (cadastro no GMUS/CADWEB, carimbo/contato) foram retirados do topo do painel."]},{"versao":"2.37.0","data":"2026-09-09","novidades":["Sete Lagoas ganhou os exames laboratoriais: mais 456 exames de bancada (hemograma, glicose, colesterol, sorologias, hormônios, e mais de 400 outros), todos com o código do contrato. Somados aos 65 que já estavam na função 🧪 Exames do município, Sete Lagoas passa a ter 521 exames."],"melhorias":[],"correcoes":[]},{"versao":"2.36.0","data":"2026-09-09","novidades":["Sete Lagoas entrou na função 🧪 Exames do município: 65 exames com o local de realização, quando exigem APAC/Laudo/Alto Custo, e um aviso ℹ️ para exames que têm regra própria — idade mínima, documento a anexar, como cadastrar. Vem das orientações da própria Central de Marcação da prefeitura."],"melhorias":["Nova sigla \"Alto Custo\", ao lado de APAC e Laudo: identifica os exames que exigem esse formulário específico, em vez do pedido de exame comum."],"correcoes":[]},{"versao":"2.35.0","data":"2026-09-09","novidades":[],"melhorias":["A lista de exames agora aparece inteira assim que você abre a função, em ordem alfabética — antes era preciso digitar três letras para ver qualquer coisa, o que obrigava a saber o nome antes de olhar. Os exames chegam de 100 em 100, com um botão “+ Mais” no fim da lista.","O campo de busca virou filtro: ele procura em toda a lista do município, inclusive nos itens que ainda não apareceram na tela. Aceita acento, maiúscula e erro de digitação. Apagar o texto traz a lista completa de volta na hora, e uma bolinha girando ao lado do campo mostra quando o filtro está trabalhando."],"correcoes":[]},{"versao":"2.34.1","data":"2026-09-08","novidades":[],"melhorias":[],"correcoes":["O Assistente deixou de ler o nome do paciente que entra na fila. Ele nunca aparecia na tela nem era salvo — o aviso de chegada sempre mostrou só o município —, mas continuava sendo lido e mantido na memória do navegador sem necessidade. Agora não é mais lido."]},{"versao":"2.34.0","data":"2026-09-08","novidades":["Nova função 🧪 Exames do município: mostra o que o município do paciente oferece, para você saber na hora de pedir e não dias depois. Começa com Betim (1.983 exames laboratoriais, com o código do contrato), Macaé (28 exames da UPA Barra, com o local de realização) e Congonhas (16 procedimentos marcados com a sigla APAC). O exame que não estiver na lista daquele município aparece como \"não consta\" — nunca como resultado de outra cidade."],"melhorias":["Em Macaé, o painel avisa antes de você pedir: sorologia de HIV exige consentimento assinado, e a data de nascimento é obrigatória na requisição. Eram regras que só existiam num PDF."],"correcoes":[]},{"versao":"2.33.1","data":"2026-09-08","novidades":[],"melhorias":[],"correcoes":["No iPad e no iPhone, a opção “Abrir também uma janela de aviso” aparecia como se funcionasse, e a tela chegava a mandar você liberar o pop-up na barra de endereço — que ali não existe. O Safari do iOS não abre janela separada. Agora a opção aparece desligada, com a explicação no lugar da instrução impossível. O som e a notificação do alarme continuam funcionando normalmente no tablet."]},{"versao":"2.33.0","data":"2026-09-08","novidades":[],"melhorias":["A prévia do documento agora abre mesmo para quem já a tinha fechado alguma vez: a preferência antiga foi zerada uma vez só, para todo mundo começar do padrão novo. Sua largura e seu zoom foram preservados. Depois disso, fechar volta a valer para sempre."],"correcoes":["Você só conseguia manter um modelo salvo por gerador. Ao escolher um modelo da lista, o nome dele ia para o campo de nome — então, quando você montava outro procedimento e clicava em salvar, o modelo anterior era substituído em silêncio e você perdia o antigo. Agora escolher um modelo não mexe no campo de nome, o campo se limpa depois de salvar, e o botão avisa antes: ele diz “Salvar como modelo” para nome novo e “↻ Substituir «X»”, em outra cor, quando o nome já existe."]},{"versao":"2.32.1","data":"2026-09-08","novidades":[],"melhorias":[],"correcoes":["Na tela de monitoramento, uma das consultas do Meeds pede dois estados ao mesmo tempo (aguardando e mais um). O alarme tratava essa lista como se fosse só a fila de espera, e podia contar — e anunciar — paciente que não estava aguardando. Agora só conta a consulta que pede exclusivamente “aguardando”."]},{"versao":"2.32.0","data":"2026-09-08","novidades":["Nova opção “Abrir também uma janela de aviso”, em ⚙️ › Alarme de fila. Quando chega paciente e você não está no Meeds, uma janela pequena aparece na barra de tarefas — e fica lá até você fechar, ao contrário da notificação, que some sozinha. Feita para quem trabalha com muitas janelas abertas. Ela nasce desligada; ao ligar, uma janela de amostra abre na hora para você ver como fica — e se o navegador bloquear, a tela diz onde liberar."],"melhorias":[],"correcoes":[]},{"versao":"2.31.0","data":"2026-09-08","novidades":["Sete sons novos no alarme, e agora são duas listas separadas: uma para o modo completo (que repete) e outra para o modo discreto (que toca uma vez). As sirenes foram feitas para repetir e soavam truncadas quando tocadas uma vez só. Entre os curtos: Toque duplo, Sino curto, Gota, Acorde suave e Dois cliques — este último para quem divide a sala. Entre os que repetem: Pulso grave, pensado para a madrugada, e Sirene lenta, menos estridente.","Escolher um som já toca uma amostra na hora, em vez de você ter que clicar em “Testar” depois."],"melhorias":[],"correcoes":["O botão “Ver a fila” no aviso de novo paciente nunca funcionou: em vez de abrir o Pronto Atendimento, respondia sempre “não mudei de tela porque você tem um documento aberto pela metade”. Ele foi removido. Clicar na notificação continua trazendo o Meeds para frente e silenciando."]},{"versao":"2.30.0","data":"2026-09-08","novidades":["Guia de preenchimento no topo da APAC e dos dois laudos: uma barra mostra quanto falta e o texto ao lado diz qual é o próximo campo pendente. Clique nele e a tela leva você até lá.","Quando a emissão é recusada por falta de campo, o Assistente agora leva você até o primeiro que falta, em vez de só listar os nomes.","A tela que aparece depois de uma atualização ganhou um botão “⚙️ Abrir configurações”, para você experimentar a novidade na hora em que está lendo sobre ela."],"melhorias":["Os campos continuam todos liberados o tempo todo. Você preenche na ordem que quiser — o guia mostra o caminho, não fecha a porta."],"correcoes":[]},{"versao":"2.29.0","data":"2026-09-08","novidades":[],"melhorias":["A prévia do documento passa a abrir sozinha nos três geradores. Se você fechar, ela fica fechada naquele gerador — a escolha continua sendo sua, mudou só de que lado ela começa. Em tela estreita e no iPad ela continua não abrindo, porque não caberia."],"correcoes":[]},{"versao":"2.28.1","data":"2026-09-08","novidades":[],"melhorias":["Ficou claro como criar um modelo. Agora existe um campo de nome na própria tela, ao lado do botão “Salvar como modelo” — antes o nome era pedido numa janelinha do navegador que passava despercebida. Enquanto você não tem nenhum modelo, a lista de escolha nem aparece: fica só o convite para criar o primeiro, explicando o que fazer."],"correcoes":[]},{"versao":"2.28.0","data":"2026-09-08","novidades":["Modelos salvos na APAC, no laudo de Sete Lagoas e no de Conceição do Mato Dentro. Preencha o procedimento, o CID e a justificativa que você mais repete, clique em 💾 Salvar atual e dê um nome. Da próxima vez, escolha na lista e tudo volta preenchido.","Marque um modelo com ★ Padrão e ele entra sozinho toda vez que você abrir o gerador — sem clicar em nada. Ele só preenche campo vazio: o que você já escreveu nunca é apagado."],"melhorias":["Os modelos ficam no seu navegador e sobrevivem a logout, limpeza do site e atualização do Assistente. Nenhum dado de paciente entra num modelo — nome, CPF, nascimento, mãe e sexo ficam de fora, porque um modelo é feito para ser usado com outra pessoa."],"correcoes":[]},{"versao":"2.27.0","data":"2026-09-04","novidades":[],"melhorias":[],"correcoes":["A APAC trocava o paciente sozinha enquanto você preenchia. Se a tela do Meeds carregasse outro atendimento, o formulário era reescrito por baixo — e o PDF saía com o nome errado sem você ver. Agora o paciente só troca se você mandar: o Assistente avisa que a tela mudou, diz quem entrou e deixa você escolher entre trocar ou continuar. Vale também ao reabrir o gerador depois de fechá-lo sem querer. O botão “🔄 Atualizar paciente” continua trocando na hora, porque aí a decisão é sua."]},{"versao":"2.26.0","data":"2026-09-04","novidades":["O aviso de novo paciente agora tem um atalho “Ver a fila”, tanto no cartão discreto quanto na faixa vermelha. E clicar na notificação do sistema faz o mesmo: traz o Meeds para frente e abre o Pronto Atendimento."],"melhorias":["O cartão discreto mostra o município do atendimento, e não o nome do paciente. O município é o que muda a sua decisão — é ele que diz qual REMUME e qual laudo valem.","O atalho nunca troca de tela por cima de um documento aberto: com uma APAC ou um laudo pela metade, ele avisa em vez de fazer você perder o que já digitou."],"correcoes":[]},{"versao":"2.25.0","data":"2026-09-04","novidades":["O botão do alarme agora tem três posições, como o botão de som do Waze. 🔔 Completo é o de sempre: sirene, faixa no topo e moldura. 🔉 Discreto mostra um cartão no canto com quem chegou e de onde, com um som curto — some sozinho e não bloqueia nada. 🔕 Silencioso deixa só o contador na aba. Um clique no botão troca entre eles."],"melhorias":["O alarme não tem mais um liga/desliga próprio escondido no botão: a função ligada já é o alarme ativo, e o quanto ele incomoda é a intensidade. Para desligar de vez, use a chave da função no painel da engrenagem."],"correcoes":["O contador da aba mostrava um número diferente do total da fila, principalmente na tela de monitoramento. Ele somava o mesmo paciente uma vez para cada aba e cada filtro de período abertos, e nunca esquecia os filtros que você tinha deixado para trás. Agora conta cada pessoa uma vez, esquece a aba abandonada e, acima de tudo, respeita o número que está no cartão “Aguardando” da sua tela."]},{"versao":"2.24.0","data":"2026-09-04","novidades":["Se o navegador suspender a aba do Meeds — o Edge faz isso de fábrica com abas de fundo —, o Assistente passa a avisar quando ela acorda: “esta aba ficou suspensa por X min e o alarme não pôde tocar”. Antes o alarme simplesmente ficava mudo e você não tinha como saber."],"melhorias":["No Edge, o pedido de permissão para avisar pelo sistema costuma ser silenciado pelo navegador, e o botão parecia não fazer nada. Agora a tela avisa para procurar o ícone de sino na barra de endereço."],"correcoes":[]},{"versao":"2.23.0","data":"2026-09-04","novidades":[],"melhorias":["Saíram três chaves de liga/desliga que não precisavam existir. Os botões discretos em repouso, o aviso pelo sistema e a tela que não apaga passaram a ser simplesmente como o Assistente funciona.","O aviso pelo sistema não é mais uma chave: a tela mostra o estado dele. Se o navegador ainda não autorizou, aparece um botão para autorizar; se as notificações estiverem bloqueadas, a tela diz onde liberar.","No painel da engrenagem, o antigo link “Ajustes” virou um botão que diz o que abre — “⚙️ Configurar Alarme de Fila”. Antes não ficava claro que a função tinha configuração própria."],"correcoes":[]},{"versao":"2.22.0","data":"2026-09-04","novidades":["O alarme de fila agora avisa mesmo quando você não está na aba do Meeds: aparece uma notificação do sistema, com o navegador minimizado inclusive. Clicar nela traz o Meeds para frente e silencia — se você não atender, o alarme volta em 5 minutos. Ative em ⚙️ › Alarme de fila.","A aba do navegador passa a mostrar quantos estão esperando, no título e no ícone: “(3) Meeds”. O número continua ali depois de você silenciar, porque os pacientes continuam na fila, e some sozinho quando a fila esvazia.","Nova opção para impedir a tela de apagar durante o plantão — feita para o iPad, onde alarme que toca com a tela apagada é alarme perdido."],"melhorias":["O banner do alarme agora diz por que está tocando: “3 aguardando · o mais antigo há pelo menos 12 min”.","O título da aba não pisca mais “NOVO PACIENTE NA FILA”. Piscar disputa sua atenção a cada segundo e sumia quando você trocava de tela; o contador fica parado e é legível de relance.","Quem usa “reduzir movimento” no computador ou no iPad não vê mais nada pulsando. O alarme continua igual: som, vermelho e texto."],"correcoes":["No painel do alarme, as bolinhas de escolha e as caixas de seleção apareciam acima do texto, em vez de ao lado."]},{"versao":"2.21.0","data":"2026-09-03","novidades":["O backup agora salva também as unidades cadastradas, não só os médicos. Quem troca de computador não perde mais a unidade que digitou à mão."],"melhorias":["Telas mais curtas: a de boas-vindas caiu de cinco parágrafos para dois, e o painel da engrenagem perdeu os textos que se repetiam.","A lista de funções não mostra mais um número de versão para cada uma. A versão do Assistente continua na aba Sobre.","Na aba Unidades, quando não há nenhuma cadastrada, a tela agora explica que elas aparecem sozinhas ao escolher o município na APAC — antes parecia que era preciso digitar tudo à mão."],"correcoes":["A tela de boas-vindas mandava usar o botão ✕ para recolher os botões, mas ele passou a ser o ⌄.","Na Consulta REMUME, o cabeçalho dizia “município não identificado” mesmo depois de você escolher o município na lista logo abaixo. Agora ele só aparece quando o município vem do próprio atendimento."]},{"versao":"2.20.0","data":"2026-09-03","novidades":["Os botões agora ficam translúcidos quando você não está usando, e voltam ao normal assim que você aproxima o mouse (ou toca, no iPad). Assim eles param de atrapalhar a leitura da tela. Dá para desligar em ⚙️ → Funções."],"melhorias":["Minimizar e expandir voltou a ser só no clique da alça. A caixa não abre mais sozinha quando o mouse passa perto do canto, nem fecha no meio do caminho quando você vai clicar num botão. O ícone virou ⌄ em vez de ✕, porque ele tira do caminho e não fecha nada."],"correcoes":["O alarme de fila nunca fica translúcido: se a fila encher, ele aparece inteiro mesmo com a caixa minimizada."]},{"versao":"2.19.1","data":"2026-09-03","novidades":["A APAC de Betim e a de Sete Lagoas já vêm com os estabelecimentos cadastrados: em Betim, o Centro R e Especialidades Divino Ferreira Braga; em Sete Lagoas, Saúde Auditiva, UBS Cidade de Deus e UBS Belo Vale — as mesmas do laudo de Sete Lagoas. Não é preciso digitar o CNES."],"melhorias":[],"correcoes":["Quando o município tinha mais de uma unidade, a primeira da lista aparecia escolhida sozinha e o CNES dela ia para a APAC sem você ter selecionado nada. Agora, com duas ou mais unidades, nenhuma vem marcada — e trocar de município limpa a escolha."]},{"versao":"2.19.0","data":"2026-09-03","novidades":["O gerador de APAC deixou de ser exclusivo de Itaúna. Agora o primeiro campo do formulário é o Município, e a mesma tela atende Itaúna, Betim e Sete Lagoas. Quando o atendimento identifica a cidade, ela já vem escolhida."],"melhorias":["O estabelecimento e o CNES passaram a ser guardados por município: ao trocar de cidade, a lista mostra só as unidades daquela cidade. Isso impede uma APAC sair com o CNES de outro município, que é motivo de devolução pela regulação.","As APACs que você já tinha gerado continuam no histórico e podem ser reabertas normalmente."],"correcoes":["Na tela de erro, o campo do médico solicitante era chamado de “Selecionar”. Agora aparece pelo nome."]},{"versao":"2.18.0","data":"2026-09-01","novidades":[],"melhorias":["A busca de CID-10 dentro dos laudos e a prévia do documento passam a ficar sempre ligadas. Elas não são funções separadas — são melhorias do próprio formulário —, então saíram da lista de liga/desliga do painel."],"correcoes":[]},{"versao":"2.17.1","data":"2026-09-01","novidades":["A REMUME de Barbacena agora inclui os 161 medicamentos padronizados da UPA, com o selo “UPA” ao lado de cada um. Os itens das UBS, CTA/CEM e CAF continuam como estavam."],"melhorias":["47 nomes comerciais novos na busca: procurar por “Atensina”, “Buscopan Composto”, “Lactulona” ou “Nipride” já encontra o princípio ativo."],"correcoes":[]},{"versao":"2.16.0","data":"2026-09-01","novidades":[],"melhorias":["A busca de medicamentos ficou muito mais direta. Procurar \"acetilcisteína comprimido\" devolvia 159 itens; agora devolve os 2 certos. Palavras como \"comprimido\", \"solução\" ou a sigla da unidade agora servem para ordenar o resultado, não para inchar a lista. Em Macaé, dois itens com dipirona que ficavam escondidos no fim da lista voltaram a aparecer."],"correcoes":["A sugestão \"você quis dizer\" mostrava nomes cortados no meio, como \"Piridoxina (Vitamina B\" em vez de \"Piridoxina (Vitamina B6)\". Corrigido em todos os municípios."]},{"versao":"2.15.0","data":"2026-09-01","novidades":["Os botões agora recolhem. O ✕ no canto guarda todos e libera a tela; no computador basta aproximar o mouse do canto para eles voltarem, e no iPad é um toque no ☰. Se a fila de espera encher, o alarme aparece sozinho mesmo com tudo recolhido."],"melhorias":["O painel Sobre agora informa se suas configurações estão sendo salvas de forma permanente neste navegador."],"correcoes":["No iPad, o cadastro de médicos, o histórico de laudos e as configurações se perdiam toda vez que você saía do Meeds. Agora ficam guardados de verdade."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":["A checagem de atualização ficou muito mais leve: o Tampermonkey passa a baixar 1 KB para saber se há versão nova, em vez de mais de 1 MB."],"correcoes":["Correções internas na Sala de Espera, que está em standby: a consulta de confirmação não estava sendo executada."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":[],"correcoes":["As funções que você desliga continuam desligadas depois do logout. Antes, o Meeds apagava a configuração ao sair e todos os botões voltavam no acesso seguinte. O que você já tinha configurado é aproveitado, não precisa remarcar nada."]},{"versao":"2.13.1","data":"2026-08-31","novidades":[],"melhorias":[],"correcoes":["No iPad, o Assistente aparecia instalado e mesmo assim não fazia nada: a proteção de conteúdo do Meeds bloqueava a execução. Corrigido. Se o navegador precisar isolar o Assistente, o alarme de fila passa a decidir só pelo que aparece na tela, e o painel Sobre avisa quando isso acontece."]},{"versao":"2.13.0","data":"2026-08-31","novidades":["Agora dá para usar o Assistente no iPad e no iPhone, pelo Safari, com o app gratuito Userscripts. O passo a passo está no guia do iPad."],"melhorias":[],"correcoes":[]},{"versao":"2.12.0","data":"2026-08-31","novidades":["Nova função “Prévia do documento”: veja o PDF ao lado do formulário enquanto preenche, nos geradores de APAC e de laudo. É o mesmo arquivo que será baixado — nada de aproximação."],"melhorias":["A prévia vem desligada; abra pelo botão 👁 Prévia no alto do gerador. O tamanho do painel fica do jeito que você deixar."],"correcoes":[]},{"versao":"2.11.0","data":"2026-08-31","novidades":["Agora dá para enviar feedback direto do painel: conte um problema ou uma ideia, e a mensagem vai pronta para quem cuida do Assistente."],"melhorias":["O painel da engrenagem foi reorganizado em abas — Funções, Médicos, Unidades e Sobre. Antes era tudo numa rolagem só.","Os formulários de cadastro começam fechados: a lista fica limpa, e o formulário abre quando você pede."],"correcoes":[]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["O contador da Sala de Espera passou a mostrar só quem realmente chegou — antes contava também quem tinha consulta marcada e ainda não tinha aparecido."],"correcoes":["A Sala de Espera não avisava quando o paciente agendado chegava. O aviso agora sai na hora em que a chegada é marcada na tela nativa.","Se a internet oscilasse, a fila podia parecer vazia por um instante. Agora a última leitura válida é mantida até a próxima tentativa."]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID passou a funcionar também nos campos de CID secundário e associados da APAC — antes só o principal tinha."],"correcoes":[]},{"versao":"2.9.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID-10 agora vive dentro do próprio campo do laudo. O botão separado saiu: havia dois caminhos para a mesma coisa.","Digitar o código sem o ponto funciona: “J069” encontra J06.9."],"correcoes":["O campo CID mostrava duas listas de sugestão ao mesmo tempo, uma por cima da outra.","Depois de escolher um CID, a lista de sugestões reaparecia sozinha."]},{"versao":"2.8.0","data":"2026-08-31","novidades":["O CID-10 agora fica dentro do próprio laudo: clique no campo CID, digite o nome da doença ou o código, escolha — o código e a descrição entram sozinhos. Vale nos três geradores."],"melhorias":["A busca de CID-10 ficou muito mais rápida e não trava mais a tela: buscas comuns que levavam mais de um segundo agora respondem quase na hora.","A lista de resultados mostra os 50 mais relevantes e diz quantos ficaram de fora, em vez de tentar desenhar milhares de linhas."],"correcoes":["A apresentação “Bem-vindo ao Assistente Meeds” aparecia toda vez que você abria o Meeds. Agora aparece uma vez só."]},{"versao":"2.7.0","data":"2026-08-31","novidades":["Nova função “Sala de Espera”: avisa, sem som, quando um paciente de consulta agendada chega — com o nome, a hora marcada e há quanto tempo espera.","O botão da Sala de Espera mostra quantos pacientes estão aguardando, e abre a lista completa."],"melhorias":["Vários pacientes chegando ao mesmo tempo viram um aviso só, que conta quantos são."],"correcoes":[]},{"versao":"2.6.0","data":"2026-08-30","novidades":["A consulta REMUME passou a entender nome comercial: digite “Tylenol” e ela mostra o paracetamol do seu município.","Quando o remédio procurado não é padronizado no município, o Assistente diz isso com todas as letras, em vez de mostrar uma lista vazia."],"melhorias":["A busca ficou mais tolerante a erro de digitação em português: “dipironá” encontra Dipirona e “cimvastatina” encontra Sinvastatina.","A lista de nomes comerciais saiu do código e virou um arquivo que o administrador edita sozinho."],"correcoes":[]},{"versao":"2.5.0","data":"2026-08-30","novidades":["Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.","O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."],"melhorias":["Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."],"correcoes":["O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."]},{"versao":"2.4.0","data":"2026-08-30","novidades":["Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.","O código escolhido na busca entra sozinho no laudo que estiver aberto.","Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.","Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."],"melhorias":["O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.","O CPF se formata sozinho enquanto você digita.","Com um único médico cadastrado, ele já vem selecionado nos laudos.","As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.","O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."],"correcoes":["O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.","Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."]},{"versao":"2.3.0","data":"2026-08-30","novidades":["Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."],"melhorias":["Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."],"correcoes":[]},{"versao":"2.2.0","data":"2026-08-30","novidades":["Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."],"melhorias":["Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."],"correcoes":["Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."]},{"versao":"2.0.0","data":"2026-08-30","novidades":["Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."],"melhorias":[],"correcoes":[]}]};
+  raiz.MEEDS_CHANGELOG = {"_leia_me":"Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.","versoes":[{"versao":"2.49.0","data":"2026-09-26","novidades":[],"melhorias":["O gerador de APAC do Assistente foi desativado: o Meeds agora tem um gerador de APAC próprio, dentro de Prescrever. O botão APAC sai da tela.","Visual mais sóbrio: botões e janelas com cantos menores, sombras discretas e cabeçalhos em cor sólida. Os avisos de alarme e do município continuam iguais.","Para quem instala agora, os laudos de Sete Lagoas e de Conceição do Mato Dentro começam desligados — é só ligar na ⚙️ engrenagem quando precisar. Quem já usava continua com eles ligados.","Nova mensagem de boas-vindas, com um atalho para conhecer as funções."],"correcoes":["Os botões \"Configurar\" e \"Ver tutorial\" do painel apareciam em fonte de código; agora usam a fonte normal."]},{"versao":"2.48.0","data":"2026-09-25","novidades":["Piraí: em todo atendimento, lembra que exames pediátricos de alta/média complexidade e especialidades pediátricas ambulatoriais são feitos no Rio de Janeiro, via regulação estadual/SISREG, e que os encaminhamentos devem ir detalhados, com exames anexados e classificação de risco."],"melhorias":["O aviso do município passa a abrir na lateral superior direita, acima dos botões do Assistente, sem cobrir o formulário do atendimento. \"Entendi\" para a pulsação e o aviso continua ali.","Casa da Criança e do Adolescente e Clínica do Autista: textos revisados, sem público-alvo. Na Casa da Criança, em destaque: o município não oferta neuropsicólogo nem psicopedagogo."],"correcoes":[]},{"versao":"2.47.0","data":"2026-09-25","novidades":["Avisos por unidade: o aviso agora também lê a unidade do paciente no campo \"Vínculos\". Em Macaé: nas UPAs Barra e Lagomar e nos Prontos Socorros Imbetiba e Parque Aeroporto, lembra que não se prescreve encaminhamento para especialidades — orientar a UBS mais próxima; na Casa da Criança e do Adolescente e na Clínica do Autista, mostra público-alvo, atendimentos e fluxo.","Congonhas: em todo atendimento, lembra que os exames do laboratório da UPA vão juntos num pedido, e o que estiver fora da lista vai em pedido separado."],"melhorias":[],"correcoes":["O Meeds está renomeando os municípios de \"PREFEITURA MUNICIPAL DE MACAÉ\" para \"MACAÉ - RJ\". A REMUME, a APAC, os Exames e os avisos do município passam a reconhecer os dois formatos, inclusive a unidade que aparece embaixo no \"Vínculos\"."]},{"versao":"2.46.0","data":"2026-09-25","novidades":["REMUME de Barbacena com avisos da UPA: uma faixa no topo com o que a teleconsulta cobre (VO, IM, atestado), e em cada ampola ou item injetável o lembrete de que só vale a aplicação IM — EV vai ao presencial. Bolsas e soro em sistema fechado avisam que são EV."],"melhorias":["O aviso do município agora abre no meio da tela, pulsando, para ser lido. \"Entendi\" leva o cartão para o canto, em âmbar e parado, onde fica como referência até o fim do atendimento."],"correcoes":["O aviso do município não abria no Meeds em produção: a resposta do atendimento não trazia a prefeitura onde o Assistente procurava, e isso bloqueava a leitura do campo \"Vínculos\". Agora, quando a resposta não diz a cidade, vale o \"Vínculos\"."]},{"versao":"2.45.1","data":"2026-09-25","novidades":[],"melhorias":["O aviso do município agora chama atenção: aparece em âmbar e pulsa três vezes ao surgir, depois fica parado. Quem ativou \"reduzir movimento\" no computador ou no iPad vê o cartão em âmbar, sem pulsar."],"correcoes":[]},{"versao":"2.45.0","data":"2026-09-25","novidades":["Avisos do município: dentro do atendimento de Barbacena ou de Franco da Rocha, aparece sozinho o que a teleconsulta resolve ali (medicação, atestado) e o que deve ser encaminhado ao presencial (medicação EV, exames). Não aparece na fila, no painel nem em nenhuma outra tela, e nunca para paciente de outro município. Fechando no X, não volta naquele atendimento. Funciona também no iPad."],"melhorias":[],"correcoes":[]},{"versao":"2.44.0","data":"2026-09-24","novidades":[],"melhorias":["O Assistente passa a acompanhar o Meeds novo, que entrou em produção. A leitura do cartão do paciente (usada pela APAC e pelos laudos) reconhece o campo \"Parentesco\", onde agora fica o nome da mãe."],"correcoes":["O alarme de fila não enxergava a fila do Meeds novo pela rede: a aba Aguardando agora é pedida com dois status juntos, e o alarme recusava essa consulta. Corrigido, sem confundir com a consulta que só alimenta o contador da aba.","O alarme também reconhece o aviso \"Novo paciente na fila de Pronto Atendimento\", além do \"Novo atendimento\"."]},{"versao":"2.43.17","data":"2026-09-23","novidades":["REMUME de Piracema-MG incluída na busca: 91 itens da Farmácia de Todos (Farmácia de Minas). Glicosímetro e tiras reagentes de glicemia aparecem com o aviso de que são só para diabetes tipo 1, tipo 2 em uso de insulina ou diabetes gestacional.","REMUME de Santa Bárbara-MG incluída na busca: 191 itens da REMUME 2024 (2ª edição, Portaria SMS nº 19/2023). Olanzapina e Risperidona aparecem com o aviso de que dependem do CID não ser compatível com o Componente Especializado da Assistência Farmacêutica Estadual."],"melhorias":[],"correcoes":[]},{"versao":"2.43.16","data":"2026-09-26","novidades":["Exames de Piraí incluídos: os 383 exames laboratoriais e de imagem realizados no próprio município, mais os 5 exames pediátricos de alta complexidade (Ecocardiograma Pediátrico, Ressonância, Tomografia, Oftalmologia de Alta Complexidade e Cloreto no Suor) que são encaminhados ao Rio de Janeiro via regulação estadual/SISREG.","Dois novos Encaminhamentos em Piraí: Especialidades Pediátricas Ambulatoriais (14 especialidades reguladas pelo SER/SISREG para o Rio de Janeiro) e o CEMAIA — Centro Especializado Multidisciplinar de Atendimento à Infância e Adolescência, o serviço municipal de referência psicossocial infantojuvenil, com o fluxo de encaminhamento de cada um."],"melhorias":[],"correcoes":[]},{"versao":"2.43.15","data":"2026-09-21","novidades":["Tutoriais do REMUME e do Alarme de Fila ganharam passos guiados: em vez de só ler e clicar em \"Próximo\", alguns passos agora pedem uma ação real (digitar uma busca, trocar de município, copiar um resultado, testar o som, ajustar o volume) — o elemento certo da tela pisca em destaque e o passo avança sozinho quando você faz a ação."],"melhorias":[],"correcoes":[]},{"versao":"2.43.12","data":"2026-09-21","novidades":[],"melhorias":[],"correcoes":["O aviso da REMUME de Franco da Rocha ficou mais completo e alinhado com a orientação oficial da RT médica: agora diz que a unidade atende só fichas azuis (receita e alta), e que tanto paciente que precisa de medicação no local (oral, IM ou EV) quanto paciente com sinal de alarme devem ser encaminhados para atendimento presencial."]},{"versao":"2.43.11","data":"2026-09-21","novidades":[],"melhorias":[],"correcoes":["O alarme podia voltar a tocar sozinho, a cada 5 minutos (ou a cada 2 no modo Discreto), depois de já ter sido silenciado — mesmo sem nenhum paciente novo e mesmo com a fila vazia. Acontecia quando você saía da tela da fila (para atender o paciente, por exemplo): sem ninguém olhando a fila, o alarme não tinha como confirmar se ainda havia alguém esperando, e passou a tratar essa dúvida como \"ainda tem gente\", voltando a soar. Agora, sem confirmação nenhuma, ele não toca — só volta a soar quando há prova de verdade, de que a fila ainda tem alguém ou de que já esvaziou."]},{"versao":"2.43.10","data":"2026-09-18","novidades":["REMUME de Franco da Rocha - SP incluída na busca, com destaque (📍 UPA) para os medicamentos confirmados na farmácia da UPA Franco da Rocha.","Ao selecionar Franco da Rocha, a tela do REMUME mostra um aviso fixo: o atendimento é exclusivo da UPA, então prescreva apenas para o paciente levar para casa — se for preciso medicar na própria unidade, encaminhe para atendimento presencial."],"melhorias":[],"correcoes":[]},{"versao":"2.43.8","data":"2026-09-17","novidades":[],"melhorias":["O aviso do modo 🔉 Discreto mudou de lugar: em vez de aparecer no canto de cima da tela, agora sobe do rodapé, ao lado dos botões do Assistente — perto de onde você já está olhando a fila. Ele sobe deslizando, como as janelinhas do antigo MSN, e os avisos mais novos ficam sempre embaixo, na altura do olhar.","Trocar a intensidade do alarme no meio de uma sirene agora para a sirene na hora. Antes, só o 🔕 Silencioso parava: quem trocava de 🔔 Completo para 🔉 Discreto continuava ouvindo a sirene e vendo a faixa vermelha por até 2 minutos. Se ainda houver paciente esperando, o lembrete do Discreto fica marcado para 2 minutos depois — sem som agora, mas sem esquecer de você."],"correcoes":["O alarme podia tocar sem paciente novo em três situações, todas corrigidas: quando o próprio Meeds anunciava \"Novo Atendimento\" com a fila marcando zero; quando você saía do Pronto Atendimento e voltava (o alarme comparava o número da tela antiga com o da tela nova e lia isso como gente chegando); e quando você voltava para a fila depois de vários minutos em outra tela (a fila inteira parecia nova). Em todos os casos o alarme agora recomeça a contagem em silêncio, em vez de tocar. Quando a leitura da fila é incerta, ele continua tocando — errar tocando é melhor que errar calando."]},{"versao":"2.43.7","data":"2026-09-16","novidades":[],"melhorias":[],"correcoes":["O alarme de fila dizia \"Novo paciente na fila\" mesmo quando não chegou ninguém novo — acontecia no lembrete de 2 em 2 minutos do modo Discreto (para o mesmo paciente que já estava esperando) e no modo Espera (que avisa sobre alguém que já estava na fila há muito tempo). O aviso agora diz \"Paciente ainda aguardando\" nesses dois casos, e só continua dizendo \"Novo paciente\" quando alguém chegou de fato."]},{"versao":"2.43.6","data":"2026-09-15","novidades":[],"melhorias":["Alarme de Fila, modo 🔉 Discreto: se o paciente que chegou continuar na fila, o cartão e as duas batidas voltam a cada 2 minutos, até ele ser atendido ou você trocar de intensidade. Antes, o Discreto avisava uma vez só e nunca mais — quem não reparasse na hora podia deixar um paciente esperando sem saber."],"correcoes":[]},{"versao":"2.43.5","data":"2026-09-15","novidades":[],"melhorias":["Alarme de Fila, modo 🔉 Discreto: o som curto agora toca duas vezes (antes era uma), espaçadas pelo mesmo intervalo do som escolhido — uma batida só passava despercebida num plantão barulhento."],"correcoes":[]},{"versao":"2.43.4","data":"2026-09-12","novidades":[],"melhorias":["Se um botão do Assistente encontrar um erro ao ser clicado, agora aparece um aviso no canto da tela dizendo o que houve e o que fazer — tentar de novo ou copiar o diagnóstico técnico em ⚙️ → Sobre. Antes, o clique simplesmente não fazia nada, e não dava para saber se era para esperar ou pedir ajuda."],"correcoes":["Quem tinha marcado um modelo com “★ Usar sempre” na APAC, no Laudo de Alto Custo de Conceição do Mato Dentro ou no Laudo de Sete Lagoas clicava no botão e a janela não abria. O problema começou na versão 2.28.1. Agora a janela abre normalmente e o modelo volta a entrar sozinho quando os campos clínicos estão vazios — sem nunca apagar o que você já escreveu."]},{"versao":"2.43.3","data":"2026-09-12","novidades":[],"melhorias":[],"correcoes":["O aviso “O alarme ficou parado” (o que aparece quando o navegador suspende a aba de fundo e o alarme não pôde tocar) não sumia sozinho e criava um cartão novo a cada vez — num plantão a tela terminava coberta por seis ou sete avisos iguais, todos precisando ser fechados à mão. Agora é um único aviso, que se fecha sozinho depois de 30 segundos e, se acontecer de novo, se atualiza dizendo quantas vezes já foi e quantos minutos somam, em vez de empilhar."]},{"versao":"2.43.1","data":"2026-09-11","novidades":[],"melhorias":[],"correcoes":["O \"Copiar diagnóstico técnico\" (⚙️ → Sobre) trazia só metadado e ficou raso demais na prática — faltava a URL completa, o corpo da resposta e o console inteiro, que é o que normalmente explica por que algo falhou. Agora traz tudo isso, como uma gravação traria. Continua mascarando automaticamente qualquer número de 6 ou mais dígitos (CPF, CNS, CNES, telefone) — é para uso interno, então envie só para quem está te ajudando a resolver."]},{"versao":"2.43.0","data":"2026-09-11","novidades":["Novo botão em ⚙️ → Sobre: \"Copiar diagnóstico técnico\". Quando algo dá errado e a equipe pede para ver o console e a rede, um clique copia um texto pronto — versão, funções ligadas, navegador e as chamadas que falharam nos últimos 15 minutos — para colar no WhatsApp ou e-mail. Sem nome, CPF ou qualquer dado de paciente: nunca o corpo de uma resposta, nunca a parte da URL onde costuma morar um parâmetro, e só as linhas de aviso que o próprio Assistente já escreve."],"melhorias":[],"correcoes":[]},{"versao":"2.42.2","data":"2026-09-11","novidades":["Assistente REMUME, nos 11 municípios: medicamentos que exigem Notificação de Receita A (amarela) ou B (azul) agora aparecem com um selo e um aviso — essas duas receitas ainda não têm aprovação para prescrição digital, então precisam ser prescritas separadamente dos demais itens, para transcrição por um médico presencial. 96 medicamentos marcados ao todo: Receita Amarela (morfina, fentanila, metadona, petidina, alfentanila) e Receita Azul (diazepam, midazolam, clonazepam, alprazolam, bromazepam, lorazepam, nitrazepam, clobazam)."],"correcoes":[],"melhorias":[]},{"versao":"2.42.0","data":"2026-09-11","novidades":[],"correcoes":["O cabeçalho da APAC agora é a imagem do formulário oficial do Ministério da Saúde — o emblema do SUS, \"Sistema Único de Saúde / Ministério da Saúde\" e o \"fls.1/2\" saem exatamente como no modelo real. Antes era um cabeçalho desenhado por aproximação, sem o emblema."],"melhorias":[]},{"versao":"2.41.0","data":"2026-09-10","novidades":[],"melhorias":["Os ícones dos botões de APAC, dos dois laudos, da REMUME e dos Exames passaram a ser desenhados, em vez de emoji. Ficam iguais em qualquer computador ou tablet — antes, dependendo do sistema, o da REMUME e o dos Exames saíam parecendo outra coisa. O sino do alarme e a engrenagem continuam como estavam."],"correcoes":[]},{"versao":"2.40.1","data":"2026-09-10","novidades":[],"melhorias":["No painel da engrenagem, o texto que explica cada função ficou do mesmo tamanho e no mesmo tom para todas: o que ela faz e quando serve, em uma ou duas frases. O do Alarme de Fila era o mais longo e listava as três intensidades — isso agora fica na tela de configuração, onde você escolhe."],"correcoes":[]},{"versao":"2.40.0","data":"2026-09-10","novidades":[],"melhorias":["O cabeçalho das janelas (APAC, os dois laudos, Exames e o Alarme) passou a ser desenhado num lugar só: mesmo espaçamento, mesmo botão de fechar e a mesma ordem de “Atualizar paciente” e “Histórico” em todas.","No painel da engrenagem, a linha “Sempre ativas” agora diz onde a Busca de CID-10 e a Prévia do documento aparecem — dentro dos formulários de APAC e de laudo."],"correcoes":[]},{"versao":"2.39.0","data":"2026-09-10","novidades":[],"melhorias":["Os botões da REMUME e dos Exames agora mostram o nome, como os de APAC e Laudo — antes eram só um ícone, e dois ícones parecidos no topo da pilha eram fáceis de confundir.","O botão do laudo de Conceição do Mato Dentro agora diz “Laudo — Conceição” em vez de “Laudo - CMD”. “CMD” era abreviação interna e não ajudava a encontrar o botão.","A janela dos dois laudos passou a se chamar “Laudo Médico de Alto Custo” nas duas cidades (a de Sete Lagoas dizia outra coisa), e a caixa de aviso no topo não está mais toda em maiúsculas.","Na janela dos laudos, os botões “🔄 Atualizar paciente” e “📜 Histórico” ficaram na mesma ordem da APAC."],"correcoes":[]},{"versao":"2.38.0","data":"2026-09-09","novidades":["Macaé ganhou a lista de exames por especialidade da SEMUSA: 66 exames de Cardiologia, Urologia, Neurologia, Otorrino e outras, somados aos 28 que já existiam da UPA Barra — 94 no total. Cada exame mostra a especialidade (alguns aparecem em mais de uma, como o Ecodoppler de Carótidas) e, quando o documento afirma, o canal por onde o pedido entra: SISREG, Central de Regulação do Município ou regulação estadual.","Congonhas entrou com a lista certa: 52 exames de laboratório da UPA 24h. Um aviso fixo no topo explica a regra da prefeitura — exames desta lista precisam ser pedidos juntos, e qualquer exame fora dela vai em pedido separado, senão o paciente não consegue marcar. A Baciloscopia para BAAR aparece com um selo \"Suspenso\", porque está parada pelo Ministério da Saúde desde a COVID-19."],"melhorias":[],"correcoes":["A lista antiga de Congonhas (16 procedimentos com a sigla APAC) estava errada: era o catálogo geral de procedimentos que exigem APAC — o mesmo usado no gerador de APAC para Itaúna, Betim e Sete Lagoas — mostrado por engano como se fosse a lista de exames de Congonhas. Foi removida e substituída pela lista real, acima. O gerador de APAC em si nunca teve esse erro.","Os avisos fixos de Macaé (consentimento para HIV, data de nascimento) e de Sete Lagoas (cadastro no GMUS/CADWEB, carimbo/contato) foram retirados do topo do painel."]},{"versao":"2.37.0","data":"2026-09-09","novidades":["Sete Lagoas ganhou os exames laboratoriais: mais 456 exames de bancada (hemograma, glicose, colesterol, sorologias, hormônios, e mais de 400 outros), todos com o código do contrato. Somados aos 65 que já estavam na função 🧪 Exames do município, Sete Lagoas passa a ter 521 exames."],"melhorias":[],"correcoes":[]},{"versao":"2.36.0","data":"2026-09-09","novidades":["Sete Lagoas entrou na função 🧪 Exames do município: 65 exames com o local de realização, quando exigem APAC/Laudo/Alto Custo, e um aviso ℹ️ para exames que têm regra própria — idade mínima, documento a anexar, como cadastrar. Vem das orientações da própria Central de Marcação da prefeitura."],"melhorias":["Nova sigla \"Alto Custo\", ao lado de APAC e Laudo: identifica os exames que exigem esse formulário específico, em vez do pedido de exame comum."],"correcoes":[]},{"versao":"2.35.0","data":"2026-09-09","novidades":[],"melhorias":["A lista de exames agora aparece inteira assim que você abre a função, em ordem alfabética — antes era preciso digitar três letras para ver qualquer coisa, o que obrigava a saber o nome antes de olhar. Os exames chegam de 100 em 100, com um botão “+ Mais” no fim da lista.","O campo de busca virou filtro: ele procura em toda a lista do município, inclusive nos itens que ainda não apareceram na tela. Aceita acento, maiúscula e erro de digitação. Apagar o texto traz a lista completa de volta na hora, e uma bolinha girando ao lado do campo mostra quando o filtro está trabalhando."],"correcoes":[]},{"versao":"2.34.1","data":"2026-09-08","novidades":[],"melhorias":[],"correcoes":["O Assistente deixou de ler o nome do paciente que entra na fila. Ele nunca aparecia na tela nem era salvo — o aviso de chegada sempre mostrou só o município —, mas continuava sendo lido e mantido na memória do navegador sem necessidade. Agora não é mais lido."]},{"versao":"2.34.0","data":"2026-09-08","novidades":["Nova função 🧪 Exames do município: mostra o que o município do paciente oferece, para você saber na hora de pedir e não dias depois. Começa com Betim (1.983 exames laboratoriais, com o código do contrato), Macaé (28 exames da UPA Barra, com o local de realização) e Congonhas (16 procedimentos marcados com a sigla APAC). O exame que não estiver na lista daquele município aparece como \"não consta\" — nunca como resultado de outra cidade."],"melhorias":["Em Macaé, o painel avisa antes de você pedir: sorologia de HIV exige consentimento assinado, e a data de nascimento é obrigatória na requisição. Eram regras que só existiam num PDF."],"correcoes":[]},{"versao":"2.33.1","data":"2026-09-08","novidades":[],"melhorias":[],"correcoes":["No iPad e no iPhone, a opção “Abrir também uma janela de aviso” aparecia como se funcionasse, e a tela chegava a mandar você liberar o pop-up na barra de endereço — que ali não existe. O Safari do iOS não abre janela separada. Agora a opção aparece desligada, com a explicação no lugar da instrução impossível. O som e a notificação do alarme continuam funcionando normalmente no tablet."]},{"versao":"2.33.0","data":"2026-09-08","novidades":[],"melhorias":["A prévia do documento agora abre mesmo para quem já a tinha fechado alguma vez: a preferência antiga foi zerada uma vez só, para todo mundo começar do padrão novo. Sua largura e seu zoom foram preservados. Depois disso, fechar volta a valer para sempre."],"correcoes":["Você só conseguia manter um modelo salvo por gerador. Ao escolher um modelo da lista, o nome dele ia para o campo de nome — então, quando você montava outro procedimento e clicava em salvar, o modelo anterior era substituído em silêncio e você perdia o antigo. Agora escolher um modelo não mexe no campo de nome, o campo se limpa depois de salvar, e o botão avisa antes: ele diz “Salvar como modelo” para nome novo e “↻ Substituir «X»”, em outra cor, quando o nome já existe."]},{"versao":"2.32.1","data":"2026-09-08","novidades":[],"melhorias":[],"correcoes":["Na tela de monitoramento, uma das consultas do Meeds pede dois estados ao mesmo tempo (aguardando e mais um). O alarme tratava essa lista como se fosse só a fila de espera, e podia contar — e anunciar — paciente que não estava aguardando. Agora só conta a consulta que pede exclusivamente “aguardando”."]},{"versao":"2.32.0","data":"2026-09-08","novidades":["Nova opção “Abrir também uma janela de aviso”, em ⚙️ › Alarme de fila. Quando chega paciente e você não está no Meeds, uma janela pequena aparece na barra de tarefas — e fica lá até você fechar, ao contrário da notificação, que some sozinha. Feita para quem trabalha com muitas janelas abertas. Ela nasce desligada; ao ligar, uma janela de amostra abre na hora para você ver como fica — e se o navegador bloquear, a tela diz onde liberar."],"melhorias":[],"correcoes":[]},{"versao":"2.31.0","data":"2026-09-08","novidades":["Sete sons novos no alarme, e agora são duas listas separadas: uma para o modo completo (que repete) e outra para o modo discreto (que toca uma vez). As sirenes foram feitas para repetir e soavam truncadas quando tocadas uma vez só. Entre os curtos: Toque duplo, Sino curto, Gota, Acorde suave e Dois cliques — este último para quem divide a sala. Entre os que repetem: Pulso grave, pensado para a madrugada, e Sirene lenta, menos estridente.","Escolher um som já toca uma amostra na hora, em vez de você ter que clicar em “Testar” depois."],"melhorias":[],"correcoes":["O botão “Ver a fila” no aviso de novo paciente nunca funcionou: em vez de abrir o Pronto Atendimento, respondia sempre “não mudei de tela porque você tem um documento aberto pela metade”. Ele foi removido. Clicar na notificação continua trazendo o Meeds para frente e silenciando."]},{"versao":"2.30.0","data":"2026-09-08","novidades":["Guia de preenchimento no topo da APAC e dos dois laudos: uma barra mostra quanto falta e o texto ao lado diz qual é o próximo campo pendente. Clique nele e a tela leva você até lá.","Quando a emissão é recusada por falta de campo, o Assistente agora leva você até o primeiro que falta, em vez de só listar os nomes.","A tela que aparece depois de uma atualização ganhou um botão “⚙️ Abrir configurações”, para você experimentar a novidade na hora em que está lendo sobre ela."],"melhorias":["Os campos continuam todos liberados o tempo todo. Você preenche na ordem que quiser — o guia mostra o caminho, não fecha a porta."],"correcoes":[]},{"versao":"2.29.0","data":"2026-09-08","novidades":[],"melhorias":["A prévia do documento passa a abrir sozinha nos três geradores. Se você fechar, ela fica fechada naquele gerador — a escolha continua sendo sua, mudou só de que lado ela começa. Em tela estreita e no iPad ela continua não abrindo, porque não caberia."],"correcoes":[]},{"versao":"2.28.1","data":"2026-09-08","novidades":[],"melhorias":["Ficou claro como criar um modelo. Agora existe um campo de nome na própria tela, ao lado do botão “Salvar como modelo” — antes o nome era pedido numa janelinha do navegador que passava despercebida. Enquanto você não tem nenhum modelo, a lista de escolha nem aparece: fica só o convite para criar o primeiro, explicando o que fazer."],"correcoes":[]},{"versao":"2.28.0","data":"2026-09-08","novidades":["Modelos salvos na APAC, no laudo de Sete Lagoas e no de Conceição do Mato Dentro. Preencha o procedimento, o CID e a justificativa que você mais repete, clique em 💾 Salvar atual e dê um nome. Da próxima vez, escolha na lista e tudo volta preenchido.","Marque um modelo com ★ Padrão e ele entra sozinho toda vez que você abrir o gerador — sem clicar em nada. Ele só preenche campo vazio: o que você já escreveu nunca é apagado."],"melhorias":["Os modelos ficam no seu navegador e sobrevivem a logout, limpeza do site e atualização do Assistente. Nenhum dado de paciente entra num modelo — nome, CPF, nascimento, mãe e sexo ficam de fora, porque um modelo é feito para ser usado com outra pessoa."],"correcoes":[]},{"versao":"2.27.0","data":"2026-09-04","novidades":[],"melhorias":[],"correcoes":["A APAC trocava o paciente sozinha enquanto você preenchia. Se a tela do Meeds carregasse outro atendimento, o formulário era reescrito por baixo — e o PDF saía com o nome errado sem você ver. Agora o paciente só troca se você mandar: o Assistente avisa que a tela mudou, diz quem entrou e deixa você escolher entre trocar ou continuar. Vale também ao reabrir o gerador depois de fechá-lo sem querer. O botão “🔄 Atualizar paciente” continua trocando na hora, porque aí a decisão é sua."]},{"versao":"2.26.0","data":"2026-09-04","novidades":["O aviso de novo paciente agora tem um atalho “Ver a fila”, tanto no cartão discreto quanto na faixa vermelha. E clicar na notificação do sistema faz o mesmo: traz o Meeds para frente e abre o Pronto Atendimento."],"melhorias":["O cartão discreto mostra o município do atendimento, e não o nome do paciente. O município é o que muda a sua decisão — é ele que diz qual REMUME e qual laudo valem.","O atalho nunca troca de tela por cima de um documento aberto: com uma APAC ou um laudo pela metade, ele avisa em vez de fazer você perder o que já digitou."],"correcoes":[]},{"versao":"2.25.0","data":"2026-09-04","novidades":["O botão do alarme agora tem três posições, como o botão de som do Waze. 🔔 Completo é o de sempre: sirene, faixa no topo e moldura. 🔉 Discreto mostra um cartão no canto com quem chegou e de onde, com um som curto — some sozinho e não bloqueia nada. 🔕 Silencioso deixa só o contador na aba. Um clique no botão troca entre eles."],"melhorias":["O alarme não tem mais um liga/desliga próprio escondido no botão: a função ligada já é o alarme ativo, e o quanto ele incomoda é a intensidade. Para desligar de vez, use a chave da função no painel da engrenagem."],"correcoes":["O contador da aba mostrava um número diferente do total da fila, principalmente na tela de monitoramento. Ele somava o mesmo paciente uma vez para cada aba e cada filtro de período abertos, e nunca esquecia os filtros que você tinha deixado para trás. Agora conta cada pessoa uma vez, esquece a aba abandonada e, acima de tudo, respeita o número que está no cartão “Aguardando” da sua tela."]},{"versao":"2.24.0","data":"2026-09-04","novidades":["Se o navegador suspender a aba do Meeds — o Edge faz isso de fábrica com abas de fundo —, o Assistente passa a avisar quando ela acorda: “esta aba ficou suspensa por X min e o alarme não pôde tocar”. Antes o alarme simplesmente ficava mudo e você não tinha como saber."],"melhorias":["No Edge, o pedido de permissão para avisar pelo sistema costuma ser silenciado pelo navegador, e o botão parecia não fazer nada. Agora a tela avisa para procurar o ícone de sino na barra de endereço."],"correcoes":[]},{"versao":"2.23.0","data":"2026-09-04","novidades":[],"melhorias":["Saíram três chaves de liga/desliga que não precisavam existir. Os botões discretos em repouso, o aviso pelo sistema e a tela que não apaga passaram a ser simplesmente como o Assistente funciona.","O aviso pelo sistema não é mais uma chave: a tela mostra o estado dele. Se o navegador ainda não autorizou, aparece um botão para autorizar; se as notificações estiverem bloqueadas, a tela diz onde liberar.","No painel da engrenagem, o antigo link “Ajustes” virou um botão que diz o que abre — “⚙️ Configurar Alarme de Fila”. Antes não ficava claro que a função tinha configuração própria."],"correcoes":[]},{"versao":"2.22.0","data":"2026-09-04","novidades":["O alarme de fila agora avisa mesmo quando você não está na aba do Meeds: aparece uma notificação do sistema, com o navegador minimizado inclusive. Clicar nela traz o Meeds para frente e silencia — se você não atender, o alarme volta em 5 minutos. Ative em ⚙️ › Alarme de fila.","A aba do navegador passa a mostrar quantos estão esperando, no título e no ícone: “(3) Meeds”. O número continua ali depois de você silenciar, porque os pacientes continuam na fila, e some sozinho quando a fila esvazia.","Nova opção para impedir a tela de apagar durante o plantão — feita para o iPad, onde alarme que toca com a tela apagada é alarme perdido."],"melhorias":["O banner do alarme agora diz por que está tocando: “3 aguardando · o mais antigo há pelo menos 12 min”.","O título da aba não pisca mais “NOVO PACIENTE NA FILA”. Piscar disputa sua atenção a cada segundo e sumia quando você trocava de tela; o contador fica parado e é legível de relance.","Quem usa “reduzir movimento” no computador ou no iPad não vê mais nada pulsando. O alarme continua igual: som, vermelho e texto."],"correcoes":["No painel do alarme, as bolinhas de escolha e as caixas de seleção apareciam acima do texto, em vez de ao lado."]},{"versao":"2.21.0","data":"2026-09-03","novidades":["O backup agora salva também as unidades cadastradas, não só os médicos. Quem troca de computador não perde mais a unidade que digitou à mão."],"melhorias":["Telas mais curtas: a de boas-vindas caiu de cinco parágrafos para dois, e o painel da engrenagem perdeu os textos que se repetiam.","A lista de funções não mostra mais um número de versão para cada uma. A versão do Assistente continua na aba Sobre.","Na aba Unidades, quando não há nenhuma cadastrada, a tela agora explica que elas aparecem sozinhas ao escolher o município na APAC — antes parecia que era preciso digitar tudo à mão."],"correcoes":["A tela de boas-vindas mandava usar o botão ✕ para recolher os botões, mas ele passou a ser o ⌄.","Na Consulta REMUME, o cabeçalho dizia “município não identificado” mesmo depois de você escolher o município na lista logo abaixo. Agora ele só aparece quando o município vem do próprio atendimento."]},{"versao":"2.20.0","data":"2026-09-03","novidades":["Os botões agora ficam translúcidos quando você não está usando, e voltam ao normal assim que você aproxima o mouse (ou toca, no iPad). Assim eles param de atrapalhar a leitura da tela. Dá para desligar em ⚙️ → Funções."],"melhorias":["Minimizar e expandir voltou a ser só no clique da alça. A caixa não abre mais sozinha quando o mouse passa perto do canto, nem fecha no meio do caminho quando você vai clicar num botão. O ícone virou ⌄ em vez de ✕, porque ele tira do caminho e não fecha nada."],"correcoes":["O alarme de fila nunca fica translúcido: se a fila encher, ele aparece inteiro mesmo com a caixa minimizada."]},{"versao":"2.19.1","data":"2026-09-03","novidades":["A APAC de Betim e a de Sete Lagoas já vêm com os estabelecimentos cadastrados: em Betim, o Centro R e Especialidades Divino Ferreira Braga; em Sete Lagoas, Saúde Auditiva, UBS Cidade de Deus e UBS Belo Vale — as mesmas do laudo de Sete Lagoas. Não é preciso digitar o CNES."],"melhorias":[],"correcoes":["Quando o município tinha mais de uma unidade, a primeira da lista aparecia escolhida sozinha e o CNES dela ia para a APAC sem você ter selecionado nada. Agora, com duas ou mais unidades, nenhuma vem marcada — e trocar de município limpa a escolha."]},{"versao":"2.19.0","data":"2026-09-03","novidades":["O gerador de APAC deixou de ser exclusivo de Itaúna. Agora o primeiro campo do formulário é o Município, e a mesma tela atende Itaúna, Betim e Sete Lagoas. Quando o atendimento identifica a cidade, ela já vem escolhida."],"melhorias":["O estabelecimento e o CNES passaram a ser guardados por município: ao trocar de cidade, a lista mostra só as unidades daquela cidade. Isso impede uma APAC sair com o CNES de outro município, que é motivo de devolução pela regulação.","As APACs que você já tinha gerado continuam no histórico e podem ser reabertas normalmente."],"correcoes":["Na tela de erro, o campo do médico solicitante era chamado de “Selecionar”. Agora aparece pelo nome."]},{"versao":"2.18.0","data":"2026-09-01","novidades":[],"melhorias":["A busca de CID-10 dentro dos laudos e a prévia do documento passam a ficar sempre ligadas. Elas não são funções separadas — são melhorias do próprio formulário —, então saíram da lista de liga/desliga do painel."],"correcoes":[]},{"versao":"2.17.1","data":"2026-09-01","novidades":["A REMUME de Barbacena agora inclui os 161 medicamentos padronizados da UPA, com o selo “UPA” ao lado de cada um. Os itens das UBS, CTA/CEM e CAF continuam como estavam."],"melhorias":["47 nomes comerciais novos na busca: procurar por “Atensina”, “Buscopan Composto”, “Lactulona” ou “Nipride” já encontra o princípio ativo."],"correcoes":[]},{"versao":"2.16.0","data":"2026-09-01","novidades":[],"melhorias":["A busca de medicamentos ficou muito mais direta. Procurar \"acetilcisteína comprimido\" devolvia 159 itens; agora devolve os 2 certos. Palavras como \"comprimido\", \"solução\" ou a sigla da unidade agora servem para ordenar o resultado, não para inchar a lista. Em Macaé, dois itens com dipirona que ficavam escondidos no fim da lista voltaram a aparecer."],"correcoes":["A sugestão \"você quis dizer\" mostrava nomes cortados no meio, como \"Piridoxina (Vitamina B\" em vez de \"Piridoxina (Vitamina B6)\". Corrigido em todos os municípios."]},{"versao":"2.15.0","data":"2026-09-01","novidades":["Os botões agora recolhem. O ✕ no canto guarda todos e libera a tela; no computador basta aproximar o mouse do canto para eles voltarem, e no iPad é um toque no ☰. Se a fila de espera encher, o alarme aparece sozinho mesmo com tudo recolhido."],"melhorias":["O painel Sobre agora informa se suas configurações estão sendo salvas de forma permanente neste navegador."],"correcoes":["No iPad, o cadastro de médicos, o histórico de laudos e as configurações se perdiam toda vez que você saía do Meeds. Agora ficam guardados de verdade."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":["A checagem de atualização ficou muito mais leve: o Tampermonkey passa a baixar 1 KB para saber se há versão nova, em vez de mais de 1 MB."],"correcoes":["Correções internas na Sala de Espera, que está em standby: a consulta de confirmação não estava sendo executada."]},{"versao":"2.14.0","data":"2026-09-01","novidades":[],"melhorias":[],"correcoes":["As funções que você desliga continuam desligadas depois do logout. Antes, o Meeds apagava a configuração ao sair e todos os botões voltavam no acesso seguinte. O que você já tinha configurado é aproveitado, não precisa remarcar nada."]},{"versao":"2.13.1","data":"2026-08-31","novidades":[],"melhorias":[],"correcoes":["No iPad, o Assistente aparecia instalado e mesmo assim não fazia nada: a proteção de conteúdo do Meeds bloqueava a execução. Corrigido. Se o navegador precisar isolar o Assistente, o alarme de fila passa a decidir só pelo que aparece na tela, e o painel Sobre avisa quando isso acontece."]},{"versao":"2.13.0","data":"2026-08-31","novidades":["Agora dá para usar o Assistente no iPad e no iPhone, pelo Safari, com o app gratuito Userscripts. O passo a passo está no guia do iPad."],"melhorias":[],"correcoes":[]},{"versao":"2.12.0","data":"2026-08-31","novidades":["Nova função “Prévia do documento”: veja o PDF ao lado do formulário enquanto preenche, nos geradores de APAC e de laudo. É o mesmo arquivo que será baixado — nada de aproximação."],"melhorias":["A prévia vem desligada; abra pelo botão 👁 Prévia no alto do gerador. O tamanho do painel fica do jeito que você deixar."],"correcoes":[]},{"versao":"2.11.0","data":"2026-08-31","novidades":["Agora dá para enviar feedback direto do painel: conte um problema ou uma ideia, e a mensagem vai pronta para quem cuida do Assistente."],"melhorias":["O painel da engrenagem foi reorganizado em abas — Funções, Médicos, Unidades e Sobre. Antes era tudo numa rolagem só.","Os formulários de cadastro começam fechados: a lista fica limpa, e o formulário abre quando você pede."],"correcoes":[]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["O contador da Sala de Espera passou a mostrar só quem realmente chegou — antes contava também quem tinha consulta marcada e ainda não tinha aparecido."],"correcoes":["A Sala de Espera não avisava quando o paciente agendado chegava. O aviso agora sai na hora em que a chegada é marcada na tela nativa.","Se a internet oscilasse, a fila podia parecer vazia por um instante. Agora a última leitura válida é mantida até a próxima tentativa."]},{"versao":"2.10.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID passou a funcionar também nos campos de CID secundário e associados da APAC — antes só o principal tinha."],"correcoes":[]},{"versao":"2.9.0","data":"2026-08-31","novidades":[],"melhorias":["A busca de CID-10 agora vive dentro do próprio campo do laudo. O botão separado saiu: havia dois caminhos para a mesma coisa.","Digitar o código sem o ponto funciona: “J069” encontra J06.9."],"correcoes":["O campo CID mostrava duas listas de sugestão ao mesmo tempo, uma por cima da outra.","Depois de escolher um CID, a lista de sugestões reaparecia sozinha."]},{"versao":"2.8.0","data":"2026-08-31","novidades":["O CID-10 agora fica dentro do próprio laudo: clique no campo CID, digite o nome da doença ou o código, escolha — o código e a descrição entram sozinhos. Vale nos três geradores."],"melhorias":["A busca de CID-10 ficou muito mais rápida e não trava mais a tela: buscas comuns que levavam mais de um segundo agora respondem quase na hora.","A lista de resultados mostra os 50 mais relevantes e diz quantos ficaram de fora, em vez de tentar desenhar milhares de linhas."],"correcoes":["A apresentação “Bem-vindo ao Assistente Meeds” aparecia toda vez que você abria o Meeds. Agora aparece uma vez só."]},{"versao":"2.7.0","data":"2026-08-31","novidades":["Nova função “Sala de Espera”: avisa, sem som, quando um paciente de consulta agendada chega — com o nome, a hora marcada e há quanto tempo espera.","O botão da Sala de Espera mostra quantos pacientes estão aguardando, e abre a lista completa."],"melhorias":["Vários pacientes chegando ao mesmo tempo viram um aviso só, que conta quantos são."],"correcoes":[]},{"versao":"2.6.0","data":"2026-08-30","novidades":["A consulta REMUME passou a entender nome comercial: digite “Tylenol” e ela mostra o paracetamol do seu município.","Quando o remédio procurado não é padronizado no município, o Assistente diz isso com todas as letras, em vez de mostrar uma lista vazia."],"melhorias":["A busca ficou mais tolerante a erro de digitação em português: “dipironá” encontra Dipirona e “cimvastatina” encontra Sinvastatina.","A lista de nomes comerciais saiu do código e virou um arquivo que o administrador edita sozinho."],"correcoes":[]},{"versao":"2.5.0","data":"2026-08-30","novidades":["Quando o Assistente for atualizado, você passa a ver um aviso com o que mudou naquela versão.","O painel da engrenagem ganhou a seção “Sobre”, com a versão instalada e o histórico completo de versões."],"melhorias":["Se você ficar um tempo sem abrir e pular versões, o aviso mostra o que mudou em todas elas, não só na última."],"correcoes":["O painel mostrava “Núcleo 2.0.0” mesmo em versões mais novas."]},{"versao":"2.4.0","data":"2026-08-30","novidades":["Nova função “Buscar CID-10”: procure pelo nome da doença, não só pelo código. A lista completa tem 14.233 códigos, contra os 91 que existiam antes.","O código escolhido na busca entra sozinho no laudo que estiver aberto.","Cadastro de estabelecimentos com CNES, no painel da engrenagem: escolha a unidade na APAC em vez de digitar nome e CNES a cada laudo.","Histórico de documentos gerados nos laudos de Sete Lagoas e Conceição do Mato Dentro, com “Reabrir” para repetir a parte clínica."],"melhorias":["O cadastro do médico agora pede CPF em lugar do CNS — o formulário da APAC aceita os dois, e quase ninguém sabe o próprio CNS de cabeça.","O CPF se formata sozinho enquanto você digita.","Com um único médico cadastrado, ele já vem selecionado nos laudos.","As mensagens de erro passaram a dizer qual campo falta e o que fazer, em vez de “campo obrigatório”.","O alarme de fila ganhou uma moldura pulsante na borda da tela, visível de canto de olho em sala com pouca luz."],"correcoes":["O botão “Cadastrar médico”, dentro dos laudos, abria o painel atrás da janela do laudo e parecia não funcionar.","Buscas como “dor lombar” e “dor de cabeça” traziam resultados sem relação na frente dos certos."]},{"versao":"2.3.0","data":"2026-08-30","novidades":["Cadastro de médicos no painel da engrenagem, com backup e restauração para trocar de computador."],"melhorias":["Os dados dos médicos saíram do código do programa, por segurança. Cada um se cadastra uma vez, no próprio navegador."],"correcoes":[]},{"versao":"2.2.0","data":"2026-08-30","novidades":["Aviso de boas-vindas na primeira vez, mostrando onde ficam os botões."],"melhorias":["Os ajustes do alarme passaram a ficar no painel da engrenagem, em “Ajustes”."],"correcoes":["Botões apareciam duplicados quando um dos cinco scripts antigos continuava ativo. Agora o Assistente detecta e explica como desativar."]},{"versao":"2.0.0","data":"2026-08-30","novidades":["Primeira versão unificada: as cinco ferramentas passaram a ser uma instalação só, com um painel para ligar e desligar cada uma."],"melhorias":[],"correcoes":[]}]};
 
   var __inv = {
-  "versao": "2.48.0",
+  "versao": "2.49.0",
   "contato": {
     "_leia_me": "Para onde vai o feedback do medico. O botao 'Enviar feedback' abre o programa de e-mail dele com esta mensagem ja escrita — nao ha servidor nem servico de terceiro no caminho. Troque o e-mail aqui se quem cuida do Assistente mudar.",
     "email": "marcelonovetech@gmail.com"
@@ -8299,24 +8347,9 @@
       }
     },
     {
-      "id": "apac",
-      "nome": "APAC",
-      "descricao": "Gera a APAC (Autorização de Procedimento Ambulatorial) já preenchida com os dados do paciente na tela e abre a assinatura no gov.br. Para quem atende Itaúna, Betim ou Sete Lagoas.",
-      "versao": "3.2.1",
-      "origem": "sodelfino/apac-itauna-meeds",
-      "sempreAtivo": false,
-      "prioridadeBotao": 20,
-      "apresentacao": {
-        "formaBotao": "rotulo",
-        "icone": "apac",
-        "rotuloBotao": "APAC",
-        "cabecalho": "Gerador de APAC"
-      }
-    },
-    {
       "id": "cid10",
       "nome": "Busca de CID-10 nos laudos",
-      "descricao": "Liga a tabela completa da CID-10 ao campo CID: você digita o nome da doença, não só o código, e escolhe ali mesmo. Funciona dentro da APAC e dos laudos.",
+      "descricao": "Liga a tabela completa da CID-10 ao campo CID: você digita o nome da doença, não só o código, e escolhe ali mesmo. Funciona dentro dos laudos.",
       "versao": "1.2.0",
       "sempreAtivo": true,
       "apresentacao": {
@@ -8331,6 +8364,8 @@
       "versao": "2.2.0",
       "origem": "sodelfino/lme-sete-lagoas-gerador",
       "sempreAtivo": false,
+      "padraoHabilitado": false,
+      "motivoPadraoDesligado": "Entra desligado na primeira instalacao: e util so para quem atende o municipio. O medico liga na engrenagem quando precisar. Quem ja usava antes desta versao continua com ele ligado.",
       "prioridadeBotao": 30,
       "apresentacao": {
         "formaBotao": "rotulo",
@@ -8346,6 +8381,8 @@
       "versao": "2.2.0",
       "origem": "sodelfino/laudo-cmd-meeds",
       "sempreAtivo": false,
+      "padraoHabilitado": false,
+      "motivoPadraoDesligado": "Entra desligado na primeira instalacao: e util so para quem atende o municipio. O medico liga na engrenagem quando precisar. Quem ja usava antes desta versao continua com ele ligado.",
       "prioridadeBotao": 40,
       "apresentacao": {
         "formaBotao": "rotulo",
@@ -8397,7 +8434,7 @@
     {
       "id": "preview-pdf",
       "nome": "Prévia do documento",
-      "descricao": "Mostra o PDF ao lado do formulário enquanto você preenche a APAC ou um laudo. É o mesmo arquivo que será baixado — serve para conferir antes de gerar.",
+      "descricao": "Mostra o PDF ao lado do formulário enquanto você preenche um laudo. É o mesmo arquivo que será baixado — serve para conferir antes de gerar.",
       "versao": "1.0.0",
       "sempreAtivo": true,
       "apresentacao": {
@@ -8414,7 +8451,7 @@
    * cobre o resto: duas copias instaladas no Tampermonkey, ou uma
    * reexecucao do script numa navegacao da SPA. Sem ela, apareciam dois
    * docks sobrepostos e o alarme tocava duas vezes. */
-  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.48.0")) return;
+  if (!raiz.MeedsSuiteDiagnostico.reservarInstancia("2.49.0")) return;
 
   /* 2) O hook de rede precisa existir ANTES de qualquer chamada da
    * aplicacao — por isso e instalado aqui, em document-start, e nao
@@ -8716,8 +8753,8 @@
 
   var CSS_PAINEL = [
     raiz.MeedsSuiteCabecalho.CSS,
-    ".af-modal { width: 100%; max-width: 380px; background: #fff; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden; }",
-    ".af-modal header { background: linear-gradient(135deg,#dc2626,#f97316); color:#fff; padding:16px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
+    ".af-modal { width: 100%; max-width: 380px; background: #fff; border-radius: 6px; box-shadow: 0 8px 24px rgba(15,23,42,.2); overflow: hidden; }",
+    ".af-modal header { background: #b42318; color:#fff; padding:16px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
     ".af-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
     ".af-fechar { background: rgba(255,255,255,.18); border:none; color:#fff; width:28px; height:28px; border-radius:8px; font-size:15px; cursor:pointer; flex-shrink:0; }",
     ".af-fechar:hover { background: rgba(255,255,255,.32); }",
@@ -8738,7 +8775,7 @@
     "#af-tempo-espera-linha input[type=number] { width:60px; padding:6px 8px; border-radius:8px; border:1.5px solid #cbd5e1; font-size:13px; }",
     ".af-body select { width:100%; box-sizing:border-box; padding:9px 10px; border-radius:10px; border:1.5px solid #cbd5e1; font-size:13.5px; color:#0f172a; background:#f8fafc; }",
     ".af-body input[type=range] { width:100%; }",
-    "#af-testar-som { width:100%; padding:10px; border-radius:10px; border:none; background:linear-gradient(135deg,#f97316,#dc2626); color:#fff; font-size:13.5px; font-weight:700; cursor:pointer; }",
+    "#af-testar-som { width:100%; padding:10px; border-radius:5px; border:none; background:#b42318; color:#fff; font-size:13.5px; font-weight:700; cursor:pointer; }",
     "#af-testar-som:hover { opacity:.92; }",
     ".af-estado { font-size:11.5px; color:#475569; line-height:1.5; }",
     "#af-liberar-aviso { margin-top:8px; padding:8px 14px; border-radius:9px; border:1.5px solid #1a4fa0; background:#fff; color:#1a4fa0; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer; }",
@@ -10308,1608 +10345,6 @@
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
 
-/* ===== modules/apac/assets/cabecalho-oficial.js ===== */
-/* modules/apac/assets/cabecalho-oficial.js
- * CABECALHO OFICIAL DA APAC, embutido em base64 — recorte fiel do
- * formulario "LAUDO PARA SOLICITACAO/AUTORIZACAO DE PROCEDIMENTO
- * AMBULATORIAL" do Ministerio da Saude (SUS), pagina 1/2, arquivo de
- * referencia fornecido em 11/09/2026.
- *
- * Ate a v-anterior o cabecalho era desenhado a mao com jsPDF (retangulo
- * + texto "SUS"), e nao reproduzia o emblema do SUS nem o texto
- * "Sistema Unico de Saude / Ministerio da Saude", nem o "fls.1/2" —
- * uma aproximacao, nao o original. O pedido foi explicito: sair IGUAL
- * ao modelo oficial, sem alteracao. Desenhar o emblema do SUS a mao em
- * vetor arriscava exatamente o oposto (uma versao nossa do brasao).
- *
- * Este arquivo tem so a imagem do cabecalho (960x?? em 300dpi efetivo
- * no tamanho final ~45x555pt) — nunca os campos do paciente, que
- * continuam desenhados dinamicamente por cima, como sempre. Ver uso em
- * modules/apac/index.js (funcao gerarPdfInterno).
- *
- * Para trocar a imagem (nova diagramacao do Ministerio, por exemplo):
- * recorte a caixa do cabecalho do PDF oficial a 300dpi, converta para
- * PNG em escala de cinza e gere o base64 com:
- *   python3 -c "import base64; print(base64.b64encode(open('cabecalho.png','rb').read()).decode())"
- * e cole abaixo. */
-(function (raiz) {
-  "use strict";
-  raiz.MEEDS_APAC_CABECALHO_B64 = "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";
-})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
-
-
-/* ===== modules/apac/index.js (v3.2.1) ===== */
-/* ------------------------------------------------------------------
- * modules/apac/index.js
- * Origem: sodelfino/apac-itauna-meeds -> APAC_GERADOR_FINAL.user.js v1.9.0
- * ------------------------------------------------------------------
- * O QUE MUDOU NA MIGRACAO (e o que NAO mudou)
- *  - REMOVIDO daqui: trava de frame, deteccao de login, patch proprio de
- *    fetch/XHR, o shadow host proprio, o CSS de posicionamento do botao
- *    (#apac-fab bottom:24px right:24px) e o toast proprio. Tudo isso e
- *    do nucleo agora.
- *  - PRESERVADO byte a byte: a funcao gerarPdfInterno() inteira, com
- *    TODAS as coordenadas do formulario da APAC, e as tabelas de dados
- *    (CATALOGO, ECO_VARIANTES, TERRITORIOS, CID_DIC).
- *    Essas coordenadas foram calibradas na mao contra o formulario
- *    oficial; reescrever qualquer uma seria arriscar o layout do laudo.
- *  - PRESERVADO em comportamento: captura passiva da API + polling de
- *    URL, leitura da tela como reforco, painel de medicos, historico
- *    local, validacao de campos e as duas saidas (assinar via gov.br /
- *    baixar sem assinar).
- *
- * DADOS DOS MEDICOS: sairam do codigo na v2.1.0. O cadastro agora vive
- * so no navegador do medico (core/cadastro.js) e e compartilhado com os
- * laudos de Sete Lagoas e CMD. Quem ja usava a versao anterior tem os
- * seus medicos migrados automaticamente da chave "apac_medicos_v1".
- * ------------------------------------------------------------------ */
-(function (raiz) {
-  "use strict";
-
-  var d = null;
-  var overlay = null;
-  var timers = [];
-  var procedimentoAtivo = null;
-  var pdfGerado = null;
-  var cache = null;    // ultimo payload de /api/v1/Atendimento/{uuid}
-  var cacheId = null;
-  var ultimaUrl = "";
-
-  /* Cabecalho oficial (SUS/Ministerio da Saude), recorte fiel do
-   * formulario real — ver modules/apac/assets/cabecalho-oficial.js.
-   * "data:" prefixado aqui, nao no asset, para o asset continuar sendo
-   * so o base64 puro (mais facil de trocar sem mexer em codigo). */
-  var CABECALHO_OFICIAL_PNG = raiz.MEEDS_APAC_CABECALHO_B64
-    ? "data:image/png;base64," + raiz.MEEDS_APAC_CABECALHO_B64
-    : null;
-
-  /* SHIM DE COMPATIBILIDADE
-   * O codigo original acessava o formulario por shadow.getElementById().
-   * Em vez de reescrever centenas de chamadas (e arriscar trocar um id),
-   * este objeto reproduz a mesma interface por cima do overlay que o
-   * dock do nucleo entrega. E a fronteira entre "codigo migrado sem
-   * alteracao" e "codigo novo". */
-  var shadow = {
-    getElementById: function (id) {
-      return overlay ? overlay.elemento.querySelector("#" + id) : null;
-    },
-    querySelector: function (sel) {
-      return overlay ? overlay.elemento.querySelector(sel) : null;
-    },
-    querySelectorAll: function (sel) {
-      return overlay ? overlay.elemento.querySelectorAll(sel) : [];
-    },
-  };
-
-  function toast(msg, ms) {
-    d.core.toast(msg, ms || 3000);
-  }
-
-  /* ----------------------------------------------------------------
-   * jsPDF — resolvido do escopo global (o bootloader ja o carrega via
-   * @require) com o mesmo fallback do original para o caso de o
-   * @require nao ter exposto a lib no escopo esperado.
-   * ---------------------------------------------------------------- */
-  function resolverJsPDF() {
-    var escopos = [];
-    try { escopos.push(raiz); } catch (e) {}
-    try { if (typeof unsafeWindow !== "undefined") escopos.push(unsafeWindow); } catch (e) {}
-    try { escopos.push(window); } catch (e) {}
-    try { escopos.push(globalThis); } catch (e) {}
-    for (var i = 0; i < escopos.length; i++) {
-      var g = escopos[i];
-      if (g && g.jspdf && g.jspdf.jsPDF) return g.jspdf.jsPDF;
-      if (g && g.jsPDF) return g.jsPDF;
-    }
-    return null;
-  }
-
-  var jsPDFCarregandoPromise = null;
-  function garantirJsPDF() {
-    var direto = resolverJsPDF();
-    if (direto) return Promise.resolve(direto);
-    if (jsPDFCarregandoPromise) return jsPDFCarregandoPromise;
-    jsPDFCarregandoPromise = new Promise(function (resolve, reject) {
-      if (typeof GM_xmlhttpRequest !== "function") {
-        reject(new Error("o componente jsPDF não está disponível e o Tampermonkey não concedeu permissão para baixá-lo"));
-        return;
-      }
-      GM_xmlhttpRequest({
-        method: "GET",
-        url: "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
-        onload: function (res) {
-          try {
-            (0, eval)(res.responseText);
-            var lib = resolverJsPDF();
-            if (lib) resolve(lib);
-            else reject(new Error("jsPDF avaliado mas não exposto."));
-          } catch (e) {
-            reject(e);
-          }
-        },
-        onerror: function () {
-          reject(new Error("a rede bloqueou o download do jsPDF"));
-        },
-      });
-    });
-    return jsPDFCarregandoPromise;
-  }
-
-  /* ----------------------------------------------------------------
-   * ARMAZENAMENTO LOCAL (medicos + historico)
-   * Continua no GM_setValue/GM_getValue do Tampermonkey, como no
-   * original: e por instalacao, nao sai do navegador e nao entra no
-   * codigo publicado. Cai para o storage do nucleo se o grant faltar.
-   * ---------------------------------------------------------------- */
-  /* O historico agora e o do nucleo (core/historico.js), compartilhado
-   * com os laudos de Sete Lagoas e CMD. Ele grava apenas a referencia
-   * curta do paciente (iniciais + 3 ultimos digitos do CPF) — o nome
-   * completo, que a versao anterior gravava, sai do disco na migracao. */
-
-  function formatarCpf(digits) {
-    var dd = (digits || "").replace(/\D/g, "").padStart(11, "0");
-    return dd.slice(0,3) + "." + dd.slice(3,6) + "." + dd.slice(6,9) + "-" + dd.slice(9,11);
-  }
-
-  /* ----------------------------------------------------------------
-   * CAPTURA DO PACIENTE (rede + URL + leitura de tela)
-   * ---------------------------------------------------------------- */
-  var ATEND_RE = /\/api\/v1\/Atendimento\/([0-9a-fA-F-]{36})(\?|$)/i;
-  var UUID_RE = /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/;
-
-  /* ------------------------------------------------------------------
-   * TROCA DE PACIENTE COM O FORMULARIO ABERTO
-   * ------------------------------------------------------------------
-   * Isto ja foi um defeito grave: o modal reescrevia os campos toda vez
-   * que a tela do Meeds carregava OUTRO atendimento. O medico comecava a
-   * APAC de um paciente, a SPA trocava por conta propria, e na hora de
-   * gerar o PDF o documento saia com outro nome — sem ele ver.
-   *
-   * A regra agora e uma so: com o formulario aberto e ja identificado, o
-   * paciente NUNCA troca sozinho. A leitura nova fica esperando num
-   * canto, o medico e avisado, e a troca so acontece se ELE mandar.
-   *
-   * Enquanto ele nao decide, `cache` continua sendo o paciente do
-   * formulario — nao o da tela. Isso importa: e `cache` que alimenta o
-   * PDF, e trocar so o rotulo deixaria o documento com um nome e os
-   * dados de outro, que e pior que o defeito original.
-   * ------------------------------------------------------------------ */
-  var pendente = null; // { id, dados } — leitura nova, ainda nao aplicada
-
-  function formularioIdentificado() {
-    if (!shadow) return false;
-    var nome = shadow.getElementById("apac-pac-nome");
-    var cpf = shadow.getElementById("apac-pac-cpf");
-    return !!((nome && nome.value.trim()) || (cpf && cpf.value.trim()));
-  }
-
-  function aplicarPayload(id, dados, aPedidoDoMedico) {
-    if (!dados || !dados.prontuario) return false;
-
-    var abertoEIdentificado = overlay && overlay.estaAberto() && formularioIdentificado();
-    var trocouDePaciente = !!(cacheId && id && id !== cacheId);
-
-    /* `aPedidoDoMedico` e a porta de saida: o botao "🔄 Atualizar
-     * paciente" atravessa a protecao, porque ai a troca foi decidida por
-     * ele. A protecao existe contra a troca que ele NAO pediu. */
-    if (!aPedidoDoMedico && abertoEIdentificado && trocouDePaciente) {
-      pendente = { id: id, dados: dados };
-      avisarTrocaDePaciente();
-      return true;
-    }
-
-    cache = dados;
-    cacheId = id || cacheId;
-    pendente = null;
-    /* Formulario aberto e ainda sem paciente: pode preencher — e o que o
-     * medico espera ao abrir o gerador durante um atendimento. */
-    if (overlay && overlay.estaAberto()) preencherDoCache();
-    return true;
-  }
-
-  function nomeDoPayload(dados) {
-    try {
-      return (dados.prontuario.individuo && dados.prontuario.individuo.nome) || "";
-    } catch (e) {
-      return "";
-    }
-  }
-
-  function avisarTrocaDePaciente() {
-    var aviso = shadow && shadow.getElementById("apac-auto-aviso");
-    if (!aviso) return;
-    var nomeNovo = nomeDoPayload(pendente.dados);
-    aviso.style.display = "block";
-    aviso.innerHTML = "";
-
-    var texto = document.createElement("div");
-    /* textContent, nunca innerHTML: aqui entra nome de paciente. */
-    texto.textContent =
-      "A tela do Meeds mudou para outro paciente" +
-      (nomeNovo ? " (" + nomeNovo + ")" : "") +
-      ". Este formulário continua com o paciente que você começou — confira antes de gerar.";
-    aviso.appendChild(texto);
-
-    var acoes = document.createElement("div");
-    acoes.style.cssText = "display:flex; gap:8px; margin-top:8px;";
-
-    var trocar = document.createElement("button");
-    trocar.type = "button";
-    trocar.className = "apac-secondary";
-    trocar.textContent = "Trocar para o paciente da tela";
-    trocar.addEventListener("click", assumirPendente);
-
-    var manter = document.createElement("button");
-    manter.type = "button";
-    manter.className = "apac-tertiary";
-    manter.textContent = "Continuar com este";
-    manter.addEventListener("click", function () {
-      pendente = null;
-      aviso.style.display = "none";
-      aviso.textContent = "";
-    });
-
-    acoes.appendChild(trocar);
-    acoes.appendChild(manter);
-    aviso.appendChild(acoes);
-  }
-
-  function assumirPendente() {
-    if (!pendente) return;
-    cache = pendente.dados;
-    cacheId = pendente.id;
-    pendente = null;
-    preencherDoCache();
-    var aviso = shadow.getElementById("apac-auto-aviso");
-    if (aviso) {
-      aviso.style.display = "block";
-      aviso.textContent = "Paciente trocado. Os dados clínicos que você já tinha digitado continuam aí — confira.";
-    }
-    toast("Paciente atualizado a seu pedido.", 3000);
-  }
-
-  function idAtualDaUrl() {
-    var m = location.href.match(UUID_RE);
-    return m ? m[0] : null;
-  }
-
-  function buscarAtendimento(id, aPedidoDoMedico) {
-    return fetch("/api/v1/Atendimento/" + id, { credentials: "include" })
-      .then(function (res) {
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        return res.json();
-      })
-      .then(function (dados) {
-        if (!aplicarPayload(id, dados, aPedidoDoMedico)) throw new Error("Sem dados.");
-        return dados;
-      });
-  }
-
-  function tentarAtualizarAutomaticamente() {
-    var idUrl = idAtualDaUrl();
-    if (idUrl && idUrl !== cacheId) buscarAtendimento(idUrl).catch(function () {});
-  }
-
-  /* Leitura da tela: agora delega ao dom-reader do nucleo, que ja tenta
-   * as variantes de rotulo e normaliza acento — antes cada gerador tinha
-   * a sua copia com listas de variantes diferentes. */
-  function lerDadosDaTela() {
-    return d.dom.lerPaciente();
-  }
-
-  function aplicarLeituraDaTela(dadosTela) {
-    if (!overlay || !dadosTela) return 0;
-    var n = 0;
-    if (dadosTela.nome) { shadow.getElementById("apac-pac-nome").value = dadosTela.nome; n++; }
-    if (dadosTela.cpf) { shadow.getElementById("apac-pac-cpf").value = formatarCpf(dadosTela.cpf); n++; }
-    if (dadosTela.nascimentoISO) { shadow.getElementById("apac-pac-nasc").value = dadosTela.nascimentoISO; n++; }
-    if (dadosTela.nomeDaMae) { shadow.getElementById("apac-pac-mae").value = dadosTela.nomeDaMae; n++; }
-    // sexo lido da tela (a palavra Masculino/Feminino) tem prioridade
-    // sobre o enum da API, que nunca foi confirmado com um caso feminino
-    if (dadosTela.sexo) { shadow.getElementById("apac-pac-sexo").value = dadosTela.sexo; n++; }
-    return n;
-  }
-
-  function preencherDoCache() {
-    if (!cache || !cache.prontuario) return;
-    var ind = cache.prontuario.individuo || {};
-    var ficha = ind.fichaIndividual || {};
-    if (ind.nome) shadow.getElementById("apac-pac-nome").value = ind.nome;
-    if (ind.cpf) shadow.getElementById("apac-pac-cpf").value = formatarCpf(ind.cpf);
-    if (ind.dataNascimento) shadow.getElementById("apac-pac-nasc").value = ind.dataNascimento.slice(0, 10);
-    if (ficha.nomeDaMae) shadow.getElementById("apac-pac-mae").value = ficha.nomeDaMae;
-    if (typeof ficha.sexo === "number") shadow.getElementById("apac-pac-sexo").value = ficha.sexo === 0 ? "M" : "F";
-    var aviso = shadow.getElementById("apac-auto-aviso");
-    aviso.style.display = "block";
-    aviso.textContent = "Preenchido automaticamente. Confira antes de gerar.";
-  }
-
-  function forcarAtualizacao() {
-    var btn = shadow.getElementById("apac-refresh-modal");
-    var original = btn.textContent;
-    btn.textContent = "Atualizando…";
-    btn.disabled = true;
-
-    // 1) sempre le a tela primeiro — e instantaneo e nao depende de rede
-    //    nem da URL conter o UUID do atendimento.
-    var camposDaTela = aplicarLeituraDaTela(lerDadosDaTela());
-
-    // 2) tambem tenta a API quando a URL trouxer o UUID: os dados de la
-    //    sao mais completos e completam o que a tela nao deu.
-    var id = idAtualDaUrl();
-    if (!id) {
-      var aviso = shadow.getElementById("apac-auto-aviso");
-      aviso.style.display = "block";
-      aviso.textContent = "Preenchido lendo a tela. Confira antes de gerar.";
-      toast(
-        camposDaTela > 0
-          ? "Dados lidos da tela (" + camposDaTela + " campo" + (camposDaTela > 1 ? "s" : "") + ")."
-          : "Não consegui preencher nada porque não encontrei os dados do paciente nem na tela nem no endereço da página. Abra o paciente na tela de Atendimento e clique de novo em “Atualizar paciente”.",
-        4500
-      );
-      btn.textContent = original;
-      btn.disabled = false;
-      return;
-    }
-    buscarAtendimento(id, true)
-      .then(function (dd) {
-        toast(dd.prontuario.individuo.nome ? "Atualizado: " + dd.prontuario.individuo.nome : "OK");
-      })
-      .catch(function () {
-        // a API falhou, mas a leitura da tela ja preencheu o que deu —
-        // nunca deixa o medico sem nada so porque a rede falhou.
-        toast(
-          camposDaTela > 0
-            ? "Preenchi " + camposDaTela + " campo(s) lendo a tela do atendimento. A consulta ao sistema falhou, então confira os dados antes de gerar."
-            : "Não consegui buscar os dados do paciente: a consulta ao sistema falhou e não encontrei nada na tela. Abra o paciente na tela de Atendimento e clique de novo em “Atualizar paciente”.",
-          4500
-        );
-      })
-      .then(function () {
-        btn.textContent = original;
-        btn.disabled = false;
-      });
-  }
-
-
-  /* ---- dados do formulario ----
-   * Catalogo de procedimentos, variantes de eco, territorios vasculares,
-   * CID-10 e o estabelecimento vem de dados/formularios.json, injetado no
-   * pacote pelo build. Ficam fora do codigo porque sao a parte que o
-   * administrador edita de vez em quando. Se o arquivo faltar, os padroes
-   * seguram e o modulo continua funcionando. */
-  /* O formulario da APAC e NACIONAL: o mesmo PDF vale para qualquer
-   * municipio. O que muda e o ESTABELECIMENTO solicitante. Por isso o
-   * catalogo vem do bloco comum e o municipio so escolhe a unidade. */
-  var BASE = raiz.MEEDS_DADOS_APAC || { _comum: {}, municipios: {} };
-  var COMUM = BASE._comum || {};
-
-  function municipiosDisponiveis() {
-    return Object.keys(BASE.municipios || {});
-  }
-
-  /* Um municipio pode sobrescrever o catalogo comum, mas hoje nenhum
-   * precisa — a lista de cardiologia e a mesma nos tres. */
-  function dadosDoMunicipio(nome) {
-    var m = (BASE.municipios || {})[nome] || {};
-    return {
-      procedimentos: m.procedimentos || COMUM.procedimentos || {},
-      ecoVariantes: m.ecoVariantes || COMUM.ecoVariantes || {},
-      territorios: m.territorios || COMUM.territorios || [],
-      cids: m.cids || COMUM.cids || {},
-      estabelecimentos: m.estabelecimentos || [],
-    };
-  }
-
-  var municipioAtual = null;
-  var cnesSelecionado = ""; // ver montarEstabelecimentos: a selecao viaja por CNES, nao por indice
-  var DADOS = dadosDoMunicipio(null);
-
-  var CATALOGO = DADOS.procedimentos;
-  var ECO_VARIANTES = DADOS.ecoVariantes;
-  var TERRITORIOS = DADOS.territorios;
-  var CID_DIC = DADOS.cids;
-
-
-  /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
-  var CSS = raiz.MeedsSuiteCabecalho.CSS + "\n" + raiz.MeedsSuiteHistorico.CSS + "\n" + raiz.MeedsSuiteModelos.CSS + "\n" + raiz.MeedsSuiteGuia.CSS + "\n" + "#apac-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #apac-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #apac-modal-head h2{ margin:0; font-size:15px; }\n    #apac-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #apac-body{ padding:18px 20px; }\n    .apac-sec{ margin-bottom:16px; }\n    .apac-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .apac-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .apac-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    #apac-body label{ display:block; font-size:10.5px; font-weight:700; color:#5b6c68; margin-bottom:4px; }\n    #apac-body input,#apac-body select,#apac-body textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8e6e3; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    #apac-body textarea{ min-height:56px; resize:vertical; }\n    .apac-proc-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }\n    .apac-proc-btn{ border:1.4px solid #d8e6e3; border-radius:9px; padding:9px; cursor:pointer; }\n    .apac-proc-btn:hover{ border-color:#17ab9e; }\n    .apac-proc-btn.sel{ border-color:#12958a; background:#e3f5f3; }\n    .apac-proc-btn .t{ font-size:11.5px; font-weight:700; }\n    .apac-proc-btn .c{ font-size:9.5px; color:#0e7a70; font-family:monospace; }\n    #apac-territorio-wrap{ display:none; margin-top:8px; }\n    #apac-territorio-wrap.show{ display:block; }\n    #apac-eco-variante-wrap{ display:none; margin-top:8px; }\n    #apac-eco-variante-wrap.show{ display:block; }\n    #apac-outro-wrap{ display:none; margin-top:8px; }\n    #apac-outro-wrap.show{ display:block; }\n    #apac-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    #apac-sec-assinatura{ border:1.5px dashed #17ab9e; border-radius:12px; padding:14px; background:#f9fdfc; }\n    .apac-opcoes-assinatura{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }\n    button.apac-primary{ background:#12958a; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.apac-primary:hover{ background:#0b6a62; }\n    button.apac-primary:disabled{ background:#a0c9c4; cursor:not-allowed; }\n    button.apac-secondary{ background:#fff; color:#0e7a70; border:1.4px solid #17ab9e; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.apac-secondary:hover{ background:#e3f5f3; }\n    button.apac-tertiary{ background:#f0f4f3; color:#0e7a70; border:1px solid #d8e6e3; border-radius:9px; padding:9px 14px; font-size:12px; font-weight:700; cursor:pointer; }\n    button.apac-tertiary:hover{ background:#e3f5f3; }\n    #apac-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #apac-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }\n    .apac-info-box{ background:#e8f4f8; color:#0e7a70; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:10px; line-height:1.4; }";
-
-  var HTML = "<div id=\"apac-modal\">\n      " +
-    raiz.MeedsSuiteCabecalho.html({
-      tom: "documento", titulo: "Gerador de APAC", idFechar: "apac-close",
-      acoes: [
-        { id: "apac-refresh-modal", rotulo: "🔄 Atualizar paciente", titulo: "Lê a tela do atendimento e busca os dados do paciente atual" },
-        { id: "apac-historico-abrir", rotulo: "📜 Histórico", titulo: "Últimas APACs geradas nesta máquina" },
-      ],
-    }) +
-    "\n      <div id=\"apac-body\">\n        <div id=\"apac-auto-aviso\"></div>\n\n        <div class=\"msmod\">\n          <div class=\"msmod-rot\">Modelos salvos</div>\n          <div class=\"msmod-vazio\" id=\"apac-modelo-vazio\">Preencha o procedimento, o CID e a justificativa que você mais repete e dê um nome abaixo. Da próxima vez, escolha na lista e tudo volta preenchido.</div>\n          <div class=\"msmod-linha msmod-salvos\" id=\"apac-modelo-salvos\">\n            <select id=\"apac-modelo-sel\"></select>\n            <button type=\"button\" class=\"msmod-btn\" id=\"apac-modelo-padrao\">\u2605 Usar sempre</button>\n            <button type=\"button\" class=\"msmod-btn perigo\" id=\"apac-modelo-excluir\">Apagar</button>\n          </div>\n          <div class=\"msmod-linha\">\n            <input type=\"text\" id=\"apac-modelo-nome\" maxlength=\"40\" placeholder=\"Nome do novo modelo (ex.: Holter rotina)\">\n            <button type=\"button\" class=\"msmod-btn principal\" id=\"apac-modelo-criar\">\uff0b Salvar como modelo</button>\n          </div>\n          <div class=\"msmod-dica\" id=\"apac-modelo-dica\"></div>\n        </div>\n\n        <div id=\"apac-historico-painel\"></div>\n\n        <div class=\"apac-sec\">\n          <h3>Município *</h3>\n          <select id=\"apac-municipio-sel\"></select>\n          <div id=\"apac-municipio-dica\" style=\"font-size:10.5px;color:#5b6c68;margin-top:4px;\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Estabelecimento</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome *</label><select id=\"apac-estab-sel\"></select></div>\n            <div><label>CNES *</label><input id=\"apac-estab-cnes\" readonly style=\"background:#f1f5f9;\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Médico solicitante</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Selecionar *</label><select id=\"apac-medico-sel\"></select></div>\n            <div><label>Nome *</label><input id=\"apac-medico-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-medico-cpf\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Paciente</h3>\n          <div class=\"apac-grid2\">\n            <div><label>Nome completo *</label><input id=\"apac-pac-nome\"></div>\n            <div><label>CPF *</label><input id=\"apac-pac-cpf\"></div>\n          </div>\n          <div class=\"apac-grid3\" style=\"margin-top:8px;\">\n            <div><label>Nascimento *</label><input type=\"date\" id=\"apac-pac-nasc\"></div>\n            <div><label>Sexo *</label><select id=\"apac-pac-sexo\"><option value=\"\" selected disabled>Selecione…</option><option value=\"M\">Masculino</option><option value=\"F\">Feminino</option></select></div>\n            <div><label>Nome da mãe *</label><input id=\"apac-pac-mae\"></div>\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Procedimento *</h3>\n          <div class=\"apac-proc-grid\" id=\"apac-proc-grid\"></div>\n          <div id=\"apac-territorio-wrap\">\n            <label>Território vascular (obrigatório para Doppler)</label>\n            <select id=\"apac-territorio-sel\"></select>\n          </div>\n          <div id=\"apac-eco-variante-wrap\">\n            <label>Variante do ecocardiograma</label>\n            <select id=\"apac-eco-variante-sel\">\n              <option value=\"REPOUSO\">Transtorácica de repouso (padrão)</option>\n              <option value=\"ESTRESSE\">Com estresse (farmacológico/Dobutamina)</option>\n              <option value=\"TRANSESOFAGICO\">Transesofágico</option>\n            </select>\n          </div>\n          <div id=\"apac-outro-wrap\">\n            <label>Código SIGTAP *</label>\n            <input id=\"apac-outro-codigo\" placeholder=\"ex: 02.11.02.001-0\" style=\"margin-bottom:8px;\">\n            <label>Nome do procedimento *</label>\n            <input id=\"apac-outro-nome\" placeholder=\"como deve aparecer no campo 19\">\n          </div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>CID-10 *</h3>\n          <div class=\"apac-grid3\">\n            <div><label>Principal *</label><input id=\"apac-cid1\" placeholder=\"digite ou escolha\" autocomplete=\"off\"></div>\n            <div><label>Secundário</label><input id=\"apac-cid2\" autocomplete=\"off\"></div>\n            <div><label>Associados</label><input id=\"apac-cid3\" autocomplete=\"off\"></div>\n          </div>\n          <div style=\"margin-top:8px;\"><label>Descrição (campo 36) *</label><input id=\"apac-cid-desc\"></div>\n        </div>\n\n        <div class=\"apac-sec\">\n          <h3>Texto do pedido (campo 40) *</h3>\n          <textarea id=\"apac-obs\"></textarea>\n        </div>\n\n        <!-- ETAPA 2 — Assinatura -->\n        <div class=\"apac-sec\" id=\"apac-sec-assinatura\" style=\"display:none;\">\n          <h3>Etapa 2 — Assinatura</h3>\n          <div class=\"apac-info-box\">\n            ✅ <b>APAC gerada.</b> Ela já ficou registrada no 📜 Histórico. Escolha como quer finalizar:\n          </div>\n\n          <div class=\"apac-opcoes-assinatura\">\n            <button id=\"apac-assinar-govbr\" class=\"apac-primary\">\n              🏛️ Assinar via gov.br<br><small style=\"font-weight:400;opacity:.9;\">Baixa PDF e abre o portal</small>\n            </button>\n            <button id=\"apac-baixar-sem\" class=\"apac-tertiary\">\n              💾 Baixar sem assinar<br><small style=\"font-weight:400;opacity:.8;\">PDF simples</small>\n            </button>\n          </div>\n        </div>\n\n        <div id=\"apac-erro\"></div>\n        \n      </div>\n      <div id=\"apac-footer\">\n        <button class=\"apac-secondary\" id=\"apac-limpar\">Limpar</button>\n        <button class=\"apac-primary\" id=\"apac-gerar\">Gerar PDF</button>\n      </div>\n    </div>";
-
-  /* ---- extraidas do original sem alteracao ---- */
-
-  /* ---- validacao dos campos obrigatorios ----
-   * Cada campo declara o ROTULO como ele aparece na tela e, quando existe
-   * um jeito mais rapido de preencher, a dica. E o que permite a mensagem
-   * dizer "falta o nome da mae, preencha o campo Nome da mae, e se ele
-   * nao veio sozinho clique em Atualizar paciente" em vez de "campo
-   * obrigatorio". O texto final e montado pelo nucleo
-   * (core/mensagens.js), para o tom ser o mesmo em todos os modulos. */
-  var CAMPOS_OBRIGATORIOS = [
-      { id: "apac-medico-sel", descricao: "escolher o médico solicitante", rotulo: "Médico solicitante",
-        comoResolver: "se a lista estiver vazia, cadastre-se no painel da engrenagem (⚙️)" },
-      { id: "apac-medico-nome", descricao: "o nome do médico", rotulo: "Nome" },
-      { id: "apac-medico-cpf", descricao: "o CPF do médico", rotulo: "CPF",
-        comoResolver: "complete o cadastro dele no painel da engrenagem (⚙️)" },
-      { id: "apac-municipio-sel", descricao: "o município do atendimento", rotulo: "Município",
-        comoResolver: "ele é escolhido sozinho quando o Assistente reconhece o atendimento; se não vier, selecione na lista" },
-      { id: "apac-estab-sel", descricao: "o estabelecimento solicitante", rotulo: "Nome",
-        comoResolver: "cadastre a unidade no painel da engrenagem (⚙️), em Estabelecimentos" },
-      { id: "apac-pac-nome", descricao: "o nome do paciente", rotulo: "Nome completo",
-        comoResolver: "clique em “Atualizar paciente” para ler da tela do atendimento" },
-      { id: "apac-pac-cpf", descricao: "o CPF do paciente", rotulo: "CPF",
-        comoResolver: "clique em “Atualizar paciente” para ler da tela do atendimento" },
-      { id: "apac-pac-nasc", descricao: "a data de nascimento", rotulo: "Nascimento" },
-      { id: "apac-pac-sexo", descricao: "o sexo do paciente", rotulo: "Sexo" },
-      { id: "apac-pac-mae", descricao: "o nome da mãe do paciente", rotulo: "Nome da mãe",
-        comoResolver: "clique em “Atualizar paciente”; se ainda assim não vier, o Meeds não está mostrando esse dado na tela e você precisa digitá-lo" },
-      { id: "__procedimento", descricao: "escolher o procedimento", rotulo: "Procedimento",
-        comoResolver: "clique em um dos quadros de procedimento",
-        vazio: function () { return !procedimentoAtivo; } },
-      { id: "apac-territorio-sel", descricao: "o território vascular", rotulo: "Território vascular",
-        so: function () { return procedimentoAtivo === "DOPPLER"; } },
-      { id: "apac-outro-codigo", descricao: "o código SIGTAP do procedimento", rotulo: "Código SIGTAP",
-        so: function () { return procedimentoAtivo === "OUTRO"; } },
-      { id: "apac-outro-nome", descricao: "o nome do procedimento", rotulo: "Nome do procedimento",
-        so: function () { return procedimentoAtivo === "OUTRO"; } },
-      { id: "apac-cid1", descricao: "o CID-10 principal", rotulo: "Principal" },
-      { id: "apac-cid-desc", descricao: "a descrição do diagnóstico", rotulo: "Descrição (campo 36)",
-        comoResolver: "ela preenche sozinha quando o CID digitado é conhecido" },
-      { id: "apac-obs", descricao: "o texto do pedido", rotulo: "Texto do pedido (campo 40)" }
-    ];
-
-  function camposFaltando() {
-    return CAMPOS_OBRIGATORIOS.filter(function (campo) {
-      if (typeof campo.so === "function" && !campo.so()) return false;
-      if (typeof campo.vazio === "function") return campo.vazio();
-      var el = shadow.getElementById(campo.id);
-      return !el || !String(el.value || "").trim();
-    });
-  }
-
-  function mensagemDeCamposFaltando(faltas) {
-    return raiz.MeedsSuiteMensagens.camposFaltando(faltas, { acao: "gerar a APAC" });
-  }
-
-
-
-  /* GERACAO DO PDF — funcao extraida VERBATIM do original.
-   * Todas as coordenadas (x, y, larguras, tamanhos de fonte, posicao dos
-   * X de sexo, das caixinhas de digito do CNS) foram calibradas na mao
-   * contra o formulario oficial da APAC. Nada aqui foi reescrito. */
-
-  /* gerarPdfInterno e a FONTE UNICA DE VERDADE do documento da APAC.
-   * Com apenasProduzir = true ela so desenha e devolve os bytes, sem
-   * mexer na tela nem registrar historico — e o caminho do preview.
-   * Como as duas portas passam por aqui, o que o medico ve no preview e
-   * o mesmo arquivo que ele vai baixar. */
-  function gerarPdfInterno(jsPDFCtor, apenasProduzir) {
-    const nome = shadow.getElementById('apac-pac-nome').value.trim();
-    const cpf = shadow.getElementById('apac-pac-cpf').value.trim();
-    const nascInput = shadow.getElementById('apac-pac-nasc').value;
-    const doc = new jsPDFCtor({ unit: 'pt', format: 'a4' });
-    const W = 595.28, M = 20, CW = W - 2 * M; const TEAL = [0, 51, 160]; let y = 20;
-    function bar(h, texto, size) {
-      size = size || 6.5;
-      doc.setFillColor(0,0,0); doc.rect(M, y, CW, h, 'F');
-      doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(size);
-      doc.text(texto, W/2, y+h/2+size/3, {align:'center'}); doc.setTextColor(0,0,0); y += h;
-    }
-    function box(x, yy, w, h, rotulo, valor, opts) {
-      opts = opts || {};
-      doc.setDrawColor(0,0,0); doc.setLineWidth(0.6); doc.rect(x, yy, w, h);
-      doc.setFont('helvetica','normal'); doc.setFontSize(6.2); doc.setTextColor(0,0,0);
-      doc.text(rotulo, x+4, yy+7);
-      if (valor) {
-        doc.setTextColor(TEAL[0],TEAL[1],TEAL[2]);
-        let size = opts.size || 9.5; doc.setFont('helvetica','bold'); doc.setFontSize(size);
-        while (size > 4.2 && doc.getTextWidth(String(valor)) > w-9) { size -= 0.3; doc.setFontSize(size); }
-        const vy = Math.max(yy+h-4, yy+13);
-        if (opts.center) doc.text(String(valor), x+w/2, vy, {align:'center'}); else doc.text(String(valor), x+5, vy);
-        doc.setTextColor(0,0,0);
-      }
-    }
-    function digitBox(x, yy, w, h, rotulo, valor, n) {
-      n = n || 15; box(x, yy, w, h, rotulo, null);
-      const cw = w/n; for (let i=1;i<n;i++) doc.line(x+i*cw, yy+h-16, x+i*cw, yy+h);
-      if (valor) {
-        doc.setTextColor(TEAL[0],TEAL[1],TEAL[2]); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
-        String(valor).replace(/\D/g,'').slice(0,n).split('').forEach((c,i)=> doc.text(c, x+cw*(i+0.5), yy+h-4, {align:'center'}));
-        doc.setTextColor(0,0,0);
-      }
-    }
-    function linhaProc(yy, h, cod, nome_, qtd, rot) {
-      const w1=150, w3=55, w2=CW-w1-w3;
-      box(M, yy, w1, h, rot[0], cod, {center:true}); box(M+w1, yy, w2, h, rot[1], nome_, {center:true}); box(M+w1+w2, yy, w3, h, rot[2], qtd, {center:true});
-    }
-    function wrap(x, yy, w, texto, size, leading) {
-      if (!texto) return; doc.setTextColor(TEAL[0],TEAL[1],TEAL[2]); doc.setFont('helvetica','normal'); doc.setFontSize(size);
-      doc.splitTextToSize(String(texto), w).forEach((ln,i)=> doc.text(ln, x, yy+i*leading)); doc.setTextColor(0,0,0);
-    }
-
-    /* CABEÇALHO: precisa sair IGUAL ao formulário oficial do Ministério
-     * da Saúde, sem alteração — por isso é a imagem do original, não um
-     * desenho nosso aproximando o emblema do SUS. Ver decisão D59 em
-     * docs/ARQUITETURA.md e o comentário em assets/cabecalho-oficial.js. */
-    if (CABECALHO_OFICIAL_PNG) {
-      var propCab = 2299 / 186; // largura/altura do recorte original, 300dpi
-      var altCab = CW / propCab;
-      doc.addImage(CABECALHO_OFICIAL_PNG, 'PNG', M, y, CW, altCab);
-      y += altCab;
-    } else {
-      /* Reserva: só entra em cena se o asset não carregou no pacote —
-       * nunca deveria acontecer em produção. Melhor um cabeçalho feio e
-       * funcional do que um PDF sem cabeçalho nenhum. */
-      doc.rect(M, y, CW, 40); doc.line(M+180, y, M+180, y+40);
-      doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text('SUS', M+8, y+24);
-      doc.setFont('helvetica','bolditalic'); doc.setFontSize(10.5);
-      doc.text('LAUDO PARA SOLICITAÇÃO/AUTORIZAÇÃO DE', M+180+(CW-180)/2, y+18, {align:'center'});
-      doc.text('PROCEDIMENTO AMBULATORIAL', M+180+(CW-180)/2, y+30, {align:'center'});
-      y += 40;
-    }
-
-    bar(11, 'IDENTIFICAÇÃO DO ESTABELECIMENTO DE SAÚDE (SOLICITANTE)');
-    box(M, y, CW-170, 20, '1 - NOME DO ESTABELECIMENTO', estabelecimentoEscolhido(), {size:8});
-    box(M+CW-170, y, 170, 20, '2 - CNES', shadow.getElementById('apac-estab-cnes').value); y += 20;
-
-    bar(11, 'IDENTIFICAÇÃO DO PACIENTE');
-    const sexo = shadow.getElementById('apac-pac-sexo').value;
-    box(M, y, CW-210, 22, '3 - NOME DO PACIENTE', nome);
-    box(M+CW-210, y, 100, 22, '4 - SEXO', null);
-    doc.setFontSize(6); doc.text('Mas.', M+CW-203, y+14); doc.text('Fem.', M+CW-160, y+14);
-    doc.rect(M+CW-183, y+9, 8, 8); doc.rect(M+CW-140, y+9, 8, 8);
-    if (sexo) { doc.setTextColor(TEAL[0],TEAL[1],TEAL[2]); doc.setFont('helvetica','bold'); doc.setFontSize(8);
-      doc.text('X', sexo==='M'? M+CW-181.5 : M+CW-138.5, y+16); doc.setTextColor(0,0,0); }
-    box(M+CW-110, y, 110, 22, '5 - Nº DO PRONTUÁRIO', null); y += 22;
-
-    const [ay,am,ad] = nascInput.split('-');
-    digitBox(M, y, CW-320, 22, '6 - CNS', cpf);
-    box(M+CW-320, y, 145, 22, '7 - DATA DE NASCIMENTO', `${ad} / ${am} / ${ay}`, {center:true});
-    box(M+CW-175, y, 90, 22, '8 - RAÇA/COR', null); box(M+CW-85, y, 85, 22, '8.1 - ETNIA', null); y += 22;
-
-    box(M, y, CW-170, 22, '9 - NOME DA MÃE', shadow.getElementById('apac-pac-mae').value);
-    box(M+CW-170, y, 170, 22, '10 - TELEFONE', null); y += 22;
-    box(M, y, CW-170, 22, '11 - RESPONSÁVEL', null);
-    box(M+CW-170, y, 170, 22, '12 - TELEFONE', null); y += 22;
-    box(M, y, CW, 22, '13 - ENDEREÇO', null); y += 22;
-    box(M, y, CW-295, 22, '14 - MUNICÍPIO', null);
-    box(M+CW-295, y, 115, 22, '15 - IBGE', null);
-    box(M+CW-180, y, 55, 22, '16 - UF', null); box(M+CW-125, y, 125, 22, '17 - CEP', null); y += 22;
-
-    bar(11, 'PROCEDIMENTO SOLICITADO');
-    let principal;
-    if (procedimentoAtivo === 'DOPPLER') {
-      const terr = shadow.getElementById('apac-territorio-sel').value || 'ULTRASSONOGRAFIA DOPPLER COLORIDO DE VASOS';
-      principal = { codigo: CATALOGO.DOPPLER.codigo, nome: terr, qtde: '01' };
-    } else if (procedimentoAtivo === 'CINTILO') {
-      principal = { codigo: CATALOGO.CINTILO.codigo, nome: CATALOGO.CINTILO.label, qtde: '01' };
-    } else if (procedimentoAtivo === 'ECO') {
-      const variante = ECO_VARIANTES[shadow.getElementById('apac-eco-variante-sel').value || 'REPOUSO'];
-      principal = { codigo: variante.codigo, nome: variante.nome, qtde: '01' };
-    } else if (procedimentoAtivo === 'OUTRO') {
-      principal = {
-        codigo: shadow.getElementById('apac-outro-codigo').value.trim().toUpperCase(),
-        nome: shadow.getElementById('apac-outro-nome').value.trim().toUpperCase(),
-        qtde: '01',
-      };
-    } else {
-      /* Sem procedimento escolhido, a linha sai em branco em vez de
-       * quebrar. So a PREVIA chega aqui assim: gerarPdf() valida antes e
-       * exige a escolha, entao o documento final nunca sai sem
-       * procedimento. Isto existe para a previa poder desenhar desde a
-       * primeira tecla, com o formulario ainda pela metade. */
-      const p = CATALOGO[procedimentoAtivo] || { codigo: '', label: '' };
-      principal = { codigo: p.codigo, nome: p.label, qtde: procedimentoAtivo ? '01' : '' };
-    }
-    linhaProc(y, 24, principal.codigo, principal.nome, principal.qtde, ['18 - CÓDIGO','19 - NOME','20 - QTDE.']); y += 24;
-
-    bar(11, 'PROCEDIMENTO(S) SECUNDÁRIO(S)');
-    const rots = [
-      ['21 - CÓDIGO','22 - NOME','23 - QTDE.'],['24 - CÓDIGO','25 - NOME','26 - QTDE.'],
-      ['27 - CÓDIGO','28 - NOME','29 - QTDE.'],['30 - CÓDIGO','31 - NOME','32 - QTDE.'],
-      ['33 - CÓDIGO','34 - NOME','35 - QTDE.'],
-    ];
-    rots.forEach((rot)=>{ linhaProc(y, 20, '', '', '', rot); y += 20; });
-
-    bar(11, 'JUSTIFICATIVA');
-    const cid1v = shadow.getElementById('apac-cid1').value.trim().toUpperCase();
-    const cid2v = shadow.getElementById('apac-cid2').value.trim().toUpperCase();
-    const cid3v = shadow.getElementById('apac-cid3').value.trim().toUpperCase();
-    box(M, y, CW-240, 24, '36 - DESCRIÇÃO DO DIAGNÓSTICO', null, {size:7});
-    wrap(M+4, y+13, CW-250, shadow.getElementById('apac-cid-desc').value, 6.6, 7);
-    box(M+CW-240, y, 80, 24, '37-CID10 PRINC.', cid1v, {center:true});
-    box(M+CW-160, y, 80, 24, '38-CID10 SEC.', cid2v, {center:true});
-    box(M+CW-80, y, 80, 24, '39-ASSOC.', cid3v, {center:true}); y += 24;
-    box(M, y, CW, 78, '40 - OBSERVAÇÕES', null);
-    wrap(M+6, y+16, CW-12, shadow.getElementById('apac-obs').value, 7.4, 9); y += 78;
-
-    bar(11, 'SOLICITAÇÃO');
-    const medicoNome = shadow.getElementById('apac-medico-nome').value;
-    // Documento do profissional: passou a ser o CPF. O formulario oficial
-    // aceita CNS ou CPF no campo 43/44 — tem a caixa de marcacao para
-    // isso — e o medico raramente sabe o proprio CNS de cabeca.
-    const medicoCpf = shadow.getElementById('apac-medico-cpf').value;
-    const hoje = new Date();
-    const dataHoje = `${String(hoje.getDate()).padStart(2,'0')} / ${String(hoje.getMonth()+1).padStart(2,'0')} / ${hoje.getFullYear()}`;
-    box(M, y, CW-300, 24, '41 - NOME DO PROFISSIONAL', medicoNome);
-    box(M+CW-300, y, 120, 24, '42-DATA', dataHoje, {center:true});
-    box(M+CW-180, y, 180, 24, '45-ASSINATURA/CARIMBO', null); y += 24;
-    box(M, y, 110, 24, '43 - DOCUMENTO', null);
-    doc.setFontSize(6); doc.text('(   ) CNS', M+8, y+16); doc.text('(X) CPF', M+58, y+16);
-    // 11 caixinhas: o CPF tem 11 digitos (o CNS tinha 15)
-    digitBox(M+110, y, CW-110, 24, '44 - Nº DOCUMENTO', medicoCpf, 11); y += 24;
-
-    bar(11, 'AUTORIZAÇÃO');
-    box(M, y, CW-320, 24, '46 - AUTORIZADOR', null);
-    box(M+CW-320, y, 140, 24, '47 - ÓRGÃO EMISSOR', null);
-    box(M+CW-180, y, 180, 24, '52 - Nº DA APAC', null); y += 24;
-    box(M, y, 110, 24, '48 - DOCUMENTO', null);
-    digitBox(M+110, y, CW-290, 24, '49 - Nº DOCUMENTO', null);
-    box(M+CW-180, y, 180, 24, '53 - VALIDADE', null); y += 24;
-    box(M, y, 120, 24, '50-DATA', null);
-    box(M+120, y, CW-120, 24, '51 - ASSINATURA/CARIMBO', null); y += 24;
-
-    bar(11, 'ESTABELECIMENTO EXECUTANTE');
-    box(M, y, CW-170, 20, '54 - NOME FANTASIA', null);
-    box(M+CW-170, y, 170, 20, '55 - CNES', null);
-
-    const slug = nome.replace(/[^A-Za-z0-9]+/g,'_').toUpperCase().slice(0,40);
-    const filename = `APAC_${slug || 'PACIENTE'}.pdf`;
-    const documento = { bytes: new Uint8Array(doc.output('arraybuffer')), filename };
-    if (apenasProduzir) return documento;   // caminho do preview: nao toca na tela
-    pdfGerado = documento;
-    raiz.MeedsSuiteHistorico.registrar("apac", {
-      nomePaciente: nome,
-      cpfPaciente: cpf,
-      titulo: principal.nome || procedimentoAtivo,
-      medico: medicoNome,
-      clinico: {
-        procedimento: procedimentoAtivo,
-        "apac-territorio-sel": shadow.getElementById("apac-territorio-sel").value,
-        "apac-eco-variante-sel": shadow.getElementById("apac-eco-variante-sel").value,
-        "apac-outro-codigo": shadow.getElementById("apac-outro-codigo").value,
-        "apac-outro-nome": shadow.getElementById("apac-outro-nome").value,
-        "apac-cid1": cid1v,
-        "apac-cid2": cid2v,
-        "apac-cid3": cid3v,
-        "apac-cid-desc": shadow.getElementById("apac-cid-desc").value,
-        "apac-obs": shadow.getElementById("apac-obs").value,
-      },
-    });
-    shadow.getElementById('apac-sec-assinatura').style.display = 'block';
-    shadow.getElementById('apac-sec-assinatura').scrollIntoView({ behavior:'smooth', block:'center' });
-    toast("Pronto — APAC gerada. Escolha como assinar ou baixar.", 5000);
-  }
-
-
-  /* ----------------------------------------------------------------
-   * UI — montagem, paineis e validacao
-   * ---------------------------------------------------------------- */
-  /* O <select> e montado pelo nucleo (cadastro.montarSelect): ele cuida do
-   * "cadastrar medico" e ja seleciona sozinho quando ha um so medico
-   * cadastrado neste navegador. */
-  var seletorMedico = null;
-
-  /* ---- estabelecimento ----
-   * A lista vem do cadastro do nucleo (⚙️ → Estabelecimentos), semeada
-   * na primeira execucao com o que estava em dados/formularios.json.
-   * Antes o nome e o CNES vinham fixos e o medico que atendesse por
-   * outra unidade tinha que digitar os dois a cada laudo. */
-  /* Troca o municipio: recarrega o catalogo e ZERA o estabelecimento.
-   * Zerar e deliberado — manter a unidade da cidade anterior e o jeito
-   * mais facil de emitir uma APAC com o CNES errado, que e glosada. */
-  function aplicarMunicipio(nome) {
-    municipioAtual = nome || null;
-    var d2 = dadosDoMunicipio(municipioAtual);
-    CATALOGO = d2.procedimentos;
-    ECO_VARIANTES = d2.ecoVariantes;
-    TERRITORIOS = d2.territorios;
-    CID_DIC = d2.cids;
-
-    /* Trocar de cidade zera a unidade — inclusive o CNES lembrado. E de
-     * proposito incomodo: manter o que estava la e exatamente como se
-     * emite uma APAC com o CNES de outro municipio sem perceber. */
-    cnesSelecionado = "";
-    var selEstab = shadow.getElementById("apac-estab-sel");
-    if (selEstab) selEstab.value = "";
-    var cnes = shadow.getElementById("apac-estab-cnes");
-    if (cnes) cnes.value = "";
-
-    semearEstabelecimentosDoMunicipio();
-    montarEstabelecimentos();
-
-    var dica = shadow.getElementById("apac-municipio-dica");
-    if (dica) {
-      var qtd = estabelecimentosVisiveis().length;
-      dica.textContent = !municipioAtual
-        ? "Escolha o município para liberar as unidades solicitantes."
-        : qtd
-        ? qtd + " unidade(s) cadastrada(s) em " + municipioAtual + "."
-        : "Nenhuma unidade cadastrada em " + municipioAtual +
-          ". Cadastre pelo painel da engrenagem, em Unidades.";
-    }
-  }
-
-  /* Copia para o cadastro local as unidades que o municipio traz no
-   * arquivo de dados. So na primeira vez de cada municipio: depois disso
-   * quem manda e a lista que o medico mantem. */
-  function semearEstabelecimentosDoMunicipio() {
-    if (!municipioAtual) return;
-    var sementes = (dadosDoMunicipio(municipioAtual).estabelecimentos || []).map(function (e) {
-      return { nome: e.nome, cnes: e.cnes, municipio: municipioAtual };
-    });
-    if (sementes.length) d.cadastro.semearEstabelecimentos(sementes, municipioAtual);
-  }
-
-  function montarMunicipios() {
-    var sel = shadow.getElementById("apac-municipio-sel");
-    if (!sel) return;
-    var lista = municipiosDisponiveis();
-    sel.innerHTML = "";
-    var ph = document.createElement("option");
-    ph.value = ""; ph.textContent = "Selecione o município…"; ph.disabled = true; ph.selected = true;
-    sel.appendChild(ph);
-    lista.forEach(function (m) {
-      var o = document.createElement("option");
-      o.value = m; o.textContent = m;
-      sel.appendChild(o);
-    });
-    /* Um municipio so: nao ha o que escolher. */
-    if (lista.length === 1) {
-      sel.value = lista[0];
-      aplicarMunicipio(lista[0]);
-    }
-  }
-
-  /* O municipio do atendimento aberto, quando da para saber com certeza.
-   * MENOS CLIQUES: o medico nao deveria informar o que o sistema ja sabe. */
-  function detectarMunicipio() {
-    var lista = municipiosDisponiveis();
-    var achado = raiz.MeedsSuiteMunicipio.detectar(cache, lista) ||
-                 raiz.MeedsSuiteMunicipio.detectarNaTela(lista);
-    if (!achado || achado === municipioAtual) return;
-    var sel = shadow.getElementById("apac-municipio-sel");
-    if (sel) sel.value = achado;
-    aplicarMunicipio(achado);
-  }
-
-  /* ------------------------------------------------------------------
-   * A ARMADILHA DO Number("")
-   * ------------------------------------------------------------------
-   * O select de estabelecimento guarda o INDICE como texto, e o
-   * placeholder vale "". Number("") nao e NaN: e 0 — ou seja, "nenhum
-   * escolhido" era lido como "o primeiro da lista". Numa APAC isso sai
-   * caro: o CNES da primeira unidade do municipio aparecia preenchido
-   * sozinho e ia para o PDF sem o medico ter escolhido nada.
-   * Toda leitura da escolha passa por aqui.
-   * ------------------------------------------------------------------ */
-  function estabelecimentosVisiveis() {
-    if (!municipioAtual) return [];
-    return d.cadastro.listarEstabelecimentosDe(municipioAtual);
-  }
-
-  function estabelecimentoDaVez() {
-    var sel = shadow.getElementById("apac-estab-sel");
-    var v = sel ? sel.value : "";
-    if (!/^\d+$/.test(v)) return null;
-    return estabelecimentosVisiveis()[Number(v)] || null;
-  }
-
-  function estabelecimentoEscolhido() {
-    var e = estabelecimentoDaVez();
-    return e ? e.nome : "";
-  }
-
-  function montarEstabelecimentos() {
-    var sel = shadow.getElementById("apac-estab-sel");
-    var lista = estabelecimentosVisiveis();
-    /* O que se guarda para restaurar e o CNES, NAO o indice: o indice e
-     * posicional dentro do municipio, entao guardar "0" faria a selecao
-     * virar o primeiro estabelecimento da cidade nova — outra unidade,
-     * ja preenchida, sem o medico tocar em nada. */
-    var anterior = estabelecimentoDaVez();
-    var cnesAnterior = (anterior && anterior.cnes) || cnesSelecionado;
-    sel.innerHTML = "";
-
-    var ph = document.createElement("option");
-    ph.value = "";
-    ph.textContent = lista.length ? "Selecione o estabelecimento…" : "Nenhum estabelecimento cadastrado";
-    ph.disabled = true;
-    ph.selected = true;
-    sel.appendChild(ph);
-
-    lista.forEach(function (e, i) {
-      var o = document.createElement("option");
-      o.value = String(i);
-      o.textContent = e.nome;
-      sel.appendChild(o);
-    });
-
-    var cadastrar = document.createElement("option");
-    cadastrar.value = "__cadastrar";
-    cadastrar.textContent = lista.length ? "＋ Cadastrar outro estabelecimento…" : "＋ Cadastrar estabelecimento…";
-    sel.appendChild(cadastrar);
-
-    // um so cadastrado: ja seleciona — o caso comum e o medico atender
-    // sempre pela mesma unidade. Com duas ou mais, escolher por ele
-    // seria emitir a APAC pela unidade errada sem ele perceber.
-    if (lista.length === 1) {
-      sel.value = "0";
-    } else if (cnesAnterior) {
-      for (var k = 0; k < lista.length; k++) {
-        if (lista[k].cnes === cnesAnterior) { sel.value = String(k); break; }
-      }
-    }
-    refletirCnes();
-  }
-
-  function refletirCnes() {
-    var e = estabelecimentoDaVez();
-    cnesSelecionado = e ? e.cnes : "";
-    shadow.getElementById("apac-estab-cnes").value = cnesSelecionado;
-  }
-
-  function preencherMedico(ficha) {
-    shadow.getElementById("apac-medico-nome").value = ficha ? ficha.nome : "";
-    shadow.getElementById("apac-medico-cpf").value = ficha ? ficha.cpf : "";
-  }
-
-  function montarMedicos() {
-    seletorMedico = d.cadastro.montarSelect(shadow.getElementById("apac-medico-sel"), {
-      aoEscolher: preencherMedico,
-      aoPedirCadastro: function () {
-        d.abrirCadastro();
-      },
-    });
-  }
-
-  function montarProcGrid() {
-    var grid = shadow.getElementById("apac-proc-grid");
-    Object.keys(CATALOGO).forEach(function (key) {
-      var p = CATALOGO[key];
-      var btn = document.createElement("div");
-      btn.className = "apac-proc-btn";
-      btn.id = "apac-proc-" + key;
-      btn.innerHTML = '<div class="t">' + p.nome + '</div><div class="c">' + (p.codigo || "digitar manualmente") + "</div>";
-      btn.addEventListener("click", function () { selecionarProc(key); });
-      grid.appendChild(btn);
-    });
-  }
-
-  function selecionarProc(key) {
-    procedimentoAtivo = key;
-    Array.prototype.forEach.call(shadow.querySelectorAll(".apac-proc-btn"), function (b) { b.classList.remove("sel"); });
-    shadow.getElementById("apac-proc-" + key).classList.add("sel");
-    shadow.getElementById("apac-territorio-wrap").classList.toggle("show", key === "DOPPLER");
-    shadow.getElementById("apac-eco-variante-wrap").classList.toggle("show", key === "ECO");
-    shadow.getElementById("apac-outro-wrap").classList.toggle("show", key === "OUTRO");
-    if (key === "DOPPLER") {
-      var sel = shadow.getElementById("apac-territorio-sel");
-      if (!sel.dataset.filled) {
-        TERRITORIOS.forEach(function (t) {
-          var o = document.createElement("option");
-          o.value = t; o.textContent = t;
-          sel.appendChild(o);
-        });
-        sel.dataset.filled = "1";
-      }
-    }
-  }
-
-  function autoDescricaoCid() {
-    var campo = shadow.getElementById("apac-cid1");
-    var cid = campo.value.trim().toUpperCase();
-    if (campo.value !== cid) campo.value = cid;
-    var desc = shadow.getElementById("apac-cid-desc");
-    if (CID_DIC[cid]) { desc.value = CID_DIC[cid]; desc.dataset.auto = "1"; }
-    else if (desc.dataset.auto === "1") { desc.value = ""; desc.dataset.auto = ""; }
-  }
-
-  function limparErro() {
-    var el = shadow.getElementById("apac-erro");
-    el.style.display = "none";
-    el.textContent = "";
-  }
-  function mostrarErro(msg) {
-    var el = shadow.getElementById("apac-erro");
-    el.textContent = msg;
-    el.style.display = "block";
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
-  }
-
-  function limparForm() {
-    ["apac-pac-nome","apac-pac-cpf","apac-pac-mae","apac-cid1","apac-cid2","apac-cid3",
-     "apac-cid-desc","apac-obs","apac-outro-codigo","apac-outro-nome"
-    ].forEach(function (id) { shadow.getElementById(id).value = ""; });
-    shadow.getElementById("apac-pac-nasc").value = "";
-    shadow.getElementById("apac-pac-sexo").value = "";
-    if (seletorMedico) seletorMedico.atualizar();
-    /* o municipio NAO e limpo: ele descreve o atendimento, nao o pedido */
-    shadow.getElementById("apac-auto-aviso").style.display = "none";
-    limparErro();
-    procedimentoAtivo = null;
-    pdfGerado = null;
-    Array.prototype.forEach.call(shadow.querySelectorAll(".apac-proc-btn"), function (b) { b.classList.remove("sel"); });
-    shadow.getElementById("apac-territorio-wrap").classList.remove("show");
-    shadow.getElementById("apac-eco-variante-wrap").classList.remove("show");
-    shadow.getElementById("apac-outro-wrap").classList.remove("show");
-    shadow.getElementById("apac-sec-assinatura").style.display = "none";
-  }
-
-  function abrirModal() {
-    // o cadastro pode ter mudado desde a ultima abertura (outro modal,
-    // outra aba, restauracao de backup)
-    if (seletorMedico) seletorMedico.atualizar();
-    detectarMunicipio();
-
-    /* Fechar o modal NAO limpa o formulario. Entao reabrir com outro
-     * paciente na tela trocaria os dados em silencio — o mesmo defeito
-     * que a protecao de cima resolve, so que pela porta dos fundos. Um
-     * fechamento sem querer nao pode custar o paciente do documento.
-     *
-     * Com o formulario ja identificado, reabrir nao mexe em nada: se a
-     * tela estiver noutro paciente, o medico e avisado e decide. */
-    if (!formularioIdentificado()) {
-      preencherDoCache();
-      // reforco: ao abrir, tambem le a tela na hora — cobre o caso do cache
-      // (API) estar vazio ou desatualizado quando o medico clica.
-      aplicarLeituraDaTela(lerDadosDaTela());
-    } else {
-      var idTela = idAtualDaUrl();
-      if (idTela && cacheId && idTela !== cacheId) {
-        buscarAtendimento(idTela).catch(function () {});
-      }
-    }
-    aplicarModeloPadraoSeVazio();
-    overlay.abrir();
-    /* So faz alguma coisa na primeira vez (ou se o tutorial nunca foi
-     * registrado) — seguro chamar sempre. Abre por CIMA do modal da
-     * APAC, mesmo empilhamento de qualquer overlay aberto a partir de
-     * outro (ver comentario em criarOverlay(), core/dock.js). */
-    if (raiz.MeedsSuiteTutorial) {
-      raiz.MeedsSuiteTutorial.iniciarSePrimeiraVez("apac", { dock: d.dock });
-    }
-  }
-
-  /* Porta do preview: produz os bytes sem validar e sem tocar na tela. */
-  function produzirPdf() {
-    return garantirJsPDF().then(function (jsPDFCtor) {
-      return gerarPdfInterno(jsPDFCtor, true);
-    });
-  }
-
-  function gerarPdf() {
-    limparErro();
-    var faltam = camposFaltando();
-    if (faltam.length) {
-      mostrarErro(mensagemDeCamposFaltando(faltam));
-      /* Listar o que falta ainda deixa o medico procurando. Levar ate o
-       * primeiro campo e o que transforma a recusa em instrucao. */
-      if (guia) guia.apontarPrimeiroPendente();
-      return;
-    }
-    var btn = shadow.getElementById("apac-gerar");
-    var original = btn.textContent;
-    btn.textContent = "Gerando…";
-    btn.disabled = true;
-    garantirJsPDF()
-      .then(function (jsPDFCtor) {
-        try { gerarPdfInterno(jsPDFCtor); }
-        catch (e) { mostrarErro("Erro ao gerar PDF: " + e.message); }
-      })
-      .catch(function (e) {
-        // biblioteca que nao carrega tem causa e solucao proprias (quase
-        // sempre a rede da unidade bloqueando o CDN)
-        mostrarErro(raiz.MeedsSuiteMensagens.BIBLIOTECA_NAO_CARREGOU("jsPDF", e.message));
-      })
-      .then(function () { btn.textContent = original; btn.disabled = false; });
-  }
-
-  function baixarPdf(bytes, filename) {
-    var blob = new Blob([bytes], { type: "application/pdf" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
-  }
-
-  function baixarSemAssinar() {
-    if (!pdfGerado) { mostrarErro("Gere o PDF primeiro."); return; }
-    baixarPdf(pdfGerado.bytes, pdfGerado.filename);
-  }
-
-  function assinarGovBr() {
-    if (!pdfGerado) { mostrarErro("Gere o PDF primeiro."); return; }
-    baixarPdf(pdfGerado.bytes, pdfGerado.filename);
-    window.open("https://assinador.iti.br", "_blank");
-    toast("PDF baixado. Acesse assinador.iti.br, faça login com gov.br e assine o arquivo.", 7000);
-  }
-
-  var historico = null;
-
-  /* Repoe a parte CLINICA de uma APAC anterior. A identificacao do
-   * paciente NAO e reposta: continua vindo da tela do atendimento. */
-  function reabrirDoHistorico(entrada) {
-    var c = entrada.clinico || {};
-    if (c.procedimento) selecionarProc(c.procedimento);
-    Object.keys(c).forEach(function (id) {
-      if (id === "procedimento") return;
-      var el = shadow.getElementById(id);
-      if (el) el.value = c[id];
-    });
-    historico.esconder();
-    var aviso = shadow.getElementById("apac-auto-aviso");
-    aviso.style.display = "block";
-    aviso.textContent =
-      "Repus procedimento, CID e texto do pedido de “" + entrada.titulo + "”. " +
-      "Os dados do paciente continuam sendo os da tela — confira antes de gerar.";
-    toast("Dados clínicos repostos do histórico.", 3500);
-  }
-
-  /* Preenche codigo e descricao nos campos certos deste laudo. Usada
-   * tanto pelo autocomplete de dentro do campo quanto pela janela de
-   * busca separada — um caminho so, para os dois nunca divergirem. */
-  /* Os tres campos de CID da APAC sao os campos 37 (principal), 38
-   * (secundario) e 39 (associados) do formulario oficial. Todos recebem
-   * codigo de CID e por isso todos ganham a busca.
-   *
-   * So o PRINCIPAL alimenta a "Descricao do diagnostico" (campo 36): ela
-   * descreve o diagnostico principal. Se o secundario tambem escrevesse
-   * ali, escolher um CID associado sobrescreveria a descricao do
-   * principal — o medico perderia o que ja tinha, sem perceber. */
-  function preencherCidEmCampo(idCampo, alimentaDescricao) {
-    return function (codigo, descricao) {
-      var campo = shadow.getElementById(idCampo);
-      if (campo) campo.value = codigo;
-      if (!alimentaDescricao) return;
-      var desc = shadow.getElementById("apac-cid-desc");
-      if (desc && (!desc.value || desc.dataset.auto === "1")) {
-        desc.value = descricao || "";
-        desc.dataset.auto = "1";
-      }
-    };
-  }
-
-  var CAMPOS_CID = [
-    { id: "apac-cid1", alimentaDescricao: true },  // 37 - CID10 principal
-    { id: "apac-cid2", alimentaDescricao: false }, // 38 - CID10 secundario
-    { id: "apac-cid3", alimentaDescricao: false }, // 39 - associados
-  ];
-
-  function montarUI() {
-    overlay = d.dock.criarOverlay({ estilo: CSS, html: HTML });
-
-    historico = raiz.MeedsSuiteHistorico.montarPainel(
-      shadow.getElementById("apac-historico-painel"),
-      "apac",
-      { aoReabrir: reabrirDoHistorico }
-    );
-
-    shadow.getElementById("apac-refresh-modal").addEventListener("click", forcarAtualizacao);
-    shadow.getElementById("apac-close").addEventListener("click", overlay.fechar);
-    shadow.getElementById("apac-gerar").addEventListener("click", gerarPdf);
-    shadow.getElementById("apac-limpar").addEventListener("click", limparForm);
-    shadow.getElementById("apac-cid1").addEventListener("input", autoDescricaoCid);
-    shadow.getElementById("apac-assinar-govbr").addEventListener("click", assinarGovBr);
-    shadow.getElementById("apac-baixar-sem").addEventListener("click", baixarSemAssinar);
-    shadow.getElementById("apac-historico-abrir").addEventListener("click", historico.alternar);
-
-    montarMunicipios();
-    shadow.getElementById("apac-municipio-sel").addEventListener("change", function () {
-      aplicarMunicipio(shadow.getElementById("apac-municipio-sel").value);
-    });
-    montarEstabelecimentos();
-    shadow.getElementById("apac-estab-sel").addEventListener("change", function () {
-      var sel = shadow.getElementById("apac-estab-sel");
-      if (sel.value === "__cadastrar") {
-        sel.value = "";
-        refletirCnes();
-        d.core.abrirCadastroEstabelecimentos();
-        return;
-      }
-      refletirCnes();
-    });
-
-    // CPF se formata sozinho enquanto o medico digita (000.000.000-00)
-    raiz.MeedsSuiteFormatos.aplicarMascaraCpf(shadow.getElementById("apac-pac-cpf"));
-    raiz.MeedsSuiteFormatos.aplicarMascaraCpf(shadow.getElementById("apac-medico-cpf"));
-    montarMedicos();
-    montarProcGrid();
-    }
-
-  /* ----------------------------------------------------------------
-   * CONTRATO DE MODULO
-   * ---------------------------------------------------------------- */
-
-  /* ------------------------------------------------------------------
-   * MODELOS SALVOS
-   * ------------------------------------------------------------------
-   * A parte que se repete laudo a laudo — procedimento, codigo, CID,
-   * justificativa — guardada uma vez e reposta com um clique. Nada de
-   * paciente entra: ver core/modelos.js, que recusa esses campos por
-   * duas travas independentes.
-   *
-   * CAMPOS_DO_MODELO e a MESMA lista que alimenta o historico, de
-   * proposito: se as duas divergirem, um campo passa a ser "clinico" num
-   * lugar e "de paciente" no outro, e a fronteira deixa de valer.
-   * ------------------------------------------------------------------ */
-  var CAMPOS_DO_MODELO = [
-    "procedimento",
-    "apac-territorio-sel",
-    "apac-eco-variante-sel",
-    "apac-outro-codigo",
-    "apac-outro-nome",
-    "apac-cid1",
-    "apac-cid2",
-    "apac-cid3",
-    "apac-cid-desc",
-    "apac-obs"
-  ];
-
-  function Modelos() { return raiz.MeedsSuiteModelos; }
-
-  /* Na APAC o procedimento nao e um campo de texto: e um botao do grid.
-   * Por isso ele entra e sai do modelo por estas duas portas. */
-  function procedimentoDoModelo() { return procedimentoAtivo; }
-
-  function aplicarProcedimentoDoModelo(chave) {
-    if (!chave || !shadow.getElementById("apac-proc-" + chave)) return false;
-    selecionarProc(chave);
-    return true;
-  }
-
-  function lerCamposDoFormulario() {
-    var fora = {};
-    CAMPOS_DO_MODELO.forEach(function (id) {
-      if (id === "procedimento") {
-        var p = procedimentoDoModelo();
-        if (p) fora.procedimento = p;
-        return;
-      }
-      var el = shadow.getElementById(id);
-      if (el && el.value) fora[id] = el.value;
-    });
-    return fora;
-  }
-
-  function aplicarModelo(clinico) {
-    if (!clinico) return 0;
-    var n = 0;
-    Object.keys(clinico).forEach(function (id) {
-      if (id === "procedimento") { if (aplicarProcedimentoDoModelo(clinico[id])) n++; return; }
-      var el = shadow.getElementById(id);
-      if (!el) return;
-      el.value = clinico[id];
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-      el.dispatchEvent(new Event("change", { bubbles: true }));
-      n++;
-    });
-    return n;
-  }
-
-  function montarModelos() {
-    var sel = shadow.getElementById("apac-modelo-sel");
-    if (!sel) return;
-    var lista = Modelos().listar("apac");
-    var escolhido = sel.value;
-
-    /* Sem nenhum modelo, a lista de escolha nao aparece: um seletor
-     * vazio parece defeito. Aparece so o convite para criar o primeiro. */
-    var linhaSalvos = shadow.getElementById("apac-modelo-salvos");
-    var vazio = shadow.getElementById("apac-modelo-vazio");
-    if (linhaSalvos) linhaSalvos.hidden = !lista.length;
-    if (vazio) vazio.hidden = !!lista.length;
-
-    sel.innerHTML = "";
-    var ph = document.createElement("option");
-    ph.value = "";
-    ph.textContent = "Escolha um modelo para preencher\u2026";
-    sel.appendChild(ph);
-    lista.forEach(function (m) {
-      var o = document.createElement("option");
-      o.value = m.nome;
-      o.textContent = (m.padrao ? "\u2605 " : "") + m.nome;
-      sel.appendChild(o);
-    });
-    if (escolhido) sel.value = escolhido;
-
-    var dica = shadow.getElementById("apac-modelo-dica");
-    if (dica) {
-      var padrao = Modelos().padraoDe("apac");
-      if (padrao) {
-        dica.textContent = "\u2605 " + padrao.nome + " entra sozinho quando você abre este gerador com os campos clínicos vazios.";
-      } else if (lista.length) {
-        dica.textContent = "Escolha \u201c\u2605 Usar sempre\u201d num modelo para ele vir preenchido sozinho, sem você clicar em nada.";
-      } else {
-        dica.textContent = "Nada de paciente entra num modelo: nome, CPF, nascimento, mãe e sexo ficam sempre de fora.";
-      }
-    }
-  }
-
-  function ligarModelos() {
-    var sel = shadow.getElementById("apac-modelo-sel");
-    if (!sel) return;
-    var nome = shadow.getElementById("apac-modelo-nome");
-
-    /* Escolher na lista preenche na hora — e o caminho de todo dia, e
-     * um botao "Aplicar" a mais so acrescentaria clique. */
-    sel.addEventListener("change", function () {
-      if (!sel.value) return;
-      var m = Modelos().obter("apac", sel.value);
-      if (!m) return;
-      var n = aplicarModelo(m.clinico);
-      /* O campo de NOME nao e preenchido aqui — e essa linha, que existia
-       * "para facilitar corrigir", fazia o medico perder modelo: ele
-       * aplicava um, montava OUTRO procedimento, clicava em salvar e o
-       * antigo era sobrescrito em silencio. Para ele, so dava para ter um
-       * modelo. Substituir agora e um ato deliberado: o botao muda de
-       * texto quando o nome digitado ja existe. */
-      atualizarBotaoDeSalvar();
-      toast("Modelo \u201c" + m.nome + "\u201d aplicado (" + n + " campo" + (n > 1 ? "s" : "") + "). Confira antes de gerar.", 4000);
-    });
-
-    /* Criar e salvar sao o MESMO botao, de proposito: nome novo cria,
-     * nome que ja existe corrige. O medico que salva "Holter rotina" de
-     * novo esta acertando o dele, nao pedindo dois. */
-    function criar() {
-      var r = Modelos().salvar("apac", nome.value, lerCamposDoFormulario(), CAMPOS_DO_MODELO);
-      if (!r.ok) { toast(r.erro, 6000); nome.focus(); return; }
-      montarModelos();
-      sel.value = r.nome;
-      /* Limpar depois de CRIAR e o que deixa o proximo salvar ser um
-       * modelo novo por padrao, em vez de uma substituicao por acidente. */
-      if (!r.substituiu) nome.value = "";
-      atualizarBotaoDeSalvar();
-      var quantos = Modelos().listar("apac").length;
-      toast(
-        r.substituiu
-          ? "Modelo \u201c" + r.nome + "\u201d substituído."
-          : "Modelo \u201c" + r.nome + "\u201d salvo. Você tem " + quantos + " modelo" + (quantos > 1 ? "s" : "") + ".",
-        4000
-      );
-    }
-
-    /* O botao anuncia o que vai acontecer ANTES do clique. Sem isto,
-     * criar e substituir sao o mesmo gesto — e o medico so descobre qual
-     * dos dois aconteceu quando o modelo antigo ja se foi. */
-    function atualizarBotaoDeSalvar() {
-      var botao = shadow.getElementById("apac-modelo-criar");
-      if (!botao) return;
-      var digitado = (nome.value || "").trim();
-      var existe = digitado && Modelos().obter("apac", digitado);
-      botao.textContent = existe ? "\u21bb Substituir \u201c" + digitado + "\u201d" : "\uff0b Salvar como modelo";
-      botao.classList.toggle("substituir", !!existe);
-    }
-
-    shadow.getElementById("apac-modelo-criar").addEventListener("click", criar);
-    nome.addEventListener("keydown", function (ev) {
-      if (ev.key === "Enter") { ev.preventDefault(); criar(); }
-    });
-    nome.addEventListener("input", atualizarBotaoDeSalvar);
-
-    shadow.getElementById("apac-modelo-padrao").addEventListener("click", function () {
-      if (!sel.value) { toast("Escolha um modelo na lista para ele vir preenchido sozinho.", 4000); return; }
-      Modelos().definirPadrao("apac", sel.value);
-      montarModelos();
-      var padrao = Modelos().padraoDe("apac");
-      toast(
-        padrao && padrao.nome === sel.value
-          ? "\u201c" + sel.value + "\u201d agora vem preenchido sozinho ao abrir."
-          : "\u201c" + sel.value + "\u201d deixou de vir preenchido sozinho.",
-        4000
-      );
-    });
-
-    shadow.getElementById("apac-modelo-excluir").addEventListener("click", function () {
-      if (!sel.value) { toast("Escolha um modelo na lista para apagar.", 4000); return; }
-      if (!raiz.confirm("Apagar o modelo \u201c" + sel.value + "\u201d?")) return;
-      Modelos().remover("apac", sel.value);
-      nome.value = "";
-      atualizarBotaoDeSalvar();
-      montarModelos();
-      toast("Modelo apagado.", 3000);
-    });
-
-    montarModelos();
-    atualizarBotaoDeSalvar();
-  }
-
-  /* ------------------------------------------------------------------
-   * "VAZIO" NAO E "SEM VALOR NENHUM"
-   * ------------------------------------------------------------------
-   * Alguns <select> deste formulario ja nascem com uma opcao escolhida
-   * (a variante do eco vem em "REPOUSO", a origem vem na primeira
-   * unidade). Se contassem como preenchimento, o formulario nunca
-   * pareceria vazio e o modelo padrao jamais entraria — que foi
-   * exatamente o que aconteceu no primeiro teste desta funcao.
-   *
-   * Entao um select so conta se o medico o tirou do valor inicial.
-   * ------------------------------------------------------------------ */
-  function campoFoiPreenchido(id) {
-    var el = shadow.getElementById(id);
-    if (!el || !el.value) return false;
-    if (el.tagName === "SELECT") {
-      var primeira = el.options && el.options.length ? el.options[0].value : "";
-      return el.value !== primeira;
-    }
-    return true;
-  }
-
-  function formularioClinicoVazio() {
-    if (procedimentoDoModelo()) return false;
-    for (var i = 0; i < CAMPOS_DO_MODELO.length; i++) {
-      var id = CAMPOS_DO_MODELO[i];
-      if (id === "procedimento") continue;
-      if (campoFoiPreenchido(id)) return false;
-    }
-    return true;
-  }
-
-  /* O modelo padrao so entra com a parte clinica VAZIA. Ele existe para
-   * poupar digitacao, nunca para apagar o que o medico ja escreveu. */
-  function aplicarModeloPadraoSeVazio() {
-    var padrao = Modelos().padraoDe("apac");
-    if (!padrao) return;
-    if (!formularioClinicoVazio()) return;
-    aplicarModelo(padrao.clinico);
-  }
-
-
-  /* ------------------------------------------------------------------
-   * GUIA DE PREENCHIMENTO
-   * ------------------------------------------------------------------
-   * Barra de progresso e "falta: X", alimentadas pela MESMA
-   * camposFaltando() que recusa a emissao. Uma barra que chega a 100%
-   * com o botao ainda recusando ensinaria o medico a nao confiar na
-   * tela — por isso a fonte e uma so. Ver D32.
-   * ------------------------------------------------------------------ */
-  var guia = null;
-
-  function camposAplicaveis() {
-    return CAMPOS_OBRIGATORIOS.filter(function (campo) {
-      return typeof campo.so !== "function" || campo.so();
-    });
-  }
-
-  function montarGuia() {
-    if (!raiz.MeedsSuiteGuia) return;
-    guia = raiz.MeedsSuiteGuia.criar({
-      aplicaveis: camposAplicaveis,
-      faltando: camposFaltando,
-      elementoDe: function (campo) {
-      /* O procedimento da APAC nao e um <input>: e um grid de botoes.
-       * Apontar leva ao grid. */
-      if (campo.id === "__procedimento") return shadow.getElementById("apac-proc-grid");
-        return shadow.getElementById(campo.id);
-      },
-    });
-
-    var corpo = shadow.getElementById("apac-body");
-    if (corpo) corpo.insertBefore(guia.elemento, corpo.firstChild);
-
-    /* Um ouvinte delegado no modal, nao um por campo: o formulario muda
-     * de forma (grid de procedimento, campos condicionais) e ouvintes
-     * por campo ficariam para tras. */
-    var modal = shadow.getElementById("apac-modal");
-    if (modal) {
-      modal.addEventListener("input", atualizarGuia);
-      modal.addEventListener("change", atualizarGuia);
-      modal.addEventListener("click", atualizarGuia);
-    }
-    atualizarGuia();
-  }
-
-  function atualizarGuia() {
-    if (guia) guia.atualizar();
-  }
-
-  /* ----------------------------------------------------------------
-   * TUTORIAL GUIADO — ver core/tutorial.js para o mecanismo.
-   * Registro estatico, independente de o modulo estar rodando. O
-   * roteiro cobre, nessa ordem: o que a funcao faz, o preenchimento
-   * automatico a partir da tela, a escolha de procedimento (com os
-   * campos extras de Doppler/Eco/Outro), CID-10, modelos salvos e
-   * historico, e a etapa de assinatura (gov.br ou PDF simples).
-   * ---------------------------------------------------------------- */
-  if (raiz.MeedsSuiteTutorial) {
-    raiz.MeedsSuiteTutorial.registrar("apac", {
-      titulo: "APAC",
-      passos: [
-        {
-          icone: "📋",
-          titulo: "O que esta função faz",
-          texto:
-            "Gera o Laudo para Solicitação/Autorização de Procedimento Ambulatorial (APAC) já preenchido, e " +
-            "encaminha para assinatura no gov.br. O formulário é o mesmo em qualquer município — muda só a " +
-            "unidade solicitante. Atende Itaúna, Betim e Sete Lagoas.",
-        },
-        {
-          icone: "🔄",
-          titulo: "Preenchimento automático",
-          texto:
-            "Município, estabelecimento e dados do paciente vêm sozinhos da tela do atendimento. Se algo " +
-            "não bater — outro paciente na tela, por exemplo — o Assistente avisa antes de sobrescrever o " +
-            "que já estava no formulário.",
-        },
-        {
-          icone: "🩺",
-          titulo: "Procedimento",
-          texto:
-            "Escolha o procedimento nos quadros. Alguns pedem uma informação a mais: Doppler pede o " +
-            "território vascular, Ecocardiograma pede a variante (repouso, estresse ou transesofágico), e " +
-            "\"Outro\" pede o código SIGTAP e o nome exatamente como devem aparecer no campo 19.",
-        },
-        {
-          icone: "🔎",
-          titulo: "CID-10 e modelos salvos",
-          texto:
-            "O campo de CID busca pelo nome da doença, não só pelo código. E se você repete sempre o mesmo " +
-            "procedimento com a mesma justificativa, salve como modelo — da próxima vez é só escolher, e " +
-            "tudo volta preenchido.",
-        },
-        {
-          icone: "🏛️",
-          titulo: "Gerar e assinar",
-          texto:
-            "Depois de \"Gerar PDF\", a APAC já fica registrada no 📜 Histórico deste computador, e você " +
-            "escolhe: \"Assinar via gov.br\" (baixa o PDF e já abre o portal) ou \"Baixar sem assinar\" " +
-            "(PDF simples, para assinar de outro jeito).",
-        },
-      ],
-    });
-  }
-
-  raiz.MeedsSuite.registerModule({
-    id: "apac",
-    nome: "APAC",
-    descricao:
-      "Gera o Laudo para Solicitação/Autorização de Procedimento Ambulatorial (APAC) em PDF e encaminha para assinatura no gov.br. O formulário é o mesmo em qualquer município; muda só a unidade solicitante.",
-    versao: "2.0.0",
-    configPadrao: {},
-
-    // Botao: apresentacao no manifest.json, bloco "apresentacao" da
-    // ficha "apac". O nucleo monta o botao; este modulo so trata o
-    // clique (aoClicarBotao). Ver decisao D58.
-    temBotao: true,
-
-    // captura passiva: e a via mais confiavel de detectar troca de
-    // paciente, porque nao depende de a URL mudar nem de conter o UUID
-    assinaturasRede: [{ regex: /\/api\/v1\/Atendimento\/[0-9a-fA-F-]{36}(\?|$)/i, metodos: ["GET"] }],
-
-    aoCargaRede: function (evt) {
-      if (evt.status !== 200) return;
-      var m = evt.url.match(ATEND_RE);
-      if (!m) return;
-      var json = evt.json();
-      if (json) aplicarPayload(m[1], json);
-    },
-
-    start: function (deps) {
-      d = deps;
-      montarUI();
-      ligarModelos();
-      montarGuia();
-
-      /* Quando o medico e cadastrado ou removido no painel da engrenagem,
-       * o <select> se redesenha sozinho — sem precisar fechar e reabrir
-       * este modal. */
-
-
-
-      /* Os campos de CID deste gerador sao anunciados para quem souber
-       * buscar CID-10. O modulo de busca se acopla a cada um: o medico
-       * clica no campo, digita o codigo ou o nome da doenca e escolhe.
-       * Se aquele modulo estiver desligado, ninguem atende e os campos
-       * continuam sendo texto livre, como sempre foram. */
-      function anunciarCampoCid() {
-        CAMPOS_CID.forEach(function (c) {
-          var campo = shadow.getElementById(c.id);
-          if (!campo) return;
-          deps.publicarEvento("cid:conectar-campo", {
-            input: campo,
-            aoEscolher: preencherCidEmCampo(c.id, c.alimentaDescricao),
-          });
-        });
-      }
-      anunciarCampoCid();
-
-      /* O modulo de busca pode ter subido DEPOIS deste laudo; nesse caso
-       * o anuncio acima nao encontrou ninguem. Ele avisa quando fica
-       * pronto, e o laudo anuncia de novo. */
-      deps.assinarEvento("cid:pronto", function () {
-        anunciarCampoCid();
-        return true;
-      });
-
-
-      /* Anuncia este gerador para quem souber pre-visualizar PDF. O
-       * modulo de preview se acopla ao modal e chama produzirPdf() — a
-       * MESMA funcao que o botao "Gerar" usa, entao o que aparece na
-       * previa e o arquivo que vai ser baixado. Se o preview estiver
-       * desligado, ninguem atende e nada muda aqui. */
-      function anunciarPreview() {
-        deps.publicarEvento("preview:registrar-gerador", {
-          id: "apac",
-          nome: "APAC",
-          seletorModal: "#apac-modal",
-          overlay: overlay,
-          produzirPdf: produzirPdf,
-        });
-      }
-      anunciarPreview();
-      deps.assinarEvento("preview:pronto", function () {
-        anunciarPreview();
-        return true;
-      });
-
-      deps.aoMudarCadastro(function () {
-        if (seletorMedico) seletorMedico.atualizar();
-        montarEstabelecimentos();
-      });
-
-      deps.aoClicarBotao(abrirModal);
-      if (typeof deps.aoIniciarTutorial === "function") {
-        deps.aoIniciarTutorial(function () {
-          if (raiz.MeedsSuiteTutorial) raiz.MeedsSuiteTutorial.iniciar("apac", { dock: d.dock });
-        });
-      }
-
-      // polling de URL: segunda camada, para o caso de a captura passiva
-      // nao ter visto a chamada do paciente atual
-      ultimaUrl = location.href;
-      timers.push(
-        setInterval(function () {
-          if (location.href !== ultimaUrl) {
-            ultimaUrl = location.href;
-            setTimeout(tentarAtualizarAutomaticamente, 400);
-          }
-        }, 1500)
-      );
-    },
-
-    stop: function () {
-      timers.forEach(clearInterval);
-      timers = [];
-      if (overlay) { overlay.remover(); overlay = null; }
-      cache = null;
-      cacheId = null;
-      pdfGerado = null;
-      procedimentoAtivo = null;
-      d = null;
-    },
-  });
-})(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
-
-
 /* ===== modules/cid10/assets/fallback.js ===== */
 /* modules/cid10/assets/fallback.js — GERADO AUTOMATICAMENTE
  * NAO EDITE A MAO. Rode: node scripts/sync-cid10.js
@@ -12660,7 +11095,7 @@
   var CATALOGO_PROCEDIMENTOS = DADOS.procedimentos || {};
 
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
-  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + raiz.MeedsSuiteModelos.CSS + "\n" + raiz.MeedsSuiteCabecalho.CSS + "\n" + raiz.MeedsSuiteGuia.CSS + "\n" + "#lme-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #lme-sucesso b{ color:#08574f; }\n" + "#lme-modal{\n      background:#fff; border-radius:16px; max-width:680px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #lme-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #lme-modal-head h2{ margin:0; font-size:15px; }\n    #lme-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #lme-body{ padding:18px 20px; }\n    .lme-sec{ margin-bottom:16px; }\n    .lme-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .lme-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .lme-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    #lme-body label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    #lme-body input,#lme-body select,#lme-body textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    #lme-body textarea{ min-height:70px; resize:vertical; }\n    #lme-origem-outro-wrap{ display:none; margin-top:8px; }\n    #lme-origem-outro-wrap.show{ display:block; }\n    #lme-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .lme-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    button.lme-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.lme-primary:hover{ background:#123a7a; }\n    button.lme-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.lme-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.lme-secondary:hover{ background:#e8f0f8; }\n    #lme-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #lme-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
+  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + raiz.MeedsSuiteModelos.CSS + "\n" + raiz.MeedsSuiteCabecalho.CSS + "\n" + raiz.MeedsSuiteGuia.CSS + "\n" + "#lme-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #lme-sucesso b{ color:#08574f; }\n" + "#lme-modal{\n      background:#fff; border-radius:6px; max-width:680px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 8px 24px rgba(15,23,42,.2);\n    }\n    #lme-modal-head{\n      background:#17457f; color:#fff; padding:16px 20px; border-radius:6px 6px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #lme-modal-head h2{ margin:0; font-size:15px; }\n    #lme-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:5px; cursor:pointer; font-size:14px; }\n    #lme-body{ padding:18px 20px; }\n    .lme-sec{ margin-bottom:16px; }\n    .lme-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .lme-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .lme-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    #lme-body label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    #lme-body input,#lme-body select,#lme-body textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    #lme-body textarea{ min-height:70px; resize:vertical; }\n    #lme-origem-outro-wrap{ display:none; margin-top:8px; }\n    #lme-origem-outro-wrap.show{ display:block; }\n    #lme-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .lme-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    button.lme-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.lme-primary:hover{ background:#123a7a; }\n    button.lme-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.lme-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.lme-secondary:hover{ background:#e8f0f8; }\n    #lme-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #lme-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
 
   var HTML = "<div id=\"lme-modal\">\n      " +
     raiz.MeedsSuiteCabecalho.html({
@@ -13741,7 +12176,7 @@
   var CATALOGO_PROCEDIMENTOS = DADOS.procedimentos || {};
 
   /* ---- CSS e HTML do modal (o posicionamento e do dock) ---- */
-  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + raiz.MeedsSuiteModelos.CSS + "\n" + raiz.MeedsSuiteCabecalho.CSS + "\n" + raiz.MeedsSuiteGuia.CSS + "\n" + "#cmd-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #cmd-sucesso b{ color:#08574f; }\n" + "#cmd-modal{\n      background:#fff; border-radius:16px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 20px 60px rgba(0,0,0,.35);\n    }\n    #cmd-modal-head{\n      background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 20px; border-radius:16px 16px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #cmd-modal-head h2{ margin:0; font-size:15px; }\n    #cmd-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; }\n    #cmd-body{ padding:18px 20px; }\n    .cmd-sec{ margin-bottom:16px; }\n    .cmd-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .cmd-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .cmd-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    .cmd-grid4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }\n    #cmd-body label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    #cmd-body input,#cmd-body select,#cmd-body textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    #cmd-body textarea{ min-height:90px; resize:vertical; }\n    #cmd-origem-outro-wrap{ display:none; margin-top:8px; }\n    #cmd-origem-outro-wrap.show{ display:block; }\n    #cmd-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .cmd-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    .cmd-contador{ text-align:right; font-size:10.5px; color:#8a97a4; margin-top:4px; }\n    button.cmd-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.cmd-primary:hover{ background:#123a7a; }\n    button.cmd-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.cmd-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.cmd-secondary:hover{ background:#e8f0f8; }\n    #cmd-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #cmd-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
+  var CSS = raiz.MeedsSuiteHistorico.CSS + "\n" + raiz.MeedsSuiteModelos.CSS + "\n" + raiz.MeedsSuiteCabecalho.CSS + "\n" + raiz.MeedsSuiteGuia.CSS + "\n" + "#cmd-sucesso{ background:#e6f6f2; border:1px solid #9ed8c9; color:#0b6a62; font-size:12.5px; line-height:1.55; padding:11px 13px; border-radius:9px; margin-top:6px; } #cmd-sucesso b{ color:#08574f; }\n" + "#cmd-modal{\n      background:#fff; border-radius:6px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto;\n      padding:0; box-shadow:0 8px 24px rgba(15,23,42,.2);\n    }\n    #cmd-modal-head{\n      background:#17457f; color:#fff; padding:16px 20px; border-radius:6px 6px 0 0;\n      display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:2;\n    }\n    #cmd-modal-head h2{ margin:0; font-size:15px; }\n    #cmd-close{ background:rgba(255,255,255,.2); border:none; color:#fff; width:26px; height:26px; border-radius:5px; cursor:pointer; font-size:14px; }\n    #cmd-body{ padding:18px 20px; }\n    .cmd-sec{ margin-bottom:16px; }\n    .cmd-sec h3{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }\n    .cmd-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }\n    .cmd-grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }\n    .cmd-grid4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }\n    #cmd-body label{ display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }\n    #cmd-body input,#cmd-body select,#cmd-body textarea{\n      width:100%; padding:8px 9px; border:1px solid #d8dfe6; border-radius:7px; font-size:12.5px; color:#16221f;\n    }\n    #cmd-body textarea{ min-height:90px; resize:vertical; }\n    #cmd-origem-outro-wrap{ display:none; margin-top:8px; }\n    #cmd-origem-outro-wrap.show{ display:block; }\n    #cmd-auto-aviso{ display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }\n    .cmd-info-box{ background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }\n    .cmd-contador{ text-align:right; font-size:10.5px; color:#8a97a4; margin-top:4px; }\n    button.cmd-primary{ background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }\n    button.cmd-primary:hover{ background:#123a7a; }\n    button.cmd-primary:disabled{ background:#a7bcdd; cursor:not-allowed; }\n    button.cmd-secondary{ background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }\n    button.cmd-secondary:hover{ background:#e8f0f8; }\n    #cmd-footer{ display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }\n    #cmd-erro{ display:none; background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:10px 12px; border-radius:8px; margin-top:6px; line-height:1.5; }";
 
   var HTML = "<div id=\"cmd-modal\">\n      " +
     raiz.MeedsSuiteCabecalho.html({
@@ -19112,13 +17547,13 @@ function moverFocoResultado(delta) {
    * UI — o overlay vem posicionado do dock; aqui so o conteudo.
    * ---------------------------------------------------------------- */
   var CSS = [
-    ".rm-modal { width:100%; max-width:640px; max-height:86vh; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); display:flex; flex-direction:column; overflow:hidden; }",
-    ".rm-modal header { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
+    ".rm-modal { width:100%; max-width:640px; max-height:86vh; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); display:flex; flex-direction:column; overflow:hidden; }",
+    ".rm-modal header { background:#17457f; color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
     ".rm-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
     ".rm-sub { margin:3px 0 0; font-size:11.5px; opacity:.9; }",
     ".rm-meta { margin:2px 0 0; font-size:10.5px; opacity:.75; }",
     ".rm-meta[hidden] { display:none; }",
-    ".rm-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; }",
+    ".rm-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:5px; cursor:pointer; font-size:14px; flex-shrink:0; }",
     ".rm-fechar:hover { background:rgba(255,255,255,.34); }",
     ".rm-body { padding:14px 18px 16px; display:flex; flex-direction:column; gap:10px; min-height:0; flex:1; }",
     ".rm-body label { display:block; font-size:10.5px; font-weight:700; color:#5b6c68; margin-bottom:4px; }",
@@ -19139,8 +17574,8 @@ function moverFocoResultado(delta) {
     ".rm-results li.rm-focado { background:#e3f5f3; }",
     ".rm-item-main { flex:1; min-width:0; }",
     ".rm-item-text mark { background:#fde68a; padding:0 1px; border-radius:2px; }",
-    ".rm-local { display:inline-block; margin-left:6px; font-size:10.5px; color:#0e7a70; background:#e3f5f3; padding:1px 6px; border-radius:999px; white-space:nowrap; }",
-    ".rm-receituario { display:inline-block; margin-left:6px; font-size:10.5px; font-weight:600; padding:1px 6px; border-radius:999px; white-space:nowrap; }",
+    ".rm-local { display:inline-block; margin-left:6px; font-size:10.5px; color:#0e7a70; background:#e3f5f3; padding:1px 6px; border-radius:4px; white-space:nowrap; }",
+    ".rm-receituario { display:inline-block; margin-left:6px; font-size:10.5px; font-weight:600; padding:1px 6px; border-radius:4px; white-space:nowrap; }",
     ".rm-receituario-amarela { color:#7a5d00; background:#fff3c4; }",
     ".rm-receituario-azul { color:#0b4c8c; background:#dceaff; }",
     ".rm-aviso-receituario { flex-basis:100%; font-size:11.5px; line-height:1.4; color:#7a5d00; background:#fff8e1; border:1px solid #f2e0a0; border-radius:6px; padding:5px 8px; }",
@@ -19916,8 +18351,8 @@ function moverFocoResultado(delta) {
 
   var CSS = [
     raiz.MeedsSuiteCabecalho.CSS,
-    ".ex-modal { width:100%; max-width:560px; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.3); overflow:hidden; display:flex; flex-direction:column; max-height:82vh; }",
-    ".ex-modal header { background:linear-gradient(135deg,#0f766e,#0ea5a4); color:#fff; padding:15px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
+    ".ex-modal { width:100%; max-width:560px; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; display:flex; flex-direction:column; max-height:82vh; }",
+    ".ex-modal header { background:#0f6b64; color:#fff; padding:15px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
     ".ex-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
     ".ex-modal header p { margin:2px 0 0; font-size:11.5px; opacity:.9; }",
     ".ex-fechar { background:rgba(255,255,255,.18); border:none; color:#fff; width:28px; height:28px; border-radius:8px; font-size:15px; cursor:pointer; flex-shrink:0; }",
@@ -19966,11 +18401,11 @@ function moverFocoResultado(delta) {
     /* Badge de especialidade: mesmo formato de `.ex-selo`, cor propria
      * (roxo suave) so para diferenciar visualmente de codigo/local, que
      * sao dado bruto — especialidade e categoria clinica. */
-    ".ex-especialidade { background:#f5f3ff; color:#5b21b6; border:1px solid #ddd6fe; border-radius:999px; padding:1px 8px; }",
+    ".ex-especialidade { background:#f5f3ff; color:#5b21b6; border:1px solid #ddd6fe; border-radius:4px; padding:1px 8px; }",
     /* Badge de `status: SUSPENSO` — vermelho, nao ambar: e a unica
      * marca de alerta do modulo que nao usa a paleta padrao, de
      * proposito (ver comentario em elementoDoExame()). */
-    ".ex-suspenso { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; border-radius:999px; padding:1px 8px; font-weight:700; }",
+    ".ex-suspenso { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; border-radius:4px; padding:1px 8px; font-weight:700; }",
     ".ex-nota { font-size:11.5px; color:#78350f; background:#fffbeb; border:1px solid #fde68a; border-radius:7px; padding:5px 8px; margin-top:5px; line-height:1.5; }",
 
     /* --- ex-orientacao: bloco "⚠️ Atenção ao encaminhar" ---
@@ -19994,7 +18429,7 @@ function moverFocoResultado(delta) {
     ".ex-or-txt { flex:1; min-width:0; }",
     ".ex-or-txt ul { margin:2px 0 0; padding-left:16px; }",
     ".ex-or-txt li { margin:2px 0; }",
-    ".ex-sigla { flex-shrink:0; background:#7c3aed; color:#fff; font-size:10.5px; font-weight:800; padding:3px 8px; border-radius:999px; letter-spacing:.03em; white-space:nowrap; }",
+    ".ex-sigla { flex-shrink:0; background:#7c3aed; color:#fff; font-size:10.5px; font-weight:800; padding:3px 8px; border-radius:4px; letter-spacing:.03em; white-space:nowrap; }",
     ".ex-copiar { flex-shrink:0; background:#f1f5f9; border:none; color:#475569; border-radius:7px; padding:6px 9px; font-size:11.5px; font-weight:700; cursor:pointer; }",
     ".ex-copiar:hover { background:#e2e8f0; }",
     ".ex-aviso { padding:22px 18px; text-align:center; color:#64748b; font-size:13px; line-height:1.6; }",
@@ -20775,9 +19210,9 @@ function moverFocoResultado(delta) {
   var CSS = [
     /* o modal do gerador e o painel viram colunas de uma mesma linha */
     ".pv-linha { display:flex; align-items:stretch; gap:14px; width:100%; justify-content:center; }",
-    ".pv-painel { display:flex; flex-direction:column; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); overflow:hidden; flex-shrink:0; }",
+    ".pv-painel { display:flex; flex-direction:column; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; flex-shrink:0; }",
     ".pv-painel[hidden] { display:none; }",
-    ".pv-topo { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:11px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-shrink:0; }",
+    ".pv-topo { background:#17457f; color:#fff; padding:11px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-shrink:0; }",
     ".pv-titulo { font-size:12.5px; font-weight:700; }",
     ".pv-estado { font-size:10.5px; opacity:.85; margin-top:1px; min-height:13px; }",
     ".pv-acoes { display:flex; align-items:center; gap:6px; }",

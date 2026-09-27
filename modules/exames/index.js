@@ -301,8 +301,8 @@
 
   var CSS = [
     raiz.MeedsSuiteCabecalho.CSS,
-    ".ex-modal { width:100%; max-width:560px; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.3); overflow:hidden; display:flex; flex-direction:column; max-height:82vh; }",
-    ".ex-modal header { background:linear-gradient(135deg,#0f766e,#0ea5a4); color:#fff; padding:15px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
+    ".ex-modal { width:100%; max-width:560px; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; display:flex; flex-direction:column; max-height:82vh; }",
+    ".ex-modal header { background:#0f6b64; color:#fff; padding:15px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
     ".ex-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
     ".ex-modal header p { margin:2px 0 0; font-size:11.5px; opacity:.9; }",
     ".ex-fechar { background:rgba(255,255,255,.18); border:none; color:#fff; width:28px; height:28px; border-radius:8px; font-size:15px; cursor:pointer; flex-shrink:0; }",
@@ -351,11 +351,11 @@
     /* Badge de especialidade: mesmo formato de `.ex-selo`, cor propria
      * (roxo suave) so para diferenciar visualmente de codigo/local, que
      * sao dado bruto — especialidade e categoria clinica. */
-    ".ex-especialidade { background:#f5f3ff; color:#5b21b6; border:1px solid #ddd6fe; border-radius:999px; padding:1px 8px; }",
+    ".ex-especialidade { background:#f5f3ff; color:#5b21b6; border:1px solid #ddd6fe; border-radius:4px; padding:1px 8px; }",
     /* Badge de `status: SUSPENSO` — vermelho, nao ambar: e a unica
      * marca de alerta do modulo que nao usa a paleta padrao, de
      * proposito (ver comentario em elementoDoExame()). */
-    ".ex-suspenso { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; border-radius:999px; padding:1px 8px; font-weight:700; }",
+    ".ex-suspenso { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; border-radius:4px; padding:1px 8px; font-weight:700; }",
     ".ex-nota { font-size:11.5px; color:#78350f; background:#fffbeb; border:1px solid #fde68a; border-radius:7px; padding:5px 8px; margin-top:5px; line-height:1.5; }",
 
     /* --- ex-orientacao: bloco "⚠️ Atenção ao encaminhar" ---
@@ -379,7 +379,7 @@
     ".ex-or-txt { flex:1; min-width:0; }",
     ".ex-or-txt ul { margin:2px 0 0; padding-left:16px; }",
     ".ex-or-txt li { margin:2px 0; }",
-    ".ex-sigla { flex-shrink:0; background:#7c3aed; color:#fff; font-size:10.5px; font-weight:800; padding:3px 8px; border-radius:999px; letter-spacing:.03em; white-space:nowrap; }",
+    ".ex-sigla { flex-shrink:0; background:#7c3aed; color:#fff; font-size:10.5px; font-weight:800; padding:3px 8px; border-radius:4px; letter-spacing:.03em; white-space:nowrap; }",
     ".ex-copiar { flex-shrink:0; background:#f1f5f9; border:none; color:#475569; border-radius:7px; padding:6px 9px; font-size:11.5px; font-weight:700; cursor:pointer; }",
     ".ex-copiar:hover { background:#e2e8f0; }",
     ".ex-aviso { padding:22px 18px; text-align:center; color:#64748b; font-size:13px; line-height:1.6; }",

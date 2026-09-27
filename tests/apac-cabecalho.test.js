@@ -27,8 +27,12 @@ function ok(nome, cond, obs) {
 
 /* 1. o manifest referencia o asset */
 const manifest = JSON.parse(fs.readFileSync(path.join(RAIZ, "manifest.json"), "utf8"));
-const apac = manifest.modulos.find((m) => m.id === "apac");
-ok("a ficha da apac existe no manifest", !!apac);
+/* Desde a v2.49.0 a APAC esta GUARDADA em _modulosEmStandby (o Meeds
+ * ganhou gerador nativo). A ficha continua valendo para quando voltar,
+ * entao o teste procura nos dois lugares. */
+const apac = manifest.modulos.find((m) => m.id === "apac") ||
+  ((manifest._modulosEmStandby || {}).modulos || []).find((m) => m.id === "apac");
+ok("a ficha da apac existe no manifest (ativa ou guardada)", !!apac);
 
 const CAMINHO_ASSET = "modules/apac/assets/cabecalho-oficial.js";
 ok(

@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Setup do Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Verificar (build --check, sincronizações, testes e lint)
+        run: npm run verificar
+
+      - name: Falhar se o CI alterou algum arquivo versionado
+        run: |
+          git diff --exit-code || (echo "❌ npm run verificar alterou arquivos versionados. Corrija a divergência de versão antes de continuar." && exit 1)

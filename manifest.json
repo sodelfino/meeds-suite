@@ -1,6 +1,6 @@
 {
   "nome": "Assistente Meeds",
-  "versao": "2.48.0",
+  "versao": "2.49.0",
   "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
   "repositorio": "https://github.com/sodelfino/meeds-suite",
   "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -59,30 +59,9 @@
       }
     },
     {
-      "id": "apac",
-      "nome": "APAC",
-      "descricao": "Gera a APAC (Autorização de Procedimento Ambulatorial) já preenchida com os dados do paciente na tela e abre a assinatura no gov.br. Para quem atende Itaúna, Betim ou Sete Lagoas.",
-      "versao": "3.2.1",
-      "arquivo": "modules/apac/index.js",
-      "origem": "sodelfino/apac-itauna-meeds",
-      "prioridadeBotao": 20,
-      "requer": [
-        "jspdf"
-      ],
-      "apresentacao": {
-        "formaBotao": "rotulo",
-        "icone": "apac",
-        "rotuloBotao": "APAC",
-        "cabecalho": "Gerador de APAC"
-      },
-      "assets": [
-        "modules/apac/assets/cabecalho-oficial.js"
-      ]
-    },
-    {
       "id": "cid10",
       "nome": "Busca de CID-10 nos laudos",
-      "descricao": "Liga a tabela completa da CID-10 ao campo CID: você digita o nome da doença, não só o código, e escolhe ali mesmo. Funciona dentro da APAC e dos laudos.",
+      "descricao": "Liga a tabela completa da CID-10 ao campo CID: você digita o nome da doença, não só o código, e escolhe ali mesmo. Funciona dentro dos laudos.",
       "versao": "1.2.0",
       "arquivo": "modules/cid10/index.js",
       "assets": [
@@ -115,7 +94,9 @@
         "icone": "laudo",
         "rotuloBotao": "Laudo — Sete Lagoas",
         "cabecalho": "Laudo Médico de Alto Custo — Sete Lagoas"
-      }
+      },
+      "padraoHabilitado": false,
+      "motivoPadraoDesligado": "Entra desligado na primeira instalacao: e util so para quem atende o municipio. O medico liga na engrenagem quando precisar. Quem ja usava antes desta versao continua com ele ligado."
     },
     {
       "id": "cmd",
@@ -136,7 +117,9 @@
         "icone": "laudo",
         "rotuloBotao": "Laudo — Conceição",
         "cabecalho": "Laudo Médico de Alto Custo — Conceição do Mato Dentro"
-      }
+      },
+      "padraoHabilitado": false,
+      "motivoPadraoDesligado": "Entra desligado na primeira instalacao: e util so para quem atende o municipio. O medico liga na engrenagem quando precisar. Quem ja usava antes desta versao continua com ele ligado."
     },
     {
       "id": "avisos-municipio",
@@ -187,7 +170,7 @@
     {
       "id": "preview-pdf",
       "nome": "Prévia do documento",
-      "descricao": "Mostra o PDF ao lado do formulário enquanto você preenche a APAC ou um laudo. É o mesmo arquivo que será baixado — serve para conferir antes de gerar.",
+      "descricao": "Mostra o PDF ao lado do formulário enquanto você preenche um laudo. É o mesmo arquivo que será baixado — serve para conferir antes de gerar.",
       "versao": "1.0.0",
       "arquivo": "modules/preview-pdf/index.js",
       "semBotao": true,
@@ -204,6 +187,28 @@
   "_modulosEmStandby": {
     "_leia_me": "Modulos prontos, porem FORA da distribuicao. O codigo continua no repositorio e o build NAO os empacota — o build so olha a lista 'modulos'. Para reativar: mova o bloco de volta para 'modulos' e rode 'npm run build'. Nada mais precisa ser feito; nenhum outro modulo depende deles.",
     "modulos": [
+      {
+        "id": "apac",
+        "nome": "APAC",
+        "descricao": "Gera a APAC (Autorização de Procedimento Ambulatorial) já preenchida com os dados do paciente na tela e abre a assinatura no gov.br. Para quem atende Itaúna, Betim ou Sete Lagoas.",
+        "versao": "3.2.1",
+        "arquivo": "modules/apac/index.js",
+        "origem": "sodelfino/apac-itauna-meeds",
+        "prioridadeBotao": 20,
+        "requer": [
+          "jspdf"
+        ],
+        "apresentacao": {
+          "formaBotao": "rotulo",
+          "icone": "apac",
+          "rotuloBotao": "APAC",
+          "cabecalho": "Gerador de APAC"
+        },
+        "assets": [
+          "modules/apac/assets/cabecalho-oficial.js"
+        ],
+        "motivoStandby": "DESATIVADO em 26/09/2026: o Meeds passou a ter um gerador de APAC nativo. O modulo NAO foi excluido — codigo, dados (dados/apac.json) e testes continuam no repositorio. So volta para 'modulos' com pedido claro e explicito do Marcelo."
+      },
       {
         "id": "sala-espera",
         "nome": "Sala de Espera",

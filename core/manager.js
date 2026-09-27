@@ -32,14 +32,14 @@
   var Cadastro = raiz.MeedsSuiteCadastro;
 
   var ESTILO = [
-    ".msm-modal { background:#fff; border-radius:16px; width:100%; max-width:540px; max-height:86vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,.35); }",
+    ".msm-modal { background:#fff; border-radius:6px; width:100%; max-width:540px; max-height:86vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 8px 24px rgba(15,23,42,.2); }",
 
     /* cabecalho */
-    ".msm-head { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:15px 18px 0; flex-shrink:0; }",
+    ".msm-head { background:#17457f; color:#fff; padding:15px 18px 0; flex-shrink:0; }",
     ".msm-head-topo { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
     ".msm-head h2 { margin:0; font-size:15px; font-weight:700; }",
     ".msm-head .msm-sub { margin:2px 0 0; font-size:11.5px; opacity:.85; }",
-    ".msm-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; }",
+    ".msm-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:5px; cursor:pointer; font-size:14px; flex-shrink:0; }",
     ".msm-fechar:hover { background:rgba(255,255,255,.34); }",
 
     /* abas */
@@ -67,12 +67,12 @@
     ".msm-tutorial-fixo { background:none; border:none; padding:0; font:inherit; font-size:11px; color:#8a97a4; cursor:pointer; text-decoration:underline dotted; }",
     ".msm-tutorial-fixo:hover { color:#0f766e; }",
     ".msm-tutorial-fixo b { color:inherit; }",
-    ".msm-ajustes { margin-top:7px; background:#fff; border:1.4px solid #c3d4ee; color:#1a4fa0; cursor:pointer; font-size:11.5px; font-family:inherit; font-weight:700; padding:6px 11px; border-radius:8px; }",
+    ".msm-ajustes { margin-top:7px; background:#fff; border:1.4px solid #c3d4ee; color:#1a4fa0; cursor:pointer; font-size:11.5px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-weight:600; padding:5px 10px; border-radius:5px; }",
     ".msm-ajustes:hover { background:#eef4ff; border-color:#1a4fa0; }",
     /* Mesma forma do botao de Ajustes, paleta verde-agua (a cor do
        tutorial em core/tutorial.js) para diferenciar as duas acoes
        sem depender so do texto/icone. */
-    ".msm-tutorial { margin-top:7px; background:#fff; border:1.4px solid #a7e0da; color:#0f766e; cursor:pointer; font-size:11.5px; font-family:inherit; font-weight:700; padding:6px 11px; border-radius:8px; }",
+    ".msm-tutorial { margin-top:7px; background:#fff; border:1.4px solid #a7e0da; color:#0f766e; cursor:pointer; font-size:11.5px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-weight:600; padding:5px 10px; border-radius:5px; }",
     ".msm-tutorial:hover { background:#effbf9; border-color:#0f766e; }",
 
     ".msm-switch { position:relative; width:44px; height:25px; flex-shrink:0; cursor:pointer; }",

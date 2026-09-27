@@ -581,13 +581,13 @@ function moverFocoResultado(delta) {
    * UI — o overlay vem posicionado do dock; aqui so o conteudo.
    * ---------------------------------------------------------------- */
   var CSS = [
-    ".rm-modal { width:100%; max-width:640px; max-height:86vh; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); display:flex; flex-direction:column; overflow:hidden; }",
-    ".rm-modal header { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
+    ".rm-modal { width:100%; max-width:640px; max-height:86vh; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); display:flex; flex-direction:column; overflow:hidden; }",
+    ".rm-modal header { background:#17457f; color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
     ".rm-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
     ".rm-sub { margin:3px 0 0; font-size:11.5px; opacity:.9; }",
     ".rm-meta { margin:2px 0 0; font-size:10.5px; opacity:.75; }",
     ".rm-meta[hidden] { display:none; }",
-    ".rm-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; }",
+    ".rm-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:5px; cursor:pointer; font-size:14px; flex-shrink:0; }",
     ".rm-fechar:hover { background:rgba(255,255,255,.34); }",
     ".rm-body { padding:14px 18px 16px; display:flex; flex-direction:column; gap:10px; min-height:0; flex:1; }",
     ".rm-body label { display:block; font-size:10.5px; font-weight:700; color:#5b6c68; margin-bottom:4px; }",
@@ -608,8 +608,8 @@ function moverFocoResultado(delta) {
     ".rm-results li.rm-focado { background:#e3f5f3; }",
     ".rm-item-main { flex:1; min-width:0; }",
     ".rm-item-text mark { background:#fde68a; padding:0 1px; border-radius:2px; }",
-    ".rm-local { display:inline-block; margin-left:6px; font-size:10.5px; color:#0e7a70; background:#e3f5f3; padding:1px 6px; border-radius:999px; white-space:nowrap; }",
-    ".rm-receituario { display:inline-block; margin-left:6px; font-size:10.5px; font-weight:600; padding:1px 6px; border-radius:999px; white-space:nowrap; }",
+    ".rm-local { display:inline-block; margin-left:6px; font-size:10.5px; color:#0e7a70; background:#e3f5f3; padding:1px 6px; border-radius:4px; white-space:nowrap; }",
+    ".rm-receituario { display:inline-block; margin-left:6px; font-size:10.5px; font-weight:600; padding:1px 6px; border-radius:4px; white-space:nowrap; }",
     ".rm-receituario-amarela { color:#7a5d00; background:#fff3c4; }",
     ".rm-receituario-azul { color:#0b4c8c; background:#dceaff; }",
     ".rm-aviso-receituario { flex-basis:100%; font-size:11.5px; line-height:1.4; color:#7a5d00; background:#fff8e1; border:1px solid #f2e0a0; border-radius:6px; padding:5px 8px; }",

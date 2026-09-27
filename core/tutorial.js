@@ -83,8 +83,8 @@
   "use strict";
 
   var CSS = [
-    ".tut-modal { background:#fff; border-radius:16px; width:100%; max-width:440px; box-shadow:0 20px 60px rgba(0,0,0,.35); overflow:hidden; }",
-    ".tut-head { background:linear-gradient(135deg,#0f766e,#0ea5a4); color:#fff; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
+    ".tut-modal { background:#fff; border-radius:6px; width:100%; max-width:440px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; }",
+    ".tut-head { background:#0f6b64; color:#fff; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
     ".tut-head h2 { margin:0; font-size:14px; font-weight:700; }",
     ".tut-fechar { background:rgba(255,255,255,.18); border:none; color:#fff; width:26px; height:26px; border-radius:8px; font-size:13px; cursor:pointer; flex-shrink:0; }",
     ".tut-fechar:hover { background:rgba(255,255,255,.32); }",

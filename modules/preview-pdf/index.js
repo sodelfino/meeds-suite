@@ -49,9 +49,9 @@
   var CSS = [
     /* o modal do gerador e o painel viram colunas de uma mesma linha */
     ".pv-linha { display:flex; align-items:stretch; gap:14px; width:100%; justify-content:center; }",
-    ".pv-painel { display:flex; flex-direction:column; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); overflow:hidden; flex-shrink:0; }",
+    ".pv-painel { display:flex; flex-direction:column; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; flex-shrink:0; }",
     ".pv-painel[hidden] { display:none; }",
-    ".pv-topo { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:11px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-shrink:0; }",
+    ".pv-topo { background:#17457f; color:#fff; padding:11px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-shrink:0; }",
     ".pv-titulo { font-size:12.5px; font-weight:700; }",
     ".pv-estado { font-size:10.5px; opacity:.85; margin-top:1px; min-height:13px; }",
     ".pv-acoes { display:flex; align-items:center; gap:6px; }",

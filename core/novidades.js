@@ -89,8 +89,8 @@
   }
 
   var CSS = [
-    ".msn-caixa { width:100%; max-width:540px; max-height:84vh; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); display:flex; flex-direction:column; overflow:hidden; }",
-    ".msn-caixa header { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:16px 18px; display:flex; justify-content:space-between; align-items:center; gap:12px; }",
+    ".msn-caixa { width:100%; max-width:540px; max-height:84vh; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); display:flex; flex-direction:column; overflow:hidden; }",
+    ".msn-caixa header { background:#17457f; color:#fff; padding:16px 18px; display:flex; justify-content:space-between; align-items:center; gap:12px; }",
     ".msn-caixa header h2 { margin:0; font-size:15px; font-weight:700; }",
     ".msn-versao { margin:2px 0 0; font-size:11.5px; opacity:.9; }",
     ".msn-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; }",

@@ -567,6 +567,42 @@
 
   var carregouPreferencias = false;
 
+  /* ------------------------------------------------------------------
+   * LAUDOS DESLIGADOS NA PRIMEIRA INSTALACAO (v2.49.0) — sem desligar
+   * de quem ja usava
+   * ------------------------------------------------------------------
+   * Laudo de Sete Lagoas e de Conceicao do Mato Dentro passaram a ter
+   * `padraoHabilitado: false`: so servem a quem atende o municipio, e o
+   * medico liga quando precisar. Mas o padrao so vale para quem NUNCA
+   * mexeu na chave — e quem ja tinha o Assistente e nunca mexeu estava
+   * com os dois ligados. Sem isto, a atualizacao tiraria o botao dessa
+   * pessoa sem ela pedir.
+   *
+   * Quem ja usava: a marca de "boas-vindas vistas" existe. Para essa
+   * pessoa, grava ligado o que ela tinha (so onde ela nunca escolheu).
+   * Roda UMA vez por navegador; numa instalacao nova so grava a marca,
+   * para que na proxima abertura — com as boas-vindas ja vistas — ela
+   * nao seja confundida com quem ja usava. */
+  var LAUDOS_AGORA_DESLIGADOS = ["lme-sete-lagoas", "cmd"];
+  var MARCA_PADRAO_LAUDOS = "padrao_laudos_v2_49";
+
+  function preservarLaudosDeQuemJaUsava(storage, jaUsava) {
+    if (!storage || storage.ler(MARCA_PADRAO_LAUDOS, false) === true) return false;
+    var mudou = false;
+    if (jaUsava) {
+      var mapa = storage.ler("modulos", {}) || {};
+      LAUDOS_AGORA_DESLIGADOS.forEach(function (id) {
+        if (!Object.prototype.hasOwnProperty.call(mapa, id)) {
+          mapa[id] = true;
+          mudou = true;
+        }
+      });
+      if (mudou) storage.gravar("modulos", mapa);
+    }
+    storage.gravar(MARCA_PADRAO_LAUDOS, true);
+    return mudou;
+  }
+
   function iniciar(opcoes) {
     if (iniciado) return;
     opcoes = opcoes || {};
@@ -659,6 +695,8 @@
      * obrigacao de levar junto o que o medico guardou nele. */
     if (raiz.MeedsSuiteModelos) raiz.MeedsSuiteModelos.migrarId("apac-itauna", "apac");
 
+    preservarLaudosDeQuemJaUsava(storageNucleo, raiz.MeedsSuiteDiagnostico.boasVindasConcluidas());
+
     (function carimbarMunicipioPeloCnes() {
       var dados = raiz.MEEDS_DADOS_APAC;
       if (!dados || !dados.municipios || !Cadastro || !Cadastro.preencherMunicipioPeloCnes) return;
@@ -728,6 +766,8 @@
     novidades: raiz.MeedsSuiteNovidades,
     registerModule: registerModule,
     listarModulos: listarModulos,
+    /* so para teste (tests/padrao-laudos.test.js) */
+    _preservarLaudosDeQuemJaUsava: preservarLaudosDeQuemJaUsava,
     estaHabilitado: estaHabilitado,
     definirHabilitado: definirHabilitado,
     iniciar: iniciar,

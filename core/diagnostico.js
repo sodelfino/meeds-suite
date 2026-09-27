@@ -149,11 +149,11 @@
    * 3) AVISOS NA TELA
    * ------------------------------------------------------------------ */
   var CSS = [
-    ".msd-aviso { width:100%; max-width:520px; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); overflow:hidden; }",
+    ".msd-aviso { width:100%; max-width:520px; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; }",
     ".msd-aviso header { padding:16px 18px; color:#fff; display:flex; justify-content:space-between; align-items:center; gap:12px; }",
     ".msd-aviso header h2 { margin:0; font-size:15px; font-weight:700; }",
-    ".msd-alerta header { background:linear-gradient(135deg,#b45309,#f59e0b); }",
-    ".msd-boas-vindas header { background:linear-gradient(135deg,#123a7a,#1a56ad); }",
+    ".msd-alerta header { background:#a8520c; }",
+    ".msd-boas-vindas header { background:#17457f; }",
     ".msd-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; }",
     ".msd-corpo { padding:16px 18px; font-size:13px; line-height:1.6; color:#16221f; }",
     ".msd-corpo ol, .msd-corpo ul { margin:10px 0; padding-left:20px; }",
@@ -232,14 +232,14 @@
         "  <header><h2>Bem-vindo ao Assistente Meeds</h2>" +
         '  <button type="button" class="msd-fechar" aria-label="Fechar">&#10005;</button></header>' +
         '  <div class="msd-corpo">' +
-        "    <p>Os botões ficam no <b>canto inferior direito</b> da tela, depois que você entra no Meeds. " +
-        "       O <b>⌄</b> recolhe todos; aproxime o mouse do canto para eles voltarem.</p>" +
-        "    <p>No <b>⚙️</b> você liga e desliga cada função e cadastra seu nome e CRM — uma vez só, " +
-        "       para todos os laudos.</p>" +
+        "    <p>Seja bem-vindo! O Assistente Meeds foi criado para <b>apoiar você na jornada de " +
+        "       atendimento</b>.</p>" +
+        "    <p>Para conhecer o que ele faz, clique na <b>⚙️ engrenagem</b>, no canto inferior direito da " +
+        "       tela, e veja as funções disponíveis. Lá você liga e desliga cada uma quando quiser.</p>" +
         "  </div>" +
         '  <div class="msd-rodape">' +
-        '    <button type="button" class="msd-btn msd-btn-sec" id="msd-depois">Ver depois</button>' +
-        '    <button type="button" class="msd-btn" id="msd-cadastrar">Cadastrar agora</button>' +
+        '    <button type="button" class="msd-btn msd-btn-sec" id="msd-depois">Agora não</button>' +
+        '    <button type="button" class="msd-btn" id="msd-funcoes">Conhecer as funções</button>' +
         "  </div>" +
         "</div>",
     });
@@ -250,9 +250,9 @@
     }
     overlay.$(".msd-fechar").addEventListener("click", encerrar);
     overlay.$("#msd-depois").addEventListener("click", encerrar);
-    overlay.$("#msd-cadastrar").addEventListener("click", function () {
+    overlay.$("#msd-funcoes").addEventListener("click", function () {
       encerrar();
-      raiz.MeedsSuiteManager.abrir("medicos");
+      raiz.MeedsSuiteManager.abrir("funcoes");
     });
     overlay.abrir();
     return overlay;

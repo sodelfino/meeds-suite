@@ -70,13 +70,17 @@
 
     ".ms-btn {",
     "  display: flex; align-items: center; justify-content: center; gap: 8px;",
-    "  background: #1a4fa0; color: #fff; border: none; border-radius: 999px;",
-    "  padding: 13px 19px; font-size: 13.5px; font-weight: 800; cursor: pointer;",
-    "  box-shadow: 0 8px 22px rgba(26,79,160,.4); line-height: 1.2; white-space: nowrap;",
-    "  transition: transform .15s ease, box-shadow .15s ease, background .15s ease;",
+    "  background: #1a4fa0; color: #fff; border: none; border-radius: 6px;",
+    "  padding: 11px 16px; font-size: 13px; font-weight: 600; cursor: pointer;",
+    "  box-shadow: 0 1px 3px rgba(15,23,42,.22); line-height: 1.2; white-space: nowrap;",
+    "  transition: background .12s ease, box-shadow .12s ease;",
     "}",
-    ".ms-btn:hover { background: #0f3373; transform: translateY(-1px); }",
-    ".ms-btn:active { transform: scale(.97); }",
+    ".ms-btn:hover { background: #163f80; box-shadow: 0 2px 6px rgba(15,23,42,.24); }",
+    ".ms-btn:active { background: #123a7a; }",
+    /* foco de teclado visivel e discreto: um anel fino, so quando e teclado */
+    ".ms-btn:focus-visible, .ms-aviso-btn:focus-visible, .ms-aviso-fechar:focus-visible {",
+    "  outline: 2px solid #60a5fa; outline-offset: 2px;",
+    "}",
     ".ms-btn[hidden] { display: none; }",
 
     /* icone SVG (core/icones.js): herda a cor do texto do botao */
@@ -89,7 +93,7 @@
     ".ms-btn.ms-btn-engrenagem {",
     "  width: 42px; height: 42px; font-size: 18px; padding: 0; border-radius: 50%;",
     "  background: #fff; color: #334155; border: 1px solid #e2e8f0;",
-    "  box-shadow: 0 2px 10px rgba(15,23,42,.22);",
+    "  box-shadow: 0 1px 3px rgba(15,23,42,.18);",
     "}",
     ".ms-btn.ms-btn-engrenagem:hover { background: #f1f5f9; }",
 
@@ -158,15 +162,15 @@
     /* estado ligado/alerta (usado pelo alarme de fila) */
     ".ms-btn.ms-ativo { background: linear-gradient(135deg, #f97316, #dc2626); box-shadow: 0 4px 18px rgba(220,38,38,.55); animation: ms-pulso 2.2s ease-in-out infinite; }",
     ".ms-btn.ms-ativo:hover { background: linear-gradient(135deg, #ea6a0c, #c31c1c); }",
-    ".ms-btn.ms-neutro { background: linear-gradient(135deg, #64748b, #475569); box-shadow: 0 4px 14px rgba(71,85,105,.45); }",
+    ".ms-btn.ms-neutro { background: #5b6778; box-shadow: 0 1px 3px rgba(15,23,42,.22); }",
     "@keyframes ms-pulso { 0%,100% { box-shadow: 0 4px 18px rgba(220,38,38,.55); } 50% { box-shadow: 0 4px 26px rgba(220,38,38,.9); } }",
 
     /* --- toast --- */
     "#toast {",
     "  position: fixed; right: 24px; bottom: 24px; z-index: " + (Z_BASE + 3) + ";",
-    "  background: #16221f; color: #fff; padding: 9px 14px; border-radius: 8px;",
+    "  background: #16221f; color: #fff; padding: 9px 14px; border-radius: 6px;",
     "  font-size: 12px; line-height: 1.4; max-width: 340px;",
-    "  box-shadow: 0 6px 16px rgba(0,0,0,.25);",
+    "  box-shadow: 0 2px 8px rgba(0,0,0,.2);",
     "}",
     "#toast[hidden] { display: none; }",
 
@@ -212,16 +216,16 @@
     "}",
     "#avisos > * { pointer-events: auto; }",
     ".ms-aviso {",
-    "  background: #fff; border-radius: 12px; width: 100%;",
-    "  box-shadow: 0 10px 34px rgba(15,23,42,.28); overflow: hidden;",
+    "  background: #fff; border-radius: 6px; width: 100%;",
+    "  box-shadow: 0 4px 14px rgba(15,23,42,.18); overflow: hidden;",
     "  border-left: 4px solid #1a4fa0;",
-    "  animation: ms-aviso-entra .28s cubic-bezier(.22,.9,.3,1);",
+    "  animation: ms-aviso-entra .18s ease-out;",
     "}",
     /* Sobe do rodape em vez de deslizar da direita. Os 26px e a saida
        desacelerada dao o "peso" do cartao do MSN — rapido no comeco,
        assentando no fim; um fade puro nao chama a atencao periferica, e
        e exatamente ela que este aviso precisa alcancar. */
-    "@keyframes ms-aviso-entra { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }",
+    "@keyframes ms-aviso-entra { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }",
     /* Aviso de ATENCAO (regras do municipio): ambar em vez de azul, e a
        borda pulsa TRES vezes depois de assentar — chama o olho na chegada
        e para. Um cartao que se mexe a consulta toda vira paisagem, e o
@@ -229,7 +233,7 @@
        ambar (bloco prefers-reduced-motion abaixo). */
     ".ms-aviso.ms-aviso-atencao {",
     "  background: #fffbeb; border-left-color: #d97706;",
-    "  animation: ms-aviso-entra .28s cubic-bezier(.22,.9,.3,1), ms-aviso-pulsa .9s ease-in-out .3s 3;",
+    "  animation: ms-aviso-entra .18s ease-out, ms-aviso-pulsa .9s ease-in-out .3s 3;",
     "}",
     ".ms-aviso-atencao .ms-aviso-titulo, .ms-aviso-atencao-calmo .ms-aviso-titulo { color: #92400e; }",
     /* Depois de lido no centro, o cartao desce para o canto e fica la,
@@ -258,7 +262,7 @@
     "#avisos-topo > * { pointer-events: auto; }",
     "#avisos-topo .ms-aviso { box-shadow: 0 4px 12px rgba(15,23,42,.22); }",
     "#avisos-topo .ms-aviso.ms-aviso-atencao {",
-    "  animation: ms-aviso-entra .28s cubic-bezier(.22,.9,.3,1), ms-aviso-pulsa-topo .9s ease-in-out .3s 3;",
+    "  animation: ms-aviso-entra .18s ease-out, ms-aviso-pulsa-topo .9s ease-in-out .3s 3;",
     "}",
     "@keyframes ms-aviso-pulsa-topo {",
     "  0%, 100% { box-shadow: 0 4px 12px rgba(15,23,42,.22), 0 0 0 0 rgba(217,119,6,0); }",
@@ -270,16 +274,16 @@
     "#avisos-centro .ms-aviso-corpo { font-size: 14.5px; line-height: 1.65; padding: 8px 16px 14px; }",
     "#avisos-centro .ms-aviso-btn { font-size: 13px; padding: 8px 16px; }",
     "@keyframes ms-aviso-pulsa {",
-    "  0%, 100% { box-shadow: 0 10px 34px rgba(15,23,42,.28), 0 0 0 0 rgba(217,119,6,0); }",
-    "  50% { box-shadow: 0 10px 34px rgba(15,23,42,.28), 0 0 0 5px rgba(217,119,6,.55); }",
+    "  0%, 100% { box-shadow: 0 4px 14px rgba(15,23,42,.18), 0 0 0 0 rgba(217,119,6,0); }",
+    "  50% { box-shadow: 0 4px 14px rgba(15,23,42,.18), 0 0 0 5px rgba(217,119,6,.55); }",
     "}",
     ".ms-aviso-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 12px 14px 0; }",
-    ".ms-aviso-titulo { font-size: 13px; font-weight: 700; color: #123a7a; line-height: 1.3; }",
+    ".ms-aviso-titulo { font-size: 13px; font-weight: 600; color: #123a7a; line-height: 1.3; }",
     ".ms-aviso-fechar { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 15px; line-height: 1; padding: 0 2px; flex-shrink: 0; }",
     ".ms-aviso-fechar:hover { color: #475569; }",
     ".ms-aviso-corpo { padding: 6px 14px 12px; font-size: 12.5px; line-height: 1.5; color: #16221f; }",
     ".ms-aviso-acoes { display: flex; gap: 8px; padding: 0 14px 12px; }",
-    ".ms-aviso-btn { background: #1a4fa0; color: #fff; border: none; border-radius: 7px; padding: 7px 13px; font-size: 12px; font-weight: 700; cursor: pointer; }",
+    ".ms-aviso-btn { background: #1a4fa0; color: #fff; border: none; border-radius: 5px; padding: 7px 13px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background .12s ease; }",
     ".ms-aviso-btn:hover { background: #123a7a; }",
     ".ms-aviso-btn-sec { background: #fff; color: #123a7a; border: 1.3px solid #cbd5e1; }",
     ".ms-aviso-btn-sec:hover { background: #eef4fb; }",

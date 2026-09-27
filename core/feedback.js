@@ -27,14 +27,14 @@
   "use strict";
 
   var CSS = [
-    ".msf-modal { width:100%; max-width:520px; max-height:86vh; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); display:flex; flex-direction:column; overflow:hidden; }",
-    ".msf-modal header { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
+    ".msf-modal { width:100%; max-width:520px; max-height:86vh; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); display:flex; flex-direction:column; overflow:hidden; }",
+    ".msf-modal header { background:#17457f; color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
     ".msf-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
     ".msf-sub { margin:3px 0 0; font-size:11.5px; opacity:.9; }",
     ".msf-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; }",
     ".msf-corpo { padding:15px 18px; overflow-y:auto; }",
     ".msf-tipos { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }",
-    ".msf-tipo { background:#fff; border:1.4px solid #d8dfe6; color:#5b6672; border-radius:999px; padding:7px 14px; font-size:12px; font-weight:700; font-family:inherit; cursor:pointer; }",
+    ".msf-tipo { background:#fff; border:1.4px solid #d8dfe6; color:#5b6672; border-radius:6px; padding:7px 14px; font-size:12px; font-weight:600; font-family:inherit; cursor:pointer; }",
     ".msf-tipo:hover { border-color:#1a56ad; color:#123a7a; }",
     ".msf-tipo[aria-pressed='true'] { background:#123a7a; border-color:#123a7a; color:#fff; }",
     ".msf-corpo label { display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }",
