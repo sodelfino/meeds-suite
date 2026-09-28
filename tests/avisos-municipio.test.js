@@ -337,6 +337,16 @@ const atendimentoDe = (razao) => ({ id: ID, cliente: { razaoSocialNome: razao } 
   t.ir("/atendimento/" + OUTRO_ID);
   t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA"), URL_API.replace(ID, OUTRO_ID));
   ok("nem em outro atendimento da mesma cidade, dentro das 5h", t.visiveis().length === 0);
+
+  const TERCEIRO_ID = "33333333-3333-3333-3333-333333333333";
+  t.ir("/atendimento/" + TERCEIRO_ID);
+  t.rede(atendimentoDe("PREFEITURA DO MUNICIPIO DE FRANCO DA ROCHA"), URL_API.replace(ID, TERCEIRO_ID));
+  ok("mas outra cidade continua avisando normalmente", t.visiveis().length === 1);
+
+  t.passar(5 * 60 * 60 * 1000 + 1000);
+  t.ir("/atendimento/" + OUTRO_ID);
+  t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA"), URL_API.replace(ID, OUTRO_ID));
+  ok("passadas as 5h, Barbacena volta a avisar", t.visiveis().filter((v) => /Barbacena/.test(v.spec.titulo)).length === 1);
 }
 
 /* ==================================================================
