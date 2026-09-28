@@ -177,12 +177,13 @@
   }
 
   /* Abre na LATERAL SUPERIOR DIREITA, acima dos botoes do Assistente,
-   * pulsando. "Entendi" para a pulsacao, marca a cidade/unidade como lida
-   * por 5h (verificar() nao reabre para ela nesse intervalo, nem para
-   * outro atendimento) e o cartao fica ali, ambar e parado, como
-   * referencia ate o fim deste atendimento. O X fecha de vez (naquele
-   * atendimento, sem marcar como entendido). Pedido de 25/09/2026: no meio
-   * da tela ele cobria o formulario do atendimento. */
+   * pulsando. "Entendi" marca a cidade/unidade como lida por 5h
+   * (verificar() nao reabre para ela nesse intervalo, nem para outro
+   * atendimento) e FECHA o cartao — pedido de 28/09/2026: o cartao calmo,
+   * mas ainda na tela, seguia atrapalhando o formulario. O X fecha do
+   * mesmo jeito, mas so para este atendimento, sem marcar como entendido.
+   * Pedido de 25/09/2026: no meio da tela ele cobria o formulario do
+   * atendimento. */
   function abrirCartao(id, municipio, chave, spec) {
     spec.topo = true;
     spec.acoes = [{
@@ -190,9 +191,7 @@
       fecha: false,
       aoClicar: function () {
         entendidos[chave] = Date.now();
-        if (aberto && aberto.aviso) {
-          aberto.aviso.atualizar({ destaque: "atencao-calmo", acoes: [] });
-        }
+        fechar();
       },
     }];
     aberto = { id: id, municipio: municipio, chave: chave, aviso: d.dock.criarAviso(spec) };

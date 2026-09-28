@@ -318,7 +318,9 @@ const atendimentoDe = (razao) => ({ id: ID, cliente: { razaoSocialNome: razao } 
 }
 
 /* 18. Abre na LATERAL SUPERIOR (acima dos botoes), pulsando; "Entendi"
- *     para a pulsacao e o cartao fica ali; o X fecha. */
+ *     fecha o cartão e silencia aquela cidade/unidade por 5h — mesmo
+ *     trocando de atendimento. Pedido de 28/09/2026: o cartão calmo, mas
+ *     ainda na tela, seguia atrapalhando o formulário. */
 {
   const t = carregar();
   t.ir("/atendimento/" + ID);
@@ -326,11 +328,15 @@ const atendimentoDe = (razao) => ({ id: ID, cliente: { razaoSocialNome: razao } 
   const a = t.visiveis()[0];
   ok("abre na lateral superior, pulsando (não no meio da tela)", a && a.spec.topo === true && !a.spec.centro && a.spec.destaque === "atencao");
   const entendi = a && (a.spec.acoes || []).find((x) => x.rotulo === "Entendi");
-  ok("tem o botão Entendi, que não fecha o cartão", !!entendi && entendi.fecha === false);
+  ok("tem o botão Entendi", !!entendi);
   entendi.aoClicar();
-  ok("Entendi: continua na lateral superior, âmbar e parado", a.spec.topo === true && a.spec.destaque === "atencao-calmo" && t.visiveis().length === 1);
+  ok("Entendi: o cartão fecha", t.visiveis().length === 0);
   t.ir("/atendimento/" + ID);
-  ok("e continua lá (não é tratado como dispensado)", t.visiveis().length === 1 && t.avisos.length === 1);
+  ok("e não reabre neste atendimento", t.visiveis().length === 0);
+  const OUTRO_ID = "22222222-2222-2222-2222-222222222222";
+  t.ir("/atendimento/" + OUTRO_ID);
+  t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA"), URL_API.replace(ID, OUTRO_ID));
+  ok("nem em outro atendimento da mesma cidade, dentro das 5h", t.visiveis().length === 0);
 }
 
 /* ==================================================================
