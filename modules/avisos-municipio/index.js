@@ -26,12 +26,21 @@
   let dispensados = {};             // id do atendimento -> true se o medico fechou no X
   let aberto = null;                // { id, municipio, chave, aviso }
   let vistoDesde = {};              // id do atendimento -> quando a pagina dele apareceu
+  let entendidos = {};              // chave (municipio|unidade) -> quando o medico clicou "Entendi"
 
   /* A leitura pela tela so vale depois deste tempo SEM resposta da rede.
    * A chamada do atendimento costuma chegar em menos de 1 s; esperar
    * evita mostrar por um instante o cartao de uma cidade que a rede,
    * logo em seguida, desmentiria. */
   const ESPERA_REDE_MS = 3000;
+
+  /* "Entendi" nao fecha so o atendimento atual: o medico costuma atender a
+   * mesma cidade varias vezes seguidas, e reabrir o mesmo aviso a cada
+   * atendimento so treina ele a clicar sem ler. Pedido de 28/09/2026: some
+   * por um tempo (por cidade/unidade, nao por atendimento) e so volta
+   * depois de 5h — tempo suficiente para nao repetir no mesmo bloco de
+   * atendimentos, curto o bastante para lembrar de novo num plantao longo. */
+  const TEMPO_ENTENDIDO_MS = 5 * 60 * 60 * 1000;
 
   const RX_PAGINA_ATENDIMENTO = /^\/atendimento\/([0-9a-fA-F-]{36})(?:\/|$)/;
   const RX_API_ATENDIMENTO = /\/api\/v1\/atendimento\/([0-9a-fA-F-]{36})(?:[?#].*)?$/i;
@@ -162,17 +171,25 @@
     return municipioPeloVinculo(Object.keys(tabela));
   }
 
+  function estaEntendido(chave) {
+    const quando = entendidos[chave];
+    return typeof quando === "number" && (Date.now() - quando) < TEMPO_ENTENDIDO_MS;
+  }
+
   /* Abre na LATERAL SUPERIOR DIREITA, acima dos botoes do Assistente,
-   * pulsando. "Entendi" para a pulsacao e o cartao fica ali, ambar e
-   * parado, como referencia ate o fim do atendimento. O X fecha de vez
-   * (naquele atendimento). Pedido de 25/09/2026: no meio da tela ele
-   * cobria o formulario do atendimento. */
+   * pulsando. "Entendi" para a pulsacao, marca a cidade/unidade como lida
+   * por 5h (verificar() nao reabre para ela nesse intervalo, nem para
+   * outro atendimento) e o cartao fica ali, ambar e parado, como
+   * referencia ate o fim deste atendimento. O X fecha de vez (naquele
+   * atendimento, sem marcar como entendido). Pedido de 25/09/2026: no meio
+   * da tela ele cobria o formulario do atendimento. */
   function abrirCartao(id, municipio, chave, spec) {
     spec.topo = true;
     spec.acoes = [{
       rotulo: "Entendi",
       fecha: false,
       aoClicar: function () {
+        entendidos[chave] = Date.now();
         if (aberto && aberto.aviso) {
           aberto.aviso.atualizar({ destaque: "atencao-calmo", acoes: [] });
         }
@@ -212,6 +229,12 @@
     if (!spec) return;
     const chave = municipio + "|" + (unidade ? unidade.chave : "");
     if (aberto && aberto.chave === chave) return;
+    if (estaEntendido(chave)) {
+      /* Marcado "Entendi" ha menos de 5h, para esta cidade/unidade: nao
+       * reabre, nem neste nem em outro atendimento. */
+      if (aberto) fechar();
+      return;
+    }
     /* A unidade apareceu (ou mudou) depois do cartao do municipio: troca
      * o cartao, sem contar como "dispensado pelo medico". */
     if (aberto) fechar();
@@ -266,6 +289,7 @@
       municipioPorAtendimento = {};
       dispensados = {};
       vistoDesde = {};
+      entendidos = {};
       d = null;
     },
 

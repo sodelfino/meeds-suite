@@ -2,6 +2,15 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.50.0",
+      "data": "2026-09-28",
+      "novidades": [],
+      "melhorias": [
+        "Aviso do município: depois de clicar \"Entendi\", o aviso daquela cidade/unidade fica em silêncio por 5 horas — mesmo trocando de atendimento. As outras cidades continuam avisando normalmente até você marcar \"Entendi\" nelas também."
+      ],
+      "correcoes": []
+    },
+    {
       "versao": "2.49.3",
       "data": "2026-09-27",
       "novidades": [],
