@@ -120,6 +120,42 @@
     return null;
   }
 
+  /* CPF isolado dentro de um texto que pode trazer o CNS junto — caso do
+   * rotulo "Documentos" do Meeds novo (ver docs/MIGRACAO-V2.md, secao 2.2):
+   * desde 22/09/2026 o cartao do paciente nao mostra mais "CPF" sozinho,
+   * e sim "Documentos" com CPF e CNS (15 digitos) lado a lado. NUNCA junta
+   * os dois: um CPF errado no laudo e pior que nenhum.
+   *
+   * Duas tentativas, nessa ordem, e SO decide se uma delas achar
+   * exatamente um candidato:
+   *   1. CPF com a pontuacao normal (###.###.###-##) — inconfundivel com
+   *      o CNS, que nao tem esse formato.
+   *   2. Um token de EXATAMENTE 11 digitos, separado dos vizinhos por
+   *      espaco, barra ou quebra de linha (o innerText separa CPF/CNS em
+   *      linhas, do mesmo jeito que ja faz com prefeitura/unidade em
+   *      "Vinculos" — ver lerLinhasPorRotulo). Nunca fatia um bloco de
+   *      digitos grudados (CPF+CNS sem separador nenhum): sem separador
+   *      para confiar, nao decide. */
+  function extrairCpfIsolado(texto) {
+    if (!texto) return null;
+    const formatado = String(texto).match(/\d{3}\.\d{3}\.\d{3}-\d{2}/);
+    if (formatado) return formatado[0].replace(/\D/g, "");
+    const tokens = String(texto).trim().split(/[\s/|,;]+/).filter(Boolean);
+    const candidatos = tokens.filter(function (t) { return /^\d{11}$/.test(t); });
+    return candidatos.length === 1 ? candidatos[0] : null;
+  }
+
+  function lerCpfPorRotulo(variantes, folhasOpcional) {
+    const linhas = lerLinhasPorRotulo(variantes, folhasOpcional);
+    if (linhas) {
+      for (let i = 0; i < linhas.length; i++) {
+        const achado = extrairCpfIsolado(linhas[i]);
+        if (achado) return achado;
+      }
+    }
+    return extrairCpfIsolado(lerValorPorRotulo(variantes, folhasOpcional));
+  }
+
   /* Texto do elemento imediatamente ANTERIOR ao que casa com um regex.
    * E como os tres geradores acham o nome do paciente: o nome fica logo
    * antes da linha "NN anos e MM meses" no cartao do paciente. */
@@ -192,7 +228,14 @@
    * formulario — nada e gravado em disco. */
   const VARIANTES = {
     nascimento: ["Data de Nascimento", "Data de nascimento", "Nascimento", "Dt. Nascimento"],
-    cpf: ["CPF", "C.P.F.", "CPF do paciente"],
+    /* "Documentos" confirmado pela sonda em 22/09/2026 (ver
+     * docs/MIGRACAO-V2.md, secao 2.2): o cartao do paciente do Meeds novo
+     * nao tem mais um rotulo "CPF" isolado, e sim "Documentos" com CPF e
+     * CNS juntos. lerPaciente() usa lerCpfPorRotulo (nao lerValorPorRotulo)
+     * exatamente por causa dessa variante — ela separa os dois em vez de
+     * colar. Variantes antigas mantidas para telas que ainda tenham "CPF"
+     * sozinho. */
+    cpf: ["CPF", "C.P.F.", "CPF do paciente", "Documentos"],
     /* "Parentesco" confirmado pela sonda em 22/09/2026 (relatorio real
      * contra des-doctor-calltech): "Nome da Mae" nao existe mais como leaf
      * isolado no cartao do paciente do v2 — o rotulo agora e "Parentesco".
@@ -219,8 +262,8 @@
       }
     }
 
-    const cpf = lerValorPorRotulo(VARIANTES.cpf, folhas);
-    if (cpf) out.cpf = cpf.replace(/\D/g, "");
+    const cpf = lerCpfPorRotulo(VARIANTES.cpf, folhas);
+    if (cpf) out.cpf = cpf;
 
     const mae = lerValorPorRotulo(VARIANTES.mae, folhas);
     if (mae) out.nomeDaMae = mae;
@@ -246,6 +289,7 @@
     lerValorPorRotulo: lerValorPorRotulo,
     lerLinhasPorRotulo: lerLinhasPorRotulo,
     lerPorTextoExato: lerPorTextoExato,
+    lerCpfPorRotulo: lerCpfPorRotulo,
     lerAnteriorAoPadrao: lerAnteriorAoPadrao,
     lerContadorPorRotulo: lerContadorPorRotulo,
     textoDaPaginaNormalizado: textoDaPaginaNormalizado,
