@@ -2,6 +2,17 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.52.0",
+      "data": "2026-09-30",
+      "novidades": [],
+      "melhorias": [
+        "Aviso do município: UPA Barra (Macaé) agora mostra a regra completa — medicação VO/IM/EV na unidade, exames do pronto atendimento, atestado, e o lembrete de pedir reavaliação por telemedicina depois da medicação e dos exames.",
+        "Aviso do município: Congonhas ganhou dois avisos que faltavam — dipirona só em gotas (não em comprimido) e renovação de receita só com a receita anterior em mãos.",
+        "Listagem de exames: quando um exame não consta na lista do município, a mensagem agora orienta a solicitar mesmo assim, com justificativa clínica em prontuário — como manda o protocolo. A caixa também ficou âmbar (orientação), em vez de vermelha (erro)."
+      ],
+      "correcoes": []
+    },
+    {
       "versao": "2.51.0",
       "data": "2026-09-29",
       "novidades": [],
