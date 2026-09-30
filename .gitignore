@@ -2,6 +2,9 @@ node_modules/
 .DS_Store
 *.log
 
+# scratch de execucao de planos (superpowers:executing-plans) — nunca versionado
+.superpowers/
+
 # arquivos de cadastro reais nunca entram no repositorio (dado pessoal)
 dados/medicos.json
 dados/medicos.*.json

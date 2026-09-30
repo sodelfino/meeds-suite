@@ -557,5 +557,47 @@ const textoDe = (a) => [a.spec.titulo].concat(a.spec.corpo).join("\n");
   ok("Piraí também não abre fora do atendimento", t.visiveis().length === 0);
 }
 
+/* 22. Protocolo 3 (Documento 3, 30/09/2026): a UPA Barra de Macaé passou a
+ *     ter medicação EV/IM/VO na unidade, exames pertinentes ao PA e
+ *     atestado com critério — mas exige reavaliação por telemedicina após
+ *     a medicação e os resultados. Exames eletivos continuam indo para a
+ *     UBS, e a Clínica do Autista/Casa da Criança continuam ligadas ao
+ *     "não oferta especialista" que já existia (agora reforçado pela
+ *     reavaliação, não substituído). */
+{
+  const t = macae([PMM, "UPA UNIDADE DE PRONTO ATENDIMENTO BARRA"]);
+  const v = t.visiveis();
+  const texto = textoDe(v[0]);
+  ok("UPA Barra: aviso abre", v.length === 1);
+  ok("UPA Barra: medicação VO/IM/EV na unidade", /VO/.test(texto) && /IM/.test(texto) && /EV/.test(texto));
+  ok("UPA Barra: exames pertinentes ao pronto atendimento", /exame/i.test(texto));
+  ok("UPA Barra: atestado com critério", /atestado/i.test(texto));
+  ok("UPA Barra: pede reavaliação por telemedicina depois da medicação/exames",
+     /reavalia/i.test(texto));
+  ok("UPA Barra: exames eletivos continuam indo para a UBS",
+     /eletivo/i.test(texto) && /UBS/.test(texto));
+}
+
+/* 23. Protocolo 3 (Documento 3, 30/09/2026): Congonhas é UBS/ESF de
+ *     demanda espontânea, com duas regras específicas que faltavam no
+ *     aviso — renovação de receita só com a receita prévia em mãos, e a
+ *     REMUME do município só dispensa dipirona em gotas (não em
+ *     comprimido). A orientação de exames do laboratório, já existente,
+ *     continua valendo. */
+{
+  const t = carregar();
+  t.ir("/atendimento/" + ID);
+  t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE CONGONHAS"));
+  const v = t.visiveis();
+  const texto = textoDe(v[0]);
+  ok("Congonhas: aviso abre", v.length === 1);
+  ok("Congonhas: renovação de receita exige a receita prévia",
+     /receita pr[eé]via/i.test(texto));
+  ok("Congonhas: dipirona só em gotas, não em comprimido",
+     /dipirona/i.test(texto) && /gotas/i.test(texto));
+  ok("Congonhas: a orientação de exames do laboratório continua",
+     /pedidos juntos/.test(texto) && /pedido separado/.test(texto));
+}
+
 console.log("\n" + (falhas ? falhas + " FALHA(S)" : "todos passaram"));
 if (falhas) process.exit(1);

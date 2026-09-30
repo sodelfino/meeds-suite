@@ -44,11 +44,23 @@
           "nomes": [
             "UPA UNIDADE DE PRONTO ATENDIMENTO BARRA"
           ],
+          "pode": [
+            "Medicação VO, IM e EV na unidade",
+            "Exames pertinentes ao pronto atendimento (hemograma, eletrólitos, função renal, glicemia, urina, ECG, radiografia, conforme oferta local)",
+            "Atestado com critério"
+          ],
           "naoPode": [
             {
               "item": "Encaminhamento para especialidades",
               "fazer": "orientar o paciente a procurar a UBS mais próxima"
+            },
+            {
+              "item": "Exames eletivos, sem relação com a queixa aguda",
+              "fazer": "encaminhar à UBS"
             }
+          ],
+          "orientacoes": [
+            "Depois da medicação e dos resultados dos exames, solicitar reavaliação por telemedicina para decidir entre alta, nova conduta ou atendimento presencial."
           ]
         },
         "UPA Lagomar": {
@@ -119,7 +131,14 @@
     },
     "Congonhas": {
       "titulo": "Município de Congonhas (MG)",
+      "naoPode": [
+        {
+          "item": "Renovar receita sem a receita prévia em mãos",
+          "fazer": "pedir ao paciente a receita anterior, para comprovar uso e posologia"
+        }
+      ],
       "orientacoes": [
+        "REMUME de Congonhas: dipirona é dispensada apenas em gotas, não em comprimido — prescrever na apresentação certa para o paciente conseguir retirar.",
         "Exames do laboratório da UPA devem ser pedidos juntos. Qualquer exame fora da lista deve ir em pedido separado — senão o paciente não consegue marcar. Consulte a listagem de exames do Assistente."
       ]
     },
