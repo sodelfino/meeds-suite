@@ -14,7 +14,9 @@
       "atualizadoEm": "25/09/2026",
       "avisos": {
         "Franco da Rocha": "Nesta unidade (UPA Franco da Rocha) só são atendidas fichas azuis — o fluxo já contempla receita e alta. Paciente que precisar de medicação administrada no local (oral, IM ou EV) ou que apresentar sinal de alarme deve ser encaminhado para atendimento presencial: nenhuma medicação é aplicada aqui.",
-        "Barbacena": "Nesta unidade (UPA Barbacena) a teleconsulta cobre medicação VO e IM e atestado com critério. Medicação EV e exames não são feitos por aqui: encaminhe o paciente ao atendimento presencial."
+        "Barbacena": "Nesta unidade (UPA Barbacena) a teleconsulta cobre medicação VO e IM e atestado com critério. Medicação EV e exames não são feitos por aqui: encaminhe o paciente ao atendimento presencial.",
+        "Macaé": "A farmácia municipal de Macaé não dispensa a receita quando ela traz só \"uso contínuo\": informe a quantidade e a duração exatas do tratamento.",
+        "Congonhas": "A farmácia municipal de Congonhas não dispensa a receita quando ela traz só \"uso contínuo\": informe a quantidade e a duração exatas do tratamento."
       },
       "avisosItens": {
         "Franco da Rocha": [
