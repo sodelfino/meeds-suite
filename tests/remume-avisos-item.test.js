@@ -66,5 +66,13 @@ ok("Barbacena: nenhum item VO/tópico recebe aviso", barb.filter((n) => injetave
 ok("Barbacena tem a faixa de aviso da UPA", /UPA Barbacena/.test((REMUMES._meta.avisos || {})["Barbacena"] || ""));
 ok("Franco da Rocha continua com a regra dele, sem mudança", A("Franco da Rocha", "Adenosina ampola 6 mg/2 ml").join() === TEXTO);
 
+/* Pedido de 30/09/2026: a farmácia municipal de Macaé e a de Congonhas
+ * não dispensam medicamento quando a receita traz só "uso contínuo" —
+ * precisa da quantidade e da duração exatas. É aviso de MUNICÍPIO (vale
+ * para toda a REMUME, não é termo de item), então mora em
+ * REMUMES._meta.avisos, igual Barbacena/Franco da Rocha. */
+ok("Macaé tem o aviso de uso contínuo", /uso cont[ií]nuo/i.test((REMUMES._meta.avisos || {})["Macaé"] || ""));
+ok("Congonhas tem o aviso de uso contínuo", /uso cont[ií]nuo/i.test((REMUMES._meta.avisos || {})["Congonhas"] || ""));
+
 console.log(falhas ? `\n${falhas} FALHA(S)` : "\ntodos passaram");
 process.exit(falhas ? 1 : 0);

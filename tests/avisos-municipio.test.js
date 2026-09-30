@@ -599,5 +599,21 @@ const textoDe = (a) => [a.spec.titulo].concat(a.spec.corpo).join("\n");
      /pedidos juntos/.test(texto) && /pedido separado/.test(texto));
 }
 
+/* 24. Pedido de 30/09/2026: a farmácia municipal de Congonhas não
+ *     dispensa receita com só "uso contínuo" — no aviso de início de
+ *     atendimento, isso entra como "naoPode" (❌), o mesmo destaque
+ *     visual que a regra de renovação de receita já tem. */
+{
+  const t = carregar();
+  t.ir("/atendimento/" + ID);
+  t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE CONGONHAS"));
+  const v = t.visiveis();
+  const texto = textoDe(v[0]);
+  ok("Congonhas: aviso de 'uso contínuo' aparece com destaque (❌)",
+     /❌[^\n]*uso cont[ií]nuo/i.test(texto) || /❌[^\n]*cont[ií]nuo[^\n]*uso/i.test(texto));
+  ok("Congonhas: orienta a informar quantidade e duração exatas",
+     /quantidade/i.test(texto) && /dura[cç][aã]o/i.test(texto));
+}
+
 console.log("\n" + (falhas ? falhas + " FALHA(S)" : "todos passaram"));
 if (falhas) process.exit(1);

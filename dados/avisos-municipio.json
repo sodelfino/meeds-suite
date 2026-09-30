@@ -135,6 +135,10 @@
         {
           "item": "Renovar receita sem a receita prévia em mãos",
           "fazer": "pedir ao paciente a receita anterior, para comprovar uso e posologia"
+        },
+        {
+          "item": "Prescrever como \"uso contínuo\"",
+          "fazer": "informar a quantidade e a duração exatas — a farmácia municipal não dispensa receita só com \"uso contínuo\""
         }
       ],
       "orientacoes": [
