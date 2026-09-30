@@ -18683,7 +18683,12 @@ function moverFocoResultado(delta) {
     ".ex-copiar:hover { background:#e2e8f0; }",
     ".ex-aviso { padding:22px 18px; text-align:center; color:#64748b; font-size:13px; line-height:1.6; }",
     ".ex-aviso b { color:#0f172a; }",
-    ".ex-nao-consta { background:#fef2f2; border:1px solid #fecaca; color:#7f1d1d; border-radius:10px; padding:12px 14px; margin:10px 0; font-size:12.5px; line-height:1.55; }",
+    /* Ambar, nao vermelho: a mensagem NAO e um erro — e uma orientacao de
+     * conduta (Protocolo 1: solicitar mesmo assim, com justificativa).
+     * Mesma paleta de .ex-orientacao/.ex-nota, para o medico reconhecer
+     * de relance o mesmo tipo de aviso em qualquer lugar do modulo. */
+    ".ex-nao-consta { background:#fffbeb; border:1px solid #fde68a; color:#78350f; border-radius:10px; padding:12px 14px; margin:10px 0; font-size:12.5px; line-height:1.55; }",
+    ".ex-nao-consta b { color:#92400e; }",
     ".ex-contagem { font-size:11px; color:#94a3b8; padding:6px 18px 0; }",
 
     /* Uma classe so para esconder, usada no lugar de mexer em
@@ -18847,6 +18852,22 @@ function moverFocoResultado(delta) {
     return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
+  }
+
+  /* Mensagem exibida quando o exame buscado nao esta na lista do
+   * municipio. NAO e "nenhum resultado" — e uma conduta diferente: o
+   * Protocolo 1 da Callmed (Documento 1, secao "Sobre a solicitacao de
+   * exames e a Tabela SIGTAP") manda o medico solicitar o exame ASSIM
+   * MESMO quando ele nao consta na tabela/lista do municipio, com
+   * justificativa clinica registrada em prontuario — o Codigo de Etica
+   * Medica (Res. CFM 2.217/2018, art. 32) veda deixar de usar meios
+   * diagnosticos disponiveis. A mensagem anterior so mencionava
+   * encaminhamento/regulacao, sem essa orientacao central. */
+  function mensagemNaoConsta(municipio) {
+    return "<b>⚠️ Não consta na lista de " + escapar(municipio) + ".</b><br>" +
+      "Isso não quer dizer que o exame não exista — quer dizer que ele não está na lista que este município publicou. " +
+      "Confira a grafia; se estiver certa, <b>solicite mesmo assim</b>, com a justificativa clínica registrada em prontuário " +
+      "(art. 32 do Código de Ética Médica) — não deixe de pedir só por não constar na lista.";
   }
 
   /* ------------------------------------------------------------------
@@ -19109,11 +19130,9 @@ function moverFocoResultado(delta) {
     if (!visiveis.length) {
       /* A MENSAGEM E ESPECIFICA DE PROPOSITO. "Nenhum resultado" faria o
        * medico achar que errou a digitacao. O que aconteceu foi outra
-       * coisa, e ela muda a conduta: este municipio nao oferece. */
-      refs.vazio.innerHTML =
-        "<b>Não consta na lista de " + escapar(municipioEscolhido) + ".</b><br>" +
-        "Isso não quer dizer que o exame não exista — quer dizer que ele não está na lista que este município publicou. " +
-        "Confira a grafia; se estiver certa, o caminho é o fluxo de encaminhamento ou a regulação.";
+       * coisa, e ela muda a conduta: este municipio nao oferece — mas o
+       * Protocolo 1 manda pedir assim mesmo (ver mensagemNaoConsta). */
+      refs.vazio.innerHTML = mensagemNaoConsta(municipioEscolhido);
       refs.vazio.classList.remove("oculto");
       atualizarRodape();
       return;
@@ -19403,6 +19422,8 @@ function moverFocoResultado(delta) {
        * anterior nao vale para o proximo. */
       detectarNaTela();
     },
+
+    _mensagemNaoConsta: mensagemNaoConsta,
   });
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
 
