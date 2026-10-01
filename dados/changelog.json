@@ -2,6 +2,18 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.54.3",
+      "data": "2026-10-01",
+      "novidades": [
+        "Consulta REMUME: insulina e anticoagulantes (varfarina, heparina, enoxaparina, rivaroxabana, apixabana, dabigatrana) agora têm um lembrete — se o paciente estiver sem, não interrompa, prescreva uma quantidade-ponte até a consulta na UBS. Vale em qualquer município.",
+        "Listagem de exames: lembrete fixo, sempre visível — toda solicitação de exame ou encaminhamento precisa de justificativa clínica, resumo da história e CID."
+      ],
+      "melhorias": [
+        "Aviso do município: \"Atestado com critério\" (Barbacena, Franco da Rocha e UPA Barra de Macaé) agora explica o que o critério exige — justificativa clínica, afastamento compatível e registro em prontuário."
+      ],
+      "correcoes": []
+    },
+    {
       "versao": "2.54.2",
       "data": "2026-10-01",
       "novidades": [],
