@@ -13338,9 +13338,11 @@
    * mesma cidade varias vezes seguidas, e reabrir o mesmo aviso a cada
    * atendimento so treina ele a clicar sem ler. Pedido de 28/09/2026: some
    * por um tempo (por cidade/unidade, nao por atendimento) e so volta
-   * depois de 5h — tempo suficiente para nao repetir no mesmo bloco de
-   * atendimentos, curto o bastante para lembrar de novo num plantao longo. */
-  const TEMPO_ENTENDIDO_MS = 5 * 60 * 60 * 1000;
+   * depois de um tempo — curto o bastante para lembrar de novo num
+   * plantao longo, comprido o bastante para nao repetir no mesmo bloco de
+   * atendimentos. Pedido de 01/10/2026: 5h era tempo demais, reduzido
+   * para 3h. */
+  const TEMPO_ENTENDIDO_MS = 3 * 60 * 60 * 1000;
 
   const RX_PAGINA_ATENDIMENTO = /^\/atendimento\/([0-9a-fA-F-]{36})(?:\/|$)/;
   const RX_API_ATENDIMENTO = /\/api\/v1\/atendimento\/([0-9a-fA-F-]{36})(?:[?#].*)?$/i;
@@ -13494,7 +13496,7 @@
   }
 
   /* Abre na LATERAL SUPERIOR DIREITA, acima dos botoes do Assistente,
-   * pulsando. "Entendi" marca a cidade/unidade como lida por 5h
+   * pulsando. "Entendi" marca a cidade/unidade como lida por 3h
    * (verificar() nao reabre para ela nesse intervalo, nem para outro
    * atendimento) e FECHA o cartao — pedido de 28/09/2026: o cartao calmo,
    * mas ainda na tela, seguia atrapalhando o formulario. O X fecha do
@@ -13546,7 +13548,7 @@
     const chave = municipio + "|" + (unidade ? unidade.chave : "");
     if (aberto && aberto.chave === chave) return;
     if (estaEntendido(chave)) {
-      /* Marcado "Entendi" ha menos de 5h, para esta cidade/unidade: nao
+      /* Marcado "Entendi" ha menos de 3h, para esta cidade/unidade: nao
        * reabre, nem neste nem em outro atendimento. */
       if (aberto) fechar();
       return;

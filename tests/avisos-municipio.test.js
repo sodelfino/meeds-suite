@@ -321,9 +321,10 @@ const atendimentoDe = (razao) => ({ id: ID, cliente: { razaoSocialNome: razao } 
 }
 
 /* 18. Abre na LATERAL SUPERIOR (acima dos botoes), pulsando; "Entendi"
- *     fecha o cartão e silencia aquela cidade/unidade por 5h — mesmo
+ *     fecha o cartão e silencia aquela cidade/unidade por 3h — mesmo
  *     trocando de atendimento. Pedido de 28/09/2026: o cartão calmo, mas
- *     ainda na tela, seguia atrapalhando o formulário. */
+ *     ainda na tela, seguia atrapalhando o formulário. Pedido de
+ *     01/10/2026: 5h era tempo demais, reduzido para 3h. */
 {
   const t = carregar();
   t.ir("/atendimento/" + ID);
@@ -339,17 +340,17 @@ const atendimentoDe = (razao) => ({ id: ID, cliente: { razaoSocialNome: razao } 
   const OUTRO_ID = "22222222-2222-2222-2222-222222222222";
   t.ir("/atendimento/" + OUTRO_ID);
   t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA"), URL_API.replace(ID, OUTRO_ID));
-  ok("nem em outro atendimento da mesma cidade, dentro das 5h", t.visiveis().length === 0);
+  ok("nem em outro atendimento da mesma cidade, dentro das 3h", t.visiveis().length === 0);
 
   const TERCEIRO_ID = "33333333-3333-3333-3333-333333333333";
   t.ir("/atendimento/" + TERCEIRO_ID);
   t.rede(atendimentoDe("PREFEITURA DO MUNICIPIO DE FRANCO DA ROCHA"), URL_API.replace(ID, TERCEIRO_ID));
   ok("mas outra cidade continua avisando normalmente", t.visiveis().length === 1);
 
-  t.passar(5 * 60 * 60 * 1000 + 1000);
+  t.passar(3 * 60 * 60 * 1000 + 1000);
   t.ir("/atendimento/" + OUTRO_ID);
   t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA"), URL_API.replace(ID, OUTRO_ID));
-  ok("passadas as 5h, Barbacena volta a avisar", t.visiveis().filter((v) => /Barbacena/.test(v.spec.titulo)).length === 1);
+  ok("passadas as 3h, Barbacena volta a avisar", t.visiveis().filter((v) => /Barbacena/.test(v.spec.titulo)).length === 1);
 }
 
 /* ==================================================================
