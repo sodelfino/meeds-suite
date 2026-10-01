@@ -2,6 +2,16 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.54.1",
+      "data": "2026-10-01",
+      "novidades": [],
+      "melhorias": [],
+      "correcoes": [
+        "Aviso de exames ginecológicos em Macaé: a unidade \"ESF Aroeira\" estava cadastrada como \"UBS Aroeira\" e por isso o aviso não aparecia lá — corrigido.",
+        "A leitura do nome e do sexo do paciente (usada pelo aviso de ginecologia e pelo \"Atualizar paciente\" do CMD/LME) foi corrigida para o layout novo do cartão do paciente, onde as duas informações vêm juntas em duas linhas."
+      ]
+    },
+    {
       "versao": "2.54.0",
       "data": "2026-09-30",
       "novidades": [],
