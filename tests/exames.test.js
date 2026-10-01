@@ -234,6 +234,14 @@ const municipios = Object.keys(BASE.municipios).filter((k) => k.indexOf("_") !==
        macae.exames.filter((e) => e.justificativaObrigatoria === true).length === 66);
     ok("os 28 exames da UPA Barra (laboratorial) nao tem justificativaObrigatoria",
        macae.exames.filter((e) => e.local === "UPA Barra").every((e) => !e.justificativaObrigatoria));
+    /* Pedido de 30/09/2026: mesmo aviso do avisos-municipio (USG de
+     * mama, mamografia, papanicolau e USG transvaginal so pelo
+     * ginecologista), em destaque na aba de Exames tambem. */
+    ok("Macaé tem a observação de exames ginecológicos (só pelo ginecologista)",
+       Array.isArray(macae.observacoes) && macae.observacoes.length === 1 &&
+       /USG.*mama/i.test(macae.observacoes[0]) && /mamografia/i.test(macae.observacoes[0]) &&
+       /papanicolau/i.test(macae.observacoes[0]) && /transvaginal/i.test(macae.observacoes[0]) &&
+       /ginecolog/i.test(macae.observacoes[0]));
   }
 
   const congonhas = BASE.municipios["Congonhas"];

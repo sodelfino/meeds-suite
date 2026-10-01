@@ -49,6 +49,9 @@ function carregar() {
   ctx.MeedsSuiteDom.lerValorPorRotulo = (v) => (/v[ií]nculo/i.test(String(v)) ? ctx.vinculo || null : null);
   /* O mesmo campo, linha a linha (prefeitura em cima, unidade embaixo). */
   ctx.MeedsSuiteDom.lerLinhasPorRotulo = (v) => (/v[ií]nculo/i.test(String(v)) ? ctx.linhas || (ctx.vinculo ? [ctx.vinculo] : null) : null);
+  /* Sexo do paciente, como apareceria lido da tela (ctx.sexo: "F", "M" ou
+   * undefined/ausente — simula o campo ainda nao ter carregado). */
+  ctx.MeedsSuiteDom.lerPaciente = () => ({ sexo: ctx.sexo });
   vm.runInContext(fs.readFileSync(path.join(RAIZ, "core/municipio.js"), "utf8"), ctx);
   vm.runInContext(fs.readFileSync(path.join(RAIZ, "modules/avisos-municipio/index.js"), "utf8"), ctx);
 
@@ -613,6 +616,59 @@ const textoDe = (a) => [a.spec.titulo].concat(a.spec.corpo).join("\n");
      /❌[^\n]*uso cont[ií]nuo/i.test(texto) || /❌[^\n]*cont[ií]nuo[^\n]*uso/i.test(texto));
   ok("Congonhas: orienta a informar quantidade e duração exatas",
      /quantidade/i.test(texto) && /dura[cç][aã]o/i.test(texto));
+}
+
+/* 25. Pedido de 30/09/2026: em 13 unidades de Macaé, USG de mama,
+ *     mamografia, papanicolau e USG transvaginal só podem ser
+ *     solicitados pelo ginecologista — e isso SÓ vale para pacientes do
+ *     sexo feminino. Sem confirmação do sexo na tela, não mostra (aviso
+ *     errado é pior que nenhum aviso). */
+{
+  const t = macae([PMM, "ESF LAGOMAR"]);
+  t.ctx.sexo = "F";
+  t.passar(1000);
+  const v = t.visiveis();
+  const texto = v.length ? textoDe(v[0]) : "";
+  ok("mulher em ESF Lagomar: o aviso aparece", v.length === 1);
+  ok("cita os quatro exames", /USG.*mama/i.test(texto) && /mamografia/i.test(texto) &&
+     /papanicolau/i.test(texto) && /transvaginal/i.test(texto));
+  ok("orienta a encaminhar ao ginecologista", /ginecolog/i.test(texto));
+}
+{
+  const t = macae([PMM, "ESF LAGOMAR"]);
+  t.ctx.sexo = "M";
+  t.passar(1000);
+  ok("homem em ESF Lagomar: nenhum aviso (regra é só para sexo feminino)", t.visiveis().length === 0);
+}
+{
+  const t = macae([PMM, "ESF LAGOMAR"]);
+  // ctx.sexo nao definido: sexo ainda nao apareceu na tela.
+  t.passar(1000);
+  ok("sexo ainda não confirmado: nenhum aviso (não inventa valor)", t.visiveis().length === 0);
+}
+{
+  const t = macae([PMM, "UPA UNIDADE DE PRONTO ATENDIMENTO BARRA"]);
+  t.ctx.sexo = "F";
+  t.passar(1000);
+  const v = t.visiveis();
+  ok("mulher na UPA Barra: continua o aviso normal da UPA Barra, não o de ginecologia",
+     v.length === 1 && /UPA Barra/.test(v[0].spec.titulo) && !/ginecolog/i.test(textoDe(v[0])));
+}
+[
+  "CENTRO DE ESPECIALIDADES DONA ALBA",
+  "UBS AROEIRA",
+  "UMS SANA",
+].forEach((unidade) => {
+  const t = macae([PMM, unidade]);
+  t.ctx.sexo = "F";
+  t.passar(1000);
+  ok("mulher em " + unidade + ": aviso de ginecologia aparece", /ginecolog/i.test(textoDe(t.visiveis()[0])));
+});
+{
+  const t = macae([PMM, "UBS QUALQUER OUTRA"]);
+  t.ctx.sexo = "F";
+  t.passar(1000);
+  ok("unidade de Macaé fora da lista: nenhum aviso de ginecologia", t.visiveis().length === 0);
 }
 
 console.log("\n" + (falhas ? falhas + " FALHA(S)" : "todos passaram"));

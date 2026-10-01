@@ -7960,6 +7960,9 @@
       "_leia_me": "Extraido de 'Exames realizados na UPA .pdf' (UPA Barra). O PDF nao traz codigo de procedimento. | Lista de nomes extraida de 'EXAMES REALIZADOS PELO SUS NO MUNICIPIO DE MACAÉ.docx' (fonte da lista); enriquecida com especialidade/canal/documentos a partir de 'Fluxo SUS Macae.xlsx', aba 'Especialidades Médicas' (fonte oficial: SEMUSA Macaé). Nomes tiveram grafia/acentuação corrigida em relação ao documento original — regra diferente da transcrição de código, aqui o objetivo é o exame ser encontrável na busca. A aba 'Serviços e Programas' do XLSX e a aba 'Índice' não entram — não são 'exames'. Exames laboratoriais de bancada (hemograma, glicemia, TSH, sorologia...) NÃO estão nesta lista: nenhuma das duas fontes os lista, e serão a SEGUNDA fonte deste município quando fornecidos (mesmo padrão 'um município, duas fontes' já usado em Sete Lagoas).",
       "fonte": "Exames realizados na unidade — UPA Barra + Exames por especialidade (SEMUSA Macaé) — DOCX (lista) + XLSX (fluxo e direcionamento)",
       "atualizadoEm": "2026-09-09",
+      "observacoes": [
+        "USG de mama, mamografia, papanicolau e USG transvaginal só podem ser solicitados pelo ginecologista. Se houver necessidade, encaminhar a paciente ao profissional."
+      ],
       "exames": [
         {
           "nome": "HEMOGRAMA COMPLETO",

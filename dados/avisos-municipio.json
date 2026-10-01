@@ -126,6 +126,31 @@
             "Atendimentos: psiquiatria infantil, neuropediatria, serviço social, psicologia, fisioterapia, fonoaudiologia e nutrição.",
             "Fluxo: atendimentos individuais e em grupo, incluindo grupo de apoio aos responsáveis."
           ]
+        },
+        "Exames ginecológicos (sexo feminino)": {
+          "titulo": "Macaé — Exames que exigem encaminhamento ao ginecologista",
+          "apenasSexo": "F",
+          "nomes": [
+            "CENTRO DE ESPECIALIDADES DONA ALBA",
+            "CONTROLE AVALIAÇÃO E AUDITORIA",
+            "ESF BARRA BRASÍLIA",
+            "ESF AJUDA C",
+            "ESF LAGOMAR",
+            "ESF MALVINAS",
+            "MACAÉ CIDADE DA MELHOR IDADE",
+            "UBS AROEIRA",
+            "UBS/ESF BOSQUE AZUL",
+            "UBS LAGOMAR",
+            "UBS NOVO CAVALEIROS",
+            "UMS CÓRREGO DO OURO",
+            "UMS SANA"
+          ],
+          "naoPode": [
+            {
+              "item": "Solicitar USG de mama, mamografia, papanicolau ou USG transvaginal",
+              "fazer": "encaminhar a paciente ao ginecologista"
+            }
+          ]
         }
       }
     },

@@ -113,7 +113,24 @@
         return v.unidades.indexOf(Dom.normalizarTexto(n)) !== -1;
       });
     });
-    return achadas.length === 1 ? { chave: achadas[0], regra: unidades[achadas[0]] } : null;
+    if (achadas.length !== 1) return null;
+    const achada = { chave: achadas[0], regra: unidades[achadas[0]] };
+    return unidadeAplicavel(achada) ? achada : null;
+  }
+
+  /* Algumas regras de unidade valem so para um sexo (pedido de
+   * 30/09/2026: exames ginecologicos em varias unidades de Macae, so
+   * para pacientes do sexo feminino). Le a PALAVRA da tela
+   * (MeedsSuiteDom.lerPaciente, o mesmo leitor que CMD/LME/APAC usam),
+   * nunca um enum de API. Na duvida — sexo ainda nao apareceu na tela —
+   * NAO mostra: aviso errado e pior que nenhum aviso (ver topo do
+   * arquivo). */
+  function unidadeAplicavel(unidade) {
+    const restricao = unidade && unidade.regra && unidade.regra.apenasSexo;
+    if (!restricao) return true;
+    const Dom = raiz.MeedsSuiteDom;
+    const paciente = (Dom && typeof Dom.lerPaciente === "function") ? Dom.lerPaciente() : {};
+    return paciente.sexo === restricao;
   }
 
   function linhasDe(r) {
