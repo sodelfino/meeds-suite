@@ -146,11 +146,8 @@
             "UMS CÓRREGO DO OURO",
             "UMS SANA"
           ],
-          "naoPode": [
-            {
-              "item": "Solicitar USG de mama, mamografia, papanicolau ou USG transvaginal",
-              "fazer": "encaminhar a paciente ao ginecologista"
-            }
+          "orientacoes": [
+            "USG de mama, mamografia, papanicolau e USG transvaginal só podem ser solicitados pelo ginecologista. Se houver necessidade, encaminhar a paciente ao profissional."
           ]
         }
       }

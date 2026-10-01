@@ -633,6 +633,13 @@ const textoDe = (a) => [a.spec.titulo].concat(a.spec.corpo).join("\n");
   ok("cita os quatro exames", /USG.*mama/i.test(texto) && /mamografia/i.test(texto) &&
      /papanicolau/i.test(texto) && /transvaginal/i.test(texto));
   ok("orienta a encaminhar ao ginecologista", /ginecolog/i.test(texto));
+  /* Pedido de 30/09/2026 (2): mesma frase da observação da aba de
+   * Exames (dados/exames.json, município Macaé) — duas telas, um texto
+   * só, para o médico reconhecer o mesmo aviso em qualquer lugar. */
+  ok("mesma frase da aba de Exames: 'só podem ser solicitados pelo ginecologista'",
+     /s[oó] podem ser solicitados pelo ginecologista/i.test(texto));
+  ok("mesma frase da aba de Exames: 'Se houver necessidade, encaminhar a paciente ao profissional'",
+     /se houver necessidade, encaminhar a paciente ao profissional/i.test(texto));
 }
 {
   const t = macae([PMM, "ESF LAGOMAR"]);
