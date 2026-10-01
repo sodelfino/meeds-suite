@@ -658,6 +658,10 @@ const textoDe = (a) => [a.spec.titulo].concat(a.spec.corpo).join("\n");
   "CENTRO DE ESPECIALIDADES DONA ALBA",
   "UBS AROEIRA",
   "UMS SANA",
+  /* ACHADO EM PRODUCAO (print real, 30/09/2026): o Vinculo mostra
+   * "ESF AROEIRA", nao "UBS AROEIRA" — era esse o motivo do aviso nao
+   * aparecer para essa unidade. As duas formas ficam cadastradas. */
+  "ESF AROEIRA",
 ].forEach((unidade) => {
   const t = macae([PMM, unidade]);
   t.ctx.sexo = "F";

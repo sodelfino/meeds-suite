@@ -249,9 +249,33 @@
 
   const RX_IDADE = /^\d+\s*anos?(\s+e\s+\d+\s*m[eê]s(es)?)?$/i;
 
+  /* Nome e sexo, pelo rotulo "Paciente" (confirmado por print real em
+   * 30/09/2026, atendimento de Macaé): o nome vem numa linha e o sexo
+   * ("Masculino"/"Feminino") na linha de baixo, dentro do MESMO valor —
+   * o textContent cru gruda as duas ("DARA ARRUDA MAGALHÃESFeminino"),
+   * exatamente o problema ja resolvido para "Vinculos" (prefeitura/
+   * unidade) e "Documentos" (CPF/CNS). Mesma solucao: ler LINHA A LINHA
+   * (lerLinhasPorRotulo, que usa innerText). Devolve {} se o rotulo
+   * "Paciente" nao existir nessa tela — quem chama cai pros metodos
+   * antigos (lerPorTextoExato / lerAnteriorAoPadrao), que continuam
+   * valendo pra qualquer tela onde esse rotulo nao apareca assim. */
+  function lerNomeESexoDoPaciente(folhas) {
+    const linhas = lerLinhasPorRotulo(["Paciente"], folhas);
+    const achado = {};
+    if (!linhas) return achado;
+    linhas.forEach(function (linha) {
+      const n = normalizarTexto(linha);
+      if (n === "feminino") achado.sexo = "F";
+      else if (n === "masculino") achado.sexo = "M";
+      else if (!achado.nome && linha.length > 2) achado.nome = linha;
+    });
+    return achado;
+  }
+
   function lerPaciente() {
     const folhas = coletarFolhas();
     const out = {};
+    const doCartao = lerNomeESexoDoPaciente(folhas);
 
     const nascimento = lerValorPorRotulo(VARIANTES.nascimento, folhas);
     if (nascimento) {
@@ -274,10 +298,10 @@
     // sexo: le a PALAVRA exibida na tela, nao um enum de API. Decisao
     // herdada do APAC, onde o enum nunca pode ser confirmado com um caso
     // feminino real — a palavra na tela e o dado mais confiavel.
-    const sexo = lerPorTextoExato({ Masculino: "M", Feminino: "F" }, folhas);
+    const sexo = doCartao.sexo || lerPorTextoExato({ Masculino: "M", Feminino: "F" }, folhas);
     if (sexo) out.sexo = sexo;
 
-    const nome = lerAnteriorAoPadrao(RX_IDADE, folhas);
+    const nome = doCartao.nome || lerAnteriorAoPadrao(RX_IDADE, folhas);
     if (nome) out.nome = nome;
 
     return out;
