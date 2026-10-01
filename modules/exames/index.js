@@ -316,6 +316,14 @@
     ".ex-linha input { flex:1; padding:10px 12px; border-radius:9px; border:1.5px solid #cbd5e1; font:inherit; font-size:14px; }",
     ".ex-linha input:focus, .ex-linha select:focus { outline:none; border-color:#0ea5a4; box-shadow:0 0 0 3px rgba(14,165,164,.15); }",
     ".ex-origem { font-size:11px; color:#64748b; margin-top:7px; line-height:1.45; }",
+    /* Lembrete FIXO, sempre visivel — nao depende de municipio nem de
+     * busca, diferente de .ex-obs (observacoes por municipio) e de
+     * .ex-nao-consta (so quando o exame falta na lista). Protocolos 1 e 2
+     * da Callmed: TODA solicitacao de exame ou encaminhamento, nao so a
+     * que falta na lista, precisa de justificativa, resumo da historia,
+     * hipotese diagnostica e CID. Tom neutro (cinza, como .ex-origem),
+     * nao ambar/alerta — e pratica de rotina, nao uma excecao. */
+    ".ex-lembrete { font-size:11px; color:#64748b; margin-top:5px; line-height:1.45; }",
     /* Botao de Encaminhamentos: fica no cabecalho (fora de .ex-rolagem),
      * entao nunca rola pra fora de vista — e o CONTEUDO que ele abre e
      * quem vive dentro da area com rolagem (ver comentario em
@@ -924,6 +932,7 @@
         "      </div>" +
         "    </div>" +
         '    <div class="ex-origem" id="ex-origem"></div>' +
+        '    <div class="ex-lembrete" id="ex-lembrete">📌 Exames e encaminhamentos: sempre com justificativa clínica, resumo da história e CID.</div>' +
         /* Botao, nao bloco sempre aberto: um municipio com 5 servicos
          * de referencia (Macae) escrevia um paragrafo por servico ANTES
          * da area com scroll propria (.ex-rolagem) — o modal tem altura

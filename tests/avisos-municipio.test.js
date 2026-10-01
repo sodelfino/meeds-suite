@@ -682,5 +682,31 @@ const textoDe = (a) => [a.spec.titulo].concat(a.spec.corpo).join("\n");
   ok("unidade de Macaé fora da lista: nenhum aviso de ginecologia", t.visiveis().length === 0);
 }
 
+/* 26. Pedido de 01/10/2026: "Atestado com critério" era texto solto, sem
+ *     dizer o que "critério" exige. O Protocolo 3 explica — justificativa
+ *     clínica, afastamento compatível com o avaliado, registro em
+ *     prontuário, veda emitir sem ter praticado o ato (art. 80 do CEM) —
+ *     e isso entra como orientação nas 3 unidades que já citam atestado. */
+const CRITERIO_ATESTADO = /justificativa cl[ií]nica/i;
+{
+  const t = carregar();
+  t.ir("/atendimento/" + ID);
+  t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA"));
+  const texto = textoDe(t.visiveis()[0]);
+  ok("Barbacena: detalha o critério do atestado", CRITERIO_ATESTADO.test(texto) && /prontu[aá]rio/i.test(texto));
+}
+{
+  const t = carregar();
+  t.ir("/atendimento/" + ID);
+  t.rede(atendimentoDe("PREFEITURA DO MUNICIPIO DE FRANCO DA ROCHA"));
+  const texto = textoDe(t.visiveis()[0]);
+  ok("Franco da Rocha: detalha o critério do atestado", CRITERIO_ATESTADO.test(texto) && /prontu[aá]rio/i.test(texto));
+}
+{
+  const t = macae([PMM, "UPA UNIDADE DE PRONTO ATENDIMENTO BARRA"]);
+  const texto = textoDe(t.visiveis()[0]);
+  ok("UPA Barra: detalha o critério do atestado", CRITERIO_ATESTADO.test(texto) && /prontu[aá]rio/i.test(texto));
+}
+
 console.log("\n" + (falhas ? falhas + " FALHA(S)" : "todos passaram"));
 if (falhas) process.exit(1);

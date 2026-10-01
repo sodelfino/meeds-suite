@@ -7,6 +7,36 @@
       "Macaé": "A farmácia municipal de Macaé não dispensa a receita quando ela traz só \"uso contínuo\": informe a quantidade e a duração exatas do tratamento.",
       "Congonhas": "A farmácia municipal de Congonhas não dispensa a receita quando ela traz só \"uso contínuo\": informe a quantidade e a duração exatas do tratamento."
     },
+    "avisosItensUniversais": [
+      {
+        "termo": "insulina",
+        "aviso": "Medicação de uso contínuo — se o paciente estiver sem, não interrompa: prescreva uma quantidade-ponte até a consulta na UBS (Protocolo 1, Callmed)."
+      },
+      {
+        "termo": "varfarina",
+        "aviso": "Medicação de uso contínuo — se o paciente estiver sem, não interrompa: prescreva uma quantidade-ponte até a consulta na UBS (Protocolo 1, Callmed)."
+      },
+      {
+        "termo": "heparina",
+        "aviso": "Medicação de uso contínuo — se o paciente estiver sem, não interrompa: prescreva uma quantidade-ponte até a consulta na UBS (Protocolo 1, Callmed)."
+      },
+      {
+        "termo": "enoxaparina",
+        "aviso": "Medicação de uso contínuo — se o paciente estiver sem, não interrompa: prescreva uma quantidade-ponte até a consulta na UBS (Protocolo 1, Callmed)."
+      },
+      {
+        "termo": "rivaroxabana",
+        "aviso": "Medicação de uso contínuo — se o paciente estiver sem, não interrompa: prescreva uma quantidade-ponte até a consulta na UBS (Protocolo 1, Callmed)."
+      },
+      {
+        "termo": "apixabana",
+        "aviso": "Medicação de uso contínuo — se o paciente estiver sem, não interrompa: prescreva uma quantidade-ponte até a consulta na UBS (Protocolo 1, Callmed)."
+      },
+      {
+        "termo": "dabigatrana",
+        "aviso": "Medicação de uso contínuo — se o paciente estiver sem, não interrompa: prescreva uma quantidade-ponte até a consulta na UBS (Protocolo 1, Callmed)."
+      }
+    ],
     "avisosItens": {
       "Franco da Rocha": [
         {

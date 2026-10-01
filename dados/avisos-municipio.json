@@ -17,6 +17,9 @@
           "item": "Exames",
           "fazer": "encaminhar ao presencial"
         }
+      ],
+      "orientacoes": [
+        "Atestado com critério: só com justificativa clínica, afastamento compatível com o que foi avaliado e registro em prontuário — o Código de Ética Médica veda emitir sem ter praticado o ato (art. 80)."
       ]
     },
     "Franco da Rocha": {
@@ -35,6 +38,9 @@
           "item": "Exames",
           "fazer": "encaminhar ao presencial"
         }
+      ],
+      "orientacoes": [
+        "Atestado com critério: só com justificativa clínica, afastamento compatível com o que foi avaliado e registro em prontuário — o Código de Ética Médica veda emitir sem ter praticado o ato (art. 80)."
       ]
     },
     "Macaé": {
@@ -60,7 +66,8 @@
             }
           ],
           "orientacoes": [
-            "Depois da medicação e dos resultados dos exames, solicitar reavaliação por telemedicina para decidir entre alta, nova conduta ou atendimento presencial."
+            "Depois da medicação e dos resultados dos exames, solicitar reavaliação por telemedicina para decidir entre alta, nova conduta ou atendimento presencial.",
+            "Atestado com critério: só com justificativa clínica, afastamento compatível com o que foi avaliado e registro em prontuário — o Código de Ética Médica veda emitir sem ter praticado o ato (art. 80)."
           ]
         },
         "UPA Lagomar": {

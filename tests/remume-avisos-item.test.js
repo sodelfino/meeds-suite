@@ -44,8 +44,12 @@ ok("outro municipio com ampola NAO tem (a regra e so de Franco)", A("Betim", "Di
 
 const itens = REMUMES["Franco da Rocha"];
 const comAmpola = itens.filter((i) => /ampola/i.test(i.nome));
-ok("todo item com ampola de Franco da Rocha recebe o aviso", comAmpola.every((i) => A("Franco da Rocha", i.nome).length === 1), comAmpola.length + " itens");
-ok("nenhum item sem ampola recebe", itens.filter((i) => !/ampola/i.test(i.nome)).every((i) => A("Franco da Rocha", i.nome).length === 0));
+ok("todo item com ampola de Franco da Rocha recebe o aviso", comAmpola.every((i) => A("Franco da Rocha", i.nome).indexOf(TEXTO) !== -1), comAmpola.length + " itens");
+/* Nao "length === 0": a regra UNIVERSAL (insulina/anticoagulante) pode
+ * acrescentar aviso a um item sem "ampola" no nome — o que nao pode
+ * acontecer e ele ganhar o aviso DE AMPOLA (TEXTO), que e so de Franco. */
+ok("nenhum item sem ampola recebe o aviso DE AMPOLA (a regra é só do termo)",
+   itens.filter((i) => !/ampola/i.test(i.nome)).every((i) => A("Franco da Rocha", i.nome).indexOf(TEXTO) === -1));
 
 /* Barbacena (pedido de 25/09/2026): a UPA aceita VO e IM, nao EV. Item
  * injetavel avisa que pela teleconsulta so vale IM; bolsa e sistema
@@ -62,7 +66,13 @@ ok("Barbacena: soro em sistema fechado é SÓ EV (sem o aviso de IM, que contrad
 ok("Barbacena: comprimido não tem aviso", A("Barbacena", "Ácido fólico - comprimido 5 mg").length === 0);
 const injetaveis = barb.filter((n) => /ampola|injet|fr-amp|bolsa|sistema fechado/i.test(n.normalize("NFD").replace(/[\u0300-\u036f]/g, "")));
 ok("Barbacena: todo item injetável/soro tem aviso", injetaveis.every((n) => A("Barbacena", n).length >= 1), injetaveis.length + " itens");
-ok("Barbacena: nenhum item VO/tópico recebe aviso", barb.filter((n) => injetaveis.indexOf(n) === -1).every((n) => A("Barbacena", n).length === 0));
+/* Nao "length === 0": a regra UNIVERSAL (insulina/anticoagulante, ver
+ * abaixo) pode acrescentar aviso a um item VO/topico legitimamente — ex.:
+ * Varfarina e Rivaroxabana sao anticoagulantes orais. O que nao pode
+ * acontecer e um item VO ganhar o aviso DE CIDADE (IM/EV), que so vale
+ * para via de administracao na unidade. */
+ok("Barbacena: nenhum item VO/tópico recebe o aviso de via (IM/EV) da cidade",
+   barb.filter((n) => injetaveis.indexOf(n) === -1).every((n) => A("Barbacena", n).indexOf(IM) === -1 && A("Barbacena", n).indexOf(EV) === -1));
 ok("Barbacena tem a faixa de aviso da UPA", /UPA Barbacena/.test((REMUMES._meta.avisos || {})["Barbacena"] || ""));
 ok("Franco da Rocha continua com a regra dele, sem mudança", A("Franco da Rocha", "Adenosina ampola 6 mg/2 ml").join() === TEXTO);
 
@@ -73,6 +83,25 @@ ok("Franco da Rocha continua com a regra dele, sem mudança", A("Franco da Rocha
  * REMUMES._meta.avisos, igual Barbacena/Franco da Rocha. */
 ok("Macaé tem o aviso de uso contínuo", /uso cont[ií]nuo/i.test((REMUMES._meta.avisos || {})["Macaé"] || ""));
 ok("Congonhas tem o aviso de uso contínuo", /uso cont[ií]nuo/i.test((REMUMES._meta.avisos || {})["Congonhas"] || ""));
+
+/* Pedido de 01/10/2026: "prescricao ponte" (Protocolo 1, Callmed) —
+ * insulina e anticoagulante sao de uso continuo e a falta e perigosa; se
+ * o paciente estiver sem, a UPA nao pode so encaminhar, tem que prescrever
+ * uma quantidade-ponte ate a UBS. Diferente de avisosItens (por
+ * municipio), essa regra vale em QUALQUER municipio — avisosItensUniversais. */
+const PONTE = /n[aã]o interrompa/i;
+ok("insulina (Betim): tem o aviso de prescrição ponte", PONTE.test(A("Betim", "Insulina Glargina 100ui/ml - Solução Injetável").join()));
+ok("insulina (Barbacena): mesmo aviso, outro município", PONTE.test(A("Barbacena", "Insulina humana NPH - caneta injetável 100 UI/mL").join()));
+ok("varfarina: tem o aviso de prescrição ponte", PONTE.test(A("Betim", "Varfarina Sódica 5mg - Comprimido").join()));
+ok("heparina: tem o aviso de prescrição ponte", PONTE.test(A("Betim", "Heparina Sódica 5.000ui/ml - Solução Injetável").join()));
+ok("rivaroxabana: tem o aviso de prescrição ponte", PONTE.test(A("Betim", "Rivaroxabana 20mg - Comprimido").join()));
+ok("dipirona (controle): NÃO tem o aviso de prescrição ponte", A("Betim", "Dipirona 500 mg, comprimidos").every((a) => !PONTE.test(a)));
+{
+  const avisosInsulinaAmpola = A("Franco da Rocha", "Insulina Humana NPH ampola 100ui/ml");
+  ok("insulina+ampola em Franco da Rocha: os dois avisos convivem (não um substitui o outro)",
+     avisosInsulinaAmpola.length === 2 && avisosInsulinaAmpola.indexOf(TEXTO) !== -1 &&
+     avisosInsulinaAmpola.some((a) => PONTE.test(a)));
+}
 
 console.log(falhas ? `\n${falhas} FALHA(S)` : "\ntodos passaram");
 process.exit(falhas ? 1 : 0);

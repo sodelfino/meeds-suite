@@ -767,14 +767,21 @@ function moverFocoResultado(delta) {
     }
   }
 
-  /* Aviso por TERMO no nome do item, definido por municipio em
-   * REMUMES._meta.avisosItens[cidade] = [{ termo, aviso }]. E regra, nao
-   * dado item a item: vale para todo item cujo nome contenha o termo (ex.:
-   * "ampola" pega tambem "frasco-ampola") e chega igual pelo JSON remoto e
-   * pelo fallback embutido, ja que os dois carregam o _meta inteiro. */
+  /* Aviso por TERMO no nome do item. Duas fontes, sempre as duas juntas:
+   *   - REMUMES._meta.avisosItens[cidade] = [{ termo, aviso }] — regra DE
+   *     MUNICIPIO (ex.: "ampola" em Franco da Rocha).
+   *   - REMUMES._meta.avisosItensUniversais = [{ termo, aviso }] — regra
+   *     que vale em QUALQUER municipio (Protocolo 1, Callmed: insulina e
+   *     anticoagulante sao de uso continuo, a falta e perigosa — "ponte"
+   *     ate a UBS, nunca so encaminhar). Mesmo formato dos dois, filtrados
+   *     juntos — um item pode acumular aviso de cidade E universal (ex.:
+   *     insulina em ampola, em Franco da Rocha: "so IM" + "nao
+   *     interrompa"). */
   function avisosDoItem(cidade, nome) {
-    const regras = REMUMES._meta && REMUMES._meta.avisosItens && REMUMES._meta.avisosItens[cidade];
-    if (!regras || !regras.length) return [];
+    const porCidade = (REMUMES._meta && REMUMES._meta.avisosItens && REMUMES._meta.avisosItens[cidade]) || [];
+    const universais = (REMUMES._meta && REMUMES._meta.avisosItensUniversais) || [];
+    const regras = porCidade.concat(universais);
+    if (!regras.length) return [];
     const n = normalizarTexto(nome);
     return regras
       .filter(function (r) { return r && r.termo && r.aviso && n.indexOf(normalizarTexto(r.termo)) !== -1; })
