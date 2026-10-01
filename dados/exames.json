@@ -7961,7 +7961,19 @@
       "fonte": "Exames realizados na unidade — UPA Barra + Exames por especialidade (SEMUSA Macaé) — DOCX (lista) + XLSX (fluxo e direcionamento)",
       "atualizadoEm": "2026-09-09",
       "observacoes": [
-        "USG de mama, mamografia, papanicolau e USG transvaginal só podem ser solicitados pelo ginecologista. Se houver necessidade, encaminhar a paciente ao profissional."
+        "USG de mama, mamografia, papanicolau e USG transvaginal só podem ser solicitados pelo ginecologista. Se houver necessidade, encaminhar a paciente ao profissional.",
+        "Oncologia: não direcionar hipótese diagnóstica de câncer (CA) para tratamento oncológico — encaminhar para a UBS.",
+        "O município não oferta Neuropsicologia Infantil presencial — atender por telemedicina; se precisar de presencial, encaminhar para Psicologia.",
+        "O município não oferta Neuropsicologia Adulto — encaminhar para Psicologia.",
+        "O município não oferta Psicopedagogia — encaminhar para Psicologia.",
+        "Risco cirúrgico: só solicitar depois da avaliação do cirurgião ou especialista da área. Exames pré-cirúrgicos também não devem ser pedidos antes disso.",
+        "Centro de Obesidade de Macaé, Clínica do Idoso de Macaé e Clínica da Mulher não são destino de encaminhamento por telemedicina — oriente a paciente a procurar a unidade de saúde mais próxima da residência.",
+        "Exceção da Clínica da Mulher: urgência/emergência ginecológica (ex.: risco de aborto) vai direto para o Hospital Público de Macaé (HPM).",
+        "Hospital Público de Macaé (HPM): não encaminhar, exceto urgência/emergência ginecológica — as portas de urgência são o Pronto Socorro de Imbetiba, o Pronto Socorro do Aeroporto e as UPAs (Barra ou Lagomar).",
+        "Medicações de alto custo não podem ser prescritas pela telemedicina.",
+        "Medicações de uso comum: a mesma receita vale para retirada por até 6 meses.",
+        "Medicações controladas de receituários especiais: renovar a cada 30 dias (ou até 2 meses, com a dosagem exata para esse período especificada) — nunca só \"uso contínuo\", sempre com tempo, dose e quantidade.",
+        "Laudos de Neuropediatria (transporte interestadual, BPC, curatela): podem ser feitos pelo portal gov.br."
       ],
       "exames": [
         {

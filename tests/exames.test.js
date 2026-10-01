@@ -237,11 +237,39 @@ const municipios = Object.keys(BASE.municipios).filter((k) => k.indexOf("_") !==
     /* Pedido de 30/09/2026: mesmo aviso do avisos-municipio (USG de
      * mama, mamografia, papanicolau e USG transvaginal so pelo
      * ginecologista), em destaque na aba de Exames tambem. */
+    const obsMacae = macae.observacoes || [];
+    const umaLinha = (rx) => obsMacae.some((o) => rx.test(o));
     ok("Macaé tem a observação de exames ginecológicos (só pelo ginecologista)",
-       Array.isArray(macae.observacoes) && macae.observacoes.length === 1 &&
-       /USG.*mama/i.test(macae.observacoes[0]) && /mamografia/i.test(macae.observacoes[0]) &&
-       /papanicolau/i.test(macae.observacoes[0]) && /transvaginal/i.test(macae.observacoes[0]) &&
-       /ginecolog/i.test(macae.observacoes[0]));
+       umaLinha(/USG.*mama/i) && umaLinha(/mamografia/i) &&
+       umaLinha(/papanicolau/i) && umaLinha(/transvaginal/i) && umaLinha(/ginecolog/i));
+    /* Pedido de 01/10/2026: tabela "Demandas não permitidas pelo
+     * município de Macaé", enviada pelo usuário — 12 observações novas,
+     * cobrindo as 13 linhas da tabela que ainda não tinham aviso. */
+    ok("Oncologia: não direcionar CA para tratamento oncológico, referenciar UBS",
+       umaLinha(/oncolog/i) && umaLinha(/UBS/));
+    ok("Neuropsicologia Infantil: telemedicina, presencial vai para Psicologia",
+       umaLinha(/neuropsicologia infantil/i) && umaLinha(/psicologia/i));
+    ok("Neuropsicologia Adulto: encaminhar para Psicologia",
+       umaLinha(/neuropsicologia adulto/i));
+    ok("Psicopedagogia: encaminhar para Psicologia",
+       umaLinha(/psicopedagogia/i));
+    ok("Risco cirúrgico: só após avaliação do cirurgião/especialista, exame pré-cirúrgico também não",
+       umaLinha(/risco cir[uú]rgico/i) && umaLinha(/pr[eé]-cir[uú]rgicos/i));
+    ok("Centro de Obesidade, Clínica do Idoso e Clínica da Mulher: não são destino, oriente a unidade mais próxima",
+       umaLinha(/centro de obesidade/i) && umaLinha(/cl[ií]nica do idoso/i) && umaLinha(/cl[ií]nica da mulher/i));
+    ok("Exceção da Clínica da Mulher: urgência/emergência ginecológica vai para o HPM",
+       umaLinha(/urg[eê]ncia\/emerg[eê]ncia ginecol[oó]gica/i) && umaLinha(/HPM/));
+    ok("Hospital Público de Macaé (HPM): não encaminhar, exceto urgência — portas corretas",
+       umaLinha(/Pronto Socorro de Imbetiba/i) && umaLinha(/Pronto Socorro do Aeroporto/i) &&
+       umaLinha(/UPAs? \(Barra ou Lagomar\)/i));
+    ok("Medicações de alto custo não podem ser prescritas pela telemedicina",
+       umaLinha(/alto custo/i) && umaLinha(/n[aã]o podem ser prescrit[ao]s? pela telemedicina/i));
+    ok("Medicações de uso comum: receita vale até 6 meses",
+       umaLinha(/uso comum/i) && umaLinha(/6 meses/i));
+    ok("Medicações controladas: renovar a cada 30 dias, nunca só 'uso contínuo'",
+       umaLinha(/receitu[aá]rios especiais/i) && umaLinha(/30 dias/i) && umaLinha(/uso cont[ií]nuo/i));
+    ok("Laudos de Neuropediatria: pelo portal gov.br",
+       umaLinha(/neuropediatria/i) && umaLinha(/gov\.br/i));
   }
 
   const congonhas = BASE.municipios["Congonhas"];
