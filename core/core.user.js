@@ -62,7 +62,11 @@
   const SELETORES_FALLBACK = {
     rotulos: {
       nascimento: ["Data de Nascimento", "Data de nascimento", "Nascimento", "Dt. Nascimento"],
-      cpf: ["CPF", "C.P.F.", "CPF do paciente"],
+      /* "Documentos" (CPF + CNS juntos): ver core/dom-reader.js. Esta lista
+       * e a que vale em producao quando a remota (seletores.json) falha; a
+       * remota, quando chega, SOBRESCREVE a do dom-reader — por isso as tres
+       * copias precisam ser iguais (tests/seletores-sincronizados.test.js). */
+      cpf: ["CPF", "C.P.F.", "CPF do paciente", "Documentos"],
       /* "Parentesco" confirmado pela sonda em 22/09/2026 (relatorio real
        * rodado pelo usuario contra des-doctor-calltech): o rotulo "Nome
        * da Mae" nao existe mais como leaf isolado no cartao do paciente
