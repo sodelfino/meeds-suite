@@ -239,6 +239,56 @@
   }
 
   /* ------------------------------------------------------------------
+   * "Vinculos" da tela -> municipio, UF e unidade
+   * ------------------------------------------------------------------
+   * O cartao do paciente mostra a cidade numa linha e a unidade na de
+   * baixo, em dois formatos: "MACAE - RJ" (novo) e "PREFEITURA MUNICIPAL
+   * DE MACAE" (antigo, sem UF). Cliente renomeado as vezes vem so como
+   * "BARBACENA". A UF que falta so e deduzida quando o nome existe em UMA
+   * unica UF — "Bom Jesus" existe em varias, e ai fica em branco para o
+   * medico escolher (notificacao na cidade errada e pior que nenhuma). */
+  const RX_CIDADE_UF = /^(.+?)\s+-\s+([A-Za-z]{2})$/;
+  const RX_PREFEITURA = /^prefeitura\s+(?:municipal\s+)?(?:de|do|da)\s+(?:munic[ií]pio\s+(?:de|do|da)\s+)?(.+)$/i;
+
+  function ufsDoNome(nome) {
+    const base = raiz.MEEDS_MUNICIPIOS_IBGE || {};
+    const alvo = normalizar(nome);
+    return Object.keys(base).filter(function (uf) {
+      return base[uf].some(function (m) { return normalizar(m[1]) === alvo; });
+    });
+  }
+
+  function cidadeDaLinha(linha, primeira) {
+    const cu = RX_CIDADE_UF.exec(linha);
+    if (cu && UFS.indexOf(cu[2].toUpperCase()) !== -1) return { municipio: cu[1].trim(), uf: cu[2].toUpperCase() };
+    const pf = RX_PREFEITURA.exec(linha);
+    if (pf) return { municipio: pf[1].trim(), uf: "" };
+    if (primeira && ufsDoNome(linha).length > 0) return { municipio: linha, uf: "" };
+    return null;
+  }
+
+  function interpretarVinculo(linhas) {
+    const out = { municipio: "", uf: "", unidade: "" };
+    const limpas = (Array.isArray(linhas) ? linhas : []).map(function (l) { return String(l || "").trim(); }).filter(Boolean);
+    limpas.forEach(function (linha, i) {
+      const cidade = !out.municipio ? cidadeDaLinha(linha, i === 0) : null;
+      if (cidade) {
+        out.municipio = cidade.municipio;
+        out.uf = cidade.uf;
+      } else if (!out.unidade) {
+        out.unidade = linha;
+      }
+    });
+    if (out.municipio && !out.uf) {
+      const ufs = ufsDoNome(out.municipio);
+      if (ufs.length === 1) out.uf = ufs[0];
+    }
+    const oficial = out.uf ? buscarMunicipio(out.uf, out.municipio) : null;
+    if (oficial) out.municipio = oficial.nome;
+    return out;
+  }
+
+  /* ------------------------------------------------------------------
    * Validacao
    * ------------------------------------------------------------------ */
   function lista(x) {
@@ -602,6 +652,7 @@
     idadeDe: idadeDe,
     municipiosDe: municipiosDe,
     buscarMunicipio: buscarMunicipio,
+    interpretarVinculo: interpretarVinculo,
     temSinalDeAlarme: temSinalDeAlarme,
     validar: validar,
     montarOperacoes: montarOperacoes,

@@ -1,6 +1,6 @@
 {
   "nome": "Assistente Meeds",
-  "versao": "2.55.1",
+  "versao": "2.56.0",
   "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
   "repositorio": "https://github.com/sodelfino/meeds-suite",
   "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -121,6 +121,29 @@
       },
       "padraoHabilitado": false,
       "motivoPadraoDesligado": "Entra desligado na primeira instalacao: e util so para quem atende o municipio. O medico liga na engrenagem quando precisar. Quem ja usava antes desta versao continua com ele ligado."
+    },
+    {
+      "id": "notificacao",
+      "nome": "Ficha de notificação",
+      "descricao": "Gera a Ficha de Investigação de Dengue e Febre de Chikungunya (SINAN) na primeira consulta, por cima do PDF oficial, com validação dos campos obrigatórios e aviso de sinais de alarme.",
+      "versao": "1.0.0",
+      "arquivo": "modules/notificacao/index.js",
+      "origem": "novetech/notificacao",
+      "prioridadeBotao": 45,
+      "requer": [
+        "pdf-lib"
+      ],
+      "assets": [
+        "modules/notificacao/assets/base-pdf-dengue.js",
+        "modules/notificacao/assets/municipios-ibge.js",
+        "modules/notificacao/dengue-ficha.js"
+      ],
+      "apresentacao": {
+        "formaBotao": "rotulo",
+        "icone": "notificacao",
+        "rotuloBotao": "Notificação",
+        "cabecalho": "Ficha de notificação — Dengue e Chikungunya"
+      }
     },
     {
       "id": "avisos-municipio",

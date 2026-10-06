@@ -152,6 +152,29 @@ ok("data inválida: sem idade", N.idadeDe("", HOJE) === null);
 ok("buscarMunicipio não acha Macaé em MG", N.buscarMunicipio("MG", "Macaé") === null);
 ok("municipiosDe('RJ') tem 92 municípios", N.municipiosDe("RJ").length === 92, N.municipiosDe("RJ").length);
 
+/* ---------- 7b. município e unidade lidos do "Vínculos" da tela ---------- */
+{
+  const v = (linhas) => N.interpretarVinculo(linhas);
+  const a = v(["MACAÉ - RJ", "ESF AROEIRA"]);
+  ok("Vínculos novo (print de 06/10): município, UF e unidade",
+     a.municipio === "Macaé" && a.uf === "RJ" && a.unidade === "ESF AROEIRA", JSON.stringify(a));
+  const b = v(["PREFEITURA MUNICIPAL DE MACAÉ", "UPA UNIDADE DE PRONTO ATENDIMENTO BARRA"]);
+  ok("Vínculos antigo (prefeitura): acha a UF pelo nome, se for único",
+     b.municipio === "Macaé" && b.uf === "RJ" && b.unidade === "UPA UNIDADE DE PRONTO ATENDIMENTO BARRA", JSON.stringify(b));
+  const c = v(["PREFEITURA DO MUNICIPIO DE FRANCO DA ROCHA"]);
+  ok("Vínculos antigo com 'do Municipio de': Franco da Rocha (SP)", c.municipio === "Franco da Rocha" && c.uf === "SP" && c.unidade === "", JSON.stringify(c));
+  const d2 = v(["BARBACENA", "UPA BARBACENA"]);
+  ok("cliente renomeado sem UF ('BARBACENA'): acha MG e não confunde a unidade com cidade",
+     d2.municipio === "Barbacena" && d2.uf === "MG" && d2.unidade === "UPA BARBACENA", JSON.stringify(d2));
+  const e2 = v(["BOM JESUS", "UBS CENTRO"]);
+  ok("nome de município que existe em várias UFs: não adivinha a UF", e2.uf === "" && e2.unidade === "UBS CENTRO", JSON.stringify(e2));
+  const f = v(["MACAÉ - RJ"]);
+  ok("só a cidade (sem unidade)", f.municipio === "Macaé" && f.unidade === "", JSON.stringify(f));
+  ok("sem linhas: tudo vazio", JSON.stringify(v(null)) === JSON.stringify({ municipio: "", uf: "", unidade: "" }));
+  const g = v(["XYZ - XX", "UBS TESTE"]);
+  ok("UF inexistente na linha da cidade não vale", g.uf === "" && g.unidade !== "", JSON.stringify(g));
+}
+
 /* ---------- 8. operações de desenho: onde cada valor cai ---------- */
 const ops = (d) => N.montarOperacoes(d, HOJE);
 const dentro = (op, c) => {

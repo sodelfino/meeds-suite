@@ -63,6 +63,16 @@
       '<path d="M10 3v6.5L5.2 17a2 2 0 0 0 1.7 3h10.2a2 2 0 0 0 1.7-3L14 9.5V3"/>' +
       '<path d="M7.5 14h9"/>' +
       "</svg>",
+
+    /* Notificacao — documento com um aviso (exclamacao): a ficha que vai
+     * para a vigilancia epidemiologica. */
+    notificacao:
+      "<svg " + COMUM + ">" +
+      '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>' +
+      '<path d="M14 3v5h5"/>' +
+      '<path d="M12 11.5v3.5"/>' +
+      '<path d="M12 18h.01"/>' +
+      "</svg>",
   };
 
   function obter(chave) {

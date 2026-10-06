@@ -40,7 +40,7 @@ ok("Laudo — Sete Lagoas entra DESLIGADO", ficha("lme-sete-lagoas").padraoHabil
 ok("Laudo — Conceição entra DESLIGADO", ficha("cmd").padraoHabilitado === false);
 const ligados = manifest.modulos.filter((m) => m.padraoHabilitado !== false).map((m) => m.id);
 ok("todo o resto entra LIGADO", ligados.sort().join() ===
-   ["alarme-fila", "avisos-municipio", "cid10", "exames", "preview-pdf", "remume"].sort().join(), ligados.join(", "));
+   ["alarme-fila", "avisos-municipio", "cid10", "exames", "notificacao", "preview-pdf", "remume"].sort().join(), ligados.join(", "));
 
 /* 3. Quem ja usava nao perde os laudos. */
 const ctx = { console: { log() {}, warn() {}, debug() {} }, JSON, String, Object, Array, RegExp, Promise,

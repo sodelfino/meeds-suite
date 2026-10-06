@@ -111,6 +111,7 @@ Do mais baixo para o mais alto, no canto inferior direito:
 | 📄 Laudo — Conceição | Preenche o Laudo Médico de Alto Custo oficial de Conceição do Mato Dentro |
 | 💊 REMUME | Consulta a REMUME do município do atendimento |
 | 🧪 Exames | Mostra os exames que o município oferece, com código e local |
+| 📋 Notificação | Preenche a Ficha de Investigação de Dengue/Chikungunya (SINAN) com os dados da primeira consulta |
 
 Os rótulos e ícones dos botões vêm do bloco `apresentacao` de cada ficha no
 `manifest.json` — o módulo não os declara (decisão D34).
