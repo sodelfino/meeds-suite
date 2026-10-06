@@ -29,8 +29,8 @@ const ctx = {};
 ctx.window = ctx;
 ctx.globalThis = ctx;
 vm.createContext(ctx);
-["municipios-ibge.js", "dengue-ficha.js"].forEach((arq) => {
-  const f = path.join(RAIZ, "modules/notificacao/assets", arq);
+["assets/municipios-ibge.js", "dengue-ficha.js"].forEach((arq) => {
+  const f = path.join(RAIZ, "modules/notificacao", arq);
   if (fs.existsSync(f)) vm.runInContext(fs.readFileSync(f, "utf8"), ctx);
 });
 const N = ctx.MeedsNotificacaoDengue;

@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
- * modules/notificacao/assets/dengue-ficha.js — a ficha, sem tela
+ * modules/notificacao/dengue-ficha.js — a ficha, sem tela
  * ------------------------------------------------------------------
  * FICHA DE INVESTIGACAO DENGUE E FEBRE DE CHIKUNGUNYA (SINAN, SVS
  * 14/03/2016). O PDF oficial e achatado (sem campos de formulario), entao
@@ -174,7 +174,7 @@
   /* Helvetica do pdf-lib so codifica WinAnsi (ASCII + Latin-1 + alguns
    * sinais do CP1252). Qualquer outro caractere (ex.: "Ł") derrubaria a
    * geracao do PDF inteiro — vira "?" aqui. */
-  const RX_FORA_DO_WINANSI = /[^ -~ -ÿ€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ]/g;
+  const RX_FORA_DO_WINANSI = /[^\u0020-\u007E\u00A0-\u00FF\u20AC\u201A\u0192\u201E\u2026\u2020\u2021\u02C6\u2030\u0160\u2039\u0152\u017D\u2018\u2019\u201C\u201D\u2022\u2013\u2014\u02DC\u2122\u0161\u203A\u0153\u017E\u0178]/g;
 
   function saneaTexto(s, manterCaixa) {
     const limpo = String(s == null ? "" : s).replace(/\s+/g, " ").trim();
@@ -249,86 +249,108 @@
     return lista(d.alarme).length > 0 || lista(d.gravidade).length > 0;
   }
 
+  function vazio(valor) {
+    return !String(valor == null ? "" : valor).trim();
+  }
+
+  function validarAgravo(c) {
+    if (c.d.agravo !== "dengue" && c.d.agravo !== "chikungunya") {
+      c.erro("agravo", "Escolha a doença suspeita: Dengue ou Chikungunya.");
+    }
+  }
+
+  function validarSintomas(c) {
+    const d = c.d;
+    const ini = lerData(d.inicioSintomas);
+    if (vazio(d.inicioSintomas)) return c.erro("inicioSintomas", "Informe a data de início dos sintomas.");
+    if (!ini) return c.erro("inicioSintomas", "A data de início dos sintomas não é uma data válida.");
+    if (ini.t > c.hoje.t) return c.erro("inicioSintomas", "A data de início dos sintomas não pode ser futura.");
+    if (diasEntre(d.inicioSintomas, c.hojeIso) > 15) {
+      return c.erro("inicioSintomas", "Início dos sintomas há mais de 15 dias: fora da fase aguda. Confira a data; se estiver certa, esse caso não segue esta ficha de primeira consulta.");
+    }
+    if (c.nasc && ini.t < c.nasc.t) {
+      return c.erro("inicioSintomas", "O início dos sintomas é anterior ao nascimento do paciente — confira as duas datas.");
+    }
+    return null;
+  }
+
+  function validarSinais(c) {
+    if (lista(c.d.sinais).length === 0) c.erro("sinais", "Marque pelo menos um sinal clínico.");
+    const marcou = temSinalDeAlarme(c.d);
+    if (!marcou && !c.d.semAlarme) {
+      c.erro("alarme", "Confirme os sinais de alarme: marque os que existirem ou escolha “Sem sinais de alarme”.");
+    } else if (marcou && c.d.semAlarme) {
+      c.erro("alarme", "Você marcou “Sem sinais de alarme” e também marcou sinais — desfaça um dos dois.");
+    }
+  }
+
+  function validarNascimento(c) {
+    const d = c.d;
+    if (vazio(d.nascimento)) return c.erro("nascimento", "Informe a data de nascimento.");
+    if (!c.nasc) return c.erro("nascimento", "A data de nascimento não é uma data válida.");
+    if (c.nasc.t > c.hoje.t) return c.erro("nascimento", "A data de nascimento não pode ser futura.");
+    if (c.hoje.a - c.nasc.a > 130) return c.erro("nascimento", "A data de nascimento indica mais de 130 anos — confira o ano.");
+    return null;
+  }
+
+  function validarPaciente(c) {
+    const d = c.d;
+    if (!saneaTexto(d.nome)) c.erro("nome", "Informe o nome completo do paciente.");
+    validarNascimento(c);
+    if (["M", "F", "I"].indexOf(d.sexo) === -1) {
+      c.erro("sexo", "Informe o sexo do paciente.");
+    } else if (d.sexo === "F" && ["1", "2", "3", "4", "5", "9"].indexOf(String(d.gestante || "")) === -1) {
+      c.erro("gestante", "Paciente do sexo feminino: informe se está gestante (trimestre) ou “Não”.");
+    }
+  }
+
+  function validarResidencia(c) {
+    const d = c.d;
+    const uf = String(d.ufRes || "").toUpperCase();
+    if (UFS.indexOf(uf) === -1) return c.erro("ufRes", "Informe a UF de residência.");
+    if (!saneaTexto(d.municipioRes)) return c.erro("municipioRes", "Informe o município de residência.");
+    if (!buscarMunicipio(uf, d.municipioRes)) {
+      return c.erro("municipioRes", "O município de residência não consta na UF " + uf + ". Escolha um da lista.");
+    }
+    return null;
+  }
+
+  function validarTelefone(c) {
+    const tel = soDigitos(c.d.telefone);
+    if (!tel) {
+      c.erro("telefone", "Informe um telefone de contato com DDD — é por ele que a vigilância acompanha o paciente.");
+    } else if ((tel.length !== 10 && tel.length !== 11) || tel.charAt(0) === "0") {
+      c.erro("telefone", "O telefone precisa ter DDD + número (10 ou 11 dígitos).");
+    }
+  }
+
+  /* Opcionais: so validam o formato quando o medico preencheu. */
+  const OPCIONAIS = [
+    { campo: "sus", digitos: 15, mensagem: "O Cartão SUS tem 15 dígitos (deixe em branco se o paciente não souber)." },
+    { campo: "cep", digitos: 8, mensagem: "O CEP tem 8 dígitos (deixe em branco se o paciente não souber)." },
+    { campo: "cnes", digitos: 7, mensagem: "O CNES tem 7 dígitos (deixe em branco se não souber)." },
+  ];
+
+  function validarOpcionais(c) {
+    OPCIONAIS.forEach(function (o) {
+      if (!vazio(c.d[o.campo]) && soDigitos(c.d[o.campo]).length !== o.digitos) c.erro(o.campo, o.mensagem);
+    });
+  }
+
   /* Devolve [{ campo, mensagem }] — vazio quando a ficha pode ser gerada.
    * "campo" e a chave de dados (o formulario aponta o elemento por ela). */
   function validar(d, hojeIso) {
-    const e = [];
-    const erro = function (campo, mensagem) { e.push({ campo: campo, mensagem: mensagem }); };
-    const hoje = lerData(hojeIso);
-    const nasc = lerData(d.nascimento);
-
-    if (d.agravo !== "dengue" && d.agravo !== "chikungunya") {
-      erro("agravo", "Escolha a doença suspeita: Dengue ou Chikungunya.");
-    }
-
-    const ini = lerData(d.inicioSintomas);
-    if (!String(d.inicioSintomas || "").trim()) {
-      erro("inicioSintomas", "Informe a data de início dos sintomas.");
-    } else if (!ini) {
-      erro("inicioSintomas", "A data de início dos sintomas não é uma data válida.");
-    } else if (ini.t > hoje.t) {
-      erro("inicioSintomas", "A data de início dos sintomas não pode ser futura.");
-    } else if (diasEntre(d.inicioSintomas, hojeIso) > 15) {
-      erro("inicioSintomas", "Início dos sintomas há mais de 15 dias: fora da fase aguda. Confira a data; se estiver certa, esse caso não segue esta ficha de primeira consulta.");
-    } else if (nasc && ini.t < nasc.t) {
-      erro("inicioSintomas", "O início dos sintomas é anterior ao nascimento do paciente — confira as duas datas.");
-    }
-
-    if (lista(d.sinais).length === 0) {
-      erro("sinais", "Marque pelo menos um sinal clínico.");
-    }
-
-    const marcouAlarme = temSinalDeAlarme(d);
-    if (!marcouAlarme && !d.semAlarme) {
-      erro("alarme", "Confirme os sinais de alarme: marque os que existirem ou escolha “Sem sinais de alarme”.");
-    } else if (marcouAlarme && d.semAlarme) {
-      erro("alarme", "Você marcou “Sem sinais de alarme” e também marcou sinais — desfaça um dos dois.");
-    }
-
-    if (!saneaTexto(d.nome)) erro("nome", "Informe o nome completo do paciente.");
-
-    if (!String(d.nascimento || "").trim()) {
-      erro("nascimento", "Informe a data de nascimento.");
-    } else if (!nasc) {
-      erro("nascimento", "A data de nascimento não é uma data válida.");
-    } else if (nasc.t > hoje.t) {
-      erro("nascimento", "A data de nascimento não pode ser futura.");
-    } else if (hoje.a - nasc.a > 130) {
-      erro("nascimento", "A data de nascimento indica mais de 130 anos — confira o ano.");
-    }
-
-    if (["M", "F", "I"].indexOf(d.sexo) === -1) {
-      erro("sexo", "Informe o sexo do paciente.");
-    } else if (d.sexo === "F" && ["1", "2", "3", "4", "5", "9"].indexOf(String(d.gestante || "")) === -1) {
-      erro("gestante", "Paciente do sexo feminino: informe se está gestante (trimestre) ou “Não”.");
-    }
-
-    if (UFS.indexOf(String(d.ufRes || "").toUpperCase()) === -1) {
-      erro("ufRes", "Informe a UF de residência.");
-    } else if (!saneaTexto(d.municipioRes)) {
-      erro("municipioRes", "Informe o município de residência.");
-    } else if (!buscarMunicipio(d.ufRes, d.municipioRes)) {
-      erro("municipioRes", "O município de residência não consta na UF " + String(d.ufRes).toUpperCase() + ". Escolha um da lista.");
-    }
-
-    const tel = soDigitos(d.telefone);
-    if (!tel) {
-      erro("telefone", "Informe um telefone de contato com DDD — é por ele que a vigilância acompanha o paciente.");
-    } else if ((tel.length !== 10 && tel.length !== 11) || tel.charAt(0) === "0") {
-      erro("telefone", "O telefone precisa ter DDD + número (10 ou 11 dígitos).");
-    }
-
-    if (String(d.sus || "").trim() && soDigitos(d.sus).length !== 15) {
-      erro("sus", "O Cartão SUS tem 15 dígitos (deixe em branco se o paciente não souber).");
-    }
-    if (String(d.cep || "").trim() && soDigitos(d.cep).length !== 8) {
-      erro("cep", "O CEP tem 8 dígitos (deixe em branco se o paciente não souber).");
-    }
-    if (String(d.cnes || "").trim() && soDigitos(d.cnes).length !== 7) {
-      erro("cnes", "O CNES tem 7 dígitos (deixe em branco se não souber).");
-    }
-
-    return e;
+    const erros = [];
+    const c = {
+      d: d,
+      hojeIso: hojeIso,
+      hoje: lerData(hojeIso),
+      nasc: lerData(d.nascimento),
+      erro: function (campo, mensagem) { erros.push({ campo: campo, mensagem: mensagem }); },
+    };
+    [validarAgravo, validarSintomas, validarSinais, validarPaciente, validarResidencia, validarTelefone, validarOpcionais]
+      .forEach(function (etapa) { etapa(c); });
+    return erros;
   }
 
   /* ------------------------------------------------------------------
@@ -338,193 +360,225 @@
    *   texto:  { pg, tipo:"texto", x, y, texto, tam, negrito, larg }
    *   bloco:  { pg, tipo:"bloco", x, linhas:[baselines], larg, texto, tam }
    * pg: 0 = pagina 1, 1 = pagina 2. */
-  function montarOperacoes(d, hojeIso) {
+  function criarDesenho() {
     const ops = [];
-    const centro = function (pg, cx, cy, texto, tam, negrito) {
-      ops.push({ pg: pg, tipo: "centro", cx: cx, cy: cy, texto: String(texto), tam: tam || 9, negrito: !!negrito });
+    const api = {
+      ops: ops,
+      centro: function (o) {
+        ops.push({ pg: o.pg, tipo: "centro", cx: o.cx, cy: o.cy, texto: String(o.texto), tam: o.tam || 9, negrito: !!o.negrito });
+      },
+      /* Texto livre, da esquerda, na linha de base y; "larg" encolhe a fonte. */
+      texto: function (o) {
+        const t = saneaTexto(o.valor);
+        if (t) ops.push({ pg: o.pg, tipo: "texto", x: o.x, y: o.y, texto: t, tam: o.tam || 9, larg: o.larg, negrito: !!o.negrito });
+      },
+      caixa: function (pg, c, valor, tam) {
+        api.centro({ pg: pg, cx: (c[0] + c[2]) / 2, cy: (c[1] + c[3]) / 2, texto: valor, tam: tam || 10, negrito: true });
+      },
+      /* Um digito por celula, da esquerda (ou da direita, p/ numero). */
+      pente: function (pg, def, digitos, opcoes) {
+        const celulas = def.bordas.length - 1;
+        const dig = String(digitos).slice(0, celulas);
+        const inicio = opcoes && opcoes.daDireita ? celulas - dig.length : 0;
+        for (let i = 0; i < dig.length; i++) {
+          const cx = (def.bordas[inicio + i] + def.bordas[inicio + i + 1]) / 2;
+          api.centro({ pg: pg, cx: cx, cy: def.cy, texto: dig.charAt(i), tam: 9 });
+        }
+      },
     };
-    const texto = function (pg, x, y, valor, tam, larg, negrito) {
-      const t = saneaTexto(valor);
-      if (t) ops.push({ pg: pg, tipo: "texto", x: x, y: y, texto: t, tam: tam || 9, larg: larg, negrito: !!negrito });
-    };
-    const caixa = function (pg, c, valor, tam) {
-      centro(pg, (c[0] + c[2]) / 2, (c[1] + c[3]) / 2, valor, tam || 10, true);
-    };
-    /* Um digito por celula, da esquerda para a direita (ou da direita, p/ numero). */
-    const pente = function (pg, def, digitos, tam, daDireita) {
-      const celulas = def.bordas.length - 1;
-      const dig = String(digitos).slice(0, celulas);
-      const inicio = daDireita ? celulas - dig.length : 0;
-      for (let i = 0; i < dig.length; i++) {
-        const cx = (def.bordas[inicio + i] + def.bordas[inicio + i + 1]) / 2;
-        centro(pg, cx, def.cy, dig.charAt(i), tam || 9, false);
-      }
-    };
+    return api;
+  }
 
-    const hoje = String(hojeIso || "");
-
-    // ---- Dados gerais ----
-    caixa(0, CX.agravo, d.agravo === "chikungunya" ? "2" : d.agravo === "dengue" ? "1" : "");
-    pente(0, PENTE.dataNotificacao, ddmmaaaa(hoje));
-
+  function secaoDadosGerais(b, d, hoje) {
+    b.caixa(0, CX.agravo, d.agravo === "chikungunya" ? "2" : d.agravo === "dengue" ? "1" : "");
+    b.pente(0, PENTE.dataNotificacao, ddmmaaaa(hoje));
     const ufNotif = String(d.ufNotif || "").toUpperCase();
-    if (UFS.indexOf(ufNotif) !== -1) centro(0, 67.5, 216.0, ufNotif, 9, true);
-    texto(0, 87, 217.5, d.municipioNotif, 9, 340);
+    if (UFS.indexOf(ufNotif) !== -1) b.centro({ pg: 0, cx: 67.5, cy: 216.0, texto: ufNotif, tam: 9, negrito: true });
+    b.texto({ pg: 0, x: 87, y: 217.5, valor: d.municipioNotif, larg: 340 });
     const munNotif = buscarMunicipio(ufNotif, d.municipioNotif);
-    if (munNotif) pente(0, PENTE.ibgeNotif, munNotif.codigo);
-    texto(0, 58, 246.5, d.unidade, 9, 272);
-    if (soDigitos(d.cnes).length === 7) pente(0, PENTE.cnes, soDigitos(d.cnes));
-    pente(0, PENTE.inicioSintomas, ddmmaaaa(d.inicioSintomas));
+    if (munNotif) b.pente(0, PENTE.ibgeNotif, munNotif.codigo);
+    b.texto({ pg: 0, x: 58, y: 246.5, valor: d.unidade, larg: 272 });
+    if (soDigitos(d.cnes).length === 7) b.pente(0, PENTE.cnes, soDigitos(d.cnes));
+    b.pente(0, PENTE.inicioSintomas, ddmmaaaa(d.inicioSintomas));
+  }
 
-    // ---- Notificacao individual ----
-    texto(0, 56, 277.0, d.nome, 10, 372, true);
-    pente(0, PENTE.nascimento, ddmmaaaa(d.nascimento));
+  function secaoGestante(b, d) {
+    if (d.sexo === "M") b.caixa(0, CX.gestante, "6");
+    else if (d.sexo === "I") b.caixa(0, CX.gestante, "9");
+    else if (d.sexo === "F" && d.gestante) b.caixa(0, CX.gestante, d.gestante);
+  }
+
+  function secaoPaciente(b, d, hoje) {
+    b.texto({ pg: 0, x: 56, y: 277.0, valor: d.nome, tam: 10, larg: 372, negrito: true });
+    b.pente(0, PENTE.nascimento, ddmmaaaa(d.nascimento));
     const idade = idadeDe(d.nascimento, hoje);
     if (idade) {
-      pente(0, PENTE.idade, String(idade.valor), 9, true);
-      caixa(0, CX.idadeUnidade, idade.unidade, 9);
+      b.pente(0, PENTE.idade, String(idade.valor), { daDireita: true });
+      b.caixa(0, CX.idadeUnidade, idade.unidade, 9);
     }
-    if (["M", "F", "I"].indexOf(d.sexo) !== -1) caixa(0, CX.sexo, d.sexo);
-    if (d.sexo === "M") caixa(0, CX.gestante, "6");
-    else if (d.sexo === "I") caixa(0, CX.gestante, "9");
-    else if (d.sexo === "F" && d.gestante) caixa(0, CX.gestante, d.gestante);
-    if (d.raca) caixa(0, CX.raca, d.raca);
-    if (d.escolaridade) caixa(0, CX.escolaridade, d.escolaridade, d.escolaridade === "10" ? 7 : 10);
-    if (soDigitos(d.sus).length === 15) pente(0, PENTE.sus, soDigitos(d.sus));
-    texto(0, 232, 368.0, d.mae, 9, 318);
+    if (["M", "F", "I"].indexOf(d.sexo) !== -1) b.caixa(0, CX.sexo, d.sexo);
+    secaoGestante(b, d);
+    if (d.raca) b.caixa(0, CX.raca, d.raca);
+    if (d.escolaridade) b.caixa(0, CX.escolaridade, d.escolaridade, d.escolaridade === "10" ? 7 : 10);
+    if (soDigitos(d.sus).length === 15) b.pente(0, PENTE.sus, soDigitos(d.sus));
+    b.texto({ pg: 0, x: 232, y: 368.0, valor: d.mae, larg: 318 });
+  }
 
-    // ---- Residencia ----
-    const ufRes = String(d.ufRes || "").toUpperCase();
-    if (UFS.indexOf(ufRes) !== -1) centro(0, 66.0, 396.0, ufRes, 9, true);
-    const munRes = buscarMunicipio(ufRes, d.municipioRes);
-    texto(0, 85, 397.5, munRes ? munRes.nome : d.municipioRes, 9, 232);
-    if (munRes) pente(0, PENTE.ibgeRes, munRes.codigo);
-    texto(0, 55, 421.5, d.bairro, 9, 128);
-    texto(0, 196, 421.5, d.logradouro, 9, 270);
-    texto(0, 55, 446.5, d.numero, 9, 50);
-    texto(0, 112, 446.5, d.complemento, 9, 290);
-    texto(0, 216, 470.5, d.referencia, 9, 230);
-    if (soDigitos(d.cep).length === 8) pente(0, PENTE.cep, soDigitos(d.cep));
+  /* 11 digitos (celular com 9): mesma faixa do campo, 11 posicoes iguais. */
+  function pente11(def) {
+    const x0 = def.bordas[0];
+    const passo = (def.bordas[def.bordas.length - 1] - x0) / 11;
+    const bordas = [];
+    for (let i = 0; i <= 11; i++) bordas.push(x0 + passo * i);
+    return { bordas: bordas, cy: def.cy };
+  }
+
+  function secaoEndereco(b, d) {
+    b.texto({ pg: 0, x: 55, y: 421.5, valor: d.bairro, larg: 128 });
+    b.texto({ pg: 0, x: 196, y: 421.5, valor: d.logradouro, larg: 270 });
+    b.texto({ pg: 0, x: 55, y: 446.5, valor: d.numero, larg: 50 });
+    b.texto({ pg: 0, x: 112, y: 446.5, valor: d.complemento, larg: 290 });
+    b.texto({ pg: 0, x: 216, y: 470.5, valor: d.referencia, larg: 230 });
+    if (soDigitos(d.cep).length === 8) b.pente(0, PENTE.cep, soDigitos(d.cep));
     const tel = soDigitos(d.telefone);
-    if (tel.length === 10 || tel.length === 11) {
-      const def = PENTE.telefone10;
-      if (tel.length === 10) {
-        pente(0, def, tel);
-      } else {
-        /* 11 digitos (celular com 9): mesma faixa, 11 posicoes iguais. */
-        const x0 = def.bordas[0];
-        const x1 = def.bordas[def.bordas.length - 1];
-        const passo = (x1 - x0) / 11;
-        const bordas = [];
-        for (let i = 0; i <= 11; i++) bordas.push(x0 + passo * i);
-        pente(0, { bordas: bordas, cy: def.cy }, tel);
-      }
-    }
-    if (d.zona) caixa(0, CX.zona, d.zona);
+    if (tel.length === 10) b.pente(0, PENTE.telefone10, tel);
+    else if (tel.length === 11) b.pente(0, pente11(PENTE.telefone10), tel);
+    if (d.zona) b.caixa(0, CX.zona, d.zona);
+  }
 
-    // ---- Investigacao ----
-    pente(0, PENTE.dataInvestigacao, ddmmaaaa(hoje));
-    texto(0, 184, 548.0, d.ocupacao, 9, 360);
+  function secaoResidencia(b, d) {
+    const ufRes = String(d.ufRes || "").toUpperCase();
+    if (UFS.indexOf(ufRes) !== -1) b.centro({ pg: 0, cx: 66.0, cy: 396.0, texto: ufRes, tam: 9, negrito: true });
+    const munRes = buscarMunicipio(ufRes, d.municipioRes);
+    b.texto({ pg: 0, x: 85, y: 397.5, valor: munRes ? munRes.nome : d.municipioRes, larg: 232 });
+    if (munRes) b.pente(0, PENTE.ibgeRes, munRes.codigo);
+    secaoEndereco(b, d);
+  }
 
-    // ---- Dados clinicos: so as marcadas recebem "1" ----
-    lista(d.sinais).forEach(function (id) {
-      const s = SINAIS_CLINICOS.filter(function (x) { return x.id === id; })[0];
-      if (s) caixa(0, s.caixa, "1");
+  function marcarEscolhidos(b, catalogo, ids) {
+    lista(ids).forEach(function (id) {
+      const item = catalogo.filter(function (x) { return x.id === id; })[0];
+      if (item) b.caixa(0, item.caixa, "1");
     });
-    lista(d.doencas).forEach(function (id) {
-      const s = DOENCAS.filter(function (x) { return x.id === id; })[0];
-      if (s) caixa(0, s.caixa, "1");
-    });
+  }
 
-    // ---- Pagina 2: sinais de alarme (68) e gravidade (70) ----
+  function secaoClinica(b, d, hoje) {
+    b.pente(0, PENTE.dataInvestigacao, ddmmaaaa(hoje));
+    b.texto({ pg: 0, x: 184, y: 544.5, valor: d.ocupacao, larg: 360 });
+    /* So as marcadas recebem "1"; as demais ficam em branco (nao afirma o
+     * que ninguem perguntou). */
+    marcarEscolhidos(b, SINAIS_CLINICOS, d.sinais);
+    marcarEscolhidos(b, DOENCAS, d.doencas);
+  }
+
+  function secaoAlarme(b, d) {
     const alarmes = lista(d.alarme);
     const graves = lista(d.gravidade);
+    /* O medico atestou o quadro: 1 nas marcadas, 2 nas demais (item 68). */
     if (alarmes.length > 0 || d.semAlarme) {
-      /* O medico atestou o quadro (1 nas marcadas, 2 nas demais). */
-      ALARME.forEach(function (a) { caixa(1, a.caixa, alarmes.indexOf(a.id) !== -1 ? "1" : "2"); });
+      ALARME.forEach(function (a) { b.caixa(1, a.caixa, alarmes.indexOf(a.id) !== -1 ? "1" : "2"); });
     }
     GRAVIDADE.forEach(function (g) {
-      if (graves.indexOf(g.id) !== -1) caixa(1, g.caixa, "1");
+      if (graves.indexOf(g.id) !== -1) b.caixa(1, g.caixa, "1");
     });
-    if (alarmes.length > 0 && lerData(d.dataAlarme)) pente(1, PENTE.dataAlarme, ddmmaaaa(d.dataAlarme));
-    if (graves.length > 0 && lerData(d.dataGravidade)) pente(1, PENTE.dataGravidade, ddmmaaaa(d.dataGravidade));
-    if (graves.indexOf("outrosOrgaos") !== -1) texto(1, 454, 424.0, d.outrosOrgaos, 8, 100);
+    if (alarmes.length > 0 && lerData(d.dataAlarme)) b.pente(1, PENTE.dataAlarme, ddmmaaaa(d.dataAlarme));
+    if (graves.length > 0 && lerData(d.dataGravidade)) b.pente(1, PENTE.dataGravidade, ddmmaaaa(d.dataGravidade));
+    if (graves.indexOf("outrosOrgaos") !== -1) b.texto({ pg: 1, x: 460, y: 424.0, valor: d.outrosOrgaos, tam: 8, larg: 96 });
+  }
 
-    // ---- Pagina 2: observacoes e investigador ----
+  function secaoObservacoesEInvestigador(b, d) {
     const obs = saneaTexto(d.observacoes, true);
-    if (obs) ops.push({ pg: 1, tipo: "bloco", x: 66, linhas: LINHAS_OBS, larg: 490, texto: obs, tam: 9 });
+    if (obs) b.ops.push({ pg: 1, tipo: "bloco", x: 36, linhas: LINHAS_OBS, larg: 524, texto: obs, tam: 9 });
     /* O bloco "Investigador" so e preenchido quando ha um medico escolhido
      * (sem ele, ficaria uma unidade sem ninguem responsavel). */
-    if (saneaTexto(d.medicoNome)) {
-      texto(1, 56, 757.0, [d.municipioNotif, d.unidade].filter(Boolean).join(" / "), 9, 390);
-      if (soDigitos(d.cnes).length === 7) pente(1, PENTE.cnesInvestigador, soDigitos(d.cnes));
-      texto(1, 56, 787.0, d.medicoNome, 9, 190);
-      texto(1, 253, 787.0, d.medicoFuncao, 9, 270);
-    }
+    if (!saneaTexto(d.medicoNome)) return;
+    b.texto({ pg: 1, x: 56, y: 757.0, valor: [d.municipioNotif, d.unidade].filter(Boolean).join(" / "), larg: 390 });
+    if (soDigitos(d.cnes).length === 7) b.pente(1, PENTE.cnesInvestigador, soDigitos(d.cnes));
+    b.texto({ pg: 1, x: 56, y: 787.0, valor: d.medicoNome, larg: 182 });
+    b.texto({ pg: 1, x: 253, y: 787.0, valor: d.medicoFuncao, larg: 270 });
+  }
 
-    return ops;
+  function montarOperacoes(d, hojeIso) {
+    const b = criarDesenho();
+    const hoje = String(hojeIso || "");
+    secaoDadosGerais(b, d, hoje);
+    secaoPaciente(b, d, hoje);
+    secaoResidencia(b, d);
+    secaoClinica(b, d, hoje);
+    secaoAlarme(b, d);
+    secaoObservacoesEInvestigador(b, d);
+    return b.ops;
   }
 
   /* ------------------------------------------------------------------
    * Aplicacao no PDF (pdf-lib chega por parametro)
    * ------------------------------------------------------------------ */
+  /* Reduz a fonte (ate 6) e, se ainda nao couber, corta o texto: nunca
+   * invade a celula vizinha. */
+  function ajustar(fonte, texto, tam, larg) {
+    let t = texto;
+    let s = tam;
+    if (!larg) return { texto: t, tam: s };
+    while (s > 6 && fonte.widthOfTextAtSize(t, s) > larg) s -= 0.5;
+    while (t.length > 1 && fonte.widthOfTextAtSize(t, s) > larg) t = t.slice(0, -1);
+    return { texto: t, tam: s };
+  }
+
+  function quebrarEmLinhas(fonte, texto, tam, larg) {
+    const linhas = [];
+    let atual = "";
+    texto.split(" ").forEach(function (palavra) {
+      const tentativa = atual ? atual + " " + palavra : palavra;
+      if (fonte.widthOfTextAtSize(tentativa, tam) > larg && atual) {
+        linhas.push(atual);
+        atual = palavra;
+      } else {
+        atual = tentativa;
+      }
+    });
+    if (atual) linhas.push(atual);
+    return linhas;
+  }
+
   async function aplicarNoPdf(PDFLib, pdfDoc, operacoes) {
-    const fonteR = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
-    const fonteB = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+    const fontes = {
+      normal: await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica),
+      negrito: await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold),
+    };
     const preto = PDFLib.rgb(0, 0, 0);
     const paginas = pdfDoc.getPages();
     const resultado = { desenhadas: 0, ignoradas: 0 };
 
-    function ajustar(fonte, texto, tam, larg) {
-      let t = texto;
-      let s = tam;
-      if (!larg) return { texto: t, tam: s };
-      while (s > 6 && fonte.widthOfTextAtSize(t, s) > larg) s -= 0.5;
-      while (t.length > 1 && fonte.widthOfTextAtSize(t, s) > larg) t = t.slice(0, -1);
-      return { texto: t, tam: s };
+    function desenhar(pagina, fonte, p) {
+      pagina.drawText(p.texto, { x: p.x, y: pagina.getHeight() - p.baseline, size: p.tam, font: fonte, color: preto });
+      resultado.desenhadas++;
     }
 
-    function desenhar(pagina, fonte, texto, x, baselineTopo, tam) {
-      pagina.drawText(texto, { x: x, y: pagina.getHeight() - baselineTopo, size: tam, font: fonte, color: preto });
-      resultado.desenhadas++;
+    function aplicar(op) {
+      const pagina = paginas[op.pg];
+      const fonte = op.negrito ? fontes.negrito : fontes.normal;
+      if (op.tipo === "centro") {
+        const a = ajustar(fonte, op.texto, op.tam, op.larg);
+        const w = fonte.widthOfTextAtSize(a.texto, a.tam);
+        desenhar(pagina, fonte, { texto: a.texto, x: op.cx - w / 2, baseline: op.cy + 0.35 * a.tam, tam: a.tam });
+      } else if (op.tipo === "texto") {
+        const a = ajustar(fonte, op.texto, op.tam, op.larg);
+        desenhar(pagina, fonte, { texto: a.texto, x: op.x, baseline: op.y, tam: a.tam });
+      } else if (op.tipo === "bloco") {
+        const cabem = op.linhas.length;
+        const linhas = quebrarEmLinhas(fonte, op.texto, op.tam, op.larg);
+        linhas.slice(0, cabem).forEach(function (linha, i) {
+          const cortada = i === cabem - 1 && linhas.length > cabem;
+          const t = cortada ? (linha.length > 3 ? linha.slice(0, -3) : linha) + "..." : linha;
+          const a = ajustar(fonte, t, op.tam, op.larg);
+          desenhar(pagina, fonte, { texto: a.texto, x: op.x, baseline: op.linhas[i], tam: a.tam });
+        });
+      }
     }
 
     operacoes.forEach(function (op) {
       try {
-        const pagina = paginas[op.pg];
-        const fonte = op.negrito ? fonteB : fonteR;
-        if (op.tipo === "centro") {
-          const larguraMax = op.larg || 0;
-          const a = ajustar(fonte, op.texto, op.tam, larguraMax);
-          const w = fonte.widthOfTextAtSize(a.texto, a.tam);
-          desenhar(pagina, fonte, a.texto, op.cx - w / 2, op.cy + 0.35 * a.tam, a.tam);
-        } else if (op.tipo === "texto") {
-          const a = ajustar(fonte, op.texto, op.tam, op.larg);
-          desenhar(pagina, fonte, a.texto, op.x, op.y, a.tam);
-        } else if (op.tipo === "bloco") {
-          const palavras = op.texto.split(" ");
-          const linhas = [];
-          let atual = "";
-          palavras.forEach(function (p) {
-            const tentativa = atual ? atual + " " + p : p;
-            if (fonte.widthOfTextAtSize(tentativa, op.tam) > op.larg && atual) {
-              linhas.push(atual);
-              atual = p;
-            } else {
-              atual = tentativa;
-            }
-          });
-          if (atual) linhas.push(atual);
-          const cabem = op.linhas.length;
-          linhas.slice(0, cabem).forEach(function (linha, i) {
-            let t = linha;
-            if (i === cabem - 1 && linhas.length > cabem) {
-              t = linha.length > 3 ? linha.slice(0, -3) + "..." : linha + "...";
-            }
-            const a = ajustar(fonte, t, op.tam, op.larg);
-            desenhar(pagina, fonte, a.texto, op.x, op.linhas[i], a.tam);
-          });
-        }
+        aplicar(op);
       } catch (e) {
         resultado.ignoradas++;
       }

@@ -35,7 +35,7 @@
 - Create `scripts/gerar-asset-pdf.js` — converte um PDF em asset `.js` (base64), reprodutível (não existia script).
 - Create `scripts/sync-municipios-ibge.js` — baixa a lista oficial do IBGE e gera o asset compacto (UF → [[cod6, nome]]).
 - Create `modules/notificacao/assets/base-pdf-dengue.js` (gerado), `modules/notificacao/assets/municipios-ibge.js` (gerado).
-- Create `modules/notificacao/assets/dengue-ficha.js` — lógica pura: `MeedsNotificacaoDengue`.
+- Create `modules/notificacao/dengue-ficha.js` — lógica pura: `MeedsNotificacaoDengue`.
 - Create `modules/notificacao/index.js` — UI e ligação com o núcleo.
 - Create `tests/notificacao-ibge.test.js`, `tests/notificacao-dengue.test.js`, `tests/notificacao-dengue-pdf.test.js`.
 - Modify `manifest.json` (módulo novo), `tests/padrao-laudos.test.js` (lista dos módulos ligados por padrão), `package.json` (devDependency `pdf-lib`, cadeia `verificar`), `core/icones.js` (ícone `notificacao`, se não reaproveitar `laudo`), `README.md`, `docs/MANUAL-ADMIN.md`, `dados/changelog.json`.
@@ -82,7 +82,7 @@ Página 2: 68 (sinais de alarme), 69 (data), 70 (gravidade), 71 (data) — `1` n
 
 ### Task 2: Lógica pura — validação, idade e operações de desenho
 
-**Files:** `modules/notificacao/assets/dengue-ficha.js`, `tests/notificacao-dengue.test.js`
+**Files:** `modules/notificacao/dengue-ficha.js`, `tests/notificacao-dengue.test.js`
 
 **Interfaces:**
 - Produces `raiz.MeedsNotificacaoDengue = { validar(dados, hoje), idadeDe(nascISO, hoje), buscarMunicipio(uf, nome), ufsDoMunicipio, temSinalDeAlarme(dados), montarOperacoes(dados, hoje), aplicarNoPdf(PDFLib, pdfDoc, operacoes), SINAIS_CLINICOS, DOENCAS, ALARME, GRAVIDADE, TEXTO_ALERTA }`.
