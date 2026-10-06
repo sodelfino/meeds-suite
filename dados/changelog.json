@@ -2,6 +2,15 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.57.0",
+      "data": "2026-10-06",
+      "novidades": [
+        "Ficha de notificação — Leishmaniose Tegumentar Americana: ao clicar em \"Notificação\" você escolhe a ficha pelo desenho e pelo nome (Dengue/Chikungunya ou Leishmaniose). A de Leishmaniose preenche, por cima do PDF oficial do SINAN, a lesão (cutânea e/ou mucosa), cicatrizes, HIV, tipo de entrada e os dados do paciente lidos da tela. Exames, tratamento e encerramento ficam em branco para a vigilância."
+      ],
+      "melhorias": [],
+      "correcoes": []
+    },
+    {
       "versao": "2.56.1",
       "data": "2026-10-06",
       "novidades": [],

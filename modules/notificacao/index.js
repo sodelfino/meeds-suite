@@ -1,15 +1,16 @@
 /* ------------------------------------------------------------------
  * modules/notificacao/index.js — ficha de notificacao (SINAN)
  * ------------------------------------------------------------------
- * Gera, na primeira consulta de telemedicina, a FICHA DE INVESTIGACAO
- * DENGUE E FEBRE DE CHIKUNGUNYA por cima do PDF oficial do SINAN. Esta
- * primeira ficha e a unica; o modulo tem id generico ("notificacao") para
- * receber outras fichas de notificacao depois.
+ * Gera, na primeira consulta de telemedicina, a ficha de investigacao do
+ * SINAN por cima do PDF oficial. O botao abre uma escolha da ficha
+ * (Dengue/Chikungunya ou Leishmaniose Tegumentar Americana); o formulario
+ * e os dados do paciente sao os mesmos, so o que e da doenca muda. O
+ * modulo tem id generico ("notificacao") para receber outras fichas.
  *
  * Este arquivo e so a TELA e a ligacao com o nucleo. Tudo que decide
  * alguma coisa (o que e obrigatorio, idade, onde cada valor cai na ficha,
- * como desenhar) vive em dengue-ficha.js, que nao conhece DOM e e testado
- * em Node (tests/notificacao-dengue*.test.js). O PDF e o IBGE chegam como
+ * como desenhar) vive em dengue-ficha.js e lta-ficha.js, que nao conhecem
+ * DOM e sao testados em Node (tests/notificacao-*.test.js). O PDF e o IBGE chegam como
  * assets gerados por script.
  *
  * PRIVACIDADE: nada do formulario e gravado em disco. Nao ha historico
@@ -25,8 +26,23 @@
   let overlay = null;
   let guia = null;
   let pacienteNoFormulario = ""; // assinatura (nome|nascimento) de quem esta no formulario
+  let ficha = ""; // "" (tela de escolha) | "dengue" | "lta"
 
   const F = function () { return raiz.MeedsNotificacaoDengue; };
+  const L = function () { return raiz.MeedsNotificacaoLta; };
+
+  const FICHAS = {
+    dengue: {
+      titulo: "Ficha de notificação — Dengue e Chikungunya",
+      info: "Primeira consulta: preenche a Ficha de Investigação de Dengue e Febre de Chikungunya do SINAN por cima do PDF oficial. Exames, hospitalização, classificação final e encerramento ficam em branco para a vigilância epidemiológica completar.",
+      pdf: "MEEDS_NOTIF_DENGUE_BASE_PDF_B64",
+    },
+    lta: {
+      titulo: "Ficha de notificação — Leishmaniose Tegumentar",
+      info: "Primeira consulta: preenche a Ficha de Investigação de Leishmaniose Tegumentar Americana do SINAN por cima do PDF oficial. Exames, tratamento, conclusão e encerramento ficam em branco para a vigilância epidemiológica completar.",
+      pdf: "MEEDS_NOTIF_LTA_BASE_PDF_B64",
+    },
+  };
 
   /* ----------------------------------------------------------------
    * Datas e acesso aos campos
@@ -65,6 +81,11 @@
    * ---------------------------------------------------------------- */
   function coletar() {
     return {
+      ficha: ficha,
+      lesoes: marcados("lesoes"),
+      cicatriz: valor("nt-cicatriz"),
+      hiv: valor("nt-hiv"),
+      tipoEntrada: valor("nt-tipo-entrada"),
       agravo: radio("nt-agravo"),
       inicioSintomas: valor("nt-inicio"),
       sinais: marcados("sinais"),
@@ -155,13 +176,26 @@
     "#nt-aviso-auto { display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }",
     ".nt-idade { font-size:11px; color:#5b6672; margin-top:4px; min-height:14px; }",
     ".nt-oculto { display:none; }",
+    "#nt-modal:not([data-ficha=\"dengue\"]):not([data-ficha=\"lta\"]) #nt-trocar, #nt-modal:not([data-ficha=\"dengue\"]):not([data-ficha=\"lta\"]) #nt-atualizar { display:none; }",
+    "#nt-modal[data-ficha=\"lta\"] .nt-so-dengue, #nt-modal[data-ficha=\"dengue\"] .nt-so-lta { display:none; }",
+    "#nt-modal:not([data-ficha=\"dengue\"]):not([data-ficha=\"lta\"]) #nt-form, #nt-modal:not([data-ficha=\"dengue\"]):not([data-ficha=\"lta\"]) #nt-footer { display:none; }",
+    "#nt-modal[data-ficha=\"dengue\"] #nt-escolha, #nt-modal[data-ficha=\"lta\"] #nt-escolha { display:none; }",
+    "#nt-escolha h3 { font-size:13px; color:#16221f; margin:0 0 4px; }",
+    "#nt-escolha p { font-size:11.5px; color:#5b6672; margin:0 0 14px; }",
+    ".nt-cartoes { display:grid; grid-template-columns:1fr 1fr; gap:14px; }",
+    "button.nt-cartao { display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px; background:#f5f8fc; border:1.6px solid #c9d6e8; border-radius:14px; padding:18px 12px 16px; cursor:pointer; color:#16221f; font-family:inherit; }",
+    "button.nt-cartao:hover, button.nt-cartao:focus-visible { border-color:#1a56ad; background:#eaf1fb; outline:none; box-shadow:0 0 0 3px rgba(26,86,173,.15); }",
+    "button.nt-cartao svg { width:96px; height:96px; }",
+    "button.nt-cartao .nt-cartao-nome { font-size:14px; font-weight:800; line-height:1.25; }",
+    "button.nt-cartao .nt-cartao-sub { font-size:11px; color:#5b6672; line-height:1.35; }",
+    "button.nt-cartao .nt-cartao-cid { font-size:10.5px; font-weight:700; color:#123a7a; background:#dde8f7; border-radius:999px; padding:2px 9px; }",
     "#nt-footer { display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }",
     "button.nt-primario { background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }",
     "button.nt-primario:hover { background:#123a7a; }",
     "button.nt-primario:disabled { background:#a7bcdd; cursor:not-allowed; }",
     "button.nt-secundario { background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }",
     "details.nt-det > summary { cursor:pointer; font-size:11px; font-weight:700; color:#123a7a; margin-bottom:8px; }",
-    "@media (max-width:640px) { .nt-grid2, .nt-grid3 { grid-template-columns:1fr; } }",
+    "@media (max-width:640px) { .nt-grid2, .nt-grid3, .nt-cartoes { grid-template-columns:1fr; } }",
   ].join("\n");
 
   function campo(id, rotulo, extra) {
@@ -236,21 +270,72 @@
       campo("nt-medico-nome", "Nome", 'maxlength="60"') + campo("nt-medico-funcao", "Função", 'maxlength="40"') + "</div></div>";
   }
 
+  /* Ilustracoes da tela de escolha: SVG proprio (sem imagem externa). */
+  const SVG_DENGUE =
+    '<svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="45" fill="#fde8e8"/>' +
+    '<ellipse cx="36" cy="38" rx="17" ry="6" transform="rotate(-38 36 38)" fill="#fff" stroke="#9aa9bd" stroke-width="1.3"/>' +
+    '<ellipse cx="60" cy="38" rx="17" ry="6" transform="rotate(38 60 38)" fill="#fff" stroke="#9aa9bd" stroke-width="1.3"/>' +
+    '<g stroke="#3a2f2f" stroke-width="2" fill="none" stroke-linecap="round">' +
+    '<path d="M44 44 L30 50 L22 64"/><path d="M52 44 L66 50 L74 64"/><path d="M44 48 L28 58 L24 74"/><path d="M52 48 L68 58 L72 74"/><path d="M45 52 L36 66 L38 80"/><path d="M51 52 L60 66 L58 80"/></g>' +
+    '<ellipse cx="48" cy="64" rx="8.5" ry="15" fill="#3a2f2f"/>' +
+    '<g stroke="#fff" stroke-width="2"><path d="M40 58 H56"/><path d="M40 64 H56"/><path d="M40.5 70 H55.5"/></g>' +
+    '<circle cx="48" cy="44" r="7" fill="#3a2f2f"/><circle cx="48" cy="34" r="5" fill="#3a2f2f"/>' +
+    '<path d="M48 30 L48 15" stroke="#3a2f2f" stroke-width="2.4" stroke-linecap="round"/>' +
+    '<path d="M76 18 C76 18 69 27 69 31 A7 7 0 0 0 83 31 C83 27 76 18 76 18Z" fill="#d92d20"/></svg>';
+  const SVG_LTA =
+    '<svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="45" fill="#fff1e0"/>' +
+    '<ellipse cx="46" cy="60" rx="31" ry="25" fill="#efc3a0"/>' +
+    '<ellipse cx="46" cy="60" rx="19" ry="15" fill="#c9553d"/><ellipse cx="46" cy="60" rx="13" ry="9.5" fill="#8e2a22"/>' +
+    '<ellipse cx="42" cy="57" rx="4" ry="2.5" fill="#d98a7a"/>' +
+    '<g transform="translate(66 22)"><path d="M0 0 L-12 -10 L-6 3Z" fill="#fff" stroke="#9aa9bd" stroke-width="1.2"/>' +
+    '<path d="M2 0 L14 -10 L8 3Z" fill="#fff" stroke="#9aa9bd" stroke-width="1.2"/>' +
+    '<ellipse cx="1" cy="6" rx="3.4" ry="9" fill="#a98a4d"/><circle cx="1" cy="-3" r="3.2" fill="#a98a4d"/>' +
+    '<g stroke="#6b5427" stroke-width="1.3" fill="none" stroke-linecap="round"><path d="M-1 4 L-10 10 L-12 20"/><path d="M3 4 L12 10 L14 20"/><path d="M-1 8 L-8 16 L-9 25"/><path d="M3 8 L10 16 L11 25"/></g></g></svg>';
+
+  function cartaoFicha(c) {
+    return '<button type="button" class="nt-cartao" data-ficha="' + c.id + '">' + c.svg +
+      '<span class="nt-cartao-nome">' + esc(c.nome) + '</span><span class="nt-cartao-sub">' + esc(c.sub) + '</span>' +
+      '<span class="nt-cartao-cid">' + esc(c.cid) + "</span></button>";
+  }
+
+  const ESCOLHA =
+    '<div id="nt-escolha"><h3>Qual ficha de notificação?</h3><p>Escolha a doença suspeita. Os dados do paciente são lidos da tela do atendimento nas duas.</p>' +
+    '<div class="nt-cartoes">' +
+    cartaoFicha({ id: "dengue", svg: SVG_DENGUE, nome: "Dengue e Febre de Chikungunya", sub: "Transmitida pelo mosquito Aedes aegypti", cid: "CID A90 · A92.0" }) +
+    cartaoFicha({ id: "lta", svg: SVG_LTA, nome: "Leishmaniose Tegumentar Americana", sub: "Úlcera na pele ou nas mucosas — flebotomíneo", cid: "CID B55.1" }) +
+    "</div></div>";
+
+  /* Parte da ficha de Leishmaniose: lesao, cicatrizes, HIV, tipo de entrada. */
+  function secaoLta() {
+    return '<div class="nt-sec nt-so-lta" id="nt-sec-lesoes"><h3>Quadro clínico *</h3>' +
+      '<div class="nt-sub">Presença de lesão * (marque a(s) presente(s))</div>' +
+      '<div class="nt-checks" style="grid-template-columns:1fr">' + checks("lesoes", L().LESOES) + "</div>" +
+      '<div class="nt-grid3" style="margin-top:10px">' +
+      '<div id="nt-linha-cicatriz" class="nt-oculto"><label class="nt-rot" for="nt-cicatriz">Cicatrizes cutâneas (lesão mucosa)</label><select id="nt-cicatriz">' + opcoes(L().CICATRIZ) + "</select></div>" +
+      '<div><label class="nt-rot" for="nt-hiv">Co-infecção HIV</label><select id="nt-hiv">' + opcoes(L().HIV) + "</select></div>" +
+      '<div><label class="nt-rot" for="nt-tipo-entrada">Tipo de entrada</label><select id="nt-tipo-entrada">' + opcoes(L().TIPOS_ENTRADA) + "</select></div></div></div>";
+  }
+
   const HTML =
     '<div id="nt-modal" role="dialog" aria-modal="true">' +
     raiz.MeedsSuiteCabecalho.html({
       tom: "documento",
-      titulo: "Ficha de notificação — Dengue e Chikungunya",
+      titulo: "Ficha de notificação",
+      idTitulo: "nt-titulo",
       idFechar: "nt-fechar",
-      acoes: [{ id: "nt-atualizar", rotulo: "🔄 Atualizar paciente", titulo: "Lê a tela do atendimento e busca os dados do paciente atual" }],
+      acoes: [
+        { id: "nt-trocar", rotulo: "↩ Trocar ficha", titulo: "Volta para a escolha da ficha" },
+        { id: "nt-atualizar", rotulo: "🔄 Atualizar paciente", titulo: "Lê a tela do atendimento e busca os dados do paciente atual" },
+      ],
     }) +
-    '<div id="nt-body">' +
-    '<div class="nt-info">Primeira consulta: preenche a Ficha de Investigação do SINAN por cima do PDF oficial. Exames, hospitalização, classificação final e encerramento ficam em branco para a vigilância epidemiológica completar.</div>' +
+    '<div id="nt-body">' + ESCOLHA + '<div id="nt-form">' +
+    '<div class="nt-info" id="nt-info"></div>' +
     '<div id="nt-aviso-auto"></div>' +
     '<div id="nt-alerta" role="alert"></div>' +
-    secaoDoenca() + secaoSintomas() + secaoAlarme() + secaoPaciente() + secaoResidencia() + secaoUnidade() + secaoObservacoes() +
+    '<div class="nt-so-dengue">' + secaoDoenca() + secaoSintomas() + secaoAlarme() + "</div>" +
+    secaoLta() + secaoPaciente() + secaoResidencia() + secaoUnidade() + secaoObservacoes() +
     '<div id="nt-sucesso"></div><div id="nt-erro"></div>' +
-    "</div>" +
+    "</div></div>" +
     '<div id="nt-footer"><button class="nt-secundario" id="nt-limpar" type="button">Limpar</button>' +
     '<button class="nt-primario" id="nt-gerar" type="button">Gerar e baixar PDF</button></div>' +
     "</div>";
@@ -258,11 +343,15 @@
   /* ----------------------------------------------------------------
    * Obrigatorios: o guia pergunta a MESMA validacao que recusa a geracao
    * ---------------------------------------------------------------- */
+  function soDengue() { return ficha === "dengue"; }
+  function soLta() { return ficha === "lta"; }
+
   const OBRIGATORIOS = [
-    { campo: "agravo", id: "nt-agravo-dengue", rotulo: "Doença suspeita", descricao: "a doença suspeita", comoResolver: "escolha Dengue ou Chikungunya" },
-    { campo: "inicioSintomas", id: "nt-inicio", rotulo: "Início dos sintomas", descricao: "a data de início dos sintomas", comoResolver: "no máximo 15 dias atrás, nunca futura" },
-    { campo: "sinais", id: "nt-sinais", rotulo: "Sinais clínicos", descricao: "ao menos um sinal clínico", comoResolver: "marque os presentes" },
-    { campo: "alarme", id: "nt-sec-alarme", rotulo: "Sinais de alarme", descricao: "a confirmação dos sinais de alarme", comoResolver: "marque os existentes ou “Sem sinais de alarme”" },
+    { campo: "lesoes", id: "nt-sec-lesoes", rotulo: "Presença de lesão", descricao: "a presença de lesão (cutânea e/ou mucosa)", comoResolver: "marque a lesão presente", so: soLta },
+    { campo: "agravo", id: "nt-agravo-dengue", rotulo: "Doença suspeita", descricao: "a doença suspeita", comoResolver: "escolha Dengue ou Chikungunya", so: soDengue },
+    { campo: "inicioSintomas", id: "nt-inicio", rotulo: "Início dos sintomas", descricao: "a data de início dos sintomas", comoResolver: "no máximo 15 dias atrás, nunca futura", so: soDengue },
+    { campo: "sinais", id: "nt-sinais", rotulo: "Sinais clínicos", descricao: "ao menos um sinal clínico", comoResolver: "marque os presentes", so: soDengue },
+    { campo: "alarme", id: "nt-sec-alarme", rotulo: "Sinais de alarme", descricao: "a confirmação dos sinais de alarme", comoResolver: "marque os existentes ou “Sem sinais de alarme”", so: soDengue },
     { campo: "nome", id: "nt-nome", rotulo: "Nome completo", descricao: "o nome do paciente", comoResolver: "clique em “Atualizar paciente” para ler da tela" },
     { campo: "nascimento", id: "nt-nasc", rotulo: "Data de nascimento", descricao: "a data de nascimento", comoResolver: "clique em “Atualizar paciente” para ler da tela" },
     { campo: "sexo", id: "nt-sexo-f", rotulo: "Sexo", descricao: "o sexo do paciente", comoResolver: "clique em “Atualizar paciente” para ler da tela" },
@@ -274,7 +363,7 @@
   ];
 
   function errosAtuais() {
-    return F().validar(coletar(), hojeIso());
+    return (ficha === "lta" ? L() : F()).validar(coletar(), hojeIso());
   }
 
   function aplicaveis() {
@@ -292,7 +381,7 @@
    * ---------------------------------------------------------------- */
   function atualizarAlerta() {
     const caixa = el("nt-alerta");
-    const ativo = F().temSinalDeAlarme(coletar());
+    const ativo = ficha === "dengue" && F().temSinalDeAlarme(coletar());
     caixa.classList.toggle("ativo", ativo);
     caixa.textContent = ativo ? "🚨 " + F().TEXTO_ALERTA : "";
   }
@@ -300,6 +389,7 @@
   function atualizarCondicionais() {
     const dados = coletar();
     el("nt-linha-gestante").classList.toggle("nt-oculto", dados.sexo !== "F");
+    el("nt-linha-cicatriz").classList.toggle("nt-oculto", dados.lesoes.indexOf("mucosa") === -1);
     el("nt-linha-data-alarme").classList.toggle("nt-oculto", dados.alarme.length === 0);
     el("nt-linha-data-grav").classList.toggle("nt-oculto", dados.gravidade.length === 0);
     el("nt-linha-outros").classList.toggle("nt-oculto", dados.gravidade.indexOf("outrosOrgaos") === -1);
@@ -428,7 +518,9 @@
     if (sig && sig !== pacienteNoFormulario) {
       limparForm();
       pacienteNoFormulario = sig;
+      ficha = ""; // outro paciente: volta para a escolha da ficha
     }
+    mostrarTela();
     lerDaTela(false);
     el("nt-inicio").max = hojeIso();
     el("nt-inicio").min = diasAtras(15);
@@ -437,6 +529,30 @@
     atualizarAlerta();
     overlay.abrir();
     if (raiz.MeedsSuiteTutorial) raiz.MeedsSuiteTutorial.iniciarSePrimeiraVez("notificacao", { dock: d.dock });
+  }
+
+  /* Escolha da ficha: mostra o formulario da ficha ou a tela de escolha. */
+  function mostrarTela() {
+    const m = el("nt-modal");
+    if (ficha) m.setAttribute("data-ficha", ficha);
+    else m.removeAttribute("data-ficha");
+    el("nt-titulo").textContent = ficha ? FICHAS[ficha].titulo : "Ficha de notificação";
+    if (ficha) el("nt-info").textContent = FICHAS[ficha].info;
+    el("nt-sucesso").style.display = "none";
+    el("nt-erro").style.display = "none";
+    atualizarCondicionais();
+    atualizarAlerta();
+    if (guia) guia.atualizar();
+  }
+
+  function escolherFicha(id) {
+    if (!FICHAS[id]) return;
+    ficha = id;
+    /* O agravo da ficha de dengue so existe nela; ao escolher "dengue" ele
+     * continua em branco para o medico decidir (Dengue ou Chikungunya). */
+    mostrarTela();
+    lerDaTela(false);
+    overlay.elemento.querySelector("#nt-modal").scrollTop = 0;
   }
 
   function atualizarPaciente() {
@@ -529,11 +645,13 @@
   async function produzirPdf() {
     const PDFLib = await garantirPdfLib();
     const dados = coletar();
-    const doc = await PDFLib.PDFDocument.load(b64ToBytes(raiz.MEEDS_NOTIF_DENGUE_BASE_PDF_B64));
-    await F().aplicarNoPdf(PDFLib, doc, F().montarOperacoes(dados, hojeIso()));
+    if (!FICHAS[ficha]) throw new Error("Escolha a ficha de notificação antes de gerar.");
+    const logica = ficha === "lta" ? L() : F();
+    const doc = await PDFLib.PDFDocument.load(b64ToBytes(raiz[FICHAS[ficha].pdf]));
+    await F().aplicarNoPdf(PDFLib, doc, logica.montarOperacoes(dados, hojeIso()));
     const bytes = await doc.save();
     const slug = String(dados.nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 50);
-    const doenca = dados.agravo === "chikungunya" ? "CHIKUNGUNYA" : "DENGUE";
+    const doenca = ficha === "lta" ? "LEISHMANIOSE" : dados.agravo === "chikungunya" ? "CHIKUNGUNYA" : "DENGUE";
     return { bytes: bytes, filename: "NOTIFICACAO_" + doenca + "_" + (slug || "PACIENTE") + ".pdf", nome: dados.nome };
   }
 
@@ -601,7 +719,7 @@
       faltando: faltando,
       elementoDe: function (c) { return el(c.id); },
     });
-    el("nt-body").insertBefore(guia.elemento, el("nt-body").firstChild);
+    el("nt-form").insertBefore(guia.elemento, el("nt-form").firstChild);
     guia.atualizar();
   }
 
@@ -609,6 +727,10 @@
     overlay = d.dock.criarOverlay({ estilo: CSS, html: HTML });
     el("nt-fechar").addEventListener("click", overlay.fechar);
     el("nt-atualizar").addEventListener("click", atualizarPaciente);
+    el("nt-trocar").addEventListener("click", function () { ficha = ""; mostrarTela(); });
+    overlay.elemento.querySelectorAll(".nt-cartao").forEach(function (b) {
+      b.addEventListener("click", function () { escolherFicha(b.getAttribute("data-ficha")); });
+    });
     el("nt-gerar").addEventListener("click", gerarPdf);
     el("nt-limpar").addEventListener("click", limparForm);
     ["input", "change"].forEach(function (tipo) { el("nt-modal").addEventListener(tipo, aoMudar); });
@@ -619,13 +741,13 @@
 
   if (raiz.MeedsSuiteTutorial) {
     raiz.MeedsSuiteTutorial.registrar("notificacao", {
-      titulo: "Ficha de notificação — Dengue e Chikungunya",
+      titulo: "Ficha de notificação",
       passos: [
         { icone: "📋", titulo: "O que esta função faz",
-          texto: "Preenche a Ficha de Investigação de Dengue e Febre de Chikungunya do SINAN por cima do PDF oficial, na primeira consulta. Exames, hospitalização, classificação final e encerramento ficam em branco para a vigilância epidemiológica." },
+          texto: "Preenche a ficha de investigação do SINAN por cima do PDF oficial, na primeira consulta: Dengue e Febre de Chikungunya, ou Leishmaniose Tegumentar Americana. Você escolhe a ficha pelo desenho e o nome. Exames, tratamento, classificação final e encerramento ficam em branco para a vigilância epidemiológica." },
         { icone: "🩺", titulo: "O que você precisa informar",
-          texto: "A doença suspeita, o início dos sintomas (no máximo 15 dias atrás), ao menos um sinal clínico e a confirmação dos sinais de alarme. Nome, nascimento, sexo e telefone vêm da tela do atendimento; confira." },
-        { icone: "🚨", titulo: "Sinais de alarme",
+          texto: "Dengue/Chikungunya: a doença suspeita, o início dos sintomas (no máximo 15 dias atrás), ao menos um sinal clínico e a confirmação dos sinais de alarme. Leishmaniose: a lesão presente (cutânea e/ou mucosa). Nome, nascimento, sexo, Cartão SUS e telefone vêm da tela do atendimento; confira." },
+        { icone: "🚨", titulo: "Sinais de alarme (dengue)",
           texto: "Marque os sinais presentes ou escolha “Sem sinais de alarme”. Se houver algum sinal, aparece um aviso vermelho: oriente o deslocamento imediato a um serviço de pronto atendimento presencial." },
         { icone: "📍", titulo: "Onde o paciente mora",
           texto: "A vigilância age no município de residência, não onde o médico está. O município vem sugerido pela tela; troque se for outro. Escolha da lista para o código do IBGE entrar sozinho." },
@@ -638,8 +760,8 @@
   raiz.MeedsSuite.registerModule({
     id: "notificacao",
     nome: "Ficha de notificação",
-    descricao: "Gera a Ficha de Investigação de Dengue e Febre de Chikungunya (SINAN) na primeira consulta, com validação dos campos obrigatórios e aviso de sinais de alarme.",
-    versao: "1.0.0",
+    descricao: "Gera a ficha de investigação do SINAN (Dengue e Febre de Chikungunya; Leishmaniose Tegumentar Americana) na primeira consulta, com validação dos campos obrigatórios.",
+    versao: "1.1.0",
     configPadrao: {},
     temBotao: true,
     assinaturasRede: [],

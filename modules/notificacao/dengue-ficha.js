@@ -415,20 +415,27 @@
     });
   }
 
-  /* Devolve [{ campo, mensagem }] — vazio quando a ficha pode ser gerada.
-   * "campo" e a chave de dados (o formulario aponta o elemento por ela). */
-  function validar(d, hojeIso) {
+  /* Contexto de validacao: o mesmo para qualquer ficha (a de Leishmaniose
+   * reaproveita as etapas de paciente, residencia e telefone). */
+  function novoContexto(d, hojeIso) {
     const erros = [];
-    const c = {
+    return {
+      erros: erros,
       d: d,
       hojeIso: hojeIso,
       hoje: lerData(hojeIso),
       nasc: lerData(d.nascimento),
       erro: function (campo, mensagem) { erros.push({ campo: campo, mensagem: mensagem }); },
     };
+  }
+
+  /* Devolve [{ campo, mensagem }] — vazio quando a ficha pode ser gerada.
+   * "campo" e a chave de dados (o formulario aponta o elemento por ela). */
+  function validar(d, hojeIso) {
+    const c = novoContexto(d, hojeIso);
     [validarAgravo, validarSintomas, validarSinais, validarPaciente, validarResidencia, validarTelefone, validarOpcionais]
       .forEach(function (etapa) { etapa(c); });
-    return erros;
+    return c.erros;
   }
 
   /* ------------------------------------------------------------------
@@ -687,5 +694,21 @@
     validar: validar,
     montarOperacoes: montarOperacoes,
     aplicarNoPdf: aplicarNoPdf,
+    /* Pecas que outras fichas (Leishmaniose) reaproveitam. */
+    base: {
+      novoContexto: novoContexto,
+      validarPaciente: validarPaciente,
+      validarResidencia: validarResidencia,
+      validarTelefone: validarTelefone,
+      validarOpcionais: validarOpcionais,
+      criarDesenho: criarDesenho,
+      pente11: pente11,
+      ddmmaaaa: ddmmaaaa,
+      soDigitos: soDigitos,
+      lerData: lerData,
+      diasEntre: diasEntre,
+      lista: lista,
+      vazio: vazio,
+    },
   };
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
