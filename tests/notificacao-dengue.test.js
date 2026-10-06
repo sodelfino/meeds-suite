@@ -276,6 +276,21 @@ ok("sem observações nem médico: nada na página 2 além do item 68",
 }
 
 /* texto saneado: maiúsculas e nada fora do WinAnsi */
+/* ---------- 7c. Documentos (CPF/CNS) e Parentesco lidos da tela ---------- */
+{
+  const dc = (l) => N.interpretarDocumentos(l);
+  const a = dc(["CPF 05492993437", "CNS 700000000000005"]);
+  ok("Documentos: CNS de 15 dígitos vai para o SUS", a.sus === "700000000000005", JSON.stringify(a));
+  ok("Documentos: CPF não vira SUS", dc(["CPF 05492993437", "CNS não informado"]).sus === "");
+  ok("Documentos: CNS com pontuação", dc(["CNS 700 0000 0000 0005"]).sus === "700000000000005");
+  ok("Documentos: sem linhas", dc(null).sus === "");
+  const pa = (l) => N.interpretarParentesco(l);
+  ok("Parentesco: linha rotulada 'Mãe' vence", pa(["Pai: JOAO SILVA", "Mãe: MARIA SILVA"]) === "MARIA SILVA");
+  ok("Parentesco: uma linha só é a mãe", pa(["MARIA SILVA"]) === "MARIA SILVA");
+  ok("Parentesco: duas linhas sem rótulo — não adivinha", pa(["ANA ARRUDA", "ANTONIO MAGALHAES"]) === "");
+  ok("Parentesco: sem linhas", pa(null) === "");
+}
+
 ok("saneaTexto: maiúsculas", N.saneaTexto("josé da silva") === "JOSÉ DA SILVA");
 ok("saneaTexto: caractere fora do WinAnsi vira '?' e não lança", N.saneaTexto("Łukasz") === "?UKASZ");
 ok("saneaTexto: espaços repetidos e quebras de linha viram um espaço", N.saneaTexto(" a\n  b ") === "A B");

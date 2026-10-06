@@ -384,6 +384,8 @@
     preencherSeVazio("nt-nome", p.nome, sobrescrever);
     preencherSeVazio("nt-nasc", p.nascimentoISO, sobrescrever);
     preencherSeVazio("nt-telefone", p.telefone, sobrescrever);
+    preencherSeVazio("nt-sus", F().interpretarDocumentos(d.dom.lerLinhasPorRotulo(["Documentos"])).sus, sobrescrever);
+    preencherSeVazio("nt-mae", F().interpretarParentesco(d.dom.lerLinhasPorRotulo(["Parentesco", "Nome da Mãe", "Filiação"])), sobrescrever);
     if (p.sexo && (sobrescrever || !radio("nt-sexo"))) {
       const r = overlay.elemento.querySelector('input[name="nt-sexo"][value="' + p.sexo + '"]');
       if (r) r.checked = true;

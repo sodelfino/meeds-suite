@@ -288,6 +288,34 @@
     return out;
   }
 
+  /* "Documentos" do cartao novo: "CPF 0549..." e "CNS 7000..." em linhas
+   * separadas. O CPF o leitor padrao ja entrega; aqui sai o CNS (15
+   * digitos), que e o numero do Cartao SUS da ficha. */
+  function interpretarDocumentos(linhas) {
+    const out = { sus: "" };
+    (Array.isArray(linhas) ? linhas : []).forEach(function (linha) {
+      const t = String(linha || "");
+      if (!/cns|sus/i.test(t)) return;
+      const digitos = t.replace(/\D/g, "");
+      if (digitos.length === 15) out.sus = digitos;
+    });
+    return out;
+  }
+
+  /* "Parentesco" traz nomes de familiares, as vezes sem dizer quem e quem.
+   * So devolve a mae quando ha certeza: linha rotulada "Mae" ou uma unica
+   * linha. Com varias linhas sem rotulo, prefere deixar em branco a
+   * gravar o nome errado numa ficha oficial. */
+  function interpretarParentesco(linhas) {
+    const limpas = (Array.isArray(linhas) ? linhas : []).map(function (l) { return String(l || "").trim(); }).filter(Boolean);
+    for (let i = 0; i < limpas.length; i++) {
+      const m = limpas[i].match(/^m[aã]e\s*[:-]\s*(.+)$/i);
+      if (m) return m[1].trim();
+    }
+    if (limpas.length === 1 && !/^(pai|respons)/i.test(limpas[0])) return limpas[0];
+    return "";
+  }
+
   /* ------------------------------------------------------------------
    * Validacao
    * ------------------------------------------------------------------ */
@@ -653,6 +681,8 @@
     municipiosDe: municipiosDe,
     buscarMunicipio: buscarMunicipio,
     interpretarVinculo: interpretarVinculo,
+    interpretarDocumentos: interpretarDocumentos,
+    interpretarParentesco: interpretarParentesco,
     temSinalDeAlarme: temSinalDeAlarme,
     validar: validar,
     montarOperacoes: montarOperacoes,
