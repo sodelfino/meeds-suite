@@ -78,7 +78,7 @@
     dataDiagnostico: { bordas: [444.6, 460.4, 476.8, 489.4, 505.0, 518.1, 532.6, 546.9, 568.6], cy: 244.7 },
     nascimento: { bordas: [449.5, 464.4, 479.4, 493.0, 509.0, 521.6, 536.4, 551.0, 568.4], cy: 273.4 },
     idade: { bordas: [57.2, 79.5, 93.1, 107.5], cy: 304.5 },
-    sus: { bordas: [57.2, 67.6, 79.1, 90.4, 101.9, 113.4, 124.9, 136.4, 147.9, 159.1, 170.6, 182.1, 193.6, 205.1, 216.6, 227.9], cy: 364.4 },
+    cpf: { bordas: [57.2, 67.6, 79.1, 90.4, 101.9, 113.4, 124.9, 136.4, 147.9, 159.1, 170.6, 182.1, 193.6, 205.1, 216.6, 227.9], cy: 364.4 },
     ibgeRes: { bordas: [329.5, 342.5, 357.0, 371.5, 386.0, 400.5, 415.8], cy: 394.7 },
     cep: { bordas: [459.4, 472.6, 487.0, 501.6, 516.0, 528.0, 541.6, 555.0, 569.0], cy: 471.3 },
     telefone10: { bordas: [58.0, 71.4, 86.0, 100.2, 114.6, 129.0, 143.4, 158.0, 172.4, 187.0, 205.6], cy: 493.3 },
@@ -196,7 +196,10 @@
     else if (d.sexo === "F" && d.gestante) b.caixa(0, CX.gestante, d.gestante);
     if (d.raca) b.caixa(0, CX.raca, d.raca);
     if (d.escolaridade) b.caixa(0, CX.escolaridade, d.escolaridade, d.escolaridade === "10" ? 7 : 10);
-    if (base.soDigitos(d.sus).length === 15) b.pente(0, PENTE.sus, base.soDigitos(d.sus));
+    if (base.cpfValido(d.cpf)) {
+      b.pente(0, PENTE.cpf, base.soDigitos(d.cpf));
+      b.texto({ pg: 0, x: 166, y: 352.0, valor: "(CPF)", tam: 9, negrito: true });
+    }
     b.texto({ pg: 0, x: 249, y: 366.0, valor: d.mae, larg: 312 });
   }
 

@@ -127,9 +127,11 @@ ok("telefone sem DDD (9 dígitos): bloqueia", campos(valido({ telefone: "9977215
 ok("telefone curto: bloqueia", campos(valido({ telefone: "2299" })).join() === "telefone");
 
 /* ---------- 5. opcionais: só validam o formato quando informados ---------- */
-ok("SUS em branco: vale", erros(valido({ sus: "" })).length === 0);
-ok("SUS de 15 dígitos (com máscara): vale", erros(valido({ sus: "700 5019 0293 0017" })).length === 0);
-ok("SUS com tamanho errado: bloqueia", campos(valido({ sus: "12345" })).join() === "sus");
+ok("CPF em branco: vale", erros(valido({ cpf: "" })).length === 0);
+ok("CPF válido (com máscara): vale", erros(valido({ cpf: "529.982.247-25" })).length === 0);
+ok("CPF com tamanho errado: bloqueia", campos(valido({ cpf: "12345" })).join() === "cpf");
+ok("CPF com dígitos verificadores errados: bloqueia", campos(valido({ cpf: "52998224726" })).join() === "cpf");
+ok("CPF com todos os dígitos iguais: bloqueia", campos(valido({ cpf: "11111111111" })).join() === "cpf");
 ok("CEP de 8 dígitos: vale", erros(valido({ cep: "27913-000" })).length === 0);
 ok("CEP com tamanho errado: bloqueia", campos(valido({ cep: "2791" })).join() === "cep");
 ok("CNES de 7 dígitos: vale", erros(valido({ cnes: "2273780" })).length === 0);
@@ -201,7 +203,10 @@ ok("município de residência (IBGE) em 6 células: 330240", doTexto(ops(valido(
 ok("data da investigação (hoje): 06102026", doTexto(ops(valido()), 0, 538, 550, 54, 177) === "06102026");
 ok("telefone com 10 dígitos preenche as 10 células", doTexto(ops(valido({ telefone: "(22) 3772-1523" })), 0, 492, 502, 50, 202) === "2237721523");
 ok("telefone com 11 dígitos também cabe (11 posições)", doTexto(ops(valido({ telefone: "22997721523" })), 0, 492, 502, 50, 202) === "22997721523");
-ok("SUS em 15 células", doTexto(ops(valido({ sus: "700501902930017" })), 0, 361, 372, 50, 227) === "700501902930017");
+ok("CPF nas células do campo do Cartão SUS (premissa: sempre CPF)", doTexto(ops(valido({ cpf: "52998224725" })), 0, 361, 372, 50, 227) === "52998224725");
+ok("CPF informado: aparece a marca '(CPF)' ao lado do rótulo impresso", ops(valido({ cpf: "52998224725" })).some((o) => o.tipo === "texto" && o.texto === "(CPF)"));
+ok("sem CPF: nada no campo e sem a marca", doTexto(ops(valido()), 0, 361, 372, 50, 227) === "" && !ops(valido()).some((o) => o.texto === "(CPF)"));
+ok("o campo SUS antigo não é mais desenhado", doTexto(ops(valido({ sus: "700501902930017" })), 0, 361, 372, 50, 227) === "");
 ok("CEP em 8 células", doTexto(ops(valido({ cep: "27913-000" })), 0, 468, 478, 452, 565) === "27913000");
 ok("idade (26) nas células da idade", doTexto(ops(valido()), 0, 302, 311, 52, 102) === "26");
 ok("unidade da idade = 4 (anos) na caixa certa", nasCaixa(ops(valido()), [106.8, 291.9, 117.4, 302.7], "4", 0));
@@ -276,14 +281,8 @@ ok("sem observações nem médico: nada na página 2 além do item 68",
 }
 
 /* texto saneado: maiúsculas e nada fora do WinAnsi */
-/* ---------- 7c. Documentos (CPF/CNS) e Parentesco lidos da tela ---------- */
+/* ---------- 7c. Parentesco lido da tela ---------- */
 {
-  const dc = (l) => N.interpretarDocumentos(l);
-  const a = dc(["CPF 05492993437", "CNS 700000000000005"]);
-  ok("Documentos: CNS de 15 dígitos vai para o SUS", a.sus === "700000000000005", JSON.stringify(a));
-  ok("Documentos: CPF não vira SUS", dc(["CPF 05492993437", "CNS não informado"]).sus === "");
-  ok("Documentos: CNS com pontuação", dc(["CNS 700 0000 0000 0005"]).sus === "700000000000005");
-  ok("Documentos: sem linhas", dc(null).sus === "");
   const pa = (l) => N.interpretarParentesco(l);
   ok("Parentesco: linha rotulada 'Mãe' vence", pa(["Pai: JOAO SILVA", "Mãe: MARIA SILVA"]) === "MARIA SILVA");
   ok("Parentesco: uma linha só é a mãe", pa(["MARIA SILVA"]) === "MARIA SILVA");

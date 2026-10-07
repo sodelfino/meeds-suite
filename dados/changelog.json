@@ -2,6 +2,15 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.59.0",
+      "data": "2026-10-07",
+      "novidades": [],
+      "melhorias": [
+        "Fichas de notificação (Dengue/Chikungunya e Leishmaniose): o número do paciente agora é sempre o CPF — vem sozinho da tela, é conferido (11 dígitos válidos) e sai no campo que a ficha impressa chama de Cartão SUS, com a marca \"(CPF)\" ao lado para não haver dúvida."
+      ],
+      "correcoes": []
+    },
+    {
       "versao": "2.58.0",
       "data": "2026-10-07",
       "novidades": [

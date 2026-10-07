@@ -144,7 +144,7 @@
     inicioSintomas: { bordas: [442.4, 458.8, 474.4, 487.9, 502.8, 516.7, 531.6, 546.4, 566.6], cy: 244.4 },
     nascimento: { bordas: [440.8, 457.9, 472.8, 486.9, 502.5, 515.7, 530.6, 545.4, 562.2], cy: 275.6 },
     idade: { bordas: [52.5, 73.3, 87.4, 101.5], cy: 306.1 },
-    sus: { bordas: [50.7, 61.4, 73.2, 84.9, 96.7, 108.4, 120.2, 131.9, 143.7, 155.4, 167.2, 179.1, 190.8, 202.6, 214.3, 226.1], cy: 366.4 },
+    cpf: { bordas: [50.7, 61.4, 73.2, 84.9, 96.7, 108.4, 120.2, 131.9, 143.7, 155.4, 167.2, 179.1, 190.8, 202.6, 214.3, 226.1], cy: 366.4 },
     ibgeNotif: { bordas: [477.4, 491.6, 506.4, 521.3, 536.2, 551.1, 566.2], cy: 217.5 },
     cnes: { bordas: [338.6, 352.1, 366.9, 381.8, 396.7, 411.6, 426.4, 441.1], cy: 245.8 },
     ibgeRes: { bordas: [323.5, 336.9, 351.8, 366.7, 381.6, 396.4, 409.2], cy: 396.0 },
@@ -288,20 +288,6 @@
     return out;
   }
 
-  /* "Documentos" do cartao novo: "CPF 0549..." e "CNS 7000..." em linhas
-   * separadas. O CPF o leitor padrao ja entrega; aqui sai o CNS (15
-   * digitos), que e o numero do Cartao SUS da ficha. */
-  function interpretarDocumentos(linhas) {
-    const out = { sus: "" };
-    (Array.isArray(linhas) ? linhas : []).forEach(function (linha) {
-      const t = String(linha || "");
-      if (!/cns|sus/i.test(t)) return;
-      const digitos = t.replace(/\D/g, "");
-      if (digitos.length === 15) out.sus = digitos;
-    });
-    return out;
-  }
-
   /* "Parentesco" traz nomes de familiares, as vezes sem dizer quem e quem.
    * So devolve a mae quando ha certeza: linha rotulada "Mae" ou uma unica
    * linha. Com varias linhas sem rotulo, prefere deixar em branco a
@@ -404,12 +390,31 @@
 
   /* Opcionais: so validam o formato quando o medico preencheu. */
   const OPCIONAIS = [
-    { campo: "sus", digitos: 15, mensagem: "O Cartão SUS tem 15 dígitos (deixe em branco se o paciente não souber)." },
     { campo: "cep", digitos: 8, mensagem: "O CEP tem 8 dígitos (deixe em branco se o paciente não souber)." },
     { campo: "cnes", digitos: 7, mensagem: "O CNES tem 7 dígitos (deixe em branco se não souber)." },
   ];
 
+  /* CPF: premissa do sistema — o numero do paciente e SEMPRE o CPF (o
+   * campo "Numero do Cartao SUS" impresso na ficha recebe o CPF). */
+  function cpfValido(valor) {
+    const c = soDigitos(valor);
+    if (c.length !== 11 || /^(\d)\1+$/.test(c)) return false;
+    for (let n = 9; n <= 10; n++) {
+      let soma = 0;
+      for (let i = 0; i < n; i++) soma += Number(c.charAt(i)) * (n + 1 - i);
+      if ((soma * 10 % 11) % 10 !== Number(c.charAt(n))) return false;
+    }
+    return true;
+  }
+
+  function validarCpf(c) {
+    if (!vazio(c.d.cpf) && !cpfValido(c.d.cpf)) {
+      c.erro("cpf", "O CPF não é válido (11 dígitos). Confira ou deixe em branco se o paciente não souber.");
+    }
+  }
+
   function validarOpcionais(c) {
+    validarCpf(c);
     OPCIONAIS.forEach(function (o) {
       if (!vazio(c.d[o.campo]) && soDigitos(c.d[o.campo]).length !== o.digitos) c.erro(o.campo, o.mensagem);
     });
@@ -505,7 +510,12 @@
     secaoGestante(b, d);
     if (d.raca) b.caixa(0, CX.raca, d.raca);
     if (d.escolaridade) b.caixa(0, CX.escolaridade, d.escolaridade, d.escolaridade === "10" ? 7 : 10);
-    if (soDigitos(d.sus).length === 15) b.pente(0, PENTE.sus, soDigitos(d.sus));
+    if (cpfValido(d.cpf)) {
+      b.pente(0, PENTE.cpf, soDigitos(d.cpf));
+      /* O rotulo impresso diz "Cartao SUS": a marca deixa claro que o
+       * numero e o CPF. */
+      b.texto({ pg: 0, x: 156, y: 353.8, valor: "(CPF)", tam: 9, negrito: true });
+    }
     b.texto({ pg: 0, x: 232, y: 368.0, valor: d.mae, larg: 318 });
   }
 
@@ -688,7 +698,6 @@
     municipiosDe: municipiosDe,
     buscarMunicipio: buscarMunicipio,
     interpretarVinculo: interpretarVinculo,
-    interpretarDocumentos: interpretarDocumentos,
     interpretarParentesco: interpretarParentesco,
     temSinalDeAlarme: temSinalDeAlarme,
     validar: validar,
@@ -701,6 +710,7 @@
       validarResidencia: validarResidencia,
       validarTelefone: validarTelefone,
       validarOpcionais: validarOpcionais,
+      cpfValido: cpfValido,
       criarDesenho: criarDesenho,
       pente11: pente11,
       ddmmaaaa: ddmmaaaa,

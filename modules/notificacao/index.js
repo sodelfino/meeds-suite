@@ -108,7 +108,7 @@
       gestante: valor("nt-gestante"),
       raca: valor("nt-raca"),
       escolaridade: valor("nt-escolaridade"),
-      sus: valor("nt-sus"),
+      cpf: valor("nt-cpf"),
       mae: valor("nt-mae"),
       ocupacao: valor("nt-ocupacao"),
       ufRes: valor("nt-uf-res"),
@@ -253,7 +253,7 @@
       '<div><label class="nt-rot" for="nt-raca">Raça/cor</label><select id="nt-raca">' + opcoes(F().RACAS) + "</select></div>" +
       '<div><label class="nt-rot" for="nt-escolaridade">Escolaridade</label><select id="nt-escolaridade">' + opcoes(F().ESCOLARIDADES) + "</select></div>" +
       campo("nt-ocupacao", "Ocupação", 'maxlength="40"') + "</div>" +
-      '<div class="nt-grid2" style="margin-top:8px">' + campo("nt-sus", "Cartão SUS (15 dígitos)", 'inputmode="numeric" maxlength="19"') + campo("nt-mae", "Nome da mãe", 'maxlength="60"') + "</div></div>";
+      '<div class="nt-grid2" style="margin-top:8px">' + campo("nt-cpf", "CPF (vai no campo do Cartão SUS da ficha)", 'inputmode="numeric" maxlength="14"') + campo("nt-mae", "Nome da mãe", 'maxlength="60"') + "</div></div>";
   }
 
   function secaoResidencia() {
@@ -515,11 +515,17 @@
     completarCnes();
   }
 
+  /* 12345678909 -> 123.456.789-09 (so quando sao 11 digitos). */
+  function formatarCpf(cpf) {
+    const x = String(cpf || "").replace(/\D/g, "");
+    return x.length === 11 ? x.slice(0, 3) + "." + x.slice(3, 6) + "." + x.slice(6, 9) + "-" + x.slice(9) : String(cpf || "");
+  }
+
   function aplicarPaciente(p, sobrescrever) {
     preencherSeVazio("nt-nome", p.nome, sobrescrever);
     preencherSeVazio("nt-nasc", p.nascimentoISO, sobrescrever);
     preencherSeVazio("nt-telefone", p.telefone, sobrescrever);
-    preencherSeVazio("nt-sus", F().interpretarDocumentos(d.dom.lerLinhasPorRotulo(["Documentos"])).sus, sobrescrever);
+    preencherSeVazio("nt-cpf", formatarCpf(p.cpf), sobrescrever);
     preencherSeVazio("nt-mae", F().interpretarParentesco(d.dom.lerLinhasPorRotulo(["Parentesco", "Nome da Mãe", "Filiação"])), sobrescrever);
     if (p.sexo && (sobrescrever || !radio("nt-sexo"))) {
       const r = overlay.elemento.querySelector('input[name="nt-sexo"][value="' + p.sexo + '"]');
@@ -882,7 +888,7 @@
         { icone: "📋", titulo: "O que esta função faz",
           texto: "Preenche a ficha de investigação do SINAN por cima do PDF oficial, na primeira consulta: Dengue e Febre de Chikungunya, ou Leishmaniose Tegumentar Americana. Você escolhe a ficha pelo desenho e o nome. Exames, tratamento, classificação final e encerramento ficam em branco para a vigilância epidemiológica." },
         { icone: "🩺", titulo: "O que você precisa informar",
-          texto: "Dengue/Chikungunya: a doença suspeita, o início dos sintomas (no máximo 15 dias atrás), ao menos um sinal clínico e a confirmação dos sinais de alarme. Leishmaniose: a forma clínica (cutânea ou mucosa) e o tipo de entrada; se iniciou o tratamento, também a droga e o peso. Dá para anexar fotos da lesão, que vão no final do PDF. Nome, nascimento, sexo, Cartão SUS e telefone vêm da tela do atendimento; confira." },
+          texto: "Dengue/Chikungunya: a doença suspeita, o início dos sintomas (no máximo 15 dias atrás), ao menos um sinal clínico e a confirmação dos sinais de alarme. Leishmaniose: a forma clínica (cutânea ou mucosa) e o tipo de entrada; se iniciou o tratamento, também a droga e o peso. Dá para anexar fotos da lesão, que vão no final do PDF. Nome, nascimento, sexo, CPF e telefone vêm da tela do atendimento; confira. O CPF é sempre o número do paciente na ficha." },
         { icone: "🚨", titulo: "Sinais de alarme (dengue)",
           texto: "Marque os sinais presentes ou escolha “Sem sinais de alarme”. Se houver algum sinal, aparece um aviso vermelho: oriente o deslocamento imediato a um serviço de pronto atendimento presencial." },
         { icone: "📍", titulo: "Onde o paciente mora",

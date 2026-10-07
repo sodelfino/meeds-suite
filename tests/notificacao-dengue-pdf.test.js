@@ -55,7 +55,7 @@ const COMPLETO = Object.assign({}, MINIMO, {
   gravidade: N.GRAVIDADE.map((g) => g.id),
   dataAlarme: "2026-10-05", dataGravidade: "2026-10-06", outrosOrgaos: "Pâncreas",
   nome: "Dara Arruda Magalhães", nascimento: "2000-05-18", sexo: "F", gestante: "2",
-  raca: "4", escolaridade: "6", sus: "700501902930017", mae: "Ana Carolina Fernandes Arruda",
+  raca: "4", escolaridade: "6", cpf: "52998224725", mae: "Ana Carolina Fernandes Arruda",
   bairro: "Aroeira", logradouro: "Rua Doutor Sebastião de Moraes", numero: "123",
   complemento: "Casa 2", referencia: "Em frente à padaria", cep: "27913-000",
   telefone: "22997721523", zona: "1", ocupacao: "Estudante",

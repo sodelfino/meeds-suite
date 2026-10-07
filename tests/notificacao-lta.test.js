@@ -44,7 +44,7 @@ const COMPLETO = Object.assign({}, MINIMO, {
   parasitologico: "3", irm: "3", histopatologia: "4",
   dataTratamento: "2026-10-06", drogaInicial: "1", peso: "62",
   nome: "Dara Arruda Magalhães", nascimento: "2000-05-18", sexo: "F", gestante: "5",
-  raca: "4", escolaridade: "6", sus: "700501902930017", mae: "Ana Carolina Fernandes Arruda",
+  raca: "4", escolaridade: "6", cpf: "52998224725", mae: "Ana Carolina Fernandes Arruda",
   bairro: "Aroeira", logradouro: "Rua Doutor Sebastião de Moraes", numero: "123",
   complemento: "Casa 2", referencia: "Em frente à padaria", cep: "27913-000",
   telefone: "22997721523", zona: "2", ocupacao: "Agricultora",
@@ -70,7 +70,8 @@ ok("sem nome: recusa", campos(com({ nome: "" })).indexOf("nome") !== -1);
 ok("mulher sem informar gestante: recusa", campos(com({ sexo: "F" })).indexOf("gestante") !== -1);
 ok("sem telefone: recusa", campos(com({ telefone: "" })).indexOf("telefone") !== -1);
 ok("município fora da UF: recusa", campos(com({ ufRes: "MG" })).indexOf("municipioRes") !== -1);
-ok("SUS com tamanho errado: recusa", campos(com({ sus: "123" })).indexOf("sus") !== -1);
+ok("CPF com tamanho errado ou dígito verificador errado: recusa", campos(com({ cpf: "123" })).indexOf("cpf") !== -1 && campos(com({ cpf: "52998224726" })).indexOf("cpf") !== -1);
+ok("CPF válido ou em branco: vale", v(com({ cpf: "529.982.247-25" })).length === 0 && v(com({ cpf: "" })).length === 0);
 ok("cicatriz com forma cutânea é descartada (não bloqueia)", v(com({ cicatriz: "1" })).length === 0);
 ok("código de HIV inválido: recusa", campos(com({ hiv: "7" })).indexOf("hiv") !== -1);
 ok("laboratório inválido: recusa", campos(com({ parasitologico: "9" })).indexOf("parasitologico") !== -1 &&
@@ -107,6 +108,9 @@ const textos = (d, pg) => ops(d).filter((o) => o.pg === pg).map((o) => o.texto |
      o.filter((x) => x.tipo === "centro" && x.cy > 700 && x.cy < 708 && x.cx > 55 && x.cx < 180).map((x) => x.texto).join("") === "06102026" &&
      o.filter((x) => x.tipo === "centro" && x.cy > 730 && x.cy < 740 && x.cx > 88 && x.cx < 140).map((x) => x.texto).join("") === "62");
   ok("tratamento não iniciado: nada desenhado da altura do tratamento para baixo", !cut.some((x) => x.pg === 0 && x.cy > 670));
+  ok("CPF nas células do campo 15 e marca '(CPF)' ao lado do rótulo",
+     o.filter((x) => x.tipo === "centro" && x.cy > 359 && x.cy < 370 && x.cx > 55 && x.cx < 230).map((x) => x.texto).join("") === "52998224725" &&
+     o.some((x) => x.tipo === "texto" && x.texto === "(CPF)"));
   ok("sexo M: gestante 'não se aplica' (6)", caixaEm(cut, L.CX.gestante, "6"));
   ok("página 1 tem o nome em maiúsculas", textos(COMPLETO, 0).indexOf("DARA ARRUDA MAGALHÃES") !== -1);
   ok("data da notificação e do diagnóstico saem automáticas (hoje)",
