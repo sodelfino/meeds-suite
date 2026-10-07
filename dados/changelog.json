@@ -2,6 +2,16 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.63.0",
+      "data": "2026-10-07",
+      "novidades": [],
+      "melhorias": [
+        "Notificação: os três cartões do menu ganharam novas ilustrações — pranchas com o mosquito Aedes, a lesão de leishmaniose e o laço da AIDS, cada uma na cor da doença, com o CID no canto. No celular, os cartões ficam um embaixo do outro.",
+        "Notificação: ao clicar no botão Notificação, a janela sempre abre no menu das fichas — não mais na ficha em que você tinha parado. O que você já tinha preenchido continua guardado."
+      ],
+      "correcoes": []
+    },
+    {
       "versao": "2.62.0",
       "data": "2026-10-07",
       "novidades": [

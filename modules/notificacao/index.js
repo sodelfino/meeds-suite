@@ -224,12 +224,17 @@
     "#nt-escolha h3 { font-size:13px; color:#16221f; margin:0 0 4px; }",
     "#nt-escolha p { font-size:11.5px; color:#5b6672; margin:0 0 14px; }",
     ".nt-cartoes { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; }",
-    "button.nt-cartao { display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px; background:#f5f8fc; border:1.6px solid #c9d6e8; border-radius:14px; padding:18px 12px 16px; cursor:pointer; color:#16221f; font-family:inherit; }",
-    "button.nt-cartao:hover, button.nt-cartao:focus-visible { border-color:#1a56ad; background:#eaf1fb; outline:none; box-shadow:0 0 0 3px rgba(26,86,173,.15); }",
-    "button.nt-cartao svg { width:84px; height:84px; }",
-    "button.nt-cartao .nt-cartao-nome { font-size:14px; font-weight:800; line-height:1.25; }",
-    "button.nt-cartao .nt-cartao-sub { font-size:11px; color:#5b6672; line-height:1.35; }",
-    "button.nt-cartao .nt-cartao-cid { font-size:10.5px; font-weight:700; color:#123a7a; background:#dde8f7; border-radius:999px; padding:2px 9px; }",
+    "button.nt-cartao { --ac:#1a56ad; display:flex; flex-direction:column; align-items:stretch; text-align:left; gap:4px; background:#fff; border:1.5px solid #d3dce9; border-radius:12px; padding:8px 8px 14px; cursor:pointer; color:#16221f; font-family:inherit; transition:border-color .15s, transform .15s; }",
+    "button.nt-cartao:hover { border-color:var(--ac); transform:translateY(-2px); }",
+    "button.nt-cartao:focus-visible { border-color:var(--ac); outline:3px solid var(--ac); outline-offset:2px; }",
+    "button.nt-cartao:active { transform:none; }",
+    ".nt-prancha { display:grid; border-radius:7px; overflow:hidden; border:1px solid color-mix(in srgb, var(--ac) 28%, #fff); margin-bottom:8px; }",
+    "button.nt-cartao svg { grid-area:1 / 1; display:block; width:100%; height:auto; }",
+    "button.nt-cartao .nt-cartao-nome { font-size:14px; font-weight:800; line-height:1.25; padding:0 6px; }",
+    "button.nt-cartao .nt-cartao-sub { font-size:11.5px; color:#5b6672; line-height:1.4; padding:0 6px; }",
+    "button.nt-cartao .nt-cartao-cid { grid-area:1 / 1; align-self:start; justify-self:start; margin:6px; font-size:10.5px; font-weight:800; letter-spacing:.02em; color:var(--ac); background:#fff; border:1px solid var(--ac); border-radius:4px; padding:1px 6px; }",
+    "@media (max-width:620px) { .nt-cartoes { grid-template-columns:1fr; } }",
+    "@media (prefers-reduced-motion:reduce) { button.nt-cartao { transition:none; } button.nt-cartao:hover { transform:none; } }",
     "#nt-footer { display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }",
     "button.nt-primario { background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }",
     "button.nt-primario:hover { background:#123a7a; }",
@@ -312,45 +317,66 @@
       campo("nt-medico-nome", "Nome", 'maxlength="60"') + campo("nt-medico-funcao", "Função", 'maxlength="40"') + "</div></div>";
   }
 
-  /* Ilustracoes da tela de escolha: SVG proprio (sem imagem externa). */
-  const SVG_DENGUE =
-    '<svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="45" fill="#fde8e8"/>' +
-    '<ellipse cx="36" cy="38" rx="17" ry="6" transform="rotate(-38 36 38)" fill="#fff" stroke="#9aa9bd" stroke-width="1.3"/>' +
-    '<ellipse cx="60" cy="38" rx="17" ry="6" transform="rotate(38 60 38)" fill="#fff" stroke="#9aa9bd" stroke-width="1.3"/>' +
-    '<g stroke="#3a2f2f" stroke-width="2" fill="none" stroke-linecap="round">' +
-    '<path d="M44 44 L30 50 L22 64"/><path d="M52 44 L66 50 L74 64"/><path d="M44 48 L28 58 L24 74"/><path d="M52 48 L68 58 L72 74"/><path d="M45 52 L36 66 L38 80"/><path d="M51 52 L60 66 L58 80"/></g>' +
-    '<ellipse cx="48" cy="64" rx="8.5" ry="15" fill="#3a2f2f"/>' +
-    '<g stroke="#fff" stroke-width="2"><path d="M40 58 H56"/><path d="M40 64 H56"/><path d="M40.5 70 H55.5"/></g>' +
-    '<circle cx="48" cy="44" r="7" fill="#3a2f2f"/><circle cx="48" cy="34" r="5" fill="#3a2f2f"/>' +
-    '<path d="M48 30 L48 15" stroke="#3a2f2f" stroke-width="2.4" stroke-linecap="round"/>' +
-    '<path d="M76 18 C76 18 69 27 69 31 A7 7 0 0 0 83 31 C83 27 76 18 76 18Z" fill="#d92d20"/></svg>';
-  const SVG_LTA =
-    '<svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="45" fill="#fff1e0"/>' +
-    '<ellipse cx="46" cy="60" rx="31" ry="25" fill="#efc3a0"/>' +
-    '<ellipse cx="46" cy="60" rx="19" ry="15" fill="#c9553d"/><ellipse cx="46" cy="60" rx="13" ry="9.5" fill="#8e2a22"/>' +
-    '<ellipse cx="42" cy="57" rx="4" ry="2.5" fill="#d98a7a"/>' +
-    '<g transform="translate(66 22)"><path d="M0 0 L-12 -10 L-6 3Z" fill="#fff" stroke="#9aa9bd" stroke-width="1.2"/>' +
-    '<path d="M2 0 L14 -10 L8 3Z" fill="#fff" stroke="#9aa9bd" stroke-width="1.2"/>' +
-    '<ellipse cx="1" cy="6" rx="3.4" ry="9" fill="#a98a4d"/><circle cx="1" cy="-3" r="3.2" fill="#a98a4d"/>' +
-    '<g stroke="#6b5427" stroke-width="1.3" fill="none" stroke-linecap="round"><path d="M-1 4 L-10 10 L-12 20"/><path d="M3 4 L12 10 L14 20"/><path d="M-1 8 L-8 16 L-9 25"/><path d="M3 8 L10 16 L11 25"/></g></g></svg>';
+  /* Ilustracoes da tela de escolha: pranchas de atlas clinico, SVG proprio
+   * (sem imagem externa). Traco de tinta + UM elemento na cor da doenca.
+   * Cada prancha tem sua trama (id unico: os tres SVGs dividem o documento). */
+  function prancha(id, tint, linha, miolo) {
+    return '<svg viewBox="0 0 160 110" aria-hidden="true" focusable="false">' +
+      '<defs><pattern id="nt-trama-' + id + '" width="10" height="10" patternUnits="userSpaceOnUse">' +
+      '<path d="M10 0H0V10" fill="none" stroke="' + linha + '" stroke-width=".6"/></pattern></defs>' +
+      '<rect width="160" height="110" fill="' + tint + '"/>' +
+      '<rect width="160" height="110" fill="url(#nt-trama-' + id + ')"/>' + miolo + "</svg>";
+  }
 
-  const SVG_AIDS =
-    '<svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="45" fill="#fde8ea"/>' +
-    '<path d="M48 56 C28 36 34 14 48 14 C62 14 68 36 48 56" fill="none" stroke="#d92d20" stroke-width="9" stroke-linejoin="round"/>' +
-    '<path d="M48 56 L33 82 M48 56 L63 82" stroke="#d92d20" stroke-width="9" stroke-linecap="round"/></svg>';
+  /* Aedes aegypti de perfil: abdome listrado, lira no torax, gota na probosce. */
+  const SVG_DENGUE = prancha("dengue", "#e8f2f6", "#b9d6e0",
+    '<ellipse cx="82" cy="33" rx="23" ry="6.5" transform="rotate(-16 82 33)" fill="#fff" fill-opacity=".85" stroke="#14263f" stroke-width="1.1"/>' +
+    '<path d="M64 38 L100 28" stroke="#14263f" stroke-width=".8"/>' +
+    '<g fill="none" stroke="#14263f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M62 57 L50 75 L41 93"/><path d="M68 58 L68 79 L65 95"/><path d="M75 57 L90 75 L100 93"/></g>' +
+    '<g fill="none" stroke="#fff" stroke-width="1.6" stroke-dasharray="2.5 7"><path d="M62 57 L50 75 L41 93"/><path d="M68 58 L68 79 L65 95"/><path d="M75 57 L90 75 L100 93"/></g>' +
+    '<path d="M43 51 L27 61" stroke="#14263f" stroke-width="2" stroke-linecap="round"/>' +
+    '<circle cx="48" cy="49" r="6" fill="#14263f"/><ellipse cx="67" cy="47" rx="14" ry="10" fill="#14263f"/>' +
+    '<path d="M60 43 Q67 39 74 43 M62 48 Q67 45 72 48" fill="none" stroke="#fff" stroke-width="1.1" stroke-linecap="round"/>' +
+    '<ellipse cx="104" cy="55" rx="27" ry="8" transform="rotate(12 104 55)" fill="#14263f"/>' +
+    '<g stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M92 48 L90 60"/><path d="M102 49 L101 62"/><path d="M112 51 L112 64"/><path d="M122 54 L123 66"/></g>' +
+    '<path d="M24 66 C24 66 19 73 19 76 A5 5 0 0 0 29 76 C29 73 24 66 24 66Z" fill="#1f6f8b"/>');
 
+  /* Leishmaniose cutanea: lesao ulcerada com borda infiltrada + flebotomineo. */
+  const SVG_LTA = prancha("lta", "#fbf0e1", "#ecd3b0",
+    '<ellipse cx="62" cy="62" rx="48" ry="38" fill="#efc7a6"/>' +
+    '<ellipse cx="62" cy="62" rx="36" ry="28" fill="#e2a384"/>' +
+    '<ellipse cx="62" cy="62" rx="27" ry="20" fill="#b8402f"/>' +
+    '<ellipse cx="62" cy="63" rx="19" ry="13" fill="#7d221b"/>' +
+    '<g fill="#d98a7a"><circle cx="54" cy="58" r="2.6"/><circle cx="66" cy="66" r="2"/><circle cx="72" cy="58" r="1.6"/></g>' +
+    '<path d="M30 44 C38 36 50 33 62 33" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2.4" stroke-linecap="round"/>' +
+    '<g transform="translate(124 34)"><path d="M0 0 L-13 -15 L-4 4Z" fill="#fff" stroke="#14263f" stroke-width="1.1"/>' +
+    '<path d="M2 0 L15 -15 L6 4Z" fill="#fff" stroke="#14263f" stroke-width="1.1"/>' +
+    '<ellipse cx="1" cy="9" rx="3.6" ry="10" fill="#b86a14"/><circle cx="1" cy="-2" r="3.4" fill="#b86a14"/>' +
+    '<g stroke="#14263f" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M-2 6 L-12 12 L-14 24"/><path d="M4 6 L14 12 L16 24"/><path d="M-2 11 L-9 19 L-10 30"/><path d="M4 11 L11 19 L12 30"/></g></g>');
+
+  /* AIDS: o laco vermelho, grande e sozinho. */
+  const SVG_AIDS = prancha("aids", "#fdebed", "#f3c1c8",
+    '<circle cx="80" cy="55" r="46" fill="none" stroke="#c8102e" stroke-opacity=".28" stroke-width="1"/>' +
+    '<circle cx="80" cy="55" r="38" fill="none" stroke="#c8102e" stroke-opacity=".18" stroke-width="1" stroke-dasharray="2 4"/>' +
+    '<g fill="none" stroke="#c8102e" stroke-linejoin="round" stroke-linecap="round" stroke-width="11">' +
+    '<path d="M80 64 C57 40 63 11 80 11 C97 11 103 40 80 64"/><path d="M80 64 L62 98 M80 64 L98 98"/></g>' +
+    '<g fill="none" stroke="#fff" stroke-opacity=".38" stroke-linecap="round" stroke-width="2">' +
+    '<path d="M70 24 C66 30 66 38 72 46"/><path d="M78 74 L69 90"/></g>');
+
+  /* O carimbo do CID fica sobre a prancha; a cor da doenca vem de --ac. */
   function cartaoFicha(c) {
-    return '<button type="button" class="nt-cartao" data-ficha="' + c.id + '">' + c.svg +
-      '<span class="nt-cartao-nome">' + esc(c.nome) + '</span><span class="nt-cartao-sub">' + esc(c.sub) + '</span>' +
-      '<span class="nt-cartao-cid">' + esc(c.cid) + "</span></button>";
+    return '<button type="button" class="nt-cartao" data-ficha="' + c.id + '" style="--ac:' + c.cor + '">' +
+      '<span class="nt-prancha">' + c.svg + '<span class="nt-cartao-cid">' + esc(c.cid) + "</span></span>" +
+      '<span class="nt-cartao-nome">' + esc(c.nome) + '</span><span class="nt-cartao-sub">' + esc(c.sub) + "</span></button>";
   }
 
   const ESCOLHA =
     '<div id="nt-escolha"><h3>Qual ficha de notificação?</h3><p>Escolha a doença suspeita. Os dados do paciente são lidos da tela do atendimento em todas.</p>' +
     '<div class="nt-cartoes">' +
-    cartaoFicha({ id: "dengue", svg: SVG_DENGUE, nome: "Dengue e Febre de Chikungunya", sub: "Transmitida pelo mosquito Aedes aegypti", cid: "CID A90 · A92.0" }) +
-    cartaoFicha({ id: "lta", svg: SVG_LTA, nome: "Leishmaniose Tegumentar Americana", sub: "Úlcera na pele ou nas mucosas — flebotomíneo", cid: "CID B55.1" }) +
-    cartaoFicha({ id: "aids", svg: SVG_AIDS, nome: "AIDS (13 anos ou mais)", sub: "Infecção pelo HIV — notificação compulsória e sigilosa", cid: "CID B24" }) +
+    cartaoFicha({ id: "dengue", cor: "#1f6f8b", svg: SVG_DENGUE, nome: "Dengue e Febre de Chikungunya", sub: "Transmitida pelo mosquito Aedes aegypti", cid: "A90 · A92.0" }) +
+    cartaoFicha({ id: "lta", cor: "#b86a14", svg: SVG_LTA, nome: "Leishmaniose Tegumentar Americana", sub: "Úlcera na pele ou nas mucosas — flebotomíneo", cid: "B55.1" }) +
+    cartaoFicha({ id: "aids", cor: "#c8102e", svg: SVG_AIDS, nome: "AIDS (13 anos ou mais)", sub: "Infecção pelo HIV — notificação compulsória e sigilosa", cid: "B24" }) +
     "</div></div>";
 
   function radios(nome, itens) {
@@ -729,9 +755,13 @@
     if (sig && sig !== pacienteNoFormulario) {
       limparForm();
       pacienteNoFormulario = sig;
-      ficha = ""; // outro paciente: volta para a escolha da ficha
     }
+    /* Toda abertura comeca no menu das fichas — nunca onde o medico parou.
+     * O que ele ja digitou continua guardado (mesmo paciente): so a tela
+     * volta ao inicio. */
+    ficha = "";
     mostrarTela();
+    el("nt-modal").scrollTop = 0;
     lerDaTela(false);
     el("nt-inicio").max = hojeIso();
     el("nt-data-trat").max = hojeIso();
