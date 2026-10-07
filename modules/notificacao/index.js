@@ -30,12 +30,19 @@
 
   const F = function () { return raiz.MeedsNotificacaoDengue; };
   const L = function () { return raiz.MeedsNotificacaoLta; };
+  const AI = function () { return raiz.MeedsNotificacaoAids; };
+  const U = function () { return raiz.MeedsNotificacaoAidsUi; };
 
   const FICHAS = {
     dengue: {
       titulo: "Ficha de notificação — Dengue e Chikungunya",
       info: "Primeira consulta: preenche a Ficha de Investigação de Dengue e Febre de Chikungunya do SINAN por cima do PDF oficial. Exames, hospitalização, classificação final e encerramento ficam em branco para a vigilância epidemiológica completar.",
       pdf: "MEEDS_NOTIF_DENGUE_BASE_PDF_B64",
+    },
+    aids: {
+      titulo: "Ficha de notificação — AIDS (13 anos ou mais)",
+      info: "Primeira consulta: preenche a Ficha de Notificação/Investigação de AIDS (pacientes com 13 anos ou mais) do SINAN por cima do PDF oficial, com os campos obrigatórios do instrumento de preenchimento. Evolução do caso e encerramento ficam em branco para a vigilância epidemiológica.",
+      pdf: "MEEDS_NOTIF_AIDS_BASE_PDF_B64",
     },
     lta: {
       titulo: "Ficha de notificação — Leishmaniose Tegumentar",
@@ -79,7 +86,26 @@
   /* ----------------------------------------------------------------
    * Os dados do formulario, no formato que a logica entende
    * ---------------------------------------------------------------- */
+  /* Pequenas ferramentas que aids-form.js usa (nao duplica o que ja existe aqui). */
+  const FERR = {
+    esc: function (t) { return esc(t); },
+    checks: function (g, i) { return checks(g, i); },
+    opcoes: function (i, v) { return opcoes(i, v); },
+    opcoesUf: function () { return opcoesUf(); },
+    campo: function (id, r, x) { return campo(id, r, x); },
+    valor: function (id) { return valor(id); },
+    marcados: function (g) { return marcados(g); },
+    el: function (id) { return el(id); },
+    limparGrupo: function (g) {
+      overlay.elemento.querySelectorAll('input[data-grupo="' + g + '"]').forEach(function (c) { c.checked = false; });
+    },
+  };
+
   function coletar() {
+    return Object.assign(coletarBase(), U().coletar(FERR));
+  }
+
+  function coletarBase() {
     return {
       ficha: ficha,
       formaClinica: radio("nt-forma"),
@@ -183,10 +209,12 @@
     "#nt-aviso-auto { display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }",
     ".nt-idade { font-size:11px; color:#5b6672; margin-top:4px; min-height:14px; }",
     ".nt-oculto { display:none; }",
-    "#nt-modal:not([data-ficha=\"dengue\"]):not([data-ficha=\"lta\"]) #nt-trocar, #nt-modal:not([data-ficha=\"dengue\"]):not([data-ficha=\"lta\"]) #nt-atualizar { display:none; }",
-    "#nt-modal[data-ficha=\"lta\"] .nt-so-dengue, #nt-modal[data-ficha=\"dengue\"] .nt-so-lta { display:none; }",
-    "#nt-modal:not([data-ficha=\"dengue\"]):not([data-ficha=\"lta\"]) #nt-form, #nt-modal:not([data-ficha=\"dengue\"]):not([data-ficha=\"lta\"]) #nt-footer { display:none; }",
-    "#nt-modal[data-ficha=\"dengue\"] #nt-escolha, #nt-modal[data-ficha=\"lta\"] #nt-escolha { display:none; }",
+    ".nt-so-dengue, .nt-so-lta, .nt-so-aids { display:none; }",
+    "#nt-modal[data-ficha=\"dengue\"] .nt-so-dengue, #nt-modal[data-ficha=\"lta\"] .nt-so-lta, #nt-modal[data-ficha=\"aids\"] .nt-so-aids { display:block; }",
+    "#nt-modal[data-ficha=\"aids\"] #nt-obs-wrap { display:none; }",
+    "#nt-modal[data-tela=\"escolha\"] #nt-form, #nt-modal[data-tela=\"escolha\"] #nt-footer, #nt-modal[data-tela=\"escolha\"] #nt-trocar, #nt-modal[data-tela=\"escolha\"] #nt-atualizar { display:none; }",
+    "#nt-modal:not([data-tela=\"escolha\"]) #nt-escolha { display:none; }",
+    ".nt-sigilo { background:#f3eefc; border:1px solid #d6c9f0; color:#4b2c8a; font-size:11.5px; padding:9px 11px; border-radius:8px; margin-bottom:12px; line-height:1.45; }",
     ".nt-fotos { margin:10px 0; }",
     ".nt-aviso-foto { background:#fff4e2; color:#8a4d00; font-size:11.5px; padding:9px 11px; border-radius:8px; margin-bottom:8px; line-height:1.45; }",
     ".nt-fotos-lista { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }",
@@ -195,10 +223,10 @@
     ".nt-foto button { border:none; background:none; color:#a12626; font-size:11px; font-weight:700; cursor:pointer; padding:0; }",
     "#nt-escolha h3 { font-size:13px; color:#16221f; margin:0 0 4px; }",
     "#nt-escolha p { font-size:11.5px; color:#5b6672; margin:0 0 14px; }",
-    ".nt-cartoes { display:grid; grid-template-columns:1fr 1fr; gap:14px; }",
+    ".nt-cartoes { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; }",
     "button.nt-cartao { display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px; background:#f5f8fc; border:1.6px solid #c9d6e8; border-radius:14px; padding:18px 12px 16px; cursor:pointer; color:#16221f; font-family:inherit; }",
     "button.nt-cartao:hover, button.nt-cartao:focus-visible { border-color:#1a56ad; background:#eaf1fb; outline:none; box-shadow:0 0 0 3px rgba(26,86,173,.15); }",
-    "button.nt-cartao svg { width:96px; height:96px; }",
+    "button.nt-cartao svg { width:84px; height:84px; }",
     "button.nt-cartao .nt-cartao-nome { font-size:14px; font-weight:800; line-height:1.25; }",
     "button.nt-cartao .nt-cartao-sub { font-size:11px; color:#5b6672; line-height:1.35; }",
     "button.nt-cartao .nt-cartao-cid { font-size:10.5px; font-weight:700; color:#123a7a; background:#dde8f7; border-radius:999px; padding:2px 9px; }",
@@ -278,8 +306,8 @@
 
   function secaoObservacoes() {
     return '<div class="nt-sec"><h3>Observações e responsável</h3>' +
-      '<label class="nt-rot" for="nt-obs">Observações adicionais (opcional — vão para a página 2 da ficha)</label>' +
-      '<textarea id="nt-obs" maxlength="600"></textarea>' +
+      '<div id="nt-obs-wrap"><label class="nt-rot" for="nt-obs">Observações adicionais (opcional — vão para a página 2 da ficha)</label>' +
+      '<textarea id="nt-obs" maxlength="600"></textarea></div>' +
       '<div class="nt-grid3" style="margin-top:8px"><div><label class="nt-rot" for="nt-medico-sel">Médico (preenche o bloco "Investigador")</label><select id="nt-medico-sel"></select></div>' +
       campo("nt-medico-nome", "Nome", 'maxlength="60"') + campo("nt-medico-funcao", "Função", 'maxlength="40"') + "</div></div>";
   }
@@ -306,6 +334,11 @@
     '<ellipse cx="1" cy="6" rx="3.4" ry="9" fill="#a98a4d"/><circle cx="1" cy="-3" r="3.2" fill="#a98a4d"/>' +
     '<g stroke="#6b5427" stroke-width="1.3" fill="none" stroke-linecap="round"><path d="M-1 4 L-10 10 L-12 20"/><path d="M3 4 L12 10 L14 20"/><path d="M-1 8 L-8 16 L-9 25"/><path d="M3 8 L10 16 L11 25"/></g></g></svg>';
 
+  const SVG_AIDS =
+    '<svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="45" fill="#fde8ea"/>' +
+    '<path d="M48 56 C28 36 34 14 48 14 C62 14 68 36 48 56" fill="none" stroke="#d92d20" stroke-width="9" stroke-linejoin="round"/>' +
+    '<path d="M48 56 L33 82 M48 56 L63 82" stroke="#d92d20" stroke-width="9" stroke-linecap="round"/></svg>';
+
   function cartaoFicha(c) {
     return '<button type="button" class="nt-cartao" data-ficha="' + c.id + '">' + c.svg +
       '<span class="nt-cartao-nome">' + esc(c.nome) + '</span><span class="nt-cartao-sub">' + esc(c.sub) + '</span>' +
@@ -313,10 +346,11 @@
   }
 
   const ESCOLHA =
-    '<div id="nt-escolha"><h3>Qual ficha de notificação?</h3><p>Escolha a doença suspeita. Os dados do paciente são lidos da tela do atendimento nas duas.</p>' +
+    '<div id="nt-escolha"><h3>Qual ficha de notificação?</h3><p>Escolha a doença suspeita. Os dados do paciente são lidos da tela do atendimento em todas.</p>' +
     '<div class="nt-cartoes">' +
     cartaoFicha({ id: "dengue", svg: SVG_DENGUE, nome: "Dengue e Febre de Chikungunya", sub: "Transmitida pelo mosquito Aedes aegypti", cid: "CID A90 · A92.0" }) +
     cartaoFicha({ id: "lta", svg: SVG_LTA, nome: "Leishmaniose Tegumentar Americana", sub: "Úlcera na pele ou nas mucosas — flebotomíneo", cid: "CID B55.1" }) +
+    cartaoFicha({ id: "aids", svg: SVG_AIDS, nome: "AIDS (13 anos ou mais)", sub: "Infecção pelo HIV — notificação compulsória e sigilosa", cid: "CID B24" }) +
     "</div></div>";
 
   function radios(nome, itens) {
@@ -357,7 +391,7 @@
   }
 
   const HTML =
-    '<div id="nt-modal" role="dialog" aria-modal="true">' +
+    '<div id="nt-modal" role="dialog" aria-modal="true" data-tela="escolha">' +
     raiz.MeedsSuiteCabecalho.html({
       tom: "documento",
       titulo: "Ficha de notificação",
@@ -373,7 +407,7 @@
     '<div id="nt-aviso-auto"></div>' +
     '<div id="nt-alerta" role="alert"></div>' +
     '<div class="nt-so-dengue">' + secaoDoenca() + secaoSintomas() + secaoAlarme() + "</div>" +
-    secaoLta() + secaoPaciente() + secaoResidencia() + secaoUnidade() + secaoObservacoes() +
+    secaoLta() + U().secao(FERR) + secaoPaciente() + secaoResidencia() + secaoUnidade() + secaoObservacoes() +
     '<div id="nt-sucesso"></div><div id="nt-erro"></div>' +
     "</div></div>" +
     '<div id="nt-footer"><button class="nt-secundario" id="nt-limpar" type="button">Limpar</button>' +
@@ -386,7 +420,25 @@
   function soDengue() { return ficha === "dengue"; }
   function soLta() { return ficha === "lta"; }
 
+  function soAids() { return ficha === "aids"; }
+  function blocoTransf() { return soAids() && AI().precisaBlocoTransf(coletar()); }
+
   const OBRIGATORIOS = [
+    { campo: "diagnostico", id: "nt-aids-diag", rotulo: "Data do diagnóstico", descricao: "a data do diagnóstico", comoResolver: "data da consulta ou do exame, nunca futura", so: soAids },
+    { campo: "vertical", id: "nt-aids-vertical", rotulo: "Transmissão vertical", descricao: "a transmissão vertical (32)", comoResolver: "sim, não ou ignorado", so: soAids },
+    { campo: "sexual", id: "nt-aids-sexual", rotulo: "Transmissão sexual", descricao: "a transmissão sexual (33)", comoResolver: "escolha uma opção", so: soAids },
+    { campo: "sanguinea", id: "nt-aids-sang", rotulo: "Exposição sanguínea", descricao: "a exposição sanguínea (34)", comoResolver: "não, sim ou ignorado", so: soAids },
+    { campo: "exposicoes", id: "nt-aids-exposicoes", rotulo: "Via sanguínea", descricao: "a via de exposição sanguínea", comoResolver: "marque a via", so: function () { return soAids() && valor("nt-aids-sang") === "1"; } },
+    { campo: "transfData", id: "nt-aids-t-data", rotulo: "Data da transfusão/acidente", descricao: "a data da transfusão/acidente", comoResolver: "item 35", so: blocoTransf },
+    { campo: "transfUf", id: "nt-aids-t-uf", rotulo: "UF da transfusão/acidente", descricao: "a UF da transfusão/acidente", comoResolver: "item 36", so: blocoTransf },
+    { campo: "transfMunicipio", id: "nt-aids-t-mun", rotulo: "Município da transfusão/acidente", descricao: "o município da transfusão/acidente", comoResolver: "escolha da lista da UF", so: blocoTransf },
+    { campo: "transfInstituicao", id: "nt-aids-t-inst", rotulo: "Instituição da transfusão/acidente", descricao: "a instituição da transfusão/acidente", comoResolver: "item 38", so: blocoTransf },
+    { campo: "transfConclusao", id: "nt-aids-t-concl", rotulo: "Conclusão da transfusão/acidente", descricao: "a conclusão da investigação da transfusão/acidente", comoResolver: "item 39", so: blocoTransf },
+    { campo: "lab", id: "nt-sec-aids-lab", rotulo: "Evidência laboratorial de HIV", descricao: "a evidência laboratorial de HIV (40)", comoResolver: "resultado de ao menos um teste", so: soAids },
+    { campo: "rj", id: "nt-sec-aids-rj", rotulo: "Critério Rio de Janeiro/Caracas", descricao: "o critério Rio de Janeiro/Caracas (41)", comoResolver: "marque os itens ou “Nenhum”", so: soAids },
+    { campo: "cdc", id: "nt-sec-aids-cdc", rotulo: "Critério CDC adaptado", descricao: "o critério CDC adaptado (42)", comoResolver: "marque as doenças ou “Nenhuma”", so: soAids },
+    { campo: "criterioObito", id: "nt-aids-obito", rotulo: "Critério óbito", descricao: "o critério óbito (43)", comoResolver: "sim, não ou ignorado", so: soAids },
+    { campo: "dataObito", id: "nt-aids-d-obito", rotulo: "Data do óbito", descricao: "a data do óbito (48)", comoResolver: "obrigatória com critério óbito", so: function () { return soAids() && valor("nt-aids-obito") === "1"; } },
     { campo: "formaClinica", id: "nt-forma-1", rotulo: "Forma clínica", descricao: "a forma clínica", comoResolver: "cutânea (pele) ou mucosa (nariz/boca)", so: soLta },
     { campo: "tipoEntrada", id: "nt-tipo-1", rotulo: "Tipo de entrada", descricao: "o tipo de entrada", comoResolver: "caso novo, recidiva ou transferência", so: soLta },
     { campo: "dataTratamento", id: "nt-data-trat", rotulo: "Data do tratamento", descricao: "a data de início do tratamento", comoResolver: "informe a data (ou limpe a droga)", so: function () { return soLta() && !!valor("nt-droga") && valor("nt-droga") !== "5"; } },
@@ -407,8 +459,13 @@
     { campo: "telefone", id: "nt-telefone", rotulo: "Telefone", descricao: "o telefone de contato", comoResolver: "com DDD — é por ele que a vigilância acompanha o paciente" },
   ];
 
+  function logicaDaFicha() {
+    if (ficha === "lta") return L();
+    return ficha === "aids" ? AI() : F();
+  }
+
   function errosAtuais() {
-    return (ficha === "lta" ? L() : F()).validar(coletar(), hojeIso());
+    return logicaDaFicha().validar(coletar(), hojeIso());
   }
 
   function aplicaveis() {
@@ -438,6 +495,7 @@
     const trat = !!(dados.dataTratamento || (dados.drogaInicial && dados.drogaInicial !== "5"));
     el("nt-aviso-trat").textContent = trat ? "Tratamento iniciado: informe data, droga e peso." : "Não iniciado nesta consulta.";
     if (trat) el("nt-det-trat").open = true;
+    U().condicionais(FERR, dados);
     el("nt-linha-data-alarme").classList.toggle("nt-oculto", dados.alarme.length === 0);
     el("nt-linha-data-grav").classList.toggle("nt-oculto", dados.gravidade.length === 0);
     el("nt-linha-outros").classList.toggle("nt-oculto", dados.gravidade.indexOf("outrosOrgaos") === -1);
@@ -501,6 +559,9 @@
     const alvo = ev.target;
     reconciliarAlarme(alvo);
     reconciliarDoencas(alvo);
+    U().reconciliar(FERR, alvo);
+    if (alvo.id === "nt-aids-t-uf") preencherMunicipios("nt-aids-t-uf", "nt-lista-mun-t");
+    if (alvo.id === "nt-aids-trat-uf") preencherMunicipios("nt-aids-trat-uf", "nt-lista-mun-trat");
     if (alvo.id === "nt-uf-res") preencherMunicipios("nt-uf-res", "nt-lista-mun-res");
     if (alvo.id === "nt-uf-notif") preencherMunicipios("nt-uf-notif", "nt-lista-mun-notif");
     if (alvo.id === "nt-unidade" || alvo.id === "nt-mun-notif") completarCnes();
@@ -645,6 +706,7 @@
     definir("nt-lab-parasito", L().PADRAO_LAB.parasitologico);
     definir("nt-lab-irm", L().PADRAO_LAB.irm);
     definir("nt-lab-histo", L().PADRAO_LAB.histopatologia);
+    definir("nt-aids-obito", "2");
     limparFotos();
     el("nt-aviso-auto").style.display = "none";
     el("nt-erro").style.display = "none";
@@ -673,6 +735,7 @@
     lerDaTela(false);
     el("nt-inicio").max = hojeIso();
     el("nt-data-trat").max = hojeIso();
+    U().IDS_DATA.forEach(function (id) { el(id).max = hojeIso(); });
     el("nt-inicio").min = diasAtras(15);
     el("nt-nasc").max = hojeIso();
     el("nt-det-unidade").open = !valor("nt-mun-notif");
@@ -684,6 +747,7 @@
   /* Escolha da ficha: mostra o formulario da ficha ou a tela de escolha. */
   function mostrarTela() {
     const m = el("nt-modal");
+    m.setAttribute("data-tela", ficha ? "form" : "escolha");
     if (ficha) m.setAttribute("data-ficha", ficha);
     else m.removeAttribute("data-ficha");
     el("nt-titulo").textContent = ficha ? FICHAS[ficha].titulo : "Ficha de notificação";
@@ -702,6 +766,11 @@
      * continua em branco para o medico decidir (Dengue ou Chikungunya). */
     mostrarTela();
     lerDaTela(false);
+    /* AIDS: a data do diagnostico nasce como hoje (o medico troca se o
+     * diagnostico for de outro dia). */
+    if (id === "aids" && !valor("nt-aids-diag")) definir("nt-aids-diag", hojeIso());
+    atualizarCondicionais();
+    if (guia) guia.atualizar();
     overlay.elemento.querySelector("#nt-modal").scrollTop = 0;
   }
 
@@ -796,7 +865,7 @@
     const PDFLib = await garantirPdfLib();
     const dados = coletar();
     if (!FICHAS[ficha]) throw new Error("Escolha a ficha de notificação antes de gerar.");
-    const logica = ficha === "lta" ? L() : F();
+    const logica = logicaDaFicha();
     const doc = await PDFLib.PDFDocument.load(b64ToBytes(raiz[FICHAS[ficha].pdf]));
     await F().aplicarNoPdf(PDFLib, doc, logica.montarOperacoes(dados, hojeIso()));
     if (ficha === "lta" && fotos.length) {
@@ -806,7 +875,7 @@
     }
     const bytes = await doc.save();
     const slug = String(dados.nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 50);
-    const doenca = ficha === "lta" ? "LEISHMANIOSE" : dados.agravo === "chikungunya" ? "CHIKUNGUNYA" : "DENGUE";
+    const doenca = ficha === "lta" ? "LEISHMANIOSE" : ficha === "aids" ? "AIDS" : dados.agravo === "chikungunya" ? "CHIKUNGUNYA" : "DENGUE";
     return { bytes: bytes, filename: "NOTIFICACAO_" + doenca + "_" + (slug || "PACIENTE") + ".pdf", nome: dados.nome };
   }
 
@@ -882,6 +951,15 @@
     overlay = d.dock.criarOverlay({ estilo: CSS, html: HTML });
     el("nt-fechar").addEventListener("click", overlay.fechar);
     el("nt-atualizar").addEventListener("click", atualizarPaciente);
+    el("nt-aids-trat-usar").addEventListener("click", function () {
+      definir("nt-aids-trat-uf", valor("nt-uf-notif"));
+      preencherMunicipios("nt-aids-trat-uf", "nt-lista-mun-trat");
+      definir("nt-aids-trat-mun", valor("nt-mun-notif"));
+      definir("nt-aids-trat-unid", valor("nt-unidade"));
+      atualizarCondicionais();
+      if (guia) guia.atualizar();
+    });
+    definir("nt-aids-obito", "2");
     el("nt-fotos-add").addEventListener("click", function () { el("nt-fotos-arq").click(); });
     el("nt-fotos-arq").addEventListener("change", aoEscolherFotos);
     el("nt-trocar").addEventListener("click", function () { ficha = ""; mostrarTela(); });
@@ -901,9 +979,9 @@
       titulo: "Ficha de notificação",
       passos: [
         { icone: "📋", titulo: "O que esta função faz",
-          texto: "Preenche a ficha de investigação do SINAN por cima do PDF oficial, na primeira consulta: Dengue e Febre de Chikungunya, ou Leishmaniose Tegumentar Americana. Você escolhe a ficha pelo desenho e o nome. Exames, tratamento, classificação final e encerramento ficam em branco para a vigilância epidemiológica." },
+          texto: "Preenche a ficha de investigação do SINAN por cima do PDF oficial, na primeira consulta: Dengue e Febre de Chikungunya, Leishmaniose Tegumentar Americana ou AIDS (13 anos ou mais). Você escolhe a ficha pelo desenho e o nome. Exames, tratamento, classificação final e encerramento ficam em branco para a vigilância epidemiológica." },
         { icone: "🩺", titulo: "O que você precisa informar",
-          texto: "Dengue/Chikungunya: a doença suspeita, o início dos sintomas (no máximo 15 dias atrás), ao menos um sinal clínico, a confirmação das doenças pré-existentes e a dos sinais de alarme e de gravidade. Leishmaniose: a forma clínica (cutânea ou mucosa) e o tipo de entrada; se iniciou o tratamento, também a droga e o peso. Dá para anexar fotos da lesão, que vão no final do PDF. Nome, nascimento, sexo, CPF e telefone vêm da tela do atendimento; confira. O CPF é sempre o número do paciente na ficha." },
+          texto: "Dengue/Chikungunya: a doença suspeita, o início dos sintomas (no máximo 15 dias atrás), ao menos um sinal clínico, a confirmação das doenças pré-existentes e a dos sinais de alarme e de gravidade. Leishmaniose: a forma clínica (cutânea ou mucosa) e o tipo de entrada; se iniciou o tratamento, também a droga e o peso. AIDS: os campos obrigatórios do instrumento do SINAN (transmissão, exame de HIV, critérios e critério óbito). Na Leishmaniose dá para anexar fotos da lesão, que vão no final do PDF. Nome, nascimento, sexo, CPF e telefone vêm da tela do atendimento; confira. O CPF é sempre o número do paciente na ficha." },
         { icone: "🚨", titulo: "Sinais de alarme (dengue)",
           texto: "Marque os sinais presentes ou escolha “Sem sinais de alarme nem de gravidade”. Se houver algum sinal, aparece um aviso vermelho: oriente o deslocamento imediato a um serviço de pronto atendimento presencial." },
         { icone: "📍", titulo: "Onde o paciente mora",
@@ -917,8 +995,8 @@
   raiz.MeedsSuite.registerModule({
     id: "notificacao",
     nome: "Ficha de notificação",
-    descricao: "Gera a ficha de investigação do SINAN (Dengue e Febre de Chikungunya; Leishmaniose Tegumentar Americana) na primeira consulta, com validação dos campos obrigatórios.",
-    versao: "1.1.0",
+    descricao: "Gera a ficha de investigação do SINAN (Dengue e Febre de Chikungunya; Leishmaniose Tegumentar Americana; AIDS) na primeira consulta, com validação dos campos obrigatórios.",
+    versao: "1.2.0",
     configPadrao: {},
     temBotao: true,
     assinaturasRede: [],

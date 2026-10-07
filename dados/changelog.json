@@ -2,6 +2,15 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.62.0",
+      "data": "2026-10-07",
+      "novidades": [
+        "Ficha de notificação — AIDS (13 anos ou mais): terceiro cartão na escolha da ficha, com o laço vermelho. Preenche por cima do PDF oficial do SINAN os campos obrigatórios do instrumento: data do diagnóstico, provável modo de transmissão (vertical, sexual e sanguínea, com o bloco de transfusão/acidente quando for o caso), exame de HIV (triagem, confirmatório e testes rápidos), critérios Rio de Janeiro/Caracas (com a soma de pontos) e CDC adaptado, e critério óbito. CPF no lugar do Cartão SUS, como nas outras fichas. Avisa que é dado sensível e recusa paciente com menos de 13 anos."
+      ],
+      "melhorias": [],
+      "correcoes": []
+    },
+    {
       "versao": "2.61.0",
       "data": "2026-10-07",
       "novidades": [

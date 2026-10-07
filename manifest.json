@@ -1,6 +1,6 @@
 {
   "nome": "Assistente Meeds",
-  "versao": "2.61.0",
+  "versao": "2.62.0",
   "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
   "repositorio": "https://github.com/sodelfino/meeds-suite",
   "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -126,8 +126,8 @@
     {
       "id": "notificacao",
       "nome": "Ficha de notificação",
-      "descricao": "Gera a ficha de investigação do SINAN (Dengue e Febre de Chikungunya; Leishmaniose Tegumentar Americana) na primeira consulta, por cima do PDF oficial, com validação dos campos obrigatórios.",
-      "versao": "1.1.0",
+      "descricao": "Gera a ficha de investigação do SINAN (Dengue e Febre de Chikungunya; Leishmaniose Tegumentar Americana; AIDS) na primeira consulta, por cima do PDF oficial, com validação dos campos obrigatórios.",
+      "versao": "1.2.0",
       "arquivo": "modules/notificacao/index.js",
       "origem": "novetech/notificacao",
       "prioridadeBotao": 45,
@@ -137,9 +137,12 @@
       "assets": [
         "modules/notificacao/assets/base-pdf-dengue.js",
         "modules/notificacao/assets/base-pdf-lta.js",
+        "modules/notificacao/assets/base-pdf-aids.js",
         "modules/notificacao/assets/municipios-ibge.js",
         "modules/notificacao/dengue-ficha.js",
-        "modules/notificacao/lta-ficha.js"
+        "modules/notificacao/lta-ficha.js",
+        "modules/notificacao/aids-ficha.js",
+        "modules/notificacao/aids-form.js"
       ],
       "apresentacao": {
         "formaBotao": "rotulo",
