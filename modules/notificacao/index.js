@@ -39,7 +39,7 @@
     },
     lta: {
       titulo: "Ficha de notificação — Leishmaniose Tegumentar",
-      info: "Primeira consulta: preenche a Ficha de Investigação de Leishmaniose Tegumentar Americana do SINAN por cima do PDF oficial. Exames, tratamento, conclusão e encerramento ficam em branco para a vigilância epidemiológica completar.",
+      info: "Primeira consulta: preenche a Ficha de Investigação de Leishmaniose Tegumentar Americana do SINAN por cima do PDF oficial. Exames (já como “não realizado”), conclusão e encerramento ficam para a vigilância epidemiológica completar; o tratamento só entra se foi iniciado na consulta.",
       pdf: "MEEDS_NOTIF_LTA_BASE_PDF_B64",
     },
   };
@@ -82,10 +82,16 @@
   function coletar() {
     return {
       ficha: ficha,
-      lesoes: marcados("lesoes"),
+      formaClinica: radio("nt-forma"),
       cicatriz: valor("nt-cicatriz"),
       hiv: valor("nt-hiv"),
-      tipoEntrada: valor("nt-tipo-entrada"),
+      tipoEntrada: radio("nt-tipo"),
+      parasitologico: valor("nt-lab-parasito"),
+      irm: valor("nt-lab-irm"),
+      histopatologia: valor("nt-lab-histo"),
+      dataTratamento: valor("nt-data-trat"),
+      drogaInicial: valor("nt-droga"),
+      peso: valor("nt-peso"),
       agravo: radio("nt-agravo"),
       inicioSintomas: valor("nt-inicio"),
       sinais: marcados("sinais"),
@@ -180,6 +186,12 @@
     "#nt-modal[data-ficha=\"lta\"] .nt-so-dengue, #nt-modal[data-ficha=\"dengue\"] .nt-so-lta { display:none; }",
     "#nt-modal:not([data-ficha=\"dengue\"]):not([data-ficha=\"lta\"]) #nt-form, #nt-modal:not([data-ficha=\"dengue\"]):not([data-ficha=\"lta\"]) #nt-footer { display:none; }",
     "#nt-modal[data-ficha=\"dengue\"] #nt-escolha, #nt-modal[data-ficha=\"lta\"] #nt-escolha { display:none; }",
+    ".nt-fotos { margin:10px 0; }",
+    ".nt-aviso-foto { background:#fff4e2; color:#8a4d00; font-size:11.5px; padding:9px 11px; border-radius:8px; margin-bottom:8px; line-height:1.45; }",
+    ".nt-fotos-lista { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }",
+    ".nt-foto { display:flex; flex-direction:column; align-items:center; gap:3px; width:84px; }",
+    ".nt-foto img { width:84px; height:84px; object-fit:cover; display:block; border-radius:8px; border:1px solid #d8dfe6; }",
+    ".nt-foto button { border:none; background:none; color:#a12626; font-size:11px; font-weight:700; cursor:pointer; padding:0; }",
     "#nt-escolha h3 { font-size:13px; color:#16221f; margin:0 0 4px; }",
     "#nt-escolha p { font-size:11.5px; color:#5b6672; margin:0 0 14px; }",
     ".nt-cartoes { display:grid; grid-template-columns:1fr 1fr; gap:14px; }",
@@ -305,15 +317,41 @@
     cartaoFicha({ id: "lta", svg: SVG_LTA, nome: "Leishmaniose Tegumentar Americana", sub: "Úlcera na pele ou nas mucosas — flebotomíneo", cid: "CID B55.1" }) +
     "</div></div>";
 
-  /* Parte da ficha de Leishmaniose: lesao, cicatrizes, HIV, tipo de entrada. */
+  function radios(nome, itens) {
+    return '<div class="nt-radios" style="flex-direction:column;gap:6px">' + itens.map(function (i, n) {
+      return '<label class="nt-radio"><input type="radio" name="' + nome + '" id="' + nome + "-" + (n + 1) + '" value="' + esc(i.v) + '"> ' + esc(i.r) + "</label>";
+    }).join("") + "</div>";
+  }
+
+  function opcoesPadrao(itens, padrao) {
+    return '<option value="">—</option>' + itens.map(function (i) {
+      return '<option value="' + esc(i.v) + '"' + (i.v === padrao ? " selected" : "") + ">" + esc(i.v + " — " + i.r) + "</option>";
+    }).join("");
+  }
+
+  /* Parte da ficha de Leishmaniose: forma clinica (+ fotos da lesao),
+   * cicatrizes, HIV, tipo de entrada, laboratorio e tratamento. */
   function secaoLta() {
-    return '<div class="nt-sec nt-so-lta" id="nt-sec-lesoes"><h3>Quadro clínico *</h3>' +
-      '<div class="nt-sub">Presença de lesão * (marque a(s) presente(s))</div>' +
-      '<div class="nt-checks" style="grid-template-columns:1fr">' + checks("lesoes", L().LESOES) + "</div>" +
-      '<div class="nt-grid3" style="margin-top:10px">' +
+    const pad = L().PADRAO_LAB;
+    return '<div class="nt-sec nt-so-lta" id="nt-sec-forma"><h3>Quadro clínico *</h3>' +
+      '<div class="nt-sub">Forma clínica *</div>' + radios("nt-forma", L().FORMAS) +
+      '<div class="nt-fotos"><div class="nt-aviso-foto">📷 Por se tratar de telemedicina, anexe fotos nítidas da lesão cutânea/mucosa para subsidiar a investigação e o acompanhamento fitoterápico/médico do caso. As fotos entram no final do PDF da ficha e não ficam guardadas neste computador.</div>' +
+      '<input type="file" id="nt-fotos-arq" accept="image/*" multiple class="nt-oculto">' +
+      '<button type="button" class="nt-secundario" id="nt-fotos-add">📷 Anexar fotos da lesão</button>' +
+      '<div id="nt-fotos-lista" class="nt-fotos-lista"></div></div>' +
+      '<div class="nt-sub">Tipo de entrada *</div>' + radios("nt-tipo", L().TIPOS_ENTRADA.filter(function (t) { return t.v !== "9"; })) +
+      '<div class="nt-grid2" style="margin-top:10px">' +
       '<div id="nt-linha-cicatriz" class="nt-oculto"><label class="nt-rot" for="nt-cicatriz">Cicatrizes cutâneas (lesão mucosa)</label><select id="nt-cicatriz">' + opcoes(L().CICATRIZ) + "</select></div>" +
-      '<div><label class="nt-rot" for="nt-hiv">Co-infecção HIV</label><select id="nt-hiv">' + opcoes(L().HIV) + "</select></div>" +
-      '<div><label class="nt-rot" for="nt-tipo-entrada">Tipo de entrada</label><select id="nt-tipo-entrada">' + opcoes(L().TIPOS_ENTRADA) + "</select></div></div></div>";
+      '<div><label class="nt-rot" for="nt-hiv">Co-infecção HIV</label><select id="nt-hiv">' + opcoes(L().HIV) + "</select></div></div></div>" +
+      '<details class="nt-det nt-sec nt-so-lta" id="nt-det-lab"><summary>Exames (opcional — já vêm como “não realizado”, comum na primeira consulta)</summary>' +
+      '<div class="nt-grid3"><div><label class="nt-rot" for="nt-lab-parasito">Parasitológico direto</label><select id="nt-lab-parasito">' + opcoesPadrao(L().LAB_PARASITO, pad.parasitologico) + "</select></div>" +
+      '<div><label class="nt-rot" for="nt-lab-irm">IRM (Montenegro)</label><select id="nt-lab-irm">' + opcoesPadrao(L().LAB_PARASITO, pad.irm) + "</select></div>" +
+      '<div><label class="nt-rot" for="nt-lab-histo">Histopatologia</label><select id="nt-lab-histo">' + opcoesPadrao(L().LAB_HISTO, pad.histopatologia) + "</select></div></div></details>" +
+      '<details class="nt-det nt-sec nt-so-lta" id="nt-det-trat"><summary>Tratamento — só se foi iniciado nesta consulta (senão: “Não iniciado nesta consulta”)</summary>' +
+      '<div class="nt-grid3"><div><label class="nt-rot" for="nt-data-trat">Data de início do tratamento</label><input type="date" id="nt-data-trat"></div>' +
+      '<div><label class="nt-rot" for="nt-droga">Droga inicial administrada</label><select id="nt-droga">' + opcoes(L().DROGAS) + "</select></div>" +
+      campo("nt-peso", "Peso (kg)", 'inputmode="decimal" maxlength="5"') + '</div>' +
+      '<div class="nt-idade" id="nt-aviso-trat">Não iniciado nesta consulta.</div></details>';
   }
 
   const HTML =
@@ -347,7 +385,11 @@
   function soLta() { return ficha === "lta"; }
 
   const OBRIGATORIOS = [
-    { campo: "lesoes", id: "nt-sec-lesoes", rotulo: "Presença de lesão", descricao: "a presença de lesão (cutânea e/ou mucosa)", comoResolver: "marque a lesão presente", so: soLta },
+    { campo: "formaClinica", id: "nt-forma-1", rotulo: "Forma clínica", descricao: "a forma clínica", comoResolver: "cutânea (pele) ou mucosa (nariz/boca)", so: soLta },
+    { campo: "tipoEntrada", id: "nt-tipo-1", rotulo: "Tipo de entrada", descricao: "o tipo de entrada", comoResolver: "caso novo, recidiva ou transferência", so: soLta },
+    { campo: "dataTratamento", id: "nt-data-trat", rotulo: "Data do tratamento", descricao: "a data de início do tratamento", comoResolver: "informe a data (ou limpe a droga)", so: function () { return soLta() && !!valor("nt-droga") && valor("nt-droga") !== "5"; } },
+    { campo: "drogaInicial", id: "nt-droga", rotulo: "Droga inicial", descricao: "a droga inicial administrada", comoResolver: "escolha a droga do tratamento iniciado", so: function () { return soLta() && !!valor("nt-data-trat"); } },
+    { campo: "peso", id: "nt-peso", rotulo: "Peso", descricao: "o peso em kg", comoResolver: "a dose é calculada por quilo", so: function () { return soLta() && !!valor("nt-data-trat"); } },
     { campo: "agravo", id: "nt-agravo-dengue", rotulo: "Doença suspeita", descricao: "a doença suspeita", comoResolver: "escolha Dengue ou Chikungunya", so: soDengue },
     { campo: "inicioSintomas", id: "nt-inicio", rotulo: "Início dos sintomas", descricao: "a data de início dos sintomas", comoResolver: "no máximo 15 dias atrás, nunca futura", so: soDengue },
     { campo: "sinais", id: "nt-sinais", rotulo: "Sinais clínicos", descricao: "ao menos um sinal clínico", comoResolver: "marque os presentes", so: soDengue },
@@ -389,7 +431,10 @@
   function atualizarCondicionais() {
     const dados = coletar();
     el("nt-linha-gestante").classList.toggle("nt-oculto", dados.sexo !== "F");
-    el("nt-linha-cicatriz").classList.toggle("nt-oculto", dados.lesoes.indexOf("mucosa") === -1);
+    el("nt-linha-cicatriz").classList.toggle("nt-oculto", dados.formaClinica !== "2");
+    const trat = !!(dados.dataTratamento || (dados.drogaInicial && dados.drogaInicial !== "5"));
+    el("nt-aviso-trat").textContent = trat ? "Tratamento iniciado: informe data, droga e peso." : "Não iniciado nesta consulta.";
+    if (trat) el("nt-det-trat").open = true;
     el("nt-linha-data-alarme").classList.toggle("nt-oculto", dados.alarme.length === 0);
     el("nt-linha-data-grav").classList.toggle("nt-oculto", dados.gravidade.length === 0);
     el("nt-linha-outros").classList.toggle("nt-oculto", dados.gravidade.indexOf("outrosOrgaos") === -1);
@@ -492,11 +537,94 @@
     return p;
   }
 
+  /* ----------------------------------------------------------------
+   * Fotos da lesao (Leishmaniose): ficam so em memoria ate o PDF sair
+   * ---------------------------------------------------------------- */
+  let fotos = []; // { bytes: Uint8Array (JPEG), url: miniatura }
+  const LADO_MAX_FOTO = 1600;
+
+  /* Qualquer formato que o navegador abra (inclusive HEIC no Safari) vira
+   * JPEG reduzido: o PDF so entende JPEG/PNG e a foto de celular e enorme. */
+  function lerFoto(arquivo) {
+    return new Promise(function (resolve, reject) {
+      const origem = URL.createObjectURL(arquivo);
+      const img = new Image();
+      img.onload = function () {
+        const k = Math.min(1, LADO_MAX_FOTO / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(img.naturalWidth * k));
+        c.height = Math.max(1, Math.round(img.naturalHeight * k));
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(origem);
+        c.toBlob(function (blob) {
+          if (!blob) { reject(new Error("sem imagem")); return; }
+          blob.arrayBuffer().then(function (buf) {
+            resolve({ bytes: new Uint8Array(buf), url: URL.createObjectURL(blob) });
+          }, reject);
+        }, "image/jpeg", 0.85);
+      };
+      img.onerror = function () { URL.revokeObjectURL(origem); reject(new Error("formato não suportado")); };
+      img.src = origem;
+    });
+  }
+
+  function desenharFotos() {
+    const caixa = el("nt-fotos-lista");
+    if (!caixa) return;
+    caixa.textContent = "";
+    fotos.forEach(function (f, i) {
+      const wrap = document.createElement("div");
+      wrap.className = "nt-foto";
+      const img = document.createElement("img");
+      img.src = f.url;
+      img.alt = "Foto " + (i + 1) + " da lesão";
+      const x = document.createElement("button");
+      x.type = "button";
+      x.title = "Remover esta foto";
+      x.textContent = "Remover";
+      x.addEventListener("click", function () {
+        URL.revokeObjectURL(f.url);
+        fotos.splice(i, 1);
+        desenharFotos();
+      });
+      wrap.appendChild(img);
+      wrap.appendChild(x);
+      caixa.appendChild(wrap);
+    });
+    el("nt-fotos-add").textContent = fotos.length ? "📷 Anexar mais fotos (" + fotos.length + "/" + L().MAX_FOTOS + ")" : "📷 Anexar fotos da lesão";
+  }
+
+  function limparFotos() {
+    fotos.forEach(function (f) { URL.revokeObjectURL(f.url); });
+    fotos = [];
+    desenharFotos();
+  }
+
+  async function aoEscolherFotos(ev) {
+    const arquivos = Array.prototype.slice.call(ev.target.files || []);
+    ev.target.value = "";
+    let recusadas = 0;
+    for (let i = 0; i < arquivos.length; i++) {
+      if (fotos.length >= L().MAX_FOTOS) { recusadas++; continue; }
+      try {
+        fotos.push(await lerFoto(arquivos[i]));
+      } catch (e) {
+        recusadas++;
+      }
+    }
+    desenharFotos();
+    if (recusadas) d.core.toast(recusadas + " foto(s) não entraram: formato não suportado ou limite de " + L().MAX_FOTOS + " fotos.", 5000);
+  }
+
   function limparForm() {
     overlay.elemento.querySelectorAll("#nt-body input, #nt-body select, #nt-body textarea").forEach(function (c) {
       if (c.type === "checkbox" || c.type === "radio") c.checked = false;
-      else c.value = "";
+      else if (c.type !== "file") c.value = "";
     });
+    definir("nt-lab-parasito", L().PADRAO_LAB.parasitologico);
+    definir("nt-lab-irm", L().PADRAO_LAB.irm);
+    definir("nt-lab-histo", L().PADRAO_LAB.histopatologia);
+    limparFotos();
     el("nt-aviso-auto").style.display = "none";
     el("nt-erro").style.display = "none";
     el("nt-sucesso").style.display = "none";
@@ -523,6 +651,7 @@
     mostrarTela();
     lerDaTela(false);
     el("nt-inicio").max = hojeIso();
+    el("nt-data-trat").max = hojeIso();
     el("nt-inicio").min = diasAtras(15);
     el("nt-nasc").max = hojeIso();
     el("nt-det-unidade").open = !valor("nt-mun-notif");
@@ -649,6 +778,11 @@
     const logica = ficha === "lta" ? L() : F();
     const doc = await PDFLib.PDFDocument.load(b64ToBytes(raiz[FICHAS[ficha].pdf]));
     await F().aplicarNoPdf(PDFLib, doc, logica.montarOperacoes(dados, hojeIso()));
+    if (ficha === "lta" && fotos.length) {
+      const h = hojeIso().split("-");
+      await L().anexarFotos(PDFLib, doc, fotos.map(function (f) { return { bytes: f.bytes, tipo: "jpg" }; }),
+        (dados.nome || "Paciente") + " - " + h[2] + "/" + h[1] + "/" + h[0]);
+    }
     const bytes = await doc.save();
     const slug = String(dados.nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 50);
     const doenca = ficha === "lta" ? "LEISHMANIOSE" : dados.agravo === "chikungunya" ? "CHIKUNGUNYA" : "DENGUE";
@@ -727,6 +861,8 @@
     overlay = d.dock.criarOverlay({ estilo: CSS, html: HTML });
     el("nt-fechar").addEventListener("click", overlay.fechar);
     el("nt-atualizar").addEventListener("click", atualizarPaciente);
+    el("nt-fotos-add").addEventListener("click", function () { el("nt-fotos-arq").click(); });
+    el("nt-fotos-arq").addEventListener("change", aoEscolherFotos);
     el("nt-trocar").addEventListener("click", function () { ficha = ""; mostrarTela(); });
     overlay.elemento.querySelectorAll(".nt-cartao").forEach(function (b) {
       b.addEventListener("click", function () { escolherFicha(b.getAttribute("data-ficha")); });
@@ -746,7 +882,7 @@
         { icone: "📋", titulo: "O que esta função faz",
           texto: "Preenche a ficha de investigação do SINAN por cima do PDF oficial, na primeira consulta: Dengue e Febre de Chikungunya, ou Leishmaniose Tegumentar Americana. Você escolhe a ficha pelo desenho e o nome. Exames, tratamento, classificação final e encerramento ficam em branco para a vigilância epidemiológica." },
         { icone: "🩺", titulo: "O que você precisa informar",
-          texto: "Dengue/Chikungunya: a doença suspeita, o início dos sintomas (no máximo 15 dias atrás), ao menos um sinal clínico e a confirmação dos sinais de alarme. Leishmaniose: a lesão presente (cutânea e/ou mucosa). Nome, nascimento, sexo, Cartão SUS e telefone vêm da tela do atendimento; confira." },
+          texto: "Dengue/Chikungunya: a doença suspeita, o início dos sintomas (no máximo 15 dias atrás), ao menos um sinal clínico e a confirmação dos sinais de alarme. Leishmaniose: a forma clínica (cutânea ou mucosa) e o tipo de entrada; se iniciou o tratamento, também a droga e o peso. Dá para anexar fotos da lesão, que vão no final do PDF. Nome, nascimento, sexo, Cartão SUS e telefone vêm da tela do atendimento; confira." },
         { icone: "🚨", titulo: "Sinais de alarme (dengue)",
           texto: "Marque os sinais presentes ou escolha “Sem sinais de alarme”. Se houver algum sinal, aparece um aviso vermelho: oriente o deslocamento imediato a um serviço de pronto atendimento presencial." },
         { icone: "📍", titulo: "Onde o paciente mora",
@@ -797,6 +933,7 @@
     },
 
     stop: function () {
+      limparFotos();
       if (overlay) { overlay.remover(); overlay = null; }
       guia = null;
       seletorMedico = null;

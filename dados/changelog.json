@@ -2,6 +2,18 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.58.0",
+      "data": "2026-10-07",
+      "novidades": [
+        "Ficha de Leishmaniose: agora com fotos da lesão (cutânea/mucosa) — você anexa na tela e elas entram no final do PDF da ficha, sem ficar guardadas no computador.",
+        "Ficha de Leishmaniose: o tratamento pode ser registrado se iniciado na consulta (data, droga e peso andam juntos)."
+      ],
+      "melhorias": [
+        "Ficha de Leishmaniose: forma clínica (cutânea ou mucosa) e tipo de entrada passam a ser obrigatórios; cicatrizes só aparecem na forma mucosa; os exames já vêm como \"não realizado\", comum na primeira consulta."
+      ],
+      "correcoes": []
+    },
+    {
       "versao": "2.57.0",
       "data": "2026-10-06",
       "novidades": [

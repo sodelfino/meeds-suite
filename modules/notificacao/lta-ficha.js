@@ -10,10 +10,16 @@
  * MeedsNotificacaoDengue.base; aqui ficam so o que e da leishmaniose.
  *
  * ESCOPO (primeira consulta): agravo (ja impresso), notificacao, paciente,
- * residencia, data da investigacao, ocupacao, presenca de lesao (cutanea /
- * mucosa), cicatrizes cutaneas, co-infeccao HIV e tipo de entrada. Ficam
- * EM BRANCO para a vigilancia: dados laboratoriais (36-38), forma clinica
- * (40), tratamento (41-46), conclusao (47-58) e o quadro de deslocamento.
+ * residencia, data da investigacao, ocupacao, forma clinica (cutanea ou
+ * mucosa) e a lesao correspondente, cicatrizes cutaneas, co-infeccao HIV,
+ * tipo de entrada, laboratorio (36-38, opcional; o formulario sugere "nao
+ * realizado") e o inicio do tratamento (41-43), so se o medico iniciou
+ * na consulta — nesse caso droga e peso passam a ser obrigatorios. Ficam
+ * EM BRANCO: dose e ampolas (44-45), falencia (46), conclusao (47-58) e o
+ * quadro de deslocamento.
+ *
+ * FOTOS DA LESAO: a telemedicina nao tem exame fisico presencial, entao o
+ * medico pode anexar fotos; anexarFotos() acrescenta paginas ao PDF.
  *
  * COORDENADAS: pontos, origem no canto superior esquerdo da pagina
  * (595 x 841), medidas no proprio PDF (ver o cabecalho de dengue-ficha.js).
@@ -28,10 +34,22 @@
   ];
   const HIV = [{ v: "1", r: "Sim" }, { v: "2", r: "Não" }, { v: "9", r: "Ignorado" }];
   const CICATRIZ = [{ v: "1", r: "Sim" }, { v: "2", r: "Não" }];
-  const LESOES = [
-    { id: "cutanea", rotulo: "Lesão cutânea (úlcera de fundo granuloso e bordas infiltradas)" },
-    { id: "mucosa", rotulo: "Lesão mucosa (nasal, lábios, palato ou nasofaringe)" },
+  const FORMAS = [
+    { v: "1", r: "Cutânea (úlcera na pele)" },
+    { v: "2", r: "Mucosa (nariz, lábios, palato ou nasofaringe)" },
   ];
+  const DROGAS = [
+    { v: "1", r: "Antimonial pentavalente" }, { v: "2", r: "Anfotericina B" }, { v: "3", r: "Pentamidina" },
+    { v: "4", r: "Outras" }, { v: "5", r: "Não utilizada" },
+  ];
+  const LAB_PARASITO = [{ v: "1", r: "Positivo" }, { v: "2", r: "Negativo" }, { v: "3", r: "Não realizado" }];
+  const LAB_HISTO = [
+    { v: "1", r: "Encontro do parasita" }, { v: "2", r: "Compatível" }, { v: "3", r: "Não compatível" }, { v: "4", r: "Não realizado" },
+  ];
+  /* O que o formulario ja deixa escolhido: na primeira consulta o exame
+   * quase nunca existe (poupa cliques; o medico pode trocar ou limpar). */
+  const PADRAO_LAB = { parasitologico: "3", irm: "3", histopatologia: "4" };
+  const MAX_FOTOS = 6;
 
   /* Caixas de codigo unico (x0, y0, x1, y1). */
   const CX = {
@@ -46,6 +64,11 @@
     cicatriz: [351.5, 592.1, 362.2, 603.4],
     hiv: [541.4, 566.9, 552.2, 577.7],
     tipoEntrada: [300.7, 654.2, 311.4, 664.9],
+    formaClinica: [553.5, 656.4, 564.2, 667.7],
+    parasitologico: [195.6, 620.4, 206.3, 630.8],
+    irm: [373.7, 624.2, 384.4, 635.2],
+    histopatologia: [552.8, 620.4, 564.0, 631.7],
+    droga: [553.1, 686.2, 564.6, 697.7],
   };
 
   const PENTE = {
@@ -60,6 +83,8 @@
     cep: { bordas: [459.4, 472.6, 487.0, 501.6, 516.0, 528.0, 541.6, 555.0, 569.0], cy: 471.3 },
     telefone10: { bordas: [58.0, 71.4, 86.0, 100.2, 114.6, 129.0, 143.4, 158.0, 172.4, 187.0, 205.6], cy: 493.3 },
     dataInvestigacao: { bordas: [57.6, 74.4, 90.6, 103.4, 117.0, 130.4, 144.8, 159.6, 173.0], cy: 545.8 },
+    dataTratamento: { bordas: [59.4, 75.6, 91.0, 103.6, 119.4, 132.4, 147.0, 161.6, 176.5], cy: 704.0 },
+    peso: { bordas: [90.6, 104.0, 120.4, 136.0], cy: 734.5 },
     cnesInvestigador: { bordas: [466.4, 479.4, 493.6, 508.0, 522.4, 537.0, 551.4, 565.8], cy: 624.8 },
   };
 
@@ -70,9 +95,12 @@
   /* ------------------------------------------------------------------
    * Validacao
    * ------------------------------------------------------------------ */
-  function validarLesoes(c) {
-    if (D().base.lista(c.d.lesoes).length === 0) {
-      c.erro("lesoes", "Marque a presença de lesão: cutânea e/ou mucosa. Sem lesão, o caso não é suspeito de leishmaniose tegumentar.");
+  function validarClinica(c) {
+    if (["1", "2"].indexOf(String(c.d.formaClinica || "")) === -1) {
+      c.erro("formaClinica", "Escolha a forma clínica: cutânea (ferida na pele) ou mucosa (nariz/boca).");
+    }
+    if (["1", "2", "3"].indexOf(String(c.d.tipoEntrada || "")) === -1) {
+      c.erro("tipoEntrada", "Informe o tipo de entrada: caso novo, recidiva ou transferência.");
     }
   }
 
@@ -80,7 +108,9 @@
   const CODIGOS = [
     { campo: "cicatriz", validos: ["1", "2"], mensagem: "Cicatrizes cutâneas: escolha Sim ou Não (ou deixe em branco)." },
     { campo: "hiv", validos: ["1", "2", "9"], mensagem: "Co-infecção HIV: escolha Sim, Não ou Ignorado (ou deixe em branco)." },
-    { campo: "tipoEntrada", validos: ["1", "2", "3", "9"], mensagem: "Tipo de entrada: escolha Caso novo, Recidiva, Transferência ou Ignorado (ou deixe em branco)." },
+    { campo: "parasitologico", validos: ["1", "2", "3"], mensagem: "Parasitológico direto: escolha Positivo, Negativo ou Não realizado." },
+    { campo: "irm", validos: ["1", "2", "3"], mensagem: "IRM (Montenegro): escolha Positivo, Negativo ou Não realizado." },
+    { campo: "histopatologia", validos: ["1", "2", "3", "4"], mensagem: "Histopatologia: escolha uma das opções da ficha." },
   ];
 
   function validarCodigos(c) {
@@ -90,10 +120,39 @@
     });
   }
 
+  /* "62" e "62,5" -> 62 / 63 (a ficha tem 3 casas inteiras). */
+  function pesoEmKg(texto) {
+    const n = parseFloat(String(texto == null ? "" : texto).replace(",", "."));
+    return isFinite(n) ? Math.round(n) : null;
+  }
+
+  /* Tratamento: so e exigido se o medico comecou na consulta. Data, droga
+   * e peso andam juntos (a dose e por quilo). */
+  function validarTratamento(c) {
+    const b = D().base;
+    const d = c.d;
+    const iniciou = !b.vazio(d.dataTratamento);
+    const droga = String(d.drogaInicial || "");
+    if (iniciou) {
+      const dt = b.lerData(d.dataTratamento);
+      if (!dt) c.erro("dataTratamento", "A data de início do tratamento não é uma data válida.");
+      else if (dt.t > c.hoje.t) c.erro("dataTratamento", "A data de início do tratamento não pode ser futura.");
+      if (!droga) c.erro("drogaInicial", "Início de tratamento informado: escolha a droga inicial administrada.");
+      else if (droga === "5") c.erro("drogaInicial", "Você informou data de início do tratamento e “Não utilizada” — desfaça um dos dois.");
+      if (b.vazio(d.peso)) c.erro("peso", "Início de tratamento informado: informe o peso em kg (a dose é calculada por quilo).");
+    } else if (droga && droga !== "5") {
+      c.erro("dataTratamento", "Droga escolhida sem a data de início do tratamento: informe a data (ou limpe a droga).");
+    }
+    if (!b.vazio(d.peso)) {
+      const kg = pesoEmKg(d.peso);
+      if (kg === null || kg < 1 || kg > 300) c.erro("peso", "O peso precisa estar entre 1 e 300 kg.");
+    }
+  }
+
   function validar(d, hojeIso) {
     const b = D().base;
     const c = b.novoContexto(d, hojeIso);
-    [validarLesoes, b.validarPaciente, b.validarResidencia, b.validarTelefone, b.validarOpcionais, validarCodigos]
+    [validarClinica, b.validarPaciente, b.validarResidencia, b.validarTelefone, b.validarOpcionais, validarCodigos, validarTratamento]
       .forEach(function (etapa) { etapa(c); });
     return c.erros;
   }
@@ -173,17 +232,35 @@
     if (d.zona) b.caixa(0, CX.zona, d.zona);
   }
 
+  function secaoLaboratorio(b, d) {
+    ["parasitologico", "irm", "histopatologia"].forEach(function (k) {
+      if (d[k]) b.caixa(0, CX[k], String(d[k]));
+    });
+  }
+
+  function secaoTratamento(b, d) {
+    const base = D().base;
+    if (!base.lerData(d.dataTratamento)) return;
+    b.pente(0, PENTE.dataTratamento, base.ddmmaaaa(d.dataTratamento));
+    if (d.drogaInicial) b.caixa(0, CX.droga, String(d.drogaInicial));
+    const kg = pesoEmKg(d.peso);
+    if (kg !== null && kg >= 1) b.pente(0, PENTE.peso, String(kg), { daDireita: true });
+  }
+
   function secaoClinica(b, d, hoje) {
-    const lesoes = D().base.lista(d.lesoes);
     b.pente(0, PENTE.dataInvestigacao, D().base.ddmmaaaa(hoje));
     b.texto({ pg: 0, x: 184, y: 547.3, valor: d.ocupacao, larg: 375 });
-    /* O medico viu as duas opcoes: a marcada recebe 1 (Sim) e a outra 2
-     * (Nao) — mesma logica do "sem sinais de alarme" da dengue. */
-    b.caixa(0, CX.lesaoCutanea, lesoes.indexOf("cutanea") !== -1 ? "1" : "2");
-    b.caixa(0, CX.lesaoMucosa, lesoes.indexOf("mucosa") !== -1 ? "1" : "2");
-    if (lesoes.indexOf("mucosa") !== -1 && d.cicatriz) b.caixa(0, CX.cicatriz, String(d.cicatriz));
+    const forma = String(d.formaClinica || "");
+    /* A forma clinica dita a lesao: so a presente e marcada (a ausencia da
+     * outra nao foi perguntada, entao fica em branco). */
+    if (forma === "1") b.caixa(0, CX.lesaoCutanea, "1");
+    if (forma === "2") b.caixa(0, CX.lesaoMucosa, "1");
+    if (forma === "1" || forma === "2") b.caixa(0, CX.formaClinica, forma);
+    if (forma === "2" && d.cicatriz) b.caixa(0, CX.cicatriz, String(d.cicatriz));
     if (d.hiv) b.caixa(0, CX.hiv, String(d.hiv));
     if (d.tipoEntrada) b.caixa(0, CX.tipoEntrada, String(d.tipoEntrada));
+    secaoLaboratorio(b, d);
+    secaoTratamento(b, d);
   }
 
   function secaoObservacoesEInvestigador(b, d) {
@@ -208,13 +285,64 @@
     return b.ops;
   }
 
+  /* ------------------------------------------------------------------
+   * Fotos da lesao (anexo)
+   * ------------------------------------------------------------------
+   * Cada foto chega ja como { bytes, tipo: "jpg"|"png" } (a tela converte
+   * qualquer formato para JPEG reduzido). Duas por pagina A4, abaixo de um
+   * cabecalho com o paciente e a data. Foto que o pdf-lib nao consegue ler
+   * e pulada: a ficha em si nunca deixa de sair por causa de um anexo. */
+  async function anexarFotos(PDFLib, doc, fotos, rotulo) {
+    const lista = (Array.isArray(fotos) ? fotos : []).slice(0, MAX_FOTOS);
+    const fonte = await doc.embedFont(PDFLib.StandardFonts.Helvetica);
+    const negrito = await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+    const preto = PDFLib.rgb(0, 0, 0);
+    const cinza = PDFLib.rgb(0.35, 0.35, 0.35);
+    const LARG = 523;
+    const ALT = 335;
+    let pagina = null;
+    let naPagina = 0;
+    let entraram = 0;
+    for (let i = 0; i < lista.length; i++) {
+      let img = null;
+      try {
+        img = lista[i].tipo === "png" ? await doc.embedPng(lista[i].bytes) : await doc.embedJpg(lista[i].bytes);
+      } catch (e) {
+        img = null;
+      }
+      if (!img) continue;
+      if (!pagina || naPagina === 2) {
+        pagina = doc.addPage();
+        pagina.setSize(595, 842);
+        naPagina = 0;
+        pagina.drawText("ANEXO - FOTOS DA LESÃO", { x: 36, y: 806, size: 13, font: negrito, color: preto });
+        pagina.drawText(D().saneaTexto(rotulo || ""), { x: 36, y: 790, size: 9, font: fonte, color: cinza });
+      }
+      const k = Math.min(LARG / img.width, ALT / img.height, 1.5);
+      const w = img.width * k;
+      const h = img.height * k;
+      const topo = 770 - naPagina * (ALT + 40);
+      pagina.drawImage(img, { x: 36 + (LARG - w) / 2, y: topo - 12 - h, width: w, height: h });
+      pagina.drawText("Foto " + (entraram + 1), { x: 36, y: topo - 12 - h - 12, size: 8, font: fonte, color: cinza });
+      naPagina++;
+      entraram++;
+    }
+    return entraram;
+  }
+
   raiz.MeedsNotificacaoLta = {
     TIPOS_ENTRADA: TIPOS_ENTRADA,
     HIV: HIV,
     CICATRIZ: CICATRIZ,
-    LESOES: LESOES,
+    FORMAS: FORMAS,
+    DROGAS: DROGAS,
+    LAB_PARASITO: LAB_PARASITO,
+    LAB_HISTO: LAB_HISTO,
+    PADRAO_LAB: PADRAO_LAB,
+    MAX_FOTOS: MAX_FOTOS,
     CX: CX,
     validar: validar,
     montarOperacoes: montarOperacoes,
+    anexarFotos: anexarFotos,
   };
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);

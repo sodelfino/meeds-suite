@@ -34,13 +34,15 @@ const BASE = Buffer.from(ctx.MEEDS_NOTIF_LTA_BASE_PDF_B64, "base64");
 const HOJE = "2026-10-06";
 
 const MINIMO = {
-  lesoes: ["cutanea"],
+  formaClinica: "1", tipoEntrada: "1",
   nome: "Maria da Silva", nascimento: "1990-01-02", sexo: "M",
   ufRes: "RJ", municipioRes: "Macaé", telefone: "2237721523",
   ufNotif: "RJ", municipioNotif: "Macaé", unidade: "ESF Aroeira",
 };
 const COMPLETO = Object.assign({}, MINIMO, {
-  lesoes: ["cutanea", "mucosa"], cicatriz: "1", hiv: "2", tipoEntrada: "1",
+  formaClinica: "2", cicatriz: "1", hiv: "2", tipoEntrada: "2",
+  parasitologico: "3", irm: "3", histopatologia: "4",
+  dataTratamento: "2026-10-06", drogaInicial: "1", peso: "62",
   nome: "Dara Arruda Magalhães", nascimento: "2000-05-18", sexo: "F", gestante: "5",
   raca: "4", escolaridade: "6", sus: "700501902930017", mae: "Ana Carolina Fernandes Arruda",
   bairro: "Aroeira", logradouro: "Rua Doutor Sebastião de Moraes", numero: "123",
@@ -52,51 +54,73 @@ const COMPLETO = Object.assign({}, MINIMO, {
 });
 const v = (d) => L.validar(d, HOJE);
 const campos = (d) => v(d).map((e) => e.campo);
+const com = (extra) => Object.assign({}, MINIMO, extra);
 const ops = (d) => L.montarOperacoes(d, HOJE);
 
 /* ---------- validação ---------- */
 ok("caso mínimo é válido", v(MINIMO).length === 0, JSON.stringify(v(MINIMO)));
 ok("caso completo é válido", v(COMPLETO).length === 0, JSON.stringify(v(COMPLETO)));
-ok("sem nenhuma lesão: recusa", campos(Object.assign({}, MINIMO, { lesoes: [] })).indexOf("lesoes") !== -1);
-ok("só lesão mucosa vale", v(Object.assign({}, MINIMO, { lesoes: ["mucosa"] })).length === 0);
-ok("sem nome: recusa", campos(Object.assign({}, MINIMO, { nome: "" })).indexOf("nome") !== -1);
-ok("mulher sem informar gestante: recusa", campos(Object.assign({}, MINIMO, { sexo: "F" })).indexOf("gestante") !== -1);
-ok("sem telefone: recusa", campos(Object.assign({}, MINIMO, { telefone: "" })).indexOf("telefone") !== -1);
-ok("município fora da UF: recusa", campos(Object.assign({}, MINIMO, { ufRes: "MG" })).indexOf("municipioRes") !== -1);
-ok("SUS com tamanho errado: recusa", campos(Object.assign({}, MINIMO, { sus: "123" })).indexOf("sus") !== -1);
-ok("cicatriz só faz sentido com lesão mucosa: valor descartado sem ela",
-   v(Object.assign({}, MINIMO, { cicatriz: "1" })).length === 0);
-ok("código de HIV inválido: recusa", campos(Object.assign({}, MINIMO, { hiv: "7" })).indexOf("hiv") !== -1);
-ok("código de tipo de entrada inválido: recusa", campos(Object.assign({}, MINIMO, { tipoEntrada: "5" })).indexOf("tipoEntrada") !== -1);
+ok("sem forma clínica: recusa", campos(com({ formaClinica: "" })).indexOf("formaClinica") !== -1);
+ok("forma clínica inválida: recusa", campos(com({ formaClinica: "3" })).indexOf("formaClinica") !== -1);
+ok("forma mucosa vale", v(com({ formaClinica: "2" })).length === 0);
+ok("sem tipo de entrada: recusa", campos(com({ tipoEntrada: "" })).indexOf("tipoEntrada") !== -1);
+ok("tipo de entrada 1, 2 e 3 valem; 9 não é oferecido",
+   ["1", "2", "3"].every((x) => v(com({ tipoEntrada: x })).length === 0) && campos(com({ tipoEntrada: "9" })).indexOf("tipoEntrada") !== -1);
+ok("sem nome: recusa", campos(com({ nome: "" })).indexOf("nome") !== -1);
+ok("mulher sem informar gestante: recusa", campos(com({ sexo: "F" })).indexOf("gestante") !== -1);
+ok("sem telefone: recusa", campos(com({ telefone: "" })).indexOf("telefone") !== -1);
+ok("município fora da UF: recusa", campos(com({ ufRes: "MG" })).indexOf("municipioRes") !== -1);
+ok("SUS com tamanho errado: recusa", campos(com({ sus: "123" })).indexOf("sus") !== -1);
+ok("cicatriz com forma cutânea é descartada (não bloqueia)", v(com({ cicatriz: "1" })).length === 0);
+ok("código de HIV inválido: recusa", campos(com({ hiv: "7" })).indexOf("hiv") !== -1);
+ok("laboratório inválido: recusa", campos(com({ parasitologico: "9" })).indexOf("parasitologico") !== -1 &&
+   campos(com({ histopatologia: "5" })).indexOf("histopatologia") !== -1);
+/* tratamento: se começou, exige droga e peso */
+ok("tratamento não iniciado (tudo em branco) é válido", v(MINIMO).length === 0);
+ok("data de início do tratamento sem droga: recusa a droga", campos(com({ dataTratamento: "2026-10-06", peso: "60" })).indexOf("drogaInicial") !== -1);
+ok("data de início do tratamento sem peso: recusa o peso", campos(com({ dataTratamento: "2026-10-06", drogaInicial: "1" })).indexOf("peso") !== -1);
+ok("droga sem data de início: recusa a data", campos(com({ drogaInicial: "1", peso: "60" })).indexOf("dataTratamento") !== -1);
+ok("data de início do tratamento futura: recusa", campos(com({ dataTratamento: "2026-10-07", drogaInicial: "1", peso: "60" })).indexOf("dataTratamento") !== -1);
+ok("data de início com droga 'não utilizada': contradição", campos(com({ dataTratamento: "2026-10-06", drogaInicial: "5", peso: "60" })).indexOf("drogaInicial") !== -1);
+ok("peso absurdo: recusa", campos(com({ dataTratamento: "2026-10-06", drogaInicial: "1", peso: "900" })).indexOf("peso") !== -1);
+ok("peso com vírgula (62,5) é aceito", v(com({ dataTratamento: "2026-10-06", drogaInicial: "1", peso: "62,5" })).length === 0);
 
 /* ---------- operações ---------- */
+const dentro = (x, c) => x.cx > c[0] && x.cx < c[2] && x.cy > c[1] && x.cy < c[3];
+const caixaEm = (lista, caixa, texto) => lista.some((o) => o.tipo === "centro" && o.texto === texto && dentro(o, caixa));
+const algoEm = (lista, caixa) => lista.some((o) => o.tipo === "centro" && dentro(o, caixa));
 const textos = (d, pg) => ops(d).filter((o) => o.pg === pg).map((o) => o.texto || "").join("|");
-const caixaEm = (lista, caixa, texto) => lista.some((o) => o.tipo === "centro" && o.texto === texto &&
-  o.cx > caixa[0] && o.cx < caixa[2] && o.cy > caixa[1] && o.cy < caixa[3]);
 
 {
   const o = ops(COMPLETO);
-  ok("lesão cutânea e mucosa marcadas com 1", caixaEm(o, L.CX.lesaoCutanea, "1") && caixaEm(o, L.CX.lesaoMucosa, "1"));
-  const so = ops(Object.assign({}, MINIMO, { lesoes: ["cutanea"] }));
-  ok("só cutânea: mucosa atestada como ausente (2)", caixaEm(so, L.CX.lesaoCutanea, "1") && caixaEm(so, L.CX.lesaoMucosa, "2"));
-  ok("cicatriz só aparece com lesão mucosa", caixaEm(o, L.CX.cicatriz, "1") && !so.some((x) => x.texto === "1" && x.cx > L.CX.cicatriz[0] && x.cx < L.CX.cicatriz[2] && x.cy > L.CX.cicatriz[1] && x.cy < L.CX.cicatriz[3]));
-  ok("HIV e tipo de entrada vão para as caixas", caixaEm(o, L.CX.hiv, "2") && caixaEm(o, L.CX.tipoEntrada, "1"));
-  ok("sem HIV informado: caixa em branco", !ops(MINIMO).some((x) => x.cx > L.CX.hiv[0] && x.cx < L.CX.hiv[2] && x.cy > L.CX.hiv[1] && x.cy < L.CX.hiv[3]));
-  ok("sexo M: gestante 'não se aplica' (6)", caixaEm(ops(MINIMO), L.CX.gestante, "6"));
+  const cut = ops(MINIMO);
+  ok("forma cutânea: item 40 = 1 e lesão cutânea marcada", caixaEm(cut, L.CX.formaClinica, "1") && caixaEm(cut, L.CX.lesaoCutanea, "1") && !algoEm(cut, L.CX.lesaoMucosa));
+  ok("forma mucosa: item 40 = 2 e lesão mucosa marcada", caixaEm(o, L.CX.formaClinica, "2") && caixaEm(o, L.CX.lesaoMucosa, "1") && !algoEm(o, L.CX.lesaoCutanea));
+  ok("cicatriz só aparece com forma mucosa", caixaEm(o, L.CX.cicatriz, "1") && !algoEm(ops(com({ cicatriz: "1" })), L.CX.cicatriz));
+  ok("HIV e tipo de entrada vão para as caixas", caixaEm(o, L.CX.hiv, "2") && caixaEm(o, L.CX.tipoEntrada, "2"));
+  ok("sem HIV informado: caixa em branco", !algoEm(cut, L.CX.hiv));
+  ok("laboratório: 3, 3 e 4 (não realizado) nas caixas 36, 37 e 38",
+     caixaEm(o, L.CX.parasitologico, "3") && caixaEm(o, L.CX.irm, "3") && caixaEm(o, L.CX.histopatologia, "4"));
+  ok("laboratório não informado: caixas em branco", !algoEm(cut, L.CX.parasitologico) && !algoEm(cut, L.CX.irm) && !algoEm(cut, L.CX.histopatologia));
+  ok("tratamento iniciado: droga, data (06102026) e peso (62) desenhados",
+     caixaEm(o, L.CX.droga, "1") &&
+     o.filter((x) => x.tipo === "centro" && x.cy > 700 && x.cy < 708 && x.cx > 55 && x.cx < 180).map((x) => x.texto).join("") === "06102026" &&
+     o.filter((x) => x.tipo === "centro" && x.cy > 730 && x.cy < 740 && x.cx > 88 && x.cx < 140).map((x) => x.texto).join("") === "62");
+  ok("tratamento não iniciado: nada desenhado da altura do tratamento para baixo", !cut.some((x) => x.pg === 0 && x.cy > 670));
+  ok("sexo M: gestante 'não se aplica' (6)", caixaEm(cut, L.CX.gestante, "6"));
   ok("página 1 tem o nome em maiúsculas", textos(COMPLETO, 0).indexOf("DARA ARRUDA MAGALHÃES") !== -1);
   ok("data da notificação e do diagnóstico saem automáticas (hoje)",
      o.filter((x) => x.tipo === "centro" && x.cy > 180 && x.cy < 190 && x.cx > 437).map((x) => x.texto).join("") === "06102026" &&
      o.filter((x) => x.tipo === "centro" && x.cy > 240 && x.cy < 249 && x.cx > 444).map((x) => x.texto).join("") === "06102026");
-  ok("observações vão para a página 2", ops(COMPLETO).some((x) => x.pg === 1 && x.tipo === "bloco" && /úlcera/i.test(x.texto)));
-  ok("tratamento, laboratório e conclusão ficam em branco: nada fora dos blocos conhecidos",
-     !o.some((x) => x.pg === 0 && x.cy > 670 && x.cy < 800) && !o.some((x) => x.pg === 1 && x.cy < 330));
-  const tel = (n) => ops(Object.assign({}, MINIMO, { telefone: n })).filter((x) => x.tipo === "centro" && Math.abs(x.cy - 493.3) < 0.01);
+  ok("observações vão para a página 2", o.some((x) => x.pg === 1 && x.tipo === "bloco" && /úlcera/i.test(x.texto)));
+  ok("conclusão (página 2, itens 47 a 58) fica em branco", !o.some((x) => x.pg === 1 && x.cy < 330));
+  ok("sem médico escolhido, o bloco Investigador fica em branco", !cut.some((x) => x.pg === 1));
+  const tel = (n) => ops(com({ telefone: n })).filter((x) => x.tipo === "centro" && Math.abs(x.cy - 493.3) < 0.01);
   const bordasTel = [58.0, 71.4, 86.0, 100.2, 114.6, 129.0, 143.4, 158.0, 172.4, 187.0, 205.6];
   ok("telefone de 11 dígitos: 11 dígitos, na ordem, nenhum em cima de uma divisória",
      tel("22997721523").map((x) => x.texto).join("") === "22997721523" &&
-     tel("22997721523").every((x) => bordasTel.every((b) => Math.abs(x.cx - b) > 1.5)), tel("22997721523").map((x) => x.cx.toFixed(1)).join(" "));
+     tel("22997721523").every((x) => bordasTel.every((b) => Math.abs(x.cx - b) > 1.5)));
   ok("telefone de 10 dígitos: um por célula", tel("2237721523").length === 10);
-  ok("sem médico escolhido, o bloco Investigador fica em branco", !ops(MINIMO).some((x) => x.pg === 1));
 }
 
 /* ---------- PDF de verdade ---------- */
@@ -105,6 +129,23 @@ async function gerar(dados) {
   const lista = L.montarOperacoes(dados, HOJE);
   const r = await ctx.MeedsNotificacaoDengue.aplicarNoPdf(PDFLib, doc, lista);
   return { bytes: await doc.save(), ops: lista, r: r };
+}
+
+/* PNG pequeno de verdade (cor sólida), sem depender de arquivo no disco. */
+function pngSolido(w, h) {
+  const zlib = require("zlib");
+  const crcTab = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
+  const crc = (buf) => { let c = 0xffffffff; for (const b of buf) c = crcTab[(c ^ b) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+  const bloco = (tipo, dados) => {
+    const t = Buffer.from(tipo, "ascii");
+    const len = Buffer.alloc(4); len.writeUInt32BE(dados.length);
+    const c = Buffer.alloc(4); c.writeUInt32BE(crc(Buffer.concat([t, dados])));
+    return Buffer.concat([len, t, dados, c]);
+  };
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 2;
+  const linha = Buffer.concat([Buffer.from([0]), Buffer.alloc(w * 3, 180)]);
+  const cru = Buffer.concat(Array.from({ length: h }, () => linha));
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), bloco("IHDR", ihdr), bloco("IDAT", zlib.deflateSync(cru)), bloco("IEND", Buffer.alloc(0))]);
 }
 
 async function main() {
@@ -124,6 +165,23 @@ async function main() {
   const longo = await gerar(Object.assign({}, MINIMO, { observacoes: "palavra ".repeat(300), nome: "A".repeat(200) }));
   ok("texto longo não derruba a geração", longo.r.ignoradas === 0);
   guardar("lta-longo.pdf", longo.bytes);
+
+  /* fotos da lesão: viram páginas extras, duas por página */
+  const foto = { bytes: new Uint8Array(pngSolido(120, 90)), tipo: "png" };
+  const doc = await PDFLib.PDFDocument.load(BASE);
+  const n = await L.anexarFotos(PDFLib, doc, [foto, foto, foto], "Maria da Silva - 06/10/2026");
+  ok("anexarFotos: devolve quantas fotos entraram", n === 3);
+  ok("anexarFotos: 3 fotos = 2 páginas novas (total 4)", doc.getPageCount() === 4);
+  const semFoto = await PDFLib.PDFDocument.load(BASE);
+  ok("anexarFotos: sem fotos não acrescenta página", (await L.anexarFotos(PDFLib, semFoto, [], "x")) === 0 && semFoto.getPageCount() === 2);
+  const demais = await PDFLib.PDFDocument.load(BASE);
+  ok("anexarFotos: respeita o limite de " + L.MAX_FOTOS + " fotos", (await L.anexarFotos(PDFLib, demais, new Array(10).fill(foto), "x")) === L.MAX_FOTOS);
+  const ruim = await PDFLib.PDFDocument.load(BASE);
+  ok("anexarFotos: arquivo corrompido não derruba a ficha (é ignorado)",
+     (await L.anexarFotos(PDFLib, ruim, [{ bytes: new Uint8Array([1, 2, 3]), tipo: "png" }, foto], "x")) === 1);
+  guardar("lta-com-fotos.pdf", await doc.save());
+  const reaberto = await PDFLib.PDFDocument.load(await doc.save());
+  ok("PDF com fotos reabre", reaberto.getPageCount() === 4);
 
   console.log("\n" + (falhas ? falhas + " FALHA(S)" : "todos passaram"));
   if (falhas) process.exit(1);
