@@ -244,6 +244,13 @@
         '        <div class="msm-sobre-versao" id="msm-escopo"></div>' +
         "      </div>" +
         '      <div class="msm-sobre-bloco">' +
+        '        <div class="msm-sobre-titulo">Atualização</div>' +
+        '        <p class="msm-sobre-texto">Consulta se existe uma versão mais nova do Assistente. A instalação só acontece depois da sua confirmação na tela do navegador.</p>' +
+        '        <button type="button" class="msm-btn msm-btn-sec" id="msm-atualizar-verificar">🔄 Verificar atualização</button>' +
+        '        <div id="msm-atualizar-mensagem"></div>' +
+        '        <button type="button" class="msm-btn" id="msm-atualizar-instalar" hidden></button>' +
+        "      </div>" +
+        '      <div class="msm-sobre-bloco">' +
         '        <div class="msm-sobre-titulo">Achou um problema? Tem uma ideia?</div>' +
         '        <p class="msm-sobre-texto">Escreva em duas linhas o que aconteceu ou o que faria sua rotina render mais. É o que orienta as próximas versões.</p>' +
         '        <button type="button" class="msm-btn" id="msm-feedback">Enviar feedback</button>' +
@@ -343,6 +350,52 @@
         contato: ctx.contato,
       });
     });
+
+    (function () {
+      const botao = overlay.$("#msm-atualizar-verificar");
+      const caixa = overlay.$("#msm-atualizar-mensagem");
+      const instalar = overlay.$("#msm-atualizar-instalar");
+      let urlInstalar = null;
+      let variante = null;
+      botao.addEventListener("click", function () {
+        const at = raiz.MeedsSuiteAtualizacao;
+        if (!at) return;
+        botao.disabled = true;
+        instalar.hidden = true;
+        caixa.innerHTML = '<div class="msm-aviso">Consultando…</div>';
+        at.verificar(
+          { versaoAtual: ctx.versaoNucleo, baseRaw: ctx.manifesto && ctx.manifesto.baseRaw },
+          function (r) {
+            botao.disabled = false;
+            if (r.situacao === "disponivel") {
+              urlInstalar = r.urlInstalar;
+              variante = r.variante;
+              caixa.innerHTML =
+                '<div class="msm-aviso"><strong>Versão ' + r.versaoNova + " disponível</strong>" +
+                "Você está na " + r.versaoAtual + ".</div>";
+              instalar.textContent = "⬇️ Instalar a versão " + r.versaoNova;
+              instalar.hidden = false;
+            } else if (r.situacao === "atualizado") {
+              caixa.innerHTML = '<div class="msm-ok">Você já está na versão mais recente (' + r.versaoAtual + ").</div>";
+            } else if (r.situacao === "mais-nova") {
+              caixa.innerHTML =
+                '<div class="msm-ok">Esta é a versão ' + r.versaoAtual + ", mais nova que a publicada (" + r.versaoNova + "). Nada a instalar.</div>";
+            } else {
+              caixa.innerHTML =
+                '<div class="msm-erro">Não consegui consultar agora (' + r.motivo + "). Verifique a internet e tente de novo.</div>";
+            }
+          }
+        );
+      });
+      instalar.addEventListener("click", function () {
+        if (!urlInstalar) return;
+        raiz.open(urlInstalar, "_blank");
+        caixa.innerHTML =
+          variante === "safari"
+            ? '<div class="msm-aviso">Confirme a atualização no app Userscripts e recarregue a página do Meeds.</div>'
+            : '<div class="msm-aviso">Na tela que abriu, clique em <b>Atualizar</b> (ou <b>Reinstalar</b>) e depois recarregue o Meeds com F5.</div>';
+      });
+    })();
 
     overlay.$("#msm-diagnostico-copiar").addEventListener("click", function () {
       const caixa = overlay.$("#msm-diagnostico-mensagem");

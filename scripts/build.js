@@ -260,6 +260,7 @@ function main() {
       {
         versao: manifest.versao,
         contato: manifest.contato || null,
+        baseRaw: manifest.baseRaw,
         /* Projecao explicita, e nao o objeto inteiro: o manifesto tem
          * campos que so o build usa (arquivo, requer, prioridadeBotao) e
          * nao ha razao para carrega-los no pacote de 1 MB.

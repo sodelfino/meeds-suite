@@ -1645,6 +1645,39 @@ autocura quando a evidência volta, em vez de ficar perdida.
 
 ---
 
+**D65 — "Forçar atualização": o botão consulta e abre; quem instala é o médico.**
+Pedido: um botão na aba Sobre que procure sozinho uma versão nova. O
+Tampermonkey já checa o `@updateURL` por conta própria, mas em intervalos
+longos e sem avisar; o médico que soube de uma correção às 22h não tinha como
+puxá-la na hora.
+
+`core/atualizacao.js` lê só o `.meta.js` (cabeçalho, poucas centenas de bytes),
+extrai o `@version` e compara numericamente com a versão em uso
+(`compararVersoes`: 2.10.0 > 2.9.0). Se for maior, a aba mostra
+"Instalar a versão X", que abre o `.user.js` no navegador; o Tampermonkey (ou
+o Userscripts, no iPad) apresenta a própria tela de atualização.
+
+**Por que não instala sozinho:** um userscript não consegue se instalar, e
+baixar código para executá-lo por conta própria violaria
+`carregamentoRemotoDeCodigo: false`. O módulo só lê texto; nada do que chega
+é executado. A confirmação final fica com o médico, de propósito.
+
+**Cache.** O GitHub guarda cada arquivo ~5 min; a consulta leva `?t=` para
+furar o cache do navegador, mas não o do GitHub — "acabei de publicar e não
+aparece" pode levar alguns minutos. O link de instalação não leva query string
+(o Tampermonkey reconhece o `.user.js` pela extensão).
+
+**Transporte.** Tampermonkey: `GM_xmlhttpRequest` (já coberto por
+`@connect raw.githubusercontent.com`). Safari: `fetch` com `cache: "no-store"`.
+Prazo de 10 s. Variante escolhida por `typeof GM_getValue`. Endereço base vem
+do inventário embutido (`baseRaw`), não duplicado no código.
+
+`tests/atualizacao.test.js`: situações (disponível/atualizado/mais-nova/erro),
+comparação numérica, URLs por variante, cache-bust só na consulta, e os dois
+transportes.
+
+---
+
 ## 7. Risco aberto: CPF e CNS em repositório público
 
 Os repositórios de origem `lme-sete-lagoas-gerador` e `laudo-cmd-meeds` são

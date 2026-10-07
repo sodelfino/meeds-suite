@@ -44,6 +44,12 @@ Pronto. Os botões aparecem no canto inferior direito assim que você entra.
 > As atualizações passam a ser automáticas: o Tampermonkey busca a versão nova
 > sozinho. Você não precisa mais instalar nada de novo, nem para as 5
 > ferramentas juntas.
+>
+> Quer puxar uma correção na hora, sem esperar? Abra o ⚙️ → aba **Sobre** →
+> **🔄 Verificar atualização**. Se houver versão nova, aparece
+> **⬇️ Instalar a versão X**: clique, confirme **Atualizar** na tela que abrir
+> e recarregue o Meeds (F5). Logo após uma publicação, a versão nova pode
+> levar alguns minutos para aparecer.
 
 ---
 
