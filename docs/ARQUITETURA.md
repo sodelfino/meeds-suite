@@ -1711,6 +1711,71 @@ condição em `secaoAlarme`.
 
 ---
 
+**D67 — Ficha de violência: o PDF oficial é uma imagem, então as coordenadas foram medidas por pixel.**
+Pedido: implementar a Ficha de Notificação Individual de Violência
+Interpessoal/Autoprovocada (SINAN, SVS 03.06.2015, v5.1) "repetindo as
+premissas anteriores". O PDF que chegou é uma **foto de página inteira**: sem
+texto, sem campos, sete faixas de 300 dpi por página, 1,9 MB. As outras fichas
+tinham PDF vetorial, de onde as coordenadas saem do próprio arquivo.
+
+**Como as coordenadas foram obtidas.** Renderização a 300 dpi e análise de
+pixel em Python (PIL, sem OpenCV): quadrados vazios (caixas de marcar) por
+borda superior + inferior + laterais; traços verticais curtos (células de
+dígitos) por janela; linhas horizontais (observações, rodapé). Os quadradinhos
+numerados dos rótulos foram descartados pelo interior (têm dígito); as caixas
+de contorno cinza exigiram um limiar mais permissivo e busca local. Cada
+posição foi conferida desenhando valores de teste sobre a página e olhando o
+resultado (`NOTIF_SAIDA=/tmp/f node tests/notificacao-violencia.test.js`).
+
+**O asset embutido não é o original.** Uma rasterização 1-bit da mesma
+página, A4 (595 x 842 pt), embutida como imagem DeviceGray/Flate: 216 KB
+(283 KB em base64) contra 1,9 MB. A geometria é idêntica, então as medidas
+valem. JPEG e PNG tinham 500 KB a 950 KB — arte de linha pede 1 bit. O PDF
+de origem fica em `modules/notificacao/assets/ficha-violencia.pdf`.
+
+**Operação nova no desenho compartilhado: `fundo`.** As células de UF (4, 19,
+40) e a do CID (68) são sombreadas na ficha escaneada e a trama engolia o
+dígito. `criarDesenho().fundo()` pinta um retângulo branco antes do texto.
+É aditiva: as outras fichas não a usam.
+
+**As premissas, uma a uma.** (a) Só a primeira consulta: encerramento (69),
+assinatura e georreferência ficam em branco. (b) CPF no campo "Cartão SUS"
+com a marca "(CPF)". (c) Item obrigatório nunca sai em branco — o que o
+médico atestou sai 1/2, "não se aplica" sai 8 e "ignorado" sai 9 (os códigos da
+própria ficha): 58 e 59 saem 8 sem violência sexual, 39 sai 8 sem deficiência,
+67 sai 8 sem violência relacionada ao trabalho. (d) Onde há "1-Sim 2-Não
+9-Ignorado" em grupo de caixas (57, 58, 59, 61, 65), o médico marca o que
+houve **ou atesta** ("ignorado"/"nenhum"); sem um dos dois, bloqueia; os dois
+juntos, bloqueia — a mesma mecânica de "sem sinais de alarme" (D66). (e) Nada
+vai a disco. (f) Aviso de sigilo; dica por idade (menor de 10: itens 35-37
+"não se aplica"; menor de 18: Conselho Tutelar; 60+: Conselho do Idoso).
+
+**Regras cruzadas.** Lesão autoprovocada (54 = Sim) exige "Própria pessoa" no
+61, e "Própria pessoa" com 54 = Não é erro (com 54 = Ignorado não é). Ao
+marcar 54 = Sim a tela sugere o resto (1 envolvido, sexo e ciclo de vida do
+autor iguais aos do paciente), e o médico pode corrigir. O 67 só é pedido
+se o 66 = Sim. O CID do 68 é opcional, mas se vier tem de ser X60-Y09.
+
+**Textos "outros" curtos demais para a linha impressa** (14 a 55 pt) saem na
+linha, truncados, e **inteiros nas observações** com o número do item — a
+linha nunca é a única cópia.
+
+**Ponto aberto (importante):** o instrucional de preenchimento da ficha de
+violência não foi enviado, então a lista de obrigatórios foi montada a
+partir da própria ficha e do que o médico sabe na primeira consulta (data e
+local da ocorrência, raça/cor, tipos e meios, autor, encaminhamento...), não
+de um "campo obrigatório" oficial. Com o instrucional em mãos, ajustar
+`validar()` em `violencia-ficha.js` (e a lista `obrigatorios` em
+`violencia-form.js`). Também ficou uma decisão de leitura: o bloco "Cód. da
+Unid. de Saúde/CNES" do notificador (página 2) tem 8 células; o CNES (7
+dígitos) vai nas 7 primeiras.
+
+`tests/notificacao-violencia.test.js`: validação campo a campo, cruzamentos,
+desenho (1/2/8/9 em todos os grupos) e PDF de verdade; mutando a regra do 8,
+a do 67 e a marca (CPF), 4 asserções falham.
+
+---
+
 ## 7. Risco aberto: CPF e CNS em repositório público
 
 Os repositórios de origem `lme-sete-lagoas-gerador` e `laudo-cmd-meeds` são

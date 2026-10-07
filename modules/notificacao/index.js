@@ -31,7 +31,20 @@
   const F = function () { return raiz.MeedsNotificacaoDengue; };
   const L = function () { return raiz.MeedsNotificacaoLta; };
   const AI = function () { return raiz.MeedsNotificacaoAids; };
-  const U = function () { return raiz.MeedsNotificacaoAidsUi; };
+  const VL = function () { return raiz.MeedsNotificacaoViolencia; };
+  /* As telas proprias de cada ficha (AIDS, violencia) entram juntas no mesmo
+   * formulario; cada uma so aparece quando a ficha dela esta escolhida. */
+  const U = function () {
+    const uis = [raiz.MeedsNotificacaoAidsUi, raiz.MeedsNotificacaoViolenciaUi];
+    return {
+      IDS_DATA: [].concat.apply([], uis.map(function (u) { return u.IDS_DATA; })),
+      secao: function (h) { return uis.map(function (u) { return u.secao(h); }).join(""); },
+      coletar: function (h) { return Object.assign.apply(null, [{}].concat(uis.map(function (u) { return u.coletar(h); }))); },
+      condicionais: function (h, dd) { uis.forEach(function (u) { u.condicionais(h, dd); }); },
+      reconciliar: function (h, alvo) { uis.forEach(function (u) { u.reconciliar(h, alvo); }); },
+      obrigatorios: function (h) { return raiz.MeedsNotificacaoViolenciaUi.obrigatorios(h); },
+    };
+  };
 
   const FICHAS = {
     dengue: {
@@ -43,6 +56,11 @@
       titulo: "Ficha de notificação — AIDS (13 anos ou mais)",
       info: "Primeira consulta: preenche a Ficha de Notificação/Investigação de AIDS (pacientes com 13 anos ou mais) do SINAN por cima do PDF oficial, com os campos obrigatórios do instrumento de preenchimento. Evolução do caso e encerramento ficam em branco para a vigilância epidemiológica.",
       pdf: "MEEDS_NOTIF_AIDS_BASE_PDF_B64",
+    },
+    violencia: {
+      titulo: "Ficha de notificação — Violência interpessoal/autoprovocada",
+      info: "Primeira consulta: preenche a Ficha de Notificação Individual de Violência Interpessoal/Autoprovocada (SINAN, SVS 03.06.2015) por cima do PDF oficial. Data de encerramento, assinatura e campos de georreferenciamento ficam em branco para a vigilância. Dado sensível: o arquivo deve seguir só para a vigilância epidemiológica.",
+      pdf: "MEEDS_NOTIF_VIOLENCIA_BASE_PDF_B64",
     },
     lta: {
       titulo: "Ficha de notificação — Leishmaniose Tegumentar",
@@ -96,6 +114,10 @@
     valor: function (id) { return valor(id); },
     marcados: function (g) { return marcados(g); },
     el: function (id) { return el(id); },
+    ficha: function () { return ficha; },
+    hoje: function () { return hojeIso(); },
+    radio: function (n) { return radio(n); },
+    dados: function () { return coletar(); },
     limparGrupo: function (g) {
       overlay.elemento.querySelectorAll('input[data-grupo="' + g + '"]').forEach(function (c) { c.checked = false; });
     },
@@ -209,8 +231,8 @@
     "#nt-aviso-auto { display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }",
     ".nt-idade { font-size:11px; color:#5b6672; margin-top:4px; min-height:14px; }",
     ".nt-oculto { display:none; }",
-    ".nt-so-dengue, .nt-so-lta, .nt-so-aids { display:none; }",
-    "#nt-modal[data-ficha=\"dengue\"] .nt-so-dengue, #nt-modal[data-ficha=\"lta\"] .nt-so-lta, #nt-modal[data-ficha=\"aids\"] .nt-so-aids { display:block; }",
+    ".nt-so-dengue, .nt-so-lta, .nt-so-aids, .nt-so-violencia { display:none; }",
+    "#nt-modal[data-ficha=\"dengue\"] .nt-so-dengue, #nt-modal[data-ficha=\"lta\"] .nt-so-lta, #nt-modal[data-ficha=\"aids\"] .nt-so-aids, #nt-modal[data-ficha=\"violencia\"] .nt-so-violencia { display:block; }",
     "#nt-modal[data-ficha=\"aids\"] #nt-obs-wrap { display:none; }",
     "#nt-modal[data-tela=\"escolha\"] #nt-form, #nt-modal[data-tela=\"escolha\"] #nt-footer, #nt-modal[data-tela=\"escolha\"] #nt-trocar, #nt-modal[data-tela=\"escolha\"] #nt-atualizar { display:none; }",
     "#nt-modal:not([data-tela=\"escolha\"]) #nt-escolha { display:none; }",
@@ -223,14 +245,15 @@
     ".nt-foto button { border:none; background:none; color:#a12626; font-size:11px; font-weight:700; cursor:pointer; padding:0; }",
     "#nt-escolha h3 { font-size:13px; color:#16221f; margin:0 0 4px; }",
     "#nt-escolha p { font-size:11.5px; color:#5b6672; margin:0 0 14px; }",
-    ".nt-cartoes { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; }",
+    ".nt-cartoes { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; }",
+    "@media (max-width:760px) { .nt-cartoes { grid-template-columns:repeat(2, 1fr); } }",
     "button.nt-cartao { --ac:#1a56ad; display:flex; flex-direction:column; align-items:stretch; text-align:left; gap:4px; background:#fff; border:1.5px solid #d3dce9; border-radius:12px; padding:8px 8px 14px; cursor:pointer; color:#16221f; font-family:inherit; transition:border-color .15s, transform .15s; }",
     "button.nt-cartao:hover { border-color:var(--ac); transform:translateY(-2px); }",
     "button.nt-cartao:focus-visible { border-color:var(--ac); outline:3px solid var(--ac); outline-offset:2px; }",
     "button.nt-cartao:active { transform:none; }",
     ".nt-prancha { display:grid; border-radius:7px; overflow:hidden; border:1px solid color-mix(in srgb, var(--ac) 28%, #fff); margin-bottom:8px; }",
     "button.nt-cartao svg { grid-area:1 / 1; display:block; width:100%; height:auto; }",
-    "button.nt-cartao .nt-cartao-nome { font-size:14px; font-weight:800; line-height:1.25; padding:0 6px; }",
+    "button.nt-cartao .nt-cartao-nome { font-size:13px; font-weight:800; line-height:1.25; padding:0 6px; }",
     "button.nt-cartao .nt-cartao-sub { font-size:11.5px; color:#5b6672; line-height:1.4; padding:0 6px; }",
     "button.nt-cartao .nt-cartao-cid { grid-area:1 / 1; align-self:start; justify-self:start; margin:6px; font-size:10.5px; font-weight:800; letter-spacing:.02em; color:var(--ac); background:#fff; border:1px solid var(--ac); border-radius:4px; padding:1px 6px; }",
     "@media (max-width:620px) { .nt-cartoes { grid-template-columns:1fr; } }",
@@ -364,6 +387,16 @@
     '<g fill="none" stroke="#fff" stroke-opacity=".38" stroke-linecap="round" stroke-width="2">' +
     '<path d="M70 24 C66 30 66 38 72 46"/><path d="M78 74 L69 90"/></g>');
 
+  /* Violencia: a mao aberta ("pare") dentro de um escudo de protecao. Sem
+   * imagem de agressao — o tema e sensivel e a tela fica aberta diante do paciente. */
+  const SVG_VIOLENCIA = prancha("violencia", "#f1ecfa", "#d9ccf0",
+    '<path d="M80 8 L128 24 V58 C128 82 108 98 80 104 C52 98 32 82 32 58 V24 Z" fill="#fff" fill-opacity=".7" stroke="#14263f" stroke-width="1.6" stroke-linejoin="round"/>' +
+    '<path d="M80 16 L119 29 V57 C119 76 103 90 80 96 C57 90 41 76 41 57 V29 Z" fill="none" stroke="#6a3fb5" stroke-opacity=".35" stroke-width="1"/>' +
+    '<g fill="none" stroke="#6a3fb5" stroke-width="7.5" stroke-linecap="round">' +
+    '<path d="M68 57 L68 33"/><path d="M77 55 L77 27"/><path d="M86 56 L86 31"/><path d="M95 61 L95 42"/><path d="M63 71 L52 58"/></g>' +
+    '<rect x="62" y="54" width="37" height="33" rx="11" fill="#6a3fb5"/>' +
+    '<path d="M70 72 Q80 80 90 72" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.6" stroke-linecap="round"/>');
+
   /* O carimbo do CID fica sobre a prancha; a cor da doenca vem de --ac. */
   function cartaoFicha(c) {
     return '<button type="button" class="nt-cartao" data-ficha="' + c.id + '" style="--ac:' + c.cor + '">' +
@@ -376,6 +409,7 @@
     '<div class="nt-cartoes">' +
     cartaoFicha({ id: "dengue", cor: "#1f6f8b", svg: SVG_DENGUE, nome: "Dengue e Febre de Chikungunya", sub: "Transmitida pelo mosquito Aedes aegypti", cid: "A90 · A92.0" }) +
     cartaoFicha({ id: "lta", cor: "#b86a14", svg: SVG_LTA, nome: "Leishmaniose Tegumentar Americana", sub: "Úlcera na pele ou nas mucosas — flebotomíneo", cid: "B55.1" }) +
+    cartaoFicha({ id: "violencia", cor: "#6a3fb5", svg: SVG_VIOLENCIA, nome: "Violência interpessoal ou autoprovocada", sub: "Notificação compulsória e sigilosa — todas as idades", cid: "Y09" }) +
     cartaoFicha({ id: "aids", cor: "#c8102e", svg: SVG_AIDS, nome: "AIDS (13 anos ou mais)", sub: "Infecção pelo HIV — notificação compulsória e sigilosa", cid: "B24" }) +
     "</div></div>";
 
@@ -487,6 +521,7 @@
 
   function logicaDaFicha() {
     if (ficha === "lta") return L();
+    if (ficha === "violencia") return VL();
     return ficha === "aids" ? AI() : F();
   }
 
@@ -495,7 +530,7 @@
   }
 
   function aplicaveis() {
-    return OBRIGATORIOS.filter(function (o) { return typeof o.so !== "function" || o.so(); });
+    return OBRIGATORIOS.concat(U().obrigatorios(FERR)).filter(function (o) { return typeof o.so !== "function" || o.so(); });
   }
 
   function faltando() {
@@ -588,6 +623,7 @@
     U().reconciliar(FERR, alvo);
     if (alvo.id === "nt-aids-t-uf") preencherMunicipios("nt-aids-t-uf", "nt-lista-mun-t");
     if (alvo.id === "nt-aids-trat-uf") preencherMunicipios("nt-aids-trat-uf", "nt-lista-mun-trat");
+    if (alvo.id === "nt-v-ocor-uf") preencherMunicipios("nt-v-ocor-uf", "nt-lista-mun-ocor");
     if (alvo.id === "nt-uf-res") preencherMunicipios("nt-uf-res", "nt-lista-mun-res");
     if (alvo.id === "nt-uf-notif") preencherMunicipios("nt-uf-notif", "nt-lista-mun-notif");
     if (alvo.id === "nt-unidade" || alvo.id === "nt-mun-notif") completarCnes();
@@ -905,7 +941,7 @@
     }
     const bytes = await doc.save();
     const slug = String(dados.nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 50);
-    const doenca = ficha === "lta" ? "LEISHMANIOSE" : ficha === "aids" ? "AIDS" : dados.agravo === "chikungunya" ? "CHIKUNGUNYA" : "DENGUE";
+    const doenca = ficha === "lta" ? "LEISHMANIOSE" : ficha === "aids" ? "AIDS" : ficha === "violencia" ? "VIOLENCIA" : dados.agravo === "chikungunya" ? "CHIKUNGUNYA" : "DENGUE";
     return { bytes: bytes, filename: "NOTIFICACAO_" + doenca + "_" + (slug || "PACIENTE") + ".pdf", nome: dados.nome };
   }
 
@@ -989,6 +1025,19 @@
       atualizarCondicionais();
       if (guia) guia.atualizar();
     });
+    el("nt-v-copiar-res").addEventListener("click", function () {
+      definir("nt-v-ocor-uf", valor("nt-uf-res"));
+      preencherMunicipios("nt-v-ocor-uf", "nt-lista-mun-ocor");
+      definir("nt-v-ocor-mun", valor("nt-mun-res"));
+      definir("nt-v-ocor-bairro", valor("nt-bairro"));
+      definir("nt-v-ocor-logr", valor("nt-logradouro"));
+      definir("nt-v-ocor-num", valor("nt-numero"));
+      definir("nt-v-ocor-compl", valor("nt-complemento"));
+      definir("nt-v-ocor-ref", valor("nt-referencia"));
+      definir("nt-v-ocor-zona", valor("nt-zona"));
+      atualizarCondicionais();
+      if (guia) guia.atualizar();
+    });
     definir("nt-aids-obito", "2");
     el("nt-fotos-add").addEventListener("click", function () { el("nt-fotos-arq").click(); });
     el("nt-fotos-arq").addEventListener("change", aoEscolherFotos);
@@ -1009,9 +1058,9 @@
       titulo: "Ficha de notificação",
       passos: [
         { icone: "📋", titulo: "O que esta função faz",
-          texto: "Preenche a ficha de investigação do SINAN por cima do PDF oficial, na primeira consulta: Dengue e Febre de Chikungunya, Leishmaniose Tegumentar Americana ou AIDS (13 anos ou mais). Você escolhe a ficha pelo desenho e o nome. Exames, tratamento, classificação final e encerramento ficam em branco para a vigilância epidemiológica." },
+          texto: "Preenche a ficha de investigação do SINAN por cima do PDF oficial, na primeira consulta: Dengue e Febre de Chikungunya, Leishmaniose Tegumentar Americana, Violência interpessoal/autoprovocada ou AIDS (13 anos ou mais). Você escolhe a ficha pelo desenho e o nome. Exames, tratamento, classificação final e encerramento ficam em branco para a vigilância epidemiológica." },
         { icone: "🩺", titulo: "O que você precisa informar",
-          texto: "Dengue/Chikungunya: a doença suspeita, o início dos sintomas (no máximo 15 dias atrás), ao menos um sinal clínico, a confirmação das doenças pré-existentes e a dos sinais de alarme e de gravidade. Leishmaniose: a forma clínica (cutânea ou mucosa) e o tipo de entrada; se iniciou o tratamento, também a droga e o peso. AIDS: os campos obrigatórios do instrumento do SINAN (transmissão, exame de HIV, critérios e critério óbito). Na Leishmaniose dá para anexar fotos da lesão, que vão no final do PDF. Nome, nascimento, sexo, CPF e telefone vêm da tela do atendimento; confira. O CPF é sempre o número do paciente na ficha." },
+          texto: "Dengue/Chikungunya: a doença suspeita, o início dos sintomas (no máximo 15 dias atrás), ao menos um sinal clínico, a confirmação das doenças pré-existentes e a dos sinais de alarme e de gravidade. Leishmaniose: a forma clínica (cutânea ou mucosa) e o tipo de entrada; se iniciou o tratamento, também a droga e o peso. AIDS: os campos obrigatórios do instrumento do SINAN (transmissão, exame de HIV, critérios e critério óbito). Violência: a data e o local da ocorrência, os tipos de violência e os meios de agressão, o provável autor e o encaminhamento; onde a ficha pede 1-Sim/2-Não, você marca o que houve ou confirma “Ignorado”/“Nenhum”. Na Leishmaniose dá para anexar fotos da lesão, que vão no final do PDF. Nome, nascimento, sexo, CPF e telefone vêm da tela do atendimento; confira. O CPF é sempre o número do paciente na ficha." },
         { icone: "🚨", titulo: "Sinais de alarme (dengue)",
           texto: "Marque os sinais presentes ou escolha “Sem sinais de alarme nem de gravidade”. Se houver algum sinal, aparece um aviso vermelho: oriente o deslocamento imediato a um serviço de pronto atendimento presencial." },
         { icone: "📍", titulo: "Onde o paciente mora",
@@ -1025,7 +1074,7 @@
   raiz.MeedsSuite.registerModule({
     id: "notificacao",
     nome: "Ficha de notificação",
-    descricao: "Gera a ficha de investigação do SINAN (Dengue e Febre de Chikungunya; Leishmaniose Tegumentar Americana; AIDS) na primeira consulta, com validação dos campos obrigatórios.",
+    descricao: "Gera a ficha de investigação do SINAN (Dengue e Febre de Chikungunya; Leishmaniose Tegumentar Americana; AIDS; Violência interpessoal/autoprovocada) na primeira consulta, com validação dos campos obrigatórios.",
     versao: "1.2.0",
     configPadrao: {},
     temBotao: true,

@@ -2,6 +2,16 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.65.0",
+      "data": "2026-10-07",
+      "novidades": [
+        "Ficha de notificação — Violência interpessoal/autoprovocada: quarto cartão na escolha da ficha, com o escudo e a mão aberta. Preenche por cima do PDF oficial do SINAN (SVS 03.06.2015) a ocorrência (data, local, município), os dados do paciente, o tipo de violência e o meio de agressão, a violência sexual (tipo e procedimentos, só quando houver), o provável autor, o encaminhamento, a relação com o trabalho (e a CAT) e a circunstância da lesão (CID-10). CPF no lugar do Cartão SUS, como nas outras fichas. Onde a ficha pede 1-Sim/2-Não, você marca o que houve ou confirma \"Ignorado\"/\"Nenhum\" — nada sai em branco. Marcar \"lesão autoprovocada\" já sugere o autor (própria pessoa). Avisa que é dado sensível e mostra uma dica para crianças, adolescentes e idosos.",
+        "O menu das fichas agora mostra as quatro fichas lado a lado (duas por linha no celular)."
+      ],
+      "melhorias": [],
+      "correcoes": []
+    },
+    {
       "versao": "2.64.0",
       "data": "2026-10-07",
       "novidades": [

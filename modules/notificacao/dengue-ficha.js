@@ -469,6 +469,11 @@
       centro: function (o) {
         ops.push({ pg: o.pg, tipo: "centro", cx: o.cx, cy: o.cy, texto: String(o.texto), tam: o.tam || 9, negrito: !!o.negrito });
       },
+      /* Retangulo branco (x, y = canto sup-esq; w, h): limpa uma trama que
+       * atrapalharia a leitura (ex.: celulas sombreadas do PDF escaneado). */
+      fundo: function (o) {
+        ops.push({ pg: o.pg, tipo: "fundo", x: o.x, y: o.y, w: o.w, h: o.h });
+      },
       /* Texto livre, da esquerda, na linha de base y; "larg" encolhe a fonte. */
       texto: function (o) {
         const t = saneaTexto(o.valor);
@@ -678,6 +683,9 @@
         const a = ajustar(fonte, op.texto, op.tam, op.larg);
         const w = fonte.widthOfTextAtSize(a.texto, a.tam);
         desenhar(pagina, fonte, { texto: a.texto, x: op.cx - w / 2, baseline: op.cy + 0.35 * a.tam, tam: a.tam });
+      } else if (op.tipo === "fundo") {
+        pagina.drawRectangle({ x: op.x, y: pagina.getHeight() - op.y - op.h, width: op.w, height: op.h, color: PDFLib.rgb(1, 1, 1) });
+        resultado.desenhadas++;
       } else if (op.tipo === "texto") {
         const a = ajustar(fonte, op.texto, op.tam, op.larg);
         desenhar(pagina, fonte, { texto: a.texto, x: op.x, baseline: op.y, tam: a.tam });
