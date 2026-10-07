@@ -49,6 +49,7 @@ function valido(extra) {
     inicioSintomas: "2026-10-03",
     sinais: ["febre", "cefaleia", "mialgia"],
     doencas: [],
+    semDoencas: true,
     alarme: [],
     gravidade: [],
     semAlarme: true,
@@ -223,18 +224,27 @@ ok("nome do paciente em maiúsculas",
    ops(valido()).some((o) => o.pg === 0 && o.tipo === "texto" && o.texto === "DARA ARRUDA MAGALHÃES"));
 ok("UF de residência escrita", ops(valido()).some((o) => o.pg === 0 && o.texto === "RJ" && o.cy >= 390 && o.cy <= 402));
 
-/* sinais clínicos e doenças: só as marcadas recebem '1'; as demais ficam em branco */
+/* itens 33 e 34 (obrigatórios na ficha nova, instrucional Sinan 3.0): 1 nas marcadas, 2 nas demais */
 const CX_FEBRE = [55.0, 570.3, 67.7, 582.8];
 const CX_CEFALEIA = [100.8, 569.6, 113.3, 582.1];
 const CX_VOMITO = [158.6, 570.3, 171.1, 583.0];
 ok("sinal marcado (febre) recebe '1'", nasCaixa(ops(valido()), CX_FEBRE, "1", 0));
 ok("sinal marcado (cefaleia) recebe '1'", nasCaixa(ops(valido()), CX_CEFALEIA, "1", 0));
-ok("sinal NÃO marcado (vômito) fica em branco — não afirma o que ninguém perguntou",
-   !ops(valido()).some((o) => o.pg === 0 && dentro(o, CX_VOMITO)));
+ok("sinal NÃO marcado (vômito) recebe '2' — item 33 é obrigatório",
+   nasCaixa(ops(valido()), CX_VOMITO, "2", 0));
+ok("item 33: as 14 caixas ficam preenchidas (1 ou 2), nenhuma em branco",
+   N.SINAIS_CLINICOS.every((x) => ops(valido()).some((o) => o.pg === 0 && dentro(o, x.caixa))));
 ok("doença pré-existente marcada (diabetes) recebe '1'",
    nasCaixa(ops(valido({ doencas: ["diabetes"] })), [54.2, 621.9, 66.7, 634.6], "1", 0));
-ok("doença não marcada fica em branco",
-   !ops(valido({ doencas: ["diabetes"] })).some((o) => o.pg === 0 && dentro(o, [189.4, 619.8, 202.6, 633.0])));
+ok("doença não marcada recebe '2' (o médico atestou o quadro)",
+   nasCaixa(ops(valido({ doencas: ["diabetes"], semDoencas: false })), [189.4, 619.8, 202.6, 633.0], "2", 0));
+ok("'sem doenças pré-existentes': '2' nas 7 caixas do item 34",
+   N.DOENCAS.length === 7 && N.DOENCAS.every((x) => nasCaixa(ops(valido()), x.caixa, "2", 0)));
+ok("item 34 sem doenças marcadas e sem atestar: bloqueia (não dá para distinguir 'nenhuma' de 'não perguntei')",
+   campos(valido({ semDoencas: false })).join() === "doencas");
+ok("'sem doenças' junto com doença marcada: contradição, bloqueia",
+   campos(valido({ semDoencas: true, doencas: ["diabetes"] })).join() === "doencas");
+ok("doença marcada (sem o atestado de ausência): vale", erros(valido({ semDoencas: false, doencas: ["diabetes"] })).length === 0);
 
 /* sinais de alarme (página 2) */
 const ALARMES = N.ALARME;
@@ -243,7 +253,7 @@ ok("9 sinais de alarme e 15 de gravidade mapeados", ALARMES.length === 9 && GRAV
 {
   const o = ops(valido()); // semAlarme: true
   ok("'sem sinais de alarme': '2' nas 9 caixas do item 68", ALARMES.every((a) => nasCaixa(o, a.caixa, "2", 1)));
-  ok("'sem sinais de alarme' NÃO escreve nada no item 70 (gravidade)", !GRAVES.some((g) => o.some((x) => x.pg === 1 && dentro(x, g.caixa))));
+  ok("'sem sinais de alarme nem de gravidade': '2' nas 15 caixas do item 70", GRAVES.every((g) => nasCaixa(o, g.caixa, "2", 1)));
 }
 {
   const o = ops(valido({ semAlarme: false, alarme: ["vomitos"], gravidade: ["melena"], dataAlarme: "2026-10-05", dataGravidade: "2026-10-06" }));
@@ -253,7 +263,7 @@ ok("9 sinais de alarme e 15 de gravidade mapeados", ALARMES.length === 9 && GRAV
   ok("alarme marcado recebe '1'", nasCaixa(o, vomito.caixa, "1", 1));
   ok("alarme não marcado recebe '2' (o médico atestou o quadro)", nasCaixa(o, dor.caixa, "2", 1));
   ok("gravidade marcada recebe '1'", nasCaixa(o, melena.caixa, "1", 1));
-  ok("gravidade não marcada fica em branco", !GRAVES.filter((g) => g.id !== "melena").some((g) => o.some((x) => x.pg === 1 && dentro(x, g.caixa))));
+  ok("gravidade não marcada recebe '2' (item 70 obrigatório)", GRAVES.filter((g) => g.id !== "melena").every((g) => nasCaixa(o, g.caixa, "2", 1)));
   ok("data de início dos sinais de alarme: 05102026", doTexto(o, 1, 314, 326, 452, 568) === "05102026");
   ok("data de início dos sinais de gravidade: 06102026", doTexto(o, 1, 460, 471, 50, 172) === "06102026");
 }
@@ -296,3 +306,10 @@ ok("saneaTexto: espaços repetidos e quebras de linha viram um espaço", N.sanea
 
 console.log("\n" + (falhas ? falhas + " FALHA(S)" : "todos passaram"));
 if (falhas) process.exit(1);
+
+/* só gravidade marcada (sem sinal de alarme): os dois itens saem preenchidos */
+{
+  const o = ops(valido({ semAlarme: false, alarme: [], gravidade: ["melena"], dataGravidade: "2026-10-06" }));
+  ok("só gravidade marcada: item 68 sai todo '2'", ALARMES.every((a) => nasCaixa(o, a.caixa, "2", 1)));
+  ok("só gravidade marcada: melena '1'", nasCaixa(o, GRAVES.find((g) => g.id === "melena").caixa, "1", 1));
+}

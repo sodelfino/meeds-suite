@@ -2,6 +2,20 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.61.0",
+      "data": "2026-10-07",
+      "novidades": [
+        "Ficha de Dengue/Chikungunya: nova caixa \"Sem doenças pré-existentes\" — a ficha nova do Sinan exige o item 34 preenchido, então agora você marca as doenças que existem ou atesta que não há nenhuma."
+      ],
+      "melhorias": [
+        "Ficha de Dengue/Chikungunya, seguindo o instrucional do Sinan 3.0: os itens 33 (sinais clínicos), 34 (doenças pré-existentes), 68 (sinais de alarme) e 70 (dengue grave) saem sempre completos — 1 nas marcadas e 2 nas demais, em vez de caixas em branco.",
+        "Os sinais de gravidade agora ficam sempre visíveis (antes ficavam recolhidos), e a caixa \"Sem sinais de alarme\" passou a valer para alarme e gravidade juntos."
+      ],
+      "correcoes": [
+        "Ficha de Dengue/Chikungunya: se só houvesse sinal de gravidade marcado, o item 68 saía em branco; agora sai preenchido."
+      ]
+    },
+    {
       "versao": "2.60.0",
       "data": "2026-10-07",
       "novidades": [

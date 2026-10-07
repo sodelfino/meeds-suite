@@ -1678,6 +1678,39 @@ transportes.
 
 ---
 
+**D66 — Ficha de dengue: item obrigatório sai com 1 ou 2, nunca em branco.**
+O instrucional "Sinan online 3.0 — Dengue e Chikungunya" (SVS) trata como
+**obrigatórios** os campos novos 33 (sinais clínicos), 34 (doenças
+pré-existentes), 68 (sinais de alarme) e 70 (dengue grave); na ficha impressa
+cada caixa é 1-Sim / 2-Não. O módulo só preenchia o 68 assim: 33 e 34 deixavam
+em branco o que não fora marcado e o 70 nunca recebia "2". Em branco, para a
+vigilância, é "ninguém perguntou".
+
+A regra passou a ser: **o que o médico atestou sai 1/2; o que ele não atestou
+bloqueia a geração.** (a) 33 — a validação já exigia ≥ 1 sinal; as demais
+caixas saem "2". (b) 34 — nova caixa "Sem doenças pré-existentes", exclusiva
+com as doenças (mesma mecânica do "sem sinais de alarme"); sem marcar nada e
+sem atestar, bloqueia — senão "nenhuma" e "não perguntei" seriam
+indistinguíveis. (c) 68 e 70 — o atestado agora é "alarme OU gravidade OU
+sem-alarme" e preenche os **dois** itens; a caixa "Sem sinais de alarme"
+virou "…nem de gravidade" e o grupo de gravidade deixou de ser um `<details>`
+recolhido, para o atestado cobrir o que a tela realmente mostrou. Isso também
+corrige o caso "só gravidade marcada", que deixava o 68 em branco.
+
+O campo 2 (Agravo: 1-Dengue A90 / 2-Chikungunya A92) já estava certo: o CID
+vem pré-impresso na ficha e o módulo marca só a caixa. Os campos 1–30 e a
+conclusão seguem como estavam.
+
+**Ponto aberto:** o instrucional diz que 68 e 70 são "condicionados ao campo
+66 (Classificação)", que é encerramento e fica para a vigilância. Mantivemos o
+preenchimento na primeira consulta (já era o comportamento do 68); se a
+vigilância preferir 68/70 em branco até a classificação, é inverter uma
+condição em `secaoAlarme`.
+
+`tests/notificacao-dengue.test.js`: 9 asserções falham no código anterior.
+
+---
+
 ## 7. Risco aberto: CPF e CNS em repositório público
 
 Os repositórios de origem `lme-sete-lagoas-gerador` e `laudo-cmd-meeds` são

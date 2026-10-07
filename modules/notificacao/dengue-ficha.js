@@ -348,6 +348,18 @@
     }
   }
 
+  /* Item 34 (doencas pre-existentes) e obrigatorio na ficha nova do Sinan:
+   * ou o medico marca as que existem, ou ATESTA que nao ha nenhuma. Sem a
+   * atestacao nao da para distinguir "nenhuma" de "nao perguntei". */
+  function validarDoencas(c) {
+    const marcou = lista(c.d.doencas).length > 0;
+    if (!marcou && !c.d.semDoencas) {
+      c.erro("doencas", "Confirme as doenças pré-existentes: marque as que existirem ou escolha “Sem doenças pré-existentes”.");
+    } else if (marcou && c.d.semDoencas) {
+      c.erro("doencas", "Você marcou “Sem doenças pré-existentes” e também marcou doenças — desfaça um dos dois.");
+    }
+  }
+
   function validarNascimento(c) {
     const d = c.d;
     if (vazio(d.nascimento)) return c.erro("nascimento", "Informe a data de nascimento.");
@@ -438,7 +450,7 @@
    * "campo" e a chave de dados (o formulario aponta o elemento por ela). */
   function validar(d, hojeIso) {
     const c = novoContexto(d, hojeIso);
-    [validarAgravo, validarSintomas, validarSinais, validarPaciente, validarResidencia, validarTelefone, validarOpcionais]
+    [validarAgravo, validarSintomas, validarSinais, validarDoencas, validarPaciente, validarResidencia, validarTelefone, validarOpcionais]
       .forEach(function (etapa) { etapa(c); });
     return c.erros;
   }
@@ -557,25 +569,35 @@
     });
   }
 
+  function marcarSimNao(b, catalogo, ids, pg) {
+    const marcados = lista(ids);
+    catalogo.forEach(function (item) {
+      b.caixa(pg, item.caixa, marcados.indexOf(item.id) !== -1 ? "1" : "2");
+    });
+  }
+
   function secaoClinica(b, d, hoje) {
     b.pente(0, PENTE.dataInvestigacao, ddmmaaaa(hoje));
     b.texto({ pg: 0, x: 184, y: 544.5, valor: d.ocupacao, larg: 360 });
-    /* So as marcadas recebem "1"; as demais ficam em branco (nao afirma o
-     * que ninguem perguntou). */
-    marcarEscolhidos(b, SINAIS_CLINICOS, d.sinais);
-    marcarEscolhidos(b, DOENCAS, d.doencas);
+    /* Itens 33 e 34 sao obrigatorios na ficha nova (Sinan 3.0): cada caixa
+     * leva 1-Sim ou 2-Nao. A validacao ja garante que o medico atestou os
+     * dois quadros (>= 1 sinal marcado; doencas marcadas OU "sem doencas"),
+     * entao as nao marcadas recebem "2" — nao e chute, e atestado. */
+    marcarSimNao(b, SINAIS_CLINICOS, d.sinais, 0);
+    if (lista(d.doencas).length > 0 || d.semDoencas) marcarSimNao(b, DOENCAS, d.doencas, 0);
   }
 
   function secaoAlarme(b, d) {
     const alarmes = lista(d.alarme);
     const graves = lista(d.gravidade);
-    /* O medico atestou o quadro: 1 nas marcadas, 2 nas demais (item 68). */
-    if (alarmes.length > 0 || d.semAlarme) {
-      ALARME.forEach(function (a) { b.caixa(1, a.caixa, alarmes.indexOf(a.id) !== -1 ? "1" : "2"); });
+    /* Itens 68 e 70 sao obrigatorios na ficha nova (Sinan 3.0). O medico
+     * atestou o quadro (marcou algo OU escolheu "Sem sinais de alarme nem
+     * de gravidade", e a tela mostra os dois grupos abertos): 1 nas
+     * marcadas, 2 nas demais, nos DOIS itens. */
+    if (alarmes.length > 0 || graves.length > 0 || d.semAlarme) {
+      marcarSimNao(b, ALARME, alarmes, 1);
+      marcarSimNao(b, GRAVIDADE, graves, 1);
     }
-    GRAVIDADE.forEach(function (g) {
-      if (graves.indexOf(g.id) !== -1) b.caixa(1, g.caixa, "1");
-    });
     if (alarmes.length > 0 && lerData(d.dataAlarme)) b.pente(1, PENTE.dataAlarme, ddmmaaaa(d.dataAlarme));
     if (graves.length > 0 && lerData(d.dataGravidade)) b.pente(1, PENTE.dataGravidade, ddmmaaaa(d.dataGravidade));
     if (graves.indexOf("outrosOrgaos") !== -1) b.texto({ pg: 1, x: 460, y: 424.0, valor: d.outrosOrgaos, tam: 8, larg: 96 });

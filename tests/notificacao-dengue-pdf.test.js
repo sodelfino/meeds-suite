@@ -40,7 +40,7 @@ const BASE = Buffer.from(ctx.MEEDS_NOTIF_DENGUE_BASE_PDF_B64, "base64");
 const HOJE = "2026-10-06";
 
 const MINIMO = {
-  agravo: "dengue", inicioSintomas: "2026-10-04", sinais: ["febre"], semAlarme: true,
+  agravo: "dengue", inicioSintomas: "2026-10-04", sinais: ["febre"], semDoencas: true, semAlarme: true,
   nome: "Maria da Silva", nascimento: "1990-01-02", sexo: "M",
   ufRes: "RJ", municipioRes: "Macaé", telefone: "2237721523",
   ufNotif: "RJ", municipioNotif: "Macaé", unidade: "ESF Aroeira",
@@ -50,6 +50,7 @@ const COMPLETO = Object.assign({}, MINIMO, {
   agravo: "chikungunya", inicioSintomas: "2026-10-01",
   sinais: N.SINAIS_CLINICOS.map((s) => s.id),
   doencas: N.DOENCAS.map((s) => s.id),
+  semDoencas: false,
   semAlarme: false,
   alarme: N.ALARME.map((a) => a.id),
   gravidade: N.GRAVIDADE.map((g) => g.id),

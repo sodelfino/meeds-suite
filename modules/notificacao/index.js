@@ -99,6 +99,7 @@
       alarme: marcados("alarme"),
       gravidade: marcados("gravidade"),
       semAlarme: !!(el("nt-sem-alarme") && el("nt-sem-alarme").checked),
+      semDoencas: !!(el("nt-sem-doencas") && el("nt-sem-doencas").checked),
       dataAlarme: valor("nt-data-alarme"),
       dataGravidade: valor("nt-data-gravidade"),
       outrosOrgaos: valor("nt-outros-orgaos"),
@@ -226,18 +227,19 @@
       '<div class="nt-grid3"><div><label class="nt-rot" for="nt-inicio">Início dos sintomas *</label><input type="date" id="nt-inicio"></div></div>' +
       '<div class="nt-sub" id="nt-sinais-rot">Sinais clínicos * (marque os presentes)</div>' +
       '<div class="nt-checks" id="nt-sinais">' + checks("sinais", F().SINAIS_CLINICOS) + "</div>" +
-      '<div class="nt-sub">Doenças pré-existentes (opcional)</div>' +
-      '<div class="nt-checks">' + checks("doencas", F().DOENCAS) + "</div></div>";
+      '<div class="nt-sub" id="nt-doencas-rot">Doenças pré-existentes *</div>' +
+      '<label class="nt-check"><input type="checkbox" id="nt-sem-doencas"> <b>Sem doenças pré-existentes</b> (atesto que o paciente não tem nenhuma)</label>' +
+      '<div class="nt-checks" id="nt-doencas">' + checks("doencas", F().DOENCAS) + "</div></div>";
   }
 
   function secaoAlarme() {
     return '<div class="nt-sec" id="nt-sec-alarme"><h3>Sinais de alarme e de gravidade *</h3>' +
-      '<label class="nt-check"><input type="checkbox" id="nt-sem-alarme"> <b>Sem sinais de alarme</b> (atesto que o paciente não apresenta nenhum)</label>' +
+      '<label class="nt-check"><input type="checkbox" id="nt-sem-alarme"> <b>Sem sinais de alarme nem de gravidade</b> (atesto que o paciente não apresenta nenhum)</label>' +
       '<div class="nt-sub">Dengue com sinais de alarme</div><div class="nt-checks">' + checks("alarme", F().ALARME) + "</div>" +
       '<div id="nt-linha-data-alarme" class="nt-oculto" style="margin-top:8px;max-width:240px"><label class="nt-rot" for="nt-data-alarme">Início dos sinais de alarme</label><input type="date" id="nt-data-alarme"></div>' +
-      '<details class="nt-det" style="margin-top:10px"><summary>Dengue grave (sinais de gravidade)</summary><div class="nt-checks">' + checks("gravidade", F().GRAVIDADE) + "</div>" +
+      '<div class="nt-sub" style="margin-top:10px">Dengue grave (sinais de gravidade)</div><div class="nt-det"><div class="nt-checks">' + checks("gravidade", F().GRAVIDADE) + "</div>" +
       '<div class="nt-grid2" style="margin-top:8px"><div id="nt-linha-data-grav" class="nt-oculto"><label class="nt-rot" for="nt-data-gravidade">Início dos sinais de gravidade</label><input type="date" id="nt-data-gravidade"></div>' +
-      '<div id="nt-linha-outros" class="nt-oculto"><label class="nt-rot" for="nt-outros-orgaos">Outros órgãos (especificar)</label><input type="text" id="nt-outros-orgaos" maxlength="40"></div></div></details></div>';
+      '<div id="nt-linha-outros" class="nt-oculto"><label class="nt-rot" for="nt-outros-orgaos">Outros órgãos (especificar)</label><input type="text" id="nt-outros-orgaos" maxlength="40"></div></div></div></div>';
   }
 
   function secaoPaciente() {
@@ -393,6 +395,7 @@
     { campo: "agravo", id: "nt-agravo-dengue", rotulo: "Doença suspeita", descricao: "a doença suspeita", comoResolver: "escolha Dengue ou Chikungunya", so: soDengue },
     { campo: "inicioSintomas", id: "nt-inicio", rotulo: "Início dos sintomas", descricao: "a data de início dos sintomas", comoResolver: "no máximo 15 dias atrás, nunca futura", so: soDengue },
     { campo: "sinais", id: "nt-sinais", rotulo: "Sinais clínicos", descricao: "ao menos um sinal clínico", comoResolver: "marque os presentes", so: soDengue },
+    { campo: "doencas", id: "nt-doencas-rot", rotulo: "Doenças pré-existentes", descricao: "a confirmação das doenças pré-existentes", comoResolver: "marque as existentes ou “Sem doenças pré-existentes”", so: soDengue },
     { campo: "alarme", id: "nt-sec-alarme", rotulo: "Sinais de alarme", descricao: "a confirmação dos sinais de alarme", comoResolver: "marque os existentes ou “Sem sinais de alarme”", so: soDengue },
     { campo: "nome", id: "nt-nome", rotulo: "Nome completo", descricao: "o nome do paciente", comoResolver: "clique em “Atualizar paciente” para ler da tela" },
     { campo: "nascimento", id: "nt-nasc", rotulo: "Data de nascimento", descricao: "a data de nascimento", comoResolver: "clique em “Atualizar paciente” para ler da tela" },
@@ -454,6 +457,17 @@
     }
   }
 
+  /* Mesma exclusao para "Sem doenças pré-existentes". */
+  function reconciliarDoencas(alvo) {
+    const sem = el("nt-sem-doencas");
+    const grupo = alvo && alvo.getAttribute && alvo.getAttribute("data-grupo");
+    if (alvo === sem && sem.checked) {
+      overlay.elemento.querySelectorAll('input[data-grupo="doencas"]').forEach(function (c) { c.checked = false; });
+    } else if (grupo === "doencas" && alvo.checked) {
+      sem.checked = false;
+    }
+  }
+
   function preencherMunicipios(idUf, idLista) {
     const lista = el(idLista);
     lista.innerHTML = "";
@@ -486,6 +500,7 @@
   function aoMudar(ev) {
     const alvo = ev.target;
     reconciliarAlarme(alvo);
+    reconciliarDoencas(alvo);
     if (alvo.id === "nt-uf-res") preencherMunicipios("nt-uf-res", "nt-lista-mun-res");
     if (alvo.id === "nt-uf-notif") preencherMunicipios("nt-uf-notif", "nt-lista-mun-notif");
     if (alvo.id === "nt-unidade" || alvo.id === "nt-mun-notif") completarCnes();
@@ -888,9 +903,9 @@
         { icone: "📋", titulo: "O que esta função faz",
           texto: "Preenche a ficha de investigação do SINAN por cima do PDF oficial, na primeira consulta: Dengue e Febre de Chikungunya, ou Leishmaniose Tegumentar Americana. Você escolhe a ficha pelo desenho e o nome. Exames, tratamento, classificação final e encerramento ficam em branco para a vigilância epidemiológica." },
         { icone: "🩺", titulo: "O que você precisa informar",
-          texto: "Dengue/Chikungunya: a doença suspeita, o início dos sintomas (no máximo 15 dias atrás), ao menos um sinal clínico e a confirmação dos sinais de alarme. Leishmaniose: a forma clínica (cutânea ou mucosa) e o tipo de entrada; se iniciou o tratamento, também a droga e o peso. Dá para anexar fotos da lesão, que vão no final do PDF. Nome, nascimento, sexo, CPF e telefone vêm da tela do atendimento; confira. O CPF é sempre o número do paciente na ficha." },
+          texto: "Dengue/Chikungunya: a doença suspeita, o início dos sintomas (no máximo 15 dias atrás), ao menos um sinal clínico, a confirmação das doenças pré-existentes e a dos sinais de alarme e de gravidade. Leishmaniose: a forma clínica (cutânea ou mucosa) e o tipo de entrada; se iniciou o tratamento, também a droga e o peso. Dá para anexar fotos da lesão, que vão no final do PDF. Nome, nascimento, sexo, CPF e telefone vêm da tela do atendimento; confira. O CPF é sempre o número do paciente na ficha." },
         { icone: "🚨", titulo: "Sinais de alarme (dengue)",
-          texto: "Marque os sinais presentes ou escolha “Sem sinais de alarme”. Se houver algum sinal, aparece um aviso vermelho: oriente o deslocamento imediato a um serviço de pronto atendimento presencial." },
+          texto: "Marque os sinais presentes ou escolha “Sem sinais de alarme nem de gravidade”. Se houver algum sinal, aparece um aviso vermelho: oriente o deslocamento imediato a um serviço de pronto atendimento presencial." },
         { icone: "📍", titulo: "Onde o paciente mora",
           texto: "A vigilância age no município de residência, não onde o médico está. O município vem sugerido pela tela; troque se for outro. Escolha da lista para o código do IBGE entrar sozinho." },
         { icone: "💾", titulo: "Gerar",
