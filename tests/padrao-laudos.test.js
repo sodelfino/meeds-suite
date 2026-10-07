@@ -38,6 +38,7 @@ ok("os dados da APAC continuam no repositório", fs.existsSync(path.join(RAIZ, "
 /* 2. Padrao de primeira instalacao. */
 ok("Laudo — Sete Lagoas entra DESLIGADO", ficha("lme-sete-lagoas").padraoHabilitado === false);
 ok("Laudo — Conceição entra DESLIGADO", ficha("cmd").padraoHabilitado === false);
+ok("LME — Medicamentos (MG) entra DESLIGADO", ficha("lme-mg").padraoHabilitado === false);
 const ligados = manifest.modulos.filter((m) => m.padraoHabilitado !== false).map((m) => m.id);
 ok("todo o resto entra LIGADO", ligados.sort().join() ===
    ["alarme-fila", "avisos-municipio", "cid10", "exames", "notificacao", "preview-pdf", "remume"].sort().join(), ligados.join(", "));

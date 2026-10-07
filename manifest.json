@@ -1,6 +1,6 @@
 {
   "nome": "Assistente Meeds",
-  "versao": "2.63.0",
+  "versao": "2.64.0",
   "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
   "repositorio": "https://github.com/sodelfino/meeds-suite",
   "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -122,6 +122,30 @@
       },
       "padraoHabilitado": false,
       "motivoPadraoDesligado": "Entra desligado na primeira instalacao: e util so para quem atende o municipio. O medico liga na engrenagem quando precisar. Quem ja usava antes desta versao continua com ele ligado."
+    },
+    {
+      "id": "lme-mg",
+      "nome": "LME — Medicamentos (MG)",
+      "descricao": "Gera o LME (Laudo de Solicitação, Avaliação e Autorização de Medicamento(s) do Componente Especializado da Assistência Farmacêutica) no novo modelo editável da SES-MG, com os dados do paciente da tela e o CPF no lugar do CNS. Para quem atende Minas Gerais.",
+      "versao": "1.0.0",
+      "arquivo": "modules/lme-mg/index.js",
+      "origem": "novetech/lme-mg",
+      "prioridadeBotao": 35,
+      "requer": [
+        "pdf-lib"
+      ],
+      "assets": [
+        "modules/lme-mg/assets/base-pdf-lme-mg.js",
+        "modules/lme-mg/lme-mg-ficha.js"
+      ],
+      "apresentacao": {
+        "formaBotao": "rotulo",
+        "icone": "laudo",
+        "rotuloBotao": "LME — Medicamentos MG",
+        "cabecalho": "LME — Medicamentos (Minas Gerais)"
+      },
+      "padraoHabilitado": false,
+      "motivoPadraoDesligado": "Entra desligado na primeira instalacao: e util so para quem atende Minas Gerais. O medico liga na engrenagem quando precisar."
     },
     {
       "id": "notificacao",

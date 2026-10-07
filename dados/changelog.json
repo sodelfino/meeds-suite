@@ -2,6 +2,15 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.64.0",
+      "data": "2026-10-07",
+      "novidades": [
+        "LME — Medicamentos (Minas Gerais): nova função que preenche o Laudo de Solicitação, Avaliação e Autorização de Medicamento(s) do Componente Especializado da Assistência Farmacêutica, no novo modelo editável da SES-MG, com os dados do paciente da tela. Segue os campos com asterisco do próprio formulário e usa sempre o CPF (do paciente e do médico) no lugar do CNS. Vem desligada: ligue na engrenagem se atende Minas Gerais."
+      ],
+      "melhorias": [],
+      "correcoes": []
+    },
+    {
       "versao": "2.63.0",
       "data": "2026-10-07",
       "novidades": [],
