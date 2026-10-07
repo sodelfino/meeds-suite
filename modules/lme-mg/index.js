@@ -115,6 +115,7 @@
     ".lm-meses { display:grid; grid-template-columns:repeat(6, 1fr) auto; gap:6px; margin-top:6px; align-items:end; }",
     ".lm-meses label.lm-rot { text-align:center; margin-bottom:2px; }",
     "#lm-body .lm-meses input { text-align:center; padding:7px 4px; }",
+    ".lm-dica { font-size:11px; margin-top:5px; min-height:14px; }",
     ".lm-contador { font-size:10.5px; color:#5b6672; text-align:right; margin-top:3px; }",
     ".lm-contador.lm-estourou { color:#a12626; font-weight:700; }",
     "#lm-aviso-auto { display:none; background:#fff4e2; color:#a15c00; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; }",
@@ -135,7 +136,7 @@
     return '<div class="lm-sec"><h3>Estabelecimento solicitante</h3><div class="lm-grid3">' +
       campo("lm-cnes", "1. CNES * (7 dígitos)", 'inputmode="numeric" maxlength="7"') +
       campo("lm-estab", "2. Nome do estabelecimento", 'maxlength="90" list="lm-lista-unidades"', 2) +
-      '<datalist id="lm-lista-unidades"></datalist></div></div>';
+      '<datalist id="lm-lista-unidades"></datalist></div><div class="lm-dica" id="lm-estab-dica"></div></div>';
   }
 
   function secaoPaciente() {
@@ -275,7 +276,8 @@
       const maiusc = alvo.value.toUpperCase();
       if (alvo.value !== maiusc) alvo.value = maiusc;
     }
-    if (alvo.id === "lm-estab") completarCnes();
+    if (alvo.id === "lm-estab") { alvo.dataset.auto = ""; herdarPorNome(false); }
+    if (alvo.id === "lm-cnes") { alvo.dataset.auto = ""; herdarPorCnes(); }
     atualizarCondicionais();
     if (guia) guia.atualizar();
   }
@@ -327,24 +329,64 @@
     return out;
   }
 
-  function sugerirUnidades(municipio) {
-    const lista = el("lm-lista-unidades");
-    lista.innerHTML = "";
-    const todos = d.cadastro && d.cadastro.listarEstabelecimentosDe ? d.cadastro.listarEstabelecimentosDe(municipio || "") : [];
-    todos.forEach(function (e) {
-      const o = document.createElement("option");
-      o.value = e.nome;
-      lista.appendChild(o);
-    });
-    return todos;
-  }
-
+  /* ----------------------------------------------------------------
+   * CNES herdado do cadastro de estabelecimentos do Assistente
+   * ---------------------------------------------------------------- */
   let municipioDaTela = "";
 
-  function completarCnes() {
-    const n = String(valor("lm-estab")).toLowerCase();
-    const achado = sugerirUnidades(municipioDaTela).filter(function (e) { return String(e.nome).toLowerCase() === n && e.cnes; })[0];
-    if (achado && !valor("lm-cnes")) definir("lm-cnes", achado.cnes);
+  function cadastroDeUnidades() {
+    return d.cadastro && d.cadastro.listarEstabelecimentosDe ? d.cadastro.listarEstabelecimentosDe("") : [];
+  }
+
+  /* As sugestoes do campo de nome: as do municipio da tela primeiro, com
+   * o CNES e a cidade a vista. */
+  function sugerirUnidades() {
+    const lista = el("lm-lista-unidades");
+    lista.innerHTML = "";
+    const mun = String(municipioDaTela || "").toLowerCase();
+    cadastroDeUnidades().slice().sort(function (a, b) {
+      return (String(b.municipio).toLowerCase() === mun ? 1 : 0) - (String(a.municipio).toLowerCase() === mun ? 1 : 0);
+    }).forEach(function (e) {
+      const o = document.createElement("option");
+      o.value = e.nome;
+      o.label = (e.cnes ? "CNES " + e.cnes : "sem CNES") + (e.municipio ? " · " + e.municipio : "");
+      lista.appendChild(o);
+    });
+  }
+
+  function dicaEstabelecimento(texto, ok) {
+    const e = el("lm-estab-dica");
+    e.textContent = texto;
+    e.style.color = ok ? "#0b6a62" : "#a15c00";
+  }
+
+  /* Achou a unidade no cadastro: nome oficial e CNES entram sozinhos. O
+   * CNES que o proprio medico digitou nunca e sobrescrito sem pedido. */
+  function herdarPorNome(sobrescrever) {
+    if (!valor("lm-estab")) return;
+    const achado = M().acharEstabelecimento(cadastroDeUnidades(), valor("lm-estab"), municipioDaTela);
+    if (!achado) {
+      if (!valor("lm-cnes")) dicaEstabelecimento("Unidade fora do cadastro do Assistente — informe o CNES (ou cadastre em ⚙ Unidades).", false);
+      return;
+    }
+    definir("lm-estab", achado.nome);
+    el("lm-estab").dataset.auto = "1";
+    if (sobrescrever || !valor("lm-cnes") || el("lm-cnes").dataset.auto === "1") {
+      definir("lm-cnes", achado.cnes);
+      el("lm-cnes").dataset.auto = "1";
+    }
+    dicaEstabelecimento("✔ Unidade do cadastro do Assistente" + (achado.municipio ? " (" + achado.municipio + ")" : "") + " — CNES preenchido.", true);
+  }
+
+  /* Digitou um CNES que ja existe no cadastro: o nome vem junto. */
+  function herdarPorCnes() {
+    const achado = M().acharPorCnes(cadastroDeUnidades(), valor("lm-cnes"));
+    if (!achado) return;
+    if (!valor("lm-estab") || el("lm-estab").dataset.auto === "1") {
+      definir("lm-estab", achado.nome);
+      el("lm-estab").dataset.auto = "1";
+    }
+    dicaEstabelecimento("✔ CNES encontrado no cadastro do Assistente: " + achado.nome + ".", true);
   }
 
   function aplicarPaciente(p, sobrescrever) {
@@ -361,9 +403,9 @@
     aplicarPaciente(p, sobrescrever);
     const v = lerVinculo();
     municipioDaTela = v.municipio;
-    sugerirUnidades(municipioDaTela);
+    sugerirUnidades();
     preencherSeVazio("lm-estab", v.unidade, sobrescrever);
-    completarCnes();
+    herdarPorNome(sobrescrever);
     atualizarCondicionais();
     if (guia) guia.atualizar();
     return p;

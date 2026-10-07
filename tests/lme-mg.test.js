@@ -99,6 +99,33 @@ ok("20. segundo telefone, se informado, também é conferido", campos(com({ tel2
 ok("21. documento do paciente: CPF obrigatório e válido (premissa: sempre CPF)", campos(com({ cpfPaciente: "" })).indexOf("cpfPaciente") !== -1 && campos(com({ cpfPaciente: "123" })).indexOf("cpfPaciente") !== -1 && campos(com({ cpfPaciente: "11144477736" })).indexOf("cpfPaciente") !== -1);
 ok("22. e-mail: opcional, mas válido se informado", v(com({ email: "" })).length === 0 && campos(com({ email: "isso-nao-e-email" })).indexOf("email") !== -1);
 
+/* ---------- herança do cadastro de estabelecimentos (CNES) ---------- */
+{
+  const CADASTRO = [
+    { nome: "CENTRO DE ESPEC MEDICAS E ODONTO DR OVIDIO NOGUEIRA MACHADO", cnes: "2105578", municipio: "Itaúna" },
+    { nome: "SAÚDE AUDITIVA", cnes: "6977073", municipio: "Sete Lagoas" },
+    { nome: "UBS CIDADE DE DEUS", cnes: "2209241", municipio: "Sete Lagoas" },
+    { nome: "UBS BELO VALE", cnes: "5358965", municipio: "Sete Lagoas" },
+    { nome: "CENTRO R E ESPECIALIDADES DIVINO FERREIRA BRAGA", cnes: "2125943", municipio: "Betim" },
+    { nome: "UBS CENTRO", cnes: "1111111", municipio: "Betim" },
+    { nome: "UBS CENTRO", cnes: "2222222", municipio: "Sete Lagoas" },
+    { nome: "ESF AROEIRA", cnes: "", municipio: "Macaé" },
+  ];
+  const acha = (nome, mun) => M.acharEstabelecimento(CADASTRO, nome, mun);
+  ok("nome idêntico: acha o CNES", (acha("UBS BELO VALE", "Sete Lagoas") || {}).cnes === "5358965");
+  ok("ignora acento, caixa e espaços repetidos", (acha("  saude   auditiva ", "") || {}).cnes === "6977073");
+  ok("mesmo nome em dois municípios: o município da tela decide", (acha("UBS CENTRO", "Betim") || {}).cnes === "1111111" && (acha("UBS CENTRO", "Sete Lagoas") || {}).cnes === "2222222");
+  ok("mesmo nome em dois municípios sem município: não adivinha", acha("UBS CENTRO", "") === null);
+  ok("nome da tela com palavras a mais (ex.: cidade no fim), mas só um candidato: acha", (acha("UBS BELO VALE - SETE LAGOAS", "Sete Lagoas") || {}).cnes === "5358965");
+ok("nome curto demais para confiar ('UBS') não casa por aproximação", acha("UBS", "Sete Lagoas") === null);
+  ok("unidade que não está no cadastro: null", acha("UBS INEXISTENTE", "Betim") === null);
+  ok("unidade cadastrada sem CNES não conta como achada", acha("ESF AROEIRA", "Macaé") === null);
+  ok("nome vazio: null", acha("", "Betim") === null);
+  const porCnes = (c) => M.acharPorCnes(CADASTRO, c);
+  ok("CNES digitado (com ou sem máscara) traz o estabelecimento", (porCnes("2209241") || {}).nome === "UBS CIDADE DE DEUS" && (porCnes("2.209.241") || {}).nome === "UBS CIDADE DE DEUS");
+  ok("CNES que não existe, incompleto ou vazio: null", porCnes("9999999") === null && porCnes("2209") === null && porCnes("") === null);
+}
+
 /* ---------- preenchimento do PDF ---------- */
 async function gerar(dados, achatar) {
   const doc = await PDFLib.PDFDocument.load(BASE);

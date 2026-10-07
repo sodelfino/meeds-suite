@@ -132,6 +132,57 @@
   }
 
   /* ------------------------------------------------------------------
+   * Cadastro de estabelecimentos (CNES) herdado do Assistente
+   * ------------------------------------------------------------------
+   * O Assistente ja guarda os estabelecimentos (nome, CNES, municipio) no
+   * navegador. Ao ler a unidade da tela, o LME procura o nome ali: achou,
+   * o CNES e o nome oficial entram sozinhos. So aceita quando ha UM
+   * candidato — nome repetido em dois municipios sem o municipio da tela
+   * fica em branco para o medico escolher, e nunca se usa o CNES de outro
+   * municipio (a solicitacao seria devolvida). */
+  function chaveDeNome(s) {
+    return String(s == null ? "" : s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  }
+
+  function palavras(s) {
+    return chaveDeNome(s).split(" ").filter(Boolean);
+  }
+
+  function contemTodas(maior, menor) {
+    return menor.length >= 2 && menor.every(function (p) { return maior.indexOf(p) !== -1; });
+  }
+
+  function candidatos(cadastro, municipio) {
+    const com = (Array.isArray(cadastro) ? cadastro : []).filter(function (e) { return e && e.nome && soDigitos(e.cnes).length === 7; });
+    const alvo = chaveDeNome(municipio);
+    if (!alvo) return com;
+    const doMunicipio = com.filter(function (e) { return !e.municipio || chaveDeNome(e.municipio) === alvo; });
+    return doMunicipio;
+  }
+
+  function acharEstabelecimento(cadastro, nome, municipio) {
+    const chave = chaveDeNome(nome);
+    if (!chave) return null;
+    const pool = candidatos(cadastro, municipio);
+    const iguais = pool.filter(function (e) { return chaveDeNome(e.nome) === chave; });
+    if (iguais.length === 1) return iguais[0];
+    if (iguais.length > 1) return null;
+    const lidas = palavras(nome);
+    const parecidos = pool.filter(function (e) {
+      const dele = palavras(e.nome);
+      return contemTodas(lidas, dele) || contemTodas(dele, lidas);
+    });
+    return parecidos.length === 1 ? parecidos[0] : null;
+  }
+
+  function acharPorCnes(cadastro, cnes) {
+    const c = soDigitos(cnes);
+    if (c.length !== 7) return null;
+    const achados = (Array.isArray(cadastro) ? cadastro : []).filter(function (e) { return e && soDigitos(e.cnes) === c; });
+    return achados.length ? achados[0] : null;
+  }
+
+  /* ------------------------------------------------------------------
    * Validacao: cada asterisco do formulario
    * ------------------------------------------------------------------ */
   const RX_CID = /^[A-Z]\d{2}\.?\d{0,2}$/;
@@ -377,6 +428,8 @@
       { id: "responsavel", rotulo: "Responsável (descrito no item 13)" }, { id: "medico", rotulo: "Médico solicitante" }, { id: "outro", rotulo: "Outro" },
     ],
     limite: limite,
+    acharEstabelecimento: acharEstabelecimento,
+    acharPorCnes: acharPorCnes,
     cpfValido: cpfValido,
     formatarCpf: formatarCpf,
     validar: validar,
