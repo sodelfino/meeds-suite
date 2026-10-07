@@ -1,0 +1,918 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Assistente Meeds — Guia de instalação (Chrome e Edge)</title>
+<style>
+  /* ------------------------------------------------------------------
+     Guia de INSTALAÇÃO — irmão do manual de bolso (manual.html), mesmo
+     visual e mesma pipeline (Chrome --print-to-pdf).
+
+     Por que as telas do navegador são ILUSTRAÇÕES e não prints:
+     (1) a Chrome Web Store e a tela de extensões mostram a lista de
+     extensões e o perfil de quem tirou o print — material que vai para
+     dezenas de médicos não pode carregar isso; (2) um print de uma
+     versão do Chrome envelhece no mês seguinte, e o que importa aqui é
+     o NOME do botão e ONDE ele fica, não o tom de cinza da barra.
+     Cada ilustração diz isso na legenda. O único print REAL é o do
+     próprio Assistente no Meeds (telas/instalacao-dock.png), que é o
+     que o guia ensina a conseguir.
+     ------------------------------------------------------------------ */
+  @page { size: A4; margin: 14mm 14mm 16mm; }
+
+  :root {
+    --tinta: #16221f;
+    --tinta-fraca: #5b6c68;
+    --tinta-clara: #8a9793;
+    --linha: #dce5e3;
+    --agua: #f2f7f6;
+    --verde: #0b6a62;
+    --verde-claro: #e3f5f3;
+    --alerta: #a15c00;
+    --alerta-claro: #fff4e2;
+    --perigo: #b3122a;
+    --perigo-claro: #fdeaea;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font: 10.5pt/1.5 "Helvetica Neue", Arial, sans-serif;
+    color: var(--tinta);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  h1, h2, h3 { margin: 0; }
+
+  /* ---------- capa ---------- */
+  .capa {
+    height: 250mm;
+    display: flex; flex-direction: column; justify-content: center;
+    page-break-after: always;
+  }
+  .capa .selo {
+    font-size: 8.5pt; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--verde); font-weight: 700; margin-bottom: 10mm;
+  }
+  .capa h1 { font-size: 34pt; line-height: 1.05; letter-spacing: -.02em; }
+  .capa .sub { font-size: 13pt; color: var(--tinta-fraca); margin-top: 6mm; max-width: 135mm; }
+  .capa .aviso-capa {
+    margin-top: 12mm; max-width: 135mm;
+    border-left: 4px solid var(--perigo); background: var(--perigo-claro);
+    padding: 4mm 5mm; font-size: 11pt; line-height: 1.45;
+  }
+  .capa .aviso-capa b { color: var(--perigo); }
+  .capa .rodape {
+    margin-top: 14mm; padding-top: 6mm; border-top: 2px solid var(--tinta);
+    font-size: 9pt; color: var(--tinta-fraca);
+  }
+  .capa .rodape b { color: var(--tinta); }
+
+  /* ---------- páginas ---------- */
+  .pag { page-break-before: always; }
+  .pag header {
+    display: flex; align-items: baseline; gap: 4mm;
+    border-bottom: 2px solid var(--tinta); padding-bottom: 2.5mm; margin-bottom: 5mm;
+  }
+  .pag .num {
+    font-size: 9pt; font-weight: 700; color: var(--verde); letter-spacing: .1em;
+    white-space: nowrap;
+  }
+  .pag h2 { font-size: 17pt; letter-spacing: -.01em; }
+  .pag .onde {
+    margin-left: auto; font-size: 8.5pt; color: var(--tinta-fraca);
+    background: var(--agua); border: 1px solid var(--linha);
+    padding: 1mm 3mm; border-radius: 2mm; white-space: nowrap;
+  }
+  .pag.critico header { border-bottom-color: var(--perigo); }
+  .pag.critico .num { color: var(--perigo); }
+
+  .faixa-critica {
+    display: flex; align-items: center; gap: 4mm;
+    background: var(--perigo); color: #fff;
+    padding: 3mm 5mm; border-radius: 2mm; margin: 0 0 5mm;
+    font-size: 11pt; font-weight: 700; letter-spacing: .01em;
+  }
+  .faixa-critica .tri { font-size: 17pt; line-height: 1; }
+  .faixa-critica small { display: block; font-weight: 400; font-size: 9pt; opacity: .95; }
+
+  figure { margin: 0 0 4.5mm; break-inside: avoid; }
+  figure svg, figure img { width: 100%; height: auto; display: block; }
+  figure svg { border-radius: 2mm; }
+  figure img { border: 1px solid var(--linha); border-radius: 2mm; }
+  figcaption { font-size: 8.5pt; color: var(--tinta-clara); margin-top: 1.5mm; }
+  figcaption b { color: var(--tinta-fraca); }
+
+  figure.compacta svg { width: 78%; margin: 0 auto; }
+  figure.compacta figcaption { width: 78%; margin: 1.5mm auto 0; }
+
+  .moldura-img { position: relative; }
+  .moldura-img svg { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 0; }
+
+  .pag p { margin: 0 0 3mm; }
+  .pag h3 {
+    margin: 5mm 0 2mm; color: var(--verde);
+    text-transform: uppercase; letter-spacing: .05em; font-size: 8.5pt;
+  }
+
+  ol.passos { margin: 0 0 4mm; padding-left: 6mm; }
+  ol.passos li { margin-bottom: 1.8mm; }
+  ol.passos li b { color: var(--tinta); }
+
+  .caixa {
+    border-left: 3px solid var(--alerta); background: var(--alerta-claro);
+    padding: 3mm 4mm; margin: 4mm 0; font-size: 9.5pt; line-height: 1.45;
+    break-inside: avoid;
+  }
+  .caixa.ok { border-left-color: var(--verde); background: var(--verde-claro); }
+  .caixa.nao { border-left-color: var(--perigo); background: var(--perigo-claro); }
+  .caixa b.t { display: block; margin-bottom: 1mm; }
+
+  code, .link {
+    font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9pt;
+    background: var(--agua); border: 1px solid var(--linha);
+    padding: .4mm 1.6mm; border-radius: 1mm; word-break: break-all;
+  }
+  .link-grande {
+    display: block; margin: 2mm 0 4mm; padding: 3.5mm 4mm;
+    font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9.2pt;
+    background: var(--agua); border: 2px solid var(--verde); border-radius: 2mm;
+    word-break: break-all; color: var(--tinta);
+  }
+
+  table.ref { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin: 3mm 0; }
+  table.ref th {
+    text-align: left; font-size: 8pt; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--tinta-clara); font-weight: 700; padding: 0 3mm 1.5mm 0;
+    border-bottom: 1px solid var(--linha);
+  }
+  table.ref td { padding: 2.2mm 3mm 2.2mm 0; border-bottom: 1px solid var(--agua); vertical-align: top; }
+  table.ref td.chave { font-weight: 700; width: 36%; }
+  table.ref tr { break-inside: avoid; }
+
+  /* mapa dos 4 passos */
+  .mapa { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; margin: 4mm 0; }
+  .mapa .cx {
+    border: 1px solid var(--linha); border-radius: 2mm; padding: 3.5mm 4mm;
+    background: #fff;
+  }
+  .mapa .cx .n {
+    display: inline-block; width: 7mm; height: 7mm; line-height: 7mm; text-align: center;
+    border-radius: 50%; background: var(--verde); color: #fff; font-weight: 700; margin-bottom: 1.5mm;
+  }
+  .mapa .cx b { display: block; font-size: 11pt; }
+  .mapa .cx span { font-size: 9pt; color: var(--tinta-fraca); }
+  .mapa .cx.critico { border: 2px solid var(--perigo); background: var(--perigo-claro); }
+  .mapa .cx.critico .n { background: var(--perigo); }
+  .mapa .cx.critico em { display: block; color: var(--perigo); font-style: normal; font-weight: 700; font-size: 8.5pt; margin-top: 1mm; }
+
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+  .cartao {
+    border: 1px solid var(--linha); border-radius: 2mm; padding: 3.5mm 4mm; break-inside: avoid;
+  }
+  .cartao h4 { margin: 0 0 1.5mm; font-size: 10.5pt; }
+  .cartao p { margin: 0 0 1.5mm; font-size: 9.5pt; }
+  .icone { font-size: 12pt; }
+</style>
+</head>
+<body>
+
+<!-- Símbolos reutilizados pelas ilustrações -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- peça de quebra-cabeça (menu de extensões) — ícone "extension" do Material Design, Apache 2.0 -->
+    <symbol id="ic-puzzle" viewBox="0 0 24 24"><path d="M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-1.99.9-1.99 2v3.8H3.5c1.49 0 2.7 1.21 2.7 2.7s-1.21 2.7-2.7 2.7H2V20c0 1.1.9 2 2 2h3.8v-1.5c0-1.49 1.21-2.7 2.7-2.7 1.49 0 2.7 1.21 2.7 2.7V22H17c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z"/></symbol>
+    <!-- alfinete -->
+    <symbol id="ic-pin" viewBox="0 0 24 24"><path d="M16 9V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z"/></symbol>
+  </defs>
+</svg>
+
+<!-- ============================== CAPA ============================== -->
+<section class="capa">
+  <div class="selo">Callmed · Novetech</div>
+  <h1>Assistente Meeds<br>Guia de instalação</h1>
+  <p class="sub">Passo a passo com imagens para instalar no <b>Google Chrome</b> ou no
+     <b>Microsoft Edge</b>. São quatro passos e leva uns cinco minutos.</p>
+
+  <div class="aviso-capa">
+    <b>⚠ Leia isto antes de começar.</b> A parte que mais trava é o <b>Passo 2</b>:
+    liberar a opção <b>“Permitir scripts de usuário”</b> do Tampermonkey. Se ela
+    ficar desligada, tudo parece instalado e <b>nada aparece na tela do Meeds</b> —
+    sem nenhuma mensagem de erro. Por isso o Passo 2 tem três páginas só para ele.
+  </div>
+
+  <div class="rodape">
+    <b>Para quem é:</b> médicos que vão usar o Assistente no computador (Windows, Mac ou Linux).<br>
+    <b>iPad ou iPhone?</b> O caminho é outro — peça o guia do iPad.<br>
+    Atualizado em outubro de 2026.
+  </div>
+</section>
+
+<!-- ======================= ANTES DE COMEÇAR ======================= -->
+<section class="pag">
+  <header>
+    <span class="num">ANTES DE COMEÇAR</span>
+    <h2>O que você vai fazer</h2>
+    <span class="onde">5 minutos</span>
+  </header>
+
+  <p>O Assistente Meeds funciona em <b>duas peças</b>. Pense assim: o
+     <b>Tampermonkey</b> é o aparelho de DVD e o <b>Assistente</b> é o filme. Você
+     instala o aparelho uma vez (Passos 1 e 2) e depois coloca o filme (Passo 3).</p>
+
+  <div class="mapa">
+    <div class="cx"><span class="n">1</span><b>Instalar o Tampermonkey</b><span>Uma extensão gratuita, da loja do próprio navegador.</span></div>
+    <div class="cx critico"><span class="n">2</span><b>Liberar “Permitir scripts de usuário”</b><span>Uma chave que vem desligada de fábrica.</span><em>⚠ O passo que mais dá problema</em></div>
+    <div class="cx"><span class="n">3</span><b>Instalar o Assistente</b><span>Abrir um endereço e clicar em <i>Instalar</i>.</span></div>
+    <div class="cx"><span class="n">4</span><b>Conferir no Meeds</b><span>Os botões aparecem no canto inferior direito.</span></div>
+  </div>
+
+  <h3>Você precisa de</h3>
+  <ol class="passos">
+    <li>Um <b>computador</b> com <b>Google Chrome</b> ou <b>Microsoft Edge</b> (versão atual).</li>
+    <li>Seu <b>login do Meeds</b> à mão para o Passo 4.</li>
+    <li>Permissão para instalar extensões no computador. Em computador de clínica ou
+        hospital, o TI às vezes bloqueia — se a loja não deixar adicionar, é isso.</li>
+  </ol>
+
+  <div class="caixa ok">
+    <b class="t">Já tem o Tampermonkey instalado?</b>
+    Pule para o <b>Passo 2</b> e confira a chave mesmo assim. Muita gente já tem a
+    extensão e nunca ligou a permissão.
+  </div>
+
+  <div class="caixa">
+    <b class="t">É seguro liberar essa opção?</b>
+    O aviso que o navegador mostra é padrão para <b>qualquer</b> extensão que roda
+    scripts — ele não é específico do Assistente. Sem a chave ligada, nenhum script
+    do Tampermonkey roda, nem o Assistente. O Assistente é feito pela Novetech e
+    <b>não grava nem envia dado de paciente</b>.
+  </div>
+
+  <div class="caixa nao">
+    <b class="t">Não funciona no celular</b>
+    Chrome e Edge do celular não aceitam extensões. No iPad e no iPhone existe outro
+    caminho, com outro app — não use este guia lá.
+  </div>
+</section>
+
+<!-- ===================== PASSO 1 — CHROME ===================== -->
+<section class="pag">
+  <header>
+    <span class="num">PASSO 1 · CHROME</span>
+    <h2>Instalar o Tampermonkey</h2>
+    <span class="onde">Google Chrome</span>
+  </header>
+
+  <ol class="passos">
+    <li>Abra este endereço no Chrome (copie e cole na barra de cima):
+      <span class="link-grande">chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo</span>
+    </li>
+    <li>Clique no botão azul <b>“Usar no Chrome”</b> (em alguns computadores ele se chama
+        <b>“Adicionar ao Chrome”</b> — é o mesmo botão).</li>
+  </ol>
+
+  <figure>
+    <svg viewBox="0 0 760 320" role="img" aria-label="Página do Tampermonkey na Chrome Web Store, com o botão azul Usar no Chrome destacado em vermelho">
+      <rect x="1" y="1" width="758" height="318" rx="10" fill="#fff" stroke="#bfc8ce" stroke-width="2"/>
+      <path d="M1 11a10 10 0 0 1 10-10h738a10 10 0 0 1 10 10v33H1z" fill="#dee1e6"/>
+      <rect x="14" y="9" width="210" height="35" rx="9" fill="#fff"/>
+      <text x="30" y="31" font-size="12.5" fill="#202124" font-family="Helvetica, Arial, sans-serif">Tampermonkey - Chrome Web…</text>
+      <rect x="1" y="44" width="758" height="38" fill="#fff"/>
+      <line x1="1" y1="82" x2="759" y2="82" stroke="#dadce0"/>
+      <rect x="62" y="49" width="540" height="28" rx="14" fill="#eef1f6"/>
+      <text x="86" y="68" font-size="13" fill="#3c4043" font-family="Helvetica, Arial, sans-serif">chromewebstore.google.com/detail/tampermonkey</text>
+      <use href="#ic-puzzle" x="640" y="52" width="24" height="24" fill="#5f6368"/>
+      <circle cx="710" cy="64" r="11" fill="#9aa0a6"/>
+
+      <text x="40" y="118" font-size="15" fill="#5f6368" font-family="Helvetica, Arial, sans-serif">Chrome Web Store</text>
+      <rect x="40" y="140" width="84" height="84" rx="18" fill="#222b33"/>
+      <text x="82" y="198" font-size="46" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">T</text>
+      <text x="146" y="176" font-size="28" font-weight="700" fill="#202124" font-family="Helvetica, Arial, sans-serif">Tampermonkey</text>
+      <text x="146" y="204" font-size="14" fill="#5f6368" font-family="Helvetica, Arial, sans-serif">Extensão  ·  Ferramentas</text>
+
+      <rect x="548" y="150" width="176" height="46" rx="23" fill="#1a73e8"/>
+      <text x="636" y="179" font-size="16" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Usar no Chrome</text>
+      <rect x="536" y="139" width="200" height="68" rx="34" fill="rgba(225,29,46,.10)" stroke="#e11d2e" stroke-width="4"/>
+      <circle cx="734" cy="141" r="14" fill="#e11d2e"/>
+      <text x="734" y="147" font-size="16" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">1</text>
+      <text x="636" y="236" font-size="17" font-weight="700" fill="#c4122b" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Clique aqui</text>
+
+      <rect x="40" y="256" width="430" height="10" rx="5" fill="#e8eaed"/>
+      <rect x="40" y="276" width="360" height="10" rx="5" fill="#e8eaed"/>
+      <rect x="40" y="296" width="290" height="10" rx="5" fill="#e8eaed"/>
+    </svg>
+    <figcaption><b>Ilustração.</b> A tela do seu Chrome pode ter pequenas diferenças de cor ou de idioma.
+      O que importa é o botão azul destacado em vermelho.</figcaption>
+  </figure>
+
+  <ol class="passos" start="3">
+    <li>Vai abrir uma janelinha perguntando se você quer adicionar a extensão. Clique em
+        <b>“Adicionar extensão”</b>.</li>
+  </ol>
+
+  <figure>
+    <svg viewBox="0 0 760 270" role="img" aria-label="Janela de confirmação do Chrome com o botão Adicionar extensão destacado">
+      <rect x="1" y="1" width="758" height="268" rx="10" fill="#c9cdd2" stroke="#bfc8ce" stroke-width="2"/>
+      <rect x="170" y="22" width="420" height="206" rx="16" fill="#fff" stroke="#b9bfc6" stroke-width="1.5"/>
+      <text x="198" y="68" font-size="21" font-weight="700" fill="#202124" font-family="Helvetica, Arial, sans-serif">Adicionar “Tampermonkey”?</text>
+      <text x="198" y="100" font-size="14" fill="#5f6368" font-family="Helvetica, Arial, sans-serif">Ela poderá:</text>
+      <text x="198" y="124" font-size="14" fill="#202124" font-family="Helvetica, Arial, sans-serif">•  Ler e alterar seus dados nos sites que você acessa</text>
+      <text x="368" y="204" font-size="14" font-weight="700" fill="#1a73e8" text-anchor="end" font-family="Helvetica, Arial, sans-serif">Cancelar</text>
+      <rect x="400" y="180" width="170" height="40" rx="20" fill="#1a73e8"/>
+      <text x="485" y="205" font-size="14" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Adicionar extensão</text>
+      <rect x="389" y="169" width="192" height="62" rx="31" fill="rgba(225,29,46,.10)" stroke="#e11d2e" stroke-width="4"/>
+      <circle cx="580" cy="171" r="14" fill="#e11d2e"/>
+      <text x="580" y="177" font-size="16" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">2</text>
+      <text x="485" y="254" font-size="16" font-weight="700" fill="#c4122b" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Clique aqui</text>
+    </svg>
+    <figcaption><b>Ilustração.</b> Pronto: o Tampermonkey está instalado. Ainda <b>não</b> está liberado —
+      isso é o Passo 2.</figcaption>
+  </figure>
+
+  <div class="caixa">
+    <b class="t">Abriu uma página de boas-vindas do Tampermonkey?</b>
+    Pode ignorar e fechar. Não precisa configurar nada ali.
+  </div>
+</section>
+
+<!-- ===================== PASSO 1 — EDGE ===================== -->
+<section class="pag">
+  <header>
+    <span class="num">PASSO 1 · EDGE</span>
+    <h2>Instalar o Tampermonkey</h2>
+    <span class="onde">Microsoft Edge</span>
+  </header>
+
+  <ol class="passos">
+    <li>Abra este endereço no Edge (copie e cole na barra de cima):
+      <span class="link-grande">microsoftedge.microsoft.com/addons/detail/tampermonkey/iikmkjmpaadaobahmlepeloendndfphd</span>
+    </li>
+    <li>Clique no botão azul <b>“Obter”</b>.</li>
+  </ol>
+
+  <figure>
+    <svg viewBox="0 0 760 320" role="img" aria-label="Página do Tampermonkey nos complementos do Edge, com o botão azul Obter destacado em vermelho">
+      <rect x="1" y="1" width="758" height="318" rx="10" fill="#fff" stroke="#bfc8ce" stroke-width="2"/>
+      <path d="M1 11a10 10 0 0 1 10-10h738a10 10 0 0 1 10 10v33H1z" fill="#d6e2f3"/>
+      <rect x="14" y="9" width="230" height="35" rx="9" fill="#fff"/>
+      <text x="30" y="31" font-size="12.5" fill="#202124" font-family="Helvetica, Arial, sans-serif">Tampermonkey - Microsoft Edge…</text>
+      <rect x="1" y="44" width="758" height="38" fill="#fff"/>
+      <line x1="1" y1="82" x2="759" y2="82" stroke="#dadce0"/>
+      <rect x="62" y="49" width="540" height="28" rx="14" fill="#edf1f8"/>
+      <text x="86" y="68" font-size="13" fill="#3c4043" font-family="Helvetica, Arial, sans-serif">microsoftedge.microsoft.com/addons/detail/tampermonkey</text>
+      <use href="#ic-puzzle" x="640" y="52" width="24" height="24" fill="#5f6368"/>
+      <circle cx="710" cy="64" r="11" fill="#9aa0a6"/>
+
+      <text x="40" y="118" font-size="15" fill="#5f6368" font-family="Helvetica, Arial, sans-serif">Complementos do Microsoft Edge</text>
+      <rect x="40" y="140" width="84" height="84" rx="18" fill="#222b33"/>
+      <text x="82" y="198" font-size="46" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">T</text>
+      <text x="146" y="176" font-size="28" font-weight="700" fill="#202124" font-family="Helvetica, Arial, sans-serif">Tampermonkey</text>
+      <text x="146" y="204" font-size="14" fill="#5f6368" font-family="Helvetica, Arial, sans-serif">Extensão  ·  Ferramentas</text>
+
+      <rect x="600" y="150" width="124" height="46" rx="6" fill="#0f6cbd"/>
+      <text x="662" y="179" font-size="17" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Obter</text>
+      <rect x="588" y="139" width="148" height="68" rx="10" fill="rgba(225,29,46,.10)" stroke="#e11d2e" stroke-width="4"/>
+      <circle cx="734" cy="141" r="14" fill="#e11d2e"/>
+      <text x="734" y="147" font-size="16" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">1</text>
+      <text x="662" y="236" font-size="17" font-weight="700" fill="#c4122b" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Clique aqui</text>
+
+      <rect x="40" y="256" width="430" height="10" rx="5" fill="#e8eaed"/>
+      <rect x="40" y="276" width="360" height="10" rx="5" fill="#e8eaed"/>
+      <rect x="40" y="296" width="290" height="10" rx="5" fill="#e8eaed"/>
+    </svg>
+    <figcaption><b>Ilustração.</b> A tela do seu Edge pode ter pequenas diferenças. O que importa é o botão azul
+      destacado em vermelho.</figcaption>
+  </figure>
+
+  <ol class="passos" start="3">
+    <li>Na janelinha que abrir, clique em <b>“Adicionar extensão”</b>.</li>
+  </ol>
+
+  <figure>
+    <svg viewBox="0 0 760 270" role="img" aria-label="Janela de confirmação do Edge com o botão Adicionar extensão destacado">
+      <rect x="1" y="1" width="758" height="268" rx="10" fill="#c9cdd2" stroke="#bfc8ce" stroke-width="2"/>
+      <rect x="150" y="22" width="460" height="206" rx="10" fill="#fff" stroke="#b9bfc6" stroke-width="1.5"/>
+      <text x="176" y="66" font-size="19" font-weight="700" fill="#202124" font-family="Helvetica, Arial, sans-serif">Adicionar “Tampermonkey” ao Microsoft Edge?</text>
+      <text x="176" y="98" font-size="14" fill="#5f6368" font-family="Helvetica, Arial, sans-serif">A extensão poderá:</text>
+      <text x="176" y="122" font-size="14" fill="#202124" font-family="Helvetica, Arial, sans-serif">•  Ler e alterar seus dados em todos os sites</text>
+      <rect x="388" y="182" width="164" height="38" rx="6" fill="#0f6cbd"/>
+      <text x="470" y="206" font-size="14" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Adicionar extensão</text>
+      <rect x="564" y="182" width="32" height="38" rx="0" fill="none"/>
+      <rect x="378" y="172" width="184" height="58" rx="10" fill="rgba(225,29,46,.10)" stroke="#e11d2e" stroke-width="4"/>
+      <circle cx="560" cy="174" r="14" fill="#e11d2e"/>
+      <text x="560" y="180" font-size="16" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">2</text>
+      <text x="276" y="206" font-size="14" font-weight="700" fill="#0f6cbd" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Cancelar</text>
+      <text x="470" y="254" font-size="16" font-weight="700" fill="#c4122b" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Clique aqui</text>
+    </svg>
+    <figcaption><b>Ilustração.</b> Pronto: o Tampermonkey está instalado. Ainda <b>não</b> está liberado —
+      isso é o Passo 2.</figcaption>
+  </figure>
+
+  <div class="caixa">
+    <b class="t">Abriu uma página de boas-vindas do Tampermonkey?</b>
+    Pode ignorar e fechar. Não precisa configurar nada ali.
+  </div>
+</section>
+
+<!-- ============ PASSO 2 — ABRIR A PÁGINA DA EXTENSÃO ============ -->
+<section class="pag critico">
+  <header>
+    <span class="num">PASSO 2 · PARTE 1 DE 3</span>
+    <h2>Abrir a página do Tampermonkey</h2>
+    <span class="onde">Chrome e Edge</span>
+  </header>
+
+  <div class="faixa-critica">
+    <span class="tri">⚠</span>
+    <div>Este é o passo que mais dá problema. Não pule.
+      <small>Sem ele o Assistente instala, mas não aparece na tela do Meeds — e não avisa nada.</small></div>
+  </div>
+
+  <p>Por segurança, o navegador instala extensões com a permissão de rodar scripts <b>desligada</b>.
+     A chave para ligar fica na <b>página da extensão</b>. Primeiro vamos chegar lá.</p>
+
+  <h3>No Chrome</h3>
+  <ol class="passos">
+    <li>Clique no ícone de <b>peça de quebra-cabeça</b> (Extensões), no canto direito da barra de cima.</li>
+    <li>Na linha do Tampermonkey, clique nos <b>três pontinhos ⋮</b>.</li>
+    <li>Clique em <b>“Gerenciar extensão”</b>.</li>
+  </ol>
+
+  <figure class="compacta">
+    <svg viewBox="0 0 760 300" role="img" aria-label="Menu de extensões do Chrome com o ícone de quebra-cabeça, os três pontinhos do Tampermonkey e a opção Gerenciar extensão destacados">
+      <rect x="1" y="1" width="758" height="298" rx="10" fill="#fff" stroke="#bfc8ce" stroke-width="2"/>
+      <path d="M1 11a10 10 0 0 1 10-10h738a10 10 0 0 1 10 10v33H1z" fill="#dee1e6"/>
+      <rect x="14" y="9" width="150" height="35" rx="9" fill="#fff"/>
+      <text x="30" y="31" font-size="12.5" fill="#202124" font-family="Helvetica, Arial, sans-serif">Nova guia</text>
+      <rect x="1" y="44" width="758" height="38" fill="#fff"/>
+      <line x1="1" y1="82" x2="759" y2="82" stroke="#dadce0"/>
+      <rect x="62" y="49" width="500" height="28" rx="14" fill="#eef1f6"/>
+      <text x="86" y="68" font-size="13" fill="#3c4043" font-family="Helvetica, Arial, sans-serif">meeds.com.br</text>
+      <use href="#ic-puzzle" x="640" y="52" width="24" height="24" fill="#5f6368"/>
+      <circle cx="710" cy="64" r="11" fill="#9aa0a6"/>
+      <rect x="630" y="48" width="44" height="32" rx="8" fill="rgba(225,29,46,.10)" stroke="#e11d2e" stroke-width="3.5"/>
+      <circle cx="676" cy="48" r="13" fill="#e11d2e"/>
+      <text x="676" y="54" font-size="15" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">1</text>
+
+      <rect x="40" y="120" width="260" height="10" rx="5" fill="#e8eaed"/>
+      <rect x="40" y="142" width="320" height="10" rx="5" fill="#e8eaed"/>
+      <rect x="40" y="164" width="220" height="10" rx="5" fill="#e8eaed"/>
+
+      <rect x="420" y="90" width="320" height="196" rx="12" fill="#fff" stroke="#c9cfd5" stroke-width="1.5"/>
+      <text x="440" y="120" font-size="15" font-weight="700" fill="#202124" font-family="Helvetica, Arial, sans-serif">Extensões</text>
+      <rect x="440" y="136" width="30" height="30" rx="7" fill="#222b33"/>
+      <text x="455" y="158" font-size="17" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">T</text>
+      <text x="482" y="157" font-size="14" fill="#202124" font-family="Helvetica, Arial, sans-serif">Tampermonkey</text>
+      <use href="#ic-pin" x="640" y="141" width="20" height="20" fill="#5f6368"/>
+      <circle cx="700" cy="144" r="2.3" fill="#5f6368"/><circle cx="700" cy="151" r="2.3" fill="#5f6368"/><circle cx="700" cy="158" r="2.3" fill="#5f6368"/>
+      <rect x="688" y="136" width="24" height="30" rx="6" fill="rgba(225,29,46,.10)" stroke="#e11d2e" stroke-width="3.5"/>
+      <circle cx="716" cy="136" r="13" fill="#e11d2e"/>
+      <text x="716" y="142" font-size="15" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">2</text>
+
+      <rect x="452" y="176" width="262" height="86" rx="10" fill="#fff" stroke="#c9cfd5" stroke-width="1.5"/>
+      <text x="470" y="206" font-size="14" font-weight="700" fill="#202124" font-family="Helvetica, Arial, sans-serif">Gerenciar extensão</text>
+      <text x="470" y="246" font-size="14" fill="#80868b" font-family="Helvetica, Arial, sans-serif">Remover do Chrome</text>
+      <rect x="458" y="184" width="250" height="30" rx="7" fill="rgba(225,29,46,.10)" stroke="#e11d2e" stroke-width="3.5"/>
+      <circle cx="712" cy="184" r="13" fill="#e11d2e"/>
+      <text x="712" y="190" font-size="15" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">3</text>
+    </svg>
+    <figcaption><b>Ilustração (Chrome).</b> Dica: clique no alfinete ao lado do Tampermonkey para o ícone
+      ficar sempre visível na barra.</figcaption>
+  </figure>
+
+  <h3>No Edge</h3>
+  <ol class="passos">
+    <li>Clique no ícone de <b>peça de quebra-cabeça</b> (Extensões), na barra de cima.</li>
+    <li>Na linha do Tampermonkey, clique nos <b>três pontinhos ···</b>.</li>
+    <li>Clique em <b>“Gerenciar extensão”</b>.</li>
+  </ol>
+
+  <figure class="compacta">
+    <svg viewBox="0 0 760 300" role="img" aria-label="Menu de extensões do Edge com o ícone de quebra-cabeça, os três pontinhos do Tampermonkey e a opção Gerenciar extensão destacados">
+      <rect x="1" y="1" width="758" height="298" rx="10" fill="#fff" stroke="#bfc8ce" stroke-width="2"/>
+      <path d="M1 11a10 10 0 0 1 10-10h738a10 10 0 0 1 10 10v33H1z" fill="#d6e2f3"/>
+      <rect x="14" y="9" width="150" height="35" rx="9" fill="#fff"/>
+      <text x="30" y="31" font-size="12.5" fill="#202124" font-family="Helvetica, Arial, sans-serif">Nova guia</text>
+      <rect x="1" y="44" width="758" height="38" fill="#fff"/>
+      <line x1="1" y1="82" x2="759" y2="82" stroke="#dadce0"/>
+      <rect x="62" y="49" width="500" height="28" rx="14" fill="#edf1f8"/>
+      <text x="86" y="68" font-size="13" fill="#3c4043" font-family="Helvetica, Arial, sans-serif">meeds.com.br</text>
+      <use href="#ic-puzzle" x="640" y="52" width="24" height="24" fill="#5f6368"/>
+      <circle cx="710" cy="64" r="11" fill="#9aa0a6"/>
+      <rect x="630" y="48" width="44" height="32" rx="8" fill="rgba(225,29,46,.10)" stroke="#e11d2e" stroke-width="3.5"/>
+      <circle cx="676" cy="48" r="13" fill="#e11d2e"/>
+      <text x="676" y="54" font-size="15" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">1</text>
+
+      <rect x="40" y="120" width="260" height="10" rx="5" fill="#e8eaed"/>
+      <rect x="40" y="142" width="320" height="10" rx="5" fill="#e8eaed"/>
+      <rect x="40" y="164" width="220" height="10" rx="5" fill="#e8eaed"/>
+
+      <rect x="420" y="90" width="320" height="196" rx="10" fill="#fff" stroke="#c9cfd5" stroke-width="1.5"/>
+      <text x="440" y="120" font-size="15" font-weight="700" fill="#202124" font-family="Helvetica, Arial, sans-serif">Extensões</text>
+      <rect x="440" y="136" width="30" height="30" rx="7" fill="#222b33"/>
+      <text x="455" y="158" font-size="17" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">T</text>
+      <text x="482" y="157" font-size="14" fill="#202124" font-family="Helvetica, Arial, sans-serif">Tampermonkey</text>
+      <circle cx="654" cy="151" r="9" fill="none" stroke="#5f6368" stroke-width="2"/><circle cx="654" cy="151" r="3" fill="#5f6368"/>
+      <circle cx="688" cy="151" r="2.3" fill="#5f6368"/><circle cx="696" cy="151" r="2.3" fill="#5f6368"/><circle cx="704" cy="151" r="2.3" fill="#5f6368"/>
+      <rect x="678" y="138" width="36" height="26" rx="6" fill="rgba(225,29,46,.10)" stroke="#e11d2e" stroke-width="3.5"/>
+      <circle cx="716" cy="138" r="13" fill="#e11d2e"/>
+      <text x="716" y="144" font-size="15" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">2</text>
+
+      <rect x="440" y="176" width="274" height="86" rx="8" fill="#fff" stroke="#c9cfd5" stroke-width="1.5"/>
+      <text x="458" y="206" font-size="14" font-weight="700" fill="#202124" font-family="Helvetica, Arial, sans-serif">Gerenciar extensão</text>
+      <text x="458" y="246" font-size="14" fill="#80868b" font-family="Helvetica, Arial, sans-serif">Remover do Microsoft Edge</text>
+      <rect x="446" y="184" width="262" height="30" rx="7" fill="rgba(225,29,46,.10)" stroke="#e11d2e" stroke-width="3.5"/>
+      <circle cx="712" cy="184" r="13" fill="#e11d2e"/>
+      <text x="712" y="190" font-size="15" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">3</text>
+    </svg>
+    <figcaption><b>Ilustração (Edge).</b> O Edge também tem o atalho: digite <code>edge://extensions</code> na barra de endereço.
+      No Chrome é <code>chrome://extensions</code>.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ PASSO 2 — LIGAR A CHAVE ============ -->
+<section class="pag critico">
+  <header>
+    <span class="num">PASSO 2 · PARTE 2 DE 3</span>
+    <h2>Ligar “Permitir scripts de usuário”</h2>
+    <span class="onde">Chrome e Edge</span>
+  </header>
+
+  <div class="faixa-critica">
+    <span class="tri">⚠</span>
+    <div>A chave vem DESLIGADA. Você precisa ligar.
+      <small>Ela fica na página que abriu no passo anterior (“Gerenciar extensão”).</small></div>
+  </div>
+
+  <p>Na página do Tampermonkey, procure a linha <b>“Permitir scripts de usuário”</b> e
+     clique na chave para ela ficar <b>azul</b>. É só isso — mas é isso que faz o
+     Assistente funcionar.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 440" role="img" aria-label="Duas versões da página do Tampermonkey: à esquerda com a chave Permitir scripts de usuário desligada, e à direita com ela ligada">
+      <!-- rótulos -->
+      <text x="180" y="30" font-size="17" font-weight="700" fill="#b3122a" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">✗  ANTES — desligada (assim vem)</text>
+      <text x="580" y="30" font-size="17" font-weight="700" fill="#0b7a43" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">✓  DEPOIS — ligada (é isto que você quer)</text>
+
+      <!-- cartão ESQUERDO -->
+      <rect x="8" y="46" width="344" height="380" rx="12" fill="#fff" stroke="#c9cfd5" stroke-width="1.5"/>
+      <text x="26" y="88" font-size="22" fill="#5f6368" font-family="Helvetica, Arial, sans-serif">←</text>
+      <text x="58" y="87" font-size="19" font-weight="700" fill="#202124" font-family="Helvetica, Arial, sans-serif">Tampermonkey</text>
+      <line x1="8" y1="108" x2="352" y2="108" stroke="#e3e6ea"/>
+      <text x="26" y="144" font-size="15" fill="#202124" font-family="Helvetica, Arial, sans-serif">Ativado</text>
+      <rect x="288" y="130" width="44" height="24" rx="12" fill="#1a73e8"/><circle cx="320" cy="142" r="9" fill="#fff"/>
+      <line x1="8" y1="168" x2="352" y2="168" stroke="#e3e6ea"/>
+      <text x="26" y="198" font-size="15" font-weight="700" fill="#202124" font-family="Helvetica, Arial, sans-serif">Permitir scripts de usuário</text>
+      <text x="26" y="220" font-size="12" fill="#5f6368" font-family="Helvetica, Arial, sans-serif">Deixa esta extensão rodar scripts de usuário.</text>
+      <text x="26" y="238" font-size="12" fill="#5f6368" font-family="Helvetica, Arial, sans-serif">Ative só se confiar na extensão.</text>
+      <rect x="288" y="190" width="44" height="24" rx="12" fill="#bdc1c6"/><circle cx="300" cy="202" r="9" fill="#fff"/>
+      <rect x="14" y="174" width="332" height="82" rx="10" fill="rgba(225,29,46,.10)" stroke="#e11d2e" stroke-width="3.5"/>
+      <circle cx="346" cy="174" r="14" fill="#e11d2e"/>
+      <text x="346" y="180" font-size="16" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">1</text>
+      <line x1="8" y1="268" x2="352" y2="268" stroke="#e3e6ea"/>
+      <text x="26" y="304" font-size="15" fill="#202124" font-family="Helvetica, Arial, sans-serif">Fixar na barra de ferramentas</text>
+      <rect x="288" y="290" width="44" height="24" rx="12" fill="#bdc1c6"/><circle cx="300" cy="302" r="9" fill="#fff"/>
+      <line x1="8" y1="328" x2="352" y2="328" stroke="#e3e6ea"/>
+      <text x="26" y="364" font-size="15" fill="#202124" font-family="Helvetica, Arial, sans-serif">Permitir em janelas anônimas</text>
+      <rect x="288" y="350" width="44" height="24" rx="12" fill="#bdc1c6"/><circle cx="300" cy="362" r="9" fill="#fff"/>
+
+      <!-- seta -->
+      <text x="380" y="240" font-size="40" font-weight="700" fill="#0b7a43" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">→</text>
+
+      <!-- cartão DIREITO -->
+      <rect x="408" y="46" width="344" height="380" rx="12" fill="#fff" stroke="#c9cfd5" stroke-width="1.5"/>
+      <text x="426" y="88" font-size="22" fill="#5f6368" font-family="Helvetica, Arial, sans-serif">←</text>
+      <text x="458" y="87" font-size="19" font-weight="700" fill="#202124" font-family="Helvetica, Arial, sans-serif">Tampermonkey</text>
+      <line x1="408" y1="108" x2="752" y2="108" stroke="#e3e6ea"/>
+      <text x="426" y="144" font-size="15" fill="#202124" font-family="Helvetica, Arial, sans-serif">Ativado</text>
+      <rect x="688" y="130" width="44" height="24" rx="12" fill="#1a73e8"/><circle cx="720" cy="142" r="9" fill="#fff"/>
+      <line x1="408" y1="168" x2="752" y2="168" stroke="#e3e6ea"/>
+      <text x="426" y="198" font-size="15" font-weight="700" fill="#202124" font-family="Helvetica, Arial, sans-serif">Permitir scripts de usuário</text>
+      <text x="426" y="220" font-size="12" fill="#5f6368" font-family="Helvetica, Arial, sans-serif">Deixa esta extensão rodar scripts de usuário.</text>
+      <text x="426" y="238" font-size="12" fill="#5f6368" font-family="Helvetica, Arial, sans-serif">Ative só se confiar na extensão.</text>
+      <rect x="688" y="190" width="44" height="24" rx="12" fill="#1a73e8"/><circle cx="720" cy="202" r="9" fill="#fff"/>
+      <rect x="414" y="174" width="332" height="82" rx="10" fill="rgba(11,122,67,.10)" stroke="#0b7a43" stroke-width="3.5"/>
+      <circle cx="746" cy="174" r="14" fill="#0b7a43"/>
+      <text x="746" y="181" font-size="17" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">✓</text>
+      <line x1="408" y1="268" x2="752" y2="268" stroke="#e3e6ea"/>
+      <text x="426" y="304" font-size="15" fill="#202124" font-family="Helvetica, Arial, sans-serif">Fixar na barra de ferramentas</text>
+      <rect x="688" y="290" width="44" height="24" rx="12" fill="#bdc1c6"/><circle cx="700" cy="302" r="9" fill="#fff"/>
+      <line x1="408" y1="328" x2="752" y2="328" stroke="#e3e6ea"/>
+      <text x="426" y="364" font-size="15" fill="#202124" font-family="Helvetica, Arial, sans-serif">Permitir em janelas anônimas</text>
+      <rect x="688" y="350" width="44" height="24" rx="12" fill="#bdc1c6"/><circle cx="700" cy="362" r="9" fill="#fff"/>
+    </svg>
+    <figcaption><b>Ilustração.</b> No Edge a página é parecida (cores um pouco diferentes). O nome da opção
+      pode aparecer como <b>“Permitir scripts de usuário”</b>, <b>“Permitir scripts do usuário”</b> ou
+      <b>“Allow user scripts”</b> — é a mesma.</figcaption>
+  </figure>
+
+  <h3>Como saber se deu certo</h3>
+  <ol class="passos">
+    <li>A chave <b>“Permitir scripts de usuário”</b> está <b>azul</b>, com a bolinha para a direita.</li>
+    <li>Feche a página e siga para o <b>Passo 3</b>. O teste de verdade acontece lá: ao abrir o
+        endereço do Assistente, a tela do Tampermonkey tem que aparecer.</li>
+  </ol>
+
+  <div class="caixa nao">
+    <b class="t">Não achou essa opção na página?</b>
+    Vá para a próxima página: em alguns navegadores a chave tem outro nome ou fica em outro lugar.
+  </div>
+</section>
+
+<!-- ============ PASSO 2 — NÃO ACHOU A CHAVE ============ -->
+<section class="pag critico">
+  <header>
+    <span class="num">PASSO 2 · PARTE 3 DE 3</span>
+    <h2>Não achou a chave? Use o “Modo do desenvolvedor”</h2>
+    <span class="onde">Chrome e Edge</span>
+  </header>
+
+  <p>Em versões um pouco mais antigas do Chrome e do Edge, a página do Tampermonkey
+     <b>não tem</b> a chave “Permitir scripts de usuário”. Nesse caso, o jeito de liberar é o
+     <b>“Modo do desenvolvedor”</b> — um interruptor geral da página de extensões. O efeito é o mesmo.</p>
+
+  <ol class="passos">
+    <li>Na barra de endereço, digite <code>chrome://extensions</code> (no Edge:
+        <code>edge://extensions</code>) e tecle Enter.</li>
+    <li>Procure <b>“Modo do desenvolvedor”</b>. No <b>Chrome</b> ele fica no <b>canto superior direito</b>;
+        no <b>Edge</b>, no <b>menu da esquerda, embaixo</b>.</li>
+    <li>Clique para a chave ficar <b>azul</b> (ligada).</li>
+  </ol>
+
+  <figure>
+    <svg viewBox="0 0 760 320" role="img" aria-label="Página de extensões do navegador com o interruptor Modo do desenvolvedor destacado no canto superior direito">
+      <rect x="1" y="1" width="758" height="318" rx="10" fill="#f1f3f4" stroke="#bfc8ce" stroke-width="2"/>
+      <path d="M1 11a10 10 0 0 1 10-10h738a10 10 0 0 1 10 10v33H1z" fill="#dee1e6"/>
+      <rect x="14" y="9" width="170" height="35" rx="9" fill="#fff"/>
+      <text x="30" y="31" font-size="12.5" fill="#202124" font-family="Helvetica, Arial, sans-serif">Extensões</text>
+      <rect x="1" y="44" width="758" height="38" fill="#fff"/>
+      <line x1="1" y1="82" x2="759" y2="82" stroke="#dadce0"/>
+      <rect x="62" y="49" width="500" height="28" rx="14" fill="#eef1f6"/>
+      <text x="86" y="68" font-size="13" fill="#3c4043" font-family="Helvetica, Arial, sans-serif">chrome://extensions</text>
+
+      <rect x="1" y="83" width="758" height="58" fill="#fff"/>
+      <line x1="1" y1="141" x2="759" y2="141" stroke="#dadce0"/>
+      <text x="26" y="120" font-size="19" font-weight="700" fill="#202124" font-family="Helvetica, Arial, sans-serif">Extensões</text>
+      <rect x="230" y="96" width="230" height="32" rx="16" fill="#eef1f6"/>
+      <text x="252" y="117" font-size="13" fill="#80868b" font-family="Helvetica, Arial, sans-serif">Pesquisar extensões</text>
+      <text x="520" y="117" font-size="14" fill="#202124" font-family="Helvetica, Arial, sans-serif">Modo do desenvolvedor</text>
+      <rect x="690" y="103" width="44" height="24" rx="12" fill="#1a73e8"/><circle cx="722" cy="115" r="9" fill="#fff"/>
+      <rect x="508" y="92" width="238" height="46" rx="10" fill="rgba(225,29,46,.10)" stroke="#e11d2e" stroke-width="3.5"/>
+      <circle cx="746" cy="92" r="14" fill="#e11d2e"/>
+      <text x="746" y="98" font-size="16" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">1</text>
+
+      <rect x="30" y="166" width="700" height="124" rx="12" fill="#fff" stroke="#dadce0"/>
+      <rect x="54" y="190" width="56" height="56" rx="12" fill="#222b33"/>
+      <text x="82" y="228" font-size="32" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">T</text>
+      <text x="130" y="206" font-size="18" font-weight="700" fill="#202124" font-family="Helvetica, Arial, sans-serif">Tampermonkey</text>
+      <text x="130" y="228" font-size="13" fill="#5f6368" font-family="Helvetica, Arial, sans-serif">Ativado</text>
+      <rect x="54" y="254" width="92" height="26" rx="13" fill="#fff" stroke="#c9cfd5"/>
+      <text x="100" y="272" font-size="13" fill="#1a73e8" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Detalhes</text>
+      <rect x="156" y="254" width="92" height="26" rx="13" fill="#fff" stroke="#c9cfd5"/>
+      <text x="202" y="272" font-size="13" fill="#1a73e8" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Remover</text>
+      <rect x="670" y="196" width="44" height="24" rx="12" fill="#1a73e8"/><circle cx="702" cy="208" r="9" fill="#fff"/>
+    </svg>
+    <figcaption><b>Ilustração (Chrome).</b> No Edge o “Modo do desenvolvedor” fica no menu da esquerda, embaixo.
+      Depois de ligar, volte à página do Tampermonkey e veja se agora aparece a chave
+      “Permitir scripts de usuário”.</figcaption>
+  </figure>
+
+  <div class="caixa ok">
+    <b class="t">Depois de ligar</b>
+    Feche a página e vá para o <b>Passo 3</b>. Se mais tarde o Assistente não aparecer
+    (por exemplo, depois de o Chrome ou o Edge se atualizarem), volte aqui e confira se a
+    chave continua ligada.
+  </div>
+
+  <div class="caixa nao">
+    <b class="t">Computador de clínica ou hospital?</b>
+    Se a chave estiver cinza e o clique não funcionar, ou a página disser que a opção é
+    “gerenciada pela sua organização”, o TI bloqueou. Peça a ele para liberar
+    scripts de usuário para o Tampermonkey.
+  </div>
+</section>
+
+<!-- ===================== PASSO 3 ===================== -->
+<section class="pag">
+  <header>
+    <span class="num">PASSO 3</span>
+    <h2>Instalar o Assistente</h2>
+    <span class="onde">Chrome e Edge</span>
+  </header>
+
+  <ol class="passos">
+    <li>Abra uma <b>aba nova</b> e cole este endereço:
+      <span class="link-grande">raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.user.js</span>
+    </li>
+    <li>A tela do <b>Tampermonkey</b> abre sozinha, mostrando o nome do script.
+        Clique em <b>“Instalar”</b>.</li>
+    <li>Pode fechar a tela. Pronto.</li>
+  </ol>
+
+  <figure>
+    <svg viewBox="0 0 760 330" role="img" aria-label="Tela de instalação do Tampermonkey mostrando o script Assistente Meeds com o botão Instalar destacado">
+      <rect x="1" y="1" width="758" height="328" rx="10" fill="#f4f5f7" stroke="#bfc8ce" stroke-width="2"/>
+      <path d="M1 11a10 10 0 0 1 10-10h738a10 10 0 0 1 10 10v33H1z" fill="#dee1e6"/>
+      <rect x="14" y="9" width="230" height="35" rx="9" fill="#fff"/>
+      <text x="30" y="31" font-size="12.5" fill="#202124" font-family="Helvetica, Arial, sans-serif">Instalar script — Tampermonkey</text>
+      <rect x="1" y="44" width="758" height="38" fill="#fff"/>
+      <line x1="1" y1="82" x2="759" y2="82" stroke="#dadce0"/>
+      <rect x="62" y="49" width="540" height="28" rx="14" fill="#eef1f6"/>
+      <text x="86" y="68" font-size="13" fill="#3c4043" font-family="Helvetica, Arial, sans-serif">Tampermonkey  ·  Instalar</text>
+
+      <rect x="1" y="83" width="758" height="44" fill="#222b33"/>
+      <rect x="22" y="93" width="24" height="24" rx="6" fill="#3a4651"/>
+      <text x="34" y="111" font-size="15" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">T</text>
+      <text x="58" y="112" font-size="16" font-weight="700" fill="#fff" font-family="Helvetica, Arial, sans-serif">Tampermonkey</text>
+
+      <rect x="40" y="144" width="680" height="176" rx="10" fill="#fff" stroke="#dadce0"/>
+      <text x="64" y="180" font-size="24" font-weight="700" fill="#202124" font-family="Helvetica, Arial, sans-serif">Assistente Meeds - Por: Marcelo</text>
+      <text x="64" y="204" font-size="13.5" fill="#5f6368" font-family="Helvetica, Arial, sans-serif">Instalação de script de usuário  ·  Origem: raw.githubusercontent.com</text>
+      <text x="64" y="224" font-size="13.5" fill="#5f6368" font-family="Helvetica, Arial, sans-serif">Roda em: meeds.com.br</text>
+
+      <rect x="64" y="262" width="150" height="40" rx="8" fill="#2b7de9"/>
+      <text x="139" y="288" font-size="16" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Instalar</text>
+      <rect x="226" y="262" width="110" height="40" rx="8" fill="#fff" stroke="#c9cfd5"/>
+      <text x="281" y="288" font-size="15" fill="#3c4043" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">Fechar</text>
+      <rect x="54" y="251" width="170" height="62" rx="12" fill="rgba(225,29,46,.10)" stroke="#e11d2e" stroke-width="4"/>
+      <circle cx="222" cy="253" r="14" fill="#e11d2e"/>
+      <text x="222" y="259" font-size="16" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">1</text>
+      <text x="470" y="288" font-size="17" font-weight="700" fill="#c4122b" font-family="Helvetica, Arial, sans-serif">← Clique em Instalar</text>
+    </svg>
+    <figcaption><b>Ilustração.</b> A tela real do Tampermonkey pode ter pequenas diferenças de aparência.
+      O que importa: o nome <b>“Assistente Meeds”</b> e o botão <b>Instalar</b>.</figcaption>
+  </figure>
+
+  <div class="caixa nao">
+    <b class="t">⚠ Apareceu um monte de texto e código na tela, em vez do botão Instalar?</b>
+    O Tampermonkey não conseguiu “pegar” o endereço, e o navegador só mostra o texto do programa.
+    O motivo mais comum é o <b>Passo 2 não ter sido feito</b> (chave desligada); o segundo é o
+    Tampermonkey nem estar instalado neste navegador (Passo 1). Confira os dois, ligue
+    <b>“Permitir scripts de usuário”</b> e abra o endereço de novo.
+  </div>
+
+  <div class="caixa ok">
+    <b class="t">Atualizações são automáticas</b>
+    Você instala <b>uma vez</b>. Quando sair versão nova, o Tampermonkey atualiza sozinho — não precisa
+    refazer nada deste guia.
+  </div>
+</section>
+
+<!-- ===================== PASSO 4 ===================== -->
+<section class="pag">
+  <header>
+    <span class="num">PASSO 4</span>
+    <h2>Conferir no Meeds</h2>
+    <span class="onde">canto inferior direito</span>
+  </header>
+
+  <ol class="passos">
+    <li>Abra o <b>Meeds</b> e faça seu <b>login</b> normalmente.</li>
+    <li>Olhe o <b>canto inferior direito</b> da tela. Os botões do Assistente aparecem ali.</li>
+    <li>Se aparecer uma tela de <b>boas-vindas</b>, leia e clique em <b>“Cadastrar agora”</b> —
+        leva menos de um minuto e não se repete.</li>
+  </ol>
+
+  <figure>
+    <div class="moldura-img">
+      <img src="telas/instalacao-dock.png" alt="Os botões do Assistente Meeds no canto inferior direito da tela: Exames, REMUME, Notificação, o sino do alarme, a engrenagem e a seta para recolher">
+      <svg viewBox="0 0 760 420" aria-hidden="true">
+        <rect x="598" y="66" width="152" height="342" rx="14" fill="rgba(225,29,46,.07)" stroke="#e11d2e" stroke-width="4"/>
+        <circle cx="596" cy="66" r="15" fill="#e11d2e"/>
+        <text x="596" y="72" font-size="17" font-weight="700" fill="#fff" text-anchor="middle" font-family="Helvetica, Arial, sans-serif">✓</text>
+        <text x="580" y="200" font-size="19" font-weight="700" fill="#c4122b" text-anchor="end" font-family="Helvetica, Arial, sans-serif">Os botões aparecem aqui →</text>
+      </svg>
+    </div>
+    <figcaption><b>Print real do Assistente.</b> Quais botões aparecem depende das funções que estão ligadas no seu
+      computador (Alarme, Laudos, REMUME, Exames, Notificação…). O sino e a engrenagem aparecem sempre.</figcaption>
+  </figure>
+
+  <div class="caixa ok">
+    <b class="t">Viu os botões? Está tudo instalado. 🎉</b>
+    O alarme de fila é o primeiro que vale testar: clique no sino para ligar. O navegador só libera som
+    depois de um clique seu, então esse primeiro clique é obrigatório.
+  </div>
+
+  <div class="caixa">
+    <b class="t">Os botões somem na tela de login — de propósito</b>
+    Com a tela de senha visível, o Assistente fica escondido. Eles só aparecem <b>depois</b> de entrar.
+  </div>
+
+  <div class="caixa nao">
+    <b class="t">Entrou no Meeds e não apareceu nada?</b>
+    Vá para a próxima página — ela lista, em ordem, o que conferir. Quase sempre é o Passo 2.
+  </div>
+</section>
+
+<!-- ===================== NÃO APARECEU ===================== -->
+<section class="pag">
+  <header>
+    <span class="num">SE ALGO DEU ERRADO</span>
+    <h2>Não apareceu? Confira nesta ordem</h2>
+  </header>
+
+  <table class="ref">
+    <tr><th>O que você vê</th><th>O que fazer</th></tr>
+    <tr>
+      <td class="chave">Instalei tudo e os botões não aparecem no Meeds</td>
+      <td><b>1.</b> Confira o <b>Passo 2</b>: “Permitir scripts de usuário” tem que estar <b>azul</b>.<br>
+          <b>2.</b> Aperte <b>F5</b> no Meeds para recarregar.<br>
+          <b>3.</b> Confirme que você já está <b>logado</b> (na tela de senha os botões ficam escondidos).<br>
+          <b>4.</b> Clique no ícone do Tampermonkey: o <b>Assistente Meeds</b> tem que estar na lista e
+          <b>ativado</b>.</td>
+    </tr>
+    <tr>
+      <td class="chave">Abri o endereço do Assistente e só apareceu texto/código</td>
+      <td>Quase sempre é o Passo 2: ligue <b>“Permitir scripts de usuário”</b> (ou o <b>Modo do desenvolvedor</b>)
+          e abra o endereço de novo. Se já estiver ligado, confirme que o Tampermonkey está instalado
+          <b>neste</b> navegador (Passo 1).</td>
+    </tr>
+    <tr>
+      <td class="chave">Funcionava e parou de uma hora para outra</td>
+      <td>Volte à página do Tampermonkey (Passo 2) e confira se <b>“Permitir scripts de usuário”</b>
+          continua azul — vale olhar sempre que o navegador se atualizar. Se estiver cinza, ligue de novo.</td>
+    </tr>
+    <tr>
+      <td class="chave">A loja não deixa adicionar a extensão</td>
+      <td>Em computador de clínica ou hospital, o TI costuma bloquear extensões. Peça a ele para
+          liberar o <b>Tampermonkey</b>.</td>
+    </tr>
+    <tr>
+      <td class="chave">Aparecem dois botões iguais, ou o alarme toca duas vezes</td>
+      <td>Você ainda tem os scripts antigos ativos. Clique no ícone do Tampermonkey →
+          <b>Painel de controle</b> e <b>desative</b> (não apague) os scripts antigos de Alarme de Fila,
+          APAC, Laudos e REMUME. Deixe só o <b>Assistente Meeds</b>.</td>
+    </tr>
+    <tr>
+      <td class="chave">O alarme não toca quando o Meeds está em outra aba</td>
+      <td>O navegador coloca abas de fundo para “dormir”. <b>Chrome:</b> ⋮ → Configurações → Desempenho →
+          “Sempre manter estes sites ativos” → Adicionar → <code>meeds.com.br</code>.
+          <b>Edge:</b> Configurações → Sistema e desempenho → “Nunca colocar estes sites em suspensão”
+          → Adicionar → <code>meeds.com.br</code>.</td>
+    </tr>
+  </table>
+
+  <div class="caixa ok">
+    <b class="t">Ainda não resolveu? Mande o diagnóstico</b>
+    No Meeds, clique na <b>engrenagem ⚙️</b> → aba <b>Sobre</b> → <b>“Copiar diagnóstico técnico”</b> e cole
+    na conversa de suporte. Um clique, sem precisar abrir o console do navegador.
+  </div>
+</section>
+
+<!-- ===================== RESUMO RÁPIDO ===================== -->
+<section class="pag">
+  <header>
+    <span class="num">DEPOIS DE INSTALAR</span>
+    <h2>O Assistente em 1 minuto</h2>
+    <span class="onde">resumo rápido</span>
+  </header>
+
+  <p>Agora que está instalado: o que ele faz, em poucas linhas. Cada função liga e desliga
+     na <b>engrenagem ⚙️</b>, e você só vê os botões das que estiverem ligadas.</p>
+
+  <div class="duas">
+    <div class="cartao">
+      <h4><span class="icone">🔔</span> Alarme de fila</h4>
+      <p>Avisa quando entra paciente no Pronto Atendimento — com som, faixa na tela e aviso
+         do sistema, <b>mesmo com o Meeds em outra aba</b>. Clique no sino para trocar a
+         intensidade: completo, discreto ou silencioso.</p>
+    </div>
+    <div class="cartao">
+      <h4><span class="icone">💊</span> REMUME e Exames</h4>
+      <p>Consulta os medicamentos e os exames que o <b>município do paciente</b> oferece. Aceita erro
+         de digitação e nome comercial (“buscopan” acha escopolamina).</p>
+    </div>
+    <div class="cartao">
+      <h4><span class="icone">📄</span> Laudos e Notificação</h4>
+      <p>Preenchem, com os dados da tela, os Laudos de Alto Custo (Sete Lagoas e Conceição do Mato
+         Dentro) e a ficha de notificação do SINAN, direto no formulário oficial.</p>
+    </div>
+    <div class="cartao">
+      <h4><span class="icone">📍</span> Avisos do município</h4>
+      <p>Dentro do atendimento, mostra sozinho o que a teleconsulta resolve no município e o que
+         deve ir para o presencial.</p>
+    </div>
+  </div>
+
+  <h3>Três coisas para guardar</h3>
+  <table class="ref">
+    <tr><td class="chave">Cadastre-se uma vez</td>
+        <td>⚙️ → <b>Médicos</b>: nome, CRM e CPF. Não se repete e não some quando o Assistente atualiza.</td></tr>
+    <tr><td class="chave">Liga e desliga</td>
+        <td>⚙️ lista todas as funções. Desligar tira o botão da tela na hora.</td></tr>
+    <tr><td class="chave">Precisa de ajuda?</td>
+        <td>⚙️ → <b>Sobre</b> → <b>Copiar diagnóstico técnico</b> e mande para o suporte.</td></tr>
+  </table>
+
+  <div class="caixa ok">
+    <b class="t">Privacidade</b>
+    O Assistente <b>lê</b> a tela do atendimento para preencher o formulário, usa naquele instante e
+    esquece. <b>Nenhum dado de paciente é gravado no computador nem enviado para fora.</b>
+  </div>
+</section>
+
+</body>
+</html>
