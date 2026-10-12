@@ -203,7 +203,7 @@
         "  </div>" +
         '  <div class="msd-rodape">' +
         '    <button type="button" class="msd-btn msd-btn-sec" id="msd-nao-avisar">Não avisar de novo</button>' +
-        '    <button type="button" class="msd-btn" id="msd-entendi">Entendi</button>' +
+        '    <button type="button" class="msd-btn" id="msd-entendi">Fechar aviso</button>' +
         "  </div>" +
         "</div>",
     });

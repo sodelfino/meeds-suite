@@ -207,7 +207,7 @@
     '<div id="lm-aviso-auto"></div>' +
     secaoEstabelecimento() + secaoPaciente() + secaoMedicamentos() + secaoClinica() + secaoMedico() + secaoPreenchimento() +
     '<div id="lm-sucesso"></div><div id="lm-erro"></div></div>' +
-    '<div id="lm-footer"><button class="lm-secundario" id="lm-limpar" type="button">Limpar</button>' +
+    '<div id="lm-footer"><button class="lm-secundario" id="lm-limpar" type="button">Limpar campos</button>' +
     '<button class="lm-primario" id="lm-gerar" type="button">Gerar e baixar PDF</button></div></div>';
 
   /* ----------------------------------------------------------------
@@ -637,7 +637,7 @@
     el("lm-fechar").addEventListener("click", overlay.fechar);
     el("lm-atualizar").addEventListener("click", atualizarPaciente);
     el("lm-gerar").addEventListener("click", gerarPdf);
-    el("lm-limpar").addEventListener("click", limparForm);
+    el("lm-limpar").addEventListener("click", function () { raiz.MeedsSuiteConfirmar.limparCampos(limparForm); });
     el("lm-mais-med").addEventListener("click", function () {
       if (linhasVisiveis < LINHAS) linhasVisiveis++;
       mostrarLinhas();

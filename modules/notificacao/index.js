@@ -470,7 +470,7 @@
     secaoLta() + U().secao(FERR) + secaoPaciente() + secaoResidencia() + secaoUnidade() + secaoObservacoes() +
     '<div id="nt-sucesso"></div><div id="nt-erro"></div>' +
     "</div></div>" +
-    '<div id="nt-footer"><button class="nt-secundario" id="nt-limpar" type="button">Limpar</button>' +
+    '<div id="nt-footer"><button class="nt-secundario" id="nt-limpar" type="button">Limpar campos</button>' +
     '<button class="nt-primario" id="nt-gerar" type="button">Gerar e baixar PDF</button></div>' +
     "</div>";
 
@@ -1046,7 +1046,7 @@
       b.addEventListener("click", function () { escolherFicha(b.getAttribute("data-ficha")); });
     });
     el("nt-gerar").addEventListener("click", gerarPdf);
-    el("nt-limpar").addEventListener("click", limparForm);
+    el("nt-limpar").addEventListener("click", function () { raiz.MeedsSuiteConfirmar.limparCampos(limparForm); });
     ["input", "change"].forEach(function (tipo) { el("nt-modal").addEventListener(tipo, aoMudar); });
     montarMedicos();
     montarGuia();

@@ -179,7 +179,7 @@
       "  </div>" +
       '  <div class="msn-rodape">' +
       '    <button type="button" class="msn-btn-sec" id="msn-configurar">\u2699\ufe0f Abrir configurações</button>' +
-      '    <button type="button" class="msn-btn" id="msn-entendi">Entendi</button>' +
+      '    <button type="button" class="msn-btn" id="msn-entendi">Fechar novidades</button>' +
       "  </div>" +
       "</div>";
 
@@ -222,7 +222,7 @@
         ? lista.map(function (v) { return htmlDeUmaVersao(v, true); }).join("")
         : '<div class="msn-vazio">Nenhuma versão registrada.</div>') +
       "  </div>" +
-      '  <div class="msn-rodape"><button type="button" class="msn-btn" id="msn-entendi">Fechar</button></div>' +
+      '  <div class="msn-rodape"><button type="button" class="msn-btn" id="msn-entendi">Fechar histórico</button></div>' +
       "</div>";
 
     overlay.$(".msn-fechar").addEventListener("click", overlay.fechar);

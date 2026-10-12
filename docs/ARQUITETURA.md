@@ -1776,6 +1776,43 @@ a do 67 e a marca (CPF), 4 asserções falham.
 
 ---
 
+**D68 — Copy de interface: confirmar antes de apagar, e botão com o nome da ação.**
+Auditoria de UX writing (princípios: claro, conciso, consistente, útil,
+humano; CTA começa com verbo; erro = o quê + por quê + como resolver; vazio =
+o que é + por que está vazio + como começar; confirmação diz a consequência e
+rotula os botões com a ação). A base já seguia o padrão de erro ("Não consegui
+X porque Y. Z") e de validação. Não seguia em quatro pontos:
+
+1. **Confirmações.** Só "apagar modelo" confirmava, com o `confirm()` nativo
+   ("OK/Cancelar", que o navegador não deixa renomear, sem consequência). Já
+   "Limpar histórico", "Limpar" (5 formulários) e "remover" médico/unidade
+   apagavam na hora. Agora existe `core/confirmar.js` (`MeedsSuiteConfirmar`),
+   com a copy de cada ação num lugar só: título diz o que vai acontecer, o
+   texto diz a consequência, o botão nomeia a ação ("Apagar modelo") e o outro
+   é a saída segura ("Manter modelo"). O foco inicial fica na saída segura e
+   Esc mantém. Sem o dock, cai no `confirm()` nativo — nunca apaga sem perguntar.
+2. **Rótulos genéricos e inconsistentes** — "Limpar"/"Apagar"/"remover",
+   "Gerar PDF" x "Gerar e baixar PDF", "Entendi", "Voltar", "Próximo". Regra:
+   verbo + objeto ("Limpar campos", "Remover médico", "Próximo passo"); o mesmo
+   nome para a mesma ação. Exceção deliberada: "Entendi" do aviso da prefeitura
+   (`avisos-municipio`) e "Copiar" ao lado do código de cada exame, onde o
+   contexto da linha já completa o objeto.
+3. **Jargão na mensagem principal.** `pdf-lib`, `jsPDF` e `Tampermonkey` saíram
+   do texto para o médico; ficam no "detalhe técnico", que é para o suporte, e o
+   caminho é "copie o diagnóstico técnico em ⚙️ → Sobre". O endereço
+   `cdnjs.cloudflare.com` continua na mensagem porque o TI local precisa dele.
+4. **Vazios sem próximo passo** — histórico, lista de funções, busca de CID.
+
+`tests/copy-ux.test.js` protege o comportamento do diálogo (confirmar executa
+uma vez; manter e Esc não executam; foco no botão seguro) e varre o código:
+nenhum `confirm()` nativo fora do diálogo, nenhum botão "OK/Limpar/Apagar/
+Voltar/Próximo" solto, nenhum "Gerar PDF".
+
+**Fora do escopo desta rodada:** os textos de ajuda longos (tutoriais e
+guias) e as frases montadas em tempo de execução não foram reescritos.
+
+---
+
 ## 7. Risco aberto: CPF e CNS em repositório público
 
 Os repositórios de origem `lme-sete-lagoas-gerador` e `laudo-cmd-meeds` são

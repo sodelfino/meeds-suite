@@ -202,11 +202,11 @@
               );
             })
             .join("")
-        : '<div class="msh-vazio">Nenhum documento gerado ainda neste computador.</div>';
+        : '<div class="msh-vazio">Nenhum documento gerado ainda. Quando você gerar um laudo ou uma ficha, ele aparece aqui e dá para reabrir.</div>';
 
       elemento.innerHTML =
         '<div class="msh-topo"><strong>Gerados neste computador</strong>' +
-        (lista.length ? '<button type="button" class="msh-limpar">Limpar histórico</button>' : "") +
+        (lista.length ? '<button type="button" class="msh-limpar">Apagar histórico</button>' : "") +
         "</div>" +
         corpo +
         '<div class="msh-nota">Guardamos apenas as iniciais e os três últimos dígitos do CPF — o suficiente para você reconhecer o atendimento, sem gravar dado de paciente no computador. “Reabrir” repõe a parte clínica; os dados do paciente vêm da tela.</div>';
@@ -214,8 +214,10 @@
       const limpar = elemento.querySelector(".msh-limpar");
       if (limpar) {
         limpar.addEventListener("click", function () {
-          limparHistorico(idModulo);
-          render();
+          raiz.MeedsSuiteConfirmar.apagarHistorico(function () {
+            limparHistorico(idModulo);
+            render();
+          });
         });
       }
       elemento.querySelectorAll(".msh-reabrir").forEach(function (btn) {

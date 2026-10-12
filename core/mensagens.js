@@ -90,12 +90,14 @@
 
   /* Mensagens tecnicas recorrentes, num lugar so. */
   const BIBLIOTECA_NAO_CARREGOU = function (nomeLib, detalhe) {
+    /* nomeLib (pdf-lib, jsPDF) nao aparece para o medico: so entra no
+     * detalhe tecnico, que e para o suporte. */
     return erroTecnico(
       "gerar o PDF",
-      "o componente que monta o arquivo (" + nomeLib + ") não carregou",
-      "Isso costuma ser a rede da unidade bloqueando o endereço cdnjs.cloudflare.com. " +
-        "Verifique sua conexão e tente de novo; se continuar, peça ao TI local para liberar esse endereço.",
-      detalhe
+      "uma parte do programa que monta o arquivo não carregou",
+      "A rede da unidade pode estar bloqueando o carregamento. Verifique a conexão e tente de novo. " +
+        "Se continuar, copie o diagnóstico técnico em ⚙️ → Sobre e envie ao suporte, ou peça ao TI local para liberar o endereço cdnjs.cloudflare.com.",
+      (nomeLib ? nomeLib + ": " : "") + (detalhe || "")
     );
   };
 

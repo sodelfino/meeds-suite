@@ -194,8 +194,8 @@
       "  <div><div class=\"pv-titulo\">Prévia do documento</div>" +
       '  <div class="pv-estado"></div></div>' +
       '  <div class="pv-acoes">' +
-      '    <button type="button" class="pv-bt" data-zoom="menos" title="Diminuir">&minus;</button>' +
-      '    <button type="button" class="pv-bt" data-zoom="mais" title="Aumentar">+</button>' +
+      '    <button type="button" class="pv-bt" data-zoom="menos" title="Diminuir a prévia" aria-label="Diminuir a prévia">&minus;</button>' +
+      '    <button type="button" class="pv-bt" data-zoom="mais" title="Aumentar a prévia" aria-label="Aumentar a prévia">+</button>' +
       '    <button type="button" class="pv-bt" data-fechar title="Fechar a prévia">&#10005;</button>' +
       "  </div>" +
       "</div>" +

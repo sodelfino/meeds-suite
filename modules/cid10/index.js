@@ -256,7 +256,7 @@
       foco = -1;
 
       if (!itens.length) {
-        sug.innerHTML = '<div class="cid-sug-vazio">Nenhum CID encontrado para “' + escapeHtml(texto) + '”.</div>';
+        sug.innerHTML = '<div class="cid-sug-vazio">Nenhum CID encontrado para “' + escapeHtml(texto) + '”. Tente outra parte do nome ou o código (ex.: I10).</div>';
         sug.hidden = false;
         return;
       }

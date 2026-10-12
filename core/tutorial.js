@@ -188,8 +188,8 @@
         '  <div class="tut-rodape">' +
         '    <button type="button" class="tut-pular" id="tut-pular">Pular tutorial</button>' +
         '    <div class="tut-botoes">' +
-        '      <button type="button" class="tut-btn tut-btn-voltar" id="tut-voltar">Voltar</button>' +
-        '      <button type="button" class="tut-btn tut-btn-proximo" id="tut-proximo">Próximo</button>' +
+        '      <button type="button" class="tut-btn tut-btn-voltar" id="tut-voltar">Passo anterior</button>' +
+        '      <button type="button" class="tut-btn tut-btn-proximo" id="tut-proximo">Próximo passo</button>' +
         "    </div>" +
         "  </div>" +
         "</div>",

@@ -201,7 +201,7 @@
         "        </div>" +
         '        <div class="msm-form-acoes">' +
         '          <button type="button" class="msm-btn" id="msm-med-add">Salvar médico</button>' +
-        '          <button type="button" class="msm-btn msm-btn-sec" id="msm-med-cancelar">Cancelar</button>' +
+        '          <button type="button" class="msm-btn msm-btn-sec" id="msm-med-cancelar">Cancelar cadastro</button>' +
         "        </div>" +
         "      </div>" +
         '      <div class="msm-rodape-aba">' +
@@ -230,7 +230,7 @@
         "        </div>" +
         '        <div class="msm-form-acoes">' +
         '          <button type="button" class="msm-btn" id="msm-estab-add">Salvar unidade</button>' +
-        '          <button type="button" class="msm-btn msm-btn-sec" id="msm-estab-cancelar">Cancelar</button>' +
+        '          <button type="button" class="msm-btn msm-btn-sec" id="msm-estab-cancelar">Cancelar cadastro</button>' +
         "        </div>" +
         "      </div>" +
         "    </div>" +
@@ -528,7 +528,7 @@
     const fixos = todos.filter(function (m) { return m.sempreAtivo; });
 
     if (!modulos.length && !fixos.length) {
-      lista.innerHTML = '<div class="msm-vazio">Nenhuma função carregada neste pacote.</div>';
+      lista.innerHTML = '<div class="msm-vazio">Nenhuma função carregada. Recarregue a página do Meeds; se continuar assim, copie o diagnóstico técnico em Sobre e envie ao suporte.</div>';
       return;
     }
 
@@ -642,7 +642,7 @@
           '    <div class="msm-ficha-nome">' + escapeHtml(m.nome) + "</div>" +
           '    <div class="msm-ficha-doc">' + escapeHtml(docs.join("  ·  ") || "sem documento cadastrado") + "</div>" +
           "  </div>" +
-          '  <button type="button" class="msm-remover" data-i="' + i + '">remover</button>' +
+          '  <button type="button" class="msm-remover" data-i="' + i + '">Remover médico</button>' +
           "</div>"
         );
       })
@@ -652,10 +652,12 @@
       btn.addEventListener("click", function () {
         const i = Number(btn.getAttribute("data-i"));
         const alvo = Cadastro.listar()[i];
-        Cadastro.remover(i);
-        renderizarMedicos();
-        mostrarMensagemMedicos((alvo ? alvo.nome : "Médico") + " foi removido do cadastro.", "ok");
-        avisarModulos();
+        raiz.MeedsSuiteConfirmar.removerCadastro("médico", alvo ? alvo.nome : "", function () {
+          Cadastro.remover(i);
+          renderizarMedicos();
+          mostrarMensagemMedicos((alvo ? alvo.nome : "Médico") + " foi removido do cadastro.", "ok");
+          avisarModulos();
+        });
       });
     });
   }
@@ -813,7 +815,7 @@
           ) +
           "</div>" +
           "  </div>" +
-          '  <button type="button" class="msm-remover" data-e="' + i + '">remover</button>' +
+          '  <button type="button" class="msm-remover" data-e="' + i + '">Remover unidade</button>' +
           "</div>"
         );
       })
@@ -823,10 +825,12 @@
       btn.addEventListener("click", function () {
         const i = Number(btn.getAttribute("data-e"));
         const alvo = Cadastro.listarEstabelecimentos()[i];
-        Cadastro.removerEstabelecimento(i);
-        renderizarEstabelecimentos();
-        mostrarMensagemEstab((alvo ? alvo.nome : "Unidade") + " foi removida.", "ok");
-        avisarModulos();
+        raiz.MeedsSuiteConfirmar.removerCadastro("unidade", alvo ? alvo.nome : "", function () {
+          Cadastro.removerEstabelecimento(i);
+          renderizarEstabelecimentos();
+          mostrarMensagemEstab((alvo ? alvo.nome : "Unidade") + " foi removida.", "ok");
+          avisarModulos();
+        });
       });
     });
   }

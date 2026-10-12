@@ -19,7 +19,7 @@
  *   4. `disabled` tira o campo da navegacao por teclado e do leitor de
  *      tela. Quem preenche por Tab perde a referencia.
  *
- * E, principalmente: o documento incompleto JA nao sai. "Gerar PDF"
+ * E, principalmente: o documento incompleto JA nao sai. "Gerar e baixar PDF"
  * recusa e nomeia cada campo que falta. O cascateamento resolveria um
  * problema que a validacao de emissao ja resolve, cobrando o preco
  * acima.

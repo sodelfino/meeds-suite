@@ -2,6 +2,19 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.67.0",
+      "data": "2026-10-12",
+      "novidades": [
+        "Confirmação antes de apagar: \"Apagar histórico\", \"Limpar campos\", remover médico ou unidade e apagar modelo agora perguntam antes, explicam o que acontece e têm botões com o nome da ação (por exemplo \"Apagar modelo\" e \"Manter modelo\"). Antes, o histórico, os campos e o cadastro eram apagados na hora."
+      ],
+      "melhorias": [
+        "Botões com nomes mais claros: \"Limpar campos\", \"Apagar modelo\", \"Apagar histórico\", \"Remover médico\", \"Remover unidade\", \"Cancelar cadastro\", \"Passo anterior\" e \"Próximo passo\", \"Copiar mensagem\" e \"Gerar e baixar PDF\" (a APAC dizia só \"Gerar PDF\").",
+        "Mensagem de falha ao montar o PDF sem termos técnicos: diz o que fazer e deixa o detalhe para o diagnóstico técnico, que vai ao suporte.",
+        "Telas vazias dizem o próximo passo (histórico, lista de funções e busca de CID)."
+      ],
+      "correcoes": []
+    },
+    {
       "versao": "2.66.0",
       "data": "2026-10-07",
       "novidades": [],

@@ -230,7 +230,7 @@
           '    <div id="msf-mensagem"></div>' +
           "  </div>" +
           '  <div class="msf-rodape">' +
-          '    <button type="button" class="msf-btn msf-btn-sec" id="msf-copiar">Copiar</button>' +
+          '    <button type="button" class="msf-btn msf-btn-sec" id="msf-copiar">Copiar mensagem</button>' +
           '    <button type="button" class="msf-btn" id="msf-email">Enviar por e-mail</button>' +
           "  </div>" +
           "</div>",
