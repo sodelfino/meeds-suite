@@ -1857,3 +1857,6 @@ E, para remover os dados do código-fonte aplicando em LME e CMD o mesmo padrão
 que o APAC já usa, basta pedir — a infraestrutura do painel "Gerenciar médicos"
 já está no monorepo. Note que remover do código **não** remove do histórico do
 Git: para isso seria preciso reescrever o histórico dos repositórios afetados.
+
+**D69 — Visual: tinta única, painel por categoria e números do formulário; a dock não muda de comportamento.**
+A dock tem regras de uso documentadas (translúcida em repouso a 28%, recolhe em 2,5 s, hover só mexe na opacidade, alerta nunca fica translúcido) que vieram de pedido de médico. Uma proposta de "cartão aberto com grupos" foi descartada porque ia na direção oposta (mais alto, sempre opaco). Mudou só a aparência: tinta `#1d3557` no cabeçalho (`core/cabecalho.js`), nos botões da dock e do painel, raio 8 px e espaço de 8 px entre botões (pilha 346 px em vez de 370 px, alvos de 38 px sem sobreposição). O painel da engrenagem agrupa as funções por categoria (`CATEGORIA_DO_MODULO` em `core/manager.js`; função nova sem categoria cai em "Outras"). As fichas de notificação mostram o número do campo do SINAN (`NUMEROS_SINAN` em `modules/notificacao/index.js`; só para os campos comuns, que têm a mesma numeração em todas as fichas).

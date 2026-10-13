@@ -62,7 +62,7 @@
     /* --- pilha de botoes --- */
     "#dock {",
     "  position: fixed; right: 24px; bottom: 24px; z-index: " + Z_BASE + ";",
-    "  display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 12px;",
+    "  display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 8px;",
     "  pointer-events: none;",
     "}",
     "#dock[hidden] { display: none; }",
@@ -70,13 +70,13 @@
 
     ".ms-btn {",
     "  display: flex; align-items: center; justify-content: center; gap: 8px;",
-    "  background: #1a4fa0; color: #fff; border: none; border-radius: 6px;",
+    "  background: #1d3557; color: #fff; border: none; border-radius: 8px;",
     "  padding: 11px 16px; font-size: 13px; font-weight: 600; cursor: pointer;",
     "  box-shadow: 0 1px 3px rgba(15,23,42,.22); line-height: 1.2; white-space: nowrap;",
     "  transition: background .12s ease, box-shadow .12s ease;",
     "}",
-    ".ms-btn:hover { background: #163f80; box-shadow: 0 2px 6px rgba(15,23,42,.24); }",
-    ".ms-btn:active { background: #123a7a; }",
+    ".ms-btn:hover { background: #14263f; box-shadow: 0 2px 6px rgba(15,23,42,.24); }",
+    ".ms-btn:active { background: #0f1e33; }",
     /* foco de teclado visivel e discreto: um anel fino, so quando e teclado */
     ".ms-btn:focus-visible, .ms-aviso-btn:focus-visible, .ms-aviso-fechar:focus-visible {",
     "  outline: 2px solid #60a5fa; outline-offset: 2px;",

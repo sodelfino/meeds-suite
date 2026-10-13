@@ -2,6 +2,17 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.68.0",
+      "data": "2026-10-13",
+      "novidades": [],
+      "melhorias": [
+        "Painel da engrenagem: as funções agora aparecem agrupadas — Documentos, Consulta e Fila e avisos — em vez de uma lista única.",
+        "Fichas de notificação: cada campo comum mostra o número do campo da ficha oficial do SINAN (8, 9, 12…), o mesmo que aparece no papel.",
+        "Visual: cabeçalho das janelas, botões e chaves passam a usar a mesma cor de tinta azul-escura. A pilha de botões ficou 24 px mais baixa (menos espaço entre eles); o comportamento dela — translúcida em repouso, recolher sozinha, alerta sempre visível — não mudou."
+      ],
+      "correcoes": []
+    },
+    {
       "versao": "2.67.0",
       "data": "2026-10-12",
       "novidades": [

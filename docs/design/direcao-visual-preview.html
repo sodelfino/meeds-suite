@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assistente Meeds — direção visual (prévia)</title>
+<style>
+  :root {
+    --papel: #fbfaf6;
+    --papel-2: #f3f1ea;
+    --tinta: #1d3557;
+    --tinta-suave: #e6ecf5;
+    --texto: #1c2430;
+    --texto-2: #566170;
+    --texto-3: #8a93a0;
+    --linha: rgba(28, 36, 48, .10);
+    --linha-forte: rgba(28, 36, 48, .22);
+    --carimbo: #b3261e;
+    --carimbo-fundo: #fbe9e7;
+    --jaleco: #1f7a5c;
+    --jaleco-fundo: #e4f3ec;
+    --ambar: #8a5a00;
+    --ambar-fundo: #fbf0d9;
+    --r-s: 6px; --r-m: 10px; --r-l: 14px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #e9e7e0; color: var(--texto); font: 14px/1.5 -apple-system, "Segoe UI", Roboto, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  main { max-width: 1180px; margin: 0 auto; padding: 28px 20px 48px; }
+  h1 { font-size: 22px; letter-spacing: -.01em; margin: 0 0 4px; }
+  .sub { color: var(--texto-2); margin: 0 0 22px; max-width: 70ch; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--texto-2); margin: 30px 0 10px; font-weight: 600; }
+  .par { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 820px) { .par { grid-template-columns: 1fr; } }
+  .cena { background: #d9d6cc; border-radius: var(--r-l); padding: 18px; min-height: 120px; }
+  .rot { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin: 0 0 10px; }
+  .rot.antes { color: #7a2f2a; } .rot.depois { color: var(--jaleco); }
+
+  /* ---- ANTES: dock atual ---- */
+  .dock-antes { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+  .dock-antes button { background: #24457f; color: #fff; border: 0; border-radius: 8px; padding: 9px 14px; font: 600 12px/1 inherit; font-family: inherit; }
+  /* ---- DEPOIS: dock agrupada ---- */
+  .dock { background: var(--papel); border-radius: var(--r-l); border: 1px solid var(--linha); box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 8px 24px -12px rgba(0,0,0,.25); padding: 8px; width: 232px; margin-left: auto; }
+  .dock .grupo { font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--texto-3); padding: 8px 8px 4px; }
+  .dock .item { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: var(--r-s); font-size: 13px; font-weight: 500; color: var(--texto); }
+  .dock .item:hover { background: var(--papel-2); }
+  .dock .ic { width: 22px; height: 22px; border-radius: 6px; background: var(--tinta-suave); color: var(--tinta); display: grid; place-items: center; flex: none; }
+  .dock .ic svg { width: 14px; height: 14px; }
+  .dock .item small { margin-left: auto; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 999px; }
+  .pend { background: var(--ambar-fundo); color: var(--ambar); }
+  .ok { background: var(--jaleco-fundo); color: var(--jaleco); }
+  .alarme { background: var(--carimbo-fundo); color: var(--carimbo); }
+
+  /* ---- Painel ---- */
+  .painel-antes { background: #fff; border-radius: 8px; overflow: hidden; }
+  .painel-antes .cab { background: #24457f; color: #fff; padding: 12px 14px; font-weight: 600; }
+  .painel-antes .lin { padding: 12px 14px; border-top: 1px solid #eee; display: flex; gap: 12px; justify-content: space-between; font-size: 12px; color: #444; }
+  .painel-antes .lin b { display: block; font-size: 13px; color: #111; margin-bottom: 2px; }
+  .tg { width: 34px; height: 20px; border-radius: 10px; background: #1d9a8a; flex: none; position: relative; }
+  .tg::after { content: ""; position: absolute; right: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; }
+  .tg.off { background: #cfd5db; } .tg.off::after { right: auto; left: 2px; }
+
+  .painel { background: var(--papel); border-radius: var(--r-l); border: 1px solid var(--linha); overflow: hidden; }
+  .painel header { padding: 14px 16px 10px; border-bottom: 1px solid var(--linha); }
+  .painel header b { font-size: 15px; letter-spacing: -.01em; }
+  .painel header span { display: block; color: var(--texto-2); font-size: 12px; }
+  .abas { display: flex; gap: 2px; padding: 0 10px; border-bottom: 1px solid var(--linha); }
+  .abas span { padding: 9px 10px; font-size: 12.5px; color: var(--texto-2); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .abas span.on { color: var(--tinta); border-color: var(--tinta); font-weight: 600; }
+  .sec { padding: 10px 16px 4px; font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--texto-3); }
+  .fn { display: flex; align-items: center; gap: 12px; padding: 9px 16px; border-top: 1px solid var(--linha); }
+  .fn .tx { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 500; }
+  .fn .tx small { display: block; font-weight: 400; font-size: 12px; color: var(--texto-2); }
+  .fn .tg { background: var(--tinta); } .fn .tg.off { background: var(--linha-forte); }
+
+  /* ---- Ficha ---- */
+  .ficha-antes { background: #fff; border-radius: 8px; overflow: hidden; }
+  .ficha-antes .cab { background: #17457f; color: #fff; padding: 12px 14px; font-weight: 600; font-size: 14px; }
+  .ficha-antes .corpo { padding: 12px 14px; }
+  .ficha-antes label { display: block; font-size: 10.5px; font-weight: 700; color: #5b6672; margin: 8px 0 3px; }
+  .ficha-antes .in { border: 1px solid #d8dfe6; border-radius: 7px; padding: 8px; font-size: 12.5px; }
+  .ficha-antes .aviso { background: #e8f0f8; color: #123a7a; font-size: 11px; padding: 8px; border-radius: 7px; }
+
+  .ficha { background: var(--papel); border-radius: var(--r-l); border: 1px solid var(--linha); overflow: hidden; }
+  .ficha .topo { padding: 14px 18px 12px; border-bottom: 1px solid var(--linha); display: flex; align-items: flex-start; gap: 12px; }
+  .ficha .topo b { font-size: 15px; letter-spacing: -.01em; display: block; }
+  .ficha .topo span { font-size: 12px; color: var(--texto-2); }
+  .ficha .x { margin-left: auto; width: 28px; height: 28px; border-radius: var(--r-s); border: 1px solid var(--linha); display: grid; place-items: center; color: var(--texto-2); }
+  .regua { padding: 10px 18px; background: var(--papel-2); border-bottom: 1px solid var(--linha); }
+  .regua .linha1 { display: flex; align-items: center; gap: 10px; font-size: 12.5px; }
+  .regua .pill { font-size: 11.5px; font-weight: 600; background: var(--ambar-fundo); color: var(--ambar); padding: 2px 9px; border-radius: 999px; }
+  .regua .barra { height: 4px; border-radius: 2px; background: var(--linha); margin-top: 8px; overflow: hidden; }
+  .regua .barra i { display: block; height: 100%; width: 62%; background: var(--tinta); border-radius: 2px; }
+  .regua .prox { margin-left: auto; font-size: 12px; color: var(--tinta); font-weight: 600; }
+  .campos { padding: 14px 18px 18px; display: grid; gap: 12px; }
+  .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .campo label { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--texto-2); margin-bottom: 4px; }
+  .campo .num { font-size: 10.5px; font-weight: 700; color: var(--tinta); background: var(--tinta-suave); border-radius: 4px; padding: 0 5px; line-height: 17px; }
+  .campo .obr { color: var(--carimbo); }
+  .campo .in { background: #fff; border: 1px solid var(--linha-forte); border-radius: var(--r-s); padding: 8px 10px; font-size: 13.5px; min-height: 36px; }
+  .campo .in.falta { border-color: var(--carimbo); box-shadow: 0 0 0 3px rgba(179, 38, 30, .10); color: var(--texto-3); }
+  .campo .dica { font-size: 11.5px; margin-top: 4px; color: var(--jaleco); }
+  .campo .dica.err { color: var(--carimbo); }
+  .rodape { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--linha); background: var(--papel-2); }
+  .btn { border-radius: var(--r-s); padding: 8px 14px; font-size: 13px; font-weight: 600; border: 1px solid var(--linha-forte); background: #fff; color: var(--texto); }
+  .btn.pri { background: var(--tinta); color: #fff; border-color: var(--tinta); }
+
+  .paleta { display: flex; flex-wrap: wrap; gap: 10px; }
+  .cor { width: 132px; }
+  .cor i { display: block; height: 44px; border-radius: var(--r-s); border: 1px solid var(--linha); }
+  .cor b { display: block; font-size: 12px; margin-top: 5px; }
+  .cor span { font-size: 11.5px; color: var(--texto-2); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Assistente Meeds — direção visual</h1>
+  <p class="sub">Prévia estática: cada bloco mostra o jeito atual (à esquerda) e a proposta (à direita). Os dados são fictícios. Nada disso está no código ainda.</p>
+
+  <h2>1 · Dock da tela do atendimento</h2>
+  <div class="par">
+    <div class="cena">
+      <p class="rot antes">Hoje</p>
+      <div class="dock-antes">
+        <button>Exames</button><button>REMUME</button><button>Notificação</button><button>LME — Medicamentos MG</button>
+      </div>
+    </div>
+    <div class="cena">
+      <p class="rot depois">Proposta</p>
+      <div class="dock">
+        <div class="grupo">Documentos</div>
+        <div class="item"><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1.5h5l3.5 3.5v9.5h-8.5z"/><path d="M9 1.5V5h3.5M6 9h4M6 11.5h4"/></svg></span>Notificação<small class="ok">pronta</small></div>
+        <div class="item"><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="12" height="5" rx="2.5" transform="rotate(-35 8 8.5)"/><path d="M6.2 5.4l3.6 5.2"/></svg></span>LME — MG<small class="pend">2 faltam</small></div>
+        <div class="grupo">Consulta</div>
+        <div class="item"><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg></span>REMUME</div>
+        <div class="item"><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h4M7 2v4.5L3 13a1 1 0 0 0 .9 1.5h8.2A1 1 0 0 0 13 13L9 6.5V2"/></svg></span>Exames</div>
+        <div class="grupo">Fila</div>
+        <div class="item"><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5V7a4 4 0 0 1 8 0v4.5L13 13H3zM6.5 14.5h3"/></svg></span>Alarme<small class="alarme">2 na fila</small></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>2 · Painel de configurações (engrenagem)</h2>
+  <div class="par">
+    <div class="cena">
+      <p class="rot antes">Hoje</p>
+      <div class="painel-antes">
+        <div class="cab">Assistente Meeds</div>
+        <div class="lin"><div><b>Alarme de Fila</b>Avisa quando entra paciente na fila do Pronto Atendimento, ou quando alguém espera além do tempo que você definir.</div><span class="tg"></span></div>
+        <div class="lin"><div><b>Laudo — Sete Lagoas</b>Preenche o Laudo Médico de Alto Custo de Sete Lagoas no formulário oficial da prefeitura. Para quem atende o município.</div><span class="tg off"></span></div>
+        <div class="lin"><div><b>LME — Medicamentos (MG)</b>Gera o LME (Laudo de Solicitação, Avaliação e Autorização de Medicamento(s) do Componente Especializado…</div><span class="tg"></span></div>
+      </div>
+    </div>
+    <div class="cena">
+      <p class="rot depois">Proposta</p>
+      <div class="painel">
+        <header><b>Assistente Meeds</b><span>Ligue só o que você usa. Versão 2.67.0</span></header>
+        <div class="abas"><span class="on">Funções</span><span>Médicos</span><span>Unidades</span><span>Sobre</span></div>
+        <div class="sec">Documentos</div>
+        <div class="fn"><div class="tx">Ficha de notificação<small>Dengue, leishmaniose, AIDS e violência (SINAN)</small></div><span class="tg"></span></div>
+        <div class="fn"><div class="tx">LME — Minas Gerais<small>Medicamentos do componente especializado</small></div><span class="tg"></span></div>
+        <div class="fn"><div class="tx">Laudo — Sete Lagoas<small>Alto custo, formulário da prefeitura</small></div><span class="tg off"></span></div>
+        <div class="sec">Consulta</div>
+        <div class="fn"><div class="tx">REMUME<small>Busca por nome ou nome comercial</small></div><span class="tg"></span></div>
+        <div class="sec">Fila</div>
+        <div class="fn"><div class="tx">Alarme de fila<small>Avisa quando alguém espera demais</small></div><span class="tg"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>3 · Janela de documento, com a régua de pendências</h2>
+  <div class="par">
+    <div class="cena">
+      <p class="rot antes">Hoje</p>
+      <div class="ficha-antes">
+        <div class="cab">LME — Medicamentos (Minas Gerais)</div>
+        <div class="corpo">
+          <div class="aviso">Laudo de Solicitação, Avaliação e Autorização de Medicamento(s)… Campos com * são obrigatórios.</div>
+          <label>3.1 Nome civil completo *</label><div class="in">DARA ARRUDA MAGALHÃES</div>
+          <label>4. Nome da mãe *</label><div class="in">&nbsp;</div>
+          <label>5. Peso (kg) *</label><div class="in">62,5</div>
+        </div>
+      </div>
+    </div>
+    <div class="cena">
+      <p class="rot depois">Proposta</p>
+      <div class="ficha">
+        <div class="topo"><div><b>LME — Medicamentos (MG)</b><span>Solicitação · modelo da SES-MG · Dara Arruda Magalhães</span></div><span class="x">✕</span></div>
+        <div class="regua">
+          <div class="linha1"><span class="pill">3 campos faltam</span><span>9 de 12 obrigatórios</span><span class="prox">Ir para o próximo →</span></div>
+          <div class="barra"><i></i></div>
+        </div>
+        <div class="campos">
+          <div class="grade">
+            <div class="campo"><label><span class="num">3.1</span>Nome civil <span class="obr">*</span></label><div class="in">Dara Arruda Magalhães</div><div class="dica">Lido da tela do atendimento</div></div>
+            <div class="campo"><label><span class="num">21</span>CPF do paciente <span class="obr">*</span></label><div class="in">529.982.247-25</div><div class="dica">Sempre o CPF</div></div>
+          </div>
+          <div class="campo"><label><span class="num">4</span>Nome da mãe <span class="obr">*</span></label><div class="in falta">Informe o nome completo da mãe</div><div class="dica err">Falta preencher</div></div>
+          <div class="grade">
+            <div class="campo"><label><span class="num">5</span>Peso (kg) <span class="obr">*</span></label><div class="in">62,5</div></div>
+            <div class="campo"><label><span class="num">6</span>Altura (cm) <span class="obr">*</span></label><div class="in falta">165</div><div class="dica err">Falta preencher</div></div>
+          </div>
+        </div>
+        <div class="rodape"><span class="btn">Limpar campos</span><span class="btn pri">Gerar e baixar PDF</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>4 · Paleta (o que existe no mundo do atendimento)</h2>
+  <div class="paleta">
+    <div class="cor"><i style="background:#fbfaf6"></i><b>Papel</b><span>#FBFAF6 · fundo das janelas</span></div>
+    <div class="cor"><i style="background:#1d3557"></i><b>Tinta</b><span>#1D3557 · único acento</span></div>
+    <div class="cor"><i style="background:#1f7a5c"></i><b>Jaleco</b><span>#1F7A5C · pronto, ok</span></div>
+    <div class="cor"><i style="background:#8a5a00"></i><b>Âmbar</b><span>#8A5A00 · pendência</span></div>
+    <div class="cor"><i style="background:#b3261e"></i><b>Carimbo</b><span>#B3261E · alarme e erro</span></div>
+    <div class="cor"><i style="background:#f3f1ea"></i><b>Arquivo</b><span>#F3F1EA · faixas e rodapé</span></div>
+  </div>
+</main>
+</body>
+</html>

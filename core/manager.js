@@ -35,7 +35,7 @@
     ".msm-modal { background:#fff; border-radius:6px; width:100%; max-width:540px; max-height:86vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 8px 24px rgba(15,23,42,.2); }",
 
     /* cabecalho */
-    ".msm-head { background:#17457f; color:#fff; padding:15px 18px 0; flex-shrink:0; }",
+    ".msm-head { background:#1d3557; color:#fff; padding:15px 18px 0; flex-shrink:0; }",
     ".msm-head-topo { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
     ".msm-head h2 { margin:0; font-size:15px; font-weight:700; }",
     ".msm-head .msm-sub { margin:2px 0 0; font-size:11.5px; opacity:.85; }",
@@ -46,13 +46,15 @@
     ".msm-abas { display:flex; gap:2px; margin-top:12px; }",
     ".msm-aba { background:none; border:none; color:rgba(255,255,255,.72); cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:700; padding:9px 13px; border-radius:8px 8px 0 0; border-bottom:3px solid transparent; }",
     ".msm-aba:hover { color:#fff; background:rgba(255,255,255,.1); }",
-    ".msm-aba[aria-selected='true'] { color:#123a7a; background:#fff; border-bottom-color:#fff; }",
+    ".msm-aba[aria-selected='true'] { color:#1d3557; background:#fff; border-bottom-color:#fff; }",
 
     ".msm-body { padding:16px 18px 18px; overflow-y:auto; flex:1; }",
     ".msm-painel[hidden] { display:none; }",
     ".msm-ajuda { font-size:11.5px; color:#5b6672; line-height:1.55; margin:0 0 14px; }",
 
     /* modulos */
+    ".msm-categoria { font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#8a97a4; padding:14px 0 2px; border-bottom:1px solid #e9edf2; }",
+    ".msm-categoria:first-child { padding-top:2px; }",
     ".msm-item { display:flex; align-items:flex-start; gap:12px; padding:11px 0; border-bottom:1px solid #f3f6f9; }",
     ".msm-item:last-child { border-bottom:none; }",
     ".msm-item-txt { flex:1; min-width:0; }",
@@ -79,7 +81,7 @@
     ".msm-switch input { opacity:0; width:0; height:0; }",
     ".msm-slider { position:absolute; inset:0; background:#cbd5e1; border-radius:999px; transition:background .18s ease; }",
     ".msm-slider::before { content:''; position:absolute; height:19px; width:19px; left:3px; top:3px; background:#fff; border-radius:50%; transition:transform .18s ease; box-shadow:0 1px 3px rgba(0,0,0,.3); }",
-    ".msm-switch input:checked + .msm-slider { background:#12958a; }",
+    ".msm-switch input:checked + .msm-slider { background:#1d3557; }",
     ".msm-switch input:checked + .msm-slider::before { transform:translateX(19px); }",
 
     /* fichas (medicos / unidades) */
@@ -104,8 +106,8 @@
     ".msm-dica { font-size:10.5px; color:#9aa5b1; margin-top:4px; line-height:1.45; }",
     ".msm-form-acoes { display:flex; gap:8px; margin-top:11px; }",
 
-    ".msm-btn { background:#1a4fa0; color:#fff; border:none; border-radius:8px; padding:9px 15px; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer; }",
-    ".msm-btn:hover { background:#123a7a; }",
+    ".msm-btn { background:#1d3557; color:#fff; border:none; border-radius:8px; padding:9px 15px; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer; }",
+    ".msm-btn:hover { background:#14263f; }",
     ".msm-btn-sec { background:#fff; color:#123a7a; border:1.3px solid #cbd5e1; }",
     ".msm-btn-sec:hover { background:#eef4fb; }",
 
@@ -532,8 +534,22 @@
       return;
     }
 
-    lista.innerHTML = modulos
-      .map(function (m) {
+    /* As funcoes sao agrupadas pelo que o medico esta fazendo quando
+     * precisa delas: emitir um documento, consultar, ou acompanhar a fila.
+     * Uma funcao nova, sem categoria declarada aqui, cai em "Outras" e
+     * continua aparecendo. A ordem das categorias e a da lista. */
+    const CATEGORIAS = [
+      { id: "documentos", titulo: "Documentos" },
+      { id: "consulta", titulo: "Consulta" },
+      { id: "fila", titulo: "Fila e avisos" },
+      { id: "outras", titulo: "Outras" },
+    ];
+    const CATEGORIA_DO_MODULO = {
+      "notificacao": "documentos", "lme-mg": "documentos", "lme-sete-lagoas": "documentos", "cmd": "documentos", "apac": "documentos",
+      "remume": "consulta", "exames": "consulta",
+      "alarme-fila": "fila", "avisos-municipio": "fila",
+    };
+    function itemDoModulo(m) {
         return (
           '<div class="msm-item">' +
           '  <div class="msm-item-txt">' +
@@ -561,8 +577,13 @@
           "  </label>" +
           "</div>"
         );
-      })
-      .join("");
+    }
+
+    lista.innerHTML = CATEGORIAS.map(function (c) {
+      const doGrupo = modulos.filter(function (m) { return (CATEGORIA_DO_MODULO[m.id] || "outras") === c.id; });
+      if (!doGrupo.length) return "";
+      return '<div class="msm-categoria">' + c.titulo + "</div>" + doGrupo.map(itemDoModulo).join("");
+    }).join("");
 
     if (fixos.length) {
       /* Modulo "sempre ativo" (sem chave liga/desliga) nunca vira

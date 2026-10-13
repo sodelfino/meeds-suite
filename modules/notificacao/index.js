@@ -210,7 +210,7 @@
     "#nt-modal { background:#fff; border-radius:6px; max-width:760px; width:100%; max-height:90vh; overflow-y:auto; box-shadow:0 8px 24px rgba(15,23,42,.2); }",
     "#nt-body { padding:16px 20px; }",
     ".nt-sec { margin-bottom:16px; }",
-    ".nt-sec h3 { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#123a7a; margin:0 0 8px; }",
+    ".nt-sec h3 { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#1d3557; margin:0 0 8px; }",
     ".nt-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }",
     ".nt-grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }",
     ".nt-grid-uf { display:grid; grid-template-columns:90px 1fr; gap:10px; }",
@@ -221,6 +221,7 @@
     ".nt-checks { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:6px 12px; }",
     ".nt-check, .nt-radio { display:flex; align-items:center; gap:7px; font-size:12.5px; color:#16221f; cursor:pointer; }",
     ".nt-radios { display:flex; flex-wrap:wrap; gap:6px 18px; }",
+    ".nt-num { display:inline-block; font-size:10px; font-weight:700; color:#1d3557; background:#e6ecf5; border-radius:4px; padding:0 5px; margin-right:6px; line-height:16px; letter-spacing:.02em; }",
     ".nt-sub { font-size:11px; font-weight:700; color:#5b6672; margin:10px 0 6px; }",
     ".nt-info { background:#e8f0f8; color:#123a7a; font-size:11px; padding:8px 10px; border-radius:7px; margin-bottom:12px; line-height:1.4; }",
     "#nt-alerta { display:none; background:#fde8e8; border:2px solid #d92d20; color:#a12626; font-size:13px; font-weight:800; padding:11px 13px; border-radius:9px; margin-bottom:12px; line-height:1.45; }",
@@ -259,16 +260,24 @@
     "@media (max-width:620px) { .nt-cartoes { grid-template-columns:1fr; } }",
     "@media (prefers-reduced-motion:reduce) { button.nt-cartao { transition:none; } button.nt-cartao:hover { transform:none; } }",
     "#nt-footer { display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eee; }",
-    "button.nt-primario { background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }",
-    "button.nt-primario:hover { background:#123a7a; }",
+    "button.nt-primario { background:#1d3557; color:#fff; border:none; border-radius:9px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; }",
+    "button.nt-primario:hover { background:#14263f; }",
     "button.nt-primario:disabled { background:#a7bcdd; cursor:not-allowed; }",
     "button.nt-secundario { background:#fff; color:#123a7a; border:1.4px solid #1a56ad; border-radius:9px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; }",
     "details.nt-det > summary { cursor:pointer; font-size:11px; font-weight:700; color:#123a7a; margin-bottom:8px; }",
     "@media (max-width:640px) { .nt-grid2, .nt-grid3, .nt-cartoes { grid-template-columns:1fr; } }",
   ].join("\n");
 
+  /* Numero do campo na ficha oficial do SINAN (o mesmo que o medico ve
+   * no papel). Os campos comuns tem a mesma numeracao em todas as fichas. */
+  const NUMEROS_SINAN = {"nt-nome": "8", "nt-nasc": "9", "nt-gestante": "12", "nt-raca": "13", "nt-escolaridade": "14", "nt-cpf": "15", "nt-mae": "16", "nt-uf-res": "17", "nt-mun-res": "18", "nt-bairro": "20", "nt-logradouro": "21", "nt-numero": "22", "nt-complemento": "23", "nt-referencia": "26", "nt-cep": "27", "nt-telefone": "28", "nt-zona": "29", "nt-uf-notif": "4", "nt-mun-notif": "5", "nt-unidade": "6"};
+
+  function num(id) {
+    return NUMEROS_SINAN[id] ? '<span class="nt-num">' + NUMEROS_SINAN[id] + "</span>" : "";
+  }
+
   function campo(id, rotulo, extra) {
-    return '<div><label class="nt-rot" for="' + id + '">' + esc(rotulo) + '</label><input type="text" id="' + id + '" autocomplete="off" ' + (extra || "") + "></div>";
+    return '<div><label class="nt-rot" for="' + id + '">' + num(id) + esc(rotulo) + '</label><input type="text" id="' + id + '" autocomplete="off" ' + (extra || "") + "></div>";
   }
 
   function secaoDoenca() {
@@ -301,34 +310,34 @@
   function secaoPaciente() {
     return '<div class="nt-sec"><h3>Paciente</h3>' +
       '<div class="nt-grid2">' + campo("nt-nome", "Nome completo *") +
-      '<div><label class="nt-rot" for="nt-nasc">Data de nascimento *</label><input type="date" id="nt-nasc"><div class="nt-idade" id="nt-idade"></div></div></div>' +
+      '<div><label class="nt-rot" for="nt-nasc">' + num("nt-nasc") + 'Data de nascimento *</label><input type="date" id="nt-nasc"><div class="nt-idade" id="nt-idade"></div></div></div>' +
       '<div class="nt-sub">Sexo *</div><div class="nt-radios">' +
       '<label class="nt-radio"><input type="radio" name="nt-sexo" id="nt-sexo-f" value="F"> Feminino</label>' +
       '<label class="nt-radio"><input type="radio" name="nt-sexo" value="M"> Masculino</label>' +
       '<label class="nt-radio"><input type="radio" name="nt-sexo" value="I"> Ignorado</label></div>' +
-      '<div id="nt-linha-gestante" class="nt-oculto" style="margin-top:8px;max-width:300px"><label class="nt-rot" for="nt-gestante">Gestante *</label><select id="nt-gestante">' + opcoes(F().GESTANTE, "Selecione…") + "</select></div>" +
+      '<div id="nt-linha-gestante" class="nt-oculto" style="margin-top:8px;max-width:300px"><label class="nt-rot" for="nt-gestante">' + num("nt-gestante") + 'Gestante *</label><select id="nt-gestante">' + opcoes(F().GESTANTE, "Selecione…") + "</select></div>" +
       '<div class="nt-grid3" style="margin-top:8px">' +
-      '<div><label class="nt-rot" for="nt-raca">Raça/cor</label><select id="nt-raca">' + opcoes(F().RACAS) + "</select></div>" +
-      '<div><label class="nt-rot" for="nt-escolaridade">Escolaridade</label><select id="nt-escolaridade">' + opcoes(F().ESCOLARIDADES) + "</select></div>" +
+      '<div><label class="nt-rot" for="nt-raca">' + num("nt-raca") + 'Raça/cor</label><select id="nt-raca">' + opcoes(F().RACAS) + "</select></div>" +
+      '<div><label class="nt-rot" for="nt-escolaridade">' + num("nt-escolaridade") + 'Escolaridade</label><select id="nt-escolaridade">' + opcoes(F().ESCOLARIDADES) + "</select></div>" +
       campo("nt-ocupacao", "Ocupação", 'maxlength="40"') + "</div>" +
       '<div class="nt-grid2" style="margin-top:8px">' + campo("nt-cpf", "CPF (vai no campo do Cartão SUS da ficha)", 'inputmode="numeric" maxlength="14"') + campo("nt-mae", "Nome da mãe", 'maxlength="60"') + "</div></div>";
   }
 
   function secaoResidencia() {
     return '<div class="nt-sec"><h3>Residência do paciente</h3>' +
-      '<div class="nt-grid-uf"><div><label class="nt-rot" for="nt-uf-res">UF *</label><select id="nt-uf-res">' + opcoesUf() + "</select></div>" +
-      '<div><label class="nt-rot" for="nt-mun-res">Município de residência *</label><input type="text" id="nt-mun-res" list="nt-lista-mun-res" autocomplete="off" placeholder="digite e escolha da lista"><datalist id="nt-lista-mun-res"></datalist></div></div>' +
+      '<div class="nt-grid-uf"><div><label class="nt-rot" for="nt-uf-res">' + num("nt-uf-res") + 'UF *</label><select id="nt-uf-res">' + opcoesUf() + "</select></div>" +
+      '<div><label class="nt-rot" for="nt-mun-res">' + num("nt-mun-res") + 'Município de residência *</label><input type="text" id="nt-mun-res" list="nt-lista-mun-res" autocomplete="off" placeholder="digite e escolha da lista"><datalist id="nt-lista-mun-res"></datalist></div></div>' +
       '<div class="nt-grid3" style="margin-top:8px">' + campo("nt-bairro", "Bairro", 'maxlength="40"') + campo("nt-logradouro", "Logradouro", 'maxlength="60"') + campo("nt-numero", "Número", 'maxlength="8"') + "</div>" +
       '<div class="nt-grid3" style="margin-top:8px">' + campo("nt-complemento", "Complemento", 'maxlength="40"') + campo("nt-referencia", "Ponto de referência", 'maxlength="40"') + campo("nt-cep", "CEP", 'inputmode="numeric" maxlength="9"') + "</div>" +
       '<div class="nt-grid3" style="margin-top:8px">' + campo("nt-telefone", "Telefone com DDD *", 'inputmode="tel" maxlength="16" placeholder="(22) 99999-9999"') +
-      '<div><label class="nt-rot" for="nt-zona">Zona</label><select id="nt-zona">' + opcoes(F().ZONAS) + "</select></div></div></div>";
+      '<div><label class="nt-rot" for="nt-zona">' + num("nt-zona") + 'Zona</label><select id="nt-zona">' + opcoes(F().ZONAS) + "</select></div></div></div>";
   }
 
   function secaoUnidade() {
     return '<details class="nt-det nt-sec" id="nt-det-unidade"><summary>Unidade e município da notificação (lidos da tela do atendimento)</summary>' +
-      '<div class="nt-grid-uf"><div><label class="nt-rot" for="nt-uf-notif">UF</label><select id="nt-uf-notif">' + opcoesUf() + "</select></div>" +
-      '<div><label class="nt-rot" for="nt-mun-notif">Município da notificação</label><input type="text" id="nt-mun-notif" list="nt-lista-mun-notif" autocomplete="off"><datalist id="nt-lista-mun-notif"></datalist></div></div>' +
-      '<div class="nt-grid2" style="margin-top:8px"><div><label class="nt-rot" for="nt-unidade">Unidade de saúde</label><input type="text" id="nt-unidade" list="nt-lista-unidades" autocomplete="off"><datalist id="nt-lista-unidades"></datalist></div>' +
+      '<div class="nt-grid-uf"><div><label class="nt-rot" for="nt-uf-notif">' + num("nt-uf-notif") + 'UF</label><select id="nt-uf-notif">' + opcoesUf() + "</select></div>" +
+      '<div><label class="nt-rot" for="nt-mun-notif">' + num("nt-mun-notif") + 'Município da notificação</label><input type="text" id="nt-mun-notif" list="nt-lista-mun-notif" autocomplete="off"><datalist id="nt-lista-mun-notif"></datalist></div></div>' +
+      '<div class="nt-grid2" style="margin-top:8px"><div><label class="nt-rot" for="nt-unidade">' + num("nt-unidade") + 'Unidade de saúde</label><input type="text" id="nt-unidade" list="nt-lista-unidades" autocomplete="off"><datalist id="nt-lista-unidades"></datalist></div>' +
       campo("nt-cnes", "CNES (7 dígitos, opcional)", 'inputmode="numeric" maxlength="7"') + "</div></details>";
   }
 

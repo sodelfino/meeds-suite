@@ -27,7 +27,7 @@
     /* Cores solidas (antes, gradientes): mesma familia de cada tom, mais
      * sobrias. O tom continua dizendo o tipo de janela — azul documento,
      * verde-agua consulta, vermelho alarme. */
-    documento: "#17457f",
+    documento: "#1d3557",
     consulta: "#0f6b64",
     alarme: "#b42318",
   };
