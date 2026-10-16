@@ -1,6 +1,6 @@
 # Assistente Meeds — Por: Marcelo
 
-> **Novo passo a passo:** [página de instalação guiada](docs/instalar/index.html). Código da página neste repositório; publicação na web ainda pendente. Os guias abaixo continuam disponíveis.
+> **Instalação guiada:** [abra o passo a passo para seu aparelho](https://sodelfino.github.io/meeds-suite/instalar/). Os guias abaixo continuam disponíveis como alternativa.
 
 Todas as ferramentas do Meeds numa **instalação única**. Cada função liga e
 desliga num painel, sem reinstalar nada.

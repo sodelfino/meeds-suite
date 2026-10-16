@@ -1,6 +1,6 @@
 # Página de instalação guiada do Assistente Meeds
 
-Status: aprovada pelo usuário no chat. Página implementada e testada; publicação e validação da instalação em aparelhos reais permanecem pendentes.
+Status: aprovada pelo usuário no chat. Página implementada e testada; publicação confirmada pelo workflow do GitHub Pages em 16/10/2026. Validação da instalação em aparelhos reais permanece pendente.
 
 ## Objetivo e público
 

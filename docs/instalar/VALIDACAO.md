@@ -22,7 +22,7 @@ Não interpretar sucesso de download como instalação validada. Nenhuma valida�
 A página fica em `docs/instalar/index.html`, sem compilação ou dependências de runtime.
 Inspecionar Settings → Pages antes de mudar qualquer site existente. Se não houver outro site e Pages estiver disponível, usar Deploy from a branch, branch contendo esta alteração, pasta `/docs`. A rota do guia será `/instalar/` abaixo da URL de Pages informada pelo GitHub. Não há configuração de deploy automático adicionada por esta alteração.
 
-A configuração externa não foi alterada; o site não foi publicado por esta tarefa.
+A publicação foi ativada pelo usuário em 16/10/2026. O workflow [pages build and deployment](https://github.com/sodelfino/meeds-suite/actions/runs/38904168042) concluiu com SUCCESS e informou a base `https://sodelfino.github.io/meeds-suite/`. A [página guiada](https://sodelfino.github.io/meeds-suite/instalar/) fica em `/instalar/`. A abertura direta do domínio github.io e a API de Pages continuam bloqueadas pelo proxy deste ambiente (403); portanto, a evidência confirma o deploy pelo GitHub, sem afirmar uma verificação HTTP externa da página.
 Para teste local, servir `docs` por HTTP. Para reproduzir o prefixo de projeto, montar a pasta como `/meeds-suite/` e acessar `/meeds-suite/instalar/`. Não divulgar endereços localhost aos médicos.
 
 ## Limites

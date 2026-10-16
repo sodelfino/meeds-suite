@@ -1,6 +1,6 @@
 # Instalação no iPad (e no iPhone)
 
-> **Novo passo a passo:** [página de instalação guiada](instalar/index.html). Código da página neste repositório; publicação na web ainda pendente. Os guias abaixo continuam disponíveis.
+> **Instalação guiada:** [abra o passo a passo para seu aparelho](https://sodelfino.github.io/meeds-suite/instalar/). Os guias abaixo continuam disponíveis como alternativa.
 
 O Assistente funciona no Safari do iPad. Não existe Tampermonkey para iOS, mas
 existe um app equivalente e gratuito: **Userscripts**, na App Store.
