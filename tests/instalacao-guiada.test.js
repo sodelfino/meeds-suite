@@ -76,4 +76,64 @@ teste('página tem alternativa sem JavaScript e recursos válidos em subdiretór
     assert.ok(new URL(recurso, 'https://example.test/meeds-suite/instalar/').pathname.startsWith('/meeds-suite/'));
   }
 });
+// DOM mínimo: eventos reais do controlador, sem simular regras do fluxo.
+class Elemento {
+  constructor(tag) { this.tagName = tag; this.children = []; this.attrs = {}; this.events = {}; this.hidden = false; this.textContent = ''; }
+  append(...nodes) { this.children.push(...nodes); }
+  replaceChildren(...nodes) { this.children = nodes; this.textContent = ''; }
+  setAttribute(k,v) { this.attrs[k] = v; }
+  addEventListener(k,f) { this.events[k] = f; }
+  focus() { this.focused = true; }
+  select() { this.selected = true; }
+  click() { return this.events.click && this.events.click(); }
+}
+function ambiente() {
+  const ids = {};
+  for (const id of ['guia','titulo-etapa','progresso','conteudo-etapa','resumo','acoes','ajuda-etapa','ajuda-conteudo','trocar','trilha']) ids[id] = new Elemento('div');
+  const doc = { getElementById: id => ids[id], createElement: tag => new Elemento(tag) };
+  const win = { navigator: { userAgent:'Windows NT', maxTouchPoints:0 }, location: { hash:'', href:'https://example.test/meeds-suite/instalar/', pathname:'/meeds-suite/instalar/', search:'' },
+    history: { pushState(_a,_b,url) { win.location.hash = url.startsWith('#') ? url : ''; } }, events:{}, addEventListener(k,f) { this.events[k] = f; } };
+  Object.assign(win, ctx.window);
+  const controle = { window:win, document:doc };
+  vm.createContext(controle);
+  vm.runInContext(fs.readFileSync(path.join(raiz,'docs/instalar/app.js'),'utf8'), controle);
+  return { ids, doc, win };
+}
+function encontrar(el, texto) {
+  if (el.attrs['aria-label'] === texto || el.textContent === texto) return el;
+  for (const filho of el.children) { const achou = encontrar(filho,texto); if (achou) return achou; }
+}
+teste('controlador: seleção explícita, ajuda, confirmação e retorno da URL', () => {
+  const {ids, win} = ambiente();
+  assert.equal(win.location.hash, '');
+  encontrar(ids['conteudo-etapa'],'Computador').click();
+  encontrar(ids['conteudo-etapa'],'Chrome').click();
+  assert.match(win.location.hash, /navegador=chrome/);
+  assert.equal(ids['titulo-etapa'].textContent, 'Primeiro, instale o Tampermonkey');
+  encontrar(ids.acoes,'Já instalei o Tampermonkey').click();
+  encontrar(ids.acoes,'Já autorizei os scripts').click();
+  const instalar = encontrar(ids['conteudo-etapa'],'Instalar o Assistente');
+  instalar.click();
+  assert.equal(ids['titulo-etapa'].textContent, 'Agora, instale o Assistente');
+  encontrar(ids.acoes,'Já instalei o Assistente').click();
+  encontrar(ids.acoes,'Ainda não').click();
+  assert.equal(ids['ajuda-etapa'].open, true);
+  encontrar(ids.acoes,'Sim, apareceu').click();
+  assert.equal(ids['titulo-etapa'].textContent, 'Você confirmou que o Assistente apareceu');
+  assert.match(win.location.hash, /etapa=conferir/);
+  win.events.hashchange();
+  assert.equal(ids['titulo-etapa'].textContent, 'Vamos conferir no Meeds?');
+  ids.trocar.click();
+  assert.equal(ids['titulo-etapa'].textContent, 'Onde você vai usar o Assistente?');
+  win.location.hash = '#plataforma=<img>&etapa=concluido'; win.events.hashchange();
+  assert.equal(ids['titulo-etapa'].textContent, 'Onde você vai usar o Assistente?');
+});
+teste('clipboard ausente oferece seleção manual, sem alegar cópia', () => {
+  const {ids} = ambiente();
+  encontrar(ids['conteudo-etapa'],'Computador').click();
+  encontrar(ids['conteudo-etapa'],'Chrome').click();
+  encontrar(ids.acoes,'Já instalei o Tampermonkey').click();
+  encontrar(ids['conteudo-etapa'],'Copiar endereço').click();
+  assert.ok(encontrar(ids['conteudo-etapa'],'Selecione e copie o endereço acima.'));
+});
 console.log(casos + ' grupos de testes passaram');
