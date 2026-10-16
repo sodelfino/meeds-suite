@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Instale o Assistente Meeds com um passo a passo para seu computador, iPhone, iPad ou Android.">
+  <meta name="theme-color" content="#0b6a62">
+  <title>Instale o Assistente Meeds</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="conteudo.js"></script>
+  <script defer src="fluxo.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <a class="pular" href="#principal">Pular para a instalação</a>
+  <header class="cabecalho">
+    <a class="marca" href="./" aria-label="Assistente Meeds — início">
+      <span class="marca-icone" aria-hidden="true">m<span>✦</span></span>
+      <span>Assistente <strong>Meeds</strong><small>POR MARCELO</small></span>
+    </a>
+    <a class="link-manual" href="../manual/Assistente-Meeds-Instalacao.pdf">Prefere o guia em PDF? <span aria-hidden="true">↗</span></a>
+  </header>
+  <main id="principal">
+    <div class="apresentacao">
+      <p class="sobretitulo"><span aria-hidden="true">●</span> INSTALAÇÃO GUIADA</p>
+      <h1>Um pouco de ajuda.<br><span>Mais tempo para cuidar.</span></h1>
+      <p>Instale o Assistente Meeds no seu navegador.<br class="so-desktop"> Vamos acompanhar você, um passo de cada vez.</p>
+    </div>
+    <section id="guia" class="cartao" aria-labelledby="titulo-etapa">
+      <div class="topo-cartao">
+        <p id="progresso" class="progresso" aria-live="polite">SEU PRIMEIRO PASSO</p>
+        <button id="trocar" class="botao-texto" data-acao="trocar" type="button" hidden>Trocar aparelho</button>
+      </div>
+      <div id="trilha" class="trilha" aria-hidden="true" hidden></div>
+      <h2 id="titulo-etapa" tabindex="-1">Instale o Assistente Meeds</h2>
+      <div id="conteudo-etapa">
+        <p>Escolha o guia para o aparelho em que você usa o Meeds.</p>
+      </div>
+      <div id="resumo">
+        <nav class="guias-basicos" aria-label="Guias de instalação">
+          <a href="https://github.com/sodelfino/meeds-suite/blob/main/docs/GUIA-INSTALACAO.md">Computador — guia de instalação <span aria-hidden="true">↗</span></a>
+          <a href="https://github.com/sodelfino/meeds-suite/blob/main/docs/GUIA-IPAD.md">iPhone e iPad — guia do Safari <span aria-hidden="true">↗</span></a>
+          <a href="../manual/Assistente-Meeds-Instalacao.pdf">Baixar guia ilustrado em PDF <span aria-hidden="true">↓</span></a>
+        </nav>
+        <p class="nota">No Android, é necessário um navegador compatível com extensões. O roteiro do Assistente ainda não foi validado em aparelho; use o computador como alternativa.</p>
+      </div>
+      <div id="acoes" class="acoes" hidden></div>
+      <details id="ajuda-etapa" hidden>
+        <summary>Preciso de ajuda</summary>
+        <div id="ajuda-conteudo"></div>
+      </details>
+    </section>
+    <p class="pos-cartao"><span aria-hidden="true">✧</span> As ferramentas de sempre. Juntas, dentro do Meeds.</p>
+    <section class="orientacao" aria-label="Sobre a instalação">
+      <div><span class="numero" aria-hidden="true">01</span><h3>Prepare o navegador</h3><p>Mostramos a extensão certa para seu aparelho.</p></div>
+      <div><span class="numero" aria-hidden="true">02</span><h3>Instale o Assistente</h3><p>Um único pacote reúne suas ferramentas.</p></div>
+      <div><span class="numero" aria-hidden="true">03</span><h3>Abra o Meeds</h3><p>Entre normalmente e confira a engrenagem.</p></div>
+    </section>
+  </main>
+  <footer><span>Assistente Meeds · Por Marcelo</span><a href="../manual/Assistente-Meeds-Manual.pdf">Manual de uso <span aria-hidden="true">↗</span></a></footer>
+</body>
+</html>

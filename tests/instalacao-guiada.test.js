@@ -63,4 +63,17 @@ teste('variantes corretas e permissões específicas', () => {
   assert.match(JSON.stringify(conteudo.roteiros.android), /não validado em aparelho/);
   assert.match(JSON.stringify(conteudo.roteiros.android), /Chrome/);
 });
+teste('página tem alternativa sem JavaScript e recursos válidos em subdiretório', () => {
+  const html = fs.readFileSync(path.join(raiz, 'docs/instalar/index.html'), 'utf8');
+  assert.match(html, /Instale o Assistente Meeds/);
+  assert.match(html, /id="resumo"/);
+  assert.match(html, /GUIA-INSTALACAO.md/);
+  assert.match(html, /GUIA-IPAD.md/);
+  assert.match(html, /Assistente-Meeds-Instalacao.pdf/);
+  assert.match(html, /aria-live="polite"/);
+  for (const recurso of ['styles.css', 'conteudo.js', 'fluxo.js', 'app.js', '../manual/Assistente-Meeds-Instalacao.pdf']) {
+    assert.ok(html.includes(recurso));
+    assert.ok(new URL(recurso, 'https://example.test/meeds-suite/instalar/').pathname.startsWith('/meeds-suite/'));
+  }
+});
 console.log(casos + ' grupos de testes passaram');
