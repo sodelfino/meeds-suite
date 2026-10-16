@@ -1,6 +1,6 @@
 # Página de instalação guiada do Assistente Meeds
 
-Status: proposta para revisão do usuário. O fluxo geral foi aprovado; este documento detalha a solução antes da implementação.
+Status: aprovada pelo usuário no chat. Página implementada e testada; publicação e validação da instalação em aparelhos reais permanecem pendentes.
 
 ## Objetivo e público
 

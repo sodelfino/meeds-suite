@@ -104,7 +104,7 @@ Adicionar casos para permissões separadas Chrome/Edge, ausência dessas instru�
 - [x] **4. Verificar pelo servidor:** montar a pasta docs sob `/meeds-suite/` em um diretório temporário e servir por HTTP. Percorrer a página e recursos em `/meeds-suite/instalar/` para validar o subdiretório, inclusive caminhos do PDF e imagem; não criar links de preview localhost para o usuário. Registrar resultados das larguras 360, 768 e 1280px, teclado, JS desabilitado, URLs externas e navegadores realmente utilizados.
 - [x] **5. Registrar a matriz de evidências:** separar testes Node, página no navegador, emulação móvel e instalação real com extensão. Sem acesso a aparelhos, marcar iOS/Android como não validados em aparelho, manter isso na página e não alegar resultado completo. Pedir teste real somente quando toda tarefa independente estiver concluída.
 - [x] **6. Commit:** `docs: integra guia de instalacao e registra validacao`.
-- [ ] **7. Entregar:** arquivos e testes, limitações concretas e configuração exata necessária para hospedar. Publicar apenas dentro da autorização do usuário e da disponibilidade de acesso. Se publicado, testar a URL resultante antes de compartilhá-la como operacional.
+- [x] **7. Entregar:** arquivos e testes, limitações concretas e configuração exata necessária para hospedar. Publicar apenas dentro da autorização do usuário e da disponibilidade de acesso. Se publicado, testar a URL resultante antes de compartilhá-la como operacional.
 
 ## Ordem e revisão
 

@@ -187,6 +187,11 @@
       escolhendoNavegador = false;
       renderizar(true);
     }
+    // O fragmento guarda o roteiro: o atalho de acessibilidade não pode substituí-lo.
+    el('pular').addEventListener('click', function (evento) {
+      evento.preventDefault();
+      titulo.focus();
+    });
     el('trocar').addEventListener('click', () => agir({ tipo: 'trocar' }));
     janela.addEventListener('hashchange', restaurar);
     janela.addEventListener('popstate', restaurar);

@@ -36,7 +36,7 @@ Para teste local, servir `docs` por HTTP. Para reproduzir o prefixo de projeto, 
 
 ## Evidências da página
 
-- Node 20.20.2: 13 grupos de testes de regras, variantes e controlador passaram.
+- Node 20.20.2: 14 grupos de testes de regras, variantes e controlador passaram.
 - ESLint: sem erros nos arquivos novos.
 - Chromium 154.0.8037.57 via Playwright: seis roteiros em três larguras (360, 768 e 1280px), totalizando 18 jornadas; nenhuma exceção de JavaScript e nenhum transbordamento horizontal.
 - Navegação por teclado, foco no título após avançar, ida/volta no histórico, recarregamento e URL adulterada conferidos.
@@ -60,3 +60,5 @@ No navegador, percorrer cada roteiro, expandir ajuda, voltar, trocar aparelho e 
 
 - Regressão: `npm run verificar` completou com código 0 no Node 20.20.2; 40 arquivos de teste existentes e lint, além do novo teste separado no CI.
 - `git diff --check` passou; core, módulos, dados, manifest, userscripts, package.json e lockfile não foram alterados.
+
+- Revisão independente encontrou conflito entre o atalho de pular para conteúdo e o fragmento de navegação; corrigido com teste de regressão RED→GREEN e confirmação no Chromium de que a etapa restaurada é preservada.

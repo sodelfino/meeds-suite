@@ -89,7 +89,7 @@ class Elemento {
 }
 function ambiente() {
   const ids = {};
-  for (const id of ['guia','titulo-etapa','progresso','conteudo-etapa','resumo','acoes','ajuda-etapa','ajuda-conteudo','trocar','trilha']) ids[id] = new Elemento('div');
+  for (const id of ['pular','guia','titulo-etapa','progresso','conteudo-etapa','resumo','acoes','ajuda-etapa','ajuda-conteudo','trocar','trilha']) ids[id] = new Elemento('div');
   const doc = { getElementById: id => ids[id], createElement: tag => new Elemento(tag) };
   const win = { navigator: { userAgent:'Windows NT', maxTouchPoints:0 }, location: { hash:'', href:'https://example.test/meeds-suite/instalar/', pathname:'/meeds-suite/instalar/', search:'' },
     history: { pushState(_a,_b,url) { win.location.hash = url.startsWith('#') ? url : ''; } }, events:{}, addEventListener(k,f) { this.events[k] = f; } };
@@ -135,5 +135,18 @@ teste('clipboard ausente oferece seleção manual, sem alegar cópia', () => {
   encontrar(ids.acoes,'Já instalei o Tampermonkey').click();
   encontrar(ids['conteudo-etapa'],'Copiar endereço').click();
   assert.ok(encontrar(ids['conteudo-etapa'],'Selecione e copie o endereço acima.'));
+});
+teste('atalho de teclado preserva uma etapa restaurada e foca seu título', () => {
+  const {ids, win} = ambiente();
+  win.location.hash = '#plataforma=computador&navegador=chrome&etapa=instalar';
+  win.events.hashchange();
+  const hash = win.location.hash;
+  assert.equal(typeof ids.pular.events.click, 'function');
+  let impedido = false;
+  ids.pular.events.click({ preventDefault() { impedido = true; } });
+  assert.ok(impedido);
+  assert.equal(win.location.hash, hash);
+  assert.equal(ids['titulo-etapa'].textContent, 'Agora, instale o Assistente');
+  assert.ok(ids['titulo-etapa'].focused);
 });
 console.log(casos + ' grupos de testes passaram');
