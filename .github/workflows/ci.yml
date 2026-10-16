@@ -24,6 +24,9 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
+      - name: Testar instalação guiada
+        run: node tests/instalacao-guiada.test.js
+
       - name: Verificar (build --check, sincronizações, testes e lint)
         run: npm run verificar
 

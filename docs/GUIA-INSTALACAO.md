@@ -1,5 +1,7 @@
 # Guia de instalação — Assistente Meeds
 
+> **Novo passo a passo:** [página de instalação guiada](instalar/index.html). Código da página neste repositório; publicação na web ainda pendente. Os guias abaixo continuam disponíveis.
+
 **Uma única instalação.** Depois dela, as 5 ferramentas aparecem sozinhas na
 tela do Meeds, e você liga ou desliga cada uma pelo botão ⚙️.
 

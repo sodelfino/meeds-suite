@@ -1,5 +1,7 @@
 # Assistente Meeds — Por: Marcelo
 
+> **Novo passo a passo:** [página de instalação guiada](docs/instalar/index.html). Código da página neste repositório; publicação na web ainda pendente. Os guias abaixo continuam disponíveis.
+
 Todas as ferramentas do Meeds numa **instalação única**. Cada função liga e
 desliga num painel, sem reinstalar nada.
 

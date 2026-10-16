@@ -33,3 +33,30 @@ Para teste local, servir `docs` por HTTP. Para reproduzir o prefixo de projeto, 
 - Android: Firefox + Tampermonkey é uma orientação ainda não validada em aparelho. O Chrome comum não oferece o caminho necessário.
 - Instalação real com extensão em computador, Safari iOS/iPadOS e Android exige aparelhos e permissões correspondentes.
 - Não há coleta de dados, analytics, backend ou dependências externas de interface.
+
+## Evidências da página
+
+- Node 20.20.2: 13 grupos de testes de regras, variantes e controlador passaram.
+- ESLint: sem erros nos arquivos novos.
+- Chromium 154.0.8037.57 via Playwright: seis roteiros em três larguras (360, 768 e 1280px), totalizando 18 jornadas; nenhuma exceção de JavaScript e nenhum transbordamento horizontal.
+- Navegação por teclado, foco no título após avançar, ida/volta no histórico, recarregamento e URL adulterada conferidos.
+- Cópia com API indisponível (Node) e promessa rejeitada (Chromium): seleção manual oferecida, sem alegar cópia bem-sucedida.
+- JavaScript desativado: guias e PDF acessíveis nas três larguras.
+- Servidor HTTP com prefixo `/meeds-suite/`: página, quatro scripts/estilos, imagem e dois PDFs responderam HTTP 200.
+- Imagem existente do dock conferida visualmente: engrenagem reconhecível; legenda informa que botões variam.
+
+Esses testes exercitam a página no Chromium. Selecionar o roteiro Safari/Firefox/Edge ou usar uma largura móvel não executa esses navegadores nem valida extensões em aparelhos reais. A instalação real continua pendente em cada plataforma; Android e iOS informam essa limitação na página.
+
+## Como repetir
+
+```bash
+export PATH=/workspace/.cloud-tools/node_modules/.bin:$PATH
+node tests/instalacao-guiada.test.js
+npm run verificar
+python3 -m http.server 8732 --bind 127.0.0.1 --directory docs
+```
+
+No navegador, percorrer cada roteiro, expandir ajuda, voltar, trocar aparelho e recarregar a conferência. Repetir sem JavaScript e com teclado. A confirmação “Sim, apareceu” só deve ser usada após observar a engrenagem no Meeds.
+
+- Regressão: `npm run verificar` completou com código 0 no Node 20.20.2; 40 arquivos de teste existentes e lint, além do novo teste separado no CI.
+- `git diff --check` passou; core, módulos, dados, manifest, userscripts, package.json e lockfile não foram alterados.
