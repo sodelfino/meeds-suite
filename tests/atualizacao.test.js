@@ -20,13 +20,13 @@ function carregar(extra) {
   return ctx.MeedsSuiteAtualizacao;
 }
 
-const BASE = "https://raw.githubusercontent.com/sodelfino/meeds-suite/main";
+const BASE = "https://github.com/sodelfino/meeds-suite/releases/latest/download";
 const meta = (v) => "// ==UserScript==\n// @name X\n// @version      " + v + "\n// ==/UserScript==\n";
 
 function com(at, opcoes, texto, motivoFalha) {
   const visto = { url: null, r: null };
   at.verificar(
-    Object.assign({ baseRaw: BASE, versaoAtual: "2.59.0" }, opcoes, {
+    Object.assign({ baseReleases: BASE, versaoAtual: "2.59.0", variante: "tampermonkey" }, opcoes, {
       buscar: function (url, ok, falha) {
         visto.url = url;
         if (motivoFalha) falha(motivoFalha); else ok(texto);
@@ -59,17 +59,23 @@ confere(v.r.situacao === "erro" && v.r.motivo === "sem conexão", "falha de rede
 
 console.log("3. URLs");
 v = com(at, { variante: "tampermonkey" }, meta("2.60.0"));
-confere(/\/dist\/meeds-suite\.meta\.js\?t=\d+$/.test(v.url), "consulta o .meta.js com cache-bust");
-confere(v.r.urlInstalar === BASE + "/dist/meeds-suite.user.js", "link de instalar é o .user.js SEM query");
-v = com(at, { variante: "safari" }, meta("2.60.0"));
-confere(v.url.indexOf("/dist/meeds-suite.safari.meta.js?t=") > -1, "Safari consulta o meta do Safari");
-confere(v.r.urlInstalar === BASE + "/dist/meeds-suite.safari.user.js", "Safari instala o .safari.user.js");
-v = com(at, { baseRaw: BASE + "/" }, meta("2.60.0"));
-confere(v.r.urlInstalar.indexOf("main//dist") === -1, "barra final em baseRaw não duplica");
+confere(/\/meeds-suite\.meta\.js\?t=\d+$/.test(v.url), "consulta o .meta.js com cache-bust");
+confere(v.r.urlInstalar === BASE + "/meeds-suite.user.js", "link de instalar é o .user.js SEM query");
+v = com(at, { variante: "safari" }, JSON.stringify({ tag_name: "v2.60.0", draft: false, prerelease: false }));
+confere(v.url.indexOf("https://api.github.com/repos/sodelfino/meeds-suite/releases/latest?t=") === 0, "Safari consulta metadados da release em API com CORS");
+confere(v.r.versaoNova === "2.60.0", "Safari usa a versão da release publicada");
+confere(v.r.urlInstalar === BASE + "/meeds-suite.safari.user.js", "Safari instala o .safari.user.js");
+v = com(at, { baseReleases: BASE + "/" }, meta("2.60.0"));
+confere(v.r.urlInstalar.indexOf("download//") === -1, "barra final em baseReleases não duplica");
+
+for (const release of [{ tag_name: "v2.60.0", draft: true }, { tag_name: "v2.60.0", prerelease: true }, { tag_name: "qualquer" }, {}]) {
+  const teste = com(at, { variante: "safari" }, JSON.stringify(release));
+  confere(teste.r.situacao === "erro", "Safari rejeita release não pública, prévia ou sem versão válida");
+}
 
 console.log("4. configuração incompleta");
-v = com(at, { baseRaw: null }, meta("2.60.0"));
-confere(v.r.situacao === "erro" && v.url === null, "sem baseRaw → erro, sem pedir nada");
+v = com(at, { baseReleases: null }, meta("2.60.0"));
+confere(v.r.situacao === "erro" && v.url === null, "sem baseReleases → erro, sem pedir nada");
 
 console.log("5. variante");
 confere(carregar().variante() === "safari", "sem GM_getValue → safari");
@@ -79,26 +85,28 @@ console.log("6. transporte padrão");
 (function () {
   let pedido = null;
   const a1 = carregar({
+    GM_getValue: function () {},
     GM_xmlhttpRequest: function (o) { pedido = o; o.onload({ status: 200, responseText: meta("2.61.0") }); },
   });
   let r = null;
-  a1.verificar({ baseRaw: BASE, versaoAtual: "2.59.0" }, function (x) { r = x; });
-  confere(pedido && pedido.method === "GET" && r && r.situacao === "disponivel", "usa GM_xmlhttpRequest quando existe");
+  a1.verificar({ baseReleases: BASE, versaoAtual: "2.59.0" }, function (x) { r = x; });
+  confere(pedido && pedido.method === "GET" && pedido.anonymous === true && r && r.situacao === "disponivel", "usa GM_xmlhttpRequest quando existe");
 
   const a2 = carregar({
+    GM_getValue: function () {},
     GM_xmlhttpRequest: function (o) { o.onload({ status: 503, responseText: "" }); },
   });
-  a2.verificar({ baseRaw: BASE, versaoAtual: "2.59.0" }, function (x) { r = x; });
+  a2.verificar({ baseReleases: BASE, versaoAtual: "2.59.0" }, function (x) { r = x; });
   confere(r.situacao === "erro" && r.motivo === "HTTP 503", "HTTP 503 → erro");
 
   const a3 = carregar({
     fetch: function (u, o) {
       pedido = { u: u, o: o };
-      return Promise.resolve({ ok: true, text: () => Promise.resolve(meta("2.59.0")) });
+      return Promise.resolve({ ok: true, text: () => Promise.resolve(JSON.stringify({ tag_name: "v2.59.0", draft: false, prerelease: false })) });
     },
   });
-  a3.verificar({ baseRaw: BASE, versaoAtual: "2.59.0" }, function (x) {
-    confere(pedido.o.cache === "no-store" && x.situacao === "atualizado", "sem GM: fetch com cache no-store");
+  a3.verificar({ baseReleases: BASE, versaoAtual: "2.59.0" }, function (x) {
+    confere(pedido.o.cache === "no-store" && pedido.o.credentials === "omit" && x.situacao === "atualizado", "sem GM: fetch com cache no-store");
     fim();
   });
 })();

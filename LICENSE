@@ -1,0 +1,40 @@
+Assistente Meeds (meeds-suite)
+Copyright (c) 2026 Marcelo / Novetech. Todos os direitos reservados.
+
+1. PROPRIEDADE
+   Este software e sua documentação são propriedade do autor. O código-fonte é
+   disponibilizado para leitura e auditoria; nenhum outro direito é concedido.
+
+2. USO PERMITIDO
+   É permitido instalar e usar o Assistente Meeds, sem custo, para apoio ao
+   trabalho clínico no sistema Meeds. É permitido estudar o código e propor
+   correções ao autor.
+
+3. USO NÃO PERMITIDO SEM AUTORIZAÇÃO ESCRITA DO AUTOR
+   Redistribuir, publicar cópias ou versões modificadas, sublicenciar, vender,
+   ou incorporar este código (no todo ou em parte) em outro produto.
+
+4. SEM GARANTIA
+   O SOFTWARE É FORNECIDO "COMO ESTÁ", SEM GARANTIA DE QUALQUER TIPO, EXPRESSA
+   OU IMPLÍCITA, INCLUINDO MAS NÃO SE LIMITANDO A GARANTIAS DE COMERCIABILIDADE,
+   ADEQUAÇÃO A UM FIM ESPECÍFICO E NÃO VIOLAÇÃO.
+
+5. LIMITAÇÃO DE RESPONSABILIDADE
+   EM NENHUMA HIPÓTESE O AUTOR SERÁ RESPONSÁVEL POR QUALQUER DANO — DIRETO,
+   INDIRETO, INCIDENTAL OU CONSEQUENTE — DECORRENTE DO USO OU DA IMPOSSIBILIDADE
+   DE USO DESTE SOFTWARE.
+
+   O Assistente Meeds preenche formulários e gera documentos a partir de dados
+   lidos da tela e de listas de referência que podem conter erros ou estar
+   desatualizadas. A conferência de todo documento gerado — dados do paciente,
+   procedimento, CID, valores e coordenadas do PDF — é responsabilidade do
+   profissional que o assina. O software não substitui julgamento clínico nem
+   a validação exigida pelos órgãos que recebem cada formulário.
+
+6. DADOS DE PACIENTE
+   O Assistente foi desenhado para não enviar dados de paciente para fora do
+   navegador. Ainda assim, o responsável pela instalação em cada unidade deve
+   verificar a conformidade com a LGPD e com as políticas locais de proteção
+   de dados antes de usar em produção.
+
+Contato: marcelonovetech@gmail.com

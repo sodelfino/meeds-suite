@@ -265,7 +265,7 @@ ou por inspeção direta do código migrado.
 - [x] Trava de frame (agora 1x, no bootloader)
 - [x] Ocultar tudo na tela de login (agora 1x, no núcleo) — usando a variante
       **mais correta**, que checa visibilidade do campo de senha
-- [x] Nenhum dado de paciente gravado em disco
+- [x] Histórico local pseudonimizado; campos estruturados de identificação não são copiados. Texto clínico livre é preservado.
 - [x] Nenhum envio de dado de paciente para fora do navegador
 
 ---
@@ -1860,3 +1860,25 @@ Git: para isso seria preciso reescrever o histórico dos repositórios afetados.
 
 **D69 — Visual: tinta única, painel por categoria e números do formulário; a dock não muda de comportamento.**
 A dock tem regras de uso documentadas (translúcida em repouso a 28%, recolhe em 2,5 s, hover só mexe na opacidade, alerta nunca fica translúcido) que vieram de pedido de médico. Uma proposta de "cartão aberto com grupos" foi descartada porque ia na direção oposta (mais alto, sempre opaco). Mudou só a aparência: tinta `#1d3557` no cabeçalho (`core/cabecalho.js`), nos botões da dock e do painel, raio 8 px e espaço de 8 px entre botões (pilha 346 px em vez de 370 px, alvos de 38 px sem sobreposição). O painel da engrenagem agrupa as funções por categoria (`CATEGORIA_DO_MODULO` em `core/manager.js`; função nova sem categoria cai em "Outras"). As fichas de notificação mostram o número do campo do SINAN (`NUMEROS_SINAN` em `modules/notificacao/index.js`; só para os campos comuns, que têm a mesma numeração em todas as fichas).
+
+
+**D70 — Bibliotecas de PDF sem execução de downloads em runtime.**
+
+A auditoria do PR #1 foi adaptada ao código atual: APAC, CMD, laudo de Sete
+Lagoas, LME-MG e Notificação usam somente as bibliotecas já carregadas pelo
+gerenciador. Na ausência, a geração rejeita com orientação de atualização; não
+baixa nem avalia código. jsPDF e pdf-lib têm versão e SHA-512 fixados no
+`@require`, conferidos contra os pacotes npm oficiais. O build bloqueia
+`eval`/`Function` em núcleo, módulos, assets e módulos fora da distribuição.
+A análise AST e testes de reintrodução integram `npm run verificar`.
+
+**D71 — Código publicado por release; dados públicos permanecem no main.**
+
+Metadados, instalação guiada e “Verificar atualização” usam assets de GitHub
+Release. `baseRaw` permanece para listas públicas; `baseReleases` serve o código.
+O CI instala dependências com `npm ci`, roda os testes e reconstrói o pacote
+para detectar dist desatualizado. Uma tag igual à versão do manifest dispara a
+publicação dos quatro artefatos após as verificações. Os procedimentos de
+transição e as proteções de conta/repositório estão em [RELEASE.md](RELEASE.md).
+Os relatos de privacidade descrevem o histórico como pseudonimizado, sem
+prometer anonimato nem remoção de identificadores digitados em texto livre.

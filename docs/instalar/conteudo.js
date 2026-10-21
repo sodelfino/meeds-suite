@@ -1,7 +1,7 @@
 /* Textos e destinos fixos da instalação. Nenhum link vem da URL do visitante. */
 (function (raiz) {
   'use strict';
-  const base = 'https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/';
+  const base = 'https://github.com/sodelfino/meeds-suite/releases/latest/download/';
   const repositorio = 'https://github.com/sodelfino/meeds-suite';
   const link = (rotulo, href) => ({ rotulo, href });
   const etapa = (id, titulo, texto, links, ajuda, extra) =>
@@ -63,8 +63,8 @@
             'Se o Safari oferecer a opção Todos os sites, ela inclui esses endereços. Você pode revisar as permissões nas configurações da extensão.'
           ], { continuar: 'Já conferi as permissões' }),
         etapa('instalar', 'Instale o Assistente no Safari',
-          'O botão pode abrir uma página cheia de código. No Safari, isso é esperado: com essa página aberta, toque no menu de extensões → Userscripts e confirme a instalação. Depois, volte aqui.',
-          [link('Abrir Assistente para Safari', base + 'meeds-suite.safari.user.js')], [
+          'Baixe o arquivo da versão publicada. No app Arquivos, abra Transferências e mova meeds-suite.safari.user.js para a pasta escolhida no Userscripts. Abra o Userscripts e confira se o Assistente aparece na lista. Depois, volte aqui.',
+          [link('Baixar Assistente para Safari', base + 'meeds-suite.safari.user.js')], [
             'Apareceu código? Mantenha a página aberta e acesse Userscripts pelo menu de extensões do Safari.',
             'Não ofereceu instalação? Baixe o arquivo alternativo abaixo. No app Arquivos, mova-o para a pasta escolhida no Userscripts. Abra o app para conferir se ele aparece na lista.',
             'Pasta não encontrada? Abra Userscripts → Change Userscripts Directory para conferir ou escolher uma pasta acessível no app Arquivos.',

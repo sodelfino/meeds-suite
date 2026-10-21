@@ -66,7 +66,7 @@
 
   /* ----------------------------------------------------------------
    * pdf-lib — resolvido do escopo global (o bootloader carrega via
-   * @require), com o mesmo fallback do original.
+   * @require), sem baixar código em runtime.
    * ---------------------------------------------------------------- */
   function resolverPdfLib() {
     const escopos = [];
@@ -80,31 +80,11 @@
     return null;
   }
 
-  let pdfLibCarregandoPromise = null;
+  // Bibliotecas entram apenas pelo @require verificado; nunca executar downloads.
   function garantirPdfLib() {
     const direto = resolverPdfLib();
     if (direto) return Promise.resolve(direto);
-    if (pdfLibCarregandoPromise) return pdfLibCarregandoPromise;
-    pdfLibCarregandoPromise = new Promise(function (resolve, reject) {
-      if (typeof GM_xmlhttpRequest !== "function") {
-        reject(new Error("o componente pdf-lib não está disponível e o Tampermonkey não concedeu permissão para baixá-lo"));
-        return;
-      }
-      GM_xmlhttpRequest({
-        method: "GET",
-        url: "https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js",
-        onload: function (res) {
-          try {
-            (0, eval)(res.responseText);
-            const lib = resolverPdfLib();
-            if (lib) resolve(lib);
-            else reject(new Error("pdf-lib avaliado mas não exposto."));
-          } catch (e) { reject(e); }
-        },
-        onerror: function () { reject(new Error("a rede bloqueou o download do pdf-lib")); },
-      });
-    });
-    return pdfLibCarregandoPromise;
+    return Promise.reject(new Error("O componente de PDF não foi carregado. Atualize o Assistente no gerenciador de scripts e recarregue o Meeds."));
   }
 
   function formatarCpf(digits) {

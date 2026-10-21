@@ -81,8 +81,8 @@
 
   /* ----------------------------------------------------------------
    * jsPDF — resolvido do escopo global (o bootloader ja o carrega via
-   * @require) com o mesmo fallback do original para o caso de o
-   * @require nao ter exposto a lib no escopo esperado.
+   * @require). Se o gerenciador nao expos a lib, a geracao falha
+   * com orientacao de atualizacao, sem baixar ou executar codigo.
    * ---------------------------------------------------------------- */
   function resolverJsPDF() {
     const escopos = [];
@@ -98,35 +98,11 @@
     return null;
   }
 
-  let jsPDFCarregandoPromise = null;
+  // Bibliotecas entram apenas pelo @require verificado; nunca executar downloads.
   function garantirJsPDF() {
     const direto = resolverJsPDF();
     if (direto) return Promise.resolve(direto);
-    if (jsPDFCarregandoPromise) return jsPDFCarregandoPromise;
-    jsPDFCarregandoPromise = new Promise(function (resolve, reject) {
-      if (typeof GM_xmlhttpRequest !== "function") {
-        reject(new Error("o componente jsPDF não está disponível e o Tampermonkey não concedeu permissão para baixá-lo"));
-        return;
-      }
-      GM_xmlhttpRequest({
-        method: "GET",
-        url: "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
-        onload: function (res) {
-          try {
-            (0, eval)(res.responseText);
-            const lib = resolverJsPDF();
-            if (lib) resolve(lib);
-            else reject(new Error("jsPDF avaliado mas não exposto."));
-          } catch (e) {
-            reject(e);
-          }
-        },
-        onerror: function () {
-          reject(new Error("a rede bloqueou o download do jsPDF"));
-        },
-      });
-    });
-    return jsPDFCarregandoPromise;
+    return Promise.reject(new Error("O componente de PDF não foi carregado. Atualize o Assistente no gerenciador de scripts e recarregue o Meeds."));
   }
 
   /* ----------------------------------------------------------------
@@ -872,7 +848,14 @@
       const btn = document.createElement("div");
       btn.className = "apac-proc-btn";
       btn.id = "apac-proc-" + key;
-      btn.innerHTML = '<div class="t">' + p.nome + '</div><div class="c">' + (p.codigo || "digitar manualmente") + "</div>";
+      const elNome = document.createElement("div");
+      elNome.className = "t";
+      elNome.textContent = p.nome;
+      const elCodigo = document.createElement("div");
+      elCodigo.className = "c";
+      elCodigo.textContent = p.codigo || "digitar manualmente";
+      btn.appendChild(elNome);
+      btn.appendChild(elCodigo);
       btn.addEventListener("click", function () { selecionarProc(key); });
       grid.appendChild(btn);
     });

@@ -54,7 +54,7 @@ teste('variantes corretas e permissões específicas', () => {
   for (const [chave, passos] of Object.entries(conteudo.roteiros)) {
     const links = passos.flatMap(p => p.links || []).map(l => l.href);
     if (chave !== 'outro') {
-      const raw = links.filter(l => l.includes('raw.githubusercontent.com'));
+      const raw = links.filter(l => l.includes('/releases/latest/download/'));
       assert.equal(raw.length, 1);
       assert.equal(raw[0].includes('.safari.user.js'), chave === 'ios');
     }

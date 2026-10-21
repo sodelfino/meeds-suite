@@ -36,7 +36,7 @@ tela do Meeds, e você liga ou desliga cada uma pelo botão ⚙️.
    >   `meeds.com.br`.
 2. Abra este link:
 
-   <https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.user.js>
+   <https://github.com/sodelfino/meeds-suite/releases/latest/download/meeds-suite.user.js>
 
 3. O Tampermonkey abre a tela de instalação. Clique em **Instalar**.
 4. Abra o Meeds e faça login normalmente.
@@ -237,10 +237,9 @@ toca na chegada, só quando alguém ultrapassa o limite configurado.
 
 ## 7. Privacidade
 
-- Nenhum dado de paciente é gravado em disco: nome, CPF e identificador de
-  atendimento vivem só na memória da aba e somem quando você fecha ou recarrega.
-- Nada de paciente é enviado para fora do navegador.
-- O que fica salvo neste navegador: quais funções estão ligadas, som e volume
-  do alarme, a lista de médicos que você cadastrou, e o histórico dos
-  documentos gerados — este último **sem** nome, CPF completo, nascimento,
-  nome da mãe ou telefone do paciente.
+- O Assistente não envia automaticamente dados de pacientes a serviços externos.
+- Preferências, cadastros e o histórico clínico dos geradores ficam neste navegador.
+  O histórico inclui iniciais e três dígitos do CPF: é pseudonimizado, não anônimo.
+- Os campos estruturados de identificação não são copiados para o histórico;
+  texto clínico livre é salvo como digitado e pode conter identificação.
+- Cada gerador permite apagar o próprio histórico.

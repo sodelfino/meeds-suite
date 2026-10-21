@@ -265,7 +265,7 @@
         "      </div>" +
         '      <div class="msm-sobre-bloco">' +
         '        <div class="msm-sobre-titulo">Privacidade</div>' +
-        '        <p class="msm-sobre-texto">Nenhum dado de paciente é gravado em disco nem enviado para fora. O que fica salvo neste navegador é preferência de uso: funções ligadas, ajustes do alarme e os cadastros desta tela.</p>' +
+        '        <p class="msm-sobre-texto">O Assistente não envia dados de pacientes a serviços externos. Neste navegador ficam preferências, cadastros e o histórico clínico dos geradores, com iniciais e três dígitos do CPF. Essa referência não é anônima. O texto clínico é salvo como digitado e pode conter identificação. Você pode apagar o histórico.</p>' +
         "      </div>" +
         '      <div class="msm-noturno-linha">' +
         '        <button type="button" class="msm-noturno" id="msm-noturno" aria-pressed="false">Noturno</button>' +
@@ -366,7 +366,7 @@
         instalar.hidden = true;
         caixa.innerHTML = '<div class="msm-aviso">Consultando…</div>';
         at.verificar(
-          { versaoAtual: ctx.versaoNucleo, baseRaw: ctx.manifesto && ctx.manifesto.baseRaw },
+          { versaoAtual: ctx.versaoNucleo, baseReleases: ctx.manifesto && ctx.manifesto.baseReleases },
           function (r) {
             botao.disabled = false;
             if (r.situacao === "disponivel") {
@@ -394,7 +394,7 @@
         raiz.open(urlInstalar, "_blank");
         caixa.innerHTML =
           variante === "safari"
-            ? '<div class="msm-aviso">Confirme a atualização no app Userscripts e recarregue a página do Meeds.</div>'
+            ? '<div class="msm-aviso">No app Arquivos, mova o arquivo baixado de Transferências para a pasta escolhida no Userscripts, substituindo a versão anterior. Confira no Userscripts e recarregue o Meeds.</div>'
             : '<div class="msm-aviso">Na tela que abriu, clique em <b>Atualizar</b> (ou <b>Reinstalar</b>) e depois recarregue o Meeds com F5.</div>';
       });
     })();

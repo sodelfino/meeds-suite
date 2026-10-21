@@ -1,0 +1,84 @@
+name: publicar release
+
+# Dispara quando uma tag vX.Y.Z e empurrada. Reconstroi o pacote do zero
+# num runner limpo, confere que a suite passa e que a tag bate com o
+# manifest, e anexa os quatro artefatos a Release correspondente.
+#
+# E dessa Release que o @updateURL / @downloadURL dos medicos puxa
+# (releases/latest/download/...). Um push no main, sozinho, nao gera
+# release e nao chega ao navegador de ninguem. Ver docs/RELEASE.md.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: A versão pertence ao main?
+        run: git merge-base --is-ancestor HEAD origin/main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Testar instalação guiada
+        run: node tests/instalacao-guiada.test.js
+
+      - name: Suite de verificacao
+        run: npm run verificar
+
+      - name: A tag bate com manifest.versao?
+        run: |
+          v=$(node -p "require('./manifest.json').versao")
+          if [ "$GITHUB_REF_NAME" != "v$v" ]; then
+            echo "::error::A tag e $GITHUB_REF_NAME mas o manifest esta em v$v. Suba a versao no manifest.json antes de tagear."
+            exit 1
+          fi
+
+      - name: Build limpo
+        run: node scripts/build.js
+
+      - name: dist/ do commit bate com o build?
+        run: |
+          if ! git diff --quiet; then
+            echo "::error::O dist/ tagueado nao bate com o build. Rode 'npm run build' e refaca a tag."
+            git --no-pager diff --stat -- dist/
+            exit 1
+          fi
+
+      - name: Notas da release (do changelog.json)
+        run: |
+          node -e '
+            const c = require("./dados/changelog.json").versoes[0];
+            const secao = (t, xs) => (xs && xs.length) ? `\n### ${t}\n` + xs.map(x => `- ${x}`).join("\n") + "\n" : "";
+            process.stdout.write(
+              secao("Novidades", c.novidades) +
+              secao("Melhorias", c.melhorias) +
+              secao("Correcoes", c.correcoes)
+            );
+          ' > NOTAS.md
+          cat NOTAS.md
+
+      - name: Publicar nova release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          artefatos="dist/meeds-suite.user.js dist/meeds-suite.meta.js dist/meeds-suite.safari.user.js dist/meeds-suite.safari.meta.js"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "::error::A release já existe; não sobrescrever artefatos publicados."
+            exit 1
+          else
+            gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --notes-file NOTAS.md $artefatos
+          fi

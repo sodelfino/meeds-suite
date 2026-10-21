@@ -54,13 +54,13 @@ clicável na linha "Sempre ativas").
 
 **No computador** (Windows, Mac, Linux) ou no Android, com o **Tampermonkey**:
 
-<https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.user.js>
+<https://github.com/sodelfino/meeds-suite/releases/latest/download/meeds-suite.user.js>
 
 Passo a passo: **[docs/GUIA-INSTALACAO.md](docs/GUIA-INSTALACAO.md)**
 
 **No iPad ou iPhone**, com o app gratuito **Userscripts** no Safari:
 
-<https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.safari.user.js>
+<https://github.com/sodelfino/meeds-suite/releases/latest/download/meeds-suite.safari.user.js>
 
 > No iPad, **ligar a extensão em Ajustes → Safari → Extensões é um passo
 > separado** de instalar o app — é onde quase todo mundo trava. Se o link
@@ -180,8 +180,16 @@ docs/                  arquitetura, instalação, manual do admin, testes, migra
 
 ## Privacidade
 
-Nenhum dado de paciente é gravado em disco nem enviado para fora do navegador.
-Nome, CPF e identificador de atendimento vivem só na memória da aba.
+O Assistente não envia automaticamente dados de pacientes a serviços externos.
+As consultas ao Meeds usam a própria aplicação; as listas públicas vêm do GitHub.
+
+O histórico dos geradores fica neste navegador: guarda a parte clínica dos
+documentos e uma referência pseudonimizada (iniciais e três últimos dígitos do
+CPF). Essa referência **não é anônima**. Os campos estruturados de nome, CPF
+completo, nascimento, nome da mãe e telefone não são copiados para o histórico;
+texto clínico livre é salvo como digitado e pode conter identificação informada
+pelo médico. “Reabrir” repõe a parte clínica, e cada gerador permite apagar o
+histórico. Veja [Segurança e privacidade](docs/SEGURANCA.md).
 
 > **Em desenvolvimento:** a função **Sala de Espera** (aviso de paciente
 > agendado que chegou) está pronta, mas fora desta versão. Ela precisa de
@@ -190,3 +198,9 @@ Nome, CPF e identificador de atendimento vivem só na memória da aba.
 
 Os dados dos médicos (nome, CRM, CPF, CNS) **não ficam no código**: cada médico
 se cadastra uma vez no próprio navegador, com backup e restauração no painel.
+
+## Licença e publicação
+
+Uso e condições: [LICENSE](LICENSE). A conferência dos documentos gerados cabe
+ao profissional que os assina. Contribuições: [CONTRIBUTING.md](CONTRIBUTING.md).
+O código é distribuído por release; consulte [docs/RELEASE.md](docs/RELEASE.md).

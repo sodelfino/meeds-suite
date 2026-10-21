@@ -248,7 +248,8 @@
     O aviso que o navegador mostra é padrão para <b>qualquer</b> extensão que roda
     scripts — ele não é específico do Assistente. Sem a chave ligada, nenhum script
     do Tampermonkey roda, nem o Assistente. O Assistente é feito pela Novetech e
-    <b>não grava nem envia dado de paciente</b>.
+    <b>não envia automaticamente dados de pacientes a serviços externos</b>.
+    O histórico clínico fica neste navegador; veja Privacidade no fim do guia.
   </div>
 
   <div class="caixa nao">
@@ -705,7 +706,7 @@
 
   <ol class="passos">
     <li>Abra uma <b>aba nova</b> e cole este endereço:
-      <span class="link-grande">raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.user.js</span>
+      <span class="link-grande">github.com/sodelfino/meeds-suite/releases/latest/download/meeds-suite.user.js</span>
     </li>
     <li>A tela do <b>Tampermonkey</b> abre sozinha, mostrando o nome do script.
         Clique em <b>“Instalar”</b>.</li>
@@ -909,8 +910,9 @@
 
   <div class="caixa ok">
     <b class="t">Privacidade</b>
-    O Assistente <b>lê</b> a tela do atendimento para preencher o formulário, usa naquele instante e
-    esquece. <b>Nenhum dado de paciente é gravado no computador nem enviado para fora.</b>
+    O Assistente lê a tela para preencher os formulários. O histórico clínico fica neste navegador,
+    com iniciais e três dígitos do CPF: essa referência não é anônima. Texto clínico livre é salvo
+    como digitado e pode conter identificação. Você pode apagar o histórico em cada gerador.
   </div>
 </section>
 

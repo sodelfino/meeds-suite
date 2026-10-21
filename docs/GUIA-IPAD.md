@@ -37,23 +37,8 @@ extensões, na barra de endereço. O Userscripts tem que aparecer na lista.
 
 ## 3. Instalar o Assistente
 
-Há dois caminhos. Tente o primeiro; se não der, o segundo funciona sempre.
-
-### Caminho A — direto pelo Safari
-
-1. No Safari do iPad, abra:
-
-   <https://raw.githubusercontent.com/sodelfino/meeds-suite/main/dist/meeds-suite.safari.user.js>
-
-2. A tela vai encher de código. **É isso mesmo** — não é erro.
-3. Com essa página aberta, toque no **ícone de extensões** na barra de
-   endereço → **Userscripts**.
-4. Deve aparecer a oferta de instalar. Confirme.
-
-### Caminho B — pelo app Arquivos (se o A não oferecer nada)
-
-O caminho A depende de a extensão reconhecer a página como script. Se não
-aparecer nada, use este, que não depende disso:
+Baixe o pacote Safari publicado e mova-o para a pasta do Userscripts.
+Esse caminho funciona mesmo quando o Safari oferece download em vez de exibir código.
 
 1. No Safari, abra:
 

@@ -158,7 +158,10 @@ dipirona do município dele.
 1. Edite `modules/remume/remumes.json`.
 2. Rode `npm run sync-fallback` (copia para dentro do pacote e sobe a versão).
 3. Rode `npm run build`.
-4. `git add . && git commit -m "..." && git push`.
+4. Faça commit e envie os arquivos ao GitHub.
+5. Para distribuir o pacote atualizado (inclusive a cópia offline), publique
+   a versão por release, conforme [RELEASE.md](RELEASE.md). A lista remota
+   continua vindo do `main`; o código instalado é atualizado por release.
 
 O passo 2 existe porque a lista mora em dois lugares: o arquivo que o sistema
 busca pela internet e uma cópia embutida, usada quando a internet falha ou a

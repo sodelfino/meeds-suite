@@ -4,6 +4,7 @@
  * O QUE FAZ
  * Consulta o arquivo `.meta.js` publicado (so o cabecalho, alguns
  * centenas de bytes), le o `@version` e compara com a versao em uso.
+ * No Safari, consulta a API publica da release (CORS) em vez do .meta.js.
  * Se houver versao nova, devolve o endereco do `.user.js` para o medico
  * abrir — o Tampermonkey (ou o Userscripts, no iPad) mostra a tela de
  * atualizacao dele.
@@ -15,7 +16,7 @@
  * confirma e o medico. So le texto: nada e executado do que chega.
  *
  * CACHE
- * raw.githubusercontent.com guarda cada arquivo por ~5 minutos. A
+ * O GitHub pode manter metadados em cache por alguns minutos. A
  * consulta leva `?t=<agora>` para furar o cache do navegador; o do
  * proprio GitHub nao da para furar — por isso "acabei de publicar e
  * ainda nao aparece" pode levar alguns minutos. O link de instalacao
@@ -23,7 +24,7 @@
  * extensao.
  *
  * PRIVACIDADE: nenhum dado do medico ou de paciente trafega; e um GET
- * sem corpo, sem cookies, para o mesmo host do @updateURL.
+ * sem corpo e sem cookies, para o host do @updateURL ou a API publica do GitHub.
  * ------------------------------------------------------------------ */
 (function (raiz) {
   "use strict";
@@ -40,15 +41,33 @@
     return m ? m[1] : null;
   }
 
+  function extrairVersaoRelease(texto) {
+    try {
+      const release = JSON.parse(texto);
+      if (!release || release.draft || release.prerelease) return null;
+      const m = /^v(\d+\.\d+\.\d+)$/.exec(release.tag_name || "");
+      return m ? m[1] : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   function nomes(v) {
     const base = v === "safari" ? "meeds-suite.safari" : "meeds-suite";
     return { meta: base + ".meta.js", instalar: base + ".user.js" };
   }
 
-  function urlsDe(baseRaw, v) {
+  function urlsDe(baseReleases, v) {
     const n = nomes(v);
-    const base = String(baseRaw || "").replace(/\/+$/, "");
-    return { meta: base + "/dist/" + n.meta, instalar: base + "/dist/" + n.instalar };
+    const base = String(baseReleases || "").replace(/\/+$/, "");
+    let meta = base + "/" + n.meta;
+    if (v === "safari") {
+      // GitHub releases/download redireciona sem CORS. A API pública
+      // informa somente a versão publicada, sem consultar o código do main.
+      const repo = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/releases\/latest\/download$/.exec(base);
+      meta = repo ? "https://api.github.com/repos/" + repo[1] + "/" + repo[2] + "/releases/latest" : null;
+    }
+    return { meta: meta, instalar: base + "/" + n.instalar };
   }
 
   /* GET de texto: GM_xmlhttpRequest quando existe (nao sofre CORS/CSP da
@@ -72,6 +91,7 @@
       try {
         GM_xmlhttpRequest({
           method: "GET",
+          anonymous: true,
           url: url,
           timeout: PRAZO_MS,
           onload: function (r) {
@@ -95,7 +115,7 @@
       return;
     }
     raiz
-      .fetch(url, { cache: "no-store" })
+      .fetch(url, { cache: "no-store", credentials: "omit" })
       .then(function (r) {
         if (!r.ok) throw new Error("HTTP " + r.status);
         return r.text();
@@ -108,19 +128,19 @@
       });
   }
 
-  /* verificar({ versaoAtual, baseRaw, buscar?, variante? }, aoTerminar)
+  /* verificar({ versaoAtual, baseReleases, buscar?, variante? }, aoTerminar)
    * aoTerminar({ situacao, versaoAtual, versaoNova?, urlInstalar?, motivo? })
    * situacao: "atualizado" | "disponivel" | "mais-nova" | "erro"
    * "mais-nova" = o navegador tem versao MAIOR que a publicada (build de
    * teste local); nao e erro, mas nao ha o que instalar. */
   function verificar(opcoes, aoTerminar) {
     const v = opcoes.variante || variante();
-    const urls = urlsDe(opcoes.baseRaw, v);
+    const urls = urlsDe(opcoes.baseReleases, v);
     const buscar = opcoes.buscar || buscarTexto;
     const atual = opcoes.versaoAtual;
     const comparar = raiz.MeedsSuiteNovidades && raiz.MeedsSuiteNovidades.compararVersoes;
 
-    if (!opcoes.baseRaw || !comparar) {
+    if (!opcoes.baseReleases || !urls.meta || !comparar) {
       aoTerminar({ situacao: "erro", versaoAtual: atual, motivo: "configuração incompleta" });
       return;
     }
@@ -129,7 +149,7 @@
     buscar(
       urls.meta + sep + "t=" + Date.now(),
       function (texto) {
-        const nova = extrairVersao(texto);
+        const nova = v === "safari" ? extrairVersaoRelease(texto) : extrairVersao(texto);
         if (!nova) {
           aoTerminar({ situacao: "erro", versaoAtual: atual, motivo: "resposta inesperada" });
           return;

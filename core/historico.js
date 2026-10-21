@@ -9,19 +9,19 @@
  * justificativa e unidade — que e o que da trabalho.
  *
  * O QUE E GRAVADO, E O QUE NAO E  (leia antes de mexer aqui)
- * A regra herdada dos cinco scripts originais e clara: NENHUM dado de
- * paciente vai para o disco. O historico que existia no APAC gravava o
+ * Os campos estruturados de identificacao nao sao gravados no historico. O historico que existia no APAC gravava o
  * NOME COMPLETO do paciente no armazenamento do Tampermonkey — ou seja,
  * ja contrariava a propria descricao do script.
  *
  * Aqui isso foi corrigido. E gravado:
  *   - data e hora, medico, e a parte CLINICA/administrativa do documento;
- *   - uma referencia NAO identificavel do paciente: iniciais e os tres
+ *   - uma referencia pseudonimizada do paciente: iniciais e os tres
  *     ultimos digitos do CPF ("M.A.S. •••456"), o suficiente para o
- *     medico reconhecer qual foi, insuficiente para identificar alguem a
- *     partir do arquivo.
- * NAO e gravado: nome completo, CPF completo, data de nascimento, nome da
- * mae, telefone, nem o PDF.
+ *     medico reconhecer qual foi. Nao e anonimizacao; pode permitir
+ *     reidentificacao em conjunto com outros dados.
+ * Os campos de nome completo, CPF completo, nascimento, nome da mae e
+ * telefone nao sao copiados pelo historico, nem o PDF. Texto clinico livre
+ * e salvo como digitado e pode conter identificacao informada pelo medico.
  *
  * Por consequencia, "Reabrir" repoe a parte clinica e NAO repoe a
  * identificacao do paciente — que continua vindo fresca da tela do
@@ -53,7 +53,7 @@
   }
 
   /* ------------------------------------------------------------------
-   * REFERENCIA NAO IDENTIFICAVEL DO PACIENTE
+   * REFERENCIA PSEUDONIMIZADA DO PACIENTE
    * "MARIA APARECIDA DE SOUZA" + "12345678909" -> "M.A.S. · •••890"
    * Preposicoes ficam de fora das iniciais para o resultado ser legivel.
    * ------------------------------------------------------------------ */

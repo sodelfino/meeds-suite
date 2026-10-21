@@ -73,10 +73,15 @@ const REGRAS = [
   },
 ];
 
-function verificarRegras(rel, conteudo) {
+const REGRA_EXECUCAO = {
+  nome: "execucao de codigo remoto (eval / new Function)",
+  regex: /\beval\s*[()]|\b(?:new\s+)?Function\s*\(/,
+};
+
+function verificarRegras(rel, conteudo, regras = REGRAS) {
   const problemas = [];
   const linhas = conteudo.split("\n");
-  for (const regra of REGRAS) {
+  for (const regra of regras) {
     linhas.forEach((linha, i) => {
       // ignora linhas de comentario: os modulos EXPLICAM nos comentarios
       // que costumavam ter posicao fixa, e o texto nao e codigo.
@@ -124,6 +129,18 @@ function main() {
     problemas.push(...verificarRegras(CAMINHO_TEMPLATE, ler(CAMINHO_TEMPLATE)));
   }
 
+  // Esta regra vale também para núcleo, assets e módulos fora do pacote.
+  function verificarPasta(pasta) {
+    for (const entrada of fs.readdirSync(path.join(RAIZ, pasta), { withFileTypes: true })) {
+      const rel = path.join(pasta, entrada.name);
+      if (entrada.isDirectory()) verificarPasta(rel);
+      else if (rel.endsWith(".js")) problemas.push(...verificarRegras(rel, ler(rel), [REGRA_EXECUCAO]));
+    }
+  }
+  verificarPasta("core");
+  verificarPasta("modules");
+  problemas.push(...verificarRegras("bootloader.user.js", bootloader, [REGRA_EXECUCAO]));
+
   if (problemas.length) {
     console.error("\nBUILD REPROVADO — regras de arquitetura violadas:\n");
     problemas.forEach((p) => console.error("  " + p));
@@ -131,7 +148,8 @@ function main() {
       "\nModulo nao posiciona botao (o dock empilha), nao declara a apresentacao\n" +
         "do botao (vai no bloco \"apresentacao\" da ficha no manifest.json) e nao\n" +
         "instala hook de rede (use assinaturasRede / deps.network.assinar).\n" +
-        "Ver docs/ARQUITETURA.md, decisoes D3 e D58.\n"
+        "Nao execute downloads com eval / Function.\n" +
+        "Ver docs/ARQUITETURA.md, decisoes D3, D58 e D70.\n"
     );
     process.exit(1);
   }
@@ -403,11 +421,11 @@ function main() {
        * a versao — e, pior, a checagem pode nem funcionar. */
       .replace(
         /\/\/ @updateURL\s+.*\n/,
-        `// @updateURL    ${manifest.baseRaw}/${VARIANTE_SAFARI.replace(".user.js", ".meta.js")}\n`
+        `// @updateURL    ${manifest.baseReleases}/${path.basename(VARIANTE_SAFARI).replace(".user.js", ".meta.js")}\n`
       )
       .replace(
         /\/\/ @downloadURL\s+.*\n/,
-        `// @downloadURL  ${manifest.baseRaw}/${VARIANTE_SAFARI}\n`
+        `// @downloadURL  ${manifest.baseReleases}/${path.basename(VARIANTE_SAFARI)}\n`
       );
 
     return meta + resto;

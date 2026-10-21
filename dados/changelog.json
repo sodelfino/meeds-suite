@@ -2,6 +2,18 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.68.3",
+      "data": "2026-10-21",
+      "novidades": [],
+      "melhorias": [
+        "Segurança dos geradores de PDF: bibliotecas com verificação de integridade e sem carregamento de código durante o atendimento.",
+        "Instalação e atualizações passam a usar versões publicadas no GitHub Releases."
+      ],
+      "correcoes": [
+        "Privacidade: o painel agora explica o histórico clínico local e sua referência parcial ao paciente."
+      ]
+    },
+    {
       "versao": "2.68.2",
       "data": "2026-10-21",
       "novidades": [],

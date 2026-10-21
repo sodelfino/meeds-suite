@@ -1,6 +1,6 @@
 {
   "nome": "Assistente Meeds",
-  "versao": "2.68.2",
+  "versao": "2.68.3",
   "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
   "repositorio": "https://github.com/sodelfino/meeds-suite",
   "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -287,5 +287,6 @@
     "email": "marcelonovetech@gmail.com"
   },
   "saidaSafari": "dist/meeds-suite.safari.user.js",
-  "_comentario_sempreAtivo": "Modulo com sempreAtivo:true nao aparece com chave liga/desliga no painel e nao pode ser desativado. Use so para o que melhora um formulario existente e nao adiciona botao nem ruido na tela."
+  "_comentario_sempreAtivo": "Modulo com sempreAtivo:true nao aparece com chave liga/desliga no painel e nao pode ser desativado. Use so para o que melhora um formulario existente e nao adiciona botao nem ruido na tela.",
+  "baseReleases": "https://github.com/sodelfino/meeds-suite/releases/latest/download"
 }
