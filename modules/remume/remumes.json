@@ -1,11 +1,12 @@
 {
   "_meta": {
-    "atualizadoEm": "25/09/2026",
+    "atualizadoEm": "21/10/2026",
     "avisos": {
       "Franco da Rocha": "Nesta unidade (UPA Franco da Rocha) só são atendidas fichas azuis — o fluxo já contempla receita e alta. Paciente que precisar de medicação administrada no local (oral, IM ou EV) ou que apresentar sinal de alarme deve ser encaminhado para atendimento presencial: nenhuma medicação é aplicada aqui.",
       "Barbacena": "Nesta unidade (UPA Barbacena) a teleconsulta cobre medicação VO e IM e atestado com critério. Medicação EV e exames não são feitos por aqui: encaminhe o paciente ao atendimento presencial.",
       "Macaé": "A farmácia municipal de Macaé não dispensa a receita quando ela traz só \"uso contínuo\": informe a quantidade e a duração exatas do tratamento.",
-      "Congonhas": "A farmácia municipal de Congonhas não dispensa a receita quando ela traz só \"uso contínuo\": informe a quantidade e a duração exatas do tratamento."
+      "Congonhas": "A farmácia municipal de Congonhas não dispensa a receita quando ela traz só \"uso contínuo\": informe a quantidade e a duração exatas do tratamento.",
+      "Pará de Minas": "Fonte: planilha municipal de 21/10/2026. A disponibilidade do componente básico refere-se a essa data, não a estoque em tempo real. O componente estratégico relaciona programas e documentos para solicitação, sem informar estoque por item. ATENÇÃO: Para a dispensação dos medicamentos do componente básico da assistência farmacêutica, o paciente deverá comparecer à farmácia central ou a uma das farmácias-polo, portando os seguintes documentos: ► Prescrição válida; ► Documento Oficial com foto; ► CPF; ► Comprovante de endereço em nome do paciente, ou declaração de residência expedida pela UBS onde é atendido. IMPORTANTE: Para a dispensação de insulinas NPH e Regular, bem como de medicamentos do Componente Especializado que necessitam de conservação refrigerada (temperatura entre 2ºC e 8ºC), o paciente deverá levar até a farmácia caixa de isopor ou bolsa térmica, além de gelo rígido reciclável devidamente congelado, a fim de garantir o transporte adequado. ANTIMICROBIANOS (RDC 471/2021): 10 DIAS MEDICAMENTO DE USO IMEDIATO (Lei Municipal nº 6.652/2021): 15 DIAS MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98: 30 DIAS DEMAIS MEDICAMENTOS: ATÉ 1 ANO, CONFORME ORIENTAÇÃO EMITIDA PELO PROFISSIONAL RESPONSÁVEL, REGISTRADA NA PRESCRIÇÃO. CEAF: o município intermedeia a solicitação por processo; a aprovação/liberação é responsabilidade da SES. A planilha não enumera os medicamentos desse componente. ATENÇÃO: Para montagem de processo o paciente deve comparecer à farmácia básica central, portando: prescrição médica + Laudo de Solicitação, Avaliação e Autorização (LME) preenchido pelo médico + documentos pessoais."
     },
     "avisosItensUniversais": [
       {
@@ -104,6 +105,588 @@
         {
           "termo": "sistema fechado",
           "aviso": "Uso EV: na UPA de Barbacena, encaminhe o paciente ao presencial."
+        }
+      ],
+      "Pará de Minas": [
+        {
+          "termo": "Aciclovir 200 mg - Comprimido",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Albendazol 40 mg/mL - Suspensão oral",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Albendazol 400 mg - Comprimido",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Amitriptilina 25 mg - Comprimido",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Amoxicilina 50 mg/ml - Suspensão",
+          "aviso": "ANTIMICROBIANO (RDC 471/2021)"
+        },
+        {
+          "termo": "Amoxicilina 500 mg - Cápsula",
+          "aviso": "ANTIMICROBIANO (RDC 471/2021)"
+        },
+        {
+          "termo": "Amoxicilina 500mg + Clavulanato 125 mg - Comprimido",
+          "aviso": "ANTIMICROBIANO (RDC 471/2021)"
+        },
+        {
+          "termo": "Azitromicina 40 mg/mL - Suspensão oral",
+          "aviso": "ANTIMICROBIANO (RDC 471/2021)"
+        },
+        {
+          "termo": "Azitromicina 500 mg - Comprimido",
+          "aviso": "ANTIMICROBIANO (RDC 471/2021)"
+        },
+        {
+          "termo": "Biperideno 2 mg - Comprimido",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Carbamazepina 20 mg/mL - Suspensão oral",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Carbamazepina 200 mg - Comprimido",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Carbonato de Lítio 300 mg - Comprimido",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Cefalexina 50 mg/mL - Suspensão oral",
+          "aviso": "ANTIMICROBIANO (RDC 471/2021)"
+        },
+        {
+          "termo": "Cefalexina 500 mg - Comprimido",
+          "aviso": "ANTIMICROBIANO (RDC 471/2021)"
+        },
+        {
+          "termo": "Ciprofloxacino 500 mg - Comprimido",
+          "aviso": "ANTIMICROBIANO (RDC 471/2021)"
+        },
+        {
+          "termo": "Clomipramina 25 mg - Comprimido",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Clonazepam 2,5mg/ml solução oral",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Clorpromazina 100 mg - Comprimido",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Clorpromazina 25 mg - Comprimido",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Clorpromazina 40 mg/mL - Solução",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Colagenase 0,6 U/g + Cloranfenicol 0,01 g/g - Pomada dermatológica",
+          "aviso": "ANTIMICROBIANO (RDC 471/2021)"
+        },
+        {
+          "termo": "Dexametasona 1 mg/g (0,1%) - Creme dermatológico",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Dexclorfeniramina 0,4 mg/mL - Solução oral",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Dexclorfeniramina 2 mg - Comprimido",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Diazepam 10 mg - Comprimido",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Dipirona 500 mg - Comprimido",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO EXCETO SE PRESCRIÇÃO DE USO CONTÍNUO COM JUSTIFICATIVA E/OU CID"
+        },
+        {
+          "termo": "Dipirona 500 mg/mL - Gotas",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO EXCETO SE PRESCRIÇÃO DE USO CONTÍNUO COM JUSTIFICATIVA E/OU CID"
+        },
+        {
+          "termo": "Fenitoína 100 mg -  Comprimido",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Fenobarbital 100 mg - Comprimido",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Fenobarbital 40 mg/ml - Gotas",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Fluconazol 150 mg - Cápsula",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Fluoxetina 20 mg - Cápsula",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Haloperidol 2 mg/Ml - Gotas",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Haloperidol 5 mg - Comprimido",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Haloperidol decanoato 50 mg/mL - Solução injetável intramuscular",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Hidrogel com Alginto - Gel dermatológico",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Ibuprofeno 50 mg/mL - Gotas",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Ibuprofeno 600 mg - Comprimido",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Imipramina 25 mg – Comprimido",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Ivermectina 6 mg - Comprimido",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Levomepromazina 100 mg  - Comprimido",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Lidocaína 20 mg/g - Gel",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Loratadina 1 mg/ml - Xarope",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Loratadina 10 mg - Comprimido",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Metoclopramida 10 mg - Comprimido",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Metoclopramida 4 mg/mL - Gotas",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Metronidazol 100 mg/g - Gel Vaginal",
+          "aviso": "ANTIMICROBIANO (RDC 471/2021)"
+        },
+        {
+          "termo": "Metronidazol 250 mg- Comprimido",
+          "aviso": "ANTIMICROBIANO (RDC 471/2021)"
+        },
+        {
+          "termo": "Metronidazol 400 mg – Comprimido",
+          "aviso": "ANTIMICROBIANO (RDC 471/2021)"
+        },
+        {
+          "termo": "Miconazol 20 mg/g (2%) - Creme Dermatológico",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Miconazol 20 mg/g (2%) - Creme Vaginal",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Neomicina 5mg/g + Bacitracina 250 UI/g - Pomada dermatológica",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Nitrofurantoína 100 mg - Cápsula",
+          "aviso": "ANTIMICROBIANO (RDC 471/2021)"
+        },
+        {
+          "termo": "Nortriptilina 25 mg - Comprimido",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Nortriptilina 50 mg - Comprimido",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Óleo de Girassol - Frasco 200 mL",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Paracetamol 200 mg/mL - Gotas",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO EXCETO SE PRESCRIÇÃO DE USO CONTÍNUO COM JUSTIFICATIVA E/OU CID"
+        },
+        {
+          "termo": "Paracetamol 500 mg - Comprimido",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO EXCETO SE PRESCRIÇÃO DE USO CONTÍNUO COM JUSTIFICATIVA E/OU CID"
+        },
+        {
+          "termo": "Prednisolona 3 mg/mL - Solução Oral",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Prednisona 20 mg - Comprimido",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO EXCETO SE PRESCRIÇÃO DE USO CONTÍNUO"
+        },
+        {
+          "termo": "Prednisona 5 mg - Comprimido",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO EXCETO SE PRESCRIÇÃO DE USO CONTÍNUO"
+        },
+        {
+          "termo": "Repelente Dietiltoluamida (DEET) 15% - frasco 200mL",
+          "aviso": "DISPONÍVEL PARA GESTANTES, CONFORME PRESCRIÇÃO MÉDICA OU DE ENFERMAGEM."
+        },
+        {
+          "termo": "Sais para reidratação oral – Sachês",
+          "aviso": "MEDICAMENTO DE USO IMEDIATO"
+        },
+        {
+          "termo": "Sertralina 25mg",
+          "aviso": "DISPONÍVEL PARA GESTANTES, CONFORME PRESCRIÇÃO MÉDICA"
+        },
+        {
+          "termo": "Sertralina 50mg",
+          "aviso": "DISPONÍVEL PARA GESTANTES, CONFORME PRESCRIÇÃO MÉDICA"
+        },
+        {
+          "termo": "Sulfadiazina de prata 10 mg/g - Creme dermatológico",
+          "aviso": "ANTIMICROBIANO (RDC 471/2021)"
+        },
+        {
+          "termo": "Sulfametoxazol 40 mg/mL + Trimetoprima 8 mg/mL - Suspensão oral",
+          "aviso": "ANTIMICROBIANO (RDC 471/2021)"
+        },
+        {
+          "termo": "Sulfametoxazol 400 mg + Trimetoprima 80 mg - Comprimido",
+          "aviso": "ANTIMICROBIANO (RDC 471/2021)"
+        },
+        {
+          "termo": "Valproato de Sódio 250 mg - Cápsula",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Valproato de Sódio 50 mg/mL - Xarope",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Valproato de Sódio 500 mg - Comprimido",
+          "aviso": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+        },
+        {
+          "termo": "Caneta Reutilizável para aplicação de insulina análoga de ação prolongada",
+          "aviso": "Fornecido para pacientes com Diabetes mellitus tipo 1 com idade entre 2 e 17 anos 11 meses e 29 dias e tipo 1 e 2 na faixa etária maior ou igual a 70 anos. Conforme Nota Técnica do Ministério da Saúde."
+        },
+        {
+          "termo": "Caneta Reutilizável para aplicação de refil de insulina",
+          "aviso": "Fornecido para pacientes com Diabetes mellitus tipo 1 e 2 na faixa etária menor ou igual a 19 anos e maior ou igual a 45 anos. Conforme Nota Técnica do Ministério da Saúde nº 169/2022-CGAFB/DAF/SCTIE/MS."
+        },
+        {
+          "termo": "Insulina Humana NPH 100 UI/mL - Refil 3 mL para caneta reutilizável",
+          "aviso": "Fornecido para pacientes com Diabetes mellitus tipo 1 e 2 na faixa etária menor ou igual a 19 anos e maior ou igual a 45 anos. Conforme Nota Técnica do Ministério da Saúde nº 169/2022-CGAFB/DAF/SCTIE/MS."
+        },
+        {
+          "termo": "Insulina Humana Regular 100 UI/ml - Refil 3 mL para caneta reutilizável",
+          "aviso": "Fornecido para pacientes com Diabetes mellitus tipo 1 e 2 na faixa etária menor ou igual a 19 anos e maior ou igual a 45 anos. Conforme Nota Técnica do Ministério da Saúde nº 169/2022-CGAFB/DAF/SCTIE/MS."
+        },
+        {
+          "termo": "Insulina análoga de ação prolongada 100UI/ml -Refil 3ml para caneta reutilizável",
+          "aviso": "Fornecido para pacientes com Diabetes mellitus tipo 1 com idade entre 2 e 17 anos 11 meses e 29 dias e tipo 1 e 2 na faixa etária maior ou igual a 70 anos. Conforme Nota Técnica do Ministério da Saúde."
+        },
+        {
+          "termo": "Etonogestrel 68mg - Implante contracpetivo",
+          "aviso": "Fornecido conforme protocolo municipal"
+        },
+        {
+          "termo": "Abacavir 20 mg/mL - Solução Oral",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Abacavir 300 mg - Comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Atazanavir 300 mg - Cápsula",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Benzilpenicilina Benzatina 1.200.000 UI - Injetável",
+          "aviso": "Programa: Sífilis Documentos necessários para solicitação do medicamento: Prescrição médica (validade 10 dias) + cópia da notificação + ficha de identificação."
+        },
+        {
+          "termo": "Bupropiona 150 mg - Comprimido",
+          "aviso": "Programa: Controle ao Tabagismo Documentos necessários para solicitação do medicamento: Prescrição médica do grupo de tabagista com carimbo + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Darunavir 75 mg - Comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Darunavir 150 mg - Comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Darunavir 600 mg - Comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Darunavir 800 mg - Comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Dolutegravir 50 mg - comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Doxiciclina 100 mg - Comprimido",
+          "aviso": "Programa: Febre maculosa Documentos necessários para solicitação do medicamento: Prescrição médica + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Doxiciclina 100 mg - Comprimido",
+          "aviso": "Programa: Sífilis, Uretrite, Linfogranulosa, Donovanose, corrimento vaginal e cervicite por clamídia doença inflamatória pélvica e Proctite. Documentos necessários para solicitação do medicamento: Prescrição médica com CID + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Efavirenz 30 mg/ml - Solução oral",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Efavirenz 200 mg - Comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Efavirenz 600 mg - Comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Enfuvirtida 90 mg/ml - Frasco ampola",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Espiramicina 1,5mui - Comprimido",
+          "aviso": "Programa: Toxoplasmose gestacional Documentos necessários para solicitação do medicamento: Prescrição médica + cópia da notificação + + exames que comprovem diagnóstico + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Estreptomicina 1 g (200 mg/ml) - Solução Injetável",
+          "aviso": "Programa: Tuberculose Esquema Especial Documentos necessários para solicitação do medicamento: Prescrição médica + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Etambutol 400 mg - Comprimido",
+          "aviso": "Programa: Tuberculose Esquema Especial Documentos necessários para solicitação do medicamento: Prescrição médica + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Etravirina 100 mg - Comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Etravirina 200 mg - comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Isoniazida 100 mg - Comprimido",
+          "aviso": "Programa: Tuberculose Documentos necessários para solicitação do medicamento: Prescrição médica + cópia da notificação + + exames que comprovem diagnóstico + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Isoniazida 300 mg - Comprimido",
+          "aviso": "Programa: Tuberculose Documentos necessários para solicitação do medicamento: Prescrição médica + cópia da notificação + + exames que comprovem diagnóstico + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Itraconazol 150 mg - Comprimido",
+          "aviso": "Programa: Esporotricose Documentos necessários para solicitação do medicamento: Prescrição médica + cópia da notificação + cópia dos documentos pessoais (Via Ministério da Saúde)"
+        },
+        {
+          "termo": "Lamivudina 10 mg/ml - solução oral",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Lamivudina 150 mg - comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Lopinavir 80 mg/mL + Ritonavir 20 mg/mL - Solução Oral - Comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Lopinavir 100 mg + Ritonavir 25 mg - Comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Maraviroque 150 mg - Comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Meglumina Antimoniato 300 mg/ml - Solução Injetável",
+          "aviso": "Programa: Leishmaniose Documentos necessários para solicitação do medicamento: Prescrição médica + cópia da notificação + exames que comprovem diagnóstico + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Nevirapina 10 mg/ml - solução oral",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Nevirapina 200 mg - comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Nirmatrelvir 150 mg + Nitonavir 100 mg - Comprimido",
+          "aviso": "Programa: COVID Documentos necessários para solicitação do medicamento: Prescrição médica + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Nicotina 21 mg - Adesivo Transdérmico",
+          "aviso": "Programa: Controle ao Tabagismo Documentos necessários para solicitação do medicamento: Prescrição médica do grupo de tabagista com carimbo + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Nicotina 14 mg - Adesivo Transdérmico",
+          "aviso": "Programa: Controle ao Tabagismo Documentos necessários para solicitação do medicamento: Prescrição médica do grupo de tabagista com carimbo + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Nicotina 7 mg - Adesivo Transdérmico",
+          "aviso": "Programa: Controle ao Tabagismo Documentos necessários para solicitação do medicamento: Prescrição médica do grupo de tabagista com carimbo + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Oseltamivir Fosfato 75 mg - Comprimido",
+          "aviso": "Programa: Influenza A H1N1 Documentos necessários para solicitação do medicamento: Prescrição médica com CID + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Oseltamivir Fosfato 30 mg - Comprimido",
+          "aviso": "Programa: Influenza A H1N1 Documentos necessários para solicitação do medicamento: Prescrição médica com CID + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Oseltamivir Fosfato 45 mg - Comprimido",
+          "aviso": "Programa: Influenza A H1N1 Documentos necessários para solicitação do medicamento: Prescrição médica com CID + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Pirazinamida 150 mg - Comprimido Dispersível",
+          "aviso": "Programa: Tuberculose Esquema Especial Documentos necessários para solicitação do medicamento: Prescrição médica + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Pirazinamida 30 mg/mL - Suspensão Oral",
+          "aviso": "Programa: Tuberculose Esquema Especial Documentos necessários para solicitação do medicamento: Prescrição médica + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Pirazinamida 500 mg - Comprimido",
+          "aviso": "Programa: Tuberculose Esquema Especial Documentos necessários para solicitação do medicamento: Prescrição médica + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Pirimetamina 25 mg - Comprimido",
+          "aviso": "Programa: Toxoplasmose Documentos necessários para solicitação do medicamento: Prescrição médica + cópia da notificação + exames que comprovem diagnóstico + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Praziquantel 600 mg - Comprimido",
+          "aviso": "Programa: Esquistossomose Documentos necessários para solicitação do medicamento: Prescrição médica + cópia da notificação + + exames que comprovem diagnóstico + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Raltegravir 100 mg - comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Raltegravir 400 mg - comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Rifampicina 20 mg/ml - Suspensão Oral",
+          "aviso": "Programa: Tuberculose Esquema Especial Documentos necessários para solicitação do medicamento: Prescrição médica + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Rifampicina 300 mg - Cápsula",
+          "aviso": "Programa: Tuberculose Esquema Especial Documentos necessários para solicitação do medicamento: Prescrição médica + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Rifampicina + Clofazimina + Dapsona (300+150)+50+50 mg (Multi-infantil) - Comprimido",
+          "aviso": "Programa: Hanseníase Documentos necessários para solicitação do medicamento: Prescrição médica + cópia da notificação + exames que comprovem diagnóstico + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Rifampicina + Clofazimina + Dapsona (300+300)+50+100 mg (Multi Adulto) - Comprimido",
+          "aviso": "Programa: Hanseníase Documentos necessários para solicitação do medicamento: Prescrição médica + cópia da notificação + exames que comprovem diagnóstico + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Rifampicina + Isoniazida 50 + 75 mg - Comprimido para suspensão",
+          "aviso": "Programa: Tuberculose Documentos necessários para solicitação do medicamento: Prescrição médica + exames que comprovem diagnóstico + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Rifampicina + Isoniazida 150 + 75 mg - Comprimido",
+          "aviso": "Programa: Tuberculose Documentos necessários para solicitação do medicamento: Prescrição médica + exames que comprovem diagnóstico + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Rifampicina + Isoniazida 300 + 75 mg - Comprimido",
+          "aviso": "Programa: Tuberculose Documentos necessários para solicitação do medicamento: Prescrição médica + exames que comprovem diagnóstico + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Rifampicina + Pirazinamida + Etambutol + Isoniazida 150 + 400 + 275 + 75 mg - Comprimido",
+          "aviso": "Programa: Tuberculose Documentos necessários para solicitação do medicamento: Prescrição médica + exames que comprovem diagnóstico + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Rifampicina + Pirazinamida + Etambutol + Isoniazida 75 + 50 + 150 mg - Comprimido dispersível",
+          "aviso": "Programa: Tuberculose Documentos necessários para solicitação do medicamento: Prescrição médica + cópia da notificação + exames que comprovem diagnóstico + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Rifapentina 150 mg - Comprimido revestido",
+          "aviso": "Programa: Tuberculose Documentos necessários para solicitação do medicamento: Prescrição médica + cópia da notificação + exames que comprovem diagnóstico + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Ritonavir 100 mg - Comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Sulfadiazina 500 mg - Comprimido",
+          "aviso": "Programa: Toxoplasmose Documentos necessários para solicitação do medicamento: Prescrição médica + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Talidomida 100 mg - Comprimido",
+          "aviso": "Programa: *Hanseníase (CID A30). *DST/AIDS (CID B 23.8). *Lúpus eritematoso sistêmico (CID M32). *Lúpus eritematoso discóide (CID L93.0). *Lúpus eritematoso cutâneo subagudo (CID L93.0). *Doença enxerto contra hospedeiro (CID T86.0). *Mieloma Múltiplo (C90.0). Documentos necessários para solicitação do medicamento: Notificação de receita de talidomida + termo de esclarecimento para o usuário + termo de responsabilidade + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Tenofovir 300 mg - Comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Tenofovir 300 mg + Lamivudina 300 mg - Comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Tenofovir 300 mg + Lamivudina 300 mg + Efavirenz 600 mg - Comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Tipranavir 250 mg - Cápsula",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Zidovudina 10 mg/mL - injetável",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Zidovudina 10 mg/mL - solução oral",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Zidovudina 100 mg - Capsula",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+        },
+        {
+          "termo": "Zidovudina 300 mg + Lamivudina 150 mg - Comprimido",
+          "aviso": "Programa: Antirretroviral Documentos necessários para solicitação do medicamento: Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
         }
       ]
     }
@@ -14062,6 +14645,794 @@
     },
     {
       "nome": "Ácido Fólico 5mg - Comprimido",
+      "local": null
+    }
+  ],
+  "Pará de Minas": [
+    {
+      "nome": "Aciclovir 200 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Ácido Acetil Salicílico 100 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Ácido Fólico 0,2 mg/mL - Gotas",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Albendazol 40 mg/mL - Suspensão oral",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Albendazol 400 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Alendronato de Sódio 70 mg – Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Alopurinol 100 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Alopurinol 300 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Amiodarona 200 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Amitriptilina 25 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Amoxicilina 50 mg/ml - Suspensão",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Amoxicilina 500 mg - Cápsula",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Amoxicilina 500mg + Clavulanato 125 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Anlodipino 5 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Atenolol 50 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Azitromicina 40 mg/mL - Suspensão oral",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Azitromicina 500 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Biperideno 2 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Captopril 25 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Carbamazepina 20 mg/mL - Suspensão oral",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Carbamazepina 200 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Carbonato de Cálcio 1.250 (500 mg de cálcio elementar)  - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Carbonato de Lítio 300 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Carvedilol 12,5 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Carvedilol 3,125 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Cefalexina 50 mg/mL - Suspensão oral",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Cefalexina 500 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Ciprofloxacino 500 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Clomipramina 25 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Clonazepam 2,5mg/ml solução oral",
+      "local": "Farmácia Central",
+      "receituario": "azul"
+    },
+    {
+      "nome": "Clorpromazina 100 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Clorpromazina 25 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Clorpromazina 40 mg/mL - Solução",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Colagenase 0,6 U/g + Cloranfenicol 0,01 g/g - Pomada dermatológica",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Dexametasona 1 mg/g (0,1%) - Creme dermatológico",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Dexclorfeniramina 0,4 mg/mL - Solução oral",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Dexclorfeniramina 2 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Diazepam 10 mg - Comprimido",
+      "local": "Farmácia Central",
+      "receituario": "azul"
+    },
+    {
+      "nome": "Digoxina 0,25 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Dipirona 500 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Dipirona 500 mg/mL - Gotas",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Enalapril 20 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Espironolactona 25 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Fenitoína 100 mg -  Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Fenobarbital 100 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Fenobarbital 40 mg/ml - Gotas",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Fluconazol 150 mg - Cápsula",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Fluoxetina 20 mg - Cápsula",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Furosemida 40 mg – Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Glibenclamida 5 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Gliclazida 30 mg - Comprimido de liberação prolongada",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Haloperidol 2 mg/Ml - Gotas",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Haloperidol 5 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Haloperidol decanoato 50 mg/mL - Solução injetável intramuscular",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Hidroclorotiazida 25 mg – Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Hidrogel com Alginto - Gel dermatológico",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Ibuprofeno 50 mg/mL - Gotas",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Ibuprofeno 600 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Imipramina 25 mg – Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Isossorbida 20 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Ivermectina 6 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Levodopa 250 mg + Carbidopa 25 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Levomepromazina 100 mg  - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Levotiroxina 100 mcg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Levotiroxina 25 mcg – Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Levotiroxina 50 mcg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Lidocaína 20 mg/g - Gel",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Loratadina 1 mg/ml - Xarope",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Loratadina 10 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Metformina 850 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Metildopa 250 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Metoclopramida 10 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Metoclopramida 4 mg/mL - Gotas",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Metronidazol 100 mg/g - Gel Vaginal",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Metronidazol 250 mg- Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Metronidazol 400 mg – Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Miconazol 20 mg/g (2%) - Creme Dermatológico",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Miconazol 20 mg/g (2%) - Creme Vaginal",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Neomicina 5mg/g + Bacitracina 250 UI/g - Pomada dermatológica",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Nifedipino 10 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Nitrofurantoína 100 mg - Cápsula",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Nortriptilina 25 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Nortriptilina 50 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Óleo de Girassol - Frasco 200 mL",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Omeprazol 20 mg - Cápsula",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Paracetamol 200 mg/mL - Gotas",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Paracetamol 500 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Prednisolona 3 mg/mL - Solução Oral",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Prednisona 20 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Prednisona 5 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Propranolol 40 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Repelente Dietiltoluamida (DEET) 15% - frasco 200mL",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Sais para reidratação oral – Sachês",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Sertralina 25mg",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Sertralina 50mg",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Sinvastatina 10 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Sinvastatina 20 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Sinvastatina 40 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Sulfadiazina de prata 10 mg/g - Creme dermatológico",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Sulfametoxazol 40 mg/mL + Trimetoprima 8 mg/mL - Suspensão oral",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Sulfametoxazol 400 mg + Trimetoprima 80 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Sulfato Ferroso 25 mg/mL de ferro elementar – Solução oral/Gotas",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Sulfato Ferroso 40 mg de ferro elementar - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Timolol maleato 5 mg/mL - Solução Oftálmica",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Valproato de Sódio 250 mg - Cápsula",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Valproato de Sódio 50 mg/mL - Xarope",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Valproato de Sódio 500 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Varfarina 5 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Verapamil 80 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Agulha para caneta aplicadora de insulina",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Caneta Reutilizável para aplicação de insulina análoga de ação prolongada",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Caneta Reutilizável para aplicação de refil de insulina",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Insulina Humana NPH 100 UI/mL - Refil 3 mL para caneta reutilizável",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Insulina Humana Regular 100 UI/ml - Refil 3 mL para caneta reutilizável",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Insulina análoga de ação prolongada 100UI/ml -Refil 3ml para caneta reutilizável",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Insulina Humana NPH 100 UI/mL - Frasco 10 mL",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Insulina Humana Regular 100 UI/ml - Frasco 10 ml",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Glicosímetro (Monitor de glicose)",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Lanceta automática descartável para punção digital",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Tiras Reagentes para medicação de glicemia",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Seringa para aplicação de insulina 0,5ml agulha 6,0 x 0,25mm",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Seringa para aplicação de insulina 1ml agulha 8,0 x 0,30mm",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Algestona 150 mg/mL + Estradiol 10 mg/mL - Injetável",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Etonogestrel 68mg - Implante contracpetivo",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Medroxiprogesterona  25 mg/mL + Cipionato de Estradiol 5 mg/mL - Injetável",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Medroxiprogesterona 150 mg/mL - Injetável",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Levonorgestrel 0,15 mg + Etinilestradiol 0,03 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Levonorgestrel 0,75 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Noretisterona 0,35 mg - Comprimido",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Noretisterona 50 mg + Estradiol 5 mg – Injetável",
+      "local": "Farmácia Central"
+    },
+    {
+      "nome": "Abacavir 20 mg/mL - Solução Oral",
+      "local": null
+    },
+    {
+      "nome": "Abacavir 300 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Atazanavir 300 mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Benzilpenicilina Benzatina 1.200.000 UI - Injetável",
+      "local": null
+    },
+    {
+      "nome": "Bupropiona 150 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Darunavir 75 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Darunavir 150 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Darunavir 600 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Darunavir 800 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Dolutegravir 50 mg - comprimido",
+      "local": null
+    },
+    {
+      "nome": "Doxiciclina 100 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Efavirenz 30 mg/ml - Solução oral",
+      "local": null
+    },
+    {
+      "nome": "Efavirenz 200 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Efavirenz 600 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Enfuvirtida 90 mg/ml - Frasco ampola",
+      "local": null
+    },
+    {
+      "nome": "Espiramicina 1,5mui - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Estreptomicina 1 g (200 mg/ml) - Solução Injetável",
+      "local": null
+    },
+    {
+      "nome": "Etambutol 400 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Etravirina 100 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Etravirina 200 mg - comprimido",
+      "local": null
+    },
+    {
+      "nome": "Isoniazida 100 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Isoniazida 300 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Itraconazol 150 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Lamivudina 10 mg/ml - solução oral",
+      "local": null
+    },
+    {
+      "nome": "Lamivudina 150 mg - comprimido",
+      "local": null
+    },
+    {
+      "nome": "Lopinavir 80 mg/mL + Ritonavir 20 mg/mL - Solução Oral - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Lopinavir 100 mg + Ritonavir 25 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Maraviroque 150 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Meglumina Antimoniato 300 mg/ml - Solução Injetável",
+      "local": null
+    },
+    {
+      "nome": "Nevirapina 10 mg/ml - solução oral",
+      "local": null
+    },
+    {
+      "nome": "Nevirapina 200 mg - comprimido",
+      "local": null
+    },
+    {
+      "nome": "Nirmatrelvir 150 mg + Nitonavir 100 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Nicotina 21 mg - Adesivo Transdérmico",
+      "local": null
+    },
+    {
+      "nome": "Nicotina 14 mg - Adesivo Transdérmico",
+      "local": null
+    },
+    {
+      "nome": "Nicotina 7 mg - Adesivo Transdérmico",
+      "local": null
+    },
+    {
+      "nome": "Oseltamivir Fosfato 75 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Oseltamivir Fosfato 30 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Oseltamivir Fosfato 45 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Pirazinamida 150 mg - Comprimido Dispersível",
+      "local": null
+    },
+    {
+      "nome": "Pirazinamida 30 mg/mL - Suspensão Oral",
+      "local": null
+    },
+    {
+      "nome": "Pirazinamida 500 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Pirimetamina 25 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Praziquantel 600 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Raltegravir 100 mg - comprimido",
+      "local": null
+    },
+    {
+      "nome": "Raltegravir 400 mg - comprimido",
+      "local": null
+    },
+    {
+      "nome": "Rifampicina 20 mg/ml - Suspensão Oral",
+      "local": null
+    },
+    {
+      "nome": "Rifampicina 300 mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Rifampicina + Clofazimina + Dapsona (300+150)+50+50 mg (Multi-infantil) - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Rifampicina + Clofazimina + Dapsona (300+300)+50+100 mg (Multi Adulto) - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Rifampicina + Isoniazida 50 + 75 mg - Comprimido para suspensão",
+      "local": null
+    },
+    {
+      "nome": "Rifampicina + Isoniazida 150 + 75 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Rifampicina + Isoniazida 300 + 75 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Rifampicina + Pirazinamida + Etambutol + Isoniazida 150 + 400 + 275 + 75 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Rifampicina + Pirazinamida + Etambutol + Isoniazida 75 + 50 + 150 mg - Comprimido dispersível",
+      "local": null
+    },
+    {
+      "nome": "Rifapentina 150 mg - Comprimido revestido",
+      "local": null
+    },
+    {
+      "nome": "Ritonavir 100 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Sulfadiazina 500 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Talidomida 100 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Tenofovir 300 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Tenofovir 300 mg + Lamivudina 300 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Tenofovir 300 mg + Lamivudina 300 mg + Efavirenz 600 mg - Comprimido",
+      "local": null
+    },
+    {
+      "nome": "Tipranavir 250 mg - Cápsula",
+      "local": null
+    },
+    {
+      "nome": "Zidovudina 10 mg/mL - injetável",
+      "local": null
+    },
+    {
+      "nome": "Zidovudina 10 mg/mL - solução oral",
+      "local": null
+    },
+    {
+      "nome": "Zidovudina 100 mg - Capsula",
+      "local": null
+    },
+    {
+      "nome": "Zidovudina 300 mg + Lamivudina 150 mg - Comprimido",
       "local": null
     }
   ]

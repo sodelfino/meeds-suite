@@ -1,0 +1,1275 @@
+{
+  "arquivo": "Medicamentos - Farmácia Básica.xlsx",
+  "sha256": "06da4eb49483877dce9faa9cc5e18c8fafb8002af47481820489488d77a46987",
+  "url": "https://docs.google.com/spreadsheets/d/1y-iO2MArJIGd7DpGe_blmUpkwchi7snqBbfrOLP0B5o/edit?gid=1924961163",
+  "aba": "Medicamentos Disponíveis",
+  "municipio": "Pará de Minas",
+  "data": "2026-10-21",
+  "orientacoes": {
+    "160": "ATENÇÃO: Para a dispensação dos medicamentos do componente básico da assistência farmacêutica, o paciente deverá comparecer à farmácia central ou a uma das farmácias-polo, portando os seguintes documentos:",
+    "161": "► Prescrição válida;",
+    "162": "► Documento Oficial com foto;",
+    "163": "► CPF;",
+    "164": "► Comprovante de endereço em nome do paciente, ou declaração de residência expedida pela UBS onde é atendido.",
+    "165": "IMPORTANTE: Para a dispensação de insulinas NPH e Regular, bem como de medicamentos do Componente Especializado que necessitam de conservação refrigerada (temperatura entre 2ºC e 8ºC), o paciente deverá levar até a farmácia caixa de isopor ou bolsa térmica, além de gelo rígido reciclável devidamente congelado, a fim de garantir o transporte adequado.",
+    "166": null,
+    "167": "VALIDADE DAS PRESCRIÇÕES:",
+    "168": "ANTIMICROBIANOS (RDC 471/2021): 10 DIAS",
+    "169": "MEDICAMENTO DE USO IMEDIATO (Lei Municipal nº 6.652/2021): 15 DIAS",
+    "170": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98: 30 DIAS",
+    "171": "DEMAIS MEDICAMENTOS: ATÉ 1 ANO, CONFORME ORIENTAÇÃO EMITIDA PELO PROFISSIONAL RESPONSÁVEL, REGISTRADA NA PRESCRIÇÃO.",
+    "273": "O Componente Especializado da Assistência Farmacêutica (medicamentos excepcionais) é uma das estratégias de acesso aos medicamentos no âmbito do SUS, que busca garantir a integralidade do tratamento medicamentoso, em nível ambulatorial, para algumas situações clínicas, principalmente, agravos crônicos. O município desempenha atribuições como um intermediador entre os pacientes e a Superintendência Regional de Saúde (SRS) de Divinópolis, órgão vinculado à Secretaria de Estado da Saúde (SES), que é a responsável pela aquisição e disponibilização dos fármacos. A solicitação dos medicamentos ocorre através de montagem formal de processo. Sua aprovação/liberação é responsabilidade (SES). O Ministério da Saúde através da portaria nº 1.554, de 30 de julho de 2013, dispõe sobre as regras de financiamento e execução do Componente Especializado da Assistência Farmacêutica no âmbito do SUS.",
+    "278": "ATENÇÃO: Para montagem de processo o paciente deve comparecer à farmácia básica central, portando: prescrição médica  + Laudo de Solicitação, Avaliação e Autorização (LME) preenchido pelo médico + documentos pessoais."
+  },
+  "itens": [
+    {
+      "linha": 15,
+      "componente": "básico",
+      "nome": "Aciclovir 200 mg - Comprimido",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 16,
+      "componente": "básico",
+      "nome": "Ácido Acetil Salicílico 100 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 17,
+      "componente": "básico",
+      "nome": "Ácido Fólico 0,2 mg/mL - Gotas",
+      "observacao": null
+    },
+    {
+      "linha": 18,
+      "componente": "básico",
+      "nome": "Albendazol 40 mg/mL - Suspensão oral",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 19,
+      "componente": "básico",
+      "nome": "Albendazol 400 mg - Comprimido",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 20,
+      "componente": "básico",
+      "nome": "Alendronato de Sódio 70 mg – Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 21,
+      "componente": "básico",
+      "nome": "Alopurinol 100 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 22,
+      "componente": "básico",
+      "nome": "Alopurinol 300 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 23,
+      "componente": "básico",
+      "nome": "Amiodarona 200 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 24,
+      "componente": "básico",
+      "nome": "Amitriptilina 25 mg - Comprimido",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 25,
+      "componente": "básico",
+      "nome": "Amoxicilina 50 mg/ml - Suspensão",
+      "observacao": "ANTIMICROBIANO (RDC 471/2021)"
+    },
+    {
+      "linha": 26,
+      "componente": "básico",
+      "nome": "Amoxicilina 500 mg - Cápsula",
+      "observacao": "ANTIMICROBIANO (RDC 471/2021)"
+    },
+    {
+      "linha": 27,
+      "componente": "básico",
+      "nome": "Amoxicilina 500mg + Clavulanato 125 mg - Comprimido",
+      "observacao": "ANTIMICROBIANO (RDC 471/2021)"
+    },
+    {
+      "linha": 28,
+      "componente": "básico",
+      "nome": "Anlodipino 5 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 29,
+      "componente": "básico",
+      "nome": "Atenolol 50 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 30,
+      "componente": "básico",
+      "nome": "Azitromicina 40 mg/mL - Suspensão oral",
+      "observacao": "ANTIMICROBIANO (RDC 471/2021)"
+    },
+    {
+      "linha": 31,
+      "componente": "básico",
+      "nome": "Azitromicina 500 mg - Comprimido",
+      "observacao": "ANTIMICROBIANO (RDC 471/2021)"
+    },
+    {
+      "linha": 32,
+      "componente": "básico",
+      "nome": "Biperideno 2 mg - Comprimido",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 33,
+      "componente": "básico",
+      "nome": "Captopril 25 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 34,
+      "componente": "básico",
+      "nome": "Carbamazepina 20 mg/mL - Suspensão oral",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 35,
+      "componente": "básico",
+      "nome": "Carbamazepina 200 mg - Comprimido",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 36,
+      "componente": "básico",
+      "nome": "Carbonato de Cálcio 1.250 (500 mg de cálcio elementar)  - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 37,
+      "componente": "básico",
+      "nome": "Carbonato de Lítio 300 mg - Comprimido",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 38,
+      "componente": "básico",
+      "nome": "Carvedilol 12,5 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 39,
+      "componente": "básico",
+      "nome": "Carvedilol 3,125 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 40,
+      "componente": "básico",
+      "nome": "Cefalexina 50 mg/mL - Suspensão oral",
+      "observacao": "ANTIMICROBIANO (RDC 471/2021)"
+    },
+    {
+      "linha": 41,
+      "componente": "básico",
+      "nome": "Cefalexina 500 mg - Comprimido",
+      "observacao": "ANTIMICROBIANO (RDC 471/2021)"
+    },
+    {
+      "linha": 42,
+      "componente": "básico",
+      "nome": "Ciprofloxacino 500 mg - Comprimido",
+      "observacao": "ANTIMICROBIANO (RDC 471/2021)"
+    },
+    {
+      "linha": 43,
+      "componente": "básico",
+      "nome": "Clomipramina 25 mg - Comprimido",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 44,
+      "componente": "básico",
+      "nome": "Clonazepam 2,5mg/ml solução oral",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 45,
+      "componente": "básico",
+      "nome": "Clorpromazina 100 mg - Comprimido",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 46,
+      "componente": "básico",
+      "nome": "Clorpromazina 25 mg - Comprimido",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 47,
+      "componente": "básico",
+      "nome": "Clorpromazina 40 mg/mL - Solução",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 48,
+      "componente": "básico",
+      "nome": "Colagenase 0,6 U/g + Cloranfenicol 0,01 g/g - Pomada dermatológica",
+      "observacao": "ANTIMICROBIANO (RDC 471/2021)"
+    },
+    {
+      "linha": 49,
+      "componente": "básico",
+      "nome": "Dexametasona 1 mg/g (0,1%) - Creme dermatológico",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 50,
+      "componente": "básico",
+      "nome": "Dexclorfeniramina 0,4 mg/mL - Solução oral",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 51,
+      "componente": "básico",
+      "nome": "Dexclorfeniramina 2 mg - Comprimido",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 52,
+      "componente": "básico",
+      "nome": "Diazepam 10 mg - Comprimido",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 53,
+      "componente": "básico",
+      "nome": "Digoxina 0,25 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 54,
+      "componente": "básico",
+      "nome": "Dipirona 500 mg - Comprimido",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO                                                                                                        EXCETO SE PRESCRIÇÃO DE USO CONTÍNUO COM JUSTIFICATIVA E/OU CID"
+    },
+    {
+      "linha": 55,
+      "componente": "básico",
+      "nome": "Dipirona 500 mg/mL - Gotas",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO                                                                                                        EXCETO SE PRESCRIÇÃO DE USO CONTÍNUO COM JUSTIFICATIVA E/OU CID"
+    },
+    {
+      "linha": 56,
+      "componente": "básico",
+      "nome": "Enalapril 20 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 57,
+      "componente": "básico",
+      "nome": "Espironolactona 25 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 58,
+      "componente": "básico",
+      "nome": "Fenitoína 100 mg -  Comprimido",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 59,
+      "componente": "básico",
+      "nome": "Fenobarbital 100 mg - Comprimido",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 60,
+      "componente": "básico",
+      "nome": "Fenobarbital 40 mg/ml - Gotas",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 61,
+      "componente": "básico",
+      "nome": "Fluconazol 150 mg - Cápsula",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 62,
+      "componente": "básico",
+      "nome": "Fluoxetina 20 mg - Cápsula",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 63,
+      "componente": "básico",
+      "nome": "Furosemida 40 mg – Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 64,
+      "componente": "básico",
+      "nome": "Glibenclamida 5 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 65,
+      "componente": "básico",
+      "nome": "Gliclazida 30 mg - Comprimido de liberação prolongada",
+      "observacao": null
+    },
+    {
+      "linha": 66,
+      "componente": "básico",
+      "nome": "Haloperidol 2 mg/Ml - Gotas",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 67,
+      "componente": "básico",
+      "nome": "Haloperidol 5 mg - Comprimido",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 68,
+      "componente": "básico",
+      "nome": "Haloperidol decanoato 50 mg/mL - Solução injetável intramuscular",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 69,
+      "componente": "básico",
+      "nome": "Hidroclorotiazida 25 mg – Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 70,
+      "componente": "básico",
+      "nome": "Hidrogel com Alginto - Gel dermatológico",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 71,
+      "componente": "básico",
+      "nome": "Ibuprofeno 50 mg/mL - Gotas",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 72,
+      "componente": "básico",
+      "nome": "Ibuprofeno 600 mg - Comprimido",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 73,
+      "componente": "básico",
+      "nome": "Imipramina 25 mg – Comprimido",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 74,
+      "componente": "básico",
+      "nome": "Isossorbida 20 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 75,
+      "componente": "básico",
+      "nome": "Ivermectina 6 mg - Comprimido",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 76,
+      "componente": "básico",
+      "nome": "Levodopa 250 mg + Carbidopa 25 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 77,
+      "componente": "básico",
+      "nome": "Levomepromazina 100 mg  - Comprimido",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 78,
+      "componente": "básico",
+      "nome": "Levotiroxina 100 mcg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 79,
+      "componente": "básico",
+      "nome": "Levotiroxina 25 mcg – Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 80,
+      "componente": "básico",
+      "nome": "Levotiroxina 50 mcg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 81,
+      "componente": "básico",
+      "nome": "Lidocaína 20 mg/g - Gel",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 82,
+      "componente": "básico",
+      "nome": "Loratadina 1 mg/ml - Xarope",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 83,
+      "componente": "básico",
+      "nome": "Loratadina 10 mg - Comprimido",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 84,
+      "componente": "básico",
+      "nome": "Metformina 850 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 85,
+      "componente": "básico",
+      "nome": "Metildopa 250 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 86,
+      "componente": "básico",
+      "nome": "Metoclopramida 10 mg - Comprimido",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 87,
+      "componente": "básico",
+      "nome": "Metoclopramida 4 mg/mL - Gotas",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 88,
+      "componente": "básico",
+      "nome": "Metronidazol 100 mg/g - Gel Vaginal",
+      "observacao": "ANTIMICROBIANO (RDC 471/2021)"
+    },
+    {
+      "linha": 89,
+      "componente": "básico",
+      "nome": "Metronidazol 250 mg- Comprimido",
+      "observacao": "ANTIMICROBIANO (RDC 471/2021)"
+    },
+    {
+      "linha": 90,
+      "componente": "básico",
+      "nome": "Metronidazol 400 mg – Comprimido",
+      "observacao": "ANTIMICROBIANO (RDC 471/2021)"
+    },
+    {
+      "linha": 91,
+      "componente": "básico",
+      "nome": "Miconazol 20 mg/g (2%) - Creme Dermatológico",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 92,
+      "componente": "básico",
+      "nome": "Miconazol 20 mg/g (2%) - Creme Vaginal",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 93,
+      "componente": "básico",
+      "nome": "Neomicina 5mg/g + Bacitracina 250 UI/g - Pomada dermatológica",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 94,
+      "componente": "básico",
+      "nome": "Nifedipino 10 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 95,
+      "componente": "básico",
+      "nome": "Nitrofurantoína 100 mg - Cápsula",
+      "observacao": "ANTIMICROBIANO (RDC 471/2021)"
+    },
+    {
+      "linha": 96,
+      "componente": "básico",
+      "nome": "Nortriptilina 25 mg - Comprimido",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 97,
+      "componente": "básico",
+      "nome": "Nortriptilina 50 mg - Comprimido",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 98,
+      "componente": "básico",
+      "nome": "Óleo de Girassol - Frasco 200 mL",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 99,
+      "componente": "básico",
+      "nome": "Omeprazol 20 mg - Cápsula",
+      "observacao": null
+    },
+    {
+      "linha": 100,
+      "componente": "básico",
+      "nome": "Paracetamol 200 mg/mL - Gotas",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO                                                                                                        EXCETO SE PRESCRIÇÃO DE USO CONTÍNUO COM JUSTIFICATIVA E/OU CID"
+    },
+    {
+      "linha": 101,
+      "componente": "básico",
+      "nome": "Paracetamol 500 mg - Comprimido",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO                                                                                                        EXCETO SE PRESCRIÇÃO DE USO CONTÍNUO COM JUSTIFICATIVA E/OU CID"
+    },
+    {
+      "linha": 102,
+      "componente": "básico",
+      "nome": "Prednisolona 3 mg/mL - Solução Oral",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 103,
+      "componente": "básico",
+      "nome": "Prednisona 20 mg - Comprimido",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO                                                                                                        EXCETO SE PRESCRIÇÃO DE USO CONTÍNUO"
+    },
+    {
+      "linha": 104,
+      "componente": "básico",
+      "nome": "Prednisona 5 mg - Comprimido",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO                                                                                                        EXCETO SE PRESCRIÇÃO DE USO CONTÍNUO"
+    },
+    {
+      "linha": 105,
+      "componente": "básico",
+      "nome": "Propranolol 40 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 106,
+      "componente": "básico",
+      "nome": "Repelente Dietiltoluamida (DEET) 15% - frasco 200mL",
+      "observacao": "DISPONÍVEL PARA GESTANTES, CONFORME PRESCRIÇÃO MÉDICA OU DE ENFERMAGEM."
+    },
+    {
+      "linha": 107,
+      "componente": "básico",
+      "nome": "Sais para reidratação oral – Sachês",
+      "observacao": "MEDICAMENTO DE USO IMEDIATO"
+    },
+    {
+      "linha": 108,
+      "componente": "básico",
+      "nome": "Sertralina 25mg",
+      "observacao": "DISPONÍVEL PARA GESTANTES, CONFORME PRESCRIÇÃO MÉDICA "
+    },
+    {
+      "linha": 109,
+      "componente": "básico",
+      "nome": "Sertralina 50mg",
+      "observacao": "DISPONÍVEL PARA GESTANTES, CONFORME PRESCRIÇÃO MÉDICA "
+    },
+    {
+      "linha": 110,
+      "componente": "básico",
+      "nome": "Sinvastatina 10 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 111,
+      "componente": "básico",
+      "nome": "Sinvastatina 20 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 112,
+      "componente": "básico",
+      "nome": "Sinvastatina 40 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 113,
+      "componente": "básico",
+      "nome": "Sulfadiazina de prata 10 mg/g - Creme dermatológico",
+      "observacao": "ANTIMICROBIANO (RDC 471/2021)"
+    },
+    {
+      "linha": 114,
+      "componente": "básico",
+      "nome": "Sulfametoxazol 40 mg/mL + Trimetoprima 8 mg/mL - Suspensão oral",
+      "observacao": "ANTIMICROBIANO (RDC 471/2021)"
+    },
+    {
+      "linha": 115,
+      "componente": "básico",
+      "nome": "Sulfametoxazol 400 mg + Trimetoprima 80 mg - Comprimido",
+      "observacao": "ANTIMICROBIANO (RDC 471/2021)"
+    },
+    {
+      "linha": 116,
+      "componente": "básico",
+      "nome": "Sulfato Ferroso 25 mg/mL de ferro elementar – Solução oral/Gotas",
+      "observacao": null
+    },
+    {
+      "linha": 117,
+      "componente": "básico",
+      "nome": "Sulfato Ferroso 40 mg de ferro elementar - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 118,
+      "componente": "básico",
+      "nome": "Timolol maleato 5 mg/mL - Solução Oftálmica",
+      "observacao": null
+    },
+    {
+      "linha": 119,
+      "componente": "básico",
+      "nome": "Valproato de Sódio 250 mg - Cápsula",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 120,
+      "componente": "básico",
+      "nome": "Valproato de Sódio 50 mg/mL - Xarope",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 121,
+      "componente": "básico",
+      "nome": "Valproato de Sódio 500 mg - Comprimido",
+      "observacao": "MEDICAMENTO SUJEITO A CONTROLE ESPECIAL PELA PORTARIA 344/98"
+    },
+    {
+      "linha": 122,
+      "componente": "básico",
+      "nome": "Varfarina 5 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 123,
+      "componente": "básico",
+      "nome": "Verapamil 80 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 126,
+      "componente": "básico",
+      "nome": "Agulha para caneta aplicadora de insulina",
+      "observacao": null
+    },
+    {
+      "linha": 127,
+      "componente": "básico",
+      "nome": "Caneta Reutilizável para aplicação de insulina análoga de ação prolongada",
+      "observacao": "Fornecido para pacientes com Diabetes mellitus tipo 1 com idade entre 2 e 17 anos 11 meses e 29 dias e tipo 1 e 2 na faixa etária maior ou igual a 70 anos.  Conforme Nota Técnica do Ministério da Saúde."
+    },
+    {
+      "linha": 128,
+      "componente": "básico",
+      "nome": "Caneta Reutilizável para aplicação de refil de insulina",
+      "observacao": "Fornecido para pacientes com Diabetes mellitus tipo 1 e 2 na faixa etária menor ou igual a 19 anos e maior ou igual a 45 anos. Conforme Nota Técnica do Ministério da Saúde nº 169/2022-CGAFB/DAF/SCTIE/MS."
+    },
+    {
+      "linha": 129,
+      "componente": "básico",
+      "nome": "Insulina Humana NPH 100 UI/mL - Refil 3 mL para caneta reutilizável",
+      "observacao": "Fornecido para pacientes com Diabetes mellitus tipo 1 e 2 na faixa etária menor ou igual a 19 anos e maior ou igual a 45 anos. Conforme Nota Técnica do Ministério da Saúde nº 169/2022-CGAFB/DAF/SCTIE/MS."
+    },
+    {
+      "linha": 130,
+      "componente": "básico",
+      "nome": "Insulina Humana Regular 100 UI/ml - Refil 3 mL para caneta reutilizável",
+      "observacao": "Fornecido para pacientes com Diabetes mellitus tipo 1 e 2 na faixa etária menor ou igual a 19 anos e maior ou igual a 45 anos. Conforme Nota Técnica do Ministério da Saúde nº 169/2022-CGAFB/DAF/SCTIE/MS."
+    },
+    {
+      "linha": 131,
+      "componente": "básico",
+      "nome": "Insulina análoga de ação prolongada 100UI/ml -Refil 3ml para caneta reutilizável",
+      "observacao": "Fornecido para pacientes com Diabetes mellitus tipo 1 com idade entre 2 e 17 anos 11 meses e 29 dias e tipo 1 e 2 na faixa etária maior ou igual a 70 anos.  Conforme Nota Técnica do Ministério da Saúde."
+    },
+    {
+      "linha": 132,
+      "componente": "básico",
+      "nome": "Insulina Humana NPH 100 UI/mL - Frasco 10 mL",
+      "observacao": null
+    },
+    {
+      "linha": 133,
+      "componente": "básico",
+      "nome": "Insulina Humana Regular 100 UI/ml - Frasco 10 ml",
+      "observacao": null
+    },
+    {
+      "linha": 134,
+      "componente": "básico",
+      "nome": "Glicosímetro (Monitor de glicose)",
+      "observacao": null
+    },
+    {
+      "linha": 135,
+      "componente": "básico",
+      "nome": "Lanceta automática descartável para punção digital",
+      "observacao": null
+    },
+    {
+      "linha": 136,
+      "componente": "básico",
+      "nome": "Tiras Reagentes para medicação de glicemia",
+      "observacao": null
+    },
+    {
+      "linha": 137,
+      "componente": "básico",
+      "nome": "Seringa para aplicação de insulina 0,5ml agulha 6,0 x 0,25mm",
+      "observacao": null
+    },
+    {
+      "linha": 138,
+      "componente": "básico",
+      "nome": "Seringa para aplicação de insulina 1ml agulha 8,0 x 0,30mm",
+      "observacao": null
+    },
+    {
+      "linha": 141,
+      "componente": "básico",
+      "nome": "Algestona 150 mg/mL + Estradiol 10 mg/mL - Injetável",
+      "observacao": null
+    },
+    {
+      "linha": 142,
+      "componente": "básico",
+      "nome": "Etonogestrel 68mg - Implante contracpetivo",
+      "observacao": "Fornecido conforme protocolo municipal"
+    },
+    {
+      "linha": 143,
+      "componente": "básico",
+      "nome": "Medroxiprogesterona  25 mg/mL + Cipionato de Estradiol 5 mg/mL - Injetável",
+      "observacao": null
+    },
+    {
+      "linha": 144,
+      "componente": "básico",
+      "nome": "Medroxiprogesterona 150 mg/mL - Injetável",
+      "observacao": null
+    },
+    {
+      "linha": 145,
+      "componente": "básico",
+      "nome": "Levonorgestrel 0,15 mg + Etinilestradiol 0,03 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 146,
+      "componente": "básico",
+      "nome": "Levonorgestrel 0,75 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 147,
+      "componente": "básico",
+      "nome": "Noretisterona 0,35 mg - Comprimido",
+      "observacao": null
+    },
+    {
+      "linha": 148,
+      "componente": "básico",
+      "nome": "Noretisterona 50 mg + Estradiol 5 mg – Injetável",
+      "observacao": null
+    },
+    {
+      "linha": 202,
+      "componente": "estratégico",
+      "nome": "Abacavir 20 mg/mL - Solução Oral",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 203,
+      "componente": "estratégico",
+      "nome": "Abacavir 300 mg - Comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 204,
+      "componente": "estratégico",
+      "nome": "Atazanavir 300 mg - Cápsula",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 205,
+      "componente": "estratégico",
+      "nome": "Benzilpenicilina Benzatina 1.200.000 UI - Injetável",
+      "programa": "Sífilis",
+      "documentos": "Prescrição médica (validade 10 dias) + cópia da notificação + ficha de identificação."
+    },
+    {
+      "linha": 206,
+      "componente": "estratégico",
+      "nome": "Bupropiona 150 mg - Comprimido",
+      "programa": "Controle ao Tabagismo",
+      "documentos": "Prescrição médica do grupo de tabagista com carimbo + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 207,
+      "componente": "estratégico",
+      "nome": "Darunavir 75 mg - Comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 208,
+      "componente": "estratégico",
+      "nome": "Darunavir 150 mg - Comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 209,
+      "componente": "estratégico",
+      "nome": "Darunavir 600 mg - Comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 210,
+      "componente": "estratégico",
+      "nome": "Darunavir 800 mg - Comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 211,
+      "componente": "estratégico",
+      "nome": "Dolutegravir 50 mg - comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 212,
+      "componente": "estratégico",
+      "nome": "Doxiciclina 100 mg - Comprimido",
+      "programa": "Febre maculosa",
+      "documentos": "Prescrição médica + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 213,
+      "componente": "estratégico",
+      "nome": "Doxiciclina 100 mg - Comprimido",
+      "programa": "Sífilis, Uretrite, Linfogranulosa, Donovanose, corrimento vaginal e cervicite por clamídia doença inflamatória pélvica e Proctite.",
+      "documentos": "Prescrição médica com CID + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 214,
+      "componente": "estratégico",
+      "nome": "Efavirenz 30 mg/ml - Solução oral",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 215,
+      "componente": "estratégico",
+      "nome": "Efavirenz 200 mg - Comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 216,
+      "componente": "estratégico",
+      "nome": "Efavirenz 600 mg - Comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 217,
+      "componente": "estratégico",
+      "nome": "Enfuvirtida 90 mg/ml - Frasco ampola",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 218,
+      "componente": "estratégico",
+      "nome": "Espiramicina 1,5mui - Comprimido",
+      "programa": "Toxoplasmose gestacional",
+      "documentos": "Prescrição médica + cópia da notificação + + exames que comprovem diagnóstico + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 219,
+      "componente": "estratégico",
+      "nome": "Estreptomicina 1 g (200 mg/ml) - Solução Injetável",
+      "programa": "Tuberculose\n Esquema Especial",
+      "documentos": "Prescrição médica + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 220,
+      "componente": "estratégico",
+      "nome": "Etambutol 400 mg - Comprimido",
+      "programa": "Tuberculose\n Esquema Especial",
+      "documentos": "Prescrição médica + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 221,
+      "componente": "estratégico",
+      "nome": "Etravirina 100 mg - Comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 222,
+      "componente": "estratégico",
+      "nome": "Etravirina 200 mg - comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 223,
+      "componente": "estratégico",
+      "nome": "Isoniazida 100 mg - Comprimido",
+      "programa": "Tuberculose",
+      "documentos": "Prescrição médica + cópia da notificação + + exames que comprovem diagnóstico + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 224,
+      "componente": "estratégico",
+      "nome": "Isoniazida 300 mg - Comprimido",
+      "programa": "Tuberculose",
+      "documentos": "Prescrição médica + cópia da notificação + + exames que comprovem diagnóstico + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 225,
+      "componente": "estratégico",
+      "nome": "Itraconazol 150 mg - Comprimido",
+      "programa": "Esporotricose",
+      "documentos": "Prescrição médica + cópia da notificação + cópia dos documentos pessoais (Via Ministério da Saúde)"
+    },
+    {
+      "linha": 226,
+      "componente": "estratégico",
+      "nome": "Lamivudina 10 mg/ml - solução oral",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 227,
+      "componente": "estratégico",
+      "nome": "Lamivudina 150 mg - comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 228,
+      "componente": "estratégico",
+      "nome": "Lopinavir 80 mg/mL + Ritonavir 20 mg/mL - Solução Oral - Comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 229,
+      "componente": "estratégico",
+      "nome": "Lopinavir 100 mg + Ritonavir 25 mg - Comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 230,
+      "componente": "estratégico",
+      "nome": "Maraviroque 150 mg - Comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 231,
+      "componente": "estratégico",
+      "nome": "Meglumina Antimoniato 300 mg/ml - Solução Injetável",
+      "programa": "Leishmaniose",
+      "documentos": "Prescrição médica + cópia da notificação +  exames que comprovem diagnóstico + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 232,
+      "componente": "estratégico",
+      "nome": "Nevirapina 10 mg/ml - solução oral",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 233,
+      "componente": "estratégico",
+      "nome": "Nevirapina 200 mg - comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 234,
+      "componente": "estratégico",
+      "nome": "Nirmatrelvir 150 mg + Nitonavir 100 mg - Comprimido",
+      "programa": "COVID",
+      "documentos": "Prescrição médica + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 235,
+      "componente": "estratégico",
+      "nome": "Nicotina 21 mg - Adesivo Transdérmico",
+      "programa": "Controle ao Tabagismo",
+      "documentos": "Prescrição médica do grupo de tabagista com carimbo + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 236,
+      "componente": "estratégico",
+      "nome": "Nicotina 14 mg - Adesivo Transdérmico",
+      "programa": "Controle ao Tabagismo",
+      "documentos": "Prescrição médica do grupo de tabagista com carimbo + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 237,
+      "componente": "estratégico",
+      "nome": "Nicotina 7 mg - Adesivo Transdérmico",
+      "programa": "Controle ao Tabagismo",
+      "documentos": "Prescrição médica do grupo de tabagista com carimbo + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 238,
+      "componente": "estratégico",
+      "nome": "Oseltamivir Fosfato 75 mg - Comprimido",
+      "programa": "Influenza A H1N1",
+      "documentos": "Prescrição médica com CID + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 239,
+      "componente": "estratégico",
+      "nome": "Oseltamivir Fosfato 30 mg - Comprimido",
+      "programa": "Influenza A H1N1",
+      "documentos": "Prescrição médica com CID + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 240,
+      "componente": "estratégico",
+      "nome": "Oseltamivir Fosfato 45 mg - Comprimido",
+      "programa": "Influenza A H1N1",
+      "documentos": "Prescrição médica com CID + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 241,
+      "componente": "estratégico",
+      "nome": "Pirazinamida 150 mg - Comprimido Dispersível",
+      "programa": "Tuberculose\n Esquema Especial",
+      "documentos": "Prescrição médica + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 242,
+      "componente": "estratégico",
+      "nome": "Pirazinamida 30 mg/mL - Suspensão Oral",
+      "programa": "Tuberculose\n Esquema Especial",
+      "documentos": "Prescrição médica + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 243,
+      "componente": "estratégico",
+      "nome": "Pirazinamida 500 mg - Comprimido",
+      "programa": "Tuberculose\n Esquema Especial",
+      "documentos": "Prescrição médica + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 244,
+      "componente": "estratégico",
+      "nome": "Pirimetamina 25 mg - Comprimido",
+      "programa": "Toxoplasmose",
+      "documentos": "Prescrição médica + cópia da notificação + exames que comprovem diagnóstico + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 245,
+      "componente": "estratégico",
+      "nome": "Praziquantel 600 mg - Comprimido",
+      "programa": "Esquistossomose",
+      "documentos": "Prescrição médica + cópia da notificação + + exames que comprovem diagnóstico + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 246,
+      "componente": "estratégico",
+      "nome": "Raltegravir 100 mg - comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 247,
+      "componente": "estratégico",
+      "nome": "Raltegravir 400 mg - comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 248,
+      "componente": "estratégico",
+      "nome": "Rifampicina 20 mg/ml - Suspensão Oral",
+      "programa": "Tuberculose\n Esquema Especial",
+      "documentos": "Prescrição médica + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 249,
+      "componente": "estratégico",
+      "nome": "Rifampicina 300 mg - Cápsula",
+      "programa": "Tuberculose\n Esquema Especial",
+      "documentos": "Prescrição médica + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 250,
+      "componente": "estratégico",
+      "nome": "Rifampicina + Clofazimina + Dapsona (300+150)+50+50 mg (Multi-infantil) - Comprimido",
+      "programa": "Hanseníase",
+      "documentos": "Prescrição médica + cópia da notificação + exames que comprovem diagnóstico + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 251,
+      "componente": "estratégico",
+      "nome": "Rifampicina + Clofazimina + Dapsona (300+300)+50+100 mg (Multi Adulto) - Comprimido",
+      "programa": "Hanseníase",
+      "documentos": "Prescrição médica + cópia da notificação + exames que comprovem diagnóstico + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 252,
+      "componente": "estratégico",
+      "nome": "Rifampicina + Isoniazida 50 + 75 mg - Comprimido para suspensão",
+      "programa": "Tuberculose",
+      "documentos": "Prescrição médica + exames que comprovem diagnóstico + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 253,
+      "componente": "estratégico",
+      "nome": "Rifampicina + Isoniazida 150 + 75 mg - Comprimido",
+      "programa": "Tuberculose",
+      "documentos": "Prescrição médica + exames que comprovem diagnóstico + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 254,
+      "componente": "estratégico",
+      "nome": "Rifampicina + Isoniazida 300 + 75 mg - Comprimido",
+      "programa": "Tuberculose",
+      "documentos": "Prescrição médica + exames que comprovem diagnóstico + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 255,
+      "componente": "estratégico",
+      "nome": "Rifampicina + Pirazinamida + Etambutol + Isoniazida 150 + 400 + 275 + 75 mg - Comprimido",
+      "programa": "Tuberculose",
+      "documentos": "Prescrição médica + exames que comprovem diagnóstico + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 256,
+      "componente": "estratégico",
+      "nome": "Rifampicina + Pirazinamida + Etambutol + Isoniazida 75 + 50 + 150 mg - Comprimido dispersível",
+      "programa": "Tuberculose",
+      "documentos": "Prescrição médica + cópia da notificação + exames que comprovem diagnóstico + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 257,
+      "componente": "estratégico",
+      "nome": "Rifapentina 150 mg - Comprimido revestido",
+      "programa": "Tuberculose",
+      "documentos": "Prescrição médica + cópia da notificação + exames que comprovem diagnóstico + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 258,
+      "componente": "estratégico",
+      "nome": "Ritonavir 100 mg - Comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 259,
+      "componente": "estratégico",
+      "nome": "Sulfadiazina 500 mg - Comprimido",
+      "programa": "Toxoplasmose",
+      "documentos": "Prescrição médica + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 260,
+      "componente": "estratégico",
+      "nome": "Talidomida 100 mg - Comprimido",
+      "programa": "*Hanseníase (CID A30).\n *DST/AIDS (CID B 23.8).\n *Lúpus eritematoso sistêmico (CID M32).\n *Lúpus eritematoso discóide (CID L93.0).\n *Lúpus eritematoso cutâneo subagudo (CID L93.0).\n *Doença enxerto contra hospedeiro (CID T86.0).\n *Mieloma Múltiplo (C90.0).",
+      "documentos": "Notificação de receita de talidomida + termo de esclarecimento para o usuário + termo de responsabilidade + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 261,
+      "componente": "estratégico",
+      "nome": "Tenofovir 300 mg - Comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 262,
+      "componente": "estratégico",
+      "nome": "Tenofovir 300 mg + Lamivudina 300 mg - Comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 263,
+      "componente": "estratégico",
+      "nome": "Tenofovir 300 mg + Lamivudina 300 mg + Efavirenz 600 mg - Comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 264,
+      "componente": "estratégico",
+      "nome": "Tipranavir 250 mg - Cápsula",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 265,
+      "componente": "estratégico",
+      "nome": "Zidovudina 10 mg/mL - injetável",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 266,
+      "componente": "estratégico",
+      "nome": "Zidovudina 10 mg/mL - solução oral",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 267,
+      "componente": "estratégico",
+      "nome": "Zidovudina 100 mg - Capsula",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    },
+    {
+      "linha": 268,
+      "componente": "estratégico",
+      "nome": "Zidovudina 300 mg + Lamivudina 150 mg - Comprimido",
+      "programa": "Antirretroviral",
+      "documentos": "Formulário de Solicitação de ANTIRRETROVIRAL + cópia da notificação + cópia dos documentos pessoais."
+    }
+  ]
+}

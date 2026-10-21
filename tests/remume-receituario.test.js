@@ -240,7 +240,7 @@ if (modulo) {
      * subir sem voce ter acrescentado municipio nenhum, e bug — va atras
      * do porque. */
     const totalGeral = cidades.reduce((s, c) => s + REMUMES[c].filter((i) => i.receituario).length, 0);
-    ok("111 itens marcados no total, nos " + cidades.length + " municipios (26 em Macaé + 85 nos outros)", totalGeral === 111, totalGeral);
+    ok("113 itens marcados no total, nos " + cidades.length + " municipios (26 em Macaé + 85 nos outros + 2 em Pará de Minas)", totalGeral === 113, totalGeral);
   }
 }
 
