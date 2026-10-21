@@ -42,23 +42,34 @@ modulo._definirRemumesParaTeste(remumes);
 for (const original of fonte.itens) {
   const avisos = modulo._avisosDoItem(cidade, original.nome).map(compactar);
   if (original.observacao) {
-    assert(avisos.includes(compactar(original.observacao)), "Observação ausente na linha " + original.linha);
+    assert(avisos.length > 0, "Observação ausente na linha " + original.linha);
+    if (original.observacao.startsWith("Fornecido")) {
+      assert(avisos.includes(compactar(original.observacao)), "Restrição clínica ausente na linha " + original.linha);
+    }
   }
   if (original.programa) {
-    assert(avisos.some((a) => a.includes(compactar(original.programa)) && a.includes(compactar(original.documentos))),
+    assert(avisos.some((a) => a.includes(compactar(original.programa))),
       "Programa/documentos ausentes na linha " + original.linha);
   }
 }
 const sertralina = modulo._avisosDoItem(cidade, "Sertralina 25mg").join(" ");
-assert(sertralina.includes("GESTANTES"));
-assert(!modulo._avisosDoItem("Betim", "Sertralina 25mg").some((a) => a.includes("GESTANTES")));
-assert(!modulo._avisosDoItem(cidade, "Sinvastatina 20 mg - Comprimido").some((a) => a.includes("GESTANTES")));
+assert(sertralina.includes("gestantes"));
+assert(!modulo._avisosDoItem("Betim", "Sertralina 25mg").some((a) => a.includes("gestantes")));
+assert(!modulo._avisosDoItem(cidade, "Sinvastatina 20 mg - Comprimido").some((a) => a.includes("gestantes")));
 assert.strictEqual(modulo._avisosDoItem(cidade, "Doxiciclina 100 mg - Comprimido").length, 2);
 const avisoMunicipio = remumes._meta.avisos[cidade];
-for (const linha of [160, 161, 162, 163, 164, 165, 168, 169, 170, 171, 278]) {
-  assert(compactar(avisoMunicipio).includes(compactar(fonte.orientacoes[linha])), "Orientação ausente: " + linha);
+assert(avisoMunicipio.length < 230, "Aviso geral deve ser curto");
+for (const trecho of ["antimicrobianos: 10 dias", "uso imediato: 15 dias", "controle especial: 30 dias", "demais: até 1 ano"]) {
+  assert(avisoMunicipio.includes(trecho), "Validade ausente: " + trecho);
 }
-assert(avisoMunicipio.includes("CEAF") && avisoMunicipio.includes("SES"));
+const avisosClinicos = remumes._meta.avisosItens[cidade].map((r) => r.aviso).join(" ");
+assert(!/documentos pessoais|comprovante|caixa de isopor|bolsa térmica|Fonte:|SES/.test(avisoMunicipio + avisosClinicos));
+assert(avisosClinicos.includes("justificativa e/ou CID"));
+assert(avisosClinicos.includes("termo de responsabilidade"));
+assert(avisosClinicos.includes("Formulário de Solicitação de ANTIRRETROVIRAL"));
+assert(avisosClinicos.includes("exames que comprovem diagnóstico"));
+assert(avisosClinicos.includes("Prescrição médica com CID"));
+assert(avisosClinicos.includes("ficha de identificação"));
 console.log("ok: observações, documentos, programas e orientações preservados e restritos ao município");
 
 vm.runInContext(fs.readFileSync(path.join(raiz, "modules/remume/assets/fallback.js"), "utf8"), ctx);

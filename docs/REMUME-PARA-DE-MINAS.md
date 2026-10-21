@@ -20,11 +20,14 @@ com as linhas de origem, os textos e o SHA-256 do Excel recebido.
   federal já verificada pelo projeto. A anotação genérica de controle especial
   na fonte não basta para atribuir receita azul/amarela aos demais medicamentos.
 
-As observações por item usam `_meta.avisosItens`, com o nome completo como
-termo. Os programas estratégicos e seus documentos aparecem juntos em cada
-aviso. As orientações gerais de documentos, conservação e validade de receita
-usam `_meta.avisos`. Essas regras são exclusivas de Pará de Minas; as regras
-universais preexistentes continuam sendo aplicadas pelo extensor.
+Os avisos exibidos ao prescritor usam `_meta.avisosItens`, com o nome completo
+como termo: público atendido, protocolo, controle especial, condições de uso
+contínuo e exigências de CID, exames, notificação e formulários. Os programas
+estratégicos mantêm suas orientações separadas. O aviso geral (`_meta.avisos`)
+resume apenas a validade das receitas. Dados administrativos de dispensação,
+documentos pessoais, transporte e explicações do CEAF permanecem na fonte de
+conferência; não ocupam a consulta do médico. As regras são exclusivas de
+Pará de Minas; as regras universais preexistentes continuam sendo aplicadas.
 
 A seção de medicamentos em falta não contém itens. A fotografia de estoque
 do dia 21/10/2026 não é tratada como disponibilidade em tempo real. Os itens
