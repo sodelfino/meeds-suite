@@ -304,34 +304,30 @@
 
   const CSS = [
     raiz.MeedsSuiteCabecalho.CSS,
-    ".ex-modal { width:100%; max-width:560px; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; display:flex; flex-direction:column; max-height:82vh; }",
+    ".ex-modal { width:100%; max-width:560px; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; display:flex; flex-direction:column; max-height:90vh; max-height:90dvh; }",
+    ".ex-modal > .msc-head { flex-shrink:0; }",
     ".ex-modal header { background:#0f6b64; color:#fff; padding:15px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
     ".ex-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
     ".ex-modal header p { margin:2px 0 0; font-size:11.5px; opacity:.9; }",
     ".ex-fechar { background:rgba(255,255,255,.18); border:none; color:#fff; width:28px; height:28px; border-radius:8px; font-size:15px; cursor:pointer; flex-shrink:0; }",
     ".ex-fechar:hover { background:rgba(255,255,255,.32); }",
-    ".ex-topo { padding:14px 18px 10px; border-bottom:1px solid #eef2f7; }",
+    ".ex-topo { flex-shrink:0; padding:14px 18px 10px; border-bottom:1px solid #eef2f7; }",
     ".ex-linha { display:flex; gap:10px; align-items:center; }",
-    ".ex-linha select { flex:0 0 40%; padding:9px 10px; border-radius:9px; border:1.5px solid #cbd5e1; font:inherit; font-size:13px; background:#fff; }",
-    ".ex-linha input { flex:1; padding:10px 12px; border-radius:9px; border:1.5px solid #cbd5e1; font:inherit; font-size:14px; }",
+    ".ex-linha select { flex:0 0 40%; min-width:0; padding:9px 10px; border-radius:9px; border:1.5px solid #cbd5e1; font:inherit; font-size:13px; background:#fff; }",
+    ".ex-linha input { flex:1; min-width:0; padding:10px 12px; border-radius:9px; border:1.5px solid #cbd5e1; font:inherit; font-size:14px; }",
     ".ex-linha input:focus, .ex-linha select:focus { outline:none; border-color:#0ea5a4; box-shadow:0 0 0 3px rgba(14,165,164,.15); }",
     ".ex-origem { font-size:11px; color:#64748b; margin-top:7px; line-height:1.45; }",
-    /* Lembrete FIXO, sempre visivel — nao depende de municipio nem de
-     * busca, diferente de .ex-obs (observacoes por municipio) e de
-     * .ex-nao-consta (so quando o exame falta na lista). Protocolos 1 e 2
-     * da Callmed: TODA solicitacao de exame ou encaminhamento, nao so a
-     * que falta na lista, precisa de justificativa, resumo da historia,
-     * hipotese diagnostica e CID. Tom neutro (cinza, como .ex-origem),
-     * nao ambar/alerta — e pratica de rotina, nao uma excecao. */
+    /* Lembrete de rotina da Callmed: fica antes dos resultados, dentro
+     * da área rolável. Apenas título e filtros disputam altura fixa. */
     ".ex-lembrete { font-size:11px; color:#64748b; margin-top:5px; line-height:1.45; }",
-    /* Botao de Encaminhamentos: fica no cabecalho (fora de .ex-rolagem),
-     * entao nunca rola pra fora de vista — e o CONTEUDO que ele abre e
-     * quem vive dentro da area com rolagem (ver comentario em
-     * pintarEncaminhamentos()). */
+    /* Botão e conteúdo da referência rolam com os resultados. */
     ".ex-encaminhamentos-btn { margin-top:9px; width:100%; text-align:left; background:#eff6ff; border:1.4px solid #bfdbfe; color:#1e3a8a; font:inherit; font-size:12px; font-weight:700; padding:8px 12px; border-radius:9px; cursor:pointer; }",
     ".ex-encaminhamentos-btn:hover { background:#e0eefe; border-color:#93c5fd; }",
     ".ex-encaminhamentos-btn[aria-expanded='true'] { background:#dbeafe; }",
-    ".ex-obs { margin:10px 18px 0; padding:10px 12px; background:#fffbeb; border:1px solid #fde68a; border-radius:9px; font-size:12px; color:#78350f; line-height:1.5; }",
+    ".ex-obs { margin:10px 0; padding:10px 12px; background:#fffbeb; border:1px solid #fde68a; border-radius:9px; font-size:12px; color:#78350f; line-height:1.5; }",
+    ".ex-obs summary { cursor:pointer; font-weight:700; }",
+    ".ex-obs summary:focus-visible { outline:2px solid #b45309; outline-offset:3px; }",
+    ".ex-obs[open] summary { margin-bottom:8px; }",
     ".ex-obs ul { margin:4px 0 0; padding-left:18px; }",
     ".ex-obs li { margin:3px 0; }",
 
@@ -340,7 +336,7 @@
      * de conduta sobre um exame — e informativo, uma categoria de
      * conteudo diferente das duas outras que ja usam cor. So flex,
      * nunca position:fixed/absolute — mesma regra do resto do modulo. */
-    /* Vive DENTRO de .ex-rolagem agora (primeiro item, antes da lista de
+    /* Vive DENTRO de .ex-rolagem (antes da lista de
      * exames) — a margem inferior separa do que vem depois; a lateral
      * fica por conta do padding que .ex-rolagem ja aplica. */
     ".ex-encaminhamentos { margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid #eef2f7; }",
@@ -351,7 +347,7 @@
     ".ex-enc-linha { font-size:11.5px; color:#1e40af; line-height:1.5; margin-top:3px; }",
     ".ex-enc-linha ul { margin:2px 0 0; padding-left:16px; }",
     ".ex-enc-linha li { margin:2px 0; }",
-    ".ex-rolagem { overflow-y:auto; padding:8px 18px 16px; flex:1; }",
+    ".ex-rolagem { min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scrollbar-gutter:stable; padding:8px 18px 16px; flex:1 1 auto; overflow-wrap:anywhere; }",
     ".ex-lista { padding:0; }",
     ".ex-item { padding:10px 0; border-bottom:1px solid #f1f5f9; display:flex; gap:10px; align-items:flex-start; }",
     ".ex-item:last-child { border-bottom:none; }",
@@ -401,7 +397,7 @@
      * de relance o mesmo tipo de aviso em qualquer lugar do modulo. */
     ".ex-nao-consta { background:#fffbeb; border:1px solid #fde68a; color:#78350f; border-radius:10px; padding:12px 14px; margin:10px 0; font-size:12.5px; line-height:1.55; }",
     ".ex-nao-consta b { color:#92400e; }",
-    ".ex-contagem { font-size:11px; color:#94a3b8; padding:6px 18px 0; }",
+    ".ex-contagem { font-size:11px; color:#94a3b8; padding:8px 0 0; }",
 
     /* Uma classe so para esconder, usada no lugar de mexer em
      * `style.display` item a item: com quase dois mil elementos, trocar
@@ -424,7 +420,7 @@
      *
      * O resultado e o mesmo: o campo reserva espaco a direita
      * (padding-right) e a margem negativa traz o disco para dentro dele. */
-    ".ex-campo { flex:1; display:flex; align-items:center; }",
+    ".ex-campo { flex:1; min-width:0; display:flex; align-items:center; }",
     ".ex-campo input { width:100%; padding-right:32px; }",
     ".ex-spinner { width:15px; height:15px; margin-left:-24px; flex-shrink:0;",
     "  border:2px solid #cbd5e1; border-top-color:#0ea5a4; border-radius:50%;",
@@ -462,7 +458,7 @@
     const b = blocoDe(municipioEscolhido);
     if (!b) return;
 
-    /* A ORIGEM FICA VISIVEL SEMPRE. A lista de Betim vem de um contrato,
+    /* A ORIGEM FICA ACESSIVEL ANTES DA LISTA. A lista de Betim vem de um contrato,
      * a de Macae de um PDF da unidade — o medico precisa saber com o que
      * esta lidando, e ha quanto tempo. Uma lista sem procedencia parece
      * oficial mesmo quando esta velha. */
@@ -471,10 +467,12 @@
     if (b.atualizadoEm) partes.push("atualizado em " + formatarData(b.atualizadoEm));
     refs.origem.textContent = partes.join(" · ");
 
+    refs.obs.open = false;
+    refs.rolagem.scrollTop = 0;
     if (b.observacoes && b.observacoes.length) {
       refs.obs.hidden = false;
       refs.obs.innerHTML =
-        "<b>Antes de pedir em " + escapar(municipioEscolhido) + ":</b><ul>" +
+        "<summary>Orientações de " + escapar(municipioEscolhido) + " (" + b.observacoes.length + ")</summary><ul>" +
         b.observacoes.map(function (o) { return "<li>" + escapar(o) + "</li>"; }).join("") +
         "</ul>";
     } else {
@@ -489,18 +487,9 @@
    * lista de exames: nao entra na busca, na paginacao nem na
    * ordenacao alfabetica de exames, porque nao e exame.
    *
-   * BOTAO NO CABECALHO, CONTEUDO DENTRO DA AREA COM ROLAGEM (nao mais
-   * um bloco sempre aberto no topo). Um municipio com varios servicos
-   * (Macae, 5) escrevia um paragrafo por servico ANTES de `.ex-rolagem`
-   * — o modal tem altura fixa (max-height:82vh do `.ex-modal`), entao
-   * aquele bloco sozinho podia consumir a altura toda e empurrar a
-   * lista de exames pra fora da tela, sem NENHUM jeito de rolar ate
-   * ela (o scroll so existe dentro de `.ex-rolagem`). Por isso o botao
-   * fica fixo no cabecalho (sempre visivel, nunca rola pra fora), e o
-   * conteudo em si vive DENTRO de `.ex-rolagem`, como primeiro item —
-   * ele rola junto com a lista em vez de competir por altura fixa com
-   * ela. So Macae tem conteudo aqui hoje; para qualquer outro
-   * municipio o botao fica oculto. */
+   * Botão e conteúdo vivem na área com rolagem. Ao expandir, nenhum
+   * texto cresce fora dela nem espreme o espaço disponível para a lista.
+   * Ao trocar o município, recolhe a seção anterior. */
   function pintarEncaminhamentos() {
     const enc = blocoDeEncaminhamentosDe(municipioEscolhido);
     /* Troca de municipio: sempre recolhe. Ver o conteudo de Macae ainda
@@ -931,23 +920,14 @@
         '        <span class="ex-spinner oculto" id="ex-spinner" role="status" aria-label="Filtrando"></span>' +
         "      </div>" +
         "    </div>" +
+        "  </div>" +
+        '  <div class="ex-rolagem" tabindex="0" role="region" aria-label="Resultados e orientações de exames">' +
         '    <div class="ex-origem" id="ex-origem"></div>' +
         '    <div class="ex-lembrete" id="ex-lembrete">📌 Exames e encaminhamentos: sempre com justificativa clínica, resumo da história e CID.</div>' +
-        /* Botao, nao bloco sempre aberto: um municipio com 5 servicos
-         * de referencia (Macae) escrevia um paragrafo por servico ANTES
-         * da area com scroll propria (.ex-rolagem) — o modal tem altura
-         * fixa (max-height:82vh), entao aquele bloco empurrava a lista
-         * inteira pra fora da tela, sem nenhum jeito de rolar ate ela.
-         * Botao aqui, no cabecalho (fora da area de rolagem, sempre
-         * visivel); o CONTEUDO fica dentro de .ex-rolagem, como o
-         * primeiro item — assim ele rola junto com a lista, em vez de
-         * competir por altura fixa com ela. */
         '    <button type="button" class="ex-encaminhamentos-btn oculto" id="ex-encaminhamentos-btn"></button>' +
-        "  </div>" +
-        '  <div class="ex-obs" id="ex-obs" hidden></div>' +
-        '  <div class="ex-contagem" id="ex-contagem" role="status"></div>' +
-        '  <div class="ex-rolagem">' +
         '    <div class="ex-encaminhamentos oculto" id="ex-encaminhamentos"></div>' +
+        '    <details class="ex-obs" id="ex-obs" hidden></details>' +
+        '    <div class="ex-contagem" id="ex-contagem" role="status"></div>' +
         '    <div class="ex-nao-consta oculto" id="ex-vazio"></div>' +
         '    <ul class="ex-lista" id="ex-lista" role="list" aria-label="Exames disponíveis neste município"></ul>' +
         '    <button type="button" class="ex-mais oculto" id="ex-mais"></button>' +
@@ -973,7 +953,7 @@
       refs.encaminhamentos.classList.toggle("oculto", !abrindo);
       refs.encaminhamentosBtn.setAttribute("aria-expanded", String(abrindo));
       if (abrindo && refs.rolagem) {
-        refs.rolagem.scrollTop = 0; // o bloco e o primeiro item da lista
+        refs.encaminhamentos.scrollIntoView({ block: "start" });
       }
     });
 

@@ -1,10 +1,11 @@
 # Testes
 
-O que existe é um **teste de fumaça manual** com página estática e mock da API.
-Não é suíte automatizada — é o mínimo para confirmar, sem tocar em produção,
-que tudo continua funcionando depois de uma mudança.
+Há testes automatizados de dados e lógica em `npm run verificar` e uma
+regressão de interface em Chromium em `npm run teste:exames-ui`. A página
+estática com mock da API também permite conferir o comportamento manualmente,
+sem tocar em produção.
 
-## Como rodar
+## Teste de fumaça manual
 
 ```bash
 npm run build
@@ -1011,3 +1012,26 @@ fetch/XHR. Verificado introduzindo as duas violações de propósito.
   reproduz) só será exercido na validação em produção.
 - A detecção dos scripts antigos depende de eles manterem os mesmos ids no DOM.
   Se algum dia mudarem, atualize a lista em `core/diagnostico.js`.
+
+
+## Rolagem e orientações dos exames — v2.68.4
+
+A regressão de Macaé é exercitada no navegador real, sem rede externa:
+
+```bash
+npm ci
+npx playwright install chromium
+npm run teste:exames-ui
+```
+
+O runner usa `CHROMIUM_PATH` quando informado, o Chromium de `/usr/bin/chromium`
+se disponível, ou o navegador instalado pelo Playwright. Inicia e encerra seu
+próprio servidor de teste em endereço local e porta temporária. O CI e a
+publicação executam esse teste após instalar o navegador.
+
+Cenários: desktop 1091×895, janela 800×600, celular 390×700 e área útil de
+546×448 com escala 2, equivalente ao espaço disponível em zoom de 200%.
+Verifica as 13 orientações de Macaé, expansão por teclado, espaço da lista,
+rolagem sem deslocar a busca, acesso ao último dos 94 exames, paginação,
+restrição específica junto à mamografia e recolhimento ao trocar município.
+As listas e orientações clínicas não foram modificadas.

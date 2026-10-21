@@ -33,6 +33,12 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
+      - name: Instalar navegador para testes de interface
+        run: npx playwright install --with-deps --only-shell chromium
+
+      - name: Testar rolagem e acesso aos exames
+        run: npm run teste:exames-ui
+
       - name: Testar instalação guiada
         run: node tests/instalacao-guiada.test.js
 

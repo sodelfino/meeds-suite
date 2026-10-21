@@ -1,6 +1,6 @@
 {
   "name": "meeds-suite",
-  "version": "2.68.3",
+  "version": "2.68.4",
   "private": true,
   "description": "Pacote unificado das ferramentas Meeds da Novetech: bootloader unico, nucleo compartilhado e modulos independentes.",
   "scripts": {
@@ -25,7 +25,8 @@
     "teste-diagnostico": "node tests/diagnostico-tecnico.test.js",
     "teste-modelo-padrao": "node tests/modelo-padrao.test.js",
     "teste-falso-positivo": "node tests/alarme-falso-positivo.test.js",
-    "auditoria": "node tests/auditoria-qualidade.test.js && node tests/historico.test.js && node tests/network-hub.test.js"
+    "auditoria": "node tests/auditoria-qualidade.test.js && node tests/historico.test.js && node tests/network-hub.test.js",
+    "teste:exames-ui": "node tests/exames-rolagem.browser.test.js"
   },
   "engines": {
     "node": ">=14"
@@ -34,6 +35,7 @@
     "@eslint/js": "^9.39.5",
     "eslint": "^9.39.5",
     "exceljs": "^4.4.0",
-    "pdf-lib": "1.17.1"
+    "pdf-lib": "1.17.1",
+    "playwright": "1.62.1"
   }
 }

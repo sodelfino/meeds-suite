@@ -2,6 +2,17 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.68.4",
+      "data": "2026-10-21",
+      "novidades": [],
+      "melhorias": [
+        "Exames do município: busca e município permanecem visíveis ao rolar. As orientações gerais podem ser abertas quando necessário, e todo o conteúdo continua acessível mesmo em janelas menores."
+      ],
+      "correcoes": [
+        "Macaé: a lista de orientações não bloqueia mais o acesso aos exames e encaminhamentos."
+      ]
+    },
+    {
       "versao": "2.68.3",
       "data": "2026-10-21",
       "novidades": [],
