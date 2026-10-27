@@ -80,9 +80,16 @@
     ".msm-switch { position:relative; width:44px; height:25px; flex-shrink:0; cursor:pointer; }",
     ".msm-switch input { opacity:0; width:0; height:0; }",
     ".msm-slider { position:absolute; inset:0; background:#cbd5e1; border-radius:999px; transition:background .18s ease; }",
-    ".msm-slider::before { content:''; position:absolute; height:19px; width:19px; left:3px; top:3px; background:#fff; border-radius:50%; transition:transform .18s ease; box-shadow:0 1px 3px rgba(0,0,0,.3); }",
+    ".msm-slider::before { content:''; position:absolute; height:19px; width:19px; left:3px; top:3px; background:#fff; border-radius:999px; transition:transform .22s cubic-bezier(.3,1.4,.6,1), width .16s ease; box-shadow:0 1px 3px rgba(0,0,0,.3); }",
     ".msm-switch input:checked + .msm-slider { background:#1d3557; }",
     ".msm-switch input:checked + .msm-slider::before { transform:translateX(19px); }",
+    /* Bolinha estica enquanto pressionada e encolhe ao soltar: o interruptor
+     * responde ao dedo antes do clique terminar. Ligado, estica para a
+     * esquerda (translateX menor) para nao vazar pela borda direita. */
+    ".msm-switch:active .msm-slider::before { width:24px; }",
+    ".msm-switch:active input:checked + .msm-slider::before { transform:translateX(14px); }",
+    ".msm-switch input:focus-visible + .msm-slider { outline:2px solid #60a5fa; outline-offset:2px; }",
+    "@media (prefers-reduced-motion: reduce) { .msm-slider, .msm-slider::before { transition:none; } }",
 
     /* fichas (medicos / unidades) */
     ".msm-ficha { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #f3f6f9; font-size:12.5px; }",

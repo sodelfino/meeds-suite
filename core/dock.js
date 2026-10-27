@@ -73,10 +73,12 @@
     "  background: #1d3557; color: #fff; border: none; border-radius: 8px;",
     "  padding: 11px 16px; font-size: 13px; font-weight: 600; cursor: pointer;",
     "  box-shadow: 0 1px 3px rgba(15,23,42,.22); line-height: 1.2; white-space: nowrap;",
-    "  transition: background .12s ease, box-shadow .12s ease;",
+    "  transition: background .12s ease, box-shadow .12s ease, transform .12s ease;",
     "}",
     ".ms-btn:hover { background: #14263f; box-shadow: 0 2px 6px rgba(15,23,42,.24); }",
-    ".ms-btn:active { background: #0f1e33; }",
+    /* O botao afunda um pouco no clique: confirma o toque sem mudar a area
+     * clicavel (transform nao mexe no layout, so no desenho). */
+    ".ms-btn:active { background: #0f1e33; transform: scale(.96); }",
     /* foco de teclado visivel e discreto: um anel fino, so quando e teclado */
     ".ms-btn:focus-visible, .ms-aviso-btn:focus-visible, .ms-aviso-fechar:focus-visible {",
     "  outline: 2px solid #60a5fa; outline-offset: 2px;",
@@ -171,8 +173,12 @@
     "  background: #16221f; color: #fff; padding: 9px 14px; border-radius: 6px;",
     "  font-size: 12px; line-height: 1.4; max-width: 340px;",
     "  box-shadow: 0 2px 8px rgba(0,0,0,.2);",
+    "  animation: ms-toast-entra .22s cubic-bezier(.2,.8,.2,1);",
     "}",
     "#toast[hidden] { display: none; }",
+    /* Sobe do mesmo ponto que os avisos: o movimento de baixo para cima
+     * na periferia e o que faz a mensagem ser notada sem roubar o olho. */
+    "@keyframes ms-toast-entra { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }",
 
     /* --- overlay/modal em tela cheia (dono do posicionamento) --- */
     ".ms-overlay {",
@@ -297,6 +303,10 @@
     "  justify-content: center; box-shadow: 0 2px 6px rgba(220,38,38,.5);",
     "}",
     ".ms-badge[hidden] { display: none; }",
+    /* Pulo curto quando o numero muda: sem isso, "2" virar "3" no canto da
+     * tela passa despercebido, e o paciente novo e justamente o que importa. */
+    ".ms-badge.ms-badge-pulo { animation: ms-badge-pulo .38s cubic-bezier(.3,1.6,.6,1); }",
+    "@keyframes ms-badge-pulo { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }",
 
     /* --- moldura de alerta em tela cheia ---
        Plantao noturno costuma ser em sala com luz baixa e o medico
@@ -341,7 +351,8 @@
     "  .ms-moldura-alerta, .ms-banner, .ms-btn { animation: none !important; }",
     /* O cartao aparece inteiro, sem subir. Quem tem enjoo de movimento
        nao perde o aviso — perde so o deslocamento. */
-    "  .ms-aviso { animation: none !important; }",
+    "  .ms-aviso, #toast, .ms-badge { animation: none !important; }",
+    "  .ms-btn:active { transform: none; }",
     "}",
   ].join("\n");
 
@@ -684,8 +695,16 @@
           el.appendChild(badge);
         }
         const valor = Number(n) || 0;
-        badge.textContent = valor > 99 ? "99+" : String(valor);
+        const texto = valor > 99 ? "99+" : String(valor);
+        const mudou = !badge.hidden && badge.textContent !== texto;
+        badge.textContent = texto;
         badge.hidden = valor <= 0;
+        if (mudou && !badge.hidden) {
+          /* Reinicia a animacao: tirar a classe, forcar o reflow e por de volta. */
+          badge.classList.remove("ms-badge-pulo");
+          void badge.offsetWidth;
+          badge.classList.add("ms-badge-pulo");
+        }
       },
       mostrar: function () {
         el.hidden = false;
