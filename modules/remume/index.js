@@ -387,13 +387,15 @@ function buscarMedicamentos(termo, cidade) {
 
 function destacarTrecho(texto, termoOriginal) {
     if (!termoOriginal) return escapeHtml(texto);
+    // normalizarTexto junta espacos: o texto exibido tambem, para o indice valer nos dois
+    texto = String(texto).normalize("NFC").replace(/\s+/g, " ").trim();
     const normTexto = normalizarTexto(texto);
     const normTermo = normalizarTexto(termoOriginal);
     const idx = normTexto.indexOf(normTermo);
     if (idx === -1) return escapeHtml(texto);
     const antes = texto.slice(0, idx);
-    const meio = texto.slice(idx, idx + termoOriginal.length);
-    const depois = texto.slice(idx + termoOriginal.length);
+    const meio = texto.slice(idx, idx + normTermo.length);
+    const depois = texto.slice(idx + normTermo.length);
     return `${escapeHtml(antes)}<mark>${escapeHtml(meio)}</mark>${escapeHtml(depois)}`;
   }
 
@@ -522,6 +524,9 @@ function moverFocoResultado(delta) {
     if (!dados || typeof dados !== "object" || Array.isArray(dados)) return false;
     const chaves = chavesMunicipios(dados);
     if (chaves.length === 0) return false;
+    // avisosItens fora de lista quebraria avisosDoItem a cada resultado da busca
+    const avisosItens = dados._meta && dados._meta.avisosItens;
+    if (avisosItens && !Object.keys(avisosItens).every(function (c) { return Array.isArray(avisosItens[c]); })) return false;
     return chaves.every(function (chave) {
       return Array.isArray(dados[chave]);
     });
@@ -778,9 +783,9 @@ function moverFocoResultado(delta) {
    *     insulina em ampola, em Franco da Rocha: "so IM" + "nao
    *     interrompa"). */
   function avisosDoItem(cidade, nome) {
-    const porCidade = (REMUMES._meta && REMUMES._meta.avisosItens && REMUMES._meta.avisosItens[cidade]) || [];
-    const universais = (REMUMES._meta && REMUMES._meta.avisosItensUniversais) || [];
-    const regras = porCidade.concat(universais);
+    const porCidade = REMUMES._meta && REMUMES._meta.avisosItens && REMUMES._meta.avisosItens[cidade];
+    const universais = REMUMES._meta && REMUMES._meta.avisosItensUniversais;
+    const regras = (Array.isArray(porCidade) ? porCidade : []).concat(Array.isArray(universais) ? universais : []);
     if (!regras.length) return [];
     const n = normalizarTexto(nome);
     return regras
@@ -1067,6 +1072,8 @@ function moverFocoResultado(delta) {
     // receituario}. Ver tests/remume-receituario.test.js.
     _normalizarItemRemume: function (item) { return normalizarItemRemume(item); },
     _avisosDoItem: function (cidade, nome) { return avisosDoItem(cidade, nome); },
+    _destacarTrecho: function (texto, termo) { return destacarTrecho(texto, termo); },
+    _validarFormatoRemumes: function (dados) { return validarFormatoRemumes(dados); },
     _detectarMunicipioDoAtendimento: function (json) { return detectarMunicipioDoAtendimento(json); },
     _definirRemumesParaTeste: function (dados) { Object.keys(REMUMES).forEach(function (k) { delete REMUMES[k]; }); Object.assign(REMUMES, dados); },
   });
