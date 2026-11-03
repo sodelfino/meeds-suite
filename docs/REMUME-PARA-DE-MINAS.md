@@ -5,17 +5,29 @@ aba **Medicamentos Disponíveis**, com disponibilidade do componente básico
 datada de **21/10/2026**. O município está identificado no brasão da planilha.
 [Planilha de origem](https://docs.google.com/spreadsheets/d/1y-iO2MArJIGd7DpGe_blmUpkwchi7snqBbfrOLP0B5o/edit?gid=1924961163).
 
+Segunda fonte: **TELEMEDICINA.pdf** — *Orientações para prescrição de
+medicamentos na rede municipal de Pará de Minas* (Assistência Farmacêutica,
+recebido em 03/11/2026). O Anexo I bate com a planilha, exceto a
+**amoxicilina 50 mg/mL + clavulanato 12,5 mg/mL pó para suspensão**, que só
+aparece no PDF e foi acrescentada (na fixture, com `fonte` e `linha: null`).
+Do texto do PDF vieram os avisos ao prescritor: formulário do Anexo II
+(amoxicilina + clavulanato suspensão), limite de 2 frascos de repelente por
+gestação, “Uso durante a gestação” na receita da sertralina, termo do Anexo III
+(etonogestrel) e relatório do Anexo IV na 1ª dispensação de insulinas e insumos
+de diabetes. Endereços e horários das farmácias não entraram na consulta.
+
 A transcrição de conferência está em
 [tests/fixtures/remume-para-de-minas.json](../tests/fixtures/remume-para-de-minas.json),
 com as linhas de origem, os textos e o SHA-256 do Excel recebido.
 
-- Componente básico: 130 medicamentos e insumos (linhas 15–123, 126–138 e
-  141–148), com local **Farmácia Central**, explicitamente indicado no cabeçalho.
+- Componente básico: 131 medicamentos e insumos — 130 da planilha (linhas
+  15–123, 126–138 e 141–148) e 1 do PDF —, com local **Farmácia Central**,
+  explicitamente indicado no cabeçalho.
 - Componente estratégico: 67 linhas (202–268), correspondentes a 66 itens
   distintos. A doxiciclina 100 mg aparece em dois programas; foi cadastrada uma
   vez e mantém as duas orientações, identificadas por programa. O local fica
   `null`, pois a seção não especifica o local por medicamento.
-- Total no extensor: **196 itens**, no formato existente `{nome, local}` e,
+- Total no extensor: **197 itens** (196 da planilha + 1 do PDF), no formato existente `{nome, local}` e,
   para clonazepam e diazepam, `receituario: "azul"`, seguindo a classificação
   federal já verificada pelo projeto. A anotação genérica de controle especial
   na fonte não basta para atribuir receita azul/amarela aos demais medicamentos.

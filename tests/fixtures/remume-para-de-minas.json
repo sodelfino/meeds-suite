@@ -101,6 +101,13 @@
       "observacao": "ANTIMICROBIANO (RDC 471/2021)"
     },
     {
+      "linha": null,
+      "fonte": "TELEMEDICINA.pdf (Anexo I)",
+      "componente": "básico",
+      "nome": "Amoxicilina 50 mg/mL + Clavulanato 12,5 mg/mL - Pó para suspensão oral",
+      "observacao": "Antimicrobiano – RDC 471/2021. Necessita formulário padrão específico, preenchido pelo médico."
+    },
+    {
       "linha": 28,
       "componente": "básico",
       "nome": "Anlodipino 5 mg - Comprimido",
