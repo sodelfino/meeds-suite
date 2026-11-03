@@ -23,11 +23,11 @@ const ctx = {
   setInterval: () => 0, clearInterval: () => {}, setTimeout: () => 0,
   document: { createElement: () => ({}) },
   MeedsSuite: { registerModule: (def) => { capturado = def; } },
-  MeedsSuiteDom: { normalizarTexto: (s) => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase() },
 };
 ctx.window = ctx;
 ctx.globalThis = ctx;
 vm.createContext(ctx);
+vm.runInContext(fs.readFileSync(path.join(RAIZ, "core/dom-reader.js"), "utf8"), ctx);
 vm.runInContext(fs.readFileSync(path.join(RAIZ, "modules/remume/index.js"), "utf8"), ctx);
 
 const REMUMES = JSON.parse(fs.readFileSync(path.join(RAIZ, "modules/remume/remumes.json"), "utf8"));
@@ -101,6 +101,25 @@ ok("dipirona (controle): NÃO tem o aviso de prescrição ponte", A("Betim", "Di
   ok("insulina+ampola em Franco da Rocha: os dois avisos convivem (não um substitui o outro)",
      avisosInsulinaAmpola.length === 2 && avisosInsulinaAmpola.indexOf(TEXTO) !== -1 &&
      avisosInsulinaAmpola.some((a) => PONTE.test(a)));
+}
+
+{
+  const quebrado = JSON.parse(JSON.stringify(REMUMES));
+  quebrado._meta.avisosItens.Betim = { termo: "x", aviso: "y" };
+  ok("avisosItens fora de lista: arquivo remoto recusado", !capturado._validarFormatoRemumes(quebrado));
+  ok("arquivo atual: aceito", capturado._validarFormatoRemumes(REMUMES));
+  capturado._definirRemumesParaTeste(quebrado);
+  let semErro = true;
+  try { A("Betim", "Insulina Glargina 100ui/ml"); } catch (e) { semErro = false; }
+  ok("avisosItens fora de lista: a busca não quebra", semErro);
+  capturado._definirRemumesParaTeste(REMUMES);
+}
+{
+  const D = capturado._destacarTrecho;
+  ok("destaque com espaço duplo no nome cai na palavra certa",
+     D("Fenitoína 100 mg -  Comprimido", "comprimido") === "Fenitoína 100 mg - <mark>Comprimido</mark>",
+     D("Fenitoína 100 mg -  Comprimido", "comprimido"));
+  ok("destaque com acento no termo", D("Ácido Fólico 0,2 mg/mL", "folico") === "Ácido <mark>Fólico</mark> 0,2 mg/mL");
 }
 
 console.log(falhas ? `\n${falhas} FALHA(S)` : "\ntodos passaram");

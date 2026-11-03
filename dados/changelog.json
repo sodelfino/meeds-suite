@@ -10,7 +10,9 @@
       "melhorias": [
         "REMUME de Pará de Minas: avisos novos conforme as orientações da Assistência Farmacêutica — “Uso durante a gestação” na receita da sertralina, até 2 frascos de repelente por gestação, termo do Anexo III no implante de etonogestrel e relatório do Anexo IV na 1ª dispensação de insulinas, glicosímetro, tiras e lancetas."
       ],
-      "correcoes": []
+      "correcoes": [
+        "Consulta REMUME: o destaque da busca não fica mais deslocado em nomes com espaço duplo, e uma lista remota com avisos mal formatados é recusada em vez de travar a busca do município."
+      ]
     },
     {
       "versao": "2.68.4",
