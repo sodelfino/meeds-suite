@@ -20,8 +20,9 @@ A transcrição de conferência está em
 [tests/fixtures/remume-para-de-minas.json](../tests/fixtures/remume-para-de-minas.json),
 com as linhas de origem, os textos e o SHA-256 do Excel recebido.
 
-- Componente básico: 130 medicamentos e insumos (linhas 15–123, 126–138 e
-  141–148), com local **Farmácia Central**, explicitamente indicado no cabeçalho.
+- Componente básico: 131 medicamentos e insumos — 130 da planilha (linhas
+  15–123, 126–138 e 141–148) e 1 do PDF —, com local **Farmácia Central**,
+  explicitamente indicado no cabeçalho.
 - Componente estratégico: 67 linhas (202–268), correspondentes a 66 itens
   distintos. A doxiciclina 100 mg aparece em dois programas; foi cadastrada uma
   vez e mantém as duas orientações, identificadas por programa. O local fica
