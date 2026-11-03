@@ -148,6 +148,10 @@
             "aviso": "Antimicrobiano (RDC 471/2021)."
           },
           {
+            "termo": "Amoxicilina 50 mg/mL + Clavulanato 12,5 mg/mL - Pó para suspensão oral",
+            "aviso": "Antimicrobiano (RDC 471/2021). Só é dispensado com o formulário específico do município (Anexo II), preenchido pelo médico e entregue ao paciente junto com a receita — a receita sozinha não basta."
+          },
+          {
             "termo": "Azitromicina 40 mg/mL - Suspensão oral",
             "aviso": "Antimicrobiano (RDC 471/2021)."
           },
@@ -369,7 +373,7 @@
           },
           {
             "termo": "Repelente Dietiltoluamida (DEET) 15% - frasco 200mL",
-            "aviso": "Disponível para gestantes, conforme prescrição médica ou de enfermagem."
+            "aviso": "Disponível para gestantes, conforme prescrição médica ou de enfermagem. Até 2 frascos por gestação."
           },
           {
             "termo": "Sais para reidratação oral – Sachês",
@@ -377,11 +381,11 @@
           },
           {
             "termo": "Sertralina 25mg",
-            "aviso": "Disponível para gestantes, conforme prescrição médica."
+            "aviso": "Disponível para gestantes, conforme prescrição médica. Escreva na receita: “Uso durante a gestação”."
           },
           {
             "termo": "Sertralina 50mg",
-            "aviso": "Disponível para gestantes, conforme prescrição médica."
+            "aviso": "Disponível para gestantes, conforme prescrição médica. Escreva na receita: “Uso durante a gestação”."
           },
           {
             "termo": "Sulfadiazina de prata 10 mg/g - Creme dermatológico",
@@ -430,6 +434,10 @@
           {
             "termo": "Etonogestrel 68mg - Implante contracpetivo",
             "aviso": "Fornecido conforme protocolo municipal"
+          },
+          {
+            "termo": "Etonogestrel 68mg - Implante contracpetivo",
+            "aviso": "Preencher o termo de identificação da paciente e da UBS (Anexo III) e enviá-lo junto com a prescrição."
           },
           {
             "termo": "Abacavir 20 mg/mL - Solução Oral",
@@ -698,6 +706,22 @@
           {
             "termo": "Zidovudina 300 mg + Lamivudina 150 mg - Comprimido",
             "aviso": "Programa: Antirretroviral — Formulário de Solicitação de ANTIRRETROVIRAL + notificação"
+          },
+          {
+            "termo": "Insulina",
+            "aviso": "Na 1ª dispensação: relatório médico do município (Anexo IV) com o tipo de diabetes (1, 2 ou gestacional)."
+          },
+          {
+            "termo": "Glicosímetro",
+            "aviso": "Na 1ª dispensação: relatório médico do município (Anexo IV) com o tipo de diabetes (1, 2 ou gestacional). Gestante com diabetes sem insulina: informar IG ou DPP no relatório; receita das tiras renovada a cada 30 dias."
+          },
+          {
+            "termo": "Lanceta",
+            "aviso": "Na 1ª dispensação: relatório médico do município (Anexo IV) com o tipo de diabetes (1, 2 ou gestacional). Gestante com diabetes sem insulina: informar IG ou DPP no relatório; receita das tiras renovada a cada 30 dias."
+          },
+          {
+            "termo": "Tiras Reagentes",
+            "aviso": "Na 1ª dispensação: relatório médico do município (Anexo IV) com o tipo de diabetes (1, 2 ou gestacional). Gestante com diabetes sem insulina: informar IG ou DPP no relatório; receita das tiras renovada a cada 30 dias."
           }
         ]
       }
@@ -4260,6 +4284,7 @@
       "Amoxicilina 50 mg/ml - Suspensão (Local de acesso: Farmácia Central)",
       "Amoxicilina 500 mg - Cápsula (Local de acesso: Farmácia Central)",
       "Amoxicilina 500mg + Clavulanato 125 mg - Comprimido (Local de acesso: Farmácia Central)",
+      "Amoxicilina 50 mg/mL + Clavulanato 12,5 mg/mL - Pó para suspensão oral (Local de acesso: Farmácia Central)",
       "Anlodipino 5 mg - Comprimido (Local de acesso: Farmácia Central)",
       "Atenolol 50 mg - Comprimido (Local de acesso: Farmácia Central)",
       "Azitromicina 40 mg/mL - Suspensão oral (Local de acesso: Farmácia Central)",

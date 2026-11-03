@@ -1,4 +1,5 @@
-/* Fonte transcrita do Excel municipal, com linhas e SHA-256 na fixture.
+/* Fonte transcrita do Excel municipal, com linhas e SHA-256 na fixture;
+ * o item com "fonte" veio do PDF de orientações à telemedicina (só nele).
  * Alterar, omitir ou acrescentar um item deve reprovar esta conferência.
  * As duas linhas de doxiciclina representam programas diferentes, não doses diferentes.
  */
@@ -13,9 +14,9 @@ const itens = remumes[cidade];
 const compactar = (texto) => texto.replace(/\s+/g, " ").trim();
 
 assert(Array.isArray(itens), "Pará de Minas precisa estar na REMUME");
-assert.strictEqual(fonte.itens.length, 197);
-assert.strictEqual(fonte.itens.filter((i) => i.componente === "básico").length, 130);
-assert.strictEqual(itens.length, 196, "Doxiciclina deve aparecer uma vez, com os dois programas");
+assert.strictEqual(fonte.itens.length, 198);
+assert.strictEqual(fonte.itens.filter((i) => i.componente === "básico").length, 131);
+assert.strictEqual(itens.length, 197, "Doxiciclina deve aparecer uma vez, com os dois programas");
 assert.deepStrictEqual(itens.map((i) => i.nome), [...new Set(fonte.itens.map((i) => i.nome))]);
 for (const item of itens) {
   const original = fonte.itens.find((i) => i.nome === item.nome);
@@ -23,7 +24,7 @@ for (const item of itens) {
   const azul = /^(Clonazepam|Diazepam)\b/.test(item.nome);
   assert.strictEqual(item.receituario || null, azul ? "azul" : null);
 }
-console.log("ok: 196 itens conferidos com as 197 linhas da fonte, sem completar nomes ou locais");
+console.log("ok: 197 itens conferidos com as 198 linhas da fonte, sem completar nomes ou locais");
 
 let modulo;
 const ctx = {
@@ -57,6 +58,13 @@ assert(sertralina.includes("gestantes"));
 assert(!modulo._avisosDoItem("Betim", "Sertralina 25mg").some((a) => a.includes("gestantes")));
 assert(!modulo._avisosDoItem(cidade, "Sinvastatina 20 mg - Comprimido").some((a) => a.includes("gestantes")));
 assert.strictEqual(modulo._avisosDoItem(cidade, "Doxiciclina 100 mg - Comprimido").length, 2);
+assert(sertralina.includes("Uso durante a gestação"));
+assert(modulo._avisosDoItem(cidade, "Amoxicilina 50 mg/mL + Clavulanato 12,5 mg/mL - Pó para suspensão oral").join(" ").includes("Anexo II"));
+assert(!modulo._avisosDoItem(cidade, "Amoxicilina 50 mg/ml - Suspensão").join(" ").includes("Anexo II"));
+assert(modulo._avisosDoItem(cidade, "Etonogestrel 68mg - Implante contracpetivo").join(" ").includes("Anexo III"));
+assert(modulo._avisosDoItem(cidade, "Tiras Reagentes para medicação de glicemia").join(" ").includes("30 dias"));
+assert(modulo._avisosDoItem(cidade, "Insulina Humana NPH 100 UI/mL - Frasco 10 mL").join(" ").includes("Anexo IV"));
+assert(!modulo._avisosDoItem("Betim", "Insulina Humana NPH 100 UI/mL - Frasco 10 mL").join(" ").includes("Anexo IV"));
 const avisoMunicipio = remumes._meta.avisos[cidade];
 assert(avisoMunicipio.length < 230, "Aviso geral deve ser curto");
 for (const trecho of ["antimicrobianos: 10 dias", "uso imediato: 15 dias", "controle especial: 30 dias", "demais: até 1 ano"]) {
