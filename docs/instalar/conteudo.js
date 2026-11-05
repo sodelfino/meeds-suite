@@ -34,7 +34,7 @@
       'A chave já está ligada? Você pode continuar. Esta página não consegue conferir as permissões do navegador por você.'
     ], { copiar: endereco, continuar: 'Já autorizei os scripts',
       referencia: link('Consultar orientação do Tampermonkey', 'https://www.tampermonkey.net/faq.php#Q209'),
-      alternativa: link('Ver este passo com imagens no guia ilustrado', '../manual/instalacao.html') });
+      alternativa: link('Ver o guia ilustrado, com imagens', '../manual/instalacao.html') });
   raiz.MeedsInstalacaoConteudo = {
     repositorio,
     manual: '../manual/Assistente-Meeds-Manual.pdf',
