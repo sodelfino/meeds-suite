@@ -38,6 +38,15 @@ function com(at, opcoes, texto, motivoFalha) {
 }
 
 console.log("1. extrairVersao");
+/* O painel le baseReleases do inventario embutido no pacote; sem ele,
+ * "Verificar atualizacao" sempre dava "configuracao incompleta". */
+{
+  const pacote = fs.readFileSync(path.join(__dirname, "..", "dist/meeds-suite.user.js"), "utf8");
+  const manifesto = require("../manifest.json");
+  confere(pacote.indexOf('"baseReleases": ' + JSON.stringify(manifesto.baseReleases)) !== -1,
+    "pacote leva baseReleases no inventario embutido");
+}
+
 const at = carregar();
 confere(at.extrairVersao(meta("2.60.1")) === "2.60.1", "lê @version com espaços");
 confere(at.extrairVersao("nada") === null, "sem @version → null");

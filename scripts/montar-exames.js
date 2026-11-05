@@ -2465,6 +2465,24 @@ function lerPiraiEncaminhamentos() {
   };
 }
 
+/* PARA DE MINAS — so os 4 exames laboratoriais que o "Fluxo de
+ * atendimento em telemedicina" das UBS (Fluxo_da_telemedicina.pdf,
+ * recebido em 05/11/2026) libera para a telemedicina pedir. Nomes como
+ * estao no documento: "PCR" fica PCR, sem expandir a sigla por deducao.
+ * Fonte 100% laboratorial: justificativaObrigatoria ausente. */
+function lerParaDeMinas() {
+  return {
+    fonte: "Fluxo de atendimento em telemedicina — UBS de Pará de Minas",
+    atualizadoEm: "2026-11-05",
+    observacoes: [
+      "A telemedicina pode solicitar só os exames laboratoriais desta lista.",
+      "Exames de rotina: orientar o paciente a agendar consulta com a enfermeira da UBS, que pode solicitá-los.",
+      "Exames de imagem: a telemedicina não deve solicitá-los.",
+    ],
+    exames: ["Hemograma completo", "PCR", "EAS + gram", "BHCG"].map((nome) => ({ nome })),
+  };
+}
+
 async function main() {
   const anterior = fs.existsSync(SAIDA)
     ? JSON.parse(fs.readFileSync(SAIDA, "utf8"))
@@ -2476,6 +2494,7 @@ async function main() {
     Congonhas: lerCongonhas(),
     "Sete Lagoas": juntarFontesDoMesmoMunicipio([lerSeteLagoas(), lerSeteLagoasLaboratorio()]),
     "Piraí": lerPirai(),
+    "Pará de Minas": lerParaDeMinas(),
   };
 
   const saida = {
