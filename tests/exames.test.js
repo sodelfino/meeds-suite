@@ -196,6 +196,12 @@ const municipios = Object.keys(BASE.municipios).filter((k) => k.indexOf("_") !==
   ok('"cateterismo" nao aparece em Betim (e da lista de Macae/Cardiologia)',
      (cateterismoEmBetim.itens || []).length === 0);
 
+  /* Para de Minas: so os 4 laboratoriais do fluxo das UBS. */
+  ok('"hemograma" em Pará de Minas acha o hemograma completo',
+     (B.buscar("hemograma", indices["Pará de Minas"]).itens || []).length === 1);
+  ok('"creatinina" nao aparece em Pará de Minas (fora do fluxo da telemedicina)',
+     (B.buscar("creatinina", indices["Pará de Minas"]).itens || []).length === 0);
+
   ok("termo inexistente nao inventa resultado",
      (B.buscar("xyzabcexame", indices["Betim"]).itens || []).length === 0);
 }

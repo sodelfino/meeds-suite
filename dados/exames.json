@@ -12284,6 +12284,29 @@
           }
         }
       ]
+    },
+    "Pará de Minas": {
+      "fonte": "Fluxo de atendimento em telemedicina — UBS de Pará de Minas",
+      "atualizadoEm": "2026-11-05",
+      "observacoes": [
+        "A telemedicina pode solicitar só os exames laboratoriais desta lista.",
+        "Exames de rotina: orientar o paciente a agendar consulta com a enfermeira da UBS, que pode solicitá-los.",
+        "Exames de imagem: a telemedicina não deve solicitá-los."
+      ],
+      "exames": [
+        {
+          "nome": "Hemograma completo"
+        },
+        {
+          "nome": "PCR"
+        },
+        {
+          "nome": "EAS + gram"
+        },
+        {
+          "nome": "BHCG"
+        }
+      ]
     }
   },
   "encaminhamentos": {
