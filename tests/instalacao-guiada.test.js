@@ -90,6 +90,13 @@ teste('Chrome e Edge levam ao guia ilustrado no passo de permissão', () => {
   }
   assert.equal(conteudo.guiaIlustrado, guia);
 });
+teste('raiz do site redireciona para a landing', () => {
+  const html = fs.readFileSync(path.join(raiz, 'docs/index.html'), 'utf8');
+  assert.match(html, /<meta http-equiv="refresh" content="0; url=instalar\/">/);
+  assert.match(html, /<a href="instalar\/">Ir para a instalação do Assistente Meeds<\/a>/);
+  assert.doesNotMatch(html, /<script/i);
+  assert.equal(new URL('instalar/', 'https://example.test/meeds-suite/').pathname, '/meeds-suite/instalar/');
+});
 // DOM mínimo: eventos reais do controlador, sem simular regras do fluxo.
 class Elemento {
   constructor(tag) { this.tagName = tag; this.children = []; this.attrs = {}; this.events = {}; this.hidden = false; this.textContent = ''; }
