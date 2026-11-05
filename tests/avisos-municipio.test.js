@@ -709,5 +709,27 @@ const CRITERIO_ATESTADO = /justificativa cl[ií]nica/i;
   ok("UPA Barra: detalha o critério do atestado", CRITERIO_ATESTADO.test(texto) && /prontu[aá]rio/i.test(texto));
 }
 
+/* PARÁ DE MINAS (05/11/2026): fluxo de telemedicina só nas UBS
+ * Nossa Senhora da Piedade e Walter Martins; UPA e AME ficam de fora. */
+{
+  const PPM = "PREFEITURA MUNICIPAL DE PARÁ DE MINAS";
+  const para = (linhas) => {
+    const t = carregar();
+    t.ctx.linhas = linhas;
+    t.ir("/atendimento/" + ID);
+    t.rede(atendimentoDe(PPM));
+    t.passar(3100);
+    return t.visiveis();
+  };
+  ["UBS NOSSA SENHORA DA PIEDADE", "UBS Walter Martins"].forEach((unidade) => {
+    const v = para([PPM, unidade]);
+    ok("Pará de Minas, " + unidade + ": fluxo da UBS", v.length === 1 && /Pará de Minas — UBS/.test(v[0].spec.titulo) &&
+       /azul ou verde/.test(textoDe(v[0])) && /não renova receitas/.test(textoDe(v[0])) &&
+       /tenoxicam/.test(textoDe(v[0])) && /Exames de imagem/.test(textoDe(v[0])));
+  });
+  ok("Pará de Minas, UPA: nenhum aviso", para([PPM, "UPA 24 HORAS"]).length === 0);
+  ok("Pará de Minas sem unidade no vínculo: nenhum aviso", para([PPM]).length === 0);
+}
+
 console.log("\n" + (falhas ? falhas + " FALHA(S)" : "todos passaram"));
 if (falhas) process.exit(1);
