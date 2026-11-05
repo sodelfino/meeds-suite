@@ -182,6 +182,41 @@
         "Os exames pediátricos de alta/média complexidade e as especialidades pediátricas ambulatoriais não são realizados em Piraí — o atendimento ocorre no Rio de Janeiro, via regulação estadual/SISREG.",
         "Os encaminhamentos devem estar o mais detalhados possível, com exames anexados e classificação de risco."
       ]
+    },
+    "Pará de Minas": {
+      "unidades": {
+        "UBS": {
+          "titulo": "Pará de Minas — UBS (telemedicina)",
+          "nomes": [
+            "UBS NOSSA SENHORA DA PIEDADE",
+            "UBS WALTER MARTINS"
+          ],
+          "pode": [
+            "Demanda espontânea com classificação de risco azul ou verde (acolhimento e classificação feitos pela UBS)",
+            "Injetáveis disponíveis na unidade: dipirona, escopolamina, escopolamina + dipirona, complexo B, hidrocortisona 100 e 500 mg, dexametasona, cetoprofeno (IM), metoclopramida, prometazina, furosemida e tenoxicam",
+            "Exames laboratoriais: hemograma completo, PCR, EAS + gram e BHCG"
+          ],
+          "naoPode": [
+            {
+              "item": "Renovação de receitas",
+              "fazer": "a telemedicina não renova receitas"
+            },
+            {
+              "item": "Exames de rotina",
+              "fazer": "orientar o paciente a agendar consulta com a enfermeira da UBS"
+            },
+            {
+              "item": "Exames de imagem",
+              "fazer": "não solicitar pela telemedicina"
+            }
+          ],
+          "orientacoes": [
+            "Um técnico de enfermagem da unidade acompanha a consulta e faz a ponte entre o paciente, o médico e a equipe.",
+            "Na receita: nome completo do paciente e princípio ativo do medicamento, sem nome comercial, seguindo a REMUME de Pará de Minas.",
+            "Injetável: o paciente apresenta a receita à equipe para a administração."
+          ]
+        }
+      }
     }
   }
 }
