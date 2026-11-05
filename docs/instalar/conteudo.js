@@ -33,10 +33,12 @@
       'Não encontrou a opção? Confira a orientação oficial do Tampermonkey para sua versão. Em versões que ainda usam esse caminho, a autorização fica no Modo de desenvolvedor da página de extensões.',
       'A chave já está ligada? Você pode continuar. Esta página não consegue conferir as permissões do navegador por você.'
     ], { copiar: endereco, continuar: 'Já autorizei os scripts',
-      referencia: link('Consultar orientação do Tampermonkey', 'https://www.tampermonkey.net/faq.php#Q209') });
+      referencia: link('Consultar orientação do Tampermonkey', 'https://www.tampermonkey.net/faq.php#Q209'),
+      alternativa: link('Ver o guia ilustrado, com imagens', '../manual/instalacao.html') });
   raiz.MeedsInstalacaoConteudo = {
     repositorio,
     manual: '../manual/Assistente-Meeds-Manual.pdf',
+    guiaIlustrado: '../manual/instalacao.html',
     roteiros: {
       chrome: [loja('https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo'),
         permissao('Chrome', 'chrome://extensions'), instalar, conferir],

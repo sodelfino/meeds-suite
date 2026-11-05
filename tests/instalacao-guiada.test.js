@@ -70,11 +70,32 @@ teste('página tem alternativa sem JavaScript e recursos válidos em subdiretór
   assert.match(html, /GUIA-INSTALACAO.md/);
   assert.match(html, /GUIA-IPAD.md/);
   assert.match(html, /Assistente-Meeds-Instalacao.pdf/);
+  assert.match(html, /manual\/instalacao\.html/);
   assert.match(html, /aria-live="polite"/);
-  for (const recurso of ['styles.css', 'conteudo.js', 'fluxo.js', 'app.js', '../manual/Assistente-Meeds-Instalacao.pdf']) {
+  assert.ok(fs.existsSync(path.join(raiz, 'docs/manual/instalacao.html')));
+  for (const recurso of ['styles.css', 'conteudo.js', 'fluxo.js', 'app.js', '../manual/Assistente-Meeds-Instalacao.pdf', '../manual/instalacao.html']) {
     assert.ok(html.includes(recurso));
     assert.ok(new URL(recurso, 'https://example.test/meeds-suite/instalar/').pathname.startsWith('/meeds-suite/'));
   }
+});
+teste('Chrome e Edge levam ao guia ilustrado no passo de permissão', () => {
+  const guia = '../manual/instalacao.html';
+  for (const chave of ['chrome', 'edge']) {
+    const passo = conteudo.roteiros[chave].find(p => p.id === 'scripts');
+    assert.equal(passo.alternativa.href, guia);
+  }
+  for (const chave of ['firefox', 'ios', 'android', 'outro']) {
+    const hrefs = conteudo.roteiros[chave].map(p => p.alternativa && p.alternativa.href);
+    assert.ok(!hrefs.includes(guia));
+  }
+  assert.equal(conteudo.guiaIlustrado, guia);
+});
+teste('raiz do site redireciona para a landing', () => {
+  const html = fs.readFileSync(path.join(raiz, 'docs/index.html'), 'utf8');
+  assert.match(html, /<meta http-equiv="refresh" content="0; url=instalar\/">/);
+  assert.match(html, /<a href="instalar\/">Ir para a instalação do Assistente Meeds<\/a>/);
+  assert.doesNotMatch(html, /<script/i);
+  assert.equal(new URL('instalar/', 'https://example.test/meeds-suite/').pathname, '/meeds-suite/instalar/');
 });
 // DOM mínimo: eventos reais do controlador, sem simular regras do fluxo.
 class Elemento {
