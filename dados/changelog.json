@@ -17,6 +17,15 @@
       ]
     },
     {
+      "versao": "2.68.7",
+      "data": "2026-11-10",
+      "novidades": [],
+      "melhorias": [],
+      "correcoes": [
+        "O Assistente não roda mais no site da Gestão Macaé (gestaomacae.meeds.com.br), onde ele aparecia sem precisar."
+      ]
+    },
+    {
       "versao": "2.68.6",
       "data": "2026-11-05",
       "novidades": [
