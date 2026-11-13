@@ -729,7 +729,8 @@ const textoDe = (a) => [a.spec.titulo].concat(a.spec.corpo).join("\n");
   const t = macae([PMM, "ESF LAGOMAR"]);
   t.ctx.sexo = "M";
   t.passar(1000);
-  ok("homem em ESF Lagomar: nenhum aviso (regra é só para sexo feminino)", t.visiveis().length === 0);
+  const v = t.visiveis();
+  ok("homem em ESF Lagomar: só o aviso de UBS/ESF/PSF, sem ginecologia", v.length === 1 && !/ginecolog/i.test(textoDe(v[0])) && /Memed/.test(textoDe(v[0])));
 }
 {
   const t = macae([PMM, "ESF LAGOMAR"]);
@@ -763,7 +764,8 @@ const textoDe = (a) => [a.spec.titulo].concat(a.spec.corpo).join("\n");
   const t = macae([PMM, "UBS QUALQUER OUTRA"]);
   t.ctx.sexo = "F";
   t.passar(1000);
-  ok("unidade de Macaé fora da lista: nenhum aviso de ginecologia", t.visiveis().length === 0);
+  const v = t.visiveis();
+  ok("unidade de Macaé fora da lista: aviso de UBS, sem ginecologia", v.length === 1 && !/ginecolog/i.test(textoDe(v[0])));
 }
 
 /* 26. Pedido de 01/10/2026: "Atestado com critério" era texto solto, sem
@@ -1004,6 +1006,7 @@ function reabreEmOutroAtendimento(t, id) {
   const dados = JSON.parse(JSON.stringify(DADOS));
   const ubs = dados.municipios["Pará de Minas"].unidades.UBS;
   delete ubs.resumo; delete ubs.pode; delete ubs.naoPode;
+  delete dados.tiposDeUnidade;
   const t = abrirPara(carregar(dados));
   const m = t.overlays[0];
   ok("regra de um passo: foco no modal, não no checkbox", /Passo 1 de 1/.test(m.elemento.innerHTML) &&
@@ -1082,7 +1085,9 @@ Object.keys(DADOS.municipios).forEach((nome) => {
     t.ctx.linhas = ["PREFEITURA MUNICIPAL DE " + nome].concat(unidade ? [unidade.regra.nomes[0]] : []);
     t.ir("/atendimento/" + ID);
     t.passar(3100);
-    const M = t.def._montarPassos(regraMun, unidade).passos.length;
+    const nomeUnidade = unidade ? unidade.regra.nomes[0] : "";
+    const tipo = /^(UBS|ESF|PSF)\b/i.test(nomeUnidade) ? { chave: "UBS, ESF e PSF", regra: DADOS.tiposDeUnidade["UBS, ESF e PSF"] } : null;
+    const M = t.def._montarPassos(regraMun, unidade, tipo).passos.length;
     const m = modaisAbertos(t);
     ok(rotulo + ": modal com Passo 1 de " + M, m.length === 1 && t.avisos.length === 0 &&
        new RegExp("Passo 1 de " + M + "<").test(m[0].elemento.innerHTML), m.length && /Passo \d+ de \d+/.exec(m[0].elemento.innerHTML));
@@ -1141,6 +1146,80 @@ Object.keys(DADOS.municipios).forEach((nome) => {
   t.ir("/atendimento/" + ID);
   t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE ITAUNA"));
   ok("rever: cidade sem regra: sem '!'", !t.botao.visivel);
+}
+
+/* Pedido de 13/11/2026: aviso para toda UBS, ESF e PSF das cidades da
+ * lista — Memed sem campo aberto e exames pela tabela SUS. */
+const TIPO_UBS = DADOS.tiposDeUnidade && DADOS.tiposDeUnidade["UBS, ESF e PSF"];
+ok("tipo UBS/ESF/PSF existe nos dados", !!TIPO_UBS && TIPO_UBS.prefixos.join() === "UBS,ESF,PSF");
+[["MACAÉ - RJ", "UBS AROEIRA DO SUL"], ["MACAÉ - RJ", "ESF BOSQUE"], ["MACAÉ - RJ", "PSF CENTRO"], ["MACAÉ - RJ", "UBS/ESF NOVA ESPERANÇA"]].forEach(([cidade, unidade]) => {
+  const t = carregar();
+  t.ctx.sexo = "M";
+  t.ctx.linhas = [cidade, unidade];
+  t.ir("/atendimento/" + ID);
+  t.passar(3100);
+  const v = t.visiveis();
+  const texto = v.length ? textoDe(v[0]) : "";
+  ok("UBS/ESF/PSF — " + unidade + ": abre o aviso", v.length === 1 && /campo aberto da Memed/.test(texto) &&
+     /tabela SUS/.test(texto) && /SAMU 192/.test(texto));
+});
+[["MACAÉ - RJ", "UPA UNIDADE DE PRONTO ATENDIMENTO LAGOMAR"], ["MACAÉ - RJ", "UBSX ALGUMA COISA"], ["MACAÉ - RJ", "HOSPITAL DA UBS"]].forEach(([cidade, unidade]) => {
+  const t = carregar();
+  t.ctx.linhas = [cidade, unidade];
+  t.ir("/atendimento/" + ID);
+  t.passar(3100);
+  const v = t.visiveis();
+  ok("não é UBS/ESF/PSF — " + unidade + ": sem o aviso de UBS", v.every((a) => !/campo aberto da Memed/.test(textoDe(a))));
+});
+{
+  const t = carregar();
+  t.ctx.linhas = ["ITAÚNA - MG", "UBS CENTRO"];
+  t.ir("/atendimento/" + ID);
+  t.passar(3100);
+  ok("UBS de cidade fora da lista: nenhum aviso", t.visiveis().length === 0);
+}
+{
+  /* Pará de Minas: a regra da UBS e a de UBS/ESF/PSF num aviso só, com o
+   * título da unidade. */
+  const t = abrirPara();
+  const v = t.visiveis();
+  const texto = v.length ? textoDe(v[0]) : "";
+  ok("Pará UBS: um aviso só, com o título de Pará e as duas regras", v.length === 1 && /Pará de Minas — UBS/.test(v[0].spec.titulo) &&
+     /campo aberto da Memed/.test(texto) && /nome comercial/.test(texto));
+}
+{
+  /* Congonhas + PSF: título da cidade, regras da cidade e do PSF. */
+  const t = carregar();
+  t.ctx.linhas = ["CONGONHAS - MG", "PSF IDEAL"];
+  t.ir("/atendimento/" + ID);
+  t.passar(3100);
+  const v = t.visiveis();
+  ok("Congonhas + PSF: título de Congonhas, com dipirona e Memed", v.length === 1 && /Congonhas/.test(v[0].spec.titulo) &&
+     /dipirona/.test(textoDe(v[0])) && /campo aberto da Memed/.test(textoDe(v[0])));
+}
+{
+  /* ESF com regra só para mulheres: espera o sexo aparecer antes de abrir,
+   * para não abrir um aviso e trocar por outro logo depois. */
+  const t = macae([PMM, "ESF LAGOMAR"]);
+  ok("ESF Lagomar, sexo ainda não lido: espera", t.visiveis().length === 0);
+  t.ctx.sexo = "F";
+  t.passar(1000);
+  const v = t.visiveis();
+  ok("ESF Lagomar, mulher: um aviso com ginecologia e UBS/ESF/PSF", v.length === 1 && t.overlays.length === 1 &&
+     /ginecolog/i.test(textoDe(v[0])) && /campo aberto da Memed/.test(textoDe(v[0])));
+}
+{
+  /* Ciência da UBS de uma cidade não vale para a mesma UBS com outra regra. */
+  const t = carregar();
+  t.ctx.sexo = "M";
+  t.ctx.linhas = ["MACAÉ - RJ", "UBS AROEIRA"];
+  t.ir("/atendimento/" + ID);
+  t.passar(3100);
+  confirmarCiencia(t.visiveis()[0].o);
+  t.ctx.linhas = ["MACAÉ - RJ", "ESF BOSQUE"];
+  t.ir("/atendimento/" + OUTRO_ID);
+  t.passar(3100);
+  ok("confirmou numa UBS de Macaé: não pede de novo em outra ESF de Macaé", t.visiveis().length === 0 && t.botao.visivel);
 }
 
 console.log("\n" + (falhas ? falhas + " FALHA(S)" : "todos passaram"));

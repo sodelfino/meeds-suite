@@ -69,10 +69,12 @@
     ".msam-btn:focus-visible, .msam-ack input:focus-visible { outline: 3px solid #2E7D7B; outline-offset: 2px; }",
   ].join("\n");
 
-  /* O "!" do dock (pedido de 13/11/2026, de um medico): amarelo com o
-   * ponto de exclamacao vermelho, pulsa 3x quando aparece e depois para. */
+  /* O botao "Aviso" do dock (pedido de 13/11/2026, de um medico):
+   * amarelo com o triangulo vermelho, pulsa 3x quando aparece e depois
+   * para. Com texto, como os vizinhos, logo abaixo da REMUME. */
   const CSS_BOTAO = [
-    ".ms-btn.msam-rever { background: #FFD43B; color: #D43F3F; font-weight: 900; box-shadow: 0 0 0 3px #D43F3F; animation: msam-rever 1.2s 3; }",
+    ".ms-btn.msam-rever { background: #FFD43B; color: #8A1C12; font-weight: 800; box-shadow: 0 0 0 2px #D43F3F; animation: msam-rever 1.2s 3; }",
+    ".ms-btn.msam-rever svg { color: #B42318; }",
     ".ms-btn.msam-rever:hover { background: #FCC419; }",
     "@keyframes msam-rever { 50% { box-shadow: 0 0 0 7px rgba(212,63,63,.35); } }",
     "@media (prefers-reduced-motion: reduce) { .ms-btn.msam-rever { animation: none; } }",
@@ -151,7 +153,30 @@
     });
     if (achadas.length !== 1) return null;
     const achada = { chave: achadas[0], regra: unidades[achadas[0]] };
-    return unidadeAplicavel(achada) ? achada : null;
+    const aplicavel = unidadeAplicavel(achada);
+    return aplicavel === undefined ? undefined : aplicavel ? achada : null;
+  }
+
+  /* TIPO de unidade (pedido de 13/11/2026): regra que vale para toda
+   * unidade cujo nome no Vinculos COMECA com um dos prefixos ("UBS",
+   * "ESF", "PSF"), palavra inteira — "ubs centro" e "ubs/esf x" sim,
+   * "ubsx" nao. Mesmas guardas da unidade: uma cidade so no vinculo, e
+   * ela e o municipio ja decidido (que esta na lista). */
+  function tipoDaUnidade(municipio) {
+    const tipos = (raiz.MEEDS_AVISOS_MUNICIPIO || {}).tiposDeUnidade || {};
+    const Dom = raiz.MeedsSuiteDom;
+    const v = vinculo(Object.keys(regras()));
+    if (!v || v.cidades.length !== 1 || v.cidades[0] !== Dom.normalizarTexto(municipio)) return null;
+    const comeca = function (u, p) {
+      return u.indexOf(p) === 0 && (u.length === p.length || !/[a-z0-9]/.test(u.charAt(p.length)));
+    };
+    const achados = Object.keys(tipos).filter(function (k) {
+      return (tipos[k].prefixos || []).some(function (p) {
+        const np = Dom.normalizarTexto(p);
+        return v.unidades.some(function (u) { return comeca(u, np); });
+      });
+    });
+    return achados.length === 1 ? { chave: achados[0], regra: tipos[achados[0]] } : null;
   }
 
   /* Algumas regras de unidade valem so para um sexo (pedido de
@@ -159,20 +184,24 @@
    * para pacientes do sexo feminino). Le a PALAVRA da tela
    * (MeedsSuiteDom.lerPaciente, o mesmo leitor que CMD/LME/APAC usam),
    * nunca um enum de API. Na duvida — sexo ainda nao apareceu na tela —
-   * NAO mostra: aviso errado e pior que nenhum aviso (ver topo do
-   * arquivo). */
+   * devolve undefined e o aviso ESPERA: abrir sem a regra e troca-lo logo
+   * depois faria o medico confirmar duas vezes. */
   function unidadeAplicavel(unidade) {
     const restricao = unidade && unidade.regra && unidade.regra.apenasSexo;
     if (!restricao) return true;
     const Dom = raiz.MeedsSuiteDom;
     const paciente = (Dom && typeof Dom.lerPaciente === "function") ? Dom.lerPaciente() : {};
+    if (!paciente.sexo) return undefined;
     return paciente.sexo === restricao;
   }
 
   /* O aviso em PAGINAS (13/11/2026): contexto (resumo) -> o que NAO fazer ->
    * o que a unidade oferece -> orientacoes. Passo sem item nao existe. */
-  function montarPassos(regraMun, unidade) {
+  function montarPassos(regraMun, unidade, tipo) {
     const partes = [];
+    /* O tipo (UBS/ESF/PSF) vem antes: o titulo e o da ultima parte, e o da
+     * cidade ou da unidade diz mais que o do tipo. */
+    if (tipo && (temConteudo(tipo.regra) || tipo.regra.resumo)) partes.push(tipo.regra);
     if (temConteudo(regraMun) || (regraMun && regraMun.resumo)) partes.push(regraMun);
     if (unidade && (temConteudo(unidade.regra) || unidade.regra.resumo)) partes.push(unidade.regra);
     const juntar = function (f) {
@@ -392,9 +421,11 @@
 
     const regraMun = tabela[municipio];
     const unidade = unidadeDoVinculo(municipio, regraMun);
-    const passos = montarPassos(regraMun, unidade);
+    if (unidade === undefined) return; // esperando o sexo aparecer na tela
+    const tipo = tipoDaUnidade(municipio);
+    const passos = montarPassos(regraMun, unidade, tipo);
     if (!passos) return;
-    const chave = municipio + "|" + (unidade ? unidade.chave : "");
+    const chave = municipio + "|" + (unidade ? unidade.chave : "") + (tipo ? "|" + tipo.chave : "");
     if (aberto && aberto.chave === chave) return;
     if (entendidos[chave] === true) {
       /* Ciencia ja confirmada para esta cidade/unidade: nao reabre, nem
