@@ -589,14 +589,14 @@ function moverFocoResultado(delta) {
    * UI — o overlay vem posicionado do dock; aqui so o conteudo.
    * ---------------------------------------------------------------- */
   const CSS = [
-    ".rm-modal { width:100%; max-width:640px; max-height:86vh; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); display:flex; flex-direction:column; overflow:hidden; }",
-    ".rm-modal header { background:#17457f; color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
-    ".rm-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
-    ".rm-sub { margin:3px 0 0; font-size:11.5px; opacity:.9; }",
+    ".rm-modal { width:100%; max-width:640px; max-height:86vh; background:#fff; border-radius:20px; box-shadow:0 24px 60px rgba(15,23,42,.35); display:flex; flex-direction:column; overflow:hidden; }",
+    ".rm-modal header { background:#fff; color:#1f2a37; padding:16px 18px; border-bottom:1px solid #eef1f4; display:flex; align-items:center; gap:12px; }", ".rm-modal header > div { flex:1; min-width:0; }", ".rm-modal header::before { content:''; width:40px; height:40px; border-radius:12px; background:#fff0f0 url(\"data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%3E%3Cg%20transform%3D%22rotate%28-45%2012%2012%29%22%3E%3Crect%20x%3D%223%22%20y%3D%228%22%20width%3D%2218%22%20height%3D%228%22%20rx%3D%224%22%20fill%3D%22%23fff%22%20stroke%3D%22%23C92A2A%22%20stroke-width%3D%221.6%22%2F%3E%3Cpath%20d%3D%22M12%208h5a4%204%200%200%201%200%208h-5z%22%20fill%3D%22%23FA5252%22%20stroke%3D%22%23C92A2A%22%20stroke-width%3D%221.6%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E\") center/24px no-repeat; flex:none; }",
+    ".rm-modal header h2 { margin:0; font-size:16px; font-weight:700; color:#1f2a37; }",
+    ".rm-sub { margin:3px 0 0; font-size:13px; color:#5b6573; }",
     ".rm-meta { margin:2px 0 0; font-size:10.5px; opacity:.75; }",
     ".rm-meta[hidden] { display:none; }",
-    ".rm-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:5px; cursor:pointer; font-size:14px; flex-shrink:0; }",
-    ".rm-fechar:hover { background:rgba(255,255,255,.34); }",
+    ".rm-fechar { background:#f1f3f5; border:none; color:#5b6573; width:40px; height:40px; border-radius:12px; margin-left:auto; cursor:pointer; font-size:14px; flex-shrink:0; }",
+    ".rm-fechar:hover { background:#e9ecef; }",
     ".rm-body { padding:14px 18px 16px; display:flex; flex-direction:column; gap:10px; min-height:0; flex:1; }",
     ".rm-body label { display:block; font-size:10.5px; font-weight:700; color:#5b6c68; margin-bottom:4px; }",
     ".rm-body select, .rm-body input { width:100%; padding:8px 10px; border:1px solid #d8e6e3; border-radius:8px; font-size:13px; color:#16221f; }",

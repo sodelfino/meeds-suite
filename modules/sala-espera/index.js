@@ -631,23 +631,23 @@
    * ---------------------------------------------------------------- */
   const CSS = [
     ".se-modal { width:100%; max-width:520px; max-height:84vh; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.35); display:flex; flex-direction:column; overflow:hidden; }",
-    ".se-modal header { background:linear-gradient(135deg,#123a7a,#1a56ad); color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
-    ".se-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
-    ".se-sub { margin:3px 0 0; font-size:11.5px; opacity:.9; }",
-    ".se-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; }",
+    ".se-modal header { background:#fff; color:#1f2a37; padding:16px 18px; border-bottom:1px solid #eef1f4; display:flex; align-items:center; gap:12px; }", ".se-modal header > div { flex:1; min-width:0; }", ".se-modal header::before { content:'AM'; width:40px; height:40px; border-radius:12px; background:#0b7285; color:#fff; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; flex:none; }",
+    ".se-modal header h2 { margin:0; font-size:16px; font-weight:700; color:#1f2a37; }",
+    ".se-sub { margin:3px 0 0; font-size:13px; color:#5b6573; }",
+    ".se-fechar { background:#f1f3f5; border:none; color:#5b6573; width:40px; height:40px; border-radius:12px; margin-left:auto; cursor:pointer; font-size:14px; flex-shrink:0; }",
     ".se-corpo { padding:12px 18px 16px; overflow-y:auto; }",
     ".se-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid #f1f5f9; }",
     ".se-item:last-child { border-bottom:none; }",
     ".se-dados { flex:1; min-width:0; }",
     ".se-nome { font-size:13px; font-weight:700; color:#16221f; }",
     ".se-meta { font-size:11.5px; color:#5b6672; margin-top:2px; }",
-    ".se-espera { font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; background:#eef4fb; color:#123a7a; white-space:nowrap; }",
+    ".se-espera { font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; background:#e6f4f5; color:#0b5a66; white-space:nowrap; }",
     ".se-espera.se-atrasado { background:#fde8e8; color:#a12626; }",
     ".se-vazio { font-size:12.5px; color:#8a97a4; font-style:italic; padding:16px 0; }",
     ".se-rodape { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 18px; border-top:1px solid #eef2f6; }",
     ".se-nota { font-size:10.5px; color:#9aa5b1; line-height:1.45; }",
-    ".se-btn { background:#1a4fa0; color:#fff; border:none; border-radius:8px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; flex-shrink:0; }",
-    ".se-btn:hover { background:#123a7a; }",
+    ".se-btn { background:#0b7285; color:#fff; border:none; border-radius:8px; padding:9px 14px; font-size:12.5px; font-weight:700; cursor:pointer; flex-shrink:0; }",
+    ".se-btn:hover { background:#095c6b; }",
   ].join("\n");
 
   function montarUI() {

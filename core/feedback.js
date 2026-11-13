@@ -27,17 +27,17 @@
   "use strict";
 
   const CSS = [
-    ".msf-modal { width:100%; max-width:520px; max-height:86vh; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); display:flex; flex-direction:column; overflow:hidden; }",
-    ".msf-modal header { background:#17457f; color:#fff; padding:15px 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
-    ".msf-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
-    ".msf-sub { margin:3px 0 0; font-size:11.5px; opacity:.9; }",
-    ".msf-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; }",
+    ".msf-modal { width:100%; max-width:520px; max-height:86vh; background:#fff; border-radius:20px; box-shadow:0 24px 60px rgba(15,23,42,.35); display:flex; flex-direction:column; overflow:hidden; }",
+    ".msf-modal header { background:#fff; color:#1f2a37; padding:16px 18px; border-bottom:1px solid #eef1f4; display:flex; align-items:center; gap:12px; }", ".msf-modal header > div { flex:1; min-width:0; }", ".msf-modal header::before { content:'AM'; width:40px; height:40px; border-radius:12px; background:#0b7285; color:#fff; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; flex:none; }",
+    ".msf-modal header h2 { margin:0; font-size:16px; font-weight:700; color:#1f2a37; }",
+    ".msf-sub { margin:3px 0 0; font-size:13px; color:#5b6573; }",
+    ".msf-fechar { background:#f1f3f5; border:none; color:#5b6573; width:40px; height:40px; border-radius:12px; margin-left:auto; cursor:pointer; font-size:14px; flex-shrink:0; }",
     ".msf-corpo { padding:15px 18px; overflow-y:auto; }",
     ".msf-tipos { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }",
     ".msf-tipo { background:#fff; border:1.4px solid #d8dfe6; color:#5b6672; border-radius:6px; padding:7px 14px; font-size:12px; font-weight:600; font-family:inherit; cursor:pointer; }",
-    ".msf-tipo:hover { border-color:#1a56ad; color:#123a7a; }",
-    ".msf-tipo[aria-pressed='true'] { background:#123a7a; border-color:#123a7a; color:#fff; }",
-    ".msf-corpo label { display:block; font-size:10.5px; font-weight:700; color:#5b6672; margin-bottom:4px; }",
+    ".msf-tipo:hover { border-color:#0b7285; color:#0b5a66; }",
+    ".msf-tipo[aria-pressed='true'] { background:#0b7285; border-color:#0b7285; color:#fff; }",
+    ".msf-corpo label { display:block; font-size:12px; font-weight:600; color:#3b4552; margin-bottom:5px; }",
     ".msf-corpo textarea { width:100%; box-sizing:border-box; min-height:120px; padding:10px; border:1px solid #d8dfe6; border-radius:8px; font-size:13px; font-family:inherit; line-height:1.5; resize:vertical; }",
     ".msf-aviso { background:#fff4e2; border:1px solid #f5d9ac; color:#8a5200; font-size:11.5px; line-height:1.55; padding:9px 11px; border-radius:8px; margin-top:10px; }",
     ".msf-anexo { font-size:11px; color:#8a97a4; line-height:1.6; margin-top:10px; }",
@@ -45,10 +45,10 @@
     ".msf-erro { background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; font-size:11.5px; padding:9px 11px; border-radius:8px; margin-top:10px; }",
     ".msf-ok { background:#e6f6f2; border:1px solid #b6e3d8; color:#0b6a62; font-size:11.5px; padding:9px 11px; border-radius:8px; margin-top:10px; }",
     ".msf-rodape { display:flex; gap:8px; justify-content:flex-end; padding:12px 18px; border-top:1px solid #eef2f6; flex-wrap:wrap; }",
-    ".msf-btn { background:#1a4fa0; color:#fff; border:none; border-radius:8px; padding:10px 16px; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer; }",
-    ".msf-btn:hover { background:#123a7a; }",
-    ".msf-btn-sec { background:#fff; color:#123a7a; border:1.3px solid #cbd5e1; }",
-    ".msf-btn-sec:hover { background:#eef4fb; }",
+    ".msf-btn { background:#0b7285; color:#fff; border:none; border-radius:8px; padding:10px 16px; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer; }",
+    ".msf-btn:hover { background:#095c6b; }",
+    ".msf-btn-sec { background:#fff; color:#1f2a37; border:1px solid #dde2e7; }",
+    ".msf-btn-sec:hover { background:#f1f3f5; }",
   ].join("\n");
 
   const TIPOS = [

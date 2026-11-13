@@ -304,7 +304,7 @@
 
   const CSS = [
     raiz.MeedsSuiteCabecalho.CSS,
-    ".ex-modal { width:100%; max-width:560px; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; display:flex; flex-direction:column; max-height:90vh; max-height:90dvh; }",
+    ".ex-modal { width:100%; max-width:560px; background:#fff; border-radius:20px; box-shadow:0 24px 60px rgba(15,23,42,.35); overflow:hidden; display:flex; flex-direction:column; max-height:90vh; max-height:90dvh; }",
     ".ex-modal > .msc-head { flex-shrink:0; }",
     ".ex-modal header { background:#0f6b64; color:#fff; padding:15px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
     ".ex-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
