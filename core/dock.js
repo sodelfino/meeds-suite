@@ -265,7 +265,9 @@
     "  display: flex; flex-direction: column; gap: 10px; pointer-events: none;",
     "  overflow-y: auto; overscroll-behavior: contain;",
     "}",
-    "#avisos-topo > * { pointer-events: auto; }",
+    /* flex-shrink 0: sem ele o flex espreme o cartao longo (overflow
+       hidden) e corta o botao do fim; assim quem rola e a caixa. */
+    "#avisos-topo > * { pointer-events: auto; flex-shrink: 0; }",
     "#avisos-topo .ms-aviso { box-shadow: 0 4px 12px rgba(15,23,42,.22); }",
     "#avisos-topo .ms-aviso.ms-aviso-atencao {",
     "  animation: ms-aviso-entra .18s ease-out, ms-aviso-pulsa-topo .9s ease-in-out .3s 3;",

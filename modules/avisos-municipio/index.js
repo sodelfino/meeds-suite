@@ -26,7 +26,7 @@
   let dispensados = {};             // id do atendimento -> true se o medico fechou no X
   let aberto = null;                // { id, municipio, chave, aviso }
   let vistoDesde = {};              // id do atendimento -> quando a pagina dele apareceu
-  let entendidos = {};              // chave (municipio|unidade) -> quando o medico clicou "Entendi"
+  let entendidos = {};              // chave (municipio|unidade) -> quando o medico clicou "Entendi" (Infinity = ciencia ate recarregar)
 
   /* A leitura pela tela so vale depois deste tempo SEM resposta da rede.
    * A chamada do atendimento costuma chegar em menos de 1 s; esperar
@@ -135,14 +135,15 @@
     return paciente.sexo === restricao;
   }
 
+  /* O que NAO pode vem primeiro (13/11/2026): e o que evita o erro. */
   function linhasDe(r) {
     const corpo = [];
-    (r.pode || []).forEach(function (item) {
-      corpo.push("✅ " + item);
-    });
-    if ((r.pode || []).length && (r.naoPode || []).length) corpo.push("");
     (r.naoPode || []).forEach(function (n) {
       corpo.push("❌ " + n.item + (n.fazer ? " → " + n.fazer : ""));
+    });
+    if ((r.pode || []).length && (r.naoPode || []).length) corpo.push("");
+    (r.pode || []).forEach(function (item) {
+      corpo.push("✅ " + item);
     });
     if (corpo.length && (r.orientacoes || []).length) corpo.push("");
     (r.orientacoes || []).forEach(function (o) {
@@ -165,7 +166,12 @@
     });
     /* Com as duas, o titulo e o da unidade e cada bloco ganha o seu nome. */
     if (partes.length > 1) corpo = [partes[0].titulo + ":"].concat(corpo);
-    return { titulo: "⚠️ " + partes[partes.length - 1].titulo, corpo: corpo, destaque: "atencao" };
+    return {
+      titulo: "⚠️ " + partes[partes.length - 1].titulo,
+      corpo: corpo,
+      destaque: "atencao",
+      exigeCiencia: partes.some(function (r) { return r.exigeCiencia === true; }),
+    };
   }
 
   function fechar() {
@@ -202,14 +208,18 @@
    * mas ainda na tela, seguia atrapalhando o formulario. O X fecha do
    * mesmo jeito, mas so para este atendimento, sem marcar como entendido.
    * Pedido de 25/09/2026: no meio da tela ele cobria o formulario do
-   * atendimento. */
+   * atendimento.
+   * Pedido de 13/11/2026 (Pará de Minas): regra com exigeCiencia troca o
+   * "Entendi" por "Li e estou ciente", e a ciencia vale ate o fim da
+   * pagina — volta a cada novo login/recarga, nao a cada 3h. Continua no
+   * canto, sem bloquear o formulario (pedido de 25/09). */
   function abrirCartao(id, municipio, chave, spec) {
     spec.topo = true;
     spec.acoes = [{
-      rotulo: "Entendi",
+      rotulo: spec.exigeCiencia ? "Li e estou ciente" : "Entendi",
       fecha: false,
       aoClicar: function () {
-        entendidos[chave] = Date.now();
+        entendidos[chave] = spec.exigeCiencia ? Infinity : Date.now();
         fechar();
       },
     }];
@@ -233,8 +243,20 @@
     return dispensados[id] ? null : id;
   }
 
+  /* A ciencia e de quem esta logado. Se o Meeds voltar para a tela de
+   * login sem recarregar a pagina (SPA), o proximo medico tem que ler de
+   * novo — o "Entendi" de 3h segue como estava. */
+  function esquecerCienciaNoLogin() {
+    const Auth = raiz.MeedsSuiteAuth;
+    if (!Auth || typeof Auth.estaNaTelaDeLogin !== "function" || !Auth.estaNaTelaDeLogin()) return;
+    Object.keys(entendidos).forEach(function (k) {
+      if (entendidos[k] === Infinity) delete entendidos[k];
+    });
+  }
+
   function verificar() {
     if (!d) return;
+    esquecerCienciaNoLogin();
     const id = atendimentoParaAvisar();
     if (!id) return;
 
@@ -263,7 +285,7 @@
     id: "avisos-municipio",
     nome: "Avisos do município",
     descricao: "Mostra, dentro do atendimento, o que a teleconsulta resolve naquele município e o que vai para o presencial.",
-    versao: "1.0.0",
+    versao: "1.6.0",
     configPadrao: {},
 
     assinaturasRede: [{ regex: /\/api\/v1\/atendimento\/[0-9a-fA-F-]{36}(?:[?#].*)?$/i, metodos: ["GET"] }],

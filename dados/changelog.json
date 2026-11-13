@@ -2,6 +2,21 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.69.0",
+      "data": "2026-11-13",
+      "novidades": [
+        "Avisos do município — Pará de Minas: nas UBS Nossa Senhora da Piedade e Walter Martins, o cartão traz os pontos de atenção da telemedicina (sem nome comercial, sem renovar receita mesmo com a receita prévia, sem exame de imagem, sem encaminhar ao especialista, exames de rotina para o clínico presencial com resumo e CID, reavaliação com a telemedicina, raciocínio de UPA) e pede “Li e estou ciente”. Confirmado, não volta até o próximo login."
+      ],
+      "melhorias": [
+        "Avisos do município: o que NÃO pode ser feito aparece primeiro no cartão.",
+        "Avisos do município — Franco da Rocha: o cartão agora lembra que só são atendidas fichas azuis, que paciente com sinal de alarme vai ao presencial e que casos eletivos vão para a UBS.",
+        "Avisos do município: “atestado com critério” aparece uma vez só, já com o que o critério exige."
+      ],
+      "correcoes": [
+        "Avisos do município: em cartões longos, o fim do aviso e o botão (“Entendi” / “Li e estou ciente”) ficavam cortados; agora o cartão aparece inteiro e a caixa rola."
+      ]
+    },
+    {
       "versao": "2.68.7",
       "data": "2026-11-10",
       "novidades": [],

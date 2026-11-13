@@ -1,12 +1,11 @@
 {
-  "_leia_me": "Avisos que aparecem sozinhos DENTRO do atendimento, conforme o municipio do paciente e, quando houver, a UNIDADE que aparece no campo 'Vinculos' do cartao do paciente. Chave do municipio: o nome como a prefeitura aparece no Meeds, sem 'Prefeitura Municipal de' (acento e maiuscula nao importam). Cada regra tem 'titulo' e ao menos uma destas listas: 'pode' (o que a teleconsulta resolve), 'naoPode' ({item, fazer}) e 'orientacoes' (texto livre, uma linha por item). 'unidades' (opcional) traz regras por unidade: a chave e so um rotulo; 'nomes' lista o nome da unidade EXATAMENTE como aparece no Vinculos (acento e maiuscula nao importam). A regra do municipio, se houver, aparece junto com a da unidade. Edite e rode 'npm run build'.",
+  "_leia_me": "Avisos que aparecem sozinhos DENTRO do atendimento, conforme o municipio do paciente e, quando houver, a UNIDADE que aparece no campo 'Vinculos' do cartao do paciente. Chave do municipio: o nome como a prefeitura aparece no Meeds, sem 'Prefeitura Municipal de' (acento e maiuscula nao importam). Cada regra tem 'titulo' e ao menos uma destas listas: 'pode' (o que a teleconsulta resolve), 'naoPode' ({item, fazer}) e 'orientacoes' (texto livre, uma linha por item). 'unidades' (opcional) traz regras por unidade: a chave e so um rotulo; 'nomes' lista o nome da unidade EXATAMENTE como aparece no Vinculos (acento e maiuscula nao importam). A regra do municipio, se houver, aparece junto com a da unidade. Edite e rode 'npm run build'. 'exigeCiencia': true (opcional, no municipio ou na unidade) troca o botao 'Entendi' por 'Li e estou ciente' e, depois de confirmado, o aviso nao volta enquanto a pagina do Meeds estiver aberta (volta a cada novo login/recarga); sem ele, 'Entendi' silencia por 3h. A ordem na tela e: o que NAO pode (❌) primeiro, depois o que pode (✅), depois as orientacoes (📌).",
   "municipios": {
     "Barbacena": {
       "titulo": "Município de Barbacena (UPA)",
       "pode": [
         "Medicação VO",
-        "Medicação IM",
-        "Atestado com critério"
+        "Medicação IM"
       ],
       "naoPode": [
         {
@@ -25,9 +24,7 @@
     "Franco da Rocha": {
       "titulo": "Município de Franco da Rocha (UPA)",
       "pode": [
-        "Medicação para domicílio",
-        "Atestado com critério",
-        "Casos eletivos: encaminhar para UBS"
+        "Medicação para domicílio"
       ],
       "naoPode": [
         {
@@ -37,9 +34,18 @@
         {
           "item": "Exames",
           "fazer": "encaminhar ao presencial"
+        },
+        {
+          "item": "Casos eletivos",
+          "fazer": "encaminhar para a UBS"
+        },
+        {
+          "item": "Paciente com sinal de alarme",
+          "fazer": "encaminhar ao presencial"
         }
       ],
       "orientacoes": [
+        "Nesta UPA só são atendidas fichas azuis — o fluxo já contempla receita e alta.",
         "Atestado com critério: só com justificativa clínica, afastamento compatível com o que foi avaliado e registro em prontuário — o Código de Ética Médica veda emitir sem ter praticado o ato (art. 80)."
       ]
     },
@@ -52,8 +58,7 @@
           ],
           "pode": [
             "Medicação VO, IM e EV na unidade",
-            "Exames pertinentes ao pronto atendimento (hemograma, eletrólitos, função renal, glicemia, urina, ECG, radiografia, conforme oferta local)",
-            "Atestado com critério"
+            "Exames pertinentes ao pronto atendimento (hemograma, eletrólitos, função renal, glicemia, urina, ECG, radiografia, conforme oferta local)"
           ],
           "naoPode": [
             {
@@ -109,8 +114,7 @@
         "Casa da Criança": {
           "titulo": "Macaé — Casa da Criança e do Adolescente",
           "nomes": [
-            "CASA DA CRIANCA E DO ADOLESCENTE",
-            "CASA DA CRIANÇA E DO ADOLESCENTE"
+            "CASA DA CRIANCA E DO ADOLESCENTE"
           ],
           "naoPode": [
             {
@@ -126,8 +130,7 @@
         "Clínica do Autista": {
           "titulo": "Macaé — Clínica do Autista",
           "nomes": [
-            "CLINICA DO AUTISTA",
-            "CLÍNICA DO AUTISTA"
+            "CLINICA DO AUTISTA"
           ],
           "orientacoes": [
             "Atendimentos: psiquiatria infantil, neuropediatria, serviço social, psicologia, fisioterapia, fonoaudiologia e nutrição.",
@@ -186,7 +189,8 @@
     "Pará de Minas": {
       "unidades": {
         "UBS": {
-          "titulo": "Pará de Minas — UBS (telemedicina)",
+          "titulo": "Pará de Minas — UBS: pontos de atenção (leitura obrigatória)",
+          "exigeCiencia": true,
           "nomes": [
             "UBS NOSSA SENHORA DA PIEDADE",
             "UBS WALTER MARTINS"
@@ -198,22 +202,32 @@
           ],
           "naoPode": [
             {
-              "item": "Renovação de receitas",
-              "fazer": "a telemedicina não renova receitas"
+              "item": "Prescrever com nome comercial",
+              "fazer": "usar só o princípio ativo, seguindo a REMUME de Pará de Minas"
             },
             {
-              "item": "Exames de rotina",
-              "fazer": "orientar o paciente a agendar consulta com a enfermeira da UBS"
+              "item": "Renovar receitas, mesmo diante da receita prévia",
+              "fazer": "a telemedicina não renova receitas neste município"
             },
             {
               "item": "Exames de imagem",
               "fazer": "não solicitar pela telemedicina"
+            },
+            {
+              "item": "Encaminhamento ao especialista",
+              "fazer": "não encaminhar pela telemedicina"
+            },
+            {
+              "item": "Exames de rotina",
+              "fazer": "encaminhar ao atendimento presencial com o clínico, com resumo da história clínica e CID — nunca sugerir conduta ao colega"
             }
           ],
           "orientacoes": [
+            "Atendemos DEMANDA ESPONTÂNEA — \"a UPA da UBS\": siga o raciocínio de uma UPA.",
+            "Reavaliação sempre com a telemedicina, exceto os casos que não possam ser conduzidos por ela.",
+            "Atestado com critério: só com justificativa clínica, afastamento compatível com o que foi avaliado e registro em prontuário — o Código de Ética Médica veda emitir sem ter praticado o ato (art. 80).",
             "Um técnico de enfermagem da unidade acompanha a consulta e faz a ponte entre o paciente, o médico e a equipe.",
-            "Na receita: nome completo do paciente e princípio ativo do medicamento, sem nome comercial, seguindo a REMUME de Pará de Minas.",
-            "Injetável: o paciente apresenta a receita à equipe para a administração."
+            "Na receita: nome completo do paciente. Injetável: o paciente apresenta a receita à equipe para a administração."
           ]
         }
       }

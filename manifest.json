@@ -1,6 +1,6 @@
 {
   "nome": "Assistente Meeds",
-  "versao": "2.68.7",
+  "versao": "2.69.0",
   "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
   "repositorio": "https://github.com/sodelfino/meeds-suite",
   "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -182,8 +182,8 @@
     {
       "id": "avisos-municipio",
       "nome": "Avisos do município",
-      "descricao": "Dentro do atendimento, mostra sozinho o que a teleconsulta resolve no município — e, quando houver, na unidade do paciente — e o que deve ir para o presencial (hoje: Barbacena, Franco da Rocha, Congonhas, Piraí e unidades de Macaé).",
-      "versao": "1.5.0",
+      "descricao": "Dentro do atendimento, mostra sozinho o que a teleconsulta resolve no município — e, quando houver, na unidade do paciente — e o que deve ir para o presencial (hoje: Barbacena, Franco da Rocha, Congonhas, Piraí, unidades de Macaé e UBS de Pará de Minas, estas com ciência obrigatória).",
+      "versao": "1.6.0",
       "arquivo": "modules/avisos-municipio/index.js",
       "apresentacao": {
         "formaBotao": "nenhum",
