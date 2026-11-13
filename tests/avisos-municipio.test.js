@@ -60,9 +60,11 @@ function overlayFalso(opcoes, overlays) {
     opcoes, elemento, aberto: false, removido: false, raizShadow,
     $(sel) { return stubs[sel] || (stubs[sel] = stub(raizShadow)); },
     /* Focáveis na ordem do DOM: os stubs que o módulo pediu (ele pede na
-     * ordem do rodapé), presentes no HTML e não desabilitados. */
+     * ordem do rodapé), presentes no HTML e não desabilitados. O próprio
+     * .msam-modal não é botão/input: fica de fora, como no seletor real. */
     $$() {
-      return Object.keys(stubs).filter((sel) => html.indexOf(sel.slice(1)) !== -1 && !stubs[sel].disabled).map((sel) => stubs[sel]);
+      return Object.keys(stubs).filter((sel) => sel !== ".msam-modal" && html.indexOf(sel.slice(1)) !== -1 && !stubs[sel].disabled)
+        .map((sel) => stubs[sel]);
     },
     abrir() { o.aberto = true; },
     fechar() { o.aberto = false; },
@@ -919,8 +921,9 @@ function reabreEmOutroAtendimento(t, id) {
   ok("alertdialog modal com título", /role="alertdialog"/.test(m.elemento.innerHTML) && /aria-modal="true"/.test(m.elemento.innerHTML) &&
      /aria-labelledby="msam-titulo"/.test(m.elemento.innerHTML) && /id="msam-titulo"/.test(m.elemento.innerHTML) &&
      /ATENÇÃO — LEITURA OBRIGATÓRIA/.test(m.elemento.innerHTML));
-  ok("passo 1 de 4, sem Voltar, foco no Avançar", /Passo 1 de 4/.test(m.elemento.innerHTML) &&
-     !/msam-voltar/.test(m.elemento.innerHTML) && m.$(".msam-avancar").focado);
+  ok("passo 1 de 4, sem Voltar; abriu sozinho: foco no modal, não no Avançar (espaço não pula passo)",
+     /Passo 1 de 4/.test(m.elemento.innerHTML) && !/msam-voltar/.test(m.elemento.innerHTML) &&
+     m.$(".msam-modal").focado && !m.$(".msam-avancar").focado);
   ok("Esc não fecha", m.elemento.tecla("Escape").evitado && m.estaAberto());
   m.$(".msam-avancar").click();
   ok("passo 2: Voltar aparece e volta ao 1", /Passo 2 de 4/.test(m.elemento.innerHTML) && /msam-voltar/.test(m.elemento.innerHTML) &&
@@ -963,6 +966,56 @@ function reabreEmOutroAtendimento(t, id) {
   ok("último passo: Tab circula Voltar ↔ checkbox, pulando o Confirmar desabilitado",
      ativo() === ciente && (m.elemento.tecla("Tab"), ativo() === m.$(".msam-voltar")) &&
      (m.elemento.tecla("Tab"), ativo() === ciente));
+}
+/* Revisão final (13/11): foco inicial no modal também na regra de um passo
+ * só (senão iria para o checkbox), e foco devolvido ao fechar. */
+{
+  const dados = JSON.parse(JSON.stringify(DADOS));
+  const ubs = dados.municipios["Pará de Minas"].unidades.UBS;
+  delete ubs.resumo; delete ubs.pode; delete ubs.naoPode;
+  const t = abrirPara(carregar(dados));
+  const m = t.overlays[0];
+  ok("regra de um passo: foco no modal, não no checkbox", /Passo 1 de 1/.test(m.elemento.innerHTML) &&
+     m.$(".msam-modal").focado && !m.$(".msam-ciente").focado);
+}
+{
+  const foco = () => { const el = { focado: false, focus() { el.focado = true; } }; return el; };
+  const t = carregar();
+  const anamnese = foco();
+  const body = foco();
+  t.ctx.document = { body, activeElement: anamnese };
+  abrirPara(t);
+  confirmarCiencia(t.overlays[0]);
+  ok("confirmou: o foco volta para onde estava (anamnese)", anamnese.focado);
+
+  const t2 = carregar();
+  const anamnese2 = foco();
+  t2.ctx.document = { body, activeElement: anamnese2 };
+  abrirPara(t2);
+  t2.ir("/pronto-atendimento");
+  ok("saiu do atendimento: o foco também volta", anamnese2.focado);
+
+  const t3 = carregar();
+  t3.ctx.document = { body, activeElement: body };
+  abrirPara(t3);
+  confirmarCiencia(t3.overlays[0]);
+  ok("foco estava no body: não força foco em nada", !body.focado);
+}
+/* RF4 sem trocar de URL: sessão expirada mostra o login ainda em
+ * /atendimento/<id>. O modal não pode ficar por cima do login. */
+{
+  const t = abrirPara();
+  const m = t.overlays[0];
+  t.ctx.MeedsSuiteAuth = { estaNaTelaDeLogin: () => true };
+  t.passar(1000);
+  const removido = !m.estaAberto() && m.removido;
+  t.passar(1000);
+  t.passar(1000);
+  const naoReabriu = modaisAbertos(t).length === 0;
+  t.ctx.MeedsSuiteAuth = { estaNaTelaDeLogin: () => false };
+  t.passar(1000);
+  ok("login aparece sem sair do atendimento: modal sai, não reabre com o login na tela, volta depois pedindo ciência",
+     removido && naoReabriu && modaisAbertos(t).length === 1 && t.overlays.length === 2);
 }
 /* RF1 */
 {

@@ -79,7 +79,7 @@
     ".msam-btn:focus-visible, .msam-ack input:focus-visible { outline: 3px solid #2E7D7B; outline-offset: 2px; }",
   ].join("\n");
 
-  const RX_PAGINA_ATENDIMENTO =/^\/atendimento\/([0-9a-fA-F-]{36})(?:\/|$)/;
+  const RX_PAGINA_ATENDIMENTO = /^\/atendimento\/([0-9a-fA-F-]{36})(?:\/|$)/;
   const RX_API_ATENDIMENTO = /\/api\/v1\/atendimento\/([0-9a-fA-F-]{36})(?:[?#].*)?$/i;
 
   function regras() {
@@ -239,11 +239,15 @@
   function fechar() {
     if (!aberto) return;
     if (aberto.tipo === "modal") {
+      const anterior = aberto.focoAnterior;
       aberto.overlay.fechar();
       aberto.overlay.remover();
-    } else {
-      aberto.aviso.fechar();
+      aberto = null;
+      /* Devolve o foco a quem tinha antes do modal (ex.: a anamnese). */
+      if (anterior && anterior.isConnected !== false && typeof anterior.focus === "function") anterior.focus();
+      return;
     }
+    aberto.aviso.fechar();
     aberto = null;
   }
 
@@ -322,7 +326,10 @@
     let atual = 0;
     const overlay = d.dock.criarOverlay({ html: "", estilo: CSS_MODAL, fecharAoClicarFora: false });
 
-    function render() {
+    /* inicio: o modal abriu sozinho, talvez com o medico digitando na
+     * anamnese — o foco vai para o proprio modal, nao para o Avancar (o
+     * espaco seguinte pularia um passo sem ler). */
+    function render(inicio) {
       const ultimo = atual === total - 1;
       overlay.elemento.innerHTML =
         "<div class=\"msam-modal\" tabindex=\"-1\" role=\"alertdialog\" aria-modal=\"true\" aria-labelledby=\"msam-titulo\">" +
@@ -350,7 +357,7 @@
       if (!ultimo) {
         const avancar = overlay.$(".msam-avancar");
         avancar.addEventListener("click", function () { atual++; render(); });
-        avancar.focus();
+        (inicio ? overlay.$(".msam-modal") : avancar).focus();
         return;
       }
       const ciente = overlay.$(".msam-ciente");
@@ -362,7 +369,7 @@
         entendidos[chave] = Infinity;
         fechar();
       });
-      ciente.focus(); // Confirmar comeca desabilitado: o foco vai para o que habilita
+      (inicio ? overlay.$(".msam-modal") : ciente).focus(); // Confirmar comeca desabilitado: o foco vai para o que habilita
     }
 
     /* Clique no fundo escuro nao pode tirar o foco do modal: o foco iria
@@ -390,9 +397,12 @@
       focaveis[proximo].focus();
     });
 
-    aberto = { id: id, municipio: municipio, chave: chave, tipo: "modal", overlay: overlay };
+    const doc = raiz.document;
+    const ativo = doc && doc.activeElement;
+    aberto = { id: id, municipio: municipio, chave: chave, tipo: "modal", overlay: overlay,
+      focoAnterior: ativo && ativo !== doc.body ? ativo : null };
     overlay.abrir();
-    render();
+    render(true);
   }
 
   /* O atendimento da tela que PODE receber aviso, ou null. Fecha o que
@@ -414,18 +424,26 @@
 
   /* A ciencia e de quem esta logado. Se o Meeds voltar para a tela de
    * login sem recarregar a pagina (SPA), o proximo medico tem que ler de
-   * novo — o "Entendi" de 3h segue como estava. */
+   * novo — o "Entendi" de 3h segue como estava. Devolve true se a tela
+   * de login esta visivel: ai nada fica por cima dela (o login pode
+   * aparecer sem sair de /atendimento/<id>, sessao expirada na SPA; com o
+   * modal por cima, o medico confirmaria, a ciencia seria apagada 1 s
+   * depois e o modal voltaria — nunca chegaria ao login). */
   function esquecerCienciaNoLogin() {
     const Auth = raiz.MeedsSuiteAuth;
-    if (!Auth || typeof Auth.estaNaTelaDeLogin !== "function" || !Auth.estaNaTelaDeLogin()) return;
+    if (!Auth || typeof Auth.estaNaTelaDeLogin !== "function" || !Auth.estaNaTelaDeLogin()) return false;
     Object.keys(entendidos).forEach(function (k) {
       if (entendidos[k] === Infinity) delete entendidos[k];
     });
+    return true;
   }
 
   function verificar() {
     if (!d) return;
-    esquecerCienciaNoLogin();
+    if (esquecerCienciaNoLogin()) {
+      fechar();
+      return;
+    }
     const id = atendimentoParaAvisar();
     if (!id) return;
 
