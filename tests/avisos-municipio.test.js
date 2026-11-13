@@ -75,6 +75,31 @@ function overlayFalso(opcoes, overlays) {
   return o;
 }
 
+/* Le o modal aberto como o antigo cartao ({ titulo, corpo }), percorrendo
+ * todos os passos e voltando ao primeiro. Cada linha leva a marca do grupo
+ * (❌ / ✅ / 📌; o contexto leva 🏥), como o cartao fazia. */
+const decodificar = (h) => h.replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+  .replace(/&quot;/g, "\"").replace(/&#39;/g, "'").replace(/&amp;/g, "&");
+const MARCA = { naoPode: "❌", pode: "✅", orientacoes: "📌" };
+function linhasDoPasso(html) {
+  const linhas = [];
+  html.replace(/<div class="msam-contexto">([\s\S]*?)<\/div>/g, (_, t) => { linhas.push(decodificar(t).trim()); });
+  html.replace(/<li class="msam-(\w+)"><span[^>]*>[^<]*<\/span><div>([\s\S]*?)(?:<em>([\s\S]*?)<\/em>)?<\/div><\/li>/g,
+    (_, tipo, t, f) => { linhas.push(MARCA[tipo] + " " + decodificar(t) + (f ? " → " + decodificar(f) : "")); });
+  return linhas;
+}
+function comoAviso(o) {
+  const titulo = decodificar((/<h2[^>]*>([\s\S]*?)<\/h2>/.exec(o.elemento.innerHTML) || [])[1] || "");
+  const corpo = linhasDoPasso(o.elemento.innerHTML);
+  let n = 0;
+  for (; n < 10 && /msam-avancar/.test(o.elemento.innerHTML); n++) {
+    o.$(".msam-avancar").click();
+    corpo.push.apply(corpo, linhasDoPasso(o.elemento.innerHTML));
+  }
+  while (n-- > 0) o.$(".msam-voltar").click();
+  return { o, spec: { titulo, corpo } };
+}
+
 function carregar(dados) {
   let definicao = null;
   const avisos = [];
@@ -120,7 +145,8 @@ function carregar(dados) {
 
   return {
     ctx, def: definicao, avisos, overlays,
-    visiveis: () => avisos.filter((a) => a.visivel),
+    /* O cartao (criarAviso) nao existe mais: avisos tem que ficar vazio. */
+    visiveis: () => overlays.filter((o) => o.estaAberto()).map(comoAviso),
     ir(p) { ctx.location.pathname = p; definicao._verificar(); },
     tela(vinculo, textoDaPagina) {
       ctx.vinculo = vinculo; ctx.textoDaPagina = textoDaPagina;
@@ -148,8 +174,7 @@ const atendimentoDe = (razao) => ({ id: ID, cliente: { razaoSocialNome: razao } 
   ok("o titulo diz Barbacena (UPA)", /Barbacena \(UPA\)/.test(texto));
   ok("lista o que pode (VO, IM, atestado)", /Medicação VO/.test(texto) && /Medicação IM/.test(texto) && /Atestado com critério/.test(texto));
   ok("lista o que nao pode e o que fazer", /Medicação EV.*presencial/.test(texto) && /Exames.*presencial/.test(texto));
-  ok("nao some sozinho (sem autoFecharMs)", v.length && !v[0].spec.autoFecharMs);
-  ok("vem com destaque de atenção (âmbar, pulsa 3x)", v.length && v[0].spec.destaque === "atencao");
+  ok("abre em modal que não fecha clicando fora (nunca no cartão)", v.length && v[0].o.opcoes.fecharAoClicarFora === false && t.avisos.length === 0);
 
   t.ir("/pronto-atendimento");
   ok("saiu do atendimento: o aviso some", t.visiveis().length === 0);
@@ -202,14 +227,14 @@ const atendimentoDe = (razao) => ({ id: ID, cliente: { razaoSocialNome: razao } 
   ok("e o outro, de Itaúna, continua sem aviso", t.visiveis().length === 0);
 }
 
-/* 6. Fechou no X: nao reaparece no mesmo atendimento. */
+/* 6. Confirmou a ciencia: nao reaparece no mesmo atendimento. */
 {
   const t = carregar();
   t.ir("/atendimento/" + ID);
   t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA"));
-  t.visiveis()[0].fechar();
+  confirmarCiencia(t.visiveis()[0].o);
   t.ir("/atendimento/" + ID);
-  ok("o medico fechou: nao reabre no mesmo atendimento", t.visiveis().length === 0);
+  ok("o medico confirmou: nao reabre no mesmo atendimento", t.visiveis().length === 0);
   t.ir("/pronto-atendimento");
   t.ir("/atendimento/" + ID);
   ok("nem ao sair e voltar para ele", t.visiveis().length === 0);
@@ -221,7 +246,7 @@ const atendimentoDe = (razao) => ({ id: ID, cliente: { razaoSocialNome: razao } 
   t.ir("/atendimento/" + ID);
   t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA"));
   t.def.stop();
-  ok("desligar o modulo fecha o aviso", t.avisos.every((a) => !a.visivel));
+  ok("desligar o modulo fecha o aviso", t.overlays.length === 1 && t.overlays.every((o) => !o.estaAberto()));
 }
 
 
@@ -315,7 +340,7 @@ const atendimentoDe = (razao) => ({ id: ID, cliente: { razaoSocialNome: razao } 
   t.ir("/atendimento/" + ID);
   for (let i = 0; i < 5; i++) t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA"));
   t.ir("/atendimento/" + ID);
-  ok("5 respostas do mesmo atendimento: um cartão só", t.avisos.length === 1, t.avisos.length);
+  ok("5 respostas do mesmo atendimento: um modal só", t.overlays.length === 1, t.overlays.length);
 }
 
 /* 15. Atendimento A (Barbacena) -> B (Franco): troca o cartao. */
@@ -372,37 +397,35 @@ const atendimentoDe = (razao) => ({ id: ID, cliente: { razaoSocialNome: razao } 
   ok("rede sem prefeitura + vínculo Macaé: nenhum aviso", t.visiveis().length === 0);
 }
 
-/* 18. Abre na LATERAL SUPERIOR (acima dos botoes), pulsando; "Entendi"
- *     fecha o cartão e silencia aquela cidade/unidade por 3h — mesmo
- *     trocando de atendimento. Pedido de 28/09/2026: o cartão calmo, mas
- *     ainda na tela, seguia atrapalhando o formulário. Pedido de
- *     01/10/2026: 5h era tempo demais, reduzido para 3h. */
+/* 18. Fase 2 (13/11/2026): toda cidade em modal; confirmada a ciência,
+ *     Barbacena não volta até o login — nem em outro atendimento, nem
+ *     12h depois. Antes era o cartão com "Entendi" por 3h. */
 {
   const t = carregar();
   t.ir("/atendimento/" + ID);
   t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA"));
   const a = t.visiveis()[0];
-  ok("abre na lateral superior, pulsando (não no meio da tela)", a && a.spec.topo === true && !a.spec.centro && a.spec.destaque === "atencao");
-  const entendi = a && (a.spec.acoes || []).find((x) => x.rotulo === "Entendi");
-  ok("tem o botão Entendi", !!entendi);
-  entendi.aoClicar();
-  ok("Entendi: o cartão fecha", t.visiveis().length === 0);
+  ok("Barbacena abre em modal no meio da tela, com ciência", a && /ATENÇÃO — LEITURA OBRIGATÓRIA/.test(a.o.elemento.innerHTML) &&
+     /Li e estou ciente/.test(lerPassos(a.o).join("\n")));
+  confirmarCiencia(a.o);
+  ok("confirmou: o modal fecha", t.visiveis().length === 0);
   t.ir("/atendimento/" + ID);
   ok("e não reabre neste atendimento", t.visiveis().length === 0);
   const OUTRO_ID = "22222222-2222-2222-2222-222222222222";
   t.ir("/atendimento/" + OUTRO_ID);
   t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA"), URL_API.replace(ID, OUTRO_ID));
-  ok("nem em outro atendimento da mesma cidade, dentro das 3h", t.visiveis().length === 0);
+  ok("nem em outro atendimento da mesma cidade", t.visiveis().length === 0);
 
   const TERCEIRO_ID = "33333333-3333-3333-3333-333333333333";
   t.ir("/atendimento/" + TERCEIRO_ID);
   t.rede(atendimentoDe("PREFEITURA DO MUNICIPIO DE FRANCO DA ROCHA"), URL_API.replace(ID, TERCEIRO_ID));
   ok("mas outra cidade continua avisando normalmente", t.visiveis().length === 1);
+  confirmarCiencia(t.visiveis()[0].o);
 
-  t.passar(3 * 60 * 60 * 1000 + 1000);
+  t.passar(12 * 60 * 60 * 1000);
   t.ir("/atendimento/" + OUTRO_ID);
   t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA"), URL_API.replace(ID, OUTRO_ID));
-  ok("passadas as 3h, Barbacena volta a avisar", t.visiveis().filter((v) => /Barbacena/.test(v.spec.titulo)).length === 1);
+  ok("Barbacena: confirmada a ciência, não volta até o login (nem 12h depois)", t.visiveis().length === 0);
 }
 
 /* ==================================================================
@@ -482,7 +505,7 @@ const textoDe = (a) => [a.spec.titulo].concat(a.spec.corpo).join("\n");
   t.passar(1000);
   ok("a unidade apareceu: o cartão abre", t.visiveis().length === 1 && /Parque Aeroporto/.test(t.visiveis()[0].spec.titulo));
   t.passar(1000);
-  ok("e não abre outro a cada segundo", t.avisos.length === 1);
+  ok("e não abre outro a cada segundo", t.overlays.length === 1);
 }
 {
   const t = carregar();
@@ -771,12 +794,11 @@ const CRITERIO_ATESTADO = /justificativa cl[ií]nica/i;
     t.ir("/atendimento/" + ID);
     t.rede(atendimentoDe(PPM));
     t.passar(3100);
-    /* Desde 13/11/2026 a UBS abre em modal (exigeCiencia), não em cartão. */
-    return t.visiveis().concat(t.overlays.filter((o) => o.estaAberto()));
+    return t.visiveis();
   };
   ["UBS NOSSA SENHORA DA PIEDADE", "UBS Walter Martins"].forEach((unidade) => {
     const v = para([PPM, unidade]);
-    const texto = v.length === 1 && v[0].elemento ? lerPassos(v[0]).join("\n") : "";
+    const texto = v.length === 1 ? textoDe(v[0]) : "";
     ok("Pará de Minas, " + unidade + ": fluxo da UBS", v.length === 1 && /Pará de Minas — UBS/.test(texto) &&
        /azul ou verde/.test(texto) && /não renova receitas/.test(texto) &&
        /tenoxicam/.test(texto) && /Exames de imagem/.test(texto));
@@ -845,9 +867,10 @@ function reabreEmOutroAtendimento(t, id) {
   t.ir("/atendimento/" + ID);
   t.rede(atendimentoDe("PREFEITURA DO MUNICIPIO DE FRANCO DA ROCHA"));
   const texto = textoDe(t.visiveis()[0]);
-  ok("Franco da Rocha: fichas azuis, sinal de alarme e eletivos (❌) no cartão", /fichas azuis/.test(texto) &&
+  ok("Franco da Rocha: fichas azuis, sinal de alarme e eletivos (❌) no aviso", /fichas azuis/.test(texto) &&
      /❌ Paciente com sinal de alarme/.test(texto) && /❌ Casos eletivos → encaminhar para a UBS/.test(texto));
-  ok("Franco da Rocha: 'Entendi' continua para quem não exige ciência", (t.visiveis()[0].spec.acoes || []).some((x) => x.rotulo === "Entendi"));
+  ok("Franco da Rocha: também pede 'Li e estou ciente', sem 'Entendi'", /Li e estou ciente/.test(lerPassos(t.visiveis()[0].o).join("\n")) &&
+     !/Entendi/.test(t.visiveis()[0].o.elemento.innerHTML));
 }
 
 /* 28. Achados do review de 13/11/2026: a ciência é por cidade/unidade, a
@@ -916,7 +939,7 @@ function reabreEmOutroAtendimento(t, id) {
 {
   const t = abrirPara();
   const m = t.overlays[t.overlays.length - 1];
-  ok("abre o modal, não o cartão", m && m.estaAberto() && t.visiveis().length === 0);
+  ok("abre o modal, não o cartão", m && m.estaAberto() && t.avisos.length === 0);
   ok("não fecha clicando fora", m.opcoes.fecharAoClicarFora === false);
   ok("alertdialog modal com título", /role="alertdialog"/.test(m.elemento.innerHTML) && /aria-modal="true"/.test(m.elemento.innerHTML) &&
      /aria-labelledby="msam-titulo"/.test(m.elemento.innerHTML) && /id="msam-titulo"/.test(m.elemento.innerHTML) &&
@@ -1039,15 +1062,26 @@ function reabreEmOutroAtendimento(t, id) {
   ok("tela de login com o modal aberto: fecha e esquece a ciência", !m.estaAberto() && m.removido &&
      reabreEmOutroAtendimento(t) === true);
 }
-/* RF3 */
-{
-  const t = carregar();
-  t.ir("/atendimento/" + ID);
-  t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA"));
-  const a = t.visiveis()[0];
-  ok("Barbacena (sem exigeCiencia) continua com cartão e 'Entendi'", t.overlays.length === 0 && a &&
-     a.spec.acoes.length === 1 && a.spec.acoes[0].rotulo === "Entendi");
-}
+/* Fase 2: um caso por município/unidade da tabela, gerado de DADOS —
+ * todos abrem o modal com "Passo 1 de M", M = grupos não vazios. */
+Object.keys(DADOS.municipios).forEach((nome) => {
+  const regraMun = DADOS.municipios[nome];
+  const casos = Object.keys(regraMun.unidades || {}).map((k) => ({ rotulo: nome + " / " + k, unidade: { chave: k, regra: regraMun.unidades[k] } }));
+  if (regraMun.titulo) casos.unshift({ rotulo: nome, unidade: null });
+  casos.forEach(({ rotulo, unidade }) => {
+    const t = carregar();
+    t.ctx.sexo = unidade && unidade.regra.apenasSexo;
+    t.ctx.linhas = ["PREFEITURA MUNICIPAL DE " + nome].concat(unidade ? [unidade.regra.nomes[0]] : []);
+    t.ir("/atendimento/" + ID);
+    t.passar(3100);
+    const M = t.def._montarPassos(regraMun, unidade).passos.length;
+    const m = modaisAbertos(t);
+    ok(rotulo + ": modal com Passo 1 de " + M, m.length === 1 && t.avisos.length === 0 &&
+       new RegExp("Passo 1 de " + M + "<").test(m[0].elemento.innerHTML), m.length && /Passo \d+ de \d+/.exec(m[0].elemento.innerHTML));
+    confirmarCiencia(m[0]);
+    ok(rotulo + ": confirmável", m.length === 1 && !m[0].estaAberto());
+  });
+});
 /* escape */
 {
   const dados = JSON.parse(JSON.stringify(DADOS));

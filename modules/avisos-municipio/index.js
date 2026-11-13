@@ -23,26 +23,15 @@
   let d = null;
   let timers = [];
   let municipioPorAtendimento = {}; // id do atendimento -> nome do municipio (so memoria)
-  let dispensados = {};             // id do atendimento -> true se o medico fechou no X
-  let aberto = null;                // { id, municipio, chave, tipo: "cartao"|"modal", aviso?, overlay? }
+  let aberto = null;                // { id, municipio, chave, overlay, focoAnterior }
   let vistoDesde = {};              // id do atendimento -> quando a pagina dele apareceu
-  let entendidos = {};              // chave (municipio|unidade) -> quando o medico clicou "Entendi" (Infinity = ciencia ate recarregar)
+  let entendidos = {};              // chave (municipio|unidade) -> true: ciencia confirmada (ate o login ou recarregar)
 
   /* A leitura pela tela so vale depois deste tempo SEM resposta da rede.
    * A chamada do atendimento costuma chegar em menos de 1 s; esperar
-   * evita mostrar por um instante o cartao de uma cidade que a rede,
+   * evita mostrar por um instante o aviso de uma cidade que a rede,
    * logo em seguida, desmentiria. */
   const ESPERA_REDE_MS = 3000;
-
-  /* "Entendi" nao fecha so o atendimento atual: o medico costuma atender a
-   * mesma cidade varias vezes seguidas, e reabrir o mesmo aviso a cada
-   * atendimento so treina ele a clicar sem ler. Pedido de 28/09/2026: some
-   * por um tempo (por cidade/unidade, nao por atendimento) e so volta
-   * depois de um tempo — curto o bastante para lembrar de novo num
-   * plantao longo, comprido o bastante para nao repetir no mesmo bloco de
-   * atendimentos. Pedido de 01/10/2026: 5h era tempo demais, reduzido
-   * para 3h. */
-  const TEMPO_ENTENDIDO_MS = 3 * 60 * 60 * 1000;
 
   /* Visual do modal de ciencia (prototipo de Pará de Minas, 13/11/2026).
    * O fundo escuro e a centralizacao vem do .ms-overlay do nucleo. */
@@ -170,45 +159,6 @@
     return paciente.sexo === restricao;
   }
 
-  /* O que NAO pode vem primeiro (13/11/2026): e o que evita o erro. */
-  function linhasDe(r) {
-    const corpo = [];
-    (r.naoPode || []).forEach(function (n) {
-      corpo.push("❌ " + n.item + (n.fazer ? " → " + n.fazer : ""));
-    });
-    if ((r.pode || []).length && (r.naoPode || []).length) corpo.push("");
-    (r.pode || []).forEach(function (item) {
-      corpo.push("✅ " + item);
-    });
-    if (corpo.length && (r.orientacoes || []).length) corpo.push("");
-    (r.orientacoes || []).forEach(function (o) {
-      corpo.push("📌 " + o);
-    });
-    return corpo;
-  }
-
-  /* Regra do municipio (se houver) + regra da unidade (se houver), num
-   * cartao so. O titulo e o da unidade quando ela existe. */
-  function montarAviso(regraMun, unidade) {
-    const partes = [];
-    if (temConteudo(regraMun)) partes.push(regraMun);
-    if (unidade && temConteudo(unidade.regra)) partes.push(unidade.regra);
-    if (!partes.length) return null;
-    let corpo = [];
-    partes.forEach(function (r, i) {
-      if (i > 0) { corpo.push(""); corpo.push(r.titulo + ":"); }
-      corpo = corpo.concat(linhasDe(r));
-    });
-    /* Com as duas, o titulo e o da unidade e cada bloco ganha o seu nome. */
-    if (partes.length > 1) corpo = [partes[0].titulo + ":"].concat(corpo);
-    return {
-      titulo: "⚠️ " + partes[partes.length - 1].titulo,
-      corpo: corpo,
-      destaque: "atencao",
-      exigeCiencia: partes.some(function (r) { return r.exigeCiencia === true; }),
-    };
-  }
-
   /* O aviso em PAGINAS (13/11/2026): contexto (resumo) -> o que NAO fazer ->
    * o que a unidade oferece -> orientacoes. Passo sem item nao existe. */
   function montarPassos(regraMun, unidade) {
@@ -238,17 +188,12 @@
 
   function fechar() {
     if (!aberto) return;
-    if (aberto.tipo === "modal") {
-      const anterior = aberto.focoAnterior;
-      aberto.overlay.fechar();
-      aberto.overlay.remover();
-      aberto = null;
-      /* Devolve o foco a quem tinha antes do modal (ex.: a anamnese). */
-      if (anterior && anterior.isConnected !== false && typeof anterior.focus === "function") anterior.focus();
-      return;
-    }
-    aberto.aviso.fechar();
+    const anterior = aberto.focoAnterior;
+    aberto.overlay.fechar();
+    aberto.overlay.remover();
     aberto = null;
+    /* Devolve o foco a quem tinha antes do modal (ex.: a anamnese). */
+    if (anterior && anterior.isConnected !== false && typeof anterior.focus === "function") anterior.focus();
   }
 
   /* De que municipio e o atendimento. A rede, quando respondeu por ESTE
@@ -264,33 +209,6 @@
     if (!vistoDesde[id]) vistoDesde[id] = Date.now();
     if (Date.now() - vistoDesde[id] < ESPERA_REDE_MS) return undefined;
     return municipioPeloVinculo(Object.keys(tabela));
-  }
-
-  function estaEntendido(chave) {
-    const quando = entendidos[chave];
-    return typeof quando === "number" && (Date.now() - quando) < TEMPO_ENTENDIDO_MS;
-  }
-
-  /* Abre na LATERAL SUPERIOR DIREITA, acima dos botoes do Assistente,
-   * pulsando. "Entendi" marca a cidade/unidade como lida por 3h
-   * (verificar() nao reabre para ela nesse intervalo, nem para outro
-   * atendimento) e FECHA o cartao — pedido de 28/09/2026: o cartao calmo,
-   * mas ainda na tela, seguia atrapalhando o formulario. O X fecha do
-   * mesmo jeito, mas so para este atendimento, sem marcar como entendido.
-   * Pedido de 25/09/2026: no meio da tela ele cobria o formulario do
-   * atendimento. Regra com exigeCiencia nao passa por aqui: vai para o
-   * modal (abrirModal). */
-  function abrirCartao(id, municipio, chave, spec) {
-    spec.topo = true;
-    spec.acoes = [{
-      rotulo: "Entendi",
-      fecha: false,
-      aoClicar: function () {
-        entendidos[chave] = Date.now();
-        fechar();
-      },
-    }];
-    aberto = { id: id, municipio: municipio, chave: chave, tipo: "cartao", aviso: d.dock.criarAviso(spec) };
   }
 
   function escapeHtml(s) {
@@ -314,13 +232,14 @@
     }).join("") + "</ol>";
   }
 
-  /* Pedido de 13/11/2026 (Pará de Minas): regra com exigeCiencia abre em
-   * MODAL, no meio da tela, em passos (contexto -> o que NAO fazer -> o
-   * que a unidade oferece -> orientacoes). Bloqueia o atendimento ate o
-   * medico marcar "Li e estou ciente" e confirmar no ultimo passo: nao
-   * fecha clicando fora nem no Esc. A ciencia vale ate o fim da pagina
-   * (ou ate a tela de login) — nao a cada 3h como o "Entendi". Sair do
-   * atendimento fecha sem registrar ciencia. */
+  /* Pedido de 13/11/2026 (Pará de Minas; desde a 2.71.0, todas as
+   * cidades): o aviso abre em MODAL, no meio da tela, em passos (contexto
+   * -> o que NAO fazer -> o que a unidade oferece -> orientacoes).
+   * Bloqueia o atendimento ate o medico marcar "Li e estou ciente" e
+   * confirmar no ultimo passo: nao fecha clicando fora nem no Esc. A
+   * ciencia vale ate o fim da pagina (ou ate a tela de login). Sair do
+   * atendimento fecha sem registrar ciencia. Isso substitui o cartao no
+   * canto, que silenciava por 3h (pedidos de 25/09, 28/09 e 01/10/2026). */
   function abrirModal(id, municipio, chave, dados) {
     const total = dados.passos.length;
     let atual = 0;
@@ -366,7 +285,7 @@
       ciente.addEventListener("change", function () { confirmar.disabled = !ciente.checked; });
       confirmar.addEventListener("click", function () {
         if (!ciente.checked) return;
-        entendidos[chave] = Infinity;
+        entendidos[chave] = true;
         fechar();
       });
       (inicio ? overlay.$(".msam-modal") : ciente).focus(); // Confirmar comeca desabilitado: o foco vai para o que habilita
@@ -399,7 +318,7 @@
 
     const doc = raiz.document;
     const ativo = doc && doc.activeElement;
-    aberto = { id: id, municipio: municipio, chave: chave, tipo: "modal", overlay: overlay,
+    aberto = { id: id, municipio: municipio, chave: chave, overlay: overlay,
       focoAnterior: ativo && ativo !== doc.body ? ativo : null };
     overlay.abrir();
     render(true);
@@ -408,23 +327,18 @@
   /* O atendimento da tela que PODE receber aviso, ou null. Fecha o que
    * nao vale mais: fora do atendimento, ou outro atendimento. */
   function atendimentoParaAvisar() {
-    /* O medico fechou no X: vale para este atendimento ate o fim. */
-    if (aberto && aberto.tipo === "cartao" && !aberto.aviso.estaVisivel()) {
-      dispensados[aberto.id] = true;
-      aberto = null;
-    }
     const id = atendimentoDaPagina();
     if (!id) {
       fechar();
       return null;
     }
     if (aberto && aberto.id !== id) fechar();
-    return dispensados[id] ? null : id;
+    return id;
   }
 
   /* A ciencia e de quem esta logado. Se o Meeds voltar para a tela de
    * login sem recarregar a pagina (SPA), o proximo medico tem que ler de
-   * novo — o "Entendi" de 3h segue como estava. Devolve true se a tela
+   * novo. Devolve true se a tela
    * de login esta visivel: ai nada fica por cima dela (o login pode
    * aparecer sem sair de /atendimento/<id>, sessao expirada na SPA; com o
    * modal por cima, o medico confirmaria, a ciencia seria apagada 1 s
@@ -432,9 +346,7 @@
   function esquecerCienciaNoLogin() {
     const Auth = raiz.MeedsSuiteAuth;
     if (!Auth || typeof Auth.estaNaTelaDeLogin !== "function" || !Auth.estaNaTelaDeLogin()) return false;
-    Object.keys(entendidos).forEach(function (k) {
-      if (entendidos[k] === Infinity) delete entendidos[k];
-    });
+    entendidos = {};
     return true;
   }
 
@@ -453,23 +365,19 @@
 
     const regraMun = tabela[municipio];
     const unidade = unidadeDoVinculo(municipio, regraMun);
-    const exigeCiencia = regraMun.exigeCiencia === true || !!(unidade && unidade.regra.exigeCiencia === true);
-    const passos = exigeCiencia ? montarPassos(regraMun, unidade) : null;
-    const spec = passos ? null : montarAviso(regraMun, unidade);
-    if (!passos && !spec) return;
+    const passos = montarPassos(regraMun, unidade);
+    if (!passos) return;
     const chave = municipio + "|" + (unidade ? unidade.chave : "");
     if (aberto && aberto.chave === chave) return;
-    if (estaEntendido(chave)) {
-      /* Marcado "Entendi" ha menos de 3h, para esta cidade/unidade: nao
-       * reabre, nem neste nem em outro atendimento. */
+    if (entendidos[chave] === true) {
+      /* Ciencia ja confirmada para esta cidade/unidade: nao reabre, nem
+       * neste nem em outro atendimento, ate o login. */
       if (aberto) fechar();
       return;
     }
-    /* A unidade apareceu (ou mudou) depois do cartao do municipio: troca
-     * o cartao, sem contar como "dispensado pelo medico". */
+    /* A unidade apareceu (ou mudou) depois do aviso do municipio: troca. */
     if (aberto) fechar();
-    if (passos) abrirModal(id, municipio, chave, passos);
-    else abrirCartao(id, municipio, chave, spec);
+    abrirModal(id, municipio, chave, passos);
   }
 
   raiz.MeedsSuite.registerModule({
@@ -497,9 +405,8 @@
       if (!raiz.MeedsSuiteMunicipio.cidadesDoAtendimento(json).length) return;
       const municipio = raiz.MeedsSuiteMunicipio.detectar(json, Object.keys(regras()));
       municipioPorAtendimento[id] = municipio || null;
-      /* A rede desmentiu o cartao que a tela abriu (vinculo de uma cidade,
-       * atendimento de outra): a rede vence. Fecha sem contar como
-       * "dispensado pelo medico". */
+      /* A rede desmentiu o aviso que a tela abriu (vinculo de uma cidade,
+       * atendimento de outra): a rede vence. */
       if (aberto && aberto.id === id && aberto.municipio !== municipio) fechar();
       verificar();
     },
@@ -518,7 +425,6 @@
       timers = [];
       fechar();
       municipioPorAtendimento = {};
-      dispensados = {};
       vistoDesde = {};
       entendidos = {};
       d = null;
