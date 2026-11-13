@@ -131,8 +131,16 @@ function carregar(dados) {
   vm.runInContext(fs.readFileSync(path.join(RAIZ, "core/municipio.js"), "utf8"), ctx);
   vm.runInContext(fs.readFileSync(path.join(RAIZ, "modules/avisos-municipio/index.js"), "utf8"), ctx);
 
+  /* Botao do modulo no dock (o nucleo cria pela ficha do manifest). */
+  const botao = { visivel: true, classes: {}, clique: null,
+    mostrar() { botao.visivel = true; }, esconder() { botao.visivel = false; },
+    definirClasse(n, l) { botao.classes[n] = !!l; },
+    clicar() { botao.clique(); } };
   definicao.start({
+    botao,
+    aoClicarBotao(fn) { botao.clique = fn; },
     dock: {
+      adicionarEstilo() {},
       criarAviso(spec) {
         const a = { spec, visivel: true, fechar() { a.visivel = false; }, estaVisivel() { return a.visivel; },
           atualizar(novo) { a.spec = Object.assign({}, a.spec, novo); } };
@@ -144,7 +152,7 @@ function carregar(dados) {
   });
 
   return {
-    ctx, def: definicao, avisos, overlays,
+    ctx, def: definicao, avisos, overlays, botao,
     /* O cartao (criarAviso) nao existe mais: avisos tem que ficar vazio. */
     visiveis: () => overlays.filter((o) => o.estaAberto()).map(comoAviso),
     ir(p) { ctx.location.pathname = p; definicao._verificar(); },
@@ -1092,6 +1100,47 @@ Object.keys(DADOS.municipios).forEach((nome) => {
   const html = t.overlays[0].elemento.innerHTML;
   ok("título com <b> no JSON aparece escapado", /&lt;b&gt;Pará&lt;\/b&gt;/.test(html) && !/<b>Pará/.test(html) &&
      /&lt;img src=x/.test(html) && !/<img/.test(html) && /&amp; &quot;aspas&quot;/.test(html));
+}
+
+/* Pedido de 13/11/2026 (médico, depois da 2.71.0): depois da ciência, um
+ * "!" no dock (acima da REMUME) para rever o aviso quando quiser. */
+{
+  const t = abrirPara();
+  ok("rever: com o modal pedindo ciência, o '!' fica escondido", !t.botao.visivel);
+  confirmarCiencia(t.overlays[0]);
+  t.passar(1000);
+  ok("rever: confirmada a ciência, o '!' aparece em destaque", t.botao.visivel && t.botao.classes["msam-rever"] === true);
+  t.botao.clicar();
+  const m = t.overlays[t.overlays.length - 1];
+  ok("rever: clicar reabre o aviso do passo 1, e o '!' some", m.estaAberto() && /Passo 1 de 4/.test(m.elemento.innerHTML) && !t.botao.visivel);
+  const htmls = lerPassos(m);
+  const ultimo = htmls[htmls.length - 1];
+  ok("rever: no último passo, 'Fechar' no lugar da ciência", /msam-fechar/.test(ultimo) && !/Li e estou ciente/.test(ultimo) && !/Confirmar/.test(ultimo));
+  m.$(".msam-fechar").click();
+  t.passar(1000);
+  ok("rever: Fechar fecha e o '!' volta", !m.estaAberto() && t.botao.visivel && modaisAbertos(t).length === 0);
+  t.passar(1000);
+  ok("rever: não reabre sozinho depois de fechar", modaisAbertos(t).length === 0);
+  t.ir("/pronto-atendimento");
+  ok("rever: fora do atendimento o '!' some", !t.botao.visivel);
+  t.ctx.linhas = null;
+  t.ir("/atendimento/" + OUTRO_ID);
+  t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA"), URL_API.replace(ID, OUTRO_ID));
+  ok("rever: outra cidade ainda sem ciência: modal, sem '!'", modaisAbertos(t).length === 1 && !t.botao.visivel);
+}
+{
+  const t = abrirPara();
+  confirmarCiencia(t.overlays[0]);
+  t.passar(1000);
+  t.ctx.MeedsSuiteAuth = { estaNaTelaDeLogin: () => true };
+  t.passar(1000);
+  ok("rever: tela de login esconde o '!'", !t.botao.visivel);
+}
+{
+  const t = carregar();
+  t.ir("/atendimento/" + ID);
+  t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE ITAUNA"));
+  ok("rever: cidade sem regra: sem '!'", !t.botao.visivel);
 }
 
 console.log("\n" + (falhas ? falhas + " FALHA(S)" : "todos passaram"));
