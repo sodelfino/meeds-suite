@@ -51,6 +51,7 @@
     "  background: #fff; color: #3B4552; width: 100%; max-width: 720px; max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px);",
     "  display: flex; flex-direction: column; border-radius: 16px; overflow: hidden; border: 3px solid var(--msam-red);",
     "  box-shadow: 0 24px 60px rgba(0,0,0,.35); font-size: 15px; line-height: 1.45; }",
+    ".msam-modal:focus { outline: none; }",
     ".msam-cabeca { background: var(--msam-red); color: #fff; padding: 18px 22px; display: flex; gap: 14px; align-items: center; flex: none; }",
     ".msam-icone { flex: none; width: 46px; height: 46px; border-radius: 50%; background: rgba(255,255,255,.18); display: flex;",
     "  align-items: center; justify-content: center; font-size: 24px; animation: msam-pulsa 1.6s infinite; }",
@@ -324,7 +325,7 @@
     function render() {
       const ultimo = atual === total - 1;
       overlay.elemento.innerHTML =
-        "<div class=\"msam-modal\" role=\"alertdialog\" aria-modal=\"true\" aria-labelledby=\"msam-titulo\">" +
+        "<div class=\"msam-modal\" tabindex=\"-1\" role=\"alertdialog\" aria-modal=\"true\" aria-labelledby=\"msam-titulo\">" +
           "<div class=\"msam-cabeca\">" +
             "<div class=\"msam-icone\" aria-hidden=\"true\">⚠</div>" +
             "<div><small>ATENÇÃO — LEITURA OBRIGATÓRIA</small>" +
@@ -363,6 +364,14 @@
       });
       ciente.focus(); // Confirmar comeca desabilitado: o foco vai para o que habilita
     }
+
+    /* Clique no fundo escuro nao pode tirar o foco do modal: o foco iria
+     * para o body da pagina, o keydown nao passaria mais por aqui e o Tab
+     * cairia no formulario atras. (Clique no texto: o tabindex=-1 do
+     * .msam-modal segura o foco.) */
+    overlay.elemento.addEventListener("mousedown", function (ev) {
+      if (ev.target === overlay.elemento) ev.preventDefault();
+    });
 
     /* Esc ignorado; Tab circula so entre os botoes do modal. */
     overlay.elemento.addEventListener("keydown", function (ev) {

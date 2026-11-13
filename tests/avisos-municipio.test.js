@@ -27,14 +27,15 @@ const URL_API = "https://doctor-calltech.meeds.com.br/bff/api/v1/atendimento/" +
 
 /* Elemento falso do overlay: cada seletor devolve sempre o mesmo stub ate
  * o modulo trocar o innerHTML (como no DOM real: HTML novo, elementos
- * novos). click() dispara "click" e "change", como num checkbox. */
-function stub() {
+ * novos). click() dispara "click" e "change", como num checkbox. focus()
+ * atualiza o activeElement do shadow root falso (getRootNode()). */
+function stub(raizShadow) {
   const ouvintes = {};
   const s = {
     checked: false, disabled: false, hidden: false, textContent: "", focado: false,
     addEventListener(ev, fn) { (ouvintes[ev] = ouvintes[ev] || []).push(fn); },
     click() { ["click", "change"].forEach((ev) => (ouvintes[ev] || []).forEach((fn) => fn({ target: s }))); },
-    focus() { s.focado = true; },
+    focus() { s.focado = true; raizShadow.activeElement = s; },
   };
   return s;
 }
@@ -42,20 +43,27 @@ function overlayFalso(opcoes, overlays) {
   let html = opcoes.html || "";
   let stubs = {};
   const ouvintes = {};
+  const raizShadow = { activeElement: null };
   const elemento = {
     get innerHTML() { return html; },
-    set innerHTML(v) { html = v; stubs = {}; },
+    set innerHTML(v) { html = v; stubs = {}; raizShadow.activeElement = null; },
     addEventListener(ev, fn) { (ouvintes[ev] = ouvintes[ev] || []).push(fn); },
-    tecla(key) {
-      const e = { key, evitado: false, preventDefault() { e.evitado = true; }, stopPropagation() {} };
-      (ouvintes.keydown || []).forEach((fn) => fn(e));
+    getRootNode() { return raizShadow; },
+    evento(tipo, extra) {
+      const e = Object.assign({ evitado: false, preventDefault() { e.evitado = true; }, stopPropagation() {} }, extra);
+      (ouvintes[tipo] || []).forEach((fn) => fn(e));
       return e;
     },
+    tecla(key, shiftKey) { return elemento.evento("keydown", { key, shiftKey: !!shiftKey }); },
   };
   const o = {
-    opcoes, elemento, aberto: false, removido: false,
-    $(sel) { return stubs[sel] || (stubs[sel] = stub()); },
-    $$() { return []; },
+    opcoes, elemento, aberto: false, removido: false, raizShadow,
+    $(sel) { return stubs[sel] || (stubs[sel] = stub(raizShadow)); },
+    /* Focáveis na ordem do DOM: os stubs que o módulo pediu (ele pede na
+     * ordem do rodapé), presentes no HTML e não desabilitados. */
+    $$() {
+      return Object.keys(stubs).filter((sel) => html.indexOf(sel.slice(1)) !== -1 && !stubs[sel].disabled).map((sel) => stubs[sel]);
+    },
     abrir() { o.aberto = true; },
     fechar() { o.aberto = false; },
     estaAberto() { return o.aberto; },
@@ -926,6 +934,35 @@ function reabreEmOutroAtendimento(t, id) {
   ok("marcou: Confirmar habilita", m.$(".msam-confirmar").disabled === false);
   m.$(".msam-confirmar").click();
   ok("confirmou: fecha e não reabre no próximo atendimento", !m.estaAberto() && reabreEmOutroAtendimento(t) === false);
+}
+/* RF5 (review de 13/11): Tab circula dentro do modal, e clicar no texto
+ * ou no fundo não tira o foco do shadow (senão o Tab caía no formulário
+ * atrás do modal). */
+{
+  const t = abrirPara();
+  const m = t.overlays[0];
+  const ativo = () => m.raizShadow.activeElement;
+  ok("modal focável (tabindex=-1) para o clique no texto manter o foco nele", /class="msam-modal"[^>]*tabindex="-1"/.test(m.elemento.innerHTML));
+  const fundo = m.elemento.evento("mousedown", { target: m.elemento });
+  const dentro = m.elemento.evento("mousedown", { target: {} });
+  ok("mousedown no fundo escuro: preventDefault (foco fica onde está); dentro do modal não", fundo.evitado && !dentro.evitado);
+  const avancar = m.$(".msam-avancar");
+  ok("passo 1: Tab fica no Avançar", m.elemento.tecla("Tab").evitado && ativo() === avancar);
+  ok("passo 1: Shift+Tab também", m.elemento.tecla("Tab", true).evitado && ativo() === avancar);
+  avancar.click();
+  const voltar = m.$(".msam-voltar");
+  const avancar2 = m.$(".msam-avancar");
+  ok("passo 2: foco no Avançar, Tab vai para o Voltar e volta", ativo() === avancar2 &&
+     (m.elemento.tecla("Tab"), ativo() === voltar) && (m.elemento.tecla("Tab"), ativo() === avancar2));
+  ok("passo 2: Shift+Tab Avançar → Voltar → Avançar", (m.elemento.tecla("Tab", true), ativo() === voltar) &&
+     (m.elemento.tecla("Tab", true), ativo() === avancar2));
+  m.raizShadow.activeElement = { modal: true }; // clicou no texto: o foco está no próprio .msam-modal
+  ok("foco no corpo do modal: Tab vai para o primeiro focável", (m.elemento.tecla("Tab"), ativo() === voltar));
+  lerPassos(m);
+  const ciente = m.$(".msam-ciente");
+  ok("último passo: Tab circula Voltar ↔ checkbox, pulando o Confirmar desabilitado",
+     ativo() === ciente && (m.elemento.tecla("Tab"), ativo() === m.$(".msam-voltar")) &&
+     (m.elemento.tecla("Tab"), ativo() === ciente));
 }
 /* RF1 */
 {
