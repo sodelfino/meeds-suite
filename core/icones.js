@@ -49,6 +49,14 @@
       '<path d="M9 13h6M9 17h4"/>' +
       "</svg>",
 
+    /* Aviso do municipio — triangulo de atencao com a exclamacao. */
+    aviso:
+      "<svg " + COMUM + ">" +
+      '<path d="M12 3 2 20h20L12 3z"/>' +
+      '<path d="M12 10v4"/>' +
+      '<path d="M12 17.5v.5"/>' +
+      "</svg>",
+
     /* REMUME — uma cápsula. */
     remume:
       "<svg " + COMUM + ">" +
