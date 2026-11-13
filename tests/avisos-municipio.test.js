@@ -731,5 +731,46 @@ const CRITERIO_ATESTADO = /justificativa cl[ií]nica/i;
   ok("Pará de Minas sem unidade no vínculo: nenhum aviso", para([PPM]).length === 0);
 }
 
+/* 27. Pedido de 13/11/2026: pontos de atenção de Pará de Minas, com
+ *     ciência ("Li e estou ciente") que vale até recarregar a página —
+ *     não volta depois de 3h, como o "Entendi". E o que NÃO pode vem
+ *     primeiro no cartão. */
+{
+  const PPM = "PREFEITURA MUNICIPAL DE PARÁ DE MINAS";
+  const t = carregar();
+  t.ctx.linhas = [PPM, "UBS WALTER MARTINS"];
+  t.ir("/atendimento/" + ID);
+  t.rede(atendimentoDe(PPM));
+  t.passar(3100);
+  const a = t.visiveis()[0];
+  const texto = textoDe(a);
+  const corpo = a.spec.corpo;
+  ok("Pará de Minas: proibições primeiro", /^❌ Prescrever com nome comercial/.test(corpo[0] || "") &&
+     corpo.findIndex((l) => /^❌/.test(l)) < corpo.findIndex((l) => /^✅/.test(l)));
+  ok("Pará de Minas: pontos de atenção de 13/11", /mesmo diante da receita prévia/.test(texto) &&
+     /especialista/.test(texto) && /clínico, com resumo da história clínica e CID/.test(texto) &&
+     /nunca sugerir conduta/.test(texto) && /UPA da UBS/.test(texto) && /Reavaliação sempre/.test(texto) &&
+     CRITERIO_ATESTADO.test(texto) && !/enfermeira/.test(texto));
+  const ciente = (a.spec.acoes || []).find((x) => x.rotulo === "Li e estou ciente");
+  ok("Pará de Minas: botão 'Li e estou ciente' no lugar do 'Entendi'", !!ciente && !(a.spec.acoes || []).some((x) => x.rotulo === "Entendi"));
+  ciente.aoClicar();
+  ok("ciência: o cartão fecha", t.visiveis().length === 0);
+  t.passar(12 * 60 * 60 * 1000);
+  const OUTRO_ID = "22222222-2222-2222-2222-222222222222";
+  t.ir("/atendimento/" + OUTRO_ID);
+  t.rede(atendimentoDe(PPM), URL_API.replace(ID, OUTRO_ID));
+  t.passar(3100);
+  ok("ciência: não volta nem 12h depois, na mesma página", t.visiveis().length === 0);
+}
+{
+  const t = carregar();
+  t.ir("/atendimento/" + ID);
+  t.rede(atendimentoDe("PREFEITURA DO MUNICIPIO DE FRANCO DA ROCHA"));
+  const texto = textoDe(t.visiveis()[0]);
+  ok("Franco da Rocha: fichas azuis, sinal de alarme e eletivos (❌) no cartão", /fichas azuis/.test(texto) &&
+     /❌ Paciente com sinal de alarme/.test(texto) && /❌ Casos eletivos → encaminhar para a UBS/.test(texto));
+  ok("Franco da Rocha: 'Entendi' continua para quem não exige ciência", (t.visiveis()[0].spec.acoes || []).some((x) => x.rotulo === "Entendi"));
+}
+
 console.log("\n" + (falhas ? falhas + " FALHA(S)" : "todos passaram"));
 if (falhas) process.exit(1);
