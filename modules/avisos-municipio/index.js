@@ -24,7 +24,7 @@
   let timers = [];
   let municipioPorAtendimento = {}; // id do atendimento -> nome do municipio (so memoria)
   let dispensados = {};             // id do atendimento -> true se o medico fechou no X
-  let aberto = null;                // { id, municipio, chave, aviso }
+  let aberto = null;                // { id, municipio, chave, tipo: "cartao"|"modal", aviso?, overlay? }
   let vistoDesde = {};              // id do atendimento -> quando a pagina dele apareceu
   let entendidos = {};              // chave (municipio|unidade) -> quando o medico clicou "Entendi" (Infinity = ciencia ate recarregar)
 
@@ -43,6 +43,41 @@
    * atendimentos. Pedido de 01/10/2026: 5h era tempo demais, reduzido
    * para 3h. */
   const TEMPO_ENTENDIDO_MS = 3 * 60 * 60 * 1000;
+
+  /* Visual do modal de ciencia (prototipo de Pará de Minas, 13/11/2026).
+   * O fundo escuro e a centralizacao vem do .ms-overlay do nucleo. */
+  const CSS_MODAL = [
+    ".msam-modal { --msam-red: #D43F3F; --msam-red-dark: #A82E2E; --msam-red-bg: #FCE9E9; --msam-amber: #9A6417; --msam-amber-bg: #FDF3E3;",
+    "  background: #fff; color: #3B4552; width: 100%; max-width: 720px; max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px);",
+    "  display: flex; flex-direction: column; border-radius: 16px; overflow: hidden; border: 3px solid var(--msam-red);",
+    "  box-shadow: 0 24px 60px rgba(0,0,0,.35); font-size: 15px; line-height: 1.45; }",
+    ".msam-modal:focus { outline: none; }",
+    ".msam-cabeca { background: var(--msam-red); color: #fff; padding: 18px 22px; display: flex; gap: 14px; align-items: center; flex: none; }",
+    ".msam-icone { flex: none; width: 46px; height: 46px; border-radius: 50%; background: rgba(255,255,255,.18); display: flex;",
+    "  align-items: center; justify-content: center; font-size: 24px; animation: msam-pulsa 1.6s infinite; }",
+    "@keyframes msam-pulsa { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,.55); } 50% { box-shadow: 0 0 0 10px rgba(255,255,255,0); } }",
+    "@media (prefers-reduced-motion: reduce) { .msam-icone { animation: none; } }",
+    ".msam-cabeca small { display: block; font-size: 11px; letter-spacing: 1.6px; font-weight: 700; opacity: .9; }",
+    ".msam-cabeca h2 { margin: 0; font-size: 19px; line-height: 1.25; }",
+    ".msam-corpo { padding: 18px 22px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }",
+    ".msam-corpo h3 { margin: 0 0 12px; font-size: 16px; }",
+    ".msam-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }",
+    ".msam-lista li { display: flex; gap: 12px; align-items: flex-start; padding: 11px 14px; border-radius: 10px; background: #FAFBFC; border: 1px solid #ECEFF1; }",
+    ".msam-lista li.msam-naoPode { background: var(--msam-red-bg); border-color: #F3C6C6; color: var(--msam-red-dark); font-weight: 600; }",
+    ".msam-lista li.msam-pode { background: var(--msam-amber-bg); border-color: #F1D7AE; }",
+    ".msam-n { flex: none; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }",
+    ".msam-naoPode .msam-n { background: var(--msam-red); color: #fff; font-weight: 700; font-size: 13px; }",
+    ".msam-lista em { display: block; font-style: normal; font-weight: 400; font-size: 13px; color: #6B7683; margin-top: 4px; }",
+    ".msam-contexto { padding: 14px 16px; border-radius: 10px; background: var(--msam-amber-bg); border: 1px solid #F1D7AE; }",
+    ".msam-rodape { border-top: 1px solid #ECEFF1; padding: 14px 22px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; flex: none; }",
+    ".msam-contador { font-size: 13px; color: #6B7683; margin-right: auto; }",
+    ".msam-ack { display: flex; gap: 10px; align-items: center; font-weight: 600; cursor: pointer; }",
+    ".msam-ack input { width: 22px; height: 22px; margin: 0; accent-color: var(--msam-red); }",
+    ".msam-btn { border: 1px solid #ECEFF1; background: #fff; color: #3B4552; border-radius: 8px; padding: 11px 18px; font: inherit; font-weight: 600; cursor: pointer; }",
+    ".msam-principal { background: var(--msam-red); border-color: var(--msam-red); color: #fff; }",
+    ".msam-principal:disabled { background: #E3B7B7; border-color: #E3B7B7; cursor: not-allowed; }",
+    ".msam-btn:focus-visible, .msam-ack input:focus-visible { outline: 3px solid #2E7D7B; outline-offset: 2px; }",
+  ].join("\n");
 
   const RX_PAGINA_ATENDIMENTO = /^\/atendimento\/([0-9a-fA-F-]{36})(?:\/|$)/;
   const RX_API_ATENDIMENTO = /\/api\/v1\/atendimento\/([0-9a-fA-F-]{36})(?:[?#].*)?$/i;
@@ -174,11 +209,46 @@
     };
   }
 
+  /* O aviso em PAGINAS (13/11/2026): contexto (resumo) -> o que NAO fazer ->
+   * o que a unidade oferece -> orientacoes. Passo sem item nao existe. */
+  function montarPassos(regraMun, unidade) {
+    const partes = [];
+    if (temConteudo(regraMun) || (regraMun && regraMun.resumo)) partes.push(regraMun);
+    if (unidade && (temConteudo(unidade.regra) || unidade.regra.resumo)) partes.push(unidade.regra);
+    const juntar = function (f) {
+      return partes.reduce(function (a, r) { return a.concat(f(r)); }, []);
+    };
+    const passos = [
+      { tipo: "contexto", titulo: "Contexto", itens: juntar(function (r) {
+        return typeof r.resumo === "string" && r.resumo ? [{ texto: r.resumo }] : [];
+      }) },
+      { tipo: "naoPode", titulo: "O que NÃO fazer", itens: juntar(function (r) {
+        return (r.naoPode || []).map(function (n) { return { texto: n.item, fazer: n.fazer }; });
+      }) },
+      { tipo: "pode", titulo: "O que a unidade oferece", itens: juntar(function (r) {
+        return (r.pode || []).map(function (t) { return { texto: t }; });
+      }) },
+      { tipo: "orientacoes", titulo: "Orientações", itens: juntar(function (r) {
+        return (r.orientacoes || []).map(function (t) { return { texto: t }; });
+      }) },
+    ].filter(function (p) { return p.itens.length; });
+    if (!passos.length) return null;
+    return { titulo: partes[partes.length - 1].titulo, passos: passos };
+  }
+
   function fechar() {
-    if (aberto) {
-      aberto.aviso.fechar();
+    if (!aberto) return;
+    if (aberto.tipo === "modal") {
+      const anterior = aberto.focoAnterior;
+      aberto.overlay.fechar();
+      aberto.overlay.remover();
       aberto = null;
+      /* Devolve o foco a quem tinha antes do modal (ex.: a anamnese). */
+      if (anterior && anterior.isConnected !== false && typeof anterior.focus === "function") anterior.focus();
+      return;
     }
+    aberto.aviso.fechar();
+    aberto = null;
   }
 
   /* De que municipio e o atendimento. A rede, quando respondeu por ESTE
@@ -208,29 +278,138 @@
    * mas ainda na tela, seguia atrapalhando o formulario. O X fecha do
    * mesmo jeito, mas so para este atendimento, sem marcar como entendido.
    * Pedido de 25/09/2026: no meio da tela ele cobria o formulario do
-   * atendimento.
-   * Pedido de 13/11/2026 (Pará de Minas): regra com exigeCiencia troca o
-   * "Entendi" por "Li e estou ciente", e a ciencia vale ate o fim da
-   * pagina — volta a cada novo login/recarga, nao a cada 3h. Continua no
-   * canto, sem bloquear o formulario (pedido de 25/09). */
+   * atendimento. Regra com exigeCiencia nao passa por aqui: vai para o
+   * modal (abrirModal). */
   function abrirCartao(id, municipio, chave, spec) {
     spec.topo = true;
     spec.acoes = [{
-      rotulo: spec.exigeCiencia ? "Li e estou ciente" : "Entendi",
+      rotulo: "Entendi",
       fecha: false,
       aoClicar: function () {
-        entendidos[chave] = spec.exigeCiencia ? Infinity : Date.now();
+        entendidos[chave] = Date.now();
         fechar();
       },
     }];
-    aberto = { id: id, municipio: municipio, chave: chave, aviso: d.dock.criarAviso(spec) };
+    aberto = { id: id, municipio: municipio, chave: chave, tipo: "cartao", aviso: d.dock.criarAviso(spec) };
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  const ICONE_PASSO = { pode: "✅", orientacoes: "📌" };
+
+  function htmlDoPasso(p) {
+    if (p.tipo === "contexto") {
+      return p.itens.map(function (it) {
+        return "<div class=\"msam-contexto\"><span aria-hidden=\"true\">🏥</span> " + escapeHtml(it.texto) + "</div>";
+      }).join("");
+    }
+    return "<ol class=\"msam-lista\">" + p.itens.map(function (it, i) {
+      const marca = p.tipo === "naoPode" ? String(i + 1) : ICONE_PASSO[p.tipo];
+      return "<li class=\"msam-" + p.tipo + "\"><span class=\"msam-n\" aria-hidden=\"true\">" + marca + "</span><div>" +
+        escapeHtml(it.texto) + (it.fazer ? "<em>" + escapeHtml(it.fazer) + "</em>" : "") + "</div></li>";
+    }).join("") + "</ol>";
+  }
+
+  /* Pedido de 13/11/2026 (Pará de Minas): regra com exigeCiencia abre em
+   * MODAL, no meio da tela, em passos (contexto -> o que NAO fazer -> o
+   * que a unidade oferece -> orientacoes). Bloqueia o atendimento ate o
+   * medico marcar "Li e estou ciente" e confirmar no ultimo passo: nao
+   * fecha clicando fora nem no Esc. A ciencia vale ate o fim da pagina
+   * (ou ate a tela de login) — nao a cada 3h como o "Entendi". Sair do
+   * atendimento fecha sem registrar ciencia. */
+  function abrirModal(id, municipio, chave, dados) {
+    const total = dados.passos.length;
+    let atual = 0;
+    const overlay = d.dock.criarOverlay({ html: "", estilo: CSS_MODAL, fecharAoClicarFora: false });
+
+    /* inicio: o modal abriu sozinho, talvez com o medico digitando na
+     * anamnese — o foco vai para o proprio modal, nao para o Avancar (o
+     * espaco seguinte pularia um passo sem ler). */
+    function render(inicio) {
+      const ultimo = atual === total - 1;
+      overlay.elemento.innerHTML =
+        "<div class=\"msam-modal\" tabindex=\"-1\" role=\"alertdialog\" aria-modal=\"true\" aria-labelledby=\"msam-titulo\">" +
+          "<div class=\"msam-cabeca\">" +
+            "<div class=\"msam-icone\" aria-hidden=\"true\">⚠</div>" +
+            "<div><small>ATENÇÃO — LEITURA OBRIGATÓRIA</small>" +
+            "<h2 id=\"msam-titulo\">" + escapeHtml(dados.titulo) + "</h2></div>" +
+          "</div>" +
+          "<div class=\"msam-corpo\">" +
+            "<h3>" + escapeHtml(dados.passos[atual].titulo) + "</h3>" + htmlDoPasso(dados.passos[atual]) +
+          "</div>" +
+          "<div class=\"msam-rodape\">" +
+            "<span class=\"msam-contador\">Passo " + (atual + 1) + " de " + total + "</span>" +
+            (atual > 0 ? "<button type=\"button\" class=\"msam-btn msam-voltar\">Voltar</button>" : "") +
+            (ultimo
+              ? "<label class=\"msam-ack\"><input type=\"checkbox\" class=\"msam-ciente\"> Li e estou ciente</label>" +
+                "<button type=\"button\" class=\"msam-btn msam-principal msam-confirmar\" disabled>Confirmar ciência</button>"
+              : "<button type=\"button\" class=\"msam-btn msam-principal msam-avancar\">Avançar</button>") +
+          "</div>" +
+        "</div>";
+
+      if (atual > 0) {
+        overlay.$(".msam-voltar").addEventListener("click", function () { atual--; render(); });
+      }
+      if (!ultimo) {
+        const avancar = overlay.$(".msam-avancar");
+        avancar.addEventListener("click", function () { atual++; render(); });
+        (inicio ? overlay.$(".msam-modal") : avancar).focus();
+        return;
+      }
+      const ciente = overlay.$(".msam-ciente");
+      const confirmar = overlay.$(".msam-confirmar");
+      confirmar.disabled = !ciente.checked;
+      ciente.addEventListener("change", function () { confirmar.disabled = !ciente.checked; });
+      confirmar.addEventListener("click", function () {
+        if (!ciente.checked) return;
+        entendidos[chave] = Infinity;
+        fechar();
+      });
+      (inicio ? overlay.$(".msam-modal") : ciente).focus(); // Confirmar comeca desabilitado: o foco vai para o que habilita
+    }
+
+    /* Clique no fundo escuro nao pode tirar o foco do modal: o foco iria
+     * para o body da pagina, o keydown nao passaria mais por aqui e o Tab
+     * cairia no formulario atras. (Clique no texto: o tabindex=-1 do
+     * .msam-modal segura o foco.) */
+    overlay.elemento.addEventListener("mousedown", function (ev) {
+      if (ev.target === overlay.elemento) ev.preventDefault();
+    });
+
+    /* Esc ignorado; Tab circula so entre os botoes do modal. */
+    overlay.elemento.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape") {
+        ev.preventDefault();
+        ev.stopPropagation();
+        return;
+      }
+      if (ev.key !== "Tab") return;
+      const focaveis = overlay.$$("button:not([disabled]), input:not([disabled])");
+      if (!focaveis.length) return;
+      const raizDoc = overlay.elemento.getRootNode ? overlay.elemento.getRootNode() : null;
+      const i = focaveis.indexOf(raizDoc && raizDoc.activeElement);
+      const proximo = ev.shiftKey ? (i <= 0 ? focaveis.length - 1 : i - 1) : (i + 1) % focaveis.length;
+      ev.preventDefault();
+      focaveis[proximo].focus();
+    });
+
+    const doc = raiz.document;
+    const ativo = doc && doc.activeElement;
+    aberto = { id: id, municipio: municipio, chave: chave, tipo: "modal", overlay: overlay,
+      focoAnterior: ativo && ativo !== doc.body ? ativo : null };
+    overlay.abrir();
+    render(true);
   }
 
   /* O atendimento da tela que PODE receber aviso, ou null. Fecha o que
    * nao vale mais: fora do atendimento, ou outro atendimento. */
   function atendimentoParaAvisar() {
     /* O medico fechou no X: vale para este atendimento ate o fim. */
-    if (aberto && !aberto.aviso.estaVisivel()) {
+    if (aberto && aberto.tipo === "cartao" && !aberto.aviso.estaVisivel()) {
       dispensados[aberto.id] = true;
       aberto = null;
     }
@@ -245,18 +424,26 @@
 
   /* A ciencia e de quem esta logado. Se o Meeds voltar para a tela de
    * login sem recarregar a pagina (SPA), o proximo medico tem que ler de
-   * novo — o "Entendi" de 3h segue como estava. */
+   * novo — o "Entendi" de 3h segue como estava. Devolve true se a tela
+   * de login esta visivel: ai nada fica por cima dela (o login pode
+   * aparecer sem sair de /atendimento/<id>, sessao expirada na SPA; com o
+   * modal por cima, o medico confirmaria, a ciencia seria apagada 1 s
+   * depois e o modal voltaria — nunca chegaria ao login). */
   function esquecerCienciaNoLogin() {
     const Auth = raiz.MeedsSuiteAuth;
-    if (!Auth || typeof Auth.estaNaTelaDeLogin !== "function" || !Auth.estaNaTelaDeLogin()) return;
+    if (!Auth || typeof Auth.estaNaTelaDeLogin !== "function" || !Auth.estaNaTelaDeLogin()) return false;
     Object.keys(entendidos).forEach(function (k) {
       if (entendidos[k] === Infinity) delete entendidos[k];
     });
+    return true;
   }
 
   function verificar() {
     if (!d) return;
-    esquecerCienciaNoLogin();
+    if (esquecerCienciaNoLogin()) {
+      fechar();
+      return;
+    }
     const id = atendimentoParaAvisar();
     if (!id) return;
 
@@ -264,9 +451,12 @@
     const municipio = municipioDoAtendimento(id, tabela);
     if (!municipio || !tabela[municipio]) return;
 
-    const unidade = unidadeDoVinculo(municipio, tabela[municipio]);
-    const spec = montarAviso(tabela[municipio], unidade);
-    if (!spec) return;
+    const regraMun = tabela[municipio];
+    const unidade = unidadeDoVinculo(municipio, regraMun);
+    const exigeCiencia = regraMun.exigeCiencia === true || !!(unidade && unidade.regra.exigeCiencia === true);
+    const passos = exigeCiencia ? montarPassos(regraMun, unidade) : null;
+    const spec = passos ? null : montarAviso(regraMun, unidade);
+    if (!passos && !spec) return;
     const chave = municipio + "|" + (unidade ? unidade.chave : "");
     if (aberto && aberto.chave === chave) return;
     if (estaEntendido(chave)) {
@@ -278,7 +468,8 @@
     /* A unidade apareceu (ou mudou) depois do cartao do municipio: troca
      * o cartao, sem contar como "dispensado pelo medico". */
     if (aberto) fechar();
-    abrirCartao(id, municipio, chave, spec);
+    if (passos) abrirModal(id, municipio, chave, passos);
+    else abrirCartao(id, municipio, chave, spec);
   }
 
   raiz.MeedsSuite.registerModule({
@@ -334,5 +525,6 @@
     },
 
     _verificar: function () { verificar(); },
+    _montarPassos: montarPassos,
   });
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
