@@ -308,6 +308,8 @@
         temTutorial: typeof e.iniciarTutorial === "function",
         nome: m.nome || e.def.nome || e.def.id,
         descricao: m.descricao || e.def.descricao || "",
+        resumo: m.resumo || "",
+        icone: (m.apresentacao && m.apresentacao.icone) || "",
         versao: m.versao || e.def.versao || "?",
         habilitado: estaHabilitado(e.def.id),
         sempreAtivo: sempreAtivo(e.def.id),

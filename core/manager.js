@@ -32,63 +32,66 @@
   const Cadastro = raiz.MeedsSuiteCadastro;
 
   const ESTILO = [
-    ".msm-modal { background:#fff; border-radius:6px; width:100%; max-width:540px; max-height:86vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 8px 24px rgba(15,23,42,.2); }",
+    /* Visual de 2.75.0 (pedido de 13/11/2026): cabecalho branco com a
+     * marca, abas em pilula, funcoes em cartoes com icone colorido e
+     * frase curta, interruptor azul-petroleo. Mesma paleta da lateral. */
+    ".msm-modal { background:#fff; border-radius:20px; width:100%; max-width:560px; max-height:88vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 24px 60px rgba(15,23,42,.35); font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; color:#1f2a37; }",
 
     /* cabecalho */
-    ".msm-head { background:#1d3557; color:#fff; padding:15px 18px 0; flex-shrink:0; }",
-    ".msm-head-topo { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }",
-    ".msm-head h2 { margin:0; font-size:15px; font-weight:700; }",
-    ".msm-head .msm-sub { margin:2px 0 0; font-size:11.5px; opacity:.85; }",
-    ".msm-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:5px; cursor:pointer; font-size:14px; flex-shrink:0; }",
-    ".msm-fechar:hover { background:rgba(255,255,255,.34); }",
+    ".msm-head { background:#fff; padding:18px 20px 0; flex-shrink:0; }",
+    ".msm-head-topo { display:flex; align-items:center; gap:12px; }",
+    ".msm-sigla { width:40px; height:40px; border-radius:12px; background:#0b7285; color:#fff; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; flex:none; }",
+    ".msm-head-txt { flex:1; min-width:0; }",
+    ".msm-head h2 { margin:0; font-size:18px; font-weight:700; color:#1f2a37; }",
+    ".msm-head .msm-sub { margin:2px 0 0; font-size:13px; color:#5b6573; }",
+    ".msm-fechar { background:#f1f3f5; border:none; color:#5b6573; width:40px; height:40px; border-radius:12px; cursor:pointer; font-size:16px; flex-shrink:0; }",
+    ".msm-fechar:hover { background:#e9ecef; }",
 
-    /* abas */
-    ".msm-abas { display:flex; gap:2px; margin-top:12px; }",
-    ".msm-aba { background:none; border:none; color:rgba(255,255,255,.72); cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:700; padding:9px 13px; border-radius:8px 8px 0 0; border-bottom:3px solid transparent; }",
-    ".msm-aba:hover { color:#fff; background:rgba(255,255,255,.1); }",
-    ".msm-aba[aria-selected='true'] { color:#1d3557; background:#fff; border-bottom-color:#fff; }",
+    /* abas em pilula */
+    ".msm-abas { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:4px; margin-top:14px; padding:4px; background:#f1f3f5; border-radius:12px; }",
+    ".msm-aba { position:relative; background:none; border:none; color:#5b6573; cursor:pointer; font-family:inherit; font-size:14px; font-weight:600; padding:9px 4px; border-radius:9px; }",
+    ".msm-aba:hover { color:#1f2a37; }",
+    ".msm-aba[aria-selected='true'] { color:#1f2a37; background:#fff; font-weight:700; box-shadow:0 1px 3px rgba(15,23,42,.12); }",
+    ".msm-aba:focus-visible, .msm-fechar:focus-visible, .msm-btn:focus-visible, .msm-mini:focus-visible { outline:2px solid #0b7285; outline-offset:2px; }",
 
-    ".msm-body { padding:16px 18px 18px; overflow-y:auto; flex:1; }",
+    /* faixa: saiu versao nova */
+    ".msm-novidade { margin:14px 20px 0; padding:12px 14px; border-radius:14px; background:#e6f4f5; border:1px solid #b6dde1; display:flex; align-items:center; gap:12px; flex-shrink:0; }",
+    ".msm-novidade[hidden] { display:none; }",
+    ".msm-novidade-ico { width:22px; height:22px; flex:none; background:no-repeat center/contain url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b7285' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v12'/%3E%3Cpath d='m7 10 5 5 5-5'/%3E%3Cpath d='M5 21h14'/%3E%3C/svg%3E\"); }",
+    ".msm-novidade-txt { flex:1; min-width:0; font-size:12px; color:#2e5e66; line-height:1.4; }",
+    ".msm-novidade-txt b { display:block; font-size:14px; color:#0b5a66; }",
+
+    ".msm-body { padding:6px 20px 18px; overflow-y:auto; flex:1; }",
     ".msm-painel[hidden] { display:none; }",
-    ".msm-ajuda { font-size:11.5px; color:#5b6672; line-height:1.55; margin:0 0 14px; }",
+    ".msm-ajuda { font-size:12px; color:#5b6573; line-height:1.5; margin:12px 4px 0; }",
 
-    /* modulos */
-    ".msm-categoria { font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#8a97a4; padding:14px 0 2px; border-bottom:1px solid #e9edf2; }",
-    ".msm-categoria:first-child { padding-top:2px; }",
-    ".msm-item { display:flex; align-items:flex-start; gap:12px; padding:11px 0; border-bottom:1px solid #f3f6f9; }",
+    /* funcoes: grupos em cartao */
+    ".msm-categoria { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#5b6573; padding:16px 4px 6px; }",
+    ".msm-grupo { border:1px solid #e3e7ec; border-radius:14px; overflow:hidden; }",
+    ".msm-item { display:flex; align-items:center; gap:12px; padding:12px 14px; border-bottom:1px solid #eef1f4; }",
     ".msm-item:last-child { border-bottom:none; }",
+    ".msm-item-ico { width:36px; height:36px; border-radius:10px; background:#f1f3f5; display:flex; align-items:center; justify-content:center; flex:none; }",
+    ".msm-item-ico svg { width:22px; height:22px; display:block; }",
     ".msm-item-txt { flex:1; min-width:0; }",
-    ".msm-item-nome { font-size:13px; font-weight:700; color:#16221f; }",
-    ".msm-item-desc { font-size:11.5px; color:#5b6672; line-height:1.45; margin-top:2px; }",
-    ".msm-item-ver { font-size:10px; color:#9aa5b1; font-family:ui-monospace,Menlo,monospace; margin-top:4px; }",
-    ".msm-fixos { font-size:11px; color:#8a97a4; line-height:1.5; padding:10px 0 2px; border-top:1px solid #f3f6f9; margin-top:4px; }",
-    ".msm-fixos b { color:#5b6672; font-weight:600; }",
-    /* Nome de modulo "sempre ativo" que tem tutorial vira botao — mesma
-     * cor do texto ao redor (nao e uma acao "destacada", e so um jeito
-     * de tornar clicavel algo que ja parecia so texto). */
-    ".msm-tutorial-fixo { background:none; border:none; padding:0; font:inherit; font-size:11px; color:#8a97a4; cursor:pointer; text-decoration:underline dotted; }",
-    ".msm-tutorial-fixo:hover { color:#0f766e; }",
+    ".msm-item-nome { font-size:14px; font-weight:700; color:#1f2a37; }",
+    ".msm-item-desc { font-size:13px; color:#5b6573; line-height:1.4; margin-top:2px; }",
+    ".msm-mini { background:none; border:none; padding:6px 4px; font:inherit; font-size:13px; font-weight:600; color:#0b7285; cursor:pointer; flex:none; }",
+    ".msm-mini:hover { color:#095c6b; text-decoration:underline; }",
+    ".msm-fixos { font-size:12px; color:#5b6573; line-height:1.5; padding:14px 4px 2px; }",
+    ".msm-fixos b { color:#1f2a37; font-weight:600; }",
+    ".msm-tutorial-fixo { background:none; border:none; padding:0; font:inherit; font-size:12px; color:#0b7285; cursor:pointer; text-decoration:underline dotted; }",
+    ".msm-tutorial-fixo:hover { color:#095c6b; }",
     ".msm-tutorial-fixo b { color:inherit; }",
-    ".msm-ajustes { margin-top:7px; background:#fff; border:1.4px solid #c3d4ee; color:#1a4fa0; cursor:pointer; font-size:11.5px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-weight:600; padding:5px 10px; border-radius:5px; }",
-    ".msm-ajustes:hover { background:#eef4ff; border-color:#1a4fa0; }",
-    /* Mesma forma do botao de Ajustes, paleta verde-agua (a cor do
-       tutorial em core/tutorial.js) para diferenciar as duas acoes
-       sem depender so do texto/icone. */
-    ".msm-tutorial { margin-top:7px; background:#fff; border:1.4px solid #a7e0da; color:#0f766e; cursor:pointer; font-size:11.5px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-weight:600; padding:5px 10px; border-radius:5px; }",
-    ".msm-tutorial:hover { background:#effbf9; border-color:#0f766e; }",
 
-    ".msm-switch { position:relative; width:44px; height:25px; flex-shrink:0; cursor:pointer; }",
+    ".msm-switch { position:relative; width:42px; height:24px; flex-shrink:0; cursor:pointer; }",
     ".msm-switch input { opacity:0; width:0; height:0; }",
-    ".msm-slider { position:absolute; inset:0; background:#cbd5e1; border-radius:999px; transition:background .18s ease; }",
-    ".msm-slider::before { content:''; position:absolute; height:19px; width:19px; left:3px; top:3px; background:#fff; border-radius:999px; transition:transform .22s cubic-bezier(.3,1.4,.6,1), width .16s ease; box-shadow:0 1px 3px rgba(0,0,0,.3); }",
-    ".msm-switch input:checked + .msm-slider { background:#1d3557; }",
-    ".msm-switch input:checked + .msm-slider::before { transform:translateX(19px); }",
-    /* Bolinha estica enquanto pressionada e encolhe ao soltar: o interruptor
-     * responde ao dedo antes do clique terminar. Ligado, estica para a
-     * esquerda (translateX menor) para nao vazar pela borda direita. */
-    ".msm-switch:active .msm-slider::before { width:24px; }",
-    ".msm-switch:active input:checked + .msm-slider::before { transform:translateX(14px); }",
-    ".msm-switch input:focus-visible + .msm-slider { outline:2px solid #60a5fa; outline-offset:2px; }",
+    ".msm-slider { position:absolute; inset:0; background:#ced4da; border-radius:999px; transition:background .18s ease; }",
+    ".msm-slider::before { content:''; position:absolute; height:18px; width:18px; left:3px; top:3px; background:#fff; border-radius:999px; transition:transform .22s cubic-bezier(.3,1.4,.6,1), width .16s ease; box-shadow:0 1px 3px rgba(0,0,0,.25); }",
+    ".msm-switch input:checked + .msm-slider { background:#0b7285; }",
+    ".msm-switch input:checked + .msm-slider::before { transform:translateX(18px); }",
+    ".msm-switch:active .msm-slider::before { width:23px; }",
+    ".msm-switch:active input:checked + .msm-slider::before { transform:translateX(13px); }",
+    ".msm-switch input:focus-visible + .msm-slider { outline:2px solid #0b7285; outline-offset:2px; }",
     "@media (prefers-reduced-motion: reduce) { .msm-slider, .msm-slider::before { transition:none; } }",
 
     /* fichas (medicos / unidades) */
@@ -113,15 +116,15 @@
     ".msm-dica { font-size:10.5px; color:#9aa5b1; margin-top:4px; line-height:1.45; }",
     ".msm-form-acoes { display:flex; gap:8px; margin-top:11px; }",
 
-    ".msm-btn { background:#1d3557; color:#fff; border:none; border-radius:8px; padding:9px 15px; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer; }",
-    ".msm-btn:hover { background:#14263f; }",
-    ".msm-btn-sec { background:#fff; color:#123a7a; border:1.3px solid #cbd5e1; }",
-    ".msm-btn-sec:hover { background:#eef4fb; }",
+    ".msm-btn { background:#0b7285; color:#fff; border:none; border-radius:10px; padding:10px 16px; font-size:14px; font-weight:700; font-family:inherit; cursor:pointer; flex:none; }",
+    ".msm-btn:hover { background:#095c6b; }",
+    ".msm-btn-sec { background:#fff; color:#1f2a37; border:1px solid #dde2e7; font-weight:600; }",
+    ".msm-btn-sec:hover { background:#f1f3f5; }",
 
     /* rodape discreto da aba */
     ".msm-rodape-aba { margin-top:16px; padding-top:12px; border-top:1px solid #eef2f6; font-size:11px; color:#8a97a4; line-height:1.6; }",
-    ".msm-link { background:none; border:none; color:#1a4fa0; cursor:pointer; font-size:11px; font-family:inherit; font-weight:700; padding:0; text-decoration:underline; }",
-    ".msm-link:hover { color:#123a7a; }",
+    ".msm-link { background:none; border:none; color:#0b7285; cursor:pointer; font-size:12.5px; font-family:inherit; font-weight:600; padding:0; text-decoration:none; }",
+    ".msm-link:hover { color:#095c6b; text-decoration:underline; }",
     /* Discreto de proposito: sem titulo, sem texto explicando o que faz. */
     ".msm-noturno-linha { text-align:right; margin-top:4px; }",
     ".msm-noturno { background:none; border:none; color:#c3cad2; cursor:pointer; font-size:9.5px; font-family:inherit; padding:2px; }",
@@ -136,23 +139,87 @@
     ".msm-erro { background:#fde8e8; border:1px solid #f0b8b8; color:#a12626; }",
 
     /* sobre */
-    ".msm-sobre-credito { font-size:13px; font-weight:700; color:#123a7a; }",
-    ".msm-sobre-versao { font-size:12px; color:#5b6672; margin-top:3px; }",
-    ".msm-sobre-bloco { padding:13px 0; border-bottom:1px solid #f3f6f9; }",
-    ".msm-sobre-bloco:last-child { border-bottom:none; }",
-    ".msm-sobre-titulo { font-size:12.5px; font-weight:700; color:#16221f; margin-bottom:3px; }",
-    ".msm-sobre-texto { font-size:11.5px; color:#5b6672; line-height:1.55; margin-bottom:8px; }",
+    ".msm-versao-cartao { margin-top:16px; border-radius:16px; background:linear-gradient(135deg,#0b7285,#0e5966); color:#fff; padding:16px; display:flex; align-items:center; gap:14px; }",
+    ".msm-versao-sigla { width:48px; height:48px; border-radius:14px; background:rgba(255,255,255,.16); font-weight:800; font-size:16px; display:flex; align-items:center; justify-content:center; flex:none; }",
+    ".msm-versao-txt { flex:1; min-width:0; }",
+    ".msm-versao-nome { font-size:16px; font-weight:700; }",
+    ".msm-versao-num { font-size:13px; opacity:.92; margin-top:2px; }",
+    ".msm-versao-estado { background:rgba(255,255,255,.16); border-radius:999px; padding:6px 12px; font-size:13px; font-weight:600; white-space:nowrap; }",
+    ".msm-versao-estado.msm-versao-nova { background:#fff; color:#0b5a66; }",
+    ".msm-versao-linha { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 4px 0; font-size:12.5px; color:#5b6573; }",
+    ".msm-escopo { padding-top:4px; font-size:12px; }",
+    ".msm-escopo:empty { display:none; }",
+    ".msm-cartao { margin-top:14px; border:1px solid #e3e7ec; border-radius:14px; overflow:hidden; }",
+    ".msm-linha { display:flex; align-items:center; gap:12px; padding:14px; border-bottom:1px solid #eef1f4; }",
+    ".msm-linha:last-child { border-bottom:none; }",
+    ".msm-linha-ico { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex:none; font-size:18px; }",
+    ".msm-linha-txt { flex:1; min-width:0; }",
+    ".msm-linha-titulo { font-size:14px; font-weight:700; color:#1f2a37; }",
+    ".msm-linha-sub { font-size:13px; color:#5b6573; line-height:1.45; margin-top:2px; }",
   ].join("\n");
 
   const ABAS = [
-    { id: "funcoes", rotulo: "Funções", sub: "Ative apenas as funções que você usa" },
-    { id: "medicos", rotulo: "Médicos", sub: "Cadastre uma vez; vale para todos os laudos" },
-    { id: "unidades", rotulo: "Unidades", sub: "Estabelecimentos e CNES usados na APAC" },
-    { id: "sobre", rotulo: "Sobre", sub: "Versão, novidades e feedback" },
+    { id: "funcoes", rotulo: "Funções", sub: "Ligue só o que você usa." },
+    { id: "medicos", rotulo: "Médicos", sub: "Cadastre uma vez, vale em todos os laudos." },
+    { id: "unidades", rotulo: "Unidades", sub: "Unidades e CNES usados na APAC." },
+    { id: "sobre", rotulo: "Sobre", sub: "Versão, ajuda e privacidade." },
   ];
 
   let overlay = null;
   let ctx = null;
+  let botaoEngrenagem = null;
+  let versaoNova = null;      // { versao, urlInstalar, variante } quando saiu versao nova
+  let ultimaChecagem = 0;
+
+  /* VERSAO NOVA SOZINHA (pedido de 13/11/2026): abrir a engrenagem ja
+   * confere se saiu versao nova — sem botao. Nao achou (ou deu erro de
+   * rede): nada aparece. Achou: faixa no topo dos Ajustes com "Atualizar"
+   * e um ponto na engrenagem. Tambem confere uma vez, discretamente,
+   * pouco depois de a pagina carregar, para o ponto aparecer sem o medico
+   * precisar abrir. Instalar continua sendo confirmado por ele, na tela
+   * do Tampermonkey/Userscripts (ver core/atualizacao.js). */
+  const INTERVALO_MIN_CHECAGEM_MS = 60 * 1000;
+
+  function checarVersao() {
+    const at = raiz.MeedsSuiteAtualizacao;
+    if (!at || !ctx || Date.now() - ultimaChecagem < INTERVALO_MIN_CHECAGEM_MS) {
+      refletirVersao();
+      return;
+    }
+    ultimaChecagem = Date.now();
+    at.verificar(
+      { versaoAtual: ctx.versaoNucleo, baseReleases: ctx.manifesto && ctx.manifesto.baseReleases },
+      function (r) {
+        if (r.situacao === "disponivel") {
+          versaoNova = { versao: r.versaoNova, urlInstalar: r.urlInstalar, variante: r.variante };
+        } else if (r.situacao !== "erro") {
+          versaoNova = null;
+        }
+        refletirVersao(r.situacao);
+      }
+    );
+  }
+
+  function refletirVersao(situacao) {
+    if (botaoEngrenagem) botaoEngrenagem.definirClasse("ms-tem-novidade", !!versaoNova);
+    if (!overlay) return;
+    const faixa = overlay.$("#msm-novidade");
+    const estado = overlay.$("#msm-versao-estado");
+    faixa.hidden = !versaoNova;
+    if (versaoNova) {
+      overlay.$("#msm-novidade-titulo").textContent = "Saiu uma versão nova: " + versaoNova.versao;
+      overlay.$("#msm-novidade-sub").textContent = "Você está na " + ctx.versaoNucleo + ".";
+      estado.textContent = "Versão nova";
+      estado.className = "msm-versao-estado msm-versao-nova";
+    } else if (situacao === "atualizado" || situacao === "mais-nova") {
+      estado.textContent = "✓ Atualizado";
+      estado.className = "msm-versao-estado";
+      overlay.$("#msm-versao-quando").textContent = "Conferido agora, ao abrir os Ajustes.";
+    } else if (situacao === "erro") {
+      estado.textContent = "Sem conexão";
+      estado.className = "msm-versao-estado";
+    }
+  }
 
   function escapeHtml(str) {
     return String(str == null ? "" : str).replace(/[&<>"']/g, function (c) {
@@ -169,8 +236,9 @@
         '<div class="msm-modal" role="dialog" aria-modal="true" aria-labelledby="msm-title">' +
         '  <div class="msm-head">' +
         '    <div class="msm-head-topo">' +
-        "      <div>" +
-        '        <h2 id="msm-title">Assistente Meeds</h2>' +
+        '      <div class="msm-sigla" aria-hidden="true">AM</div>' +
+        '      <div class="msm-head-txt">' +
+        '        <h2 id="msm-title">Ajustes</h2>' +
         '        <p class="msm-sub" id="msm-sub"></p>' +
         "      </div>" +
         '      <button type="button" class="msm-fechar" aria-label="Fechar">&#10005;</button>' +
@@ -184,11 +252,16 @@
         }).join("") +
         "    </div>" +
         "  </div>" +
+        '  <div class="msm-novidade" id="msm-novidade" hidden>' +
+        '    <span class="msm-novidade-ico" aria-hidden="true"></span>' +
+        '    <div class="msm-novidade-txt"><b id="msm-novidade-titulo"></b><span id="msm-novidade-sub"></span></div>' +
+        '    <button type="button" class="msm-btn" id="msm-atualizar-instalar">Atualizar</button>' +
+        "  </div>" +
         '  <div class="msm-body">' +
 
         /* ---- Funções ---- */
         '    <div class="msm-painel" id="msm-painel-funcoes" role="tabpanel" hidden>' +
-        '      <p class="msm-ajuda">Desligar tira o botão da tela. Você liga de novo quando quiser.</p>' +
+        '      <p class="msm-ajuda">Desligar tira o botão da lateral. Religue quando quiser.</p>' +
         '      <div id="msm-lista"></div>' +
         "    </div>" +
 
@@ -246,35 +319,42 @@
 
         /* ---- Sobre ---- */
         '    <div class="msm-painel" id="msm-painel-sobre" role="tabpanel" hidden>' +
-        '      <div class="msm-sobre-bloco">' +
-        '        <div class="msm-sobre-credito">Assistente Meeds — Por: Marcelo</div>' +
-        '        <div class="msm-sobre-versao">Versão <b id="msm-versao"></b> · ' +
-        '          <button type="button" class="msm-link" id="msm-historico-versoes">ver o que mudou</button></div>' +
-        '        <div class="msm-sobre-versao" id="msm-escopo"></div>' +
+        '      <div class="msm-versao-cartao">' +
+        '        <div class="msm-versao-sigla" aria-hidden="true">AM</div>' +
+        '        <div class="msm-versao-txt">' +
+        '          <div class="msm-versao-nome">Assistente Meeds</div>' +
+        '          <div class="msm-versao-num">Versão <b id="msm-versao"></b> · por Marcelo</div>' +
+        "        </div>" +
+        '        <div class="msm-versao-estado" id="msm-versao-estado">Verificando…</div>' +
         "      </div>" +
-        '      <div class="msm-sobre-bloco">' +
-        '        <div class="msm-sobre-titulo">Atualização</div>' +
-        '        <p class="msm-sobre-texto">Consulta se existe uma versão mais nova do Assistente. A instalação só acontece depois da sua confirmação na tela do navegador.</p>' +
-        '        <button type="button" class="msm-btn msm-btn-sec" id="msm-atualizar-verificar">🔄 Verificar atualização</button>' +
-        '        <div id="msm-atualizar-mensagem"></div>' +
-        '        <button type="button" class="msm-btn" id="msm-atualizar-instalar" hidden></button>' +
+        '      <div class="msm-versao-linha">' +
+        '        <span id="msm-versao-quando">A versão é conferida ao abrir os Ajustes.</span>' +
+        '        <button type="button" class="msm-link" id="msm-historico-versoes">O que mudou</button>' +
         "      </div>" +
-        '      <div class="msm-sobre-bloco">' +
-        '        <div class="msm-sobre-titulo">Achou um problema? Tem uma ideia?</div>' +
-        '        <p class="msm-sobre-texto">Escreva em duas linhas o que aconteceu ou o que faria sua rotina render mais. É o que orienta as próximas versões.</p>' +
-        '        <button type="button" class="msm-btn" id="msm-feedback">Enviar feedback</button>' +
+        '      <div class="msm-versao-linha msm-escopo" id="msm-escopo"></div>' +
+        '      <div class="msm-cartao">' +
+        '        <div class="msm-linha">' +
+        '          <div class="msm-linha-ico" style="background:#e6f4f5" aria-hidden="true">💬</div>' +
+        '          <div class="msm-linha-txt"><div class="msm-linha-titulo">Problema ou ideia?</div>' +
+        '            <div class="msm-linha-sub">Duas linhas já ajudam.</div></div>' +
+        '          <button type="button" class="msm-btn" id="msm-feedback">Enviar feedback</button>' +
+        "        </div>" +
+        '        <div class="msm-linha">' +
+        '          <div class="msm-linha-ico" style="background:#f1f3f5" aria-hidden="true">📋</div>' +
+        '          <div class="msm-linha-txt"><div class="msm-linha-titulo">Diagnóstico técnico</div>' +
+        '            <div class="msm-linha-sub">Só se o suporte pedir. CPF e CNS saem mascarados.</div>' +
+        '            <div id="msm-diagnostico-mensagem"></div></div>' +
+        '          <button type="button" class="msm-btn msm-btn-sec" id="msm-diagnostico-copiar">Copiar diagnóstico</button>' +
+        "        </div>" +
         "      </div>" +
-        '      <div class="msm-sobre-bloco">' +
-        '        <div class="msm-sobre-titulo">Deu erro e pediram os detalhes técnicos?</div>' +
-        '        <p class="msm-sobre-texto">Copia o que a tela e a rede mostraram nos últimos 20 minutos — o mesmo que a equipe pediria de uma gravação. Números como CPF e CNS saem mascarados; envie só para quem estiver te ajudando.</p>' +
-        '        <button type="button" class="msm-btn msm-btn-sec" id="msm-diagnostico-copiar">📋 Copiar diagnóstico técnico</button>' +
-        '        <div id="msm-diagnostico-mensagem"></div>' +
+        '      <div class="msm-cartao">' +
+        '        <div class="msm-linha">' +
+        '          <div class="msm-linha-ico" style="background:#ebfbee" aria-hidden="true">🛡️</div>' +
+        '          <div class="msm-linha-txt"><div class="msm-linha-titulo">Privacidade</div>' +
+        '            <div class="msm-linha-sub">Nada de paciente sai do seu navegador. Aqui ficam suas preferências, cadastros e o histórico dos documentos, com iniciais e 3 dígitos do CPF (não é anônimo) e o texto clínico como foi digitado.</div></div>' +
+        "        </div>" +
         "      </div>" +
-        '      <div class="msm-sobre-bloco">' +
-        '        <div class="msm-sobre-titulo">Privacidade</div>' +
-        '        <p class="msm-sobre-texto">O Assistente não envia dados de pacientes a serviços externos. Neste navegador ficam preferências, cadastros e o histórico clínico dos geradores, com iniciais e três dígitos do CPF. Essa referência não é anônima. O texto clínico é salvo como digitado e pode conter identificação. Você pode apagar o histórico.</p>' +
-        "      </div>" +
-        '      <div class="msm-noturno-linha">' +
+      '      <div class="msm-noturno-linha">' +
         '        <button type="button" class="msm-noturno" id="msm-noturno" aria-pressed="false">Noturno</button>' +
         "      </div>" +
         "    </div>" +
@@ -360,51 +440,14 @@
       });
     });
 
-    (function () {
-      const botao = overlay.$("#msm-atualizar-verificar");
-      const caixa = overlay.$("#msm-atualizar-mensagem");
-      const instalar = overlay.$("#msm-atualizar-instalar");
-      let urlInstalar = null;
-      let variante = null;
-      botao.addEventListener("click", function () {
-        const at = raiz.MeedsSuiteAtualizacao;
-        if (!at) return;
-        botao.disabled = true;
-        instalar.hidden = true;
-        caixa.innerHTML = '<div class="msm-aviso">Consultando…</div>';
-        at.verificar(
-          { versaoAtual: ctx.versaoNucleo, baseReleases: ctx.manifesto && ctx.manifesto.baseReleases },
-          function (r) {
-            botao.disabled = false;
-            if (r.situacao === "disponivel") {
-              urlInstalar = r.urlInstalar;
-              variante = r.variante;
-              caixa.innerHTML =
-                '<div class="msm-aviso"><strong>Versão ' + r.versaoNova + " disponível</strong>" +
-                "Você está na " + r.versaoAtual + ".</div>";
-              instalar.textContent = "⬇️ Instalar a versão " + r.versaoNova;
-              instalar.hidden = false;
-            } else if (r.situacao === "atualizado") {
-              caixa.innerHTML = '<div class="msm-ok">Você já está na versão mais recente (' + r.versaoAtual + ").</div>";
-            } else if (r.situacao === "mais-nova") {
-              caixa.innerHTML =
-                '<div class="msm-ok">Esta é a versão ' + r.versaoAtual + ", mais nova que a publicada (" + r.versaoNova + "). Nada a instalar.</div>";
-            } else {
-              caixa.innerHTML =
-                '<div class="msm-erro">Não consegui consultar agora (' + r.motivo + "). Verifique a internet e tente de novo.</div>";
-            }
-          }
-        );
-      });
-      instalar.addEventListener("click", function () {
-        if (!urlInstalar) return;
-        raiz.open(urlInstalar, "_blank");
-        caixa.innerHTML =
-          variante === "safari"
-            ? '<div class="msm-aviso">No app Arquivos, mova o arquivo baixado de Transferências para a pasta escolhida no Userscripts, substituindo a versão anterior. Confira no Userscripts e recarregue o Meeds.</div>'
-            : '<div class="msm-aviso">Na tela que abriu, clique em <b>Atualizar</b> (ou <b>Reinstalar</b>) e depois recarregue o Meeds com F5.</div>';
-      });
-    })();
+    overlay.$("#msm-atualizar-instalar").addEventListener("click", function () {
+      if (!versaoNova) return;
+      raiz.open(versaoNova.urlInstalar, "_blank");
+      overlay.$("#msm-novidade-sub").textContent =
+        versaoNova.variante === "safari"
+          ? "No app Arquivos, mova o arquivo baixado para a pasta do Userscripts e recarregue o Meeds."
+          : "Na tela que abriu, clique em Atualizar e recarregue o Meeds (F5).";
+    });
 
     overlay.$("#msm-diagnostico-copiar").addEventListener("click", function () {
       const caixa = overlay.$("#msm-diagnostico-mensagem");
@@ -435,9 +478,9 @@
       });
     })();
 
-    ctx.dock.registrarBotao({
+    botaoEngrenagem = ctx.dock.registrarBotao({
       id: "_manager",
-      icone: "⚙️",
+      icone: "engrenagem",
       variante: "engrenagem",
       titulo: "Assistente Meeds — funções, cadastros e ajustes",
       nomeCurto: "Ajustes",
@@ -446,6 +489,9 @@
         abrir();
       },
     });
+    /* Uma conferencia discreta depois da carga: so para o ponto na
+     * engrenagem. 8 s deixa o Meeds terminar de carregar primeiro. */
+    setTimeout(checarVersao, 8000);
   }
 
   /* O formulário fica fechado até ser pedido: a lista é o que se
@@ -505,6 +551,7 @@
     const destino = { medicos: "medicos", estabelecimentos: "unidades", sobre: "sobre" }[secao] || "funcoes";
     mostrarAba(destino);
     overlay.abrir();
+    checarVersao();
 
     if (secao === "medicos") abrirFormulario("#msm-med-abrir", "#msm-med-form", "#msm-med-nome");
     if (secao === "estabelecimentos") abrirFormulario("#msm-estab-abrir", "#msm-estab-form", "#msm-estab-nome");
@@ -547,40 +594,45 @@
      * Uma funcao nova, sem categoria declarada aqui, cai em "Outras" e
      * continua aparecendo. A ordem das categorias e a da lista. */
     const CATEGORIAS = [
-      { id: "documentos", titulo: "Documentos" },
       { id: "consulta", titulo: "Consulta" },
-      { id: "fila", titulo: "Fila e avisos" },
+      { id: "fila", titulo: "Atendimento e fila" },
+      { id: "documentos", titulo: "Documentos" },
       { id: "outras", titulo: "Outras" },
     ];
+    /* Fundo claro do icone, na cor do proprio icone (core/icones.js). */
+    const FUNDO_ICONE = { remume: "#fff0f0", exames: "#e3fafc", aviso: "#fff8db", notificacao: "#e7f5ff",
+      laudo: "#f3f0ff", apac: "#ebfbee", sino: "#fff4e6" };
+    function iconeDe(m) {
+      const chave = m.icone === "sino-mudo" ? "sino" : m.icone;
+      const svg = raiz.MeedsSuiteIcones && raiz.MeedsSuiteIcones.obter(chave);
+      return svg
+        ? '<div class="msm-item-ico" style="background:' + (FUNDO_ICONE[chave] || "#f1f3f5") + '" aria-hidden="true">' + svg + "</div>"
+        : '<div class="msm-item-ico" aria-hidden="true"></div>';
+    }
     const CATEGORIA_DO_MODULO = {
       "notificacao": "documentos", "lme-mg": "documentos", "lme-sete-lagoas": "documentos", "cmd": "documentos", "apac": "documentos",
       "remume": "consulta", "exames": "consulta",
       "alarme-fila": "fila", "avisos-municipio": "fila",
     };
     function itemDoModulo(m) {
+        /* Frase curta do manifest (`resumo`); a descricao inteira fica no
+         * title, para quem quiser ler mais. Tutorial e Ajustar viram links
+         * na propria linha, so com a funcao ligada. */
         return (
-          '<div class="msm-item">' +
+          '<div class="msm-item" title="' + escapeHtml(m.descricao) + '">' +
+          iconeDe(m) +
           '  <div class="msm-item-txt">' +
           '    <div class="msm-item-nome">' + escapeHtml(m.nome) + "</div>" +
-          '    <div class="msm-item-desc">' + escapeHtml(m.descricao) + "</div>" +
-          /* "Ajustes" sublinhado em 10px nao parecia clicavel nem dizia o
-             que abria. Vira botao, com cara de botao, nomeando a funcao
-             que vai configurar. */
-          (m.temAjustes && m.habilitado
-            ? '    <div class="msm-item-ver"><button type="button" class="msm-ajustes" data-ajustes="' +
-              escapeHtml(m.id) + '">⚙️ Configurar ' + escapeHtml(m.nome) + "</button></div>"
-            : "") +
-          /* Mesmo padrao do botao de Ajustes, um por cima do outro
-             quando os dois existem — nunca lado a lado (ficaria
-             apertado no mobile, e "Configurar" e a acao mais provavel
-             de ser clicada primeiro). */
-          (m.temTutorial && m.habilitado
-            ? '    <div class="msm-item-ver"><button type="button" class="msm-tutorial" data-tutorial="' +
-              escapeHtml(m.id) + '">🎓 Ver tutorial</button></div>'
-            : "") +
+          '    <div class="msm-item-desc">' + escapeHtml(m.resumo || m.descricao) + "</div>" +
           "  </div>" +
-          '  <label class="msm-switch">' +
-          '    <input type="checkbox" data-id="' + escapeHtml(m.id) + '" ' + (m.habilitado ? "checked" : "") + " />" +
+          (m.temTutorial && m.habilitado
+            ? '<button type="button" class="msm-mini" data-tutorial="' + escapeHtml(m.id) + '">Tutorial</button>'
+            : "") +
+          (m.temAjustes && m.habilitado
+            ? '<button type="button" class="msm-mini" data-ajustes="' + escapeHtml(m.id) + '">Ajustar</button>'
+            : "") +
+          '  <label class="msm-switch" title="' + (m.habilitado ? "Desligar " : "Ligar ") + escapeHtml(m.nome) + '">' +
+          '    <input type="checkbox" data-id="' + escapeHtml(m.id) + '" aria-label="' + escapeHtml(m.nome) + '" ' + (m.habilitado ? "checked" : "") + " />" +
           '    <span class="msm-slider"></span>' +
           "  </label>" +
           "</div>"
@@ -590,7 +642,7 @@
     lista.innerHTML = CATEGORIAS.map(function (c) {
       const doGrupo = modulos.filter(function (m) { return (CATEGORIA_DO_MODULO[m.id] || "outras") === c.id; });
       if (!doGrupo.length) return "";
-      return '<div class="msm-categoria">' + c.titulo + "</div>" + doGrupo.map(itemDoModulo).join("");
+      return '<div class="msm-categoria">' + c.titulo + '</div><div class="msm-grupo">' + doGrupo.map(itemDoModulo).join("") + "</div>";
     }).join("");
 
     if (fixos.length) {
@@ -607,12 +659,11 @@
         const nome = "<b>" + escapeHtml(m.nome) + "</b>";
         return m.temTutorial
           ? '<button type="button" class="msm-tutorial-fixo" data-tutorial="' + escapeHtml(m.id) +
-            '" title="Ver tutorial de ' + escapeHtml(m.nome) + '">' + nome + " 🎓</button>"
+            '" title="Ver tutorial de ' + escapeHtml(m.nome) + '">' + nome + " · tutorial</button>"
           : nome;
       });
       lista.innerHTML +=
-        '<div class="msm-fixos">Sempre ativas, dentro dos formulários de APAC e de laudo — ' +
-        "não têm botão próprio na barra: " + nomesFixos.join(" e ") + ".</div>";
+        '<div class="msm-fixos">Sempre ligadas, dentro dos laudos e da APAC: ' + nomesFixos.join(" e ") + ".</div>";
     }
 
     /* A translucidez em repouso deixou de ter chave: e como o Assistente

@@ -115,6 +115,12 @@
 
     /* botao so de icone (alarme, engrenagem): emoji no tamanho do icone */
     ".ms-btn.ms-btn-icone { font-size: 19px; }",
+    ".ms-btn .ms-ico { width: 22px; height: 22px; position: relative; }",
+    /* Alarme tocando: fundo vermelho, sino branco. */
+    ".ms-btn.ms-ativo .ms-ico svg path, .ms-btn.ms-ativo .ms-ico svg circle { stroke: #fff; }",
+    ".ms-btn.ms-ativo .ms-ico svg path:first-child { fill: rgba(255,255,255,.3); }",
+    /* Ponto azul-petroleo: saiu versao nova (engrenagem). */
+    ".ms-btn.ms-tem-novidade .ms-ico::after { content: ''; position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 50%; background: #0b7285; border: 2px solid #fff; }",
     ".ms-btn.ms-btn-engrenagem { color: #5b6573; margin-top: 9px; }",
     /* Divisoria acima dos ajustes: separa as funcoes do rodape. */
     ".ms-btn.ms-btn-engrenagem::before { content: ''; position: absolute; top: -6px; left: 8px; right: 8px; height: 1px; background: #e3e7ec; }",
@@ -688,12 +694,10 @@
     return {
       elemento: el,
       definirTexto: function (icone, rotulo) {
-        /* Preserva o contador: textContent apagaria o badge junto, e um
-         * modulo que use os dois (icone que muda + contador) perderia o
-         * numero na primeira troca de icone. */
-        const badge = el.querySelector(".ms-badge");
-        el.textContent = rotulo ? icone + " " + rotulo : icone;
-        if (badge) el.appendChild(badge);
+        /* Mesmo desenho do registro: SVG quando `icone` e uma chave de
+         * core/icones.js (o sino do alarme), texto/emoji senao. Preserva
+         * o contador (badge). */
+        pintarConteudoBotao(el, icone, rotulo, spec.variante);
         reposicionarToast();
       },
       definirTitulo: function (t) {

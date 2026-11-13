@@ -296,6 +296,8 @@ function main() {
           id: m.id,
           nome: m.nome,
           descricao: m.descricao,
+          /* Frase curta do painel de Ajustes (2.75.0). */
+          resumo: m.resumo,
           versao: m.versao,
           origem: m.origem,
           /* Precisa vir para o pacote: e o que faz o painel esconder a

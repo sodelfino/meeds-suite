@@ -2,6 +2,17 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.75.0",
+      "data": "2026-11-13",
+      "novidades": [
+        "Ajustes conferem sozinhos se saiu versão nova. Se saiu, aparece “Saiu uma versão nova” com o botão Atualizar, e um ponto azul na engrenagem."
+      ],
+      "melhorias": [
+        "Ajustes com visual novo: cada função com ícone e uma frase curta.",
+        "Ícones novos na lateral: pílula na REMUME, tubos de ensaio em Exames, sino no Alarme e engrenagem nos Ajustes."
+      ]
+    },
+    {
       "versao": "2.74.0",
       "data": "2026-11-13",
       "novidades": [

@@ -1504,7 +1504,9 @@
   function refletirEstado() {
     if (d.botao) {
       const forma = intensidadeAtual();
-      d.botao.definirTexto(forma.icone);
+      /* Na lateral, o sino em SVG (core/icones.js); o emoji de forma.icone
+       * continua nos textos e no painel do alarme. */
+      d.botao.definirTexto({ completo: "sino", discreto: "sino-baixo", silencioso: "sino-mudo" }[config.intensidade] || forma.icone);
       d.botao.definirClasse("ms-ativo", config.intensidade === "completo");
       d.botao.definirClasse("ms-neutro", config.intensidade !== "completo");
       d.botao.definirTitulo(

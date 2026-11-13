@@ -1,6 +1,6 @@
 {
   "nome": "Assistente Meeds",
-  "versao": "2.74.0",
+  "versao": "2.75.0",
   "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
   "repositorio": "https://github.com/sodelfino/meeds-suite",
   "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -50,6 +50,7 @@
     {
       "id": "alarme-fila",
       "nome": "Alarme de Fila",
+      "resumo": "Avisa quando entra paciente na fila.",
       "descricao": "Avisa quando entra paciente na fila do Pronto Atendimento, ou quando alguém espera além do tempo que você definir. Chega até você mesmo fora da aba do Meeds, e para sozinho quando a fila esvazia.",
       "versao": "3.0.2",
       "arquivo": "modules/alarme-fila/index.js",
@@ -57,13 +58,14 @@
       "prioridadeBotao": 10,
       "apresentacao": {
         "formaBotao": "icone",
-        "icone": "🔕",
+        "icone": "sino-mudo",
         "cabecalho": "Alarme de fila"
       }
     },
     {
       "id": "cid10",
       "nome": "Busca de CID-10 nos laudos",
+      "resumo": "Busca a CID pelo nome da doença.",
       "descricao": "Liga a tabela completa da CID-10 ao campo CID: você digita o nome da doença, não só o código, e escolhe ali mesmo. Funciona dentro dos laudos.",
       "versao": "1.2.0",
       "arquivo": "modules/cid10/index.js",
@@ -81,6 +83,7 @@
     {
       "id": "lme-sete-lagoas",
       "nome": "Laudo — Sete Lagoas",
+      "resumo": "Alto Custo no formulário da prefeitura.",
       "descricao": "Preenche o Laudo Médico de Alto Custo de Sete Lagoas no formulário oficial da prefeitura, com os dados do paciente na tela. Para quem atende o município.",
       "versao": "2.2.0",
       "arquivo": "modules/lme-sete-lagoas/index.js",
@@ -104,6 +107,7 @@
     {
       "id": "cmd",
       "nome": "Laudo — Conceição do Mato Dentro",
+      "resumo": "Alto Custo no formulário da prefeitura.",
       "descricao": "Preenche o Laudo Médico de Alto Custo de Conceição do Mato Dentro no formulário oficial da prefeitura, com os dados do paciente na tela. Para quem atende o município.",
       "versao": "2.2.0",
       "arquivo": "modules/cmd/index.js",
@@ -127,6 +131,7 @@
     {
       "id": "lme-mg",
       "nome": "LME — Medicamentos (MG)",
+      "resumo": "LME da SES-MG já preenchido, com CPF.",
       "descricao": "Gera o LME (Laudo de Solicitação, Avaliação e Autorização de Medicamento(s) do Componente Especializado da Assistência Farmacêutica) no novo modelo editável da SES-MG, com os dados do paciente da tela e o CPF no lugar do CNS. Para quem atende Minas Gerais.",
       "versao": "1.0.0",
       "arquivo": "modules/lme-mg/index.js",
@@ -151,6 +156,7 @@
     {
       "id": "notificacao",
       "nome": "Ficha de notificação",
+      "resumo": "SINAN: dengue, LTA, AIDS e violência.",
       "descricao": "Gera a ficha de investigação do SINAN (Dengue e Febre de Chikungunya; Leishmaniose Tegumentar Americana; AIDS; Violência interpessoal/autoprovocada) na primeira consulta, por cima do PDF oficial, com validação dos campos obrigatórios.",
       "versao": "1.2.0",
       "arquivo": "modules/notificacao/index.js",
@@ -182,6 +188,7 @@
     {
       "id": "avisos-municipio",
       "nome": "Avisos do município",
+      "resumo": "Regras da cidade no início do atendimento.",
       "descricao": "Dentro do atendimento, mostra sozinho o que a teleconsulta resolve no município — e, quando houver, na unidade do paciente — e o que deve ir para o presencial (hoje: Barbacena, Franco da Rocha, Congonhas, Piraí, unidades de Macaé e UBS de Pará de Minas). O aviso aparece em passos e pede “Li e estou ciente” uma vez por login. Toda UBS, ESF e PSF dessas cidades lembra a Memed sem campo aberto e os exames pela tabela SUS. Depois da ciência, o botão “Aviso” no dock reabre o aviso para rever.",
       "versao": "1.10.0",
       "arquivo": "modules/avisos-municipio/index.js",
@@ -196,6 +203,7 @@
     {
       "id": "remume",
       "nome": "Consulta REMUME",
+      "resumo": "Remédios do município. Entende nome comercial.",
       "descricao": "Consulta a lista de medicamentos do município do atendimento. Aceita erro de digitação e nome comercial — “buscopan” encontra escopolamina.",
       "versao": "2.6.17",
       "arquivo": "modules/remume/index.js",
@@ -214,6 +222,7 @@
     {
       "id": "exames",
       "nome": "Exames do município",
+      "resumo": "Exames do município, com código e APAC.",
       "descricao": "Mostra os exames que o município do paciente oferece: o código do procedimento, onde é feito, e quais exigem APAC ou laudo. O que não está na lista é dito, nunca inventado.",
       "versao": "1.5.0",
       "arquivo": "modules/exames/index.js",
@@ -231,6 +240,7 @@
     {
       "id": "preview-pdf",
       "nome": "Prévia do documento",
+      "resumo": "Mostra o PDF enquanto você preenche.",
       "descricao": "Mostra o PDF ao lado do formulário enquanto você preenche um laudo. É o mesmo arquivo que será baixado — serve para conferir antes de gerar.",
       "versao": "1.0.0",
       "arquivo": "modules/preview-pdf/index.js",
@@ -251,6 +261,7 @@
       {
         "id": "apac",
         "nome": "APAC",
+        "resumo": "APAC pronta, com a unidade e o CNES certos.",
         "descricao": "Gera a APAC (Autorização de Procedimento Ambulatorial) já preenchida com os dados do paciente na tela e abre a assinatura no gov.br. Para quem atende Itaúna, Betim ou Sete Lagoas.",
         "versao": "3.2.1",
         "arquivo": "modules/apac/index.js",
