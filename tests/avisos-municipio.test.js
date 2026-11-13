@@ -25,9 +25,50 @@ function ok(nome, cond, obs) {
 const ID = "e4d04000-1d1f-4520-a413-e41511f1c68a";
 const URL_API = "https://doctor-calltech.meeds.com.br/bff/api/v1/atendimento/" + ID;
 
-function carregar() {
+/* Elemento falso do overlay: cada seletor devolve sempre o mesmo stub ate
+ * o modulo trocar o innerHTML (como no DOM real: HTML novo, elementos
+ * novos). click() dispara "click" e "change", como num checkbox. */
+function stub() {
+  const ouvintes = {};
+  const s = {
+    checked: false, disabled: false, hidden: false, textContent: "", focado: false,
+    addEventListener(ev, fn) { (ouvintes[ev] = ouvintes[ev] || []).push(fn); },
+    click() { ["click", "change"].forEach((ev) => (ouvintes[ev] || []).forEach((fn) => fn({ target: s }))); },
+    focus() { s.focado = true; },
+  };
+  return s;
+}
+function overlayFalso(opcoes, overlays) {
+  let html = opcoes.html || "";
+  let stubs = {};
+  const ouvintes = {};
+  const elemento = {
+    get innerHTML() { return html; },
+    set innerHTML(v) { html = v; stubs = {}; },
+    addEventListener(ev, fn) { (ouvintes[ev] = ouvintes[ev] || []).push(fn); },
+    tecla(key) {
+      const e = { key, evitado: false, preventDefault() { e.evitado = true; }, stopPropagation() {} };
+      (ouvintes.keydown || []).forEach((fn) => fn(e));
+      return e;
+    },
+  };
+  const o = {
+    opcoes, elemento, aberto: false, removido: false,
+    $(sel) { return stubs[sel] || (stubs[sel] = stub()); },
+    $$() { return []; },
+    abrir() { o.aberto = true; },
+    fechar() { o.aberto = false; },
+    estaAberto() { return o.aberto; },
+    remover() { o.aberto = false; o.removido = true; },
+  };
+  overlays.push(o);
+  return o;
+}
+
+function carregar(dados) {
   let definicao = null;
   const avisos = [];
+  const overlays = [];
   const ctx = {
     console: { debug() {}, warn() {}, log() {} },
     setTimeout, clearTimeout,
@@ -36,7 +77,7 @@ function carregar() {
     Date: { now: () => ctx.relogio },
     relogio: 1000000,
     location: { pathname: "/pronto-atendimento" },
-    MEEDS_AVISOS_MUNICIPIO: DADOS,
+    MEEDS_AVISOS_MUNICIPIO: dados || DADOS,
     MeedsSuite: { registerModule: (d) => { definicao = d; } },
     MeedsSuiteDecisao: { unicoOuNada: (l) => (l.length === 1 ? l[0] : null) },
   };
@@ -63,11 +104,12 @@ function carregar() {
         avisos.push(a);
         return a;
       },
+      criarOverlay(opcoes) { return overlayFalso(opcoes, overlays); },
     },
   });
 
   return {
-    ctx, def: definicao, avisos,
+    ctx, def: definicao, avisos, overlays,
     visiveis: () => avisos.filter((a) => a.visivel),
     ir(p) { ctx.location.pathname = p; definicao._verificar(); },
     tela(vinculo, textoDaPagina) {
@@ -719,13 +761,15 @@ const CRITERIO_ATESTADO = /justificativa cl[ií]nica/i;
     t.ir("/atendimento/" + ID);
     t.rede(atendimentoDe(PPM));
     t.passar(3100);
-    return t.visiveis();
+    /* Desde 13/11/2026 a UBS abre em modal (exigeCiencia), não em cartão. */
+    return t.visiveis().concat(t.overlays.filter((o) => o.estaAberto()));
   };
   ["UBS NOSSA SENHORA DA PIEDADE", "UBS Walter Martins"].forEach((unidade) => {
     const v = para([PPM, unidade]);
-    ok("Pará de Minas, " + unidade + ": fluxo da UBS", v.length === 1 && /Pará de Minas — UBS/.test(v[0].spec.titulo) &&
-       /azul ou verde/.test(textoDe(v[0])) && /não renova receitas/.test(textoDe(v[0])) &&
-       /tenoxicam/.test(textoDe(v[0])) && /Exames de imagem/.test(textoDe(v[0])));
+    const texto = v.length === 1 && v[0].elemento ? lerPassos(v[0]).join("\n") : "";
+    ok("Pará de Minas, " + unidade + ": fluxo da UBS", v.length === 1 && /Pará de Minas — UBS/.test(texto) &&
+       /azul ou verde/.test(texto) && /não renova receitas/.test(texto) &&
+       /tenoxicam/.test(texto) && /Exames de imagem/.test(texto));
   });
   ok("Pará de Minas, UPA: nenhum aviso", para([PPM, "UPA 24 HORAS"]).length === 0);
   ok("Pará de Minas sem unidade no vínculo: nenhum aviso", para([PPM]).length === 0);
@@ -733,34 +777,58 @@ const CRITERIO_ATESTADO = /justificativa cl[ií]nica/i;
 
 /* 27. Pedido de 13/11/2026: pontos de atenção de Pará de Minas, com
  *     ciência ("Li e estou ciente") que vale até recarregar a página —
- *     não volta depois de 3h, como o "Entendi". E o que NÃO pode vem
- *     primeiro no cartão. */
-{
-  const PPM = "PREFEITURA MUNICIPAL DE PARÁ DE MINAS";
-  const t = carregar();
+ *     não volta depois de 3h, como o "Entendi". Desde o modal em passos
+ *     (13/11), o conteúdo é lido passo a passo e a ciência é o checkbox +
+ *     "Confirmar ciência" do último passo. */
+const PPM = "PREFEITURA MUNICIPAL DE PARÁ DE MINAS";
+const OUTRO_ID = "22222222-2222-2222-2222-222222222222";
+const TERCEIRO_ID = "33333333-3333-3333-3333-333333333333";
+function abrirPara(t) {
+  t = t || carregar();
   t.ctx.linhas = [PPM, "UBS WALTER MARTINS"];
   t.ir("/atendimento/" + ID);
   t.rede(atendimentoDe(PPM));
   t.passar(3100);
-  const a = t.visiveis()[0];
-  const texto = textoDe(a);
-  const corpo = a.spec.corpo;
-  ok("Pará de Minas: proibições primeiro", /^❌ Prescrever com nome comercial/.test(corpo[0] || "") &&
-     corpo.findIndex((l) => /^❌/.test(l)) < corpo.findIndex((l) => /^✅/.test(l)));
+  return t;
+}
+/* Percorre todos os passos e devolve o HTML de cada um. */
+function lerPassos(m) {
+  const htmls = [m.elemento.innerHTML];
+  for (let i = 0; i < 10 && !/msam-confirmar/.test(m.elemento.innerHTML); i++) {
+    m.$(".msam-avancar").click();
+    htmls.push(m.elemento.innerHTML);
+  }
+  return htmls;
+}
+function confirmarCiencia(m) {
+  lerPassos(m);
+  m.$(".msam-ciente").checked = true;
+  m.$(".msam-ciente").click();
+  m.$(".msam-confirmar").click();
+}
+const modaisAbertos = (t) => t.overlays.filter((o) => o.estaAberto());
+function reabreEmOutroAtendimento(t, id) {
+  id = id || OUTRO_ID;
+  t.ir("/atendimento/" + id);
+  t.rede(atendimentoDe(PPM), URL_API.replace(ID, id));
+  t.passar(3100);
+  return modaisAbertos(t).length > 0;
+}
+{
+  const t = abrirPara();
+  const m = t.overlays[t.overlays.length - 1];
+  const htmls = lerPassos(m);
+  const texto = htmls.join("\n");
+  ok("Pará de Minas: proibições no passo logo após o contexto", /Prescrever com nome comercial/.test(htmls[1]) && !/Hemograma/.test(htmls[1]));
   ok("Pará de Minas: pontos de atenção de 13/11", /mesmo diante da receita prévia/.test(texto) &&
      /especialista/.test(texto) && /clínico, com resumo da história clínica e CID/.test(texto) &&
      /nunca sugerir conduta/.test(texto) && /Reavaliação sempre/.test(texto) &&
      CRITERIO_ATESTADO.test(texto) && !/enfermeira/.test(texto));
-  const ciente = (a.spec.acoes || []).find((x) => x.rotulo === "Li e estou ciente");
-  ok("Pará de Minas: botão 'Li e estou ciente' no lugar do 'Entendi'", !!ciente && !(a.spec.acoes || []).some((x) => x.rotulo === "Entendi"));
-  ciente.aoClicar();
-  ok("ciência: o cartão fecha", t.visiveis().length === 0);
+  ok("Pará de Minas: 'Li e estou ciente' no lugar do 'Entendi'", /Li e estou ciente/.test(htmls[htmls.length - 1]) && !/Entendi/.test(texto));
+  confirmarCiencia(m);
+  ok("ciência: o modal fecha", !m.estaAberto() && m.removido);
   t.passar(12 * 60 * 60 * 1000);
-  const OUTRO_ID = "22222222-2222-2222-2222-222222222222";
-  t.ir("/atendimento/" + OUTRO_ID);
-  t.rede(atendimentoDe(PPM), URL_API.replace(ID, OUTRO_ID));
-  t.passar(3100);
-  ok("ciência: não volta nem 12h depois, na mesma página", t.visiveis().length === 0);
+  ok("ciência: não volta nem 12h depois, na mesma página", reabreEmOutroAtendimento(t) === false);
 }
 {
   const t = carregar();
@@ -776,34 +844,20 @@ const CRITERIO_ATESTADO = /justificativa cl[ií]nica/i;
  *     ordem ❌ → ✅ vale para todos, o atestado não aparece duplicado, e
  *     voltar à tela de login (SPA, sem recarregar) pede a ciência de novo. */
 {
-  const PPM = "PREFEITURA MUNICIPAL DE PARÁ DE MINAS";
-  const t = carregar();
-  t.ctx.linhas = [PPM, "UBS WALTER MARTINS"];
-  t.ir("/atendimento/" + ID);
-  t.rede(atendimentoDe(PPM));
-  t.passar(3100);
-  t.visiveis()[0].spec.acoes[0].aoClicar();
-  const OUTRO_ID = "22222222-2222-2222-2222-222222222222";
+  const t = abrirPara();
+  confirmarCiencia(t.overlays[0]);
   t.ctx.linhas = null;
   t.ir("/atendimento/" + OUTRO_ID);
   t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA"), URL_API.replace(ID, OUTRO_ID));
   ok("ciência de Pará de Minas não silencia outra cidade", t.visiveis().length === 1 && /Barbacena/.test(t.visiveis()[0].spec.titulo));
 
-  const t2 = carregar();
-  t2.ctx.linhas = [PPM, "UBS WALTER MARTINS"];
-  t2.ir("/atendimento/" + ID);
-  t2.rede(atendimentoDe(PPM));
-  t2.passar(3100);
-  t2.visiveis()[0].spec.acoes[0].aoClicar();
+  const t2 = abrirPara();
+  confirmarCiencia(t2.overlays[0]);
   t2.ctx.MeedsSuiteAuth = { estaNaTelaDeLogin: () => true };
   t2.ir("/login");
   t2.ctx.MeedsSuiteAuth = { estaNaTelaDeLogin: () => false };
-  const TERCEIRO_ID = "33333333-3333-3333-3333-333333333333";
-  t2.ir("/atendimento/" + TERCEIRO_ID);
-  t2.rede(atendimentoDe(PPM), URL_API.replace(ID, TERCEIRO_ID));
-  t2.passar(3100);
-  ok("voltou à tela de login sem recarregar: pede a ciência de novo", t2.visiveis().length === 1 &&
-     t2.visiveis()[0].spec.acoes[0].rotulo === "Li e estou ciente");
+  ok("voltou à tela de login sem recarregar: pede a ciência de novo", reabreEmOutroAtendimento(t2, TERCEIRO_ID) === true &&
+     /Li e estou ciente/.test(lerPassos(t2.overlays[t2.overlays.length - 1]).join("\n")));
 }
 {
   const t = carregar();
@@ -839,6 +893,81 @@ const CRITERIO_ATESTADO = /justificativa cl[ií]nica/i;
   const barb = t.def._montarPassos(R["Barbacena"], null);
   ok("Barbacena: sem resumo não tem contexto", barb.passos[0].tipo === "naoPode");
   ok("vazio → null", t.def._montarPassos({ titulo: "x" }, null) === null);
+  const junto = t.def._montarPassos({ titulo: "M", naoPode: [{ item: "m1" }], pode: ["m2"] },
+    { chave: "U", regra: { titulo: "U", naoPode: [{ item: "u1", fazer: "f" }], pode: ["u2"] } });
+  ok("município + unidade: itens do município primeiro em cada grupo, título da unidade",
+     junto.titulo === "U" && junto.passos.map((p) => p.itens.map((i) => i.texto).join()).join("|") === "m1,u1|m2,u2" &&
+     junto.passos[0].itens[1].fazer === "f");
+}
+
+/* 30. Modal em passos (Pará de Minas, 13/11/2026): regra com exigeCiencia
+ *     abre um modal que não fecha clicando fora nem no Esc; o médico lê
+ *     passo a passo e só confirma no último, marcando "Li e estou ciente". */
+{
+  const t = abrirPara();
+  const m = t.overlays[t.overlays.length - 1];
+  ok("abre o modal, não o cartão", m && m.estaAberto() && t.visiveis().length === 0);
+  ok("não fecha clicando fora", m.opcoes.fecharAoClicarFora === false);
+  ok("alertdialog modal com título", /role="alertdialog"/.test(m.elemento.innerHTML) && /aria-modal="true"/.test(m.elemento.innerHTML) &&
+     /aria-labelledby="msam-titulo"/.test(m.elemento.innerHTML) && /id="msam-titulo"/.test(m.elemento.innerHTML) &&
+     /ATENÇÃO — LEITURA OBRIGATÓRIA/.test(m.elemento.innerHTML));
+  ok("passo 1 de 4, sem Voltar, foco no Avançar", /Passo 1 de 4/.test(m.elemento.innerHTML) &&
+     !/msam-voltar/.test(m.elemento.innerHTML) && m.$(".msam-avancar").focado);
+  ok("Esc não fecha", m.elemento.tecla("Escape").evitado && m.estaAberto());
+  m.$(".msam-avancar").click();
+  ok("passo 2: Voltar aparece e volta ao 1", /Passo 2 de 4/.test(m.elemento.innerHTML) && /msam-voltar/.test(m.elemento.innerHTML) &&
+     (m.$(".msam-voltar").click(), /Passo 1 de 4/.test(m.elemento.innerHTML)));
+  m.$(".msam-avancar").click(); m.$(".msam-avancar").click(); m.$(".msam-avancar").click();
+  ok("último passo: Confirmar desabilitado", /Passo 4 de 4/.test(m.elemento.innerHTML) && m.$(".msam-confirmar").disabled === true &&
+     !/msam-avancar/.test(m.elemento.innerHTML));
+  m.$(".msam-confirmar").click();
+  ok("Confirmar sem marcar não faz nada", m.estaAberto());
+  m.$(".msam-ciente").checked = true; m.$(".msam-ciente").click();
+  ok("marcou: Confirmar habilita", m.$(".msam-confirmar").disabled === false);
+  m.$(".msam-confirmar").click();
+  ok("confirmou: fecha e não reabre no próximo atendimento", !m.estaAberto() && reabreEmOutroAtendimento(t) === false);
+}
+/* RF1 */
+{
+  const t = abrirPara();
+  const m = t.overlays[0];
+  t.ir("/pronto-atendimento");
+  const fechouAoSair = !m.estaAberto() && m.removido;
+  const t2 = abrirPara();
+  t2.ir("/atendimento/" + TERCEIRO_ID);
+  const fechouAoTrocar = !t2.overlays[0].estaAberto();
+  ok("saiu do atendimento com o modal aberto: fecha sem ciência e volta no próximo",
+     fechouAoSair && fechouAoTrocar && reabreEmOutroAtendimento(t) === true && t.overlays.length === 2);
+}
+/* RF4 */
+{
+  const t = abrirPara();
+  const m = t.overlays[0];
+  t.ctx.MeedsSuiteAuth = { estaNaTelaDeLogin: () => true };
+  t.ir("/login");
+  t.ctx.MeedsSuiteAuth = { estaNaTelaDeLogin: () => false };
+  ok("tela de login com o modal aberto: fecha e esquece a ciência", !m.estaAberto() && m.removido &&
+     reabreEmOutroAtendimento(t) === true);
+}
+/* RF3 */
+{
+  const t = carregar();
+  t.ir("/atendimento/" + ID);
+  t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA"));
+  const a = t.visiveis()[0];
+  ok("Barbacena (sem exigeCiencia) continua com cartão e 'Entendi'", t.overlays.length === 0 && a &&
+     a.spec.acoes.length === 1 && a.spec.acoes[0].rotulo === "Entendi");
+}
+/* escape */
+{
+  const dados = JSON.parse(JSON.stringify(DADOS));
+  const ubs = dados.municipios["Pará de Minas"].unidades.UBS;
+  ubs.titulo = "<b>Pará</b>";
+  ubs.resumo = "<img src=x onerror=alert(1)> & \"aspas\"";
+  const t = abrirPara(carregar(dados));
+  const html = t.overlays[0].elemento.innerHTML;
+  ok("título com <b> no JSON aparece escapado", /&lt;b&gt;Pará&lt;\/b&gt;/.test(html) && !/<b>Pará/.test(html) &&
+     /&lt;img src=x/.test(html) && !/<img/.test(html) && /&amp; &quot;aspas&quot;/.test(html));
 }
 
 console.log("\n" + (falhas ? falhas + " FALHA(S)" : "todos passaram"));

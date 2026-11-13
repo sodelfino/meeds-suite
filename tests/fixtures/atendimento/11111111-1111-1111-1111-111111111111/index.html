@@ -1,0 +1,48 @@
+<!doctype html>
+<!--
+  Fixture de atendimento para conferir o aviso do município no navegador.
+  Servir a RAIZ do repo (ex.: npx http-server . -p 8080) e abrir
+  /tests/fixtures/atendimento/11111111-1111-1111-1111-111111111111/
+  O caminho imita /atendimento/<id>; sem rede, o módulo lê o "Vínculos"
+  depois de 3 s. ?v=LINHA1|LINHA2 troca as linhas do vínculo
+  (ex.: ?v=BARBACENA - MG para ver o cartão em vez do modal).
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fixture atendimento</title>
+<style>
+  body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 16px; background: #F4F6F7; color: #3B4552; }
+  .cartao { background: #fff; border: 1px solid #ECEFF1; border-radius: 12px; padding: 16px; max-width: 420px; margin-bottom: 16px; }
+  .rotulo { font-size: 12px; color: #6B7683; }
+  textarea { width: 100%; max-width: 640px; height: 160px; box-sizing: border-box; }
+</style>
+</head>
+<body>
+  <div class="cartao">
+    <div><span class="rotulo">Paciente</span><div>PACIENTE DE TESTE</div></div>
+    <div><span class="rotulo">Vínculos</span><div id="vinculos"><div>PARÁ DE MINAS - MG</div><div>UBS WALTER MARTINS</div></div></div>
+  </div>
+  <label>Anamnese<br><textarea placeholder="Formulário do atendimento"></textarea></label>
+  <script>
+    (function () {
+      var v = new URLSearchParams(location.search).get("v");
+      if (v) {
+        var alvo = document.getElementById("vinculos");
+        alvo.innerHTML = "";
+        v.split("|").forEach(function (linha) {
+          var div = document.createElement("div");
+          div.textContent = linha;
+          alvo.appendChild(div);
+        });
+      }
+      /* Caminho imita /atendimento/<id>: o módulo exige isso no pathname. */
+      history.replaceState(null, "", "/atendimento/11111111-1111-1111-1111-111111111111/" + location.search);
+      var s = document.createElement("script");
+      s.src = "/dist/meeds-suite.safari.user.js";
+      document.body.appendChild(s);
+    })();
+  </script>
+</body>
+</html>
