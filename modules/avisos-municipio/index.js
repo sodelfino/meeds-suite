@@ -26,6 +26,7 @@
   let aberto = null;                // { id, municipio, chave, overlay, focoAnterior }
   let vistoDesde = {};              // id do atendimento -> quando a pagina dele apareceu
   let entendidos = {};              // chave (municipio|unidade) -> true: ciencia confirmada (ate o login ou recarregar)
+  let revisavel = null;             // aviso ja confirmado do atendimento na tela: o "!" do dock reabre ele
 
   /* A leitura pela tela so vale depois deste tempo SEM resposta da rede.
    * A chamada do atendimento costuma chegar em menos de 1 s; esperar
@@ -66,6 +67,15 @@
     ".msam-principal { background: var(--msam-red); border-color: var(--msam-red); color: #fff; }",
     ".msam-principal:disabled { background: #E3B7B7; border-color: #E3B7B7; cursor: not-allowed; }",
     ".msam-btn:focus-visible, .msam-ack input:focus-visible { outline: 3px solid #2E7D7B; outline-offset: 2px; }",
+  ].join("\n");
+
+  /* O "!" do dock (pedido de 13/11/2026, de um medico): amarelo com o
+   * ponto de exclamacao vermelho, pulsa 3x quando aparece e depois para. */
+  const CSS_BOTAO = [
+    ".ms-btn.msam-rever { background: #FFD43B; color: #D43F3F; font-weight: 900; box-shadow: 0 0 0 3px #D43F3F; animation: msam-rever 1.2s 3; }",
+    ".ms-btn.msam-rever:hover { background: #FCC419; }",
+    "@keyframes msam-rever { 50% { box-shadow: 0 0 0 7px rgba(212,63,63,.35); } }",
+    "@media (prefers-reduced-motion: reduce) { .ms-btn.msam-rever { animation: none; } }",
   ].join("\n");
 
   const RX_PAGINA_ATENDIMENTO = /^\/atendimento\/([0-9a-fA-F-]{36})(?:\/|$)/;
@@ -240,7 +250,7 @@
    * ciencia vale ate o fim da pagina (ou ate a tela de login). Sair do
    * atendimento fecha sem registrar ciencia. Isso substitui o cartao no
    * canto, que silenciava por 3h (pedidos de 25/09, 28/09 e 01/10/2026). */
-  function abrirModal(id, municipio, chave, dados) {
+  function abrirModal(id, municipio, chave, dados, revisao) {
     const total = dados.passos.length;
     let atual = 0;
     const overlay = d.dock.criarOverlay({ html: "", estilo: CSS_MODAL, fecharAoClicarFora: false });
@@ -263,7 +273,9 @@
           "<div class=\"msam-rodape\">" +
             "<span class=\"msam-contador\">Passo " + (atual + 1) + " de " + total + "</span>" +
             (atual > 0 ? "<button type=\"button\" class=\"msam-btn msam-voltar\">Voltar</button>" : "") +
-            (ultimo
+            (ultimo && revisao
+              ? "<button type=\"button\" class=\"msam-btn msam-principal msam-fechar\">Fechar</button>"
+              : ultimo
               ? "<label class=\"msam-ack\"><input type=\"checkbox\" class=\"msam-ciente\"> Li e estou ciente</label>" +
                 "<button type=\"button\" class=\"msam-btn msam-principal msam-confirmar\" disabled>Confirmar ciência</button>"
               : "<button type=\"button\" class=\"msam-btn msam-principal msam-avancar\">Avançar</button>") +
@@ -277,6 +289,12 @@
         const avancar = overlay.$(".msam-avancar");
         avancar.addEventListener("click", function () { atual++; render(); });
         (inicio ? overlay.$(".msam-modal") : avancar).focus();
+        return;
+      }
+      if (revisao) {
+        const fecharBtn = overlay.$(".msam-fechar");
+        fecharBtn.addEventListener("click", function () { fechar(); verificar(); });
+        (inicio ? overlay.$(".msam-modal") : fecharBtn).focus();
         return;
       }
       const ciente = overlay.$(".msam-ciente");
@@ -352,6 +370,15 @@
 
   function verificar() {
     if (!d) return;
+    revisavel = null;
+    verificarAviso();
+    if (d.botao) {
+      if (revisavel && !aberto) d.botao.mostrar();
+      else d.botao.esconder();
+    }
+  }
+
+  function verificarAviso() {
     if (esquecerCienciaNoLogin()) {
       fechar();
       return;
@@ -371,8 +398,9 @@
     if (aberto && aberto.chave === chave) return;
     if (entendidos[chave] === true) {
       /* Ciencia ja confirmada para esta cidade/unidade: nao reabre, nem
-       * neste nem em outro atendimento, ate o login. */
+       * neste nem em outro atendimento, ate o login. Fica o "!" no dock. */
       if (aberto) fechar();
+      revisavel = { id: id, municipio: municipio, chave: chave, passos: passos };
       return;
     }
     /* A unidade apareceu (ou mudou) depois do aviso do municipio: troca. */
@@ -413,6 +441,15 @@
 
     start: function (deps) {
       d = deps;
+      if (d.botao) {
+        d.dock.adicionarEstilo(CSS_BOTAO);
+        d.botao.definirClasse("msam-rever", true);
+      }
+      /* Rever o aviso ja confirmado: mesmo modal, com "Fechar" no fim. */
+      d.aoClicarBotao(function () {
+        if (revisavel && !aberto) abrirModal(revisavel.id, revisavel.municipio, revisavel.chave, revisavel.passos, true);
+        verificar();
+      });
       verificar();
       /* O Meeds e uma SPA: entrar e sair do atendimento nao recarrega a
        * pagina. Conferir o endereco a cada segundo e o jeito simples de
@@ -427,6 +464,7 @@
       municipioPorAtendimento = {};
       vistoDesde = {};
       entendidos = {};
+      revisavel = null;
       d = null;
     },
 
