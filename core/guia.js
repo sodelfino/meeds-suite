@@ -40,16 +40,16 @@
 
   const CSS = [
     ".msg-guia { display:flex; align-items:center; gap:10px; margin-bottom:12px; }",
-    ".msg-barra { flex:1; height:6px; border-radius:99px; background:#e3ebe9; overflow:hidden; }",
-    ".msg-preenchido { height:100%; width:0; border-radius:99px; background:#12958a; transition:width .25s ease; }",
-    ".msg-preenchido.completo { background:#0b6a62; }",
-    ".msg-texto { font-size:11px; font-weight:700; color:#5b6c68; white-space:nowrap; }",
-    ".msg-proximo { background:none; border:none; padding:0; font:inherit; font-size:11px; font-weight:700; color:#0e7a70; cursor:pointer; text-decoration:underline; white-space:nowrap; }",
-    ".msg-proximo:hover { color:#0b6a62; }",
+    ".msg-barra { flex:1; height:6px; border-radius:99px; background:#e9ecef; overflow:hidden; }",
+    ".msg-preenchido { height:100%; width:0; border-radius:99px; background:#0b7285; transition:width .25s ease; }",
+    ".msg-preenchido.completo { background:#2b8a3e; }",
+    ".msg-texto { font-size:12px; font-weight:700; color:#5b6573; white-space:nowrap; }",
+    ".msg-proximo { background:none; border:none; padding:0; font:inherit; font-size:12px; font-weight:700; color:#0b7285; cursor:pointer; text-decoration:underline; white-space:nowrap; }",
+    ".msg-proximo:hover { color:#095c6b; }",
     ".msg-proximo[hidden] { display:none; }",
     /* O destaque some sozinho: um campo que fica marcado para sempre
        vira decoracao e para de significar "e este aqui". */
-    ".msg-alvo { outline:2px solid #17ab9e !important; outline-offset:1px; border-radius:7px; }",
+    ".msg-alvo { outline:2px solid #0b7285 !important; outline-offset:1px; border-radius:7px; }",
     "@media (prefers-reduced-motion: reduce) { .msg-preenchido { transition:none; } }",
   ].join("\n");
 
