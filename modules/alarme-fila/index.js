@@ -289,10 +289,6 @@
   const CSS_PAINEL = [
     raiz.MeedsSuiteCabecalho.CSS,
     ".af-modal { width: 100%; max-width: 380px; background: #fff; border-radius: 20px; box-shadow: 0 24px 60px rgba(15,23,42,.35); overflow: hidden; }",
-    ".af-modal header { background: #b42318; color:#fff; padding:16px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
-    ".af-modal header h2 { margin:0; font-size:15px; font-weight:700; }",
-    ".af-fechar { background: rgba(255,255,255,.18); border:none; color:#fff; width:28px; height:28px; border-radius:8px; font-size:15px; cursor:pointer; flex-shrink:0; }",
-    ".af-fechar:hover { background: rgba(255,255,255,.32); }",
     ".af-body { padding:16px 18px 20px; display:flex; flex-direction:column; gap:16px; }",
     ".af-body label { font-size:12.5px; font-weight:600; color:#334155; display:block; margin-bottom:6px; }",
     ".af-hint { font-size:11px; color:#94a3b8; margin-top:4px; font-weight:400; line-height:1.45; }",
