@@ -8994,7 +8994,7 @@
   raiz.MEEDS_DADOS_APAC = {"_leia_me":"APAC — Laudo para Solicitacao/Autorizacao de Procedimento Ambulatorial. O formulario e NACIONAL, do Ministerio da Saude: o mesmo PDF vale para qualquer municipio. O que muda de um para outro e o ESTABELECIMENTO solicitante (nome e CNES) — e so isso, hoje. Por isso o catalogo de procedimentos e CIDs fica em '_comum', compartilhado, e cada municipio lista apenas os seus estabelecimentos. Para acrescentar um municipio: crie um bloco em 'municipios' com os estabelecimentos dele e rode 'npm run build'. Nao e preciso mexer em codigo.","_comum":{"_leia_me":"Vale para TODOS os municipios. Se um dia um municipio precisar de lista propria, acrescente 'procedimentos' ou 'cids' dentro do bloco dele: o que estiver la substitui o comum.","procedimentos":{"HOLTER":{"nome":"Holter 24h","codigo":"02.11.02.004-4","label":"MONITORAMENTO PELO SISTEMA HOLTER 24 HS (3 CANAIS)"},"MAPA":{"nome":"MAPA 24h","codigo":"02.11.02.005-2","label":"MONITORIZAÇÃO AMBULATORIAL DE PRESSÃO ARTERIAL (MAPA)"},"TE":{"nome":"Teste Ergométrico","codigo":"02.11.02.006-0","label":"TESTE DE ESFORÇO / TESTE ERGOMÉTRICO"},"DOPPLER":{"nome":"Doppler vascular","codigo":"02.05.01.004-0","label":null},"CINTILO":{"nome":"Cintilografia miocárdio","codigo":"02.08.01.002-5","label":"CINTILOGRAFIA DE MIOCÁRDIO P/ AVALIAÇÃO DA PERFUSÃO EM SITUAÇÃO DE ESTRESSE (MÍNIMO 3 PROJEÇÕES)"},"ECO":{"nome":"Ecocardiograma","codigo":"02.05.01.003-2","label":null},"CATETER":{"nome":"Cateterismo cardíaco","codigo":"02.11.02.001-0","label":"CATETERISMO CARDÍACO (CINECORONARIOGRAFIA)"},"OUTRO":{"nome":"Outro procedimento…","codigo":"","label":null}},"ecoVariantes":{"REPOUSO":{"codigo":"02.05.01.003-2","nome":"ECOCARDIOGRAFIA TRANSTORACICA"},"ESTRESSE":{"codigo":"02.05.01.001-6","nome":"ECOCARDIOGRAFIA COM ESTRESSE"},"TRANSESOFAGICO":{"codigo":"02.05.01.002-4","nome":"ECOCARDIOGRAFIA BI-DIMENSIONAL TRANSESOFAGICO"}},"territorios":["DOPPLER DE ARTÉRIAS CARÓTIDAS E VERTEBRAIS","DOPPLER DE VEIAS CERVICAIS","DOPPLER AORTA ABDOMINAL","DOPPLER DE ARTÉRIAS RENAIS","DOPPLER ARTERIAL DE MEMBROS SUPERIORES","DOPPLER ARTERIAL DE MEMBROS INFERIORES","DOPPLER VENOSO DE MEMBROS SUPERIORES","DOPPLER VENOSO DE MEMBROS INFERIORES"],"cids":{"I10":"Hipertensão essencial (primária)","I11.9":"Doença cardíaca hipertensiva sem insuficiência cardíaca","I15.9":"Hipertensão secundária não especificada","I20.0":"Angina instável","I20.9":"Angina pectoris, não especificada","I21.9":"Infarto agudo do miocárdio não especificado","I22.9":"Infarto do miocárdio recorrente não especificado","I24.9":"Doença isquêmica aguda do coração, não especificada","I25.1":"Doença aterosclerótica do coração","I25.9":"Doença isquêmica crônica do coração, não especificada","I27.9":"Doença cardiopulmonar não especificada","I34.0":"Insuficiência da valva mitral","I34.9":"Transtorno não-reumático da valva mitral, não especificado","I35.0":"Estenose aórtica","I35.9":"Transtorno da valva aórtica não especificado","I36.1":"Insuficiência não-reumática da valva tricúspide","I38":"Endocardite de valva não especificada","I42.0":"Cardiomiopatia dilatada","I42.9":"Cardiomiopatia não especificada","I44.2":"Bloqueio atrioventricular total","I45.9":"Transtorno de condução não especificado","I47.1":"Taquicardia supraventricular","I47.2":"Taquicardia ventricular","I48":"Flutter e fibrilação atrial","I48.9":"Flutter e fibrilação atrial","I49.5":"Síndrome do nó sinusal","I49.9":"Arritmia cardíaca não especificada","I50":"Insuficiência cardíaca","I50.9":"Insuficiência cardíaca não especificada","I51.7":"Cardiomegalia","I70.0":"Aterosclerose da aorta","I70.2":"Aterosclerose das artérias das extremidades","I71.4":"Aneurisma da aorta abdominal, sem menção de ruptura","I73.9":"Doença vascular periférica não especificada","I80.2":"Flebite e tromboflebite de outros vasos profundos dos membros inferiores","I82.9":"Embolia e trombose venosa não especificada","Q21.1":"Comunicação interatrial","Q24.9":"Malformação congênita do coração não especificada","E11":"Diabetes mellitus não-insulino-dependente","E11.9":"Diabetes mellitus não-insulino-dependente - sem complicações","E78.0":"Hipercolesterolemia pura","E78.5":"Hiperlipidemia não especificada","R00.0":"Taquicardia não especificada","R00.1":"Bradicardia não especificada","R00.2":"Palpitações","R07.2":"Dor precordial","R07.4":"Dor torácica, não especificada","R42":"Tontura e instabilidade","R55":"Síncope e colapso","Z95.0":"Presença de marca-passo cardíaco","Z95.1":"Presença de enxerto de ponte aortocoronária","Z95.5":"Presença de implante e enxerto de angioplastia coronária"}},"municipios":{"Itaúna":{"estabelecimentos":[{"nome":"CENTRO DE ESPEC MEDICAS E ODONTO DR OVIDIO NOGUEIRA MACHADO","cnes":"2105578"}]},"Betim":{"_leia_me":"Estabelecimentos ainda nao informados. Ate serem preenchidos aqui, o medico cadastra o dele pelo painel da engrenagem, em Unidades.","estabelecimentos":[{"nome":"CENTRO R E ESPECIALIDADES DIVINO FERREIRA BRAGA","cnes":"2125943"}]},"Sete Lagoas":{"_leia_me":"Idem Betim. Atencao: Sete Lagoas tambem tem o Laudo de Alto Custo, que e outro documento, com formulario proprio da prefeitura — sao coisas diferentes.","estabelecimentos":[{"nome":"SAÚDE AUDITIVA","cnes":"6977073"},{"nome":"UBS CIDADE DE DEUS","cnes":"2209241"},{"nome":"UBS BELO VALE","cnes":"5358965"}]}}};
 
   /* ===== dados/avisos-municipio.json ===== */
-  raiz.MEEDS_AVISOS_MUNICIPIO = {"_leia_me":"Avisos que aparecem sozinhos DENTRO do atendimento, conforme o municipio do paciente e, quando houver, a UNIDADE que aparece no campo 'Vinculos' do cartao do paciente. Chave do municipio: o nome como a prefeitura aparece no Meeds, sem 'Prefeitura Municipal de' (acento e maiuscula nao importam). Cada regra tem 'titulo' e ao menos uma destas listas: 'pode' (o que a teleconsulta resolve), 'naoPode' ({item, fazer}) e 'orientacoes' (texto livre, uma linha por item). 'unidades' (opcional) traz regras por unidade: a chave e so um rotulo; 'nomes' lista o nome da unidade EXATAMENTE como aparece no Vinculos (acento e maiuscula nao importam). A regra do municipio, se houver, aparece junto com a da unidade. Edite e rode 'npm run build'. 'exigeCiencia': true (opcional, no municipio ou na unidade) abre o aviso num MODAL em passos que bloqueia o atendimento ate o medico marcar 'Li e estou ciente' e confirmar no ultimo passo; depois de confirmado, nao volta ate o proximo login (ou recarga da pagina); sem ele, 'Entendi' silencia por 3h. Opcional 'resumo' (texto): vira a primeira pagina, de contexto, do aviso em passos. A ordem na tela e: o que NAO pode (❌) primeiro, depois o que pode (✅), depois as orientacoes (📌).","municipios":{"Barbacena":{"titulo":"Município de Barbacena (UPA)","pode":["Medicação VO","Medicação IM"],"naoPode":[{"item":"Medicação EV","fazer":"encaminhar ao presencial"},{"item":"Exames","fazer":"encaminhar ao presencial"}],"orientacoes":["Atestado com critério: só com justificativa clínica, afastamento compatível com o que foi avaliado e registro em prontuário — o Código de Ética Médica veda emitir sem ter praticado o ato (art. 80)."]},"Franco da Rocha":{"titulo":"Município de Franco da Rocha (UPA)","pode":["Medicação para domicílio"],"naoPode":[{"item":"Medicação EV, IM e VO na unidade","fazer":"encaminhar ao presencial"},{"item":"Exames","fazer":"encaminhar ao presencial"},{"item":"Casos eletivos","fazer":"encaminhar para a UBS"},{"item":"Paciente com sinal de alarme","fazer":"encaminhar ao presencial"}],"orientacoes":["Nesta UPA só são atendidas fichas azuis — o fluxo já contempla receita e alta.","Atestado com critério: só com justificativa clínica, afastamento compatível com o que foi avaliado e registro em prontuário — o Código de Ética Médica veda emitir sem ter praticado o ato (art. 80)."]},"Macaé":{"unidades":{"UPA Barra":{"titulo":"Macaé — UPA Barra","nomes":["UPA UNIDADE DE PRONTO ATENDIMENTO BARRA"],"pode":["Medicação VO, IM e EV na unidade","Exames pertinentes ao pronto atendimento (hemograma, eletrólitos, função renal, glicemia, urina, ECG, radiografia, conforme oferta local)"],"naoPode":[{"item":"Encaminhamento para especialidades","fazer":"orientar o paciente a procurar a UBS mais próxima"},{"item":"Exames eletivos, sem relação com a queixa aguda","fazer":"encaminhar à UBS"}],"orientacoes":["Depois da medicação e dos resultados dos exames, solicitar reavaliação por telemedicina para decidir entre alta, nova conduta ou atendimento presencial.","Atestado com critério: só com justificativa clínica, afastamento compatível com o que foi avaliado e registro em prontuário — o Código de Ética Médica veda emitir sem ter praticado o ato (art. 80)."]},"UPA Lagomar":{"titulo":"Macaé — UPA Lagomar","nomes":["UPA UNIDADE DE PRONTO ATENDIMENTO LAGOMAR"],"naoPode":[{"item":"Encaminhamento para especialidades","fazer":"orientar o paciente a procurar a UBS mais próxima"}]},"PS Imbetiba":{"titulo":"Macaé — Pronto Socorro Municipal Imbetiba","nomes":["PRONTO SOCORRO MUNICIPAL IMBETIBA"],"naoPode":[{"item":"Encaminhamento para especialidades","fazer":"orientar o paciente a procurar a UBS mais próxima"}]},"PS Parque Aeroporto":{"titulo":"Macaé — Pronto Socorro Parque Aeroporto","nomes":["PRONTO SOCORRO PARQUE AEROPORTO"],"naoPode":[{"item":"Encaminhamento para especialidades","fazer":"orientar o paciente a procurar a UBS mais próxima"}]},"Casa da Criança":{"titulo":"Macaé — Casa da Criança e do Adolescente","nomes":["CASA DA CRIANCA E DO ADOLESCENTE"],"naoPode":[{"item":"O município não oferta neuropsicólogo nem psicopedagogo","fazer":""}],"orientacoes":["A unidade oferta atendimentos de fonoaudiologia, terapia ocupacional, fisioterapia e psicologia.","Fluxo: presencial. Encaminhar diretamente quando houver indicação de terapia."]},"Clínica do Autista":{"titulo":"Macaé — Clínica do Autista","nomes":["CLINICA DO AUTISTA"],"orientacoes":["Atendimentos: psiquiatria infantil, neuropediatria, serviço social, psicologia, fisioterapia, fonoaudiologia e nutrição.","Fluxo: atendimentos individuais e em grupo, incluindo grupo de apoio aos responsáveis."]},"Exames ginecológicos (sexo feminino)":{"titulo":"Macaé — Exames que exigem encaminhamento ao ginecologista","apenasSexo":"F","nomes":["CENTRO DE ESPECIALIDADES DONA ALBA","CONTROLE AVALIAÇÃO E AUDITORIA","ESF BARRA BRASÍLIA","ESF AJUDA C","ESF LAGOMAR","ESF MALVINAS","MACAÉ CIDADE DA MELHOR IDADE","UBS AROEIRA","ESF AROEIRA","UBS/ESF BOSQUE AZUL","UBS LAGOMAR","UBS NOVO CAVALEIROS","UMS CÓRREGO DO OURO","UMS SANA"],"orientacoes":["USG de mama, mamografia, papanicolau e USG transvaginal só podem ser solicitados pelo ginecologista. Se houver necessidade, encaminhar a paciente ao profissional."]}}},"Congonhas":{"titulo":"Município de Congonhas (MG)","naoPode":[{"item":"Renovar receita sem a receita prévia em mãos","fazer":"pedir ao paciente a receita anterior, para comprovar uso e posologia"},{"item":"Prescrever como \"uso contínuo\"","fazer":"informar a quantidade e a duração exatas — a farmácia municipal não dispensa receita só com \"uso contínuo\""}],"orientacoes":["REMUME de Congonhas: dipirona é dispensada apenas em gotas, não em comprimido — prescrever na apresentação certa para o paciente conseguir retirar.","Exames do laboratório da UPA devem ser pedidos juntos. Qualquer exame fora da lista deve ir em pedido separado — senão o paciente não consegue marcar. Consulte a listagem de exames do Assistente."]},"Piraí":{"titulo":"Município de Piraí (RJ)","orientacoes":["Os exames pediátricos de alta/média complexidade e as especialidades pediátricas ambulatoriais não são realizados em Piraí — o atendimento ocorre no Rio de Janeiro, via regulação estadual/SISREG.","Os encaminhamentos devem estar o mais detalhados possível, com exames anexados e classificação de risco."]},"Pará de Minas":{"unidades":{"UBS":{"titulo":"Pará de Minas — UBS: pontos de atenção","exigeCiencia":true,"resumo":"Nestas UBS atendemos DEMANDA ESPONTÂNEA — \"a UPA da UBS\": siga o raciocínio de uma UPA.","nomes":["UBS NOSSA SENHORA DA PIEDADE","UBS WALTER MARTINS"],"pode":["Demanda espontânea com classificação de risco azul ou verde (acolhimento e classificação feitos pela UBS)","Injetáveis disponíveis na unidade: dipirona, escopolamina, escopolamina + dipirona, complexo B, hidrocortisona 100 e 500 mg, dexametasona, cetoprofeno (IM), metoclopramida, prometazina, furosemida e tenoxicam","Exames laboratoriais: hemograma completo, PCR, EAS + gram e BHCG"],"naoPode":[{"item":"Prescrever com nome comercial","fazer":"usar só o princípio ativo, seguindo a REMUME de Pará de Minas"},{"item":"Renovar receitas, mesmo diante da receita prévia","fazer":"a telemedicina não renova receitas neste município"},{"item":"Exames de imagem","fazer":"não solicitar pela telemedicina"},{"item":"Encaminhamento ao especialista","fazer":"não encaminhar pela telemedicina"},{"item":"Exames de rotina","fazer":"encaminhar ao atendimento presencial com o clínico, com resumo da história clínica e CID — nunca sugerir conduta ao colega"}],"orientacoes":["Reavaliação sempre com a telemedicina, exceto os casos que não possam ser conduzidos por ela.","Atestado com critério: só com justificativa clínica, afastamento compatível com o que foi avaliado e registro em prontuário — o Código de Ética Médica veda emitir sem ter praticado o ato (art. 80).","Um técnico de enfermagem da unidade acompanha a consulta e faz a ponte entre o paciente, o médico e a equipe.","Na receita: nome completo do paciente. Injetável: o paciente apresenta a receita à equipe para a administração."]}}}}};
+  raiz.MEEDS_AVISOS_MUNICIPIO = {"_leia_me":"Avisos que aparecem sozinhos DENTRO do atendimento, conforme o municipio do paciente e, quando houver, a UNIDADE que aparece no campo 'Vinculos' do cartao do paciente. Chave do municipio: o nome como a prefeitura aparece no Meeds, sem 'Prefeitura Municipal de' (acento e maiuscula nao importam). Cada regra tem 'titulo' e ao menos uma destas listas: 'pode' (o que a teleconsulta resolve), 'naoPode' ({item, fazer}) e 'orientacoes' (texto livre, uma linha por item). 'unidades' (opcional) traz regras por unidade: a chave e so um rotulo; 'nomes' lista o nome da unidade EXATAMENTE como aparece no Vinculos (acento e maiuscula nao importam). A regra do municipio, se houver, aparece junto com a da unidade. Edite e rode 'npm run build'. Todo aviso abre num MODAL em passos que bloqueia o atendimento ate o medico marcar 'Li e estou ciente' e confirmar no ultimo passo; depois de confirmado, nao volta para aquela cidade/unidade ate o proximo login (ou recarga da pagina). Opcional 'resumo' (texto): vira a primeira pagina, de contexto, do aviso em passos. A ordem na tela e: o que NAO pode (❌) primeiro, depois o que pode (✅), depois as orientacoes (📌).","municipios":{"Barbacena":{"titulo":"Município de Barbacena (UPA)","pode":["Medicação VO","Medicação IM"],"naoPode":[{"item":"Medicação EV","fazer":"encaminhar ao presencial"},{"item":"Exames","fazer":"encaminhar ao presencial"}],"orientacoes":["Atestado com critério: só com justificativa clínica, afastamento compatível com o que foi avaliado e registro em prontuário — o Código de Ética Médica veda emitir sem ter praticado o ato (art. 80)."]},"Franco da Rocha":{"titulo":"Município de Franco da Rocha (UPA)","pode":["Medicação para domicílio"],"naoPode":[{"item":"Medicação EV, IM e VO na unidade","fazer":"encaminhar ao presencial"},{"item":"Exames","fazer":"encaminhar ao presencial"},{"item":"Casos eletivos","fazer":"encaminhar para a UBS"},{"item":"Paciente com sinal de alarme","fazer":"encaminhar ao presencial"}],"orientacoes":["Nesta UPA só são atendidas fichas azuis — o fluxo já contempla receita e alta.","Atestado com critério: só com justificativa clínica, afastamento compatível com o que foi avaliado e registro em prontuário — o Código de Ética Médica veda emitir sem ter praticado o ato (art. 80)."]},"Macaé":{"unidades":{"UPA Barra":{"titulo":"Macaé — UPA Barra","nomes":["UPA UNIDADE DE PRONTO ATENDIMENTO BARRA"],"pode":["Medicação VO, IM e EV na unidade","Exames pertinentes ao pronto atendimento (hemograma, eletrólitos, função renal, glicemia, urina, ECG, radiografia, conforme oferta local)"],"naoPode":[{"item":"Encaminhamento para especialidades","fazer":"orientar o paciente a procurar a UBS mais próxima"},{"item":"Exames eletivos, sem relação com a queixa aguda","fazer":"encaminhar à UBS"}],"orientacoes":["Depois da medicação e dos resultados dos exames, solicitar reavaliação por telemedicina para decidir entre alta, nova conduta ou atendimento presencial.","Atestado com critério: só com justificativa clínica, afastamento compatível com o que foi avaliado e registro em prontuário — o Código de Ética Médica veda emitir sem ter praticado o ato (art. 80)."]},"UPA Lagomar":{"titulo":"Macaé — UPA Lagomar","nomes":["UPA UNIDADE DE PRONTO ATENDIMENTO LAGOMAR"],"naoPode":[{"item":"Encaminhamento para especialidades","fazer":"orientar o paciente a procurar a UBS mais próxima"}]},"PS Imbetiba":{"titulo":"Macaé — Pronto Socorro Municipal Imbetiba","nomes":["PRONTO SOCORRO MUNICIPAL IMBETIBA"],"naoPode":[{"item":"Encaminhamento para especialidades","fazer":"orientar o paciente a procurar a UBS mais próxima"}]},"PS Parque Aeroporto":{"titulo":"Macaé — Pronto Socorro Parque Aeroporto","nomes":["PRONTO SOCORRO PARQUE AEROPORTO"],"naoPode":[{"item":"Encaminhamento para especialidades","fazer":"orientar o paciente a procurar a UBS mais próxima"}]},"Casa da Criança":{"titulo":"Macaé — Casa da Criança e do Adolescente","nomes":["CASA DA CRIANCA E DO ADOLESCENTE"],"naoPode":[{"item":"O município não oferta neuropsicólogo nem psicopedagogo","fazer":""}],"orientacoes":["A unidade oferta atendimentos de fonoaudiologia, terapia ocupacional, fisioterapia e psicologia.","Fluxo: presencial. Encaminhar diretamente quando houver indicação de terapia."]},"Clínica do Autista":{"titulo":"Macaé — Clínica do Autista","nomes":["CLINICA DO AUTISTA"],"orientacoes":["Atendimentos: psiquiatria infantil, neuropediatria, serviço social, psicologia, fisioterapia, fonoaudiologia e nutrição.","Fluxo: atendimentos individuais e em grupo, incluindo grupo de apoio aos responsáveis."]},"Exames ginecológicos (sexo feminino)":{"titulo":"Macaé — Exames que exigem encaminhamento ao ginecologista","apenasSexo":"F","nomes":["CENTRO DE ESPECIALIDADES DONA ALBA","CONTROLE AVALIAÇÃO E AUDITORIA","ESF BARRA BRASÍLIA","ESF AJUDA C","ESF LAGOMAR","ESF MALVINAS","MACAÉ CIDADE DA MELHOR IDADE","UBS AROEIRA","ESF AROEIRA","UBS/ESF BOSQUE AZUL","UBS LAGOMAR","UBS NOVO CAVALEIROS","UMS CÓRREGO DO OURO","UMS SANA"],"orientacoes":["USG de mama, mamografia, papanicolau e USG transvaginal só podem ser solicitados pelo ginecologista. Se houver necessidade, encaminhar a paciente ao profissional."]}}},"Congonhas":{"titulo":"Município de Congonhas (MG)","naoPode":[{"item":"Renovar receita sem a receita prévia em mãos","fazer":"pedir ao paciente a receita anterior, para comprovar uso e posologia"},{"item":"Prescrever como \"uso contínuo\"","fazer":"informar a quantidade e a duração exatas — a farmácia municipal não dispensa receita só com \"uso contínuo\""}],"orientacoes":["REMUME de Congonhas: dipirona é dispensada apenas em gotas, não em comprimido — prescrever na apresentação certa para o paciente conseguir retirar.","Exames do laboratório da UPA devem ser pedidos juntos. Qualquer exame fora da lista deve ir em pedido separado — senão o paciente não consegue marcar. Consulte a listagem de exames do Assistente."]},"Piraí":{"titulo":"Município de Piraí (RJ)","orientacoes":["Os exames pediátricos de alta/média complexidade e as especialidades pediátricas ambulatoriais não são realizados em Piraí — o atendimento ocorre no Rio de Janeiro, via regulação estadual/SISREG.","Os encaminhamentos devem estar o mais detalhados possível, com exames anexados e classificação de risco."]},"Pará de Minas":{"unidades":{"UBS":{"titulo":"Pará de Minas — UBS: pontos de atenção","resumo":"Nestas UBS atendemos DEMANDA ESPONTÂNEA — \"a UPA da UBS\": siga o raciocínio de uma UPA.","nomes":["UBS NOSSA SENHORA DA PIEDADE","UBS WALTER MARTINS"],"pode":["Demanda espontânea com classificação de risco azul ou verde (acolhimento e classificação feitos pela UBS)","Injetáveis disponíveis na unidade: dipirona, escopolamina, escopolamina + dipirona, complexo B, hidrocortisona 100 e 500 mg, dexametasona, cetoprofeno (IM), metoclopramida, prometazina, furosemida e tenoxicam","Exames laboratoriais: hemograma completo, PCR, EAS + gram e BHCG"],"naoPode":[{"item":"Prescrever com nome comercial","fazer":"usar só o princípio ativo, seguindo a REMUME de Pará de Minas"},{"item":"Renovar receitas, mesmo diante da receita prévia","fazer":"a telemedicina não renova receitas neste município"},{"item":"Exames de imagem","fazer":"não solicitar pela telemedicina"},{"item":"Encaminhamento ao especialista","fazer":"não encaminhar pela telemedicina"},{"item":"Exames de rotina","fazer":"encaminhar ao atendimento presencial com o clínico, com resumo da história clínica e CID — nunca sugerir conduta ao colega"}],"orientacoes":["Reavaliação sempre com a telemedicina, exceto os casos que não possam ser conduzidos por ela.","Atestado com critério: só com justificativa clínica, afastamento compatível com o que foi avaliado e registro em prontuário — o Código de Ética Médica veda emitir sem ter praticado o ato (art. 80).","Um técnico de enfermagem da unidade acompanha a consulta e faz a ponte entre o paciente, o médico e a equipe.","Na receita: nome completo do paciente. Injetável: o paciente apresenta a receita à equipe para a administração."]}}}}};
 
   /* ===== dados/marcas-medicamentos.json ===== */
   raiz.MEEDS_MARCAS = {"_leia_me":"TRADUTOR de nome comercial para principio ativo. ATENCAO: esta tabela NUNCA e fonte de medicamento. Ela so ajuda a ENCONTRAR o item dentro da REMUME do municipio — a REMUME (modules/remume/remumes.json) e a unica fonte de verdade. Se o principio ativo traduzido nao estiver na REMUME daquele municipio, o Assistente avisa que nao consta e NAO oferece o item. Para acrescentar uma marca, copie um bloco abaixo e rode 'npm run build'. Ver docs/MANUAL-ADMIN.md.","_campos":{"marca":"O que o medico digita (nome comercial, sigla ou nome alternativo).","principioAtivo":"O nome que se procura dentro da REMUME.","observacao":"Opcional. Aparece so na documentacao, nao na tela."},"_total":252,"marcas":[{"marca":"AAS","principioAtivo":"Ácido acetilsalicílico","observacao":"Sigla de uso corrente."},{"marca":"Acetaminofeno","principioAtivo":"Paracetamol","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Acfol","principioAtivo":"Acido Folico","observacao":""},{"marca":"Actilyse","principioAtivo":"Alteplase","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Adalat","principioAtivo":"Nifedipino","observacao":""},{"marca":"Adalat Oros","principioAtivo":"Nifedipina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Addera","principioAtivo":"Colecalciferol","observacao":""},{"marca":"Adenocard","principioAtivo":"Adenosina","observacao":""},{"marca":"Advil","principioAtivo":"Ibuprofeno","observacao":""},{"marca":"Aerolin","principioAtivo":"Salbutamol","observacao":""},{"marca":"Akineton","principioAtivo":"Biperideno","observacao":""},{"marca":"Aldactone","principioAtivo":"Espironolactona","observacao":""},{"marca":"Aldomet","principioAtivo":"Metildopa","observacao":""},{"marca":"Alivium","principioAtivo":"Ibuprofeno","observacao":""},{"marca":"Allegra","principioAtivo":"Fexofenadina","observacao":""},{"marca":"Amox","principioAtivo":"Amoxicilina","observacao":""},{"marca":"Amoxil","principioAtivo":"Amoxicilina","observacao":""},{"marca":"Amplictil","principioAtivo":"Clorpromazina","observacao":""},{"marca":"Amytril","principioAtivo":"Amitriptilina","observacao":""},{"marca":"Ancoron","principioAtivo":"Amiodarona","observacao":""},{"marca":"Angipress","principioAtivo":"Atenolol","observacao":""},{"marca":"Antak","principioAtivo":"Ranitidina","observacao":""},{"marca":"Apresolina","principioAtivo":"Hidralazina","observacao":""},{"marca":"Apressolina","principioAtivo":"Hidralazina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Aprovel","principioAtivo":"Irbesartana","observacao":""},{"marca":"Aradois","principioAtivo":"Losartana","observacao":""},{"marca":"Asmafen","principioAtivo":"Aminofilina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Aspirina","principioAtivo":"Ácido acetilsalicílico","observacao":""},{"marca":"Astromicin","principioAtivo":"Azitromicina","observacao":""},{"marca":"Atensina","principioAtivo":"Clonidina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Atlansil","principioAtivo":"Amiodarona","observacao":""},{"marca":"Atrovent","principioAtivo":"Ipratropio","observacao":""},{"marca":"Bactrim","principioAtivo":"Sulfametoxazol","observacao":""},{"marca":"Bactroban","principioAtivo":"Mupirocina","observacao":""},{"marca":"Balcor","principioAtivo":"Diltiazem","observacao":""},{"marca":"Benerva","principioAtivo":"Tiamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Benzetacil","principioAtivo":"Penicilina","observacao":""},{"marca":"Buscopam Composto","principioAtivo":"Escopolamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Buscopan","principioAtivo":"Escopolamina","observacao":""},{"marca":"Buscopan","principioAtivo":"Butilbrometo","observacao":""},{"marca":"Buscopan Composto","principioAtivo":"Escopolamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Buscopan Simples","principioAtivo":"Escopolamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Busonid","principioAtivo":"Budesonida","observacao":""},{"marca":"Capoten","principioAtivo":"Captopril","observacao":""},{"marca":"Cardilol","principioAtivo":"Carvedilol","observacao":""},{"marca":"Cardizem","principioAtivo":"Diltiazem","observacao":""},{"marca":"Cataflam","principioAtivo":"Diclofenaco","observacao":""},{"marca":"Cimetidan","principioAtivo":"Cimetidina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Cipramil","principioAtivo":"Citalopram","observacao":""},{"marca":"Cipro","principioAtivo":"Ciprofloxacino","observacao":""},{"marca":"Ciproxin","principioAtivo":"Ciprofloxacino","observacao":""},{"marca":"Citalor","principioAtivo":"Atorvastatina","observacao":""},{"marca":"Citoneurin","principioAtivo":"Complexo B","observacao":""},{"marca":"Claritine","principioAtivo":"Loratadina","observacao":""},{"marca":"Clavulin","principioAtivo":"Clavulanato","observacao":""},{"marca":"Clenil","principioAtivo":"Beclometasona","observacao":""},{"marca":"Clexane","principioAtivo":"Enoxaparina","observacao":""},{"marca":"Clisterol","principioAtivo":"Glicerina Clister","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Clorana","principioAtivo":"Hidroclorotiazida","observacao":""},{"marca":"Combiron","principioAtivo":"Sulfato Ferroso","observacao":""},{"marca":"Coreg","principioAtivo":"Carvedilol","observacao":""},{"marca":"Coumadin","principioAtivo":"Varfarina","observacao":""},{"marca":"Cozaar","principioAtivo":"Losartana","observacao":""},{"marca":"Crestor","principioAtivo":"Rosuvastatina","observacao":""},{"marca":"Cymbalta","principioAtivo":"Duloxetina","observacao":""},{"marca":"Cytotec","principioAtivo":"Misoprostol","observacao":""},{"marca":"Daforin","principioAtivo":"Fluoxetina","observacao":""},{"marca":"Daktarin","principioAtivo":"Miconazol","observacao":""},{"marca":"Dalacin","principioAtivo":"Clindamicina","observacao":""},{"marca":"Dalacin C","principioAtivo":"Clindamicina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Daonil","principioAtivo":"Glibenclamida","observacao":""},{"marca":"Decadron","principioAtivo":"Dexametasona","observacao":""},{"marca":"Depakene","principioAtivo":"Valproato","observacao":""},{"marca":"Depakote","principioAtivo":"Valproato","observacao":""},{"marca":"Dermazine","principioAtivo":"Sulfadiazina Prata","observacao":""},{"marca":"Desalex","principioAtivo":"Desloratadina","observacao":""},{"marca":"Deslanol","principioAtivo":"Deslanosídeo","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Despacilina","principioAtivo":"Benzilpenicilina Potássica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Diamicron","principioAtivo":"Gliclazida","observacao":""},{"marca":"Digesan","principioAtivo":"Bromoprida","observacao":""},{"marca":"Dimorf","principioAtivo":"Morfina","observacao":""},{"marca":"Diovan","principioAtivo":"Valsartana","observacao":""},{"marca":"Diprivan","principioAtivo":"Propofol","observacao":""},{"marca":"Diprospan","principioAtivo":"Betametasona","observacao":""},{"marca":"Dobutrex","principioAtivo":"Dobutamina","observacao":""},{"marca":"Dormonid","principioAtivo":"Midazolam","observacao":""},{"marca":"Dulcolax","principioAtivo":"Bisacodil","observacao":""},{"marca":"Efexor","principioAtivo":"Venlafaxina","observacao":""},{"marca":"Efortil","principioAtivo":"Etilefrina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Eliquis","principioAtivo":"Apixabana","observacao":""},{"marca":"Elocom","principioAtivo":"Mometasona","observacao":""},{"marca":"Epinefrina","principioAtivo":"Adrenalina","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Esmeron","principioAtivo":"Rocurônio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Euthyrox","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Fenergan","principioAtivo":"Prometazina","observacao":""},{"marca":"Fenocris","principioAtivo":"Fenobarbital Sódico","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Fentanil","principioAtivo":"Fentanila","observacao":""},{"marca":"Flagyl","principioAtivo":"Metronidazol","observacao":""},{"marca":"Flixotide","principioAtivo":"Fluticasona","observacao":""},{"marca":"Fluconal","principioAtivo":"Fluconazol","observacao":""},{"marca":"Folacin","principioAtivo":"Acido Folico","observacao":""},{"marca":"Franol","principioAtivo":"Efedrina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Garamicina","principioAtivo":"Gentamicina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Gardenal","principioAtivo":"Fenobarbital","observacao":""},{"marca":"Gentamisan","principioAtivo":"Gentamicina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Glifage","principioAtivo":"Metformina","observacao":""},{"marca":"Glucoformin","principioAtivo":"Metformina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Haldol","principioAtivo":"Haloperidol","observacao":""},{"marca":"Hctz","principioAtivo":"Hidroclorotiazida","observacao":""},{"marca":"Hidantal","principioAtivo":"Fenitoina","observacao":""},{"marca":"Hidraplex","principioAtivo":"Sais para reidratação oral","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Higroton","principioAtivo":"Clortalidona","observacao":""},{"marca":"Hixizine","principioAtivo":"Hidroxizina","observacao":""},{"marca":"Humulin","principioAtivo":"Insulina","observacao":""},{"marca":"Hypnomidate","principioAtivo":"Etomidato","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Imosec","principioAtivo":"Loperamida","observacao":""},{"marca":"Inderal","principioAtivo":"Propranolol","observacao":""},{"marca":"Insunorm","principioAtivo":"Insulina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Iruxol","principioAtivo":"Colagenase","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Kanakion","principioAtivo":"Fitomenadiona","observacao":""},{"marca":"Kanakion Im/sc","principioAtivo":"Fitomenadiona","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Kcl","principioAtivo":"Cloreto de potássio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Keflex","principioAtivo":"Cefalexina","observacao":""},{"marca":"Keppra","principioAtivo":"Levetiracetam","observacao":""},{"marca":"Ketamin","principioAtivo":"Escetamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Klaricid","principioAtivo":"Claritromicina","observacao":""},{"marca":"Label","principioAtivo":"Ranitidina","observacao":""},{"marca":"Lactulona","principioAtivo":"Lactulose","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Lamisil","principioAtivo":"Terbinafina","observacao":""},{"marca":"Lanexat","principioAtivo":"Flumazenil","observacao":""},{"marca":"Lasix","principioAtivo":"Furosemida","observacao":""},{"marca":"Levaquin","principioAtivo":"Levofloxacino","observacao":""},{"marca":"Lexapro","principioAtivo":"Escitalopram","observacao":""},{"marca":"Lexotan","principioAtivo":"Bromazepam","observacao":""},{"marca":"Lioresal","principioAtivo":"Baclofeno","observacao":""},{"marca":"Lipitor","principioAtivo":"Atorvastatina","observacao":""},{"marca":"Liquemine","principioAtivo":"Heparina","observacao":""},{"marca":"Liquemine EV","principioAtivo":"Heparina Sódica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Liquemine Sc","principioAtivo":"Heparina Sódica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Lopressor","principioAtivo":"Metoprolol","observacao":""},{"marca":"Loranil","principioAtivo":"Loratadina","observacao":""},{"marca":"Lorax","principioAtivo":"Lorazepam","observacao":""},{"marca":"Losec","principioAtivo":"Omeprazol","observacao":""},{"marca":"Luftal","principioAtivo":"Simeticona","observacao":""},{"marca":"Lyrica","principioAtivo":"Pregabalina","observacao":""},{"marca":"Macrodantina","principioAtivo":"Nitrofurantoina","observacao":""},{"marca":"Manitol 20%","principioAtivo":"Manitol","observacao":""},{"marca":"Marcaina","principioAtivo":"Bupivacaina","observacao":""},{"marca":"Marevan","principioAtivo":"Varfarina","observacao":""},{"marca":"Metamizol","principioAtivo":"Dipirona","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Meticorten","principioAtivo":"Prednisona","observacao":""},{"marca":"Micardis","principioAtivo":"Telmisartana","observacao":""},{"marca":"Micostatin","principioAtivo":"Nistatina","observacao":""},{"marca":"Miosan","principioAtivo":"Ciclobenzaprina","observacao":""},{"marca":"Motilium","principioAtivo":"Domperidona","observacao":""},{"marca":"Movatec","principioAtivo":"Meloxicam","observacao":""},{"marca":"Nacl 0,9%.","principioAtivo":"Cloreto de Sódio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Nacl 20%.","principioAtivo":"Cloreto de Sódio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Narcan","principioAtivo":"Naloxona","observacao":""},{"marca":"Naropin","principioAtivo":"Ropivacaina","observacao":""},{"marca":"Nasonex","principioAtivo":"Mometasona","observacao":""},{"marca":"Natrilix","principioAtivo":"Indapamida","observacao":""},{"marca":"Nebacetin","principioAtivo":"Neomicina + bacitracina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Neocaina","principioAtivo":"Bupivacaina","observacao":""},{"marca":"Neozine","principioAtivo":"Levomepromazina","observacao":""},{"marca":"Nepresol","principioAtivo":"Hidralazina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Neurontin","principioAtivo":"Gabapentina","observacao":""},{"marca":"Nexium","principioAtivo":"Esomeprazol","observacao":""},{"marca":"Nipride","principioAtivo":"Nitroprusseto de Sódio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Nisulid","principioAtivo":"Nimesulida","observacao":""},{"marca":"Nizoral","principioAtivo":"Cetoconazol","observacao":""},{"marca":"Noradrenalina","principioAtivo":"Norepinefrina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Norepinefrina","principioAtivo":"Noradrenalina","observacao":"Outro nome do mesmo princípio ativo."},{"marca":"Norvasc","principioAtivo":"Anlodipino","observacao":""},{"marca":"Novalgina","principioAtivo":"Dipirona","observacao":""},{"marca":"Novolin","principioAtivo":"Insulina","observacao":""},{"marca":"Pantoc","principioAtivo":"Pantoprazol","observacao":""},{"marca":"Pantozol","principioAtivo":"Pantoprazol","observacao":""},{"marca":"Peprazol","principioAtivo":"Omeprazol","observacao":""},{"marca":"Plasil","principioAtivo":"Metoclopramida","observacao":""},{"marca":"Plavix","principioAtivo":"Clopidogrel","observacao":""},{"marca":"Polaramine","principioAtivo":"Dexclorfeniramina","observacao":""},{"marca":"Pradaxa","principioAtivo":"Dabigatrana","observacao":""},{"marca":"Prazol","principioAtivo":"Lansoprazol","observacao":""},{"marca":"Predi-medrol","principioAtivo":"Metilprednisolona","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Prelone","principioAtivo":"Prednisolona","observacao":""},{"marca":"Profenid","principioAtivo":"Cetoprofeno","observacao":""},{"marca":"Prolopa","principioAtivo":"Levodopa","observacao":""},{"marca":"Propecia","principioAtivo":"Finasterida","observacao":""},{"marca":"Propovan","principioAtivo":"Propofol","observacao":""},{"marca":"Proscar","principioAtivo":"Finasterida","observacao":""},{"marca":"Prostigmine","principioAtivo":"Neostigmina","observacao":""},{"marca":"Prostokos","principioAtivo":"Misoprostol","observacao":""},{"marca":"Prozac","principioAtivo":"Fluoxetina","observacao":""},{"marca":"Pulmicort","principioAtivo":"Budesonida","observacao":""},{"marca":"Puran T4","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Renitec","principioAtivo":"Enalapril","observacao":""},{"marca":"Revivan","principioAtivo":"Dopamina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Ringer Lactato","principioAtivo":"Ringer","observacao":""},{"marca":"Risperdal","principioAtivo":"Risperidona","observacao":""},{"marca":"Rivotril","principioAtivo":"Clonazepam","observacao":""},{"marca":"Rocefin","principioAtivo":"Ceftriaxona","observacao":""},{"marca":"Scabin","principioAtivo":"Permetrina","observacao":""},{"marca":"Secotex","principioAtivo":"Tansulosina","observacao":""},{"marca":"Seloken","principioAtivo":"Metoprolol","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Selozok","principioAtivo":"Metoprolol","observacao":""},{"marca":"Seroquel","principioAtivo":"Quetiapina","observacao":""},{"marca":"Sevorane","principioAtivo":"Sevoflurano","observacao":""},{"marca":"Sf 0.9%","principioAtivo":"Soro Fisiologico","observacao":""},{"marca":"Sg 5%","principioAtivo":"Glicose","observacao":""},{"marca":"Singulair","principioAtivo":"Montelucaste","observacao":""},{"marca":"Sinvatrox","principioAtivo":"Sinvastatina","observacao":""},{"marca":"Solucortef","principioAtivo":"Hidrocortisona","observacao":""},{"marca":"Solumedrol","principioAtivo":"Metilprednisolona","observacao":""},{"marca":"Sorcal","principioAtivo":"Poliestirenossulfonato de Calcio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Soro Glicosado","principioAtivo":"Glicose","observacao":""},{"marca":"Staficilin","principioAtivo":"Oxacilina sódica","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Succinil Colin","principioAtivo":"Suxametonio","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Synthroid","principioAtivo":"Levotiroxina","observacao":""},{"marca":"Syntocinon","principioAtivo":"Ocitocina","observacao":""},{"marca":"Tamiflu","principioAtivo":"Oseltamivir","observacao":""},{"marca":"Tavanic","principioAtivo":"Levofloxacino","observacao":""},{"marca":"Tegretol","principioAtivo":"Carbamazepina","observacao":""},{"marca":"Tolrest","principioAtivo":"Sertralina","observacao":""},{"marca":"Topamax","principioAtivo":"Topiramato","observacao":""},{"marca":"Tramal","principioAtivo":"Tramadol","observacao":""},{"marca":"Transamin","principioAtivo":"Acido Tranexamico","observacao":""},{"marca":"Triaxon","principioAtivo":"Ceftriaxona","observacao":""},{"marca":"Tridil","principioAtivo":"Nitroglicerina","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Tryptanol","principioAtivo":"Amitriptilina","observacao":""},{"marca":"Tylenol","principioAtivo":"Paracetamol","observacao":""},{"marca":"Uroxacin","principioAtivo":"Norfloxacino","observacao":""},{"marca":"Valium","principioAtivo":"Diazepam","observacao":""},{"marca":"Valproico","principioAtivo":"Valproato","observacao":""},{"marca":"Valtrex","principioAtivo":"Valaciclovir","observacao":""},{"marca":"Viagra","principioAtivo":"Sildenafila","observacao":""},{"marca":"Vibramicina","principioAtivo":"Doxiciclina","observacao":""},{"marca":"Vitamina K","principioAtivo":"Fitomenadiona","observacao":""},{"marca":"Voltaren","principioAtivo":"Diclofenaco","observacao":""},{"marca":"Vonau","principioAtivo":"Ondansetrona","observacao":""},{"marca":"Xarelto","principioAtivo":"Rivaroxabana","observacao":""},{"marca":"Xylocaina","principioAtivo":"Lidocaina","observacao":""},{"marca":"Xylocaina 2% com","principioAtivo":"Lidocaína","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Xylocaina 2% Sem","principioAtivo":"Lidocaína","observacao":"Padronizada na UPA de Barbacena."},{"marca":"Zitromax","principioAtivo":"Azitromicina","observacao":""},{"marca":"Zocor","principioAtivo":"Sinvastatina","observacao":""},{"marca":"Zofran","principioAtivo":"Ondansetrona","observacao":""},{"marca":"Zoloft","principioAtivo":"Sertralina","observacao":""},{"marca":"Zoltec","principioAtivo":"Fluconazol","observacao":""},{"marca":"Zovirax","principioAtivo":"Aciclovir","observacao":""},{"marca":"Zyprexa","principioAtivo":"Olanzapina","observacao":""},{"marca":"Zyrtec","principioAtivo":"Cetirizina","observacao":""}]};
@@ -18759,26 +18759,15 @@
   let d = null;
   let timers = [];
   let municipioPorAtendimento = {}; // id do atendimento -> nome do municipio (so memoria)
-  let dispensados = {};             // id do atendimento -> true se o medico fechou no X
-  let aberto = null;                // { id, municipio, chave, tipo: "cartao"|"modal", aviso?, overlay? }
+  let aberto = null;                // { id, municipio, chave, overlay, focoAnterior }
   let vistoDesde = {};              // id do atendimento -> quando a pagina dele apareceu
-  let entendidos = {};              // chave (municipio|unidade) -> quando o medico clicou "Entendi" (Infinity = ciencia ate recarregar)
+  let entendidos = {};              // chave (municipio|unidade) -> true: ciencia confirmada (ate o login ou recarregar)
 
   /* A leitura pela tela so vale depois deste tempo SEM resposta da rede.
    * A chamada do atendimento costuma chegar em menos de 1 s; esperar
-   * evita mostrar por um instante o cartao de uma cidade que a rede,
+   * evita mostrar por um instante o aviso de uma cidade que a rede,
    * logo em seguida, desmentiria. */
   const ESPERA_REDE_MS = 3000;
-
-  /* "Entendi" nao fecha so o atendimento atual: o medico costuma atender a
-   * mesma cidade varias vezes seguidas, e reabrir o mesmo aviso a cada
-   * atendimento so treina ele a clicar sem ler. Pedido de 28/09/2026: some
-   * por um tempo (por cidade/unidade, nao por atendimento) e so volta
-   * depois de um tempo — curto o bastante para lembrar de novo num
-   * plantao longo, comprido o bastante para nao repetir no mesmo bloco de
-   * atendimentos. Pedido de 01/10/2026: 5h era tempo demais, reduzido
-   * para 3h. */
-  const TEMPO_ENTENDIDO_MS = 3 * 60 * 60 * 1000;
 
   /* Visual do modal de ciencia (prototipo de Pará de Minas, 13/11/2026).
    * O fundo escuro e a centralizacao vem do .ms-overlay do nucleo. */
@@ -18906,45 +18895,6 @@
     return paciente.sexo === restricao;
   }
 
-  /* O que NAO pode vem primeiro (13/11/2026): e o que evita o erro. */
-  function linhasDe(r) {
-    const corpo = [];
-    (r.naoPode || []).forEach(function (n) {
-      corpo.push("❌ " + n.item + (n.fazer ? " → " + n.fazer : ""));
-    });
-    if ((r.pode || []).length && (r.naoPode || []).length) corpo.push("");
-    (r.pode || []).forEach(function (item) {
-      corpo.push("✅ " + item);
-    });
-    if (corpo.length && (r.orientacoes || []).length) corpo.push("");
-    (r.orientacoes || []).forEach(function (o) {
-      corpo.push("📌 " + o);
-    });
-    return corpo;
-  }
-
-  /* Regra do municipio (se houver) + regra da unidade (se houver), num
-   * cartao so. O titulo e o da unidade quando ela existe. */
-  function montarAviso(regraMun, unidade) {
-    const partes = [];
-    if (temConteudo(regraMun)) partes.push(regraMun);
-    if (unidade && temConteudo(unidade.regra)) partes.push(unidade.regra);
-    if (!partes.length) return null;
-    let corpo = [];
-    partes.forEach(function (r, i) {
-      if (i > 0) { corpo.push(""); corpo.push(r.titulo + ":"); }
-      corpo = corpo.concat(linhasDe(r));
-    });
-    /* Com as duas, o titulo e o da unidade e cada bloco ganha o seu nome. */
-    if (partes.length > 1) corpo = [partes[0].titulo + ":"].concat(corpo);
-    return {
-      titulo: "⚠️ " + partes[partes.length - 1].titulo,
-      corpo: corpo,
-      destaque: "atencao",
-      exigeCiencia: partes.some(function (r) { return r.exigeCiencia === true; }),
-    };
-  }
-
   /* O aviso em PAGINAS (13/11/2026): contexto (resumo) -> o que NAO fazer ->
    * o que a unidade oferece -> orientacoes. Passo sem item nao existe. */
   function montarPassos(regraMun, unidade) {
@@ -18974,17 +18924,12 @@
 
   function fechar() {
     if (!aberto) return;
-    if (aberto.tipo === "modal") {
-      const anterior = aberto.focoAnterior;
-      aberto.overlay.fechar();
-      aberto.overlay.remover();
-      aberto = null;
-      /* Devolve o foco a quem tinha antes do modal (ex.: a anamnese). */
-      if (anterior && anterior.isConnected !== false && typeof anterior.focus === "function") anterior.focus();
-      return;
-    }
-    aberto.aviso.fechar();
+    const anterior = aberto.focoAnterior;
+    aberto.overlay.fechar();
+    aberto.overlay.remover();
     aberto = null;
+    /* Devolve o foco a quem tinha antes do modal (ex.: a anamnese). */
+    if (anterior && anterior.isConnected !== false && typeof anterior.focus === "function") anterior.focus();
   }
 
   /* De que municipio e o atendimento. A rede, quando respondeu por ESTE
@@ -19000,33 +18945,6 @@
     if (!vistoDesde[id]) vistoDesde[id] = Date.now();
     if (Date.now() - vistoDesde[id] < ESPERA_REDE_MS) return undefined;
     return municipioPeloVinculo(Object.keys(tabela));
-  }
-
-  function estaEntendido(chave) {
-    const quando = entendidos[chave];
-    return typeof quando === "number" && (Date.now() - quando) < TEMPO_ENTENDIDO_MS;
-  }
-
-  /* Abre na LATERAL SUPERIOR DIREITA, acima dos botoes do Assistente,
-   * pulsando. "Entendi" marca a cidade/unidade como lida por 3h
-   * (verificar() nao reabre para ela nesse intervalo, nem para outro
-   * atendimento) e FECHA o cartao — pedido de 28/09/2026: o cartao calmo,
-   * mas ainda na tela, seguia atrapalhando o formulario. O X fecha do
-   * mesmo jeito, mas so para este atendimento, sem marcar como entendido.
-   * Pedido de 25/09/2026: no meio da tela ele cobria o formulario do
-   * atendimento. Regra com exigeCiencia nao passa por aqui: vai para o
-   * modal (abrirModal). */
-  function abrirCartao(id, municipio, chave, spec) {
-    spec.topo = true;
-    spec.acoes = [{
-      rotulo: "Entendi",
-      fecha: false,
-      aoClicar: function () {
-        entendidos[chave] = Date.now();
-        fechar();
-      },
-    }];
-    aberto = { id: id, municipio: municipio, chave: chave, tipo: "cartao", aviso: d.dock.criarAviso(spec) };
   }
 
   function escapeHtml(s) {
@@ -19050,13 +18968,14 @@
     }).join("") + "</ol>";
   }
 
-  /* Pedido de 13/11/2026 (Pará de Minas): regra com exigeCiencia abre em
-   * MODAL, no meio da tela, em passos (contexto -> o que NAO fazer -> o
-   * que a unidade oferece -> orientacoes). Bloqueia o atendimento ate o
-   * medico marcar "Li e estou ciente" e confirmar no ultimo passo: nao
-   * fecha clicando fora nem no Esc. A ciencia vale ate o fim da pagina
-   * (ou ate a tela de login) — nao a cada 3h como o "Entendi". Sair do
-   * atendimento fecha sem registrar ciencia. */
+  /* Pedido de 13/11/2026 (Pará de Minas; desde a 2.71.0, todas as
+   * cidades): o aviso abre em MODAL, no meio da tela, em passos (contexto
+   * -> o que NAO fazer -> o que a unidade oferece -> orientacoes).
+   * Bloqueia o atendimento ate o medico marcar "Li e estou ciente" e
+   * confirmar no ultimo passo: nao fecha clicando fora nem no Esc. A
+   * ciencia vale ate o fim da pagina (ou ate a tela de login). Sair do
+   * atendimento fecha sem registrar ciencia. Isso substitui o cartao no
+   * canto, que silenciava por 3h (pedidos de 25/09, 28/09 e 01/10/2026). */
   function abrirModal(id, municipio, chave, dados) {
     const total = dados.passos.length;
     let atual = 0;
@@ -19102,7 +19021,7 @@
       ciente.addEventListener("change", function () { confirmar.disabled = !ciente.checked; });
       confirmar.addEventListener("click", function () {
         if (!ciente.checked) return;
-        entendidos[chave] = Infinity;
+        entendidos[chave] = true;
         fechar();
       });
       (inicio ? overlay.$(".msam-modal") : ciente).focus(); // Confirmar comeca desabilitado: o foco vai para o que habilita
@@ -19135,7 +19054,7 @@
 
     const doc = raiz.document;
     const ativo = doc && doc.activeElement;
-    aberto = { id: id, municipio: municipio, chave: chave, tipo: "modal", overlay: overlay,
+    aberto = { id: id, municipio: municipio, chave: chave, overlay: overlay,
       focoAnterior: ativo && ativo !== doc.body ? ativo : null };
     overlay.abrir();
     render(true);
@@ -19144,23 +19063,18 @@
   /* O atendimento da tela que PODE receber aviso, ou null. Fecha o que
    * nao vale mais: fora do atendimento, ou outro atendimento. */
   function atendimentoParaAvisar() {
-    /* O medico fechou no X: vale para este atendimento ate o fim. */
-    if (aberto && aberto.tipo === "cartao" && !aberto.aviso.estaVisivel()) {
-      dispensados[aberto.id] = true;
-      aberto = null;
-    }
     const id = atendimentoDaPagina();
     if (!id) {
       fechar();
       return null;
     }
     if (aberto && aberto.id !== id) fechar();
-    return dispensados[id] ? null : id;
+    return id;
   }
 
   /* A ciencia e de quem esta logado. Se o Meeds voltar para a tela de
    * login sem recarregar a pagina (SPA), o proximo medico tem que ler de
-   * novo — o "Entendi" de 3h segue como estava. Devolve true se a tela
+   * novo. Devolve true se a tela
    * de login esta visivel: ai nada fica por cima dela (o login pode
    * aparecer sem sair de /atendimento/<id>, sessao expirada na SPA; com o
    * modal por cima, o medico confirmaria, a ciencia seria apagada 1 s
@@ -19168,9 +19082,7 @@
   function esquecerCienciaNoLogin() {
     const Auth = raiz.MeedsSuiteAuth;
     if (!Auth || typeof Auth.estaNaTelaDeLogin !== "function" || !Auth.estaNaTelaDeLogin()) return false;
-    Object.keys(entendidos).forEach(function (k) {
-      if (entendidos[k] === Infinity) delete entendidos[k];
-    });
+    entendidos = {};
     return true;
   }
 
@@ -19189,23 +19101,19 @@
 
     const regraMun = tabela[municipio];
     const unidade = unidadeDoVinculo(municipio, regraMun);
-    const exigeCiencia = regraMun.exigeCiencia === true || !!(unidade && unidade.regra.exigeCiencia === true);
-    const passos = exigeCiencia ? montarPassos(regraMun, unidade) : null;
-    const spec = passos ? null : montarAviso(regraMun, unidade);
-    if (!passos && !spec) return;
+    const passos = montarPassos(regraMun, unidade);
+    if (!passos) return;
     const chave = municipio + "|" + (unidade ? unidade.chave : "");
     if (aberto && aberto.chave === chave) return;
-    if (estaEntendido(chave)) {
-      /* Marcado "Entendi" ha menos de 3h, para esta cidade/unidade: nao
-       * reabre, nem neste nem em outro atendimento. */
+    if (entendidos[chave] === true) {
+      /* Ciencia ja confirmada para esta cidade/unidade: nao reabre, nem
+       * neste nem em outro atendimento, ate o login. */
       if (aberto) fechar();
       return;
     }
-    /* A unidade apareceu (ou mudou) depois do cartao do municipio: troca
-     * o cartao, sem contar como "dispensado pelo medico". */
+    /* A unidade apareceu (ou mudou) depois do aviso do municipio: troca. */
     if (aberto) fechar();
-    if (passos) abrirModal(id, municipio, chave, passos);
-    else abrirCartao(id, municipio, chave, spec);
+    abrirModal(id, municipio, chave, passos);
   }
 
   raiz.MeedsSuite.registerModule({
@@ -19233,9 +19141,8 @@
       if (!raiz.MeedsSuiteMunicipio.cidadesDoAtendimento(json).length) return;
       const municipio = raiz.MeedsSuiteMunicipio.detectar(json, Object.keys(regras()));
       municipioPorAtendimento[id] = municipio || null;
-      /* A rede desmentiu o cartao que a tela abriu (vinculo de uma cidade,
-       * atendimento de outra): a rede vence. Fecha sem contar como
-       * "dispensado pelo medico". */
+      /* A rede desmentiu o aviso que a tela abriu (vinculo de uma cidade,
+       * atendimento de outra): a rede vence. */
       if (aberto && aberto.id === id && aberto.municipio !== municipio) fechar();
       verificar();
     },
@@ -19254,7 +19161,6 @@
       timers = [];
       fechar();
       municipioPorAtendimento = {};
-      dispensados = {};
       vistoDesde = {};
       entendidos = {};
       d = null;
