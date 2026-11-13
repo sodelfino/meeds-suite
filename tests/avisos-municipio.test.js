@@ -749,7 +749,7 @@ const CRITERIO_ATESTADO = /justificativa cl[ií]nica/i;
      corpo.findIndex((l) => /^❌/.test(l)) < corpo.findIndex((l) => /^✅/.test(l)));
   ok("Pará de Minas: pontos de atenção de 13/11", /mesmo diante da receita prévia/.test(texto) &&
      /especialista/.test(texto) && /clínico, com resumo da história clínica e CID/.test(texto) &&
-     /nunca sugerir conduta/.test(texto) && /UPA da UBS/.test(texto) && /Reavaliação sempre/.test(texto) &&
+     /nunca sugerir conduta/.test(texto) && /Reavaliação sempre/.test(texto) &&
      CRITERIO_ATESTADO.test(texto) && !/enfermeira/.test(texto));
   const ciente = (a.spec.acoes || []).find((x) => x.rotulo === "Li e estou ciente");
   ok("Pará de Minas: botão 'Li e estou ciente' no lugar do 'Entendi'", !!ciente && !(a.spec.acoes || []).some((x) => x.rotulo === "Entendi"));
@@ -823,6 +823,22 @@ const CRITERIO_ATESTADO = /justificativa cl[ií]nica/i;
   const t = macae([PMM, "UPA UNIDADE DE PRONTO ATENDIMENTO BARRA"]);
   const n = (textoDe(t.visiveis()[0]).match(/Atestado com critério/g) || []).length;
   ok("UPA Barra: 'Atestado com critério' aparece uma vez só", n === 1, n);
+}
+
+/* 29. montarPassos (13/11/2026): o aviso vira páginas. */
+{
+  const t = carregar();
+  const R = DADOS.municipios;
+  const para = t.def._montarPassos(null, { chave: "UBS", regra: R["Pará de Minas"].unidades.UBS });
+  ok("Pará: 4 passos na ordem contexto → naoPode → pode → orientacoes",
+     para.passos.map((p) => p.tipo).join() === "contexto,naoPode,pode,orientacoes");
+  ok("Pará: contexto traz a UPA da UBS", /UPA da UBS/.test(para.passos[0].itens[0].texto));
+  ok("Pará: 5 proibições, a 1ª é nome comercial", para.passos[1].itens.length === 5 && /nome comercial/.test(para.passos[1].itens[0].texto));
+  const autista = t.def._montarPassos(null, { chave: "Clínica do Autista", regra: R["Macaé"].unidades["Clínica do Autista"] });
+  ok("RF2: só orientações → um passo só", autista.passos.length === 1 && autista.passos[0].tipo === "orientacoes");
+  const barb = t.def._montarPassos(R["Barbacena"], null);
+  ok("Barbacena: sem resumo não tem contexto", barb.passos[0].tipo === "naoPode");
+  ok("vazio → null", t.def._montarPassos({ titulo: "x" }, null) === null);
 }
 
 console.log("\n" + (falhas ? falhas + " FALHA(S)" : "todos passaram"));

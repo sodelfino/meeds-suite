@@ -174,6 +174,33 @@
     };
   }
 
+  /* O aviso em PAGINAS (13/11/2026): contexto (resumo) -> o que NAO fazer ->
+   * o que a unidade oferece -> orientacoes. Passo sem item nao existe. */
+  function montarPassos(regraMun, unidade) {
+    const partes = [];
+    if (temConteudo(regraMun) || (regraMun && regraMun.resumo)) partes.push(regraMun);
+    if (unidade && (temConteudo(unidade.regra) || unidade.regra.resumo)) partes.push(unidade.regra);
+    const juntar = function (f) {
+      return partes.reduce(function (a, r) { return a.concat(f(r)); }, []);
+    };
+    const passos = [
+      { tipo: "contexto", titulo: "Contexto", itens: juntar(function (r) {
+        return typeof r.resumo === "string" && r.resumo ? [{ texto: r.resumo }] : [];
+      }) },
+      { tipo: "naoPode", titulo: "O que NÃO fazer", itens: juntar(function (r) {
+        return (r.naoPode || []).map(function (n) { return { texto: n.item, fazer: n.fazer }; });
+      }) },
+      { tipo: "pode", titulo: "O que a unidade oferece", itens: juntar(function (r) {
+        return (r.pode || []).map(function (t) { return { texto: t }; });
+      }) },
+      { tipo: "orientacoes", titulo: "Orientações", itens: juntar(function (r) {
+        return (r.orientacoes || []).map(function (t) { return { texto: t }; });
+      }) },
+    ].filter(function (p) { return p.itens.length; });
+    if (!passos.length) return null;
+    return { titulo: partes[partes.length - 1].titulo, passos: passos };
+  }
+
   function fechar() {
     if (aberto) {
       aberto.aviso.fechar();
@@ -334,5 +361,6 @@
     },
 
     _verificar: function () { verificar(); },
+    _montarPassos: montarPassos,
   });
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
