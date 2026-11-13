@@ -20,41 +20,45 @@
 (function (raiz) {
   "use strict";
 
-  /* Um tom por família de janela. O gerador de documento é azul; a
-   * consulta (REMUME, Exames) é verde-água; o alarme é quente, porque
-   * ele é o único que pode aparecer no meio de uma consulta. */
+  /* Um tom por família de janela. Desde a 2.76.0 o tom é a cor do
+   * quadrado do ícone, não mais a faixa inteira: o cabeçalho é branco,
+   * como a lateral e os Ajustes. */
   const TONS = {
-    /* Cores solidas (antes, gradientes): mesma familia de cada tom, mais
-     * sobrias. O tom continua dizendo o tipo de janela — azul documento,
-     * verde-agua consulta, vermelho alarme. */
     documento: "#1d3557",
     consulta: "#0f6b64",
     alarme: "#b42318",
   };
+  /* Ícone padrão de cada família (core/icones.js) e o fundo claro dele. */
+  const ICONE_DO_TOM = { documento: "laudo", consulta: "exames", alarme: "sino" };
+  const FUNDO_ICONE = { laudo: "#f3f0ff", notificacao: "#e7f5ff", apac: "#ebfbee", exames: "#e3fafc",
+    remume: "#fff0f0", sino: "#fff4e6", aviso: "#fff8db" };
 
   const CSS = [
     ".msc-head {",
-    "  color:#fff; padding:15px 18px; display:flex; align-items:flex-start;",
-    "  justify-content:space-between; gap:12px;",
-    "  position:sticky; top:0; z-index:3; border-radius:6px 6px 0 0;",
+    "  background:#fff; color:#1f2a37; padding:16px 18px; display:flex; align-items:center;",
+    "  gap:12px; border-bottom:1px solid #eef1f4;",
+    "  position:sticky; top:0; z-index:3; border-radius:20px 20px 0 0;",
     "}",
-    ".msc-head-txt { min-width:0; }",
-    ".msc-head h2 { margin:0; font-size:15px; font-weight:600; line-height:1.25; text-wrap:balance; }",
-    ".msc-sub { margin:3px 0 0; font-size:11.5px; line-height:1.35; opacity:.9; }",
-    ".msc-acoes { display:flex; align-items:center; gap:8px; flex-shrink:0; }",
+    ".msc-ico { width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex:none; }",
+    ".msc-ico svg { width:24px; height:24px; display:block; }",
+    ".msc-head-txt { min-width:0; flex:1; }",
+    ".msc-head h2 { margin:0; font-size:16px; font-weight:700; line-height:1.25; color:#1f2a37; text-wrap:balance; }",
+    ".msc-sub { margin:2px 0 0; font-size:13px; line-height:1.35; color:#5b6573; }",
+    ".msc-acoes { display:flex; align-items:center; gap:8px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }",
     ".msc-acao {",
-    "  background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.28); color:#fff; border-radius:5px;",
-    "  padding:4px 10px; font-size:11px; font-weight:600; font-family:inherit;",
+    "  background:#f1f3f5; border:none; color:#1f2a37; border-radius:10px;",
+    "  padding:8px 12px; font-size:13px; font-weight:600; font-family:inherit;",
     "  cursor:pointer; white-space:nowrap; line-height:1.3;",
     "}",
-    ".msc-acao:hover { background:rgba(255,255,255,.26); }",
-    ".msc-acao:focus-visible, .msc-fechar:focus-visible { outline:2px solid #bfdbfe; outline-offset:2px; }",
+    ".msc-acao:hover { background:#e9ecef; }",
+    ".msc-acao:focus-visible, .msc-fechar:focus-visible { outline:2px solid #0b7285; outline-offset:2px; }",
     ".msc-fechar {",
-    "  background:rgba(255,255,255,.2); border:none; color:#fff;",
-    "  width:28px; height:28px; border-radius:5px; flex-shrink:0;",
-    "  font-size:14px; line-height:1; cursor:pointer;",
+    "  background:#f1f3f5; border:none; color:#5b6573;",
+    "  width:40px; height:40px; border-radius:12px; flex-shrink:0;",
+    "  font-size:16px; line-height:1; cursor:pointer;",
     "}",
-    ".msc-fechar:hover { background:rgba(255,255,255,.3); }",
+    ".msc-fechar:hover { background:#e9ecef; }",
+    "@media (max-width:560px) { .msc-head { flex-wrap:wrap; } .msc-acoes { width:100%; justify-content:flex-start; } }",
   ].join("\n");
 
   function esc(s) {
@@ -63,7 +67,8 @@
     });
   }
 
-  /* html({ titulo, subtitulo, tom, idTitulo, idFechar, acoes })
+  /* html({ titulo, subtitulo, tom, icone, idTitulo, idFechar, acoes })
+   *   icone:   chave de core/icones.js (padrão: o da família do tom).
    *   acoes:   [{ id, rotulo, titulo }] — a ordem é a ordem na tela;
    *            "Atualizar paciente" antes de "Histórico" em todos.
    *   idTitulo: opcional, para o `aria-labelledby` do modal (REMUME usa).
@@ -72,6 +77,11 @@
   function html(spec) {
     const s = spec || {};
     const tom = TONS[s.tom] || TONS.documento;
+    const chaveIcone = s.icone || ICONE_DO_TOM[s.tom] || "laudo";
+    const svg = raiz.MeedsSuiteIcones && raiz.MeedsSuiteIcones.obter(chaveIcone);
+    const icone = svg
+      ? '<div class="msc-ico" style="background:' + (FUNDO_ICONE[chaveIcone] || "#f1f3f5") + '" aria-hidden="true">' + svg + "</div>"
+      : '<div class="msc-ico" style="background:' + tom + '" aria-hidden="true"></div>';
     const acoes = (s.acoes || [])
       .map(function (a) {
         return (
@@ -82,7 +92,8 @@
       })
       .join("");
     return (
-      '<div class="msc-head" style="background:' + tom + '">' +
+      '<div class="msc-head">' +
+      icone +
       '<div class="msc-head-txt">' +
       "<h2" + (s.idTitulo ? ' id="' + esc(s.idTitulo) + '"' : "") + ">" + esc(s.titulo) + "</h2>" +
       (s.subtitulo ? '<p class="msc-sub">' + esc(s.subtitulo) + "</p>" : "") +

@@ -1199,7 +1199,7 @@
       estilo: CSS_PAINEL,
       html:
         '<div class="af-modal" role="dialog" aria-modal="true">' +
-        raiz.MeedsSuiteCabecalho.html({ tom: "alarme", titulo: "Alarme de fila" }) +
+        raiz.MeedsSuiteCabecalho.html({ tom: "alarme", icone: "sino", titulo: "Alarme de fila" }) +
         '  <div class="af-body">' +
         "    <div>" +
         "      <label>Como avisar</label>" +
