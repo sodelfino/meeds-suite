@@ -243,8 +243,20 @@
     return dispensados[id] ? null : id;
   }
 
+  /* A ciencia e de quem esta logado. Se o Meeds voltar para a tela de
+   * login sem recarregar a pagina (SPA), o proximo medico tem que ler de
+   * novo — o "Entendi" de 3h segue como estava. */
+  function esquecerCienciaNoLogin() {
+    const Auth = raiz.MeedsSuiteAuth;
+    if (!Auth || typeof Auth.estaNaTelaDeLogin !== "function" || !Auth.estaNaTelaDeLogin()) return;
+    Object.keys(entendidos).forEach(function (k) {
+      if (entendidos[k] === Infinity) delete entendidos[k];
+    });
+  }
+
   function verificar() {
     if (!d) return;
+    esquecerCienciaNoLogin();
     const id = atendimentoParaAvisar();
     if (!id) return;
 
@@ -273,7 +285,7 @@
     id: "avisos-municipio",
     nome: "Avisos do município",
     descricao: "Mostra, dentro do atendimento, o que a teleconsulta resolve naquele município e o que vai para o presencial.",
-    versao: "1.1.0",
+    versao: "1.6.0",
     configPadrao: {},
 
     assinaturasRede: [{ regex: /\/api\/v1\/atendimento\/[0-9a-fA-F-]{36}(?:[?#].*)?$/i, metodos: ["GET"] }],

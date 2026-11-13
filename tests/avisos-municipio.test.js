@@ -772,5 +772,58 @@ const CRITERIO_ATESTADO = /justificativa cl[ií]nica/i;
   ok("Franco da Rocha: 'Entendi' continua para quem não exige ciência", (t.visiveis()[0].spec.acoes || []).some((x) => x.rotulo === "Entendi"));
 }
 
+/* 28. Achados do review de 13/11/2026: a ciência é por cidade/unidade, a
+ *     ordem ❌ → ✅ vale para todos, o atestado não aparece duplicado, e
+ *     voltar à tela de login (SPA, sem recarregar) pede a ciência de novo. */
+{
+  const PPM = "PREFEITURA MUNICIPAL DE PARÁ DE MINAS";
+  const t = carregar();
+  t.ctx.linhas = [PPM, "UBS WALTER MARTINS"];
+  t.ir("/atendimento/" + ID);
+  t.rede(atendimentoDe(PPM));
+  t.passar(3100);
+  t.visiveis()[0].spec.acoes[0].aoClicar();
+  const OUTRO_ID = "22222222-2222-2222-2222-222222222222";
+  t.ctx.linhas = null;
+  t.ir("/atendimento/" + OUTRO_ID);
+  t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA"), URL_API.replace(ID, OUTRO_ID));
+  ok("ciência de Pará de Minas não silencia outra cidade", t.visiveis().length === 1 && /Barbacena/.test(t.visiveis()[0].spec.titulo));
+
+  const t2 = carregar();
+  t2.ctx.linhas = [PPM, "UBS WALTER MARTINS"];
+  t2.ir("/atendimento/" + ID);
+  t2.rede(atendimentoDe(PPM));
+  t2.passar(3100);
+  t2.visiveis()[0].spec.acoes[0].aoClicar();
+  t2.ctx.MeedsSuiteAuth = { estaNaTelaDeLogin: () => true };
+  t2.ir("/login");
+  t2.ctx.MeedsSuiteAuth = { estaNaTelaDeLogin: () => false };
+  const TERCEIRO_ID = "33333333-3333-3333-3333-333333333333";
+  t2.ir("/atendimento/" + TERCEIRO_ID);
+  t2.rede(atendimentoDe(PPM), URL_API.replace(ID, TERCEIRO_ID));
+  t2.passar(3100);
+  ok("voltou à tela de login sem recarregar: pede a ciência de novo", t2.visiveis().length === 1 &&
+     t2.visiveis()[0].spec.acoes[0].rotulo === "Li e estou ciente");
+}
+{
+  const t = carregar();
+  t.ir("/atendimento/" + ID);
+  t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA"));
+  const corpo = t.visiveis()[0].spec.corpo;
+  ok("Barbacena: ❌ antes de ✅", corpo.findIndex((l) => /^❌/.test(l)) < corpo.findIndex((l) => /^✅/.test(l)));
+}
+[["Barbacena", (t) => { t.ir("/atendimento/" + ID); t.rede(atendimentoDe("PREFEITURA MUNICIPAL DE BARBACENA")); }],
+ ["Franco da Rocha", (t) => { t.ir("/atendimento/" + ID); t.rede(atendimentoDe("PREFEITURA DO MUNICIPIO DE FRANCO DA ROCHA")); }]].forEach(([nome, abrir]) => {
+  const t = carregar();
+  abrir(t);
+  const n = (textoDe(t.visiveis()[0]).match(/Atestado com critério/g) || []).length;
+  ok(nome + ": 'Atestado com critério' aparece uma vez só", n === 1, n);
+});
+{
+  const t = macae([PMM, "UPA UNIDADE DE PRONTO ATENDIMENTO BARRA"]);
+  const n = (textoDe(t.visiveis()[0]).match(/Atestado com critério/g) || []).length;
+  ok("UPA Barra: 'Atestado com critério' aparece uma vez só", n === 1, n);
+}
+
 console.log("\n" + (falhas ? falhas + " FALHA(S)" : "todos passaram"));
 if (falhas) process.exit(1);

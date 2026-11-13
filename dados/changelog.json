@@ -12,7 +12,9 @@
         "Avisos do município — Franco da Rocha: o cartão agora lembra que só são atendidas fichas azuis, que paciente com sinal de alarme vai ao presencial e que casos eletivos vão para a UBS.",
         "Avisos do município: “atestado com critério” aparece uma vez só, já com o que o critério exige."
       ],
-      "correcoes": []
+      "correcoes": [
+        "Avisos do município: em cartões longos, o fim do aviso e o botão (“Entendi” / “Li e estou ciente”) ficavam cortados; agora o cartão aparece inteiro e a caixa rola."
+      ]
     },
     {
       "versao": "2.68.6",
