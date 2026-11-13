@@ -83,11 +83,11 @@
   "use strict";
 
   const CSS = [
-    ".tut-modal { background:#fff; border-radius:6px; width:100%; max-width:440px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; }",
-    ".tut-head { background:#0f6b64; color:#fff; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
-    ".tut-head h2 { margin:0; font-size:14px; font-weight:700; }",
-    ".tut-fechar { background:rgba(255,255,255,.18); border:none; color:#fff; width:26px; height:26px; border-radius:8px; font-size:13px; cursor:pointer; flex-shrink:0; }",
-    ".tut-fechar:hover { background:rgba(255,255,255,.32); }",
+    ".tut-modal { background:#fff; border-radius:20px; width:100%; max-width:440px; box-shadow:0 24px 60px rgba(15,23,42,.35); overflow:hidden; }",
+    ".tut-head { background:#fff; color:#1f2a37; padding:16px 18px; border-bottom:1px solid #eef1f4; display:flex; align-items:center; justify-content:space-between; gap:12px; }",
+    ".tut-head h2 { margin:0; font-size:15px; color:#1f2a37; font-weight:700; }",
+    ".tut-fechar { background:#f1f3f5; border:none; color:#5b6573; width:36px; height:36px; border-radius:10px; font-size:13px; cursor:pointer; flex-shrink:0; }",
+    ".tut-fechar:hover { background:#e9ecef; }",
     ".tut-corpo { padding:20px 18px; }",
     ".tut-icone { font-size:34px; line-height:1; margin-bottom:10px; }",
     ".tut-titulo-passo { font-size:15px; font-weight:700; color:#0f172a; margin-bottom:8px; }",
@@ -97,25 +97,25 @@
        metáfora de "quanto falta", para o médico não reaprender. */
     ".tut-progresso-linha { display:flex; align-items:center; gap:9px; margin-top:18px; }",
     ".tut-barra { flex:1; height:5px; border-radius:99px; background:#e2e8f0; overflow:hidden; }",
-    ".tut-preenchido { height:100%; background:#0f766e; border-radius:99px; transition:width .2s ease; }",
+    ".tut-preenchido { height:100%; background:#0b7285; border-radius:99px; transition:width .2s ease; }",
     ".tut-contagem { font-size:10.5px; font-weight:700; color:#64748b; white-space:nowrap; }",
     "@media (prefers-reduced-motion: reduce) { .tut-preenchido { transition:none; } }",
     ".tut-rodape { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 18px; border-top:1px solid #f1f5f9; }",
     ".tut-pular { background:none; border:none; color:#64748b; font-size:12px; font-family:inherit; cursor:pointer; padding:6px 4px; }",
     ".tut-pular:hover { color:#334155; text-decoration:underline; }",
     ".tut-botoes { display:flex; gap:8px; }",
-    ".tut-btn { font-family:inherit; font-size:12.5px; font-weight:700; border-radius:9px; padding:9px 16px; cursor:pointer; border:1.5px solid transparent; }",
+    ".tut-btn { font-family:inherit; font-size:14px; font-weight:700; border-radius:10px; padding:9px 16px; cursor:pointer; border:1.5px solid transparent; }",
     ".tut-btn-voltar { background:#fff; border-color:#cbd5e1; color:#475569; }",
     ".tut-btn-voltar:hover { background:#f1f5f9; }",
     ".tut-btn-voltar[hidden] { display:none; }",
-    ".tut-btn-proximo { background:#0f766e; color:#fff; }",
-    ".tut-btn-proximo:hover { background:#0b5a54; }",
+    ".tut-btn-proximo { background:#0b7285; color:#fff; }",
+    ".tut-btn-proximo:hover { background:#095c6b; }",
     /* Destaque de passo guiado — aplicado a um elemento QUALQUER do
        shadow (nao so dentro do overlay do tutorial), por isso vive
        aqui e nao dentro de .tut-modal. Mesma linguagem visual do
        .msg-alvo de core/guia.js, para o medico nao reaprender. */
-    ".tut-alvo-destaque { outline:3px solid #0f766e !important; outline-offset:2px; border-radius:8px; animation:tut-pulso 1.1s ease-in-out infinite; }",
-    "@keyframes tut-pulso { 0%,100% { outline-color:#0f766e; } 50% { outline-color:#5eead4; } }",
+    ".tut-alvo-destaque { outline:3px solid #0b7285 !important; outline-offset:2px; border-radius:8px; animation:tut-pulso 1.1s ease-in-out infinite; }",
+    "@keyframes tut-pulso { 0%,100% { outline-color:#0b7285; } 50% { outline-color:#99e9f2; } }",
     "@media (prefers-reduced-motion: reduce) { .tut-alvo-destaque { animation:none; } }",
   ].join("\n");
 

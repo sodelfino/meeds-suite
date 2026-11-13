@@ -152,23 +152,22 @@
    * 3) AVISOS NA TELA
    * ------------------------------------------------------------------ */
   const CSS = [
-    ".msd-aviso { width:100%; max-width:520px; background:#fff; border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.2); overflow:hidden; }",
-    ".msd-aviso header { padding:16px 18px; color:#fff; display:flex; justify-content:space-between; align-items:center; gap:12px; }",
-    ".msd-aviso header h2 { margin:0; font-size:15px; font-weight:700; }",
-    ".msd-alerta header { background:#a8520c; }",
-    ".msd-boas-vindas header { background:#17457f; }",
-    ".msd-fechar { background:rgba(255,255,255,.2); border:none; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; }",
+    ".msd-aviso { width:100%; max-width:520px; background:#fff; border-radius:20px; box-shadow:0 24px 60px rgba(15,23,42,.35); overflow:hidden; }",
+    ".msd-aviso header { padding:16px 18px; background:#fff; color:#1f2a37; border-bottom:1px solid #eef1f4; display:flex; align-items:center; gap:12px; }", ".msd-aviso header > div, .msd-aviso header > h2 { flex:1; min-width:0; }", ".msd-boas-vindas header::before { content:'AM'; width:40px; height:40px; border-radius:12px; background:#0b7285; color:#fff; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; flex:none; }",
+    ".msd-aviso header h2 { margin:0; font-size:16px; font-weight:700; color:#1f2a37; }",
+    ".msd-alerta header { background:#a8520c; color:#fff; } .msd-alerta header h2 { color:#fff; }",
+    ".msd-fechar { background:#f1f3f5; border:none; color:#5b6573; width:40px; height:40px; border-radius:12px; margin-left:auto; cursor:pointer; font-size:14px; flex-shrink:0; }",
     ".msd-corpo { padding:16px 18px; font-size:13px; line-height:1.6; color:#16221f; }",
     ".msd-corpo ol, .msd-corpo ul { margin:10px 0; padding-left:20px; }",
     ".msd-corpo li { margin-bottom:5px; }",
     ".msd-lista-scripts { background:#fff7ed; border:1px solid #fed7aa; border-radius:9px; padding:10px 12px; margin:10px 0; font-size:12.5px; }",
     ".msd-lista-scripts li { color:#8a5200; }",
     ".msd-rodape { display:flex; justify-content:flex-end; gap:8px; padding:12px 18px; border-top:1px solid #eef2f6; }",
-    ".msd-btn { background:#1a4fa0; color:#fff; border:none; border-radius:9px; padding:10px 16px; font-size:13px; font-weight:700; cursor:pointer; }",
-    ".msd-btn:hover { background:#123a7a; }",
-    ".msd-btn-sec { background:#fff; color:#123a7a; border:1.4px solid #1a56ad; }",
-    ".msd-btn-sec:hover { background:#e8f0f8; }",
-    ".msd-destaque { color:#123a7a; font-weight:700; }",
+    ".msd-btn { background:#0b7285; color:#fff; border:none; border-radius:9px; padding:10px 16px; font-size:13px; font-weight:700; cursor:pointer; }",
+    ".msd-btn:hover { background:#095c6b; }",
+    ".msd-btn-sec { background:#fff; color:#1f2a37; border:1px solid #dde2e7; }",
+    ".msd-btn-sec:hover { background:#f1f3f5; }",
+    ".msd-destaque { color:#0b5a66; font-weight:700; }",
   ].join("\n");
 
   function escapeHtml(str) {
