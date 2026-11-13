@@ -2,6 +2,16 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.74.0",
+      "data": "2026-11-13",
+      "novidades": [
+        "Lateral nova: as funções ficam num menu branco no canto, cada uma com ícone e nome. A seta no rodapé recolhe para só os ícones (o nome aparece ao passar o mouse) e abre de novo."
+      ],
+      "melhorias": [
+        "Aviso das UBS, ESF e PSF: exames pelo campo de exames da Memed, selecionando os do SUS (SIGTAP)."
+      ]
+    },
+    {
       "versao": "2.73.0",
       "data": "2026-11-13",
       "novidades": [
