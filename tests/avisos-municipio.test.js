@@ -1161,6 +1161,7 @@ ok("tipo UBS/ESF/PSF existe nos dados", !!TIPO_UBS && TIPO_UBS.prefixos.join() =
   const v = t.visiveis();
   const texto = v.length ? textoDe(v[0]) : "";
   ok("UBS/ESF/PSF — " + unidade + ": abre o aviso", v.length === 1 && /campo aberto da Memed/.test(texto) &&
+     /campo de exames da Memed e selecione os exames do SUS \(SIGTAP\)/.test(texto) &&
      /tabela SUS/.test(texto) && /SAMU 192/.test(texto));
 });
 [["MACAÉ - RJ", "UPA UNIDADE DE PRONTO ATENDIMENTO LAGOMAR"], ["MACAÉ - RJ", "UBSX ALGUMA COISA"], ["MACAÉ - RJ", "HOSPITAL DA UBS"]].forEach(([cidade, unidade]) => {

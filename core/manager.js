@@ -440,6 +440,7 @@
       icone: "⚙️",
       variante: "engrenagem",
       titulo: "Assistente Meeds — funções, cadastros e ajustes",
+      nomeCurto: "Ajustes",
       prioridade: 0,
       aoClicar: function () {
         abrir();

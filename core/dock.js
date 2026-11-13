@@ -42,6 +42,7 @@
   let elTopo = null;   // aviso fixo na lateral superior direita
   const botoes = []; // { id, prioridade, el, visivel }
   let elAlca = null;
+  let elMarca = null;
   let recolhido = false;
   let aoAlternar = null;
   let translucido = true;      // preferencia do medico (o nucleo carrega)
@@ -59,26 +60,49 @@
     ":host { all: initial; }",
     "* { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; }",
 
-    /* --- pilha de botoes --- */
+    /* --- a lateral (2.74.0) ------------------------------------------
+     * Um cartao branco flutuante no canto, em duas formas:
+     *   aberta    — cada funcao numa linha, icone + nome;
+     *   recolhida — so os icones (48px), o nome aparece no title.
+     * Antes eram pilulas azuis soltas e botoes redondos misturados, e
+     * "minimizar" escondia tudo. Pedido de 13/11/2026: menu lateral
+     * moderno, mensagens curtas, mais confortavel.
+     * As cores dos botoes ficam em regras de CLASSE (.ms-btn...), nunca
+     * com #dock na frente: modulo pinta o proprio botao com
+     * adicionarEstilo (ex.: o "Aviso" amarelo) e precisa ganhar. */
     "#dock {",
-    "  position: fixed; right: 24px; bottom: 24px; z-index: " + Z_BASE + ";",
-    "  display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 8px;",
-    "  pointer-events: none;",
+    "  position: fixed; right: 16px; bottom: 24px; z-index: " + Z_BASE + ";",
+    "  display: flex; flex-direction: column-reverse; align-items: stretch; gap: 4px;",
+    "  background: #fff; border: 1px solid #e3e7ec; border-radius: 20px; padding: 8px;",
+    "  box-shadow: 0 12px 32px rgba(15,23,42,.16); min-width: 208px;",
+    "  max-height: calc(100vh - 48px); overflow-y: auto; overscroll-behavior: contain;",
     "}",
     "#dock[hidden] { display: none; }",
-    "#dock > * { pointer-events: auto; }",
+    "#dock.ms-recolhido { min-width: 0; }",
+
+    ".ms-marca { display: flex; align-items: center; gap: 10px; padding: 4px 6px 8px; color: #1f2a37; font-size: 14px; font-weight: 700; white-space: nowrap; }",
+    ".ms-marca-sigla { flex: none; width: 36px; height: 36px; border-radius: 11px; background: #0b7285; color: #fff; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; }",
+    "#dock.ms-recolhido .ms-marca { justify-content: center; padding: 2px 0 6px; }",
+    "#dock.ms-recolhido .ms-marca-nome { display: none; }",
 
     ".ms-btn {",
-    "  display: flex; align-items: center; justify-content: center; gap: 8px;",
-    "  background: #1d3557; color: #fff; border: none; border-radius: 8px;",
-    "  padding: 11px 16px; font-size: 13px; font-weight: 600; cursor: pointer;",
-    "  box-shadow: 0 1px 3px rgba(15,23,42,.22); line-height: 1.2; white-space: nowrap;",
+    "  display: flex; align-items: center; justify-content: flex-start; gap: 12px;",
+    "  background: transparent; color: #1f2a37; border: none; border-radius: 12px;",
+    "  min-height: 44px; padding: 0 12px; font-size: 14px; font-weight: 600; cursor: pointer;",
+    "  box-shadow: none; line-height: 1.2; white-space: nowrap; text-align: left; width: 100%;",
     "  transition: background .12s ease, box-shadow .12s ease, transform .12s ease;",
     "}",
-    ".ms-btn:hover { background: #14263f; box-shadow: 0 2px 6px rgba(15,23,42,.24); }",
+    ".ms-btn:hover { background: #f1f3f5; }",
     /* O botao afunda um pouco no clique: confirma o toque sem mudar a area
      * clicavel (transform nao mexe no layout, so no desenho). */
-    ".ms-btn:active { background: #0f1e33; transform: scale(.96); }",
+    ".ms-btn:active { background: #e9ecef; transform: scale(.98); }",
+    /* Recolhida: so o icone, num quadrado de 48px. */
+    "#dock.ms-recolhido .ms-btn { width: 48px; height: 48px; min-height: 48px; padding: 0; justify-content: center; }",
+    "#dock.ms-recolhido .ms-rot { display: none; }",
+    /* Botao so de icone (alarme, ajustes, a seta) ganha o nome na lateral
+     * aberta pelo data-rotulo — o title deles muda (o alarme diz o modo
+     * atual) e seria longo demais para a linha. */
+    "#dock:not(.ms-recolhido) .ms-btn[data-rotulo]::after { content: attr(data-rotulo); font-size: 14px; font-weight: 600; font-family: inherit; }",
     /* foco de teclado visivel e discreto: um anel fino, so quando e teclado */
     ".ms-btn:focus-visible, .ms-aviso-btn:focus-visible, .ms-aviso-fechar:focus-visible {",
     "  outline: 2px solid #60a5fa; outline-offset: 2px;",
@@ -86,18 +110,14 @@
     ".ms-btn[hidden] { display: none; }",
 
     /* icone SVG (core/icones.js): herda a cor do texto do botao */
-    ".ms-btn .ms-ico { display: inline-flex; width: 16px; height: 16px; flex-shrink: 0; }",
+    ".ms-btn .ms-ico { display: inline-flex; width: 20px; height: 20px; flex-shrink: 0; }",
     ".ms-btn .ms-ico svg { width: 100%; height: 100%; display: block; }",
-    ".ms-btn.ms-btn-icone .ms-ico { width: 22px; height: 22px; }",
 
-    /* botao redondo (icone puro), usado pelo alarme e pela engrenagem */
-    ".ms-btn.ms-btn-icone { width: 52px; height: 52px; padding: 0; border-radius: 50%; font-size: 24px; }",
-    ".ms-btn.ms-btn-engrenagem {",
-    "  width: 42px; height: 42px; font-size: 18px; padding: 0; border-radius: 50%;",
-    "  background: #fff; color: #334155; border: 1px solid #e2e8f0;",
-    "  box-shadow: 0 1px 3px rgba(15,23,42,.18);",
-    "}",
-    ".ms-btn.ms-btn-engrenagem:hover { background: #f1f5f9; }",
+    /* botao so de icone (alarme, engrenagem): emoji no tamanho do icone */
+    ".ms-btn.ms-btn-icone { font-size: 19px; }",
+    ".ms-btn.ms-btn-engrenagem { color: #5b6573; margin-top: 9px; }",
+    /* Divisoria acima dos ajustes: separa as funcoes do rodape. */
+    ".ms-btn.ms-btn-engrenagem::before { content: ''; position: absolute; top: -6px; left: 8px; right: 8px; height: 1px; background: #e3e7ec; }",
 
     /* --- caixa recolhida ---------------------------------------------
      * Com todas as funcoes ligadas a pilha ocupa boa parte da lateral.
@@ -118,11 +138,8 @@
      *    mesmo com o mouse por cima. A regra abaixo carrega o #dock so
      *    para ganhar da regra de hover na especificidade — sem isso, o
      *    hover ressuscitaria botoes que o modulo desligou. */
-    ".ms-alca { width: 44px; height: 44px; padding: 0; border-radius: 50%; font-size: 17px;",
-    "  background: #fff; color: #334155; border: 1px solid #e2e8f0;",
-    "  box-shadow: 0 2px 10px rgba(15,23,42,.22); }",
-    ".ms-alca:hover { background: #f1f5f9; }",
-    "#dock.ms-recolhido .ms-btn:not(.ms-alca):not(.ms-ativo) { display: none; }",
+    ".ms-btn.ms-alca { background: #f1f3f5; color: #5b6573; font-size: 20px; font-weight: 700; }",
+    ".ms-btn.ms-alca:hover { background: #e9ecef; }",
     "#dock .ms-btn[hidden] { display: none; }",
 
     /* --- translucidez em repouso ------------------------------------
@@ -164,7 +181,7 @@
     /* estado ligado/alerta (usado pelo alarme de fila) */
     ".ms-btn.ms-ativo { background: linear-gradient(135deg, #f97316, #dc2626); box-shadow: 0 4px 18px rgba(220,38,38,.55); animation: ms-pulso 2.2s ease-in-out infinite; }",
     ".ms-btn.ms-ativo:hover { background: linear-gradient(135deg, #ea6a0c, #c31c1c); }",
-    ".ms-btn.ms-neutro { background: #5b6778; box-shadow: 0 1px 3px rgba(15,23,42,.22); }",
+    ".ms-btn.ms-neutro { background: transparent; }",
     "@keyframes ms-pulso { 0%,100% { box-shadow: 0 4px 18px rgba(220,38,38,.55); } 50% { box-shadow: 0 4px 26px rgba(220,38,38,.9); } }",
 
     /* --- toast --- */
@@ -382,6 +399,10 @@
     elDock = document.createElement("div");
     elDock.id = "dock";
     shadow.appendChild(elDock);
+    elMarca = document.createElement("div");
+    elMarca.className = "ms-marca";
+    elMarca.innerHTML = '<span class="ms-marca-sigla" aria-hidden="true">AM</span><span class="ms-marca-nome">Assistente Meeds</span>';
+    elDock.appendChild(elMarca);
     criarAlca();
     ligarSensoresDeInteracao();
     definirTranslucidez(translucido);
@@ -491,7 +512,7 @@
   function criarAlca() {
     elAlca = document.createElement("button");
     elAlca.type = "button";
-    elAlca.className = "ms-btn ms-btn-icone ms-alca";
+    elAlca.className = "ms-btn ms-alca";
     elAlca.addEventListener("click", function () {
       definirRecolhido(!recolhido);
       if (typeof aoAlternar === "function") aoAlternar(recolhido);
@@ -500,25 +521,17 @@
     pintarAlca();
   }
 
+  /* A seta do rodape: recolhida, aponta para fora ("abre os nomes");
+   * aberta, aponta para o canto ("recolhe"). Nada some: recolhida, todas
+   * as funcoes continuam a um clique, so sem o nome. */
   function pintarAlca() {
     if (!elAlca) return;
-    let escondidos = 0;
-    botoes.forEach(function (b) {
-      if (!b.el.hidden && !b.el.classList.contains("ms-ativo")) escondidos++;
-    });
-    /* "✕" dizia a coisa errada: ele significa fechar/descartar, e o
-     * medico so quer TIRAR DO CAMINHO. O chevron para baixo mostra o
-     * movimento real — a pilha se recolhe em direcao ao canto. */
-    elAlca.textContent = recolhido ? "☰" : "⌄";
-    elAlca.title = recolhido
-      ? escondidos === 1
-        ? "Mostrar 1 função"
-        : "Mostrar " + escondidos + " funções"
-      : "Minimizar (as funções continuam ativas)";
+    elAlca.textContent = recolhido ? "‹" : "›";
+    elAlca.title = recolhido ? "Mostrar os nomes" : "Recolher para ícones";
+    if (recolhido) delete elAlca.dataset.rotulo;
+    else elAlca.dataset.rotulo = "Recolher";
     elAlca.setAttribute("aria-label", elAlca.title);
     elAlca.setAttribute("aria-expanded", recolhido ? "false" : "true");
-    /* Recolhido e sem nada para mostrar, a alca so ocuparia espaco. */
-    elAlca.hidden = recolhido && escondidos === 0;
   }
 
   function definirRecolhido(valor) {
@@ -544,8 +557,10 @@
     botoes.forEach(function (b) {
       elDock.appendChild(b.el);
     });
-    /* column-reverse: o PRIMEIRO filho e o mais proximo do canto. */
+    /* column-reverse: o PRIMEIRO filho e o mais proximo do canto; o
+     * ultimo (a marca) fica no topo. */
     if (elAlca) elDock.insertBefore(elAlca, elDock.firstChild);
+    if (elMarca) elDock.appendChild(elMarca);
     pintarAlca();
     reposicionarToast();
   }
@@ -653,6 +668,12 @@
     if (spec.variante === "engrenagem") el.classList.add("ms-btn-icone", "ms-btn-engrenagem");
     el.title = spec.titulo || spec.rotulo || "";
     pintarConteudoBotao(el, spec.icone, spec.rotulo, spec.variante);
+    /* Sem rotulo (alarme, engrenagem): o nome curto da linha na lateral
+     * aberta. O que vem antes do " — " basta ("Assistente Meeds — funcoes,
+     * cadastros e ajustes" vira "Assistente Meeds"). */
+    if (!spec.rotulo || spec.variante) {
+      el.dataset.rotulo = spec.nomeCurto || String(spec.titulo || "").split(" — ")[0];
+    }
     if (typeof spec.aoClicar === "function") el.addEventListener("click", spec.aoClicar);
 
     const registro = {

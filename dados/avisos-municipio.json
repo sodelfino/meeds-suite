@@ -7,7 +7,7 @@
       "resumo": "Demanda espontânea: consulta, receitas, exames e encaminhamentos.",
       "naoPode": [
         { "item": "Prescrever no campo aberto da Memed", "fazer": "escolha o medicamento na lista: a farmácia precisa dar baixa na receita" },
-        { "item": "Digitar exame em texto livre", "fazer": "selecione na tabela SUS (SIGTAP), pela aba Exames do Assistente" }
+        { "item": "Digitar exame em texto livre", "fazer": "use o campo de exames da Memed e selecione os exames do SUS (SIGTAP)" }
       ],
       "orientacoes": [
         "Exame fora da tabela SUS: peça assim mesmo, com justificativa clínica.",
