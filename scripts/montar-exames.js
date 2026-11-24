@@ -2552,6 +2552,10 @@ async function main() {
   });
   if (!Object.keys(saida.encaminhamentos).length) delete saida.encaminhamentos;
 
+  /* Chave irma de `municipios`, nao dentro dela: protocolo orienta o que
+   * pedir por especialidade, nao e lista do que o municipio oferece. */
+  saida.protocolos = require("./protocolos/varginha.js");
+
   Object.keys(novos).forEach((m) => {
     if (novos[m]) {
       saida.municipios[m] = novos[m];

@@ -12426,5 +12426,1583 @@
         }
       ]
     }
+  },
+  "protocolos": {
+    "Varginha": {
+      "fonte": "Protocolo de Orientações para Solicitação de Exames por Telemedicina — Secretaria Municipal de Saúde de Varginha (MG)",
+      "atualizadoEm": "2026-11-24",
+      "especialidades": {
+        "Cardiologia": {
+          "orientacoesGerais": [
+            "Informações que justifiquem a solicitação. Expressões como “avaliação cardiológica”, “check-up” ou “controle”, isoladamente, não esclarecem a necessidade do exame.",
+            "O pedido deve informar o problema investigado, à partir dos sintomas relevantes ou dos antecedentes que fundamentam a indicação. Ou seja, é necessário justificar todos os pedidos. A justificativa deve ser plausível e se correlacionar com os dados de prontuário.",
+            "O registro no prontuário é fundamental, pois a Central de Regulação realiza supervisão dos dados, consultando a indicação e a finalidade da solicitação.",
+            "Deve-se selecionar os exames que possam esclarecer a hipótese atual, ampliando posteriormente a investigação conforme os resultados e a evolução do paciente. Evitar solicitar, de uma só vez, exames para investigar múltiplas doenças sem elementos clínicos que justifiquem cada possibilidade.",
+            "A escolha da complexidade do método deve ser selecionada criteriosamente. Não iniciar a investigação com exame de maior complexidade se houver alternativa de menor complexidade que contemple a situação em questão.",
+            "Antes de solicitar, verificar os exames já realizados, considerando sua qualidade, os resultados e a evolução clínica.",
+            "O ingresso na atenção secundária, a troca de profissional ou o tempo transcorrido, isoladamente, não justificam repetir toda a investigação."
+          ],
+          "condicoes": [
+            {
+              "nome": "Cardiopatia isquêmica",
+              "grupos": [
+                {
+                  "titulo": "Exames laboratoriais",
+                  "itens": [
+                    {
+                      "exame": "Hemograma",
+                      "quando": "solicitar na avaliação inicial, especialmente para identificar anemia que possa contribuir para angina ou dispneia."
+                    },
+                    {
+                      "exame": "Perfil lipídico e glicemia e/ou hemoglobina glicada",
+                      "quando": "solicitar para identificar e acompanhar fatores de risco cardiovascular, aproveitando resultados recentes."
+                    },
+                    {
+                      "exame": "Creatinina com estimativa da filtração glomerular",
+                      "quando": "solicitar na avaliação inicial e quando a função renal influenciar a escolha dos medicamentos ou a realização de exames com contraste."
+                    }
+                  ]
+                },
+                {
+                  "titulo": "Exames de Imagem",
+                  "itens": [
+                    {
+                      "exame": "Eletrocardiograma de repouso",
+                      "quando": "solicitar quando houver suspeita de doença coronariana, na avaliação inicial da doença conhecida ou diante de mudança dos sintomas."
+                    },
+                    {
+                      "exame": "Ecocardiograma transtorácico",
+                      "quando": "solicitar na avaliação inicial da suspeita de doença coronariana crônica, para avaliar função ventricular e possíveis alterações estruturais."
+                    },
+                    {
+                      "exame": "Teste ergométrico",
+                      "quando": "solicitar em situações selecionadas, quando a avaliação dos sintomas, da capacidade funcional e da resposta cardiovascular ao exercício contribuir para a conduta. Sua utilização para diagnóstico de isquemia depende das condições clínicas e da possibilidade de interpretar o eletrocardiograma."
+                    },
+                    {
+                      "exame": "Teste funcional de isquemia, como ecocardiograma de estresse, cintilografia ou ressonância de estresse",
+                      "quando": "solicitar quando houver necessidade de investigar isquemia ou avaliar sua repercussão para orientar a conduta. Escolher o método conforme doença coronariana prévia, capacidade de exercício, eletrocardiograma basal e disponibilidade."
+                    },
+                    {
+                      "exame": "Angiotomografia de coronárias",
+                      "quando": "solicitar quando houver necessidade de investigar doença coronariana obstrutiva e o método for adequado à probabilidade clínica, à função renal e às características do paciente."
+                    },
+                    {
+                      "exame": "Coronariografia invasiva",
+                      "quando": "solicitar quando houver sintomas importantes apesar do tratamento, achados de alto risco ou elevada suspeita de doença relevante que justifique avaliação invasiva."
+                    },
+                    {
+                      "exame": "Doppler de carótidas",
+                      "quando": "solicitar apenas se houver indicação vascular ou neurológica própria. A cardiopatia isquêmica isolada não justifica sua solicitação."
+                    },
+                    {
+                      "exame": "Repetição dos exames",
+                      "quando": "solicitar nova investigação de isquemia ou da anatomia coronariana quando houver mudança clínica ou funcional que possa modificar a conduta. Não estabelecer repetição automática em pacientes estáveis."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nome": "Insuficiência cardíaca",
+              "grupos": [
+                {
+                  "titulo": "Exames laboratoriais",
+                  "itens": [
+                    {
+                      "exame": "BNP ou NT-proBNP",
+                      "quando": "solicitar quando houver suspeita de insuficiência cardíaca, especialmente se existir dúvida sobre a origem da dispneia."
+                    },
+                    {
+                      "exame": "Hemograma, creatinina com filtração glomerular estimada, sódio, potássio, função hepática, TSH, avaliação glicêmica e perfil lipídico",
+                      "quando": "solicitar na avaliação inicial, conforme resultados já disponíveis, para identificar fatores associados e orientar o tratamento."
+                    },
+                    {
+                      "exame": "Repetição dos exames laboratoriais",
+                      "quando": "solicitar conforme alterações prévias, função renal, distúrbios eletrolíticos e introdução ou ajuste de medicamentos."
+                    },
+                    {
+                      "exame": "Ferritina e saturação de transferrina",
+                      "quando": "solicitar para investigar deficiência de ferro, que pode ocorrer mesmo sem anemia."
+                    }
+                  ]
+                },
+                {
+                  "titulo": "Exames de Imagem",
+                  "itens": [
+                    {
+                      "exame": "Eletrocardiograma",
+                      "quando": "solicitar quando houver suspeita de insuficiência cardíaca ou necessidade de avaliar alterações do ritmo e da condução."
+                    },
+                    {
+                      "exame": "Ecocardiograma transtorácico",
+                      "quando": "solicitar quando houver suspeita de insuficiência cardíaca, para confirmar e caracterizar alterações estruturais e funcionais."
+                    },
+                    {
+                      "exame": "Repetição do ecocardiograma",
+                      "quando": "solicitar quando houver mudança clínica relevante ou necessidade de reavaliar a função cardíaca para uma decisão terapêutica. Evitar periodicidade fixa para todos os pacientes."
+                    },
+                    {
+                      "exame": "Radiografia de tórax",
+                      "quando": "solicitar quando houver necessidade de investigar congestão pulmonar, derrame pleural ou causas pulmonares dos sintomas."
+                    },
+                    {
+                      "exame": "Ressonância cardíaca",
+                      "quando": "solicitar quando houver necessidade de esclarecer a causa da insuficiência cardíaca ou caracterizar alterações miocárdicas não suficientemente definidas pelo ecocardiograma."
+                    },
+                    {
+                      "exame": "Investigação coronariana",
+                      "quando": "solicitar quando houver suspeita de etiologia isquêmica e o resultado puder modificar o tratamento."
+                    },
+                    {
+                      "exame": "Doppler de carótidas",
+                      "quando": "solicitar apenas se houver indicação vascular ou neurológica própria. A IC isolada não justifica sua solicitação."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nome": "Arritmias",
+              "grupos": [
+                {
+                  "titulo": "Exames laboratoriais",
+                  "itens": [
+                    {
+                      "exame": "Hemograma, função renal, eletrólitos e função tireoidiana",
+                      "quando": "solicitar na fibrilação atrial recém-diagnosticada. Nas demais arritmias, direcionar conforme suspeita clínica, comorbidades e tratamento."
+                    }
+                  ]
+                },
+                {
+                  "titulo": "Exames de Imagem",
+                  "itens": [
+                    {
+                      "exame": "Eletrocardiograma de 12 derivações",
+                      "quando": "solicitar quando houver palpitações, pulso irregular, suspeita de taquicardia, bradicardia ou outra alteração do ritmo."
+                    },
+                    {
+                      "exame": "Holter de 24–48 horas",
+                      "quando": "solicitar quando houver suspeita de arritmia intermitente e os sintomas ocorrerem diariamente ou com frequência suficiente para provável registro durante o exame."
+                    },
+                    {
+                      "exame": "Monitorização prolongada ou registrador de eventos",
+                      "quando": "solicitar quando os episódios forem esporádicos e houver baixa probabilidade de registro em Holter de curta duração."
+                    },
+                    {
+                      "exame": "Ecocardiograma transtorácico",
+                      "quando": "solicitar na avaliação inicial da fibrilação atrial, diante de arritmias ventriculares relevantes ou quando houver suspeita de cardiopatia estrutural."
+                    },
+                    {
+                      "exame": "Teste de esforço",
+                      "quando": "solicitar quando as palpitações ou a arritmia tiverem relação com exercício ou quando for necessário avaliar o comportamento do ritmo durante o esforço."
+                    },
+                    {
+                      "exame": "Ressonância cardíaca",
+                      "quando": "solicitar quando houver suspeita de cardiomiopatia, inflamação ou fibrose miocárdica."
+                    },
+                    {
+                      "exame": "Estudo eletrofisiológico",
+                      "quando": "solicitar quando houver indicação específica para esclarecer o mecanismo da arritmia ou orientar tratamento especializado. Não utilizar como investigação inicial de toda palpitação."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "Repetição dos exames: solicitar quando houver mudança dos sintomas, necessidade de avaliar resposta ao tratamento ou decisão terapêutica que dependa de nova documentação do ritmo."
+              ]
+            },
+            {
+              "nome": "Hipertensão arterial sistêmica",
+              "grupos": [
+                {
+                  "titulo": "Exames laboratoriais",
+                  "itens": [
+                    {
+                      "exame": "Análise de urina, relação albumina/creatinina urinária, potássio, creatinina com filtração glomerular estimada, avaliação glicêmica, perfil lipídico, ácido úrico e eletrocardiograma",
+                      "quando": "solicitar na avaliação inicial, aproveitando exames recentes, para investigar fatores de risco, lesões de órgãos-alvo e condições associadas."
+                    },
+                    {
+                      "exame": "Creatinina e eletrólitos durante o tratamento",
+                      "quando": "solicitar após introdução ou ajuste de medicamentos que possam modificar a função renal ou o equilíbrio eletrolítico, conforme o medicamento e o risco do paciente."
+                    },
+                    {
+                      "exame": "Repetição dos exames de rotina",
+                      "quando": "realizar, em geral, anualmente quando os resultados forem normais, antecipando conforme alterações identificadas ou necessidade de monitorização do tratamento."
+                    },
+                    {
+                      "exame": "Exames para hipertensão secundária",
+                      "quando": "solicitar quando a história, o exame físico ou a evolução sugerirem uma causa específica. A escolha entre aldosterona/renina, metanefrinas, investigação de hipercortisolismo, exames de artérias renais e outros métodos deve acompanhar a hipótese clínica."
+                    }
+                  ]
+                },
+                {
+                  "titulo": "Exames de imagem e mensuração",
+                  "itens": [
+                    {
+                      "exame": "MAPA ou MRPA",
+                      "quando": "solicitar quando houver necessidade de confirmar o diagnóstico, suspeita de hipertensão do avental branco, hipertensão mascarada, resistência ao tratamento ou dúvida sobre o controle pressórico."
+                    },
+                    {
+                      "exame": "Ecocardiograma transtorácico",
+                      "quando": "solicitar quando houver suspeita de repercussão cardíaca da hipertensão, alterações clínicas ou eletrocardiográficas ou cardiopatia associada, desde que o resultado contribua para a conduta."
+                    },
+                    {
+                      "exame": "Doppler de carótidas",
+                      "quando": "solicitar apenas se houver indicação vascular ou neurológica própria. A hipertensão isolada não justifica sua solicitação."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nome": "Síncope ou perda transitória da consciência",
+              "grupos": [
+                {
+                  "titulo": "Exames laboratoriais",
+                  "itens": [
+                    {
+                      "exame": "Exames laboratoriais",
+                      "quando": "solicitar conforme a hipótese clínica. Por exemplo, hemograma diante de suspeita de anemia ou sangramento e avaliação metabólica quando houver suspeita correspondente."
+                    }
+                  ]
+                },
+                {
+                  "titulo": "Exames de imagem e mensuração",
+                  "itens": [
+                    {
+                      "exame": "Eletrocardiograma",
+                      "quando": "solicitar na avaliação inicial de síncope."
+                    },
+                    {
+                      "exame": "Aferição da pressão arterial em posição supina e em ortostatismo",
+                      "quando": "realizar na avaliação inicial, como parte do exame clínico."
+                    },
+                    {
+                      "exame": "Ecocardiograma transtorácico",
+                      "quando": "solicitar quando houver cardiopatia conhecida, suspeita de doença estrutural ou achados que sugiram causa cardiovascular."
+                    },
+                    {
+                      "exame": "Holter ou monitorização prolongada",
+                      "quando": "solicitar quando houver suspeita de causa arrítmica. Escolher a duração conforme a frequência dos episódios; eventos raros exigem estratégias de monitorização mais prolongada."
+                    },
+                    {
+                      "exame": "Teste de inclinação",
+                      "quando": "solicitar em situações selecionadas de suspeita de síncope reflexa ou hipotensão ortostática quando a avaliação inicial não esclarecer suficientemente o quadro."
+                    },
+                    {
+                      "exame": "Teste de esforço",
+                      "quando": "solicitar quando a síncope ocorrer durante ou logo após exercício, considerando as condições de segurança para sua realização."
+                    },
+                    {
+                      "exame": "Neuroimagem e eletroencefalograma",
+                      "quando": "solicitar quando houver indicação neurológica específica. Não incluir como rotina na investigação de síncope."
+                    },
+                    {
+                      "exame": "Doppler de carótidas",
+                      "quando": "solicitar apenas se houver indicação vascular ou neurológica própria. A síncope isolada não justifica sua solicitação."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nome": "Valvulopatias",
+              "grupos": [
+                {
+                  "titulo": "Exames de imagem",
+                  "itens": [
+                    {
+                      "exame": "Ecocardiograma transtorácico com Doppler",
+                      "quando": "solicitar quando houver suspeita de valvulopatia ou necessidade de definir o tipo de lesão, sua gravidade e suas repercussões cardíacas."
+                    },
+                    {
+                      "exame": "Ecocardiograma transesofágico",
+                      "quando": "solicitar quando o transtorácico não esclarecer suficientemente a lesão ou quando houver necessidade de detalhamento anatômico e planejamento de intervenção."
+                    },
+                    {
+                      "exame": "Ressonância cardíaca",
+                      "quando": "solicitar quando houver necessidade de complementar a quantificação da lesão ou das repercussões ventriculares, especialmente diante de exames inconclusivos ou discordantes."
+                    },
+                    {
+                      "exame": "Tomografia cardíaca ou da aorta",
+                      "quando": "solicitar quando houver questão anatômica específica, necessidade de avaliar a aorta ou planejamento de intervenção."
+                    },
+                    {
+                      "exame": "Teste de exercício, com ou sem imagem",
+                      "quando": "solicitar em pacientes selecionados aparentemente assintomáticos ou quando houver discordância entre os sintomas relatados e os achados em repouso. A indicação depende do tipo e da gravidade da valvulopatia."
+                    },
+                    {
+                      "exame": "Repetição do ecocardiograma",
+                      "quando": "solicitar conforme a válvula acometida, o tipo e a gravidade da lesão, as dimensões e a função ventricular. Antecipar quando surgirem sintomas ou mudança clínica."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "Não estabelecer um intervalo único de acompanhamento para todas as valvulopatias."
+              ]
+            },
+            {
+              "nome": "Avaliação pré-operatória de cirurgia não cardíaca",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Eletrocardiograma",
+                      "quando": "solicitar quando o risco do procedimento e as condições cardiovasculares do paciente justificarem uma avaliação basal ou investigação de alterações que possam modificar o manejo perioperatório."
+                    },
+                    {
+                      "exame": "Ecocardiograma transtorácico",
+                      "quando": "solicitar quando houver suspeita de insuficiência cardíaca, valvulopatia relevante ou mudança clínica que exija reavaliação da função e da estrutura cardíacas."
+                    },
+                    {
+                      "exame": "BNP ou NT-proBNP e troponina",
+                      "quando": "solicitar em pacientes selecionados, conforme risco clínico e cirúrgico, quando os resultados contribuírem para a estratificação e o planejamento perioperatório."
+                    },
+                    {
+                      "exame": "Teste de isquemia",
+                      "quando": "solicitar quando houver risco perioperatório elevado, capacidade funcional baixa ou desconhecida e possibilidade de o resultado modificar a conduta."
+                    },
+                    {
+                      "exame": "Outros exames laboratoriais",
+                      "quando": "solicitar conforme comorbidades, medicamentos e características da cirurgia."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "Não solicitar teste de isquemia de rotina para procedimentos de baixo risco, pacientes de baixo risco ou pacientes estáveis com capacidade funcional adequada."
+              ]
+            },
+            {
+              "nome": "Avaliação cardiológica sem condição clínica definida",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Exames complementares",
+                      "quando": "solicitar quando a consulta identificar sintomas, achados do exame físico, fatores de risco ou antecedentes que sustentem uma hipótese clínica e uma finalidade para o exame."
+                    },
+                    {
+                      "exame": "Eletrocardiograma, ecocardiograma, Holter e teste ergométrico",
+                      "quando": "não solicitar automaticamente apenas porque o encaminhamento contém a expressão “avaliação cardiológica”."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "Antes da solicitação, registrar o problema investigado e de que maneira o resultado poderá contribuir para a conduta."
+              ]
+            },
+            {
+              "nome": "Avaliação para atividade física",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Eletrocardiograma",
+                      "quando": "solicitar conforme o contexto da avaliação pré-participação, considerando sintomas, antecedentes pessoais e familiares, modalidade e intensidade pretendidas e participação em esporte competitivo."
+                    },
+                    {
+                      "exame": "Teste ergométrico",
+                      "quando": "solicitar quando houver sintomas relacionados ao esforço, risco coronariano elevado ou necessidade de avaliar a resposta cardiovascular ao exercício para orientar a prática."
+                    },
+                    {
+                      "exame": "Teste cardiopulmonar de exercício",
+                      "quando": "solicitar quando a medida da capacidade funcional e a identificação dos mecanismos de limitação puderem contribuir para a prescrição do exercício ou para uma decisão clínica."
+                    },
+                    {
+                      "exame": "Ecocardiograma transtorácico",
+                      "quando": "solicitar quando houver suspeita de cardiopatia, sopro relevante, alteração eletrocardiográfica ou outro achado que justifique avaliação estrutural."
+                    },
+                    {
+                      "exame": "Investigação de isquemia por imagem ou avaliação da anatomia coronariana",
+                      "quando": "solicitar quando houver indicação clínica específica, considerando sintomas, risco e doença conhecida."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "Não estabelecer ecocardiograma ou investigação de isquemia como exames obrigatórios para toda pessoa assintomática de baixo risco que deseja iniciar atividade física."
+              ]
+            }
+          ]
+        },
+        "Endocrinologia": {
+          "orientacoesGerais": [
+            "Informações que justifiquem a solicitação. Expressões como “avaliação endocrinológica”, “check-up” ou “controle”, isoladamente, não esclarecem a necessidade do exame.",
+            "O pedido deve informar o problema investigado, à partir dos sintomas relevantes ou dos antecedentes que fundamentam a indicação. Ou seja, é necessário justificar todos os pedidos. A justificativa deve ser plausível e se correlacionar com os dados de prontuário.",
+            "O registro no prontuário é fundamental, pois a Central de Regulação realiza supervisão dos dados, consultando a indicação e a finalidade da solicitação.",
+            "Deve-se selecionar os exames que possam esclarecer a hipótese atual, ampliando posteriormente a investigação conforme os resultados e a evolução do paciente. Evitar solicitar, de uma só vez, exames para investigar múltiplas doenças sem elementos clínicos que justifiquem cada possibilidade.",
+            "A escolha da complexidade do método deve ser selecionada criteriosamente. Não iniciar a investigação com exame de maior complexidade se houver alternativa de menor complexidade que contemple a situação em questão.",
+            "Antes de solicitar, verificar os exames já realizados, considerando sua qualidade, os resultados e a evolução clínica.",
+            "O ingresso na atenção secundária, a troca de profissional ou o tempo transcorrido, isoladamente, não justificam repetir toda a investigação."
+          ],
+          "condicoes": [
+            {
+              "nome": "Diabetes mellitus tipo 2",
+              "grupos": [
+                {
+                  "titulo": "Exames laboratoriais",
+                  "itens": [
+                    {
+                      "exame": "Hemoglobina glicada — HbA1c",
+                      "quando": "solicitar na avaliação inicial e no acompanhamento do controle glicêmico. Repetir, em geral, a cada três meses quando houver mudança do tratamento ou controle fora da meta; a cada seis meses quando o tratamento e o controle estiverem estáveis."
+                    },
+                    {
+                      "exame": "Glicemia de jejum",
+                      "quando": "solicitar na avaliação inicial e quando contribuir para avaliar o controle ou ajustar o tratamento. Interpretar em conjunto com HbA1c e registros de glicemia, quando disponíveis."
+                    },
+                    {
+                      "exame": "Perfil lipídico",
+                      "quando": "solicitar na avaliação inicial e, em geral, anualmente. Antecipar conforme introdução ou ajuste do tratamento da dislipidemia."
+                    },
+                    {
+                      "exame": "Creatinina com estimativa da filtração glomerular",
+                      "quando": "solicitar ao diagnóstico e, pelo menos, anualmente. Antecipar quando houver doença renal, piora clínica ou necessidade de ajustar medicamentos."
+                    },
+                    {
+                      "exame": "Relação albumina/creatinina em amostra isolada de urina",
+                      "quando": "solicitar ao diagnóstico e, pelo menos, anualmente para rastrear doença renal do diabetes. Preferir esse exame à coleta de urina de 24 horas para o rastreamento habitual."
+                    },
+                    {
+                      "exame": "Confirmação de albuminúria",
+                      "quando": "solicitar novas amostras quando o primeiro resultado estiver elevado, procurando confirmar persistência em pelo menos duas de três amostras, ao longo de três a seis meses. Considerar interferências como infecção urinária, exercício intenso, febre e hiperglicemia importante."
+                    },
+                    {
+                      "exame": "Vitamina B12",
+                      "quando": "solicitar em usuários de metformina, especialmente diante de anemia, neuropatia, uso prolongado ou outros fatores de risco para deficiência. A periodicidade deve seguir o protocolo adotado; o documento brasileiro consultado apresenta recomendação de avaliação anual em usuários de metformina."
+                    },
+                    {
+                      "exame": "Glicemia capilar e/ou monitorização contínua",
+                      "quando": "indicar conforme esquema de insulina, risco de hipoglicemia e necessidade de ajuste terapêutico. A frequência deve responder a uma finalidade clínica definida."
+                    }
+                  ]
+                },
+                {
+                  "titulo": "Outros exames complementares",
+                  "itens": [
+                    {
+                      "exame": "Avaliação de retina por exame oftalmológico ou retinografia em fluxo validado",
+                      "quando": "solicitar ao diagnóstico e manter acompanhamento, em geral, anual, ajustado aos achados e à orientação oftalmológica."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "A avaliação dos pés também deve ocorrer ao diagnóstico e, pelo menos, anualmente, como parte do exame clínico."
+              ]
+            },
+            {
+              "nome": "Hipotireoidismo",
+              "grupos": [
+                {
+                  "titulo": "Exames laboratoriais",
+                  "itens": [
+                    {
+                      "exame": "TSH",
+                      "quando": "solicitar quando houver suspeita de hipotireoidismo primário e para acompanhar o tratamento com levotiroxina."
+                    },
+                    {
+                      "exame": "T4 livre",
+                      "quando": "solicitar quando o TSH estiver alterado, para diferenciar hipotireoidismo manifesto de subclínico. Solicitar também quando houver suspeita de hipotireoidismo central, situação em que o TSH isolado não é suficiente."
+                    },
+                    {
+                      "exame": "TSH após início ou ajuste da levotiroxina",
+                      "quando": "solicitar, em geral, após seis a oito semanas. Depois de estabilizada a dose e o controle, realizar acompanhamento geralmente anual, antecipando diante de sintomas, mudança relevante de peso, suspeita de dificuldade de adesão ou introdução de medicamentos que interfiram no tratamento."
+                    },
+                    {
+                      "exame": "T4 livre durante o acompanhamento",
+                      "quando": "solicitar quando houver sintomas persistentes, resultados discordantes ou suspeita de doença hipofisária. No hipotireoidismo central, o acompanhamento depende principalmente do T4 livre e da avaliação clínica."
+                    },
+                    {
+                      "exame": "T3 total, T3 livre e T3 reverso",
+                      "quando": "não solicitar rotineiramente para diagnosticar ou acompanhar hipotireoidismo."
+                    },
+                    {
+                      "exame": "Anticorpo antitireoperoxidase — anti-TPO",
+                      "quando": "solicitar quando esclarecer a etiologia autoimune contribuir para o diagnóstico ou a decisão terapêutica, especialmente no hipotireoidismo subclínico. Não repetir para monitorar a resposta ao tratamento após positividade documentada."
+                    }
+                  ]
+                },
+                {
+                  "titulo": "Exames de imagem",
+                  "itens": [
+                    {
+                      "exame": "Ultrassonografia de tireoide",
+                      "quando": "Não solicitar automaticamente apenas pela alteração hormonal, mas quando houver contexto clínico justificável, tal como nódulo palpável, bócio com necessidade de caracterização estrutural ou outra alteração anatômica."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nome": "Hipertireoidismo",
+              "grupos": [
+                {
+                  "titulo": "Exames laboratoriais",
+                  "itens": [
+                    {
+                      "exame": "TSH e T4 livre",
+                      "quando": "solicitar quando houver suspeita de hipertireoidismo, para confirmar e caracterizar a alteração hormonal."
+                    },
+                    {
+                      "exame": "T3 total ou livre",
+                      "quando": "solicitar quando o TSH estiver suprimido e o T4 livre normal, para investigar tireotoxicose por T3. Solicitar também quando contribuir para avaliar a atividade da doença e ajustar o tratamento."
+                    },
+                    {
+                      "exame": "Anticorpo antirreceptor de TSH — TRAb",
+                      "quando": "solicitar quando houver necessidade de confirmar doença de Graves ou distinguir sua etiologia de outras causas de tireotoxicose. Considerar próximo à suspensão do antitireoidiano quando o resultado contribuir para estimar a possibilidade de remissão."
+                    },
+                    {
+                      "exame": "Hemograma com diferencial e perfil hepático, incluindo transaminases e bilirrubinas",
+                      "quando": "solicitar antes de iniciar antitireoidianos."
+                    },
+                    {
+                      "exame": "Hemograma com diferencial durante o tratamento",
+                      "quando": "solicitar imediatamente diante de febre, dor de garganta ou sinais de infecção, para investigar agranulocitose. Orientar o paciente a interromper o antitireoidiano e procurar avaliação imediata nessas situações."
+                    },
+                    {
+                      "exame": "Perfil hepático durante o tratamento",
+                      "quando": "solicitar quando houver icterícia, urina escura, prurido generalizado, dor abdominal ou outros sinais de possível lesão hepática. Não estabelecer hemograma e provas hepáticas seriados indiscriminadamente em todos os pacientes assintomáticos."
+                    },
+                    {
+                      "exame": "T4 livre e T3 no início do tratamento",
+                      "quando": "solicitar, em geral, em aproximadamente quatro a seis semanas, ajustando conforme gravidade e medicamento. O TSH pode permanecer suprimido por meses e não deve orientar isoladamente os ajustes iniciais. Após controle, ampliar o intervalo conforme evolução."
+                    }
+                  ]
+                },
+                {
+                  "titulo": "Exames de imagem",
+                  "itens": [
+                    {
+                      "exame": "Cintilografia de tireoide, com avaliação de captação quando pertinente",
+                      "quando": "solicitar quando a causa da tireotoxicose permanecer incerta, especialmente com TRAb negativo ou presença de nódulos. Auxilia a diferenciar Graves, autonomia nodular e tireoidites. Não realizar durante a gestação; na lactação, seguir as restrições específicas do radiofármaco."
+                    },
+                    {
+                      "exame": "Ultrassonografia de tireoide",
+                      "quando": "Não solicitar automaticamente apenas pela alteração hormonal, mas quando houver contexto clínico justificável, tal como nódulo palpável, bócio com necessidade de caracterização estrutural ou outra alteração anatômica."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nome": "Nódulos da tireoide",
+              "grupos": [
+                {
+                  "titulo": "Exames laboratoriais",
+                  "itens": [
+                    {
+                      "exame": "TSH",
+                      "quando": "solicitar na avaliação inicial de nódulo tireoidiano."
+                    },
+                    {
+                      "exame": "T4 livre",
+                      "quando": "solicitar quando o TSH estiver alterado. Acrescentar T3 quando houver TSH reduzido e T4 livre normal ou outra indicação de investigação de hipertireoidismo."
+                    }
+                  ]
+                },
+                {
+                  "titulo": "Exames de imagem e complementares",
+                  "itens": [
+                    {
+                      "exame": "Ultrassonografia de tireoide com avaliação dos linfonodos cervicais",
+                      "quando": "solicitar quando houver nódulo palpável ou identificado incidentalmente em outro exame de imagem que necessite caracterização. O laudo deve informar dimensões e características de risco."
+                    },
+                    {
+                      "exame": "Cintilografia",
+                      "quando": "solicitar quando o TSH estiver reduzido, para investigar autonomia funcional. Nódulos comprovadamente hiperfuncionantes geralmente não necessitam de punção, mas outros nódulos presentes devem ser avaliados individualmente."
+                    },
+                    {
+                      "exame": "Punção aspirativa por agulha fina — PAAF, guiada por ultrassonografia",
+                      "quando": "solicitar conforme categoria ultrassonográfica, tamanho e contexto clínico."
+                    },
+                    {
+                      "exame": "PAAF de linfonodo cervical",
+                      "quando": "solicitar quando houver características suspeitas e a confirmação puder modificar a conduta."
+                    },
+                    {
+                      "exame": "Repetição da PAAF",
+                      "quando": "solicitar diante de citologia não diagnóstica, conforme características do nódulo e adequação da coleta; considerar também em resultados indeterminados ou discordância entre citologia e ultrassonografia."
+                    },
+                    {
+                      "exame": "Teste molecular",
+                      "quando": "considerar quando a citologia for indeterminada e o resultado puder modificar a decisão entre acompanhamento e cirurgia, conforme disponibilidade."
+                    },
+                    {
+                      "exame": "Calcitonina",
+                      "quando": "solicitar quando houver suspeita de carcinoma medular, história familiar ou contexto de neoplasia endócrina múltipla tipo 2. As diretrizes não apresentam consenso sobre dosagem universal em todos os nódulos."
+                    },
+                    {
+                      "exame": "Tireoglobulina sérica",
+                      "quando": "não solicitar para diferenciar nódulo benigno de maligno."
+                    },
+                    {
+                      "exame": "Ultrassonografia de acompanhamento",
+                      "quando": "solicitar conforme risco ultrassonográfico, tamanho e resultado citológico. Antecipar diante de novos sinais suspeitos ou crescimento relevante. Não estabelecer repetição semestral para todos os nódulos."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "Se o protocolo adotar ACR TI-RADS, utilizar os seguintes critérios habituais de tamanho:",
+                "TR1 e TR2: não solicitar PAAF rotineiramente.",
+                "TR3: solicitar quando o nódulo medir 2,5 cm ou mais.",
+                "TR4: solicitar quando medir 1,5 cm ou mais.",
+                "TR5: solicitar quando medir 1,0 cm ou mais.",
+                "Esses limites pertencem ao ACR TI-RADS e não devem ser aplicados a categorias de outros sistemas. Linfonodos suspeitos, possível extensão extratireoidiana e contextos clínicos especiais exigem avaliação própria."
+              ]
+            },
+            {
+              "nome": "Obesidade",
+              "grupos": [
+                {
+                  "titulo": "Exames laboratoriais",
+                  "itens": [
+                    {
+                      "exame": "Glicemia de jejum e/ou hemoglobina glicada",
+                      "quando": "solicitar na avaliação inicial para identificar pré-diabetes ou diabetes e acompanhar alterações já conhecidas."
+                    },
+                    {
+                      "exame": "Perfil lipídico",
+                      "quando": "solicitar na avaliação inicial para identificar dislipidemia e contribuir para a estratificação de risco cardiovascular."
+                    },
+                    {
+                      "exame": "Transaminases — ALT/TGP e AST/TGO",
+                      "quando": "solicitar na avaliação de complicações metabólicas e possível doença hepática associada à obesidade."
+                    },
+                    {
+                      "exame": "Creatinina com estimativa da filtração glomerular",
+                      "quando": "solicitar na avaliação clínica e antes de tratamentos cuja escolha, dose ou segurança dependa da função renal."
+                    },
+                    {
+                      "exame": "Outros exames renais e hepáticos",
+                      "quando": "solicitar conforme comorbidades, alterações iniciais e tratamento proposto. A diretriz brasileira de tratamento farmacológico inclui acompanhamento dos parâmetros glicêmicos, lipídicos, renais e hepáticos."
+                    },
+                    {
+                      "exame": "TSH",
+                      "quando": "solicitar na avaliação inicial conforme a estratégia de investigação adotada. A European Society of Endocrinology recomenda avaliar a função tireoidiana em todas as pessoas com obesidade; outras recomendações direcionam a dosagem principalmente à suspeita clínica. TSH normal não precisa ser repetido a cada consulta."
+                    },
+                    {
+                      "exame": "T4 livre e anti-TPO",
+                      "quando": "solicitar quando o TSH estiver elevado, conforme necessidade de caracterizar a alteração. Não solicitar T3 ou ultrassonografia de tireoide apenas pela presença de obesidade."
+                    },
+                    {
+                      "exame": "Investigação de síndrome de Cushing",
+                      "quando": "solicitar quando houver sinais sugestivos, como estrias largas e violáceas, equimoses fáceis, fraqueza muscular proximal ou outros achados progressivos compatíveis. Obesidade isolada não justifica rastreamento."
+                    },
+                    {
+                      "exame": "Teste de supressão com 1 mg de dexametasona",
+                      "quando": "solicitar como uma das opções de investigação inicial quando houver suspeita de hipercortisolismo, considerando interferências e contraindicações. Cortisol salivar noturno ou cortisol livre urinário podem integrar a investigação especializada. Não utilizar cortisol sérico aleatório como rastreamento."
+                    },
+                    {
+                      "exame": "Testosterona e investigação complementar de hipogonadismo",
+                      "quando": "solicitar em homens com sintomas e sinais compatíveis, como redução de libido e disfunção sexual. Não solicitar painel hormonal masculino apenas pela obesidade."
+                    },
+                    {
+                      "exame": "Investigação de hiperandrogenismo",
+                      "quando": "solicitar em mulheres com hirsutismo, irregularidade menstrual, infertilidade ou virilização. Selecionar os exames conforme a hipótese clínica."
+                    },
+                    {
+                      "exame": "Exames nutricionais, como hemograma, ferritina, vitamina B12 e vitamina D",
+                      "quando": "solicitar quando houver suspeita de deficiência, restrição alimentar relevante, má absorção ou contexto de cirurgia bariátrica. Evitar painel vitamínico indiscriminado."
+                    },
+                    {
+                      "exame": "Teste de gravidez",
+                      "quando": "solicitar quando houver possibilidade de gestação e o resultado for necessário para iniciar ou manter tratamento contraindicado nesse período."
+                    }
+                  ]
+                },
+                {
+                  "titulo": "Exames complementares",
+                  "itens": [
+                    {
+                      "exame": "Polissonografia ou estudo respiratório do sono",
+                      "quando": "solicitar quando houver suspeita de apneia obstrutiva, especialmente diante de ronco importante, pausas respiratórias observadas ou sonolência diurna."
+                    },
+                    {
+                      "exame": "Bioimpedância, densitometria para composição corporal e calorimetria indireta",
+                      "quando": "considerar quando responderem a uma necessidade específica de avaliação ou planejamento. Não são obrigatórias para diagnosticar ou acompanhar obesidade."
+                    }
+                  ]
+                },
+                {
+                  "titulo": "Critérios gerais de repetição",
+                  "itens": [
+                    {
+                      "exame": "Exames de controle da doença",
+                      "quando": "repetir conforme os intervalos descritos e antecipar diante de mudança clínica ou terapêutica."
+                    },
+                    {
+                      "exame": "Exames alterados",
+                      "quando": "repetir quando necessário para confirmar persistência, esclarecer resultado discordante ou acompanhar sua evolução."
+                    },
+                    {
+                      "exame": "Exames de segurança",
+                      "quando": "solicitar e repetir conforme o medicamento, a função renal e hepática, as comorbidades e os eventos adversos."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "Para adoção municipal, registrar o sistema escolhido para classificação dos nódulos e a estratégia adotada para rastreamento tireoidiano na obesidade, pois esses pontos apresentam diferenças entre recomendações."
+              ]
+            }
+          ]
+        },
+        "Dermatologia": {
+          "condicoes": [
+            {
+              "nome": "Neoplasias cutâneas não melanoma",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Dermatoscopia",
+                      "quando": "realizar quando houver lesão suspeita, para auxiliar a avaliação e a escolha do local de biópsia."
+                    },
+                    {
+                      "exame": "Biópsia com exame anatomopatológico",
+                      "quando": "solicitar quando houver suspeita de carcinoma basocelular, carcinoma espinocelular ou outra neoplasia. A técnica depende do tamanho, localização e hipótese diagnóstica; a retirada completa pode fornecer simultaneamente diagnóstico e tratamento."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nome": "Melanoma",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Dermatoscopia",
+                      "quando": "realizar quando houver lesão pigmentada ou não pigmentada suspeita de melanoma."
+                    },
+                    {
+                      "exame": "Biópsia excisional com anatomopatológico",
+                      "quando": "solicitar preferencialmente quando houver suspeita de melanoma, retirando toda a lesão com margem diagnóstica estreita e profundidade suficiente para medir a espessura tumoral. Biópsia parcial: reservar para situações em que a retirada completa inicial seja inviável ou inadequada, conforme avaliação especializada."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nome": "Leishmaniose tegumentar",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Pesquisa direta do parasito em material da lesão",
+                      "quando": "solicitar quando houver suspeita clínico-epidemiológica, buscando confirmação antes do tratamento."
+                    },
+                    {
+                      "exame": "Biópsia com anatomopatológico",
+                      "quando": "solicitar quando houver dúvida diagnóstica, pesquisa direta negativa com suspeita persistente ou necessidade de diferenciar neoplasias, micoses e micobacterioses."
+                    },
+                    {
+                      "exame": "Cultura e/ou PCR para Leishmania",
+                      "quando": "solicitar quando os métodos iniciais não esclarecerem o diagnóstico, nas apresentações atípicas ou quando a identificação do agente contribuir para a conduta, conforme disponibilidade."
+                    },
+                    {
+                      "exame": "Intradermorreação de Montenegro",
+                      "quando": "considerar como exame complementar, conforme disponibilidade e contexto. Resultado positivo não comprova, isoladamente, doença ativa; resultado negativo não exclui todas as formas da doença."
+                    },
+                    {
+                      "exame": "Avaliação otorrinolaringológica com exame endoscópico",
+                      "quando": "solicitar quando houver sintomas ou suspeita de comprometimento mucoso."
+                    },
+                    {
+                      "exame": "Hemograma, função renal, transaminases, eletrólitos, amilase/lipase e eletrocardiograma",
+                      "quando": "selecionar antes e durante o tratamento conforme o medicamento empregado e seus riscos. Não aplicar a mesma bateria a todos os tratamentos."
+                    },
+                    {
+                      "exame": "Teste para HIV",
+                      "quando": "solicitar especialmente nas formas atípicas, disseminadas, recorrentes ou com resposta inadequada, além das demais indicações de testagem."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nome": "Herpes-zóster",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Exames complementares",
+                      "quando": "não solicitar rotineiramente quando a apresentação clínica for típica."
+                    },
+                    {
+                      "exame": "PCR para vírus varicela-zóster em material de vesícula, base da lesão ou crosta",
+                      "quando": "solicitar quando houver dúvida diagnóstica, apresentação atípica ou necessidade de distinguir de herpes simples. Sorologia não é o método preferencial para confirmar um episódio de zóster."
+                    },
+                    {
+                      "exame": "Creatinina com filtração glomerular estimada",
+                      "quando": "solicitar quando houver doença renal, idade avançada ou outra condição que torne necessário ajustar o antiviral."
+                    },
+                    {
+                      "exame": "Investigação de imunossupressão, incluindo HIV",
+                      "quando": "solicitar quando houver elementos clínicos ou epidemiológicos, sobretudo doença disseminada, recorrente ou incomumente grave."
+                    },
+                    {
+                      "exame": "Avaliação oftalmológica",
+                      "quando": "solicitar com urgência quando houver suspeita de acometimento ocular. Complicações neurológicas ou disseminação exigem avaliação em serviço apropriado, sem aguardar investigação ambulatorial."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nome": "Acne graus III e IV",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Exames para confirmar acne",
+                      "quando": "não solicitar rotineiramente; o diagnóstico é clínico."
+                    },
+                    {
+                      "exame": "Transaminases e perfil lipídico, especialmente triglicerídeos",
+                      "quando": "solicitar antes da isotretinoína e repetir conforme protocolo de uso, dose, resultados e fatores de risco."
+                    },
+                    {
+                      "exame": "Teste de gravidez",
+                      "quando": "solicitar antes e durante a isotretinoína em pessoas com potencial de gestação, seguindo as exigências brasileiras de prevenção de gravidez e dispensação."
+                    },
+                    {
+                      "exame": "Hemograma",
+                      "quando": "solicitar quando houver indicação clínica ou exigência expressa do protocolo de dispensação aplicável. A diretriz americana de 2024 não recomenda monitorização hematológica rotineira em pacientes saudáveis em uso de isotretinoína."
+                    },
+                    {
+                      "exame": "Investigação hormonal",
+                      "quando": "solicitar quando houver sinais de hiperandrogenismo, como hirsutismo, irregularidade menstrual ou virilização. Acne grave isolada não justifica um painel hormonal amplo."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "A periodicidade para dispensação no SUS deve seguir o protocolo brasileiro e as regras estaduais aplicáveis; não transpor automaticamente o programa americano iPLEDGE para o contexto brasileiro."
+              ]
+            },
+            {
+              "nome": "Doenças bolhosas",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Biópsia de lesão recente para anatomopatológico",
+                      "quando": "solicitar quando houver suspeita de dermatose bolhosa autoimune ou necessidade de esclarecer a causa das bolhas."
+                    },
+                    {
+                      "exame": "Biópsia de pele perilesional para imunofluorescência direta",
+                      "quando": "solicitar na suspeita de pênfigo, penfigoide e outras doenças bolhosas autoimunes. Em geral, requer amostra distinta daquela destinada ao anatomopatológico."
+                    },
+                    {
+                      "exame": "Autoanticorpos específicos, como antidesmogleína 1 e 3, anti-BP180 e anti-BP230",
+                      "quando": "solicitar conforme a hipótese, para complementar a classificação e, em casos selecionados, acompanhar atividade."
+                    },
+                    {
+                      "exame": "Antitransglutaminase IgA e IgA total",
+                      "quando": "solicitar quando houver suspeita de dermatite herpetiforme e associação com doença celíaca."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "O material para imunofluorescência não deve ser colocado em formol; combinar previamente o meio de transporte com o laboratório.",
+                "Exames pré-tratamento e de acompanhamento: selecionar conforme corticoide, imunossupressor ou imunobiológico empregado."
+              ]
+            },
+            {
+              "nome": "Micoses profundas e subcutâneas",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Exame micológico direto e cultura",
+                      "quando": "solicitar quando houver suspeita de esporotricose, cromoblastomicose ou outra micose profunda, utilizando material adequado da lesão."
+                    },
+                    {
+                      "exame": "Biópsia com anatomopatológico e colorações para fungos",
+                      "quando": "solicitar quando houver lesão infiltrada, nodular, verrucosa ou ulcerada persistente, dúvida diagnóstica ou necessidade de diferenciar infecções e neoplasias."
+                    },
+                    {
+                      "exame": "Sorologias, antígenos, exames de imagem e investigação de outros órgãos",
+                      "quando": "solicitar conforme a micose suspeita, imunidade e sintomas de disseminação. Não existe painel único para “micose profunda”."
+                    },
+                    {
+                      "exame": "Função hepática, renal e eletrólitos",
+                      "quando": "solicitar conforme o antifúngico escolhido, comorbidades e duração do tratamento."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "Na suspeita de esporotricose, a cultura é o método de referência para confirmação. Quando necessária, a biópsia deve alcançar profundidade adequada, podendo incluir o subcutâneo.",
+                "Material para cultura deve ser enviado separado da amostra em formol."
+              ]
+            },
+            {
+              "nome": "Tuberculose cutânea",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Biópsia para anatomopatológico",
+                      "quando": "solicitar quando houver lesão compatível, especialmente placas, nódulos, úlceras ou trajetos fistulosos persistentes."
+                    },
+                    {
+                      "exame": "Pesquisa de bacilos álcool-ácido resistentes, cultura para micobactérias e teste molecular no tecido",
+                      "quando": "solicitar quando houver suspeita, conforme disponibilidade e validação do laboratório. Separar amostra sem formol para microbiologia."
+                    },
+                    {
+                      "exame": "PPD ou IGRA",
+                      "quando": "solicitar quando contribuir para a investigação. Esses testes demonstram sensibilização ao bacilo e não confirmam, isoladamente, tuberculose cutânea ativa."
+                    },
+                    {
+                      "exame": "Radiografia de tórax e investigação de outros focos",
+                      "quando": "solicitar na avaliação da extensão da doença; exames adicionais dependem de sintomas e achados."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "Resultados microbiológicos negativos não excluem formas paucibacilares. A interpretação deve integrar clínica, histologia e microbiologia."
+              ]
+            },
+            {
+              "nome": "Hanseníase",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Avaliação dermatoneurológica e avaliação neurológica simplificada",
+                      "quando": "realizar na suspeita e no acompanhamento. São avaliações clínicas essenciais."
+                    },
+                    {
+                      "exame": "Baciloscopia de raspado intradérmico",
+                      "quando": "solicitar quando houver dúvida diagnóstica, necessidade de auxiliar a classificação ou suspeita de recidiva. Resultado negativo não exclui hanseníase."
+                    },
+                    {
+                      "exame": "Biópsia de pele com anatomopatológico",
+                      "quando": "solicitar quando a avaliação clínica não esclarecer o diagnóstico ou houver necessidade de diagnóstico diferencial."
+                    },
+                    {
+                      "exame": "Eletroneuromiografia e/ou ultrassonografia de nervos",
+                      "quando": "solicitar em situações selecionadas, sobretudo suspeita de forma neural, neuropatia de etiologia incerta ou necessidade de caracterizar comprometimento."
+                    },
+                    {
+                      "exame": "Biópsia de nervo",
+                      "quando": "reservar para casos selecionados em serviço de referência; não é exame de rotina."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "Exames laboratoriais de segurança: solicitar conforme tratamento, comorbidades e suspeita de eventos adversos."
+              ]
+            },
+            {
+              "nome": "Psoríase",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Exames para confirmação",
+                      "quando": "não solicitar rotineiramente quando o quadro for típico."
+                    },
+                    {
+                      "exame": "Biópsia com anatomopatológico",
+                      "quando": "solicitar quando houver apresentação atípica ou dúvida com outras dermatoses."
+                    },
+                    {
+                      "exame": "Exame micológico",
+                      "quando": "solicitar quando houver dúvida com dermatofitose ou alteração ungueal que possa representar onicomicose."
+                    },
+                    {
+                      "exame": "Exames metabólicos, como avaliação glicêmica e perfil lipídico",
+                      "quando": "solicitar conforme risco cardiovascular, obesidade e rastreamentos indicados."
+                    },
+                    {
+                      "exame": "Hemograma, função hepática, função renal, perfil lipídico e teste de gravidez",
+                      "quando": "selecionar antes e durante tratamentos sistêmicos, conforme o medicamento."
+                    },
+                    {
+                      "exame": "Rastreamento de tuberculose e hepatites B e C, e testagem para HIV",
+                      "quando": "solicitar conforme a terapia imunossupressora ou biológica planejada e o protocolo aplicável. A avaliação de hepatite B pode exigir HBsAg, anti-HBc total e anti-HBs."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "A necessidade de repetição do rastreamento de tuberculose depende da classe terapêutica, risco de exposição e recomendações aplicáveis; não definir uma regra anual única para todos os biológicos.",
+                "Investigação de artrite psoriásica: solicitar exames dirigidos e avaliação reumatológica quando houver artrite, dactilite, entesite ou sintomas axiais inflamatórios."
+              ]
+            },
+            {
+              "nome": "Prurido",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Exames laboratoriais",
+                      "quando": "solicitar quando o prurido for persistente ou generalizado, sem causa cutânea suficiente para explicá-lo, ou quando houver sinais de doença sistêmica."
+                    },
+                    {
+                      "exame": "Hemograma com diferencial, ferritina, creatinina com filtração estimada, avaliação hepática com marcadores de colestase, TSH e glicemia ou hemoglobina glicada",
+                      "quando": "considerar na investigação inicial do prurido crônico sem causa definida."
+                    },
+                    {
+                      "exame": "Outros exames, incluindo sorologias, investigação parasitológica, eletroforese de proteínas ou imagem",
+                      "quando": "solicitar conforme história, exame físico e alterações iniciais."
+                    },
+                    {
+                      "exame": "Biópsia de pele, eventualmente com imunofluorescência",
+                      "quando": "solicitar quando houver suspeita de dermatose pouco evidente, como fase pré-bolhosa de penfigoide."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "Não transformar prurido localizado com causa evidente em indicação automática de investigação sistêmica ampla."
+              ]
+            },
+            {
+              "nome": "Eczema",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Exames para confirmação",
+                      "quando": "não solicitar rotineiramente em apresentação típica."
+                    },
+                    {
+                      "exame": "Teste de contato",
+                      "quando": "solicitar quando houver eczema crônico, recorrente, ocupacional, de mãos ou face, ou resposta inadequada que sugira alergia de contato."
+                    },
+                    {
+                      "exame": "Exame micológico",
+                      "quando": "solicitar quando houver dúvida com micose, particularmente em lesões assimétricas ou agravadas por corticoide."
+                    },
+                    {
+                      "exame": "Cultura bacteriana",
+                      "quando": "solicitar quando houver suspeita de infecção relevante, recorrente ou sem resposta ao tratamento habitual."
+                    },
+                    {
+                      "exame": "Biópsia",
+                      "quando": "solicitar em apresentações atípicas, persistentes ou quando houver suspeita de outro diagnóstico."
+                    },
+                    {
+                      "exame": "IgE total e painéis alimentares",
+                      "quando": "não solicitar como investigação automática de eczema. A investigação de alergia imediata exige história compatível."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nome": "Dermatoses eritematodescamativas",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Exame micológico direto",
+                      "quando": "solicitar quando houver possibilidade de dermatofitose."
+                    },
+                    {
+                      "exame": "Biópsia",
+                      "quando": "solicitar quando o quadro for atípico, persistente, refratário ou houver suspeita de linfoma cutâneo ou outra doença que necessite confirmação histológica."
+                    },
+                    {
+                      "exame": "Sorologia para sífilis",
+                      "quando": "solicitar quando a apresentação e o contexto epidemiológico forem compatíveis, inclusive em erupção disseminada com acometimento palmoplantar."
+                    },
+                    {
+                      "exame": "Exames laboratoriais sistêmicos",
+                      "quando": "solicitar quando houver eritrodermia, repercussão geral ou necessidade de tratamento sistêmico."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "Essa denominação reúne doenças diferentes; a investigação deve seguir a hipótese identificada na consulta.",
+                "Eritrodermia com instabilidade, febre ou desidratação exige avaliação prioritária, podendo necessitar internação."
+              ]
+            },
+            {
+              "nome": "Farmacodermias",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Exames laboratoriais",
+                      "quando": "solicitar quando houver febre, edema facial, linfonodomegalia, púrpura, bolhas, acometimento mucoso ou suspeita de comprometimento sistêmico."
+                    },
+                    {
+                      "exame": "Hemograma com diferencial, transaminases, bilirrubinas e função renal",
+                      "quando": "solicitar na suspeita de reação medicamentosa grave, especialmente DRESS."
+                    },
+                    {
+                      "exame": "Urina, eletrólitos e exames de órgãos específicos",
+                      "quando": "solicitar conforme suspeita de comprometimento renal, cardíaco, pulmonar ou de outros órgãos."
+                    },
+                    {
+                      "exame": "Biópsia",
+                      "quando": "solicitar quando contribuir para diferenciar padrões de reação e excluir outros diagnósticos; isoladamente, não identifica necessariamente o medicamento responsável."
+                    },
+                    {
+                      "exame": "Testes de contato ou outros testes de alergia medicamentosa",
+                      "quando": "considerar após resolução, em serviço especializado, conforme o mecanismo e a reação. Teste de provocação não deve ser utilizado em reações graves como DRESS, Stevens-Johnson e necrólise epidérmica tóxica."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "Nas reações graves, a investigação deve ocorrer em fluxo de urgência."
+              ]
+            },
+            {
+              "nome": "Alopecia",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Tricoscopia",
+                      "quando": "realizar quando contribuir para distinguir alopecias cicatriciais, androgenética, areata, eflúvio e infecções."
+                    },
+                    {
+                      "exame": "Hemograma e ferritina",
+                      "quando": "solicitar quando houver queda difusa, suspeita de anemia, perda sanguínea ou deficiência de ferro."
+                    },
+                    {
+                      "exame": "TSH",
+                      "quando": "solicitar quando houver queda difusa sem explicação, sinais de disfunção tireoidiana ou antecedentes relevantes."
+                    },
+                    {
+                      "exame": "Investigação hormonal",
+                      "quando": "solicitar quando houver sinais de hiperandrogenismo."
+                    },
+                    {
+                      "exame": "Exame micológico e cultura",
+                      "quando": "solicitar quando houver suspeita de tinha do couro cabeludo."
+                    },
+                    {
+                      "exame": "Biópsia do couro cabeludo",
+                      "quando": "solicitar quando houver suspeita de alopecia cicatricial, quadro inflamatório ou diagnóstico não esclarecido."
+                    },
+                    {
+                      "exame": "Vitaminas e minerais",
+                      "quando": "solicitar conforme suspeita de deficiência ou risco nutricional, evitando painel indiscriminado."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "Na alopecia areata, existem diferenças entre diretrizes quanto à extensão do rastreamento laboratorial; a diretriz britânica reconhece controvérsia sobre rastreamento tireoidiano universal. O protocolo municipal deve explicitar qual orientação adotará."
+              ]
+            },
+            {
+              "nome": "Urticária crônica",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Hemograma com diferencial e PCR ou VHS",
+                      "quando": "solicitar como investigação básica limitada, especialmente na urticária espontânea persistente."
+                    },
+                    {
+                      "exame": "TSH e anticorpos antitireoidianos",
+                      "quando": "considerar na avaliação especializada, conforme diretriz adotada e contexto clínico."
+                    },
+                    {
+                      "exame": "Testes de provocação",
+                      "quando": "solicitar ou realizar quando houver suspeita de urticária induzida por frio, pressão, calor, exercício ou outros estímulos."
+                    },
+                    {
+                      "exame": "Biópsia",
+                      "quando": "solicitar quando as lesões forem persistentes no mesmo local, dolorosas, purpúricas ou deixarem pigmentação, sobretudo na suspeita de vasculite urticariforme."
+                    },
+                    {
+                      "exame": "C4 e avaliação de C1-inibidor",
+                      "quando": "solicitar quando houver angioedema recorrente sem urticas e suspeita de mecanismo por bradicinina."
+                    },
+                    {
+                      "exame": "Painéis alimentares, IgE específica, parasitológico e rastreamentos infecciosos amplos",
+                      "quando": "não solicitar rotineiramente; direcionar pela história. Testes alérgicos costumam ter baixo rendimento na urticária espontânea crônica."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nome": "Micoses superficiais e onicomicose",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Exame micológico direto",
+                      "quando": "solicitar quando houver dúvida diagnóstica, apresentação atípica, recorrência ou falha terapêutica."
+                    },
+                    {
+                      "exame": "Cultura",
+                      "quando": "solicitar quando for necessário identificar o agente, investigar falha terapêutica ou esclarecer exame direto inconclusivo."
+                    },
+                    {
+                      "exame": "Exame de fragmento ungueal com coloração PAS e/ou método molecular",
+                      "quando": "considerar quando houver suspeita persistente de onicomicose com exames iniciais negativos, conforme disponibilidade."
+                    },
+                    {
+                      "exame": "Antes de antifúngico oral para suspeita de onicomicose",
+                      "quando": "obter confirmação micológica ou histológica."
+                    },
+                    {
+                      "exame": "Função hepática e outros exames de segurança",
+                      "quando": "solicitar conforme antifúngico, duração do tratamento, comorbidades e resultados prévios."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "Micoses superficiais típicas e localizadas não exigem, em todos os casos, cultura ou exames sanguíneos."
+              ]
+            },
+            {
+              "nome": "Dermatite de contato",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Teste de contato epicutâneo",
+                      "quando": "solicitar quando houver suspeita de dermatite alérgica de contato, especialmente doença crônica, recorrente, ocupacional ou refratária."
+                    },
+                    {
+                      "exame": "Baterias complementares e testes com produtos do paciente",
+                      "quando": "selecionar conforme exposição, profissão, cosméticos, medicamentos tópicos e localização das lesões."
+                    },
+                    {
+                      "exame": "Teste de puntura ou investigação de IgE específica",
+                      "quando": "solicitar quando houver suspeita de reação imediata, como urticária de contato; não substitui o teste epicutâneo para alergia tardia."
+                    },
+                    {
+                      "exame": "Biópsia",
+                      "quando": "solicitar quando houver dúvida diagnóstica. Não diferencia de maneira confiável, isoladamente, dermatite irritativa de alérgica."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "O teste de contato positivo deve ser relacionado à exposição e ao quadro clínico para definir sua relevância."
+              ]
+            },
+            {
+              "nome": "Vitiligo",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Lâmpada de Wood",
+                      "quando": "realizar quando houver dúvida sobre despigmentação ou necessidade de delimitar lesões."
+                    },
+                    {
+                      "exame": "TSH e anticorpos antitireoidianos",
+                      "quando": "solicitar conforme estratégia de rastreamento adotada. A diretriz britânica recomenda avaliação de função tireoidiana e anticorpos em pessoas com vitiligo, inclusive crianças."
+                    },
+                    {
+                      "exame": "T4 livre",
+                      "quando": "solicitar quando o TSH estiver alterado ou houver indicação clínica específica."
+                    },
+                    {
+                      "exame": "Biópsia",
+                      "quando": "solicitar apenas quando o diagnóstico permanecer incerto."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "Outros autoanticorpos: solicitar quando houver sinais ou sintomas de doença associada; não estabelecer painel autoimune amplo para todos."
+              ]
+            },
+            {
+              "nome": "Verrugas virais",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Exames complementares",
+                      "quando": "não solicitar rotineiramente em verrugas típicas."
+                    },
+                    {
+                      "exame": "Dermatoscopia",
+                      "quando": "realizar quando houver dúvida com calosidades, queratoses ou outras lesões."
+                    },
+                    {
+                      "exame": "Biópsia",
+                      "quando": "solicitar quando houver diagnóstico incerto, ulceração, sangramento, crescimento atípico ou suspeita de carcinoma, particularmente em imunossuprimidos."
+                    },
+                    {
+                      "exame": "Investigação de imunossupressão",
+                      "quando": "solicitar quando houver verrugas extensas, incomumente persistentes ou acompanhadas de outros indícios clínicos."
+                    },
+                    {
+                      "exame": "Pesquisa ou tipagem de HPV",
+                      "quando": "não solicitar rotineiramente para verrugas cutâneas comuns. Lesões anogenitais devem seguir avaliação e protocolos próprios."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nome": "Melasma",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Dermatoscopia e/ou lâmpada de Wood",
+                      "quando": "realizar quando auxiliarem a avaliação e o diagnóstico diferencial."
+                    },
+                    {
+                      "exame": "Biópsia",
+                      "quando": "somente solicitar quando houver apresentação atípica ou dúvida com outra doença pigmentária."
+                    },
+                    {
+                      "exame": "Exames hormonais, tireoidianos e vitamínicos",
+                      "quando": "não solicitar automaticamente para melasma típico. Investigar quando houver indicação clínica independente."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nome": "Queloide",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Exames complementares",
+                      "quando": "não solicitar rotineiramente em lesão típica e relacionada a trauma ou procedimento."
+                    },
+                    {
+                      "exame": "Biópsia",
+                      "quando": "solicitar quando houver dúvida diagnóstica, crescimento incomum, ulceração ou possibilidade de outra lesão tumoral."
+                    },
+                    {
+                      "exame": "Exames pré-procedimento",
+                      "quando": "solicitar apenas conforme comorbidades, medicamentos e procedimento planejado."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nome": "Clareamento de manchas",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Dermatoscopia",
+                      "quando": "realizar quando for necessário caracterizar a lesão pigmentada."
+                    },
+                    {
+                      "exame": "Biópsia",
+                      "quando": "solicitar quando houver lesão suspeita ou diagnóstico incerto, antes de tratamento destrutivo ou clareador."
+                    },
+                    {
+                      "exame": "Exames laboratoriais",
+                      "quando": "solicitar somente quando a doença identificada ou o tratamento proposto justificar. Não existe painel laboratorial padrão para clareamento."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "“Clareamento de manchas” é uma finalidade de tratamento, e não um diagnóstico."
+              ]
+            },
+            {
+              "nome": "Cicatrizes de acne",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Exames complementares",
+                      "quando": "não solicitar rotineiramente quando o diagnóstico e o tipo de cicatriz forem claros."
+                    },
+                    {
+                      "exame": "Biópsia",
+                      "quando": "solicitar apenas quando houver lesão que não corresponda a cicatriz típica ou dúvida com doença ativa."
+                    },
+                    {
+                      "exame": "Exames pré-procedimento",
+                      "quando": "solicitar conforme intervenção e condições clínicas; não estabelecer hemograma ou coagulograma universal."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nome": "Melanoses solares",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Dermatoscopia",
+                      "quando": "realizar quando houver dúvida diagnóstica ou necessidade de diferenciar de outras lesões pigmentadas."
+                    },
+                    {
+                      "exame": "Biópsia",
+                      "quando": "solicitar quando houver assimetria, irregularidade, mudança de aspecto ou suspeita de lentigo maligno ou outra neoplasia."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "Exames sanguíneos: não solicitar rotineiramente em melanoses solares típicas."
+              ]
+            },
+            {
+              "nome": "Xantelasma",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Perfil lipídico",
+                      "quando": "solicitar na avaliação inicial, aproveitando resultados recentes, para investigar dislipidemia."
+                    },
+                    {
+                      "exame": "Glicemia ou hemoglobina glicada",
+                      "quando": "solicitar conforme fatores de risco e rastreamento metabólico indicado."
+                    },
+                    {
+                      "exame": "TSH e avaliação de doença hepática ou renal",
+                      "quando": "solicitar quando houver suspeita clínica de causa secundária de dislipidemia."
+                    },
+                    {
+                      "exame": "Biópsia",
+                      "quando": "solicitar quando a lesão não apresentar características típicas. Xantelasma pode ocorrer mesmo com perfil lipídico normal."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nome": "Estrias",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Exames complementares",
+                      "quando": "não solicitar rotineiramente em estrias relacionadas a crescimento, gestação ou variação ponderal."
+                    },
+                    {
+                      "exame": "Investigação de hipercortisolismo",
+                      "quando": "solicitar quando houver estrias largas e violáceas associadas a outros achados sugestivos, como equimoses fáceis, fraqueza muscular proximal e alterações clínicas compatíveis."
+                    }
+                  ]
+                }
+              ],
+              "notas": [
+                "Quando indicada, selecionar teste validado de rastreamento de hipercortisolismo conforme avaliação endocrinológica. Cortisol sérico aleatório não constitui rastreamento adequado."
+              ]
+            },
+            {
+              "nome": "Leucodermia solar — hipomelanose gutata idiopática",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Exames complementares",
+                      "quando": "não solicitar rotineiramente em apresentação típica."
+                    },
+                    {
+                      "exame": "Lâmpada de Wood e/ou dermatoscopia",
+                      "quando": "realizar quando houver dúvida com vitiligo ou outra hipocromia."
+                    },
+                    {
+                      "exame": "Exame micológico",
+                      "quando": "solicitar quando houver descamação ou suspeita de micose."
+                    },
+                    {
+                      "exame": "Biópsia",
+                      "quando": "solicitar quando o diagnóstico permanecer incerto."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nome": "Olheiras",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Exames complementares",
+                      "quando": "não solicitar rotineiramente para pigmentação ou alteração estrutural periocular típica."
+                    },
+                    {
+                      "exame": "Hemograma e ferritina",
+                      "quando": "solicitar quando houver sinais, sintomas ou fatores de risco para anemia; olheiras isoladas não justificam esses exames."
+                    },
+                    {
+                      "exame": "Teste de contato",
+                      "quando": "solicitar quando houver eczema palpebral ou suspeita de alergia a cosméticos e produtos tópicos."
+                    },
+                    {
+                      "exame": "Outros exames",
+                      "quando": "solicitar quando houver edema persistente ou achados que sugiram doença sistêmica, conforme a hipótese."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nome": "Acrocórdons",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Exames complementares",
+                      "quando": "não solicitar rotineiramente em lesões típicas."
+                    },
+                    {
+                      "exame": "Glicemia ou hemoglobina glicada",
+                      "quando": "solicitar quando houver indicação de rastreamento de diabetes por idade, sobrepeso, obesidade ou outros fatores de risco. Acrocórdons isolados não justificam dosagem de insulina ou cálculo de HOMA-IR."
+                    },
+                    {
+                      "exame": "Biópsia ou anatomopatológico da lesão removida",
+                      "quando": "solicitar quando houver aspecto atípico ou dúvida diagnóstica. Lesões consideradas acrocórdons podem, ocasionalmente, corresponder a outros diagnósticos."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "nome": "Dermatose papulosa nigra — DPN",
+              "grupos": [
+                {
+                  "itens": [
+                    {
+                      "exame": "Exames complementares",
+                      "quando": "não solicitar rotineiramente em apresentação típica."
+                    },
+                    {
+                      "exame": "Dermatoscopia",
+                      "quando": "realizar quando houver dúvida com verrugas, nevos ou outras lesões pigmentadas."
+                    },
+                    {
+                      "exame": "Biópsia",
+                      "quando": "solicitar quando houver lesão isolada atípica, mudança de aspecto, ulceração ou suspeita de neoplasia."
+                    },
+                    {
+                      "exame": "Exames laboratoriais e investigação de HPV",
+                      "quando": "não solicitar como rotina."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
   }
 }
