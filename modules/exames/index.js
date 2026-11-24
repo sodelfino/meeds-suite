@@ -97,6 +97,8 @@
   let refs = {};
   let municipioDetectado = null;
   let municipioEscolhido = null;
+  let especialidadeDetectada = null;
+  let especialidadeEscolhida = null;
   let indicePorMunicipio = {};
   let cancelarRede = null;
 
@@ -126,9 +128,24 @@
    * municipios" tem que passar por aqui, sempre — a mesma armadilha ja
    * apareceu no REMUME com a chave "_meta". */
   function municipios() {
-    return Object.keys(BASE.municipios || {}).filter(function (k) {
-      return k.indexOf("_") !== 0;
+    const todas = Object.keys(BASE.municipios || {}).concat(Object.keys(BASE.protocolos || {}));
+    return todas.filter(function (k, i) {
+      return k.indexOf("_") !== 0 && todas.indexOf(k) === i;
     }).sort();
+  }
+
+  function nomesDeEspecialidades() {
+    const nomes = [];
+    Object.keys(BASE.protocolos || {}).forEach(function (m) {
+      Object.keys(BASE.protocolos[m].especialidades || {}).forEach(function (n) {
+        if (nomes.indexOf(n) === -1) nomes.push(n);
+      });
+    });
+    return nomes;
+  }
+
+  function protocoloDe(municipio) {
+    return (BASE.protocolos || {})[municipio] || null;
   }
 
   function blocoDe(municipio) {
@@ -319,6 +336,17 @@
     ".ex-encaminhamentos-btn { margin-top:9px; width:100%; text-align:left; background:#eff6ff; border:1.4px solid #bfdbfe; color:#1e3a8a; font:inherit; font-size:12px; font-weight:700; padding:8px 12px; border-radius:9px; cursor:pointer; }",
     ".ex-encaminhamentos-btn:hover { background:#e0eefe; border-color:#93c5fd; }",
     ".ex-encaminhamentos-btn[aria-expanded='true'] { background:#dbeafe; }",
+    /* Protocolo por especialidade: mesma paleta azul de .ex-encaminhamentos. */
+    ".ex-protocolo { margin:10px 0; padding:10px 12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:9px; font-size:12px; color:#1e3a8a; line-height:1.5; }",
+    ".ex-prot-titulo { font-size:13px; font-weight:700; margin-bottom:8px; }",
+    ".ex-prot-botoes { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }",
+    ".ex-prot-esp { font:inherit; font-size:12px; font-weight:700; padding:5px 11px; border-radius:999px; border:1.4px solid #bfdbfe; background:#fff; color:#1e3a8a; cursor:pointer; }",
+    ".ex-prot-esp[aria-pressed='true'] { background:#1e40af; border-color:#1e40af; color:#fff; }",
+    ".ex-prot-cond { margin-top:6px; background:#fff; border:1px solid #bfdbfe; border-radius:8px; padding:6px 9px; }",
+    ".ex-prot-cond summary { cursor:pointer; font-weight:700; }",
+    ".ex-prot-cond h4 { margin:8px 0 2px; font-size:12px; color:#1e40af; }",
+    ".ex-prot-cond ul { margin:3px 0; padding-left:18px; }",
+    ".ex-prot-nota { margin-top:6px; color:#1e40af; }",
     ".ex-obs { margin:10px 0; padding:10px 12px; background:#fffbeb; border:1px solid #fde68a; border-radius:9px; font-size:12px; color:#78350f; line-height:1.5; }",
     ".ex-obs summary { cursor:pointer; font-weight:700; }",
     ".ex-obs summary:focus-visible { outline:2px solid #b45309; outline-offset:3px; }",
@@ -435,7 +463,8 @@
     const lista = municipios();
     refs.select.innerHTML = lista
       .map(function (m) {
-        return '<option value="' + escapar(m) + '">' + escapar(m) + " (" + examesDe(m).length + ")</option>";
+        const rotulo = blocoDe(m) ? String(examesDe(m).length) : "protocolo";
+        return '<option value="' + escapar(m) + '">' + escapar(m) + " (" + rotulo + ")</option>";
       })
       .join("");
     if (municipioEscolhido && lista.indexOf(municipioEscolhido) !== -1) {
@@ -450,7 +479,7 @@
   }
 
   function pintarCabecalho() {
-    const b = blocoDe(municipioEscolhido);
+    const b = blocoDe(municipioEscolhido) || protocoloDe(municipioEscolhido);
     if (!b) return;
 
     /* A ORIGEM FICA ACESSIVEL ANTES DA LISTA. A lista de Betim vem de um contrato,
@@ -476,6 +505,52 @@
     }
 
     pintarEncaminhamentos();
+    pintarProtocolo();
+  }
+
+  /* Protocolo de solicitacao por especialidade (municipio com
+   * BASE.protocolos). A especialidade ativa e a escolhida pelo medico,
+   * senao a detectada no atendimento; fora do protocolo, nenhuma. */
+  function htmlProtocolo(municipio, protocolo, especialidade) {
+    const esps = (protocolo && protocolo.especialidades) || {};
+    const nomes = Object.keys(esps);
+    const ativa = esps[especialidade] ? especialidade : null;
+    const botoes = nomes.map(function (n) {
+      return '<button type="button" class="ex-prot-esp" data-esp="' + escapar(n) +
+        '" aria-pressed="' + (n === ativa) + '">' + escapar(n) + "</button>";
+    }).join("");
+    let corpo = '<div class="ex-prot-aviso">Escolha a especialidade para ver as orientações.</div>';
+    if (ativa) {
+      const e = esps[ativa];
+      corpo = "";
+      if (e.orientacoesGerais && e.orientacoesGerais.length) {
+        corpo += '<details class="ex-prot-cond"><summary>Orientações gerais</summary><ul>' +
+          e.orientacoesGerais.map(function (o) { return "<li>" + escapar(o) + "</li>"; }).join("") +
+          "</ul></details>";
+      }
+      corpo += (e.condicoes || []).map(function (c) {
+        const grupos = (c.grupos || []).map(function (g) {
+          return (g.titulo ? "<h4>" + escapar(g.titulo) + "</h4>" : "") +
+            "<ul>" + (g.itens || []).map(function (i) {
+              return "<li><b>" + escapar(i.exame) + ":</b> " + escapar(i.quando) + "</li>";
+            }).join("") + "</ul>";
+        }).join("");
+        const notas = (c.notas || []).map(function (n) {
+          return '<div class="ex-prot-nota">ⓘ ' + escapar(n) + "</div>";
+        }).join("");
+        return '<details class="ex-prot-cond"><summary>' + escapar(c.nome) + "</summary>" + grupos + notas + "</details>";
+      }).join("");
+    }
+    return '<div class="ex-prot-titulo">📋 Protocolo de ' + escapar(municipio) + "</div>" +
+      '<div class="ex-prot-botoes">' + botoes + "</div>" + corpo;
+  }
+
+  function pintarProtocolo() {
+    const p = protocoloDe(municipioEscolhido);
+    refs.protocolo.classList.toggle("oculto", !p);
+    refs.protocolo.innerHTML = p
+      ? htmlProtocolo(municipioEscolhido, p, especialidadeEscolhida || especialidadeDetectada)
+      : "";
   }
 
   /* Secao "Encaminhamentos / Serviços de referência" — SEPARADA da
@@ -809,7 +884,7 @@
     refs.mais.classList.toggle("oculto", restam <= 0);
 
     const termo = refs.busca.value.trim();
-    refs.contagem.textContent = termo
+    refs.contagem.textContent = !blocoDe(municipioEscolhido) ? "" : termo
       ? "mostrando " + desenhados + " de " + visiveis.length + " que casam · " +
         ordenados.length + " na lista de " + municipioEscolhido
       : "mostrando " + desenhados + " de " + ordenados.length +
@@ -828,7 +903,9 @@
        * medico achar que errou a digitacao. O que aconteceu foi outra
        * coisa, e ela muda a conduta: este municipio nao oferece — mas o
        * Protocolo 1 manda pedir assim mesmo (ver mensagemNaoConsta). */
-      refs.vazio.innerHTML = mensagemNaoConsta(municipioEscolhido);
+      refs.vazio.innerHTML = blocoDe(municipioEscolhido)
+        ? mensagemNaoConsta(municipioEscolhido)
+        : escapar(municipioEscolhido) + " ainda não enviou a lista de exames que oferece. Abaixo, o protocolo de solicitação.";
       refs.vazio.classList.remove("oculto");
       atualizarRodape();
       return;
@@ -921,6 +998,7 @@
         '    <div class="ex-lembrete" id="ex-lembrete">📌 Exames e encaminhamentos: sempre com justificativa clínica, resumo da história e CID.</div>' +
         '    <button type="button" class="ex-encaminhamentos-btn oculto" id="ex-encaminhamentos-btn"></button>' +
         '    <div class="ex-encaminhamentos oculto" id="ex-encaminhamentos"></div>' +
+        '    <div class="ex-protocolo oculto" id="ex-protocolo"></div>' +
         '    <details class="ex-obs" id="ex-obs" hidden></details>' +
         '    <div class="ex-contagem" id="ex-contagem" role="status"></div>' +
         '    <div class="ex-nao-consta oculto" id="ex-vazio"></div>' +
@@ -935,6 +1013,7 @@
     refs.lista = overlay.$("#ex-lista");
     refs.origem = overlay.$("#ex-origem");
     refs.obs = overlay.$("#ex-obs");
+    refs.protocolo = overlay.$("#ex-protocolo");
     refs.encaminhamentos = overlay.$("#ex-encaminhamentos");
     refs.encaminhamentosBtn = overlay.$("#ex-encaminhamentos-btn");
     refs.rolagem = overlay.$(".ex-rolagem");
@@ -950,6 +1029,13 @@
       if (abrindo && refs.rolagem) {
         refs.encaminhamentos.scrollIntoView({ block: "start" });
       }
+    });
+
+    refs.protocolo.addEventListener("click", function (ev) {
+      const b = ev.target.closest && ev.target.closest("[data-esp]");
+      if (!b) return;
+      especialidadeEscolhida = b.getAttribute("data-esp");
+      pintarProtocolo();
     });
 
     overlay.$(".msc-fechar").addEventListener("click", function () { overlay.fechar(); });
@@ -985,10 +1071,10 @@
       ? lista.filter(function (e) { return e && e.id === g.especialidadeId; })[0]
       : lista.length === 1 ? lista[0] : null;
     if (!esp) return null;
-    const palavras = normalizar(esp.descricao).split(" ");
+    const palavras = normalizar(esp.descricao).split(/[^a-z0-9]+/);
     return (nomes || []).filter(function (n) {
       const pre = normalizar(n).slice(0, 6);
-      return palavras.some(function (w) { return w.indexOf(pre) === 0; });
+      return pre && palavras.some(function (w) { return w.indexOf(pre) === 0; });
     })[0] || null;
   }
 
@@ -1107,7 +1193,10 @@
           const M = raiz.MeedsSuiteMunicipio;
           if (!M) return;
           evt.json().then(function (corpo) {
-            if (corpo) aplicarMunicipio(M.detectar(corpo, municipios()));
+            if (!corpo) return;
+            aplicarMunicipio(M.detectar(corpo, municipios()));
+            especialidadeDetectada = especialidadeDoAtendimento(corpo, nomesDeEspecialidades());
+            if (overlay && refs.protocolo) pintarProtocolo();
           });
         }
       );
@@ -1133,5 +1222,6 @@
 
     _mensagemNaoConsta: mensagemNaoConsta,
     _especialidadeDoAtendimento: especialidadeDoAtendimento,
+    _htmlProtocolo: htmlProtocolo,
   });
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
