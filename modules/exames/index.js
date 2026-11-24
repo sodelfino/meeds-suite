@@ -908,13 +908,17 @@
     refs.vazio.classList.add("oculto");
 
     if (!visiveis.length) {
+      /* Municipio so com protocolo (sem lista de exames): o protocolo ja
+       * e o conteudo do painel, nenhum aviso abaixo dele. */
+      if (!blocoDe(municipioEscolhido)) {
+        atualizarRodape();
+        return;
+      }
       /* A MENSAGEM E ESPECIFICA DE PROPOSITO. "Nenhum resultado" faria o
        * medico achar que errou a digitacao. O que aconteceu foi outra
        * coisa, e ela muda a conduta: este municipio nao oferece — mas o
        * Protocolo 1 manda pedir assim mesmo (ver mensagemNaoConsta). */
-      refs.vazio.innerHTML = blocoDe(municipioEscolhido)
-        ? mensagemNaoConsta(municipioEscolhido)
-        : escapar(municipioEscolhido) + " ainda não enviou a lista de exames que oferece. Por enquanto, só o protocolo de solicitação, acima.";
+      refs.vazio.innerHTML = mensagemNaoConsta(municipioEscolhido);
       refs.vazio.classList.remove("oculto");
       atualizarRodape();
       return;

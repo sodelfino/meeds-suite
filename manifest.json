@@ -1,6 +1,6 @@
 {
   "nome": "Assistente Meeds",
-  "versao": "2.78.1",
+  "versao": "2.78.2",
   "descricao": "Assistente Meeds — Por: Marcelo. Uma instalação única com todas as funções; cada uma liga e desliga no painel da engrenagem.",
   "repositorio": "https://github.com/sodelfino/meeds-suite",
   "baseRaw": "https://raw.githubusercontent.com/sodelfino/meeds-suite/main",
@@ -224,7 +224,7 @@
       "nome": "Exames do município",
       "resumo": "Exames do município, com código e APAC.",
       "descricao": "Mostra os exames que o município do paciente oferece: o código do procedimento, onde é feito, e quais exigem APAC ou laudo. O que não está na lista é dito, nunca inventado.",
-      "versao": "1.6.0",
+      "versao": "1.6.1",
       "arquivo": "modules/exames/index.js",
       "prioridadeBotao": 55,
       "assets": [
