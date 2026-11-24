@@ -122,5 +122,22 @@ ok("dipirona (controle): NÃO tem o aviso de prescrição ponte", A("Betim", "Di
   ok("destaque com acento no termo", D("Ácido Fólico 0,2 mg/mL", "folico") === "Ácido <mark>Fólico</mark> 0,2 mg/mL");
 }
 
+/* Macae: orientacao de dose (1g = 2 x 500mg etc.) so no comprimido
+ * certo — nao na ampola, na solucao oral nem na associacao com escopolamina. */
+{
+  const esperado = {
+    "Dipirona sódica 500mg comprimido": "Se for fazer 1g, prescrever 2 comprimidos de 500mg.",
+    "Ondansetrona, cloridrato di-hidratado 4mg comprimido ou comprimido dispersível": "Se for fazer 8mg, prescrever 2 comprimidos de 4mg.",
+    "Ibuprofeno 300mg comprimido": "Se for fazer 600mg, prescrever 2 comprimidos de 300mg.",
+  };
+  Object.keys(esperado).forEach((nome) => {
+    ok("Macaé: " + nome.slice(0, 30) + "… tem a orientação de dose", A("Macaé", nome).indexOf(esperado[nome]) !== -1);
+  });
+  const textos = Object.values(esperado);
+  const comAviso = REMUMES["Macaé"].filter((i) => A("Macaé", i.nome).some((a) => textos.indexOf(a) !== -1));
+  ok("Macaé: só esses 3 itens recebem orientação de dose", comAviso.length === 3, comAviso.map((i) => i.nome).join(" | "));
+  ok("outro município não recebe a orientação de Macaé", A("Betim", "Dipirona sódica 500mg comprimido").every((a) => textos.indexOf(a) === -1));
+}
+
 console.log(falhas ? `\n${falhas} FALHA(S)` : "\ntodos passaram");
 process.exit(falhas ? 1 : 0);
