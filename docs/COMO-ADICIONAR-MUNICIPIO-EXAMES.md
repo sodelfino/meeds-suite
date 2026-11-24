@@ -502,6 +502,42 @@ aplicado a remoção, não só a inclusão.
 
 ---
 
+### `protocolos`: quando pedir, não o que o município oferece
+
+Chave irmã de `municipios` em `dados/exames.json`. Varginha mandou um protocolo
+por especialidade (Cardiologia, Endocrinologia, Dermatologia) que diz **quando**
+cada exame se justifica para a Central de Regulação.
+
+```
+protocolos: { "<Município>": {
+  fonte, atualizadoEm,
+  especialidades: { "<Especialidade>": {
+    orientacoesGerais?: string[],
+    condicoes: [ { nome, grupos?: [ { titulo?, itens: [ { exame, quando } ] } ], notas?: string[] } ]
+  } }
+} }
+```
+
+A transcrição é feita à mão em `scripts/protocolos/varginha.js` e mesclada por
+`scripts/montar-exames.js`. **Regra:** rótulo em negrito + `:` vira item
+`{ exame, quando }`; parágrafo sem negrito vira `nota`. Nada é reescrito.
+
+**Por que não é `municipios`:** `municipios` diz O QUE o município oferece
+(regra de ouro). Protocolo diz QUANDO pedir — não prova que o exame é ofertado.
+Misturar faria o painel afirmar oferta sem fonte.
+
+Na tela: "📋 Protocolo de <município>", um botão por especialidade, escolhida
+sozinha pela especialidade do atendimento (`gestaoHorario.especialidadeId` →
+`profissional.especialidades[].descricao`); sem correspondência, fica fechado.
+Município com protocolo e sem lista aparece no seletor como
+"<Município> (protocolo)", e o campo de filtro some.
+
+**Cuidado:** `npm run montar-exames` numa máquina sem os documentos-fonte dos
+outros municípios pode apagar dados deles (já derrubou as `observacoes` de
+Macaé). Confira o `git diff` antes de commitar.
+
+---
+
 ## `encaminhamentos`: quando não é exame
 
 A aba "Serviços e Programas Especiais" do XLSX de Macaé lista 5 serviços de

@@ -905,7 +905,7 @@
        * Protocolo 1 manda pedir assim mesmo (ver mensagemNaoConsta). */
       refs.vazio.innerHTML = blocoDe(municipioEscolhido)
         ? mensagemNaoConsta(municipioEscolhido)
-        : escapar(municipioEscolhido) + " ainda não enviou a lista de exames que oferece. Abaixo, o protocolo de solicitação.";
+        : escapar(municipioEscolhido) + " ainda não enviou a lista de exames que oferece. Por enquanto, só o protocolo de solicitação, acima.";
       refs.vazio.classList.remove("oculto");
       atualizarRodape();
       return;
@@ -930,6 +930,8 @@
     ordenados = ordenarAlfabeticamente(examesDe(municipioEscolhido));
     visiveis = ordenados.map(function (_, i) { return i; });
     refs.busca.value = "";
+    /* Sem lista de exames (so protocolo), filtrar nao tem o que filtrar. */
+    refs.busca.classList.toggle("oculto", !ordenados.length);
     refs.spinner.classList.add("oculto");
     redesenhar();
   }
@@ -1149,6 +1151,12 @@
             "Criança, CRA, Núcleo de Saúde Mental, Clínica do Autista e GAN. Aparecem numa seção própria, " +
             "acima da lista de exames, com público-alvo e fluxo de cada serviço — não são exame, então " +
             "ficam separados.",
+        },
+        {
+          icone: "📋",
+          titulo: "Protocolo de solicitação (quando existir)",
+          texto:
+            "Alguns municípios mandam um protocolo dizendo quando cada exame se justifica para a Central de Regulação — hoje, Varginha (Cardiologia, Endocrinologia e Dermatologia). Ele aparece acima da lista, já aberto na especialidade do atendimento; dá para trocar de especialidade nos botões.",
         },
         {
           icone: "💡",
