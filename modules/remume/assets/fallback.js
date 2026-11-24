@@ -723,6 +723,20 @@
             "termo": "Tiras Reagentes",
             "aviso": "Na 1ª dispensação: relatório médico do município (Anexo IV) com o tipo de diabetes (1, 2 ou gestacional). Gestante com diabetes sem insulina: informar IG ou DPP no relatório; receita das tiras renovada a cada 30 dias."
           }
+        ],
+        "Macaé": [
+          {
+            "termo": "dipirona sódica 500mg comprimido",
+            "aviso": "Se for fazer 1g, prescrever 2 comprimidos de 500mg."
+          },
+          {
+            "termo": "ondansetrona, cloridrato di-hidratado 4mg comprimido",
+            "aviso": "Se for fazer 8mg, prescrever 2 comprimidos de 4mg."
+          },
+          {
+            "termo": "ibuprofeno 300mg comprimido",
+            "aviso": "Se for fazer 600mg, prescrever 2 comprimidos de 300mg."
+          }
         ]
       }
     },
