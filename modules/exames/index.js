@@ -972,6 +972,26 @@
     });
   }
 
+  /* Especialidade da AGENDA do atendimento (nao a do medico, que pode ter
+   * varias): gestaoHorario.especialidadeId aponta para uma das
+   * profissional.especialidades. Casa a descricao com `nomes` pelos 6
+   * primeiros caracteres do nome contra o inicio de cada palavra.
+   * shortcut: prefixo de 6 letras, trocar se dois nomes colidirem. */
+  function especialidadeDoAtendimento(corpo, nomes) {
+    const g = corpo && corpo.gestaoHorario;
+    const lista = g && g.profissional && g.profissional.especialidades;
+    if (!Array.isArray(lista)) return null;
+    const esp = g.especialidadeId
+      ? lista.filter(function (e) { return e && e.id === g.especialidadeId; })[0]
+      : lista.length === 1 ? lista[0] : null;
+    if (!esp) return null;
+    const palavras = normalizar(esp.descricao).split(" ");
+    return (nomes || []).filter(function (n) {
+      const pre = normalizar(n).slice(0, 6);
+      return palavras.some(function (w) { return w.indexOf(pre) === 0; });
+    })[0] || null;
+  }
+
   /* ------------------------------------------------------------------
    * MUNICIPIO DO ATENDIMENTO
    * ------------------------------------------------------------------
@@ -1112,5 +1132,6 @@
     },
 
     _mensagemNaoConsta: mensagemNaoConsta,
+    _especialidadeDoAtendimento: especialidadeDoAtendimento,
   });
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
