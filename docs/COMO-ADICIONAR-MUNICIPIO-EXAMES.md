@@ -512,6 +512,7 @@ cada exame se justifica para a Central de Regulação.
 protocolos: { "<Município>": {
   fonte, atualizadoEm,
   especialidades: { "<Especialidade>": {
+    orientacoesDestaque?: string[],  // 2-4 regras curtas, sempre visíveis
     orientacoesGerais?: string[],
     condicoes: [ { nome, grupos?: [ { titulo?, itens: [ { exame, quando } ] } ], notas?: string[] } ]
   } }
@@ -529,6 +530,12 @@ Misturar faria o painel afirmar oferta sem fonte.
 Na tela: "📋 Protocolo de <município>", um botão por especialidade, escolhida
 sozinha pela especialidade do atendimento (`gestaoHorario.especialidadeId` →
 `profissional.especialidades[].descricao`); sem correspondência, fica fechado.
+`orientacoesDestaque` é a única parte escrita por nós (resumo das orientações
+gerais, que continuam inteiras logo abaixo). No texto de cada exame/nota o painel
+destaca sozinho, sem mudar o texto: periodicidade ("a cada três meses",
+"anualmente", "ao diagnóstico") em etiqueta azul, "não solicitar/evitar…" em
+vermelho e "preferir…" em verde, até o fim da frase (regex `RE_DESTAQUE` em
+`modules/exames/index.js`). Frase que a regex não reconhece fica sem destaque.
 Município com protocolo e sem lista aparece no seletor como
 "<Município> (protocolo)", e o campo de filtro some.
 

@@ -87,6 +87,34 @@ if (typeof definicao._htmlProtocolo === "function") {
   ok("fora do protocolo = null", o === n);
 }
 
+// --- destaques no texto: frequencia, restricao, preferencia, regras ---
+if (typeof definicao._htmlProtocolo === "function") {
+  const pd = {
+    especialidades: {
+      Endocrinologia: {
+        orientacoesDestaque: ["Justificativa <obrigatória>"],
+        orientacoesGerais: ["Texto A", "Texto B"],
+        condicoes: [{ nome: "DM2", grupos: [{ itens: [
+          { exame: "HbA1c", quando: "repetir a cada três meses fora da meta; a cada seis meses estável." },
+          { exame: "T3", quando: "não solicitar rotineiramente. Outro texto & mais." },
+          { exame: "RAC", quando: "Preferir esse exame à urina de 24 h; anualmente." },
+        ] }], notas: ["Evitar periodicidade fixa."] }],
+      },
+    },
+  };
+  const h = definicao._htmlProtocolo("Varginha", pd, "Endocrinologia");
+  ok("freq: 'a cada três meses' vira etiqueta", h.indexOf('<mark class="ex-prot-freq">a cada três meses</mark>') !== -1, h);
+  ok("freq: 'anualmente' vira etiqueta", h.indexOf('<mark class="ex-prot-freq">anualmente</mark>') !== -1);
+  ok("restrição: 'não solicitar…' em vermelho até o ponto",
+    h.indexOf('<strong class="ex-prot-nao">não solicitar rotineiramente</strong>. Outro texto &amp; mais.') !== -1);
+  ok("restrição: 'Evitar…' na nota", h.indexOf('<strong class="ex-prot-nao">Evitar periodicidade fixa</strong>') !== -1);
+  ok("preferência destacada até o ;", h.indexOf('<strong class="ex-prot-pref">Preferir esse exame à urina de 24 h</strong>;') !== -1);
+  ok("regras: faixa visível e escapada", /class="ex-prot-regras"/.test(h) && h.indexOf("Justificativa &lt;obrigatória&gt;") !== -1);
+  ok("regras: texto completo continua acessível", h.indexOf("Texto A") !== -1 && h.indexOf("Texto B") !== -1);
+  const semRegras = definicao._htmlProtocolo("Varginha", proto, "Dermatologia");
+  ok("sem orientações: sem faixa de regras", semRegras.indexOf("ex-prot-regras") === -1);
+}
+
 // --- municipios(): uniao sem duplicata, sem "_", ordenada ---
 ok("o hook _municipios existe", typeof definicao._municipios === "function");
 if (typeof definicao._municipios === "function") {
