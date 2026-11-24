@@ -356,6 +356,11 @@
     ".ex-prot-cond h4 { margin:8px 0 2px; font-size:12px; color:#1e40af; }",
     ".ex-prot-cond ul { margin:3px 0; padding-left:18px; }",
     ".ex-prot-nota { margin-top:6px; color:#1e40af; }",
+    ".ex-prot-regras { margin:0 0 8px; padding:7px 10px; background:#fffbeb; border:1px solid #fcd34d; border-radius:8px; color:#78350f; }",
+    ".ex-prot-regras ul { margin:3px 0 0; padding-left:18px; }",
+    ".ex-prot-freq { background:#dbeafe; color:#1e3a8a; font-weight:700; padding:0 3px; border-radius:4px; -webkit-box-decoration-break:clone; box-decoration-break:clone; }",
+    ".ex-prot-nao { color:#b91c1c; }",
+    ".ex-prot-pref { color:#047857; }",
     ".ex-obs { margin:10px 0; padding:10px 12px; background:#fffbeb; border:1px solid #fde68a; border-radius:9px; font-size:12px; color:#78350f; line-height:1.5; }",
     ".ex-obs summary { cursor:pointer; font-weight:700; }",
     ".ex-obs summary:focus-visible { outline:2px solid #b45309; outline-offset:3px; }",
@@ -517,6 +522,25 @@
     pintarProtocolo();
   }
 
+  /* Destaque no texto do protocolo, sem alterar o texto: periodicidade
+   * vira etiqueta; "nao solicitar/evitar..." e "preferir..." ficam em
+   * negrito colorido ate o fim da frase (. ou ;). O que a regex nao
+   * reconhece fica sem destaque — nunca com destaque errado. */
+  const RE_DESTAQUE = /\b(?:n[aã]o (?:solicitar|repetir|iniciar|estabelecer|utilizar|deve|devem|justificam)|evitar)[^.;]*|\bpreferir[^.;]*|\ba cada (?:\S+ ){0,2}?(?:dias|semanas|meses|anos)\b|\banualmente\b|\bsemestralmente\b|\bao diagn[oó]stico\b/gi;
+  function destacar(texto) {
+    const t = String(texto == null ? "" : texto);
+    let out = "", i = 0;
+    t.replace(RE_DESTAQUE, function (m, pos) {
+      const tipo = /^(n[aã]o|evitar)/i.test(m) ? "nao" : /^preferir/i.test(m) ? "pref" : "freq";
+      out += escapar(t.slice(i, pos)) + (tipo === "freq"
+        ? '<mark class="ex-prot-freq">' + escapar(m) + "</mark>"
+        : '<strong class="ex-prot-' + tipo + '">' + escapar(m) + "</strong>");
+      i = pos + m.length;
+      return m;
+    });
+    return out + escapar(t.slice(i));
+  }
+
   /* Protocolo de solicitacao por especialidade (municipio com
    * BASE.protocolos). A especialidade ativa e a escolhida pelo medico,
    * senao a detectada no atendimento; fora do protocolo, nenhuma. */
@@ -532,20 +556,25 @@
     if (ativa) {
       const e = esps[ativa];
       corpo = "";
+      if (e.orientacoesDestaque && e.orientacoesDestaque.length) {
+        corpo += '<div class="ex-prot-regras"><b>Antes de pedir:</b><ul>' +
+          e.orientacoesDestaque.map(function (o) { return "<li>" + escapar(o) + "</li>"; }).join("") +
+          "</ul></div>";
+      }
       if (e.orientacoesGerais && e.orientacoesGerais.length) {
-        corpo += '<details class="ex-prot-cond"><summary>Orientações gerais</summary><ul>' +
-          e.orientacoesGerais.map(function (o) { return "<li>" + escapar(o) + "</li>"; }).join("") +
+        corpo += '<details class="ex-prot-cond"><summary>Orientações gerais (texto completo)</summary><ul>' +
+          e.orientacoesGerais.map(function (o) { return "<li>" + destacar(o) + "</li>"; }).join("") +
           "</ul></details>";
       }
       corpo += (e.condicoes || []).map(function (c) {
         const grupos = (c.grupos || []).map(function (g) {
           return (g.titulo ? "<h4>" + escapar(g.titulo) + "</h4>" : "") +
             "<ul>" + (g.itens || []).map(function (i) {
-              return "<li><b>" + escapar(i.exame) + ":</b> " + escapar(i.quando) + "</li>";
+              return "<li><b>" + escapar(i.exame) + ":</b> " + destacar(i.quando) + "</li>";
             }).join("") + "</ul>";
         }).join("");
         const notas = (c.notas || []).map(function (n) {
-          return '<div class="ex-prot-nota">ⓘ ' + escapar(n) + "</div>";
+          return '<div class="ex-prot-nota">ⓘ ' + destacar(n) + "</div>";
         }).join("");
         return '<details class="ex-prot-cond"><summary>' + escapar(c.nome) + "</summary>" + grupos + notas + "</details>";
       }).join("");

@@ -2,6 +2,13 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.78.3",
+      "data": "2026-11-24",
+      "melhorias": [
+        "Exames: no protocolo de Varginha, o mais importante agora salta aos olhos — as regras de \"Antes de pedir\" ficam sempre visíveis no topo, a frequência de cada exame (ex.: a cada três meses, anualmente) aparece em destaque, o que não deve ser pedido aparece em vermelho e o exame preferido em verde."
+      ]
+    },
+    {
       "versao": "2.78.2",
       "data": "2026-11-24",
       "melhorias": [

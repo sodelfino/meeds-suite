@@ -53,5 +53,8 @@ ok("Endocrino: PAAF", nod && nod.grupos.some((g) => g.itens.some((i) => i.exame.
 const ultima = esp.Dermatologia.condicoes[30];
 ok("Dermato: ultima e DPN", ultima.nome === "Dermatose papulosa nigra — DPN");
 
+ok("Cardio/Endo têm 3 regras em destaque; Dermato nenhuma",
+  esp.Cardiologia.orientacoesDestaque.length === 3 && esp.Endocrinologia.orientacoesDestaque.length === 3 && !esp.Dermatologia.orientacoesDestaque);
+
 if (falhas) { console.log("\n" + falhas + " falha(s)"); process.exit(1); }
 console.log("\ntudo ok");

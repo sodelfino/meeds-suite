@@ -21,6 +21,11 @@ const Protocolo = {
   atualizadoEm: "2026-11-24",
   especialidades: {
     Cardiologia: {
+      orientacoesDestaque: [
+        "Justifique todo pedido: problema investigado, sintomas ou antecedentes. “Check-up”, “controle” ou “avaliação” sozinhos não bastam.",
+        "Comece pelo exame de menor complexidade que responda à hipótese atual.",
+        "Veja os exames já realizados antes de pedir de novo — troca de profissional ou tempo, sozinhos, não justificam repetir.",
+      ],
       orientacoesGerais: [
         "Informações que justifiquem a solicitação. Expressões como “avaliação cardiológica”, “check-up” ou “controle”, isoladamente, não esclarecem a necessidade do exame.",
         "O pedido deve informar o problema investigado, à partir dos sintomas relevantes ou dos antecedentes que fundamentam a indicação. Ou seja, é necessário justificar todos os pedidos. A justificativa deve ser plausível e se correlacionar com os dados de prontuário.",
@@ -193,6 +198,11 @@ const Protocolo = {
     },
 
     Endocrinologia: {
+      orientacoesDestaque: [
+        "Justifique todo pedido: problema investigado, sintomas ou antecedentes. “Check-up”, “controle” ou “avaliação” sozinhos não bastam.",
+        "Comece pelo exame de menor complexidade que responda à hipótese atual.",
+        "Veja os exames já realizados antes de pedir de novo — troca de profissional ou tempo, sozinhos, não justificam repetir.",
+      ],
       orientacoesGerais: [
         "Informações que justifiquem a solicitação. Expressões como “avaliação endocrinológica”, “check-up” ou “controle”, isoladamente, não esclarecem a necessidade do exame.",
         "O pedido deve informar o problema investigado, à partir dos sintomas relevantes ou dos antecedentes que fundamentam a indicação. Ou seja, é necessário justificar todos os pedidos. A justificativa deve ser plausível e se correlacionar com os dados de prontuário.",
