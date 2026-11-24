@@ -32,6 +32,11 @@ const ctx = {
 };
 ctx.window = ctx;
 ctx.globalThis = ctx;
+// BASE falsa para testar municipios(): o modulo le isto no carregamento.
+ctx.__MEEDS_EXAMES_FALLBACK__ = {
+  municipios: { Varginha: {}, _leia_me: {}, Alfenas: {} },
+  protocolos: { Varginha: {}, Boa: {}, _meta: {} },
+};
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(RAIZ, "modules/exames/index.js"), "utf8"), ctx);
 
@@ -80,6 +85,28 @@ if (typeof definicao._htmlProtocolo === "function") {
     n.indexOf("Escolha a especialidade") !== -1 && n.indexOf("<details") === -1 && (n.match(/data-esp=/g) || []).length === 2);
   const o = definicao._htmlProtocolo("Varginha", proto, "Pediatria");
   ok("fora do protocolo = null", o === n);
+}
+
+// --- municipios(): uniao sem duplicata, sem "_", ordenada ---
+ok("o hook _municipios existe", typeof definicao._municipios === "function");
+if (typeof definicao._municipios === "function") {
+  ok("municipios: uniao, sem _, sem duplicata, ordenada",
+    definicao._municipios().join(",") === "Alfenas,Boa,Varginha");
+}
+
+// --- proximaEspecialidade: so age quando a detectada MUDA ---
+ok("o hook _proximaEspecialidade existe", typeof definicao._proximaEspecialidade === "function");
+if (typeof definicao._proximaEspecialidade === "function") {
+  const pe = definicao._proximaEspecialidade;
+  const igual = pe("Cardiologia", "Dermatologia", "Cardiologia");
+  ok("mesma detectada: sem mudança, escolha mantida",
+    igual.mudou === false && igual.detectada === "Cardiologia" && igual.escolhida === "Dermatologia");
+  const nula = pe("Cardiologia", "Dermatologia", null);
+  ok("nova null: sem mudança, detecção mantida",
+    nula.mudou === false && nula.detectada === "Cardiologia" && nula.escolhida === "Dermatologia");
+  const dif = pe("Cardiologia", "Cardiologia", "Dermatologia");
+  ok("nova diferente: muda e limpa a escolha",
+    dif.mudou === true && dif.detectada === "Dermatologia" && dif.escolhida === null);
 }
 
 console.log(falhas ? "\n" + falhas + " falha(s)" : "\nTudo certo.");

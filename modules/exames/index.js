@@ -137,7 +137,7 @@
   function nomesDeEspecialidades() {
     const nomes = [];
     Object.keys(BASE.protocolos || {}).forEach(function (m) {
-      Object.keys(BASE.protocolos[m].especialidades || {}).forEach(function (n) {
+      Object.keys((BASE.protocolos[m] || {}).especialidades || {}).forEach(function (n) {
         if (nomes.indexOf(n) === -1) nomes.push(n);
       });
     });
@@ -145,7 +145,16 @@
   }
 
   function protocoloDe(municipio) {
-    return (BASE.protocolos || {})[municipio] || null;
+    const p = (BASE.protocolos || {})[municipio];
+    return p && typeof p === "object" ? p : null;
+  }
+
+  /* So age quando a especialidade detectada MUDA (null e ignorado, como em
+   * aplicarMunicipio): GETs repetidos nao repintam nem recolhem o protocolo,
+   * e uma consulta nova descarta a escolha manual da anterior. */
+  function proximaEspecialidade(detectada, escolhida, nova) {
+    if (nova && nova !== detectada) return { mudou: true, detectada: nova, escolhida: null };
+    return { mudou: false, detectada: detectada, escolhida: escolhida };
   }
 
   function blocoDe(municipio) {
@@ -1036,8 +1045,15 @@
     refs.protocolo.addEventListener("click", function (ev) {
       const b = ev.target.closest && ev.target.closest("[data-esp]");
       if (!b) return;
-      especialidadeEscolhida = b.getAttribute("data-esp");
+      const esp = b.getAttribute("data-esp");
+      especialidadeEscolhida = esp;
       pintarProtocolo();
+      // o repaint recria os botoes: devolve o foco ao botao apertado
+      Array.prototype.some.call(refs.protocolo.querySelectorAll("[data-esp]"), function (nb) {
+        if (nb.getAttribute("data-esp") !== esp) return false;
+        nb.focus();
+        return true;
+      });
     });
 
     overlay.$(".msc-fechar").addEventListener("click", function () { overlay.fechar(); });
@@ -1203,7 +1219,12 @@
           evt.json().then(function (corpo) {
             if (!corpo) return;
             aplicarMunicipio(M.detectar(corpo, municipios()));
-            especialidadeDetectada = especialidadeDoAtendimento(corpo, nomesDeEspecialidades());
+            const prox = proximaEspecialidade(
+              especialidadeDetectada, especialidadeEscolhida,
+              especialidadeDoAtendimento(corpo, nomesDeEspecialidades()));
+            if (!prox.mudou) return;
+            especialidadeDetectada = prox.detectada;
+            especialidadeEscolhida = prox.escolhida;
             if (overlay && refs.protocolo) pintarProtocolo();
           });
         }
@@ -1231,5 +1252,7 @@
     _mensagemNaoConsta: mensagemNaoConsta,
     _especialidadeDoAtendimento: especialidadeDoAtendimento,
     _htmlProtocolo: htmlProtocolo,
+    _municipios: municipios,
+    _proximaEspecialidade: proximaEspecialidade,
   });
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
