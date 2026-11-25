@@ -69,7 +69,7 @@
     cns: { bordas: [89.3, 105.5, 121.3, 137.7, 153.1, 169.9, 185.2, 201.6, 217.4, 233.7, 249.3, 265.8, 281.4, 297.8, 313.3, 330.0], cy: 232.7 },
     nome: { x: 152.3, y: 253.1, larg: 415 },
     mae: { x: 189.2, y: 270.0, larg: 378 },
-    nascimento: { x: 167.3, y: 287.0, larg: 92.3 },
+    nascimento: { x: 167.3, y: 287.0, larg: 92.3, segmentos: [167.3, 191.7, 218.8, 259.6] },
     pais: { x: 408.7, y: 287.0, larg: 160 },
     sexo: { M: [70.6, 305.5, 86.7, 316.5], F: [70.6, 319.0, 86.7, 330.0] },
     etnia: { x: 292.6, y: 327.8, larg: 71.2 },
@@ -83,8 +83,8 @@
     complemento: { x: 142.6, y: 383.4, larg: 425 },
     celular: { x: 149.7, y: 397.4, larg: 172 },
     contato: { x: 431.1, y: 397.4, larg: 138 },
-    dataNotificacao: { x: 163.3, y: 411.3, larg: 65 },
-    inicioSintomas: { x: 463.3, y: 411.3, larg: 65 },
+    dataNotificacao: { x: 163.3, y: 411.3, larg: 65, segmentos: [163.3, 182.4, 203.9, 228.3] },
+    inicioSintomas: { x: 463.3, y: 411.3, larg: 65, segmentos: [463.3, 482.3, 503.8, 528.3] },
     sintomaOutros: { x: 412.4, y: 450.0, larg: 144 },
     observacoes: { x: 47, larg: 524, linhas: [804.5, 818.5] },
     /* "Estado do Teste": a partir dessa altura a ficha e da vigilancia
@@ -111,9 +111,8 @@
   }
 
   function validarNotificacao(c) {
-    if (B().vazio(c.d.ufNotif) || B().vazio(c.d.municipioNotif)) {
-      c.erro(B().vazio(c.d.ufNotif) ? "ufNotif" : "municipioNotif", "Falta a UF/o município da notificação — vêm do Vínculo; escolha da lista.");
-    }
+    if (B().vazio(c.d.ufNotif)) c.erro("ufNotif", "Falta a UF da notificação — vem do Vínculo; escolha da lista.");
+    if (B().vazio(c.d.municipioNotif)) c.erro("municipioNotif", "Falta o município da notificação — vem do Vínculo; escolha da lista.");
   }
 
   function validarIdentificacao(c) {
@@ -157,14 +156,16 @@
 
   function validarSintomas(c) {
     const s = B().lista(c.d.sintomas);
-    if (s.length === 0) return c.erro("sintomas", "Marque ao menos um sintoma ou “Assintomático”.");
+    if (s.length === 0) {
+      c.erro("sintomas", "Marque ao menos um sintoma ou “Assintomático”.");
+      return;
+    }
     if (s.indexOf("assintomatico") !== -1 && s.length > 1) {
       c.erro("sintomas", "“Assintomático” não pode vir junto com outros sintomas — desfaça um dos dois.");
     }
     if (s.indexOf("outros") !== -1 && B().vazio(c.d.sintomaOutros)) {
       c.erro("sintomaOutros", "Você marcou “Outros” nos sintomas: escreva qual.");
     }
-    return null;
   }
 
   function validarOpcionais(c) {
@@ -185,8 +186,100 @@
     return c.erros;
   }
 
+  /* ------------------------------------------------------------------
+   * Desenho no PDF
+   * ------------------------------------------------------------------ */
+  const TAM = 9;
+
+  /* Dia, mes e ano, cada um centrado no seu trecho entre as barras "|". */
+  function data(b, def, iso) {
+    const x = B().lerData(iso);
+    if (!x) return;
+    [String(x.d).padStart(2, "0"), String(x.m).padStart(2, "0"), String(x.a)].forEach(function (t, i) {
+      b.centro({ pg: 0, cx: (def.segmentos[i] + def.segmentos[i + 1]) / 2, cy: def.y - 0.35 * TAM, texto: t, tam: TAM });
+    });
+  }
+
+  function simNao(b, def, ligado) {
+    b.caixa(0, ligado ? def.sim : def.nao, "X");
+  }
+
+  function texto(b, def, valor) {
+    b.texto({ pg: 0, x: def.x, y: def.y, valor: valor, larg: def.larg });
+  }
+
+  function secaoNotificacao(b, d) {
+    const uf = String(d.ufNotif || "").toUpperCase();
+    if (/^[A-Z]{2}$/.test(uf)) b.pente(0, CX.ufNotif, uf);
+    texto(b, CX.municipioNotif, d.municipioNotif);
+  }
+
+  function secaoIdentificacao(b, d) {
+    const dig = B().soDigitos;
+    simNao(b, CX.temCpf, !!d.temCpf);
+    simNao(b, CX.estrangeiro, !!d.estrangeiro);
+    simNao(b, CX.profSaude, !!d.profSaude);
+    simNao(b, CX.profSeguranca, !!d.profSeguranca);
+    texto(b, CX.cbo, d.cbo);
+    if (d.temCpf && dig(d.cpf).length === 11) b.pente(0, CX.cpf, dig(d.cpf));
+    if (cnsValido(dig(d.cns))) b.pente(0, CX.cns, dig(d.cns));
+    texto(b, CX.nome, d.nome);
+    texto(b, CX.mae, d.mae);
+    data(b, CX.nascimento, d.nascimento);
+    texto(b, CX.pais, d.pais);
+    if (CX.sexo[d.sexo]) b.caixa(0, CX.sexo[d.sexo], "X");
+    RACAS.forEach(function (r) { if (r.v === d.raca) b.caixa(0, r.caixa, "X"); });
+    if (d.raca === "indigena") texto(b, CX.etnia, d.etnia);
+    const pass = String(d.passaporte || "").replace(/[^0-9A-Za-z]/g, "").toUpperCase();
+    if (pass) b.pente(0, CX.passaporte, pass);
+  }
+
+  function secaoEndereco(b, d) {
+    const dig = B().soDigitos;
+    if (dig(d.cep).length === 8) b.pente(0, CX.cep, dig(d.cep));
+    const uf = String(d.ufRes || "").toUpperCase();
+    if (/^[A-Z]{2}$/.test(uf)) b.pente(0, CX.ufRes, uf);
+    texto(b, CX.municipioRes, d.municipioRes);
+    texto(b, CX.logradouro, d.logradouro);
+    texto(b, CX.numero, d.numero);
+    texto(b, CX.bairro, d.bairro);
+    texto(b, CX.complemento, d.complemento);
+    texto(b, CX.celular, d.telefone);
+    texto(b, CX.contato, d.telContato);
+  }
+
+  function secaoClinica(b, d) {
+    const sintomas = B().lista(d.sintomas);
+    const condicoes = B().lista(d.condicoes);
+    data(b, CX.dataNotificacao, d.dataNotificacao);
+    data(b, CX.inicioSintomas, d.inicioSintomas);
+    SINTOMAS.forEach(function (s) { if (sintomas.indexOf(s.id) !== -1) b.caixa(0, s.caixa, "X"); });
+    if (sintomas.indexOf("outros") !== -1) texto(b, CX.sintomaOutros, d.sintomaOutros);
+    CONDICOES.forEach(function (c) {
+      const soFeminino = c.id === "gestante" || c.id === "puerpera";
+      if (condicoes.indexOf(c.id) !== -1 && (!soFeminino || d.sexo === "F")) b.caixa(0, c.caixa, "X");
+    });
+  }
+
+  function secaoObservacoes(b, d) {
+    const obs = B().vazio(d.observacoes) ? "" : String(d.observacoes).replace(/\s+/g, " ").trim();
+    const o = CX.observacoes;
+    if (obs) b.ops.push({ pg: 0, tipo: "bloco", x: o.x, linhas: o.linhas, larg: o.larg, texto: obs, tam: TAM });
+  }
+
+  /* Teste, evolucao, classificacao e encerramento: nada (vigilancia). */
+  function montarOperacoes(d) {
+    const b = B().criarDesenho();
+    secaoNotificacao(b, d);
+    secaoIdentificacao(b, d);
+    secaoEndereco(b, d);
+    secaoClinica(b, d);
+    secaoObservacoes(b, d);
+    return b.ops;
+  }
+
   raiz.MeedsNotificacaoCovid = {
     SINTOMAS: SINTOMAS, CONDICOES: CONDICOES, RACAS: RACAS, CX: CX,
-    cnsValido: cnsValido, extrairCns: extrairCns, validar: validar,
+    cnsValido: cnsValido, extrairCns: extrairCns, validar: validar, montarOperacoes: montarOperacoes,
   };
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);

@@ -63,6 +63,7 @@ function logica() {
   ok("cns preenchido e invalido", campos(C.validar({ ...MINIMO, cns: "123" }, HOJE)).includes("cns"));
   ok("cns valido passa", C.validar({ ...MINIMO, cns: "700000000000005" }, HOJE).length === 0);
   ok("municipio da notificacao obrigatorio", campos(C.validar({ ...MINIMO, municipioNotif: "" }, HOJE)).includes("municipioNotif"));
+  ok("sem UF e sem municipio da notificacao: um erro por campo", campos(C.validar({ ...MINIMO, ufNotif: "", municipioNotif: "" }, HOJE)).join() === "ufNotif,municipioNotif");
   ok("sexo I recusado", campos(C.validar({ ...MINIMO, sexo: "I" }, HOJE)).includes("sexo"));
   ok("nome e nascimento obrigatorios", campos(C.validar({ ...MINIMO, nome: "", nascimento: "" }, HOJE)).join() === "nome,nascimento");
   ok("notificacao futura recusada", campos(C.validar({ ...MINIMO, dataNotificacao: "2026-11-26" }, HOJE)).includes("dataNotificacao"));
@@ -78,11 +79,63 @@ function logica() {
   ok("endereco vazio passa", C.validar({ ...MINIMO, ufRes: "", municipioRes: "", telefone: "" }, HOJE).length === 0);
 }
 
+const COMPLETO = {
+  ...MINIMO, sexo: "F", raca: "indigena", etnia: "Guarani", cns: "700000000000005",
+  mae: "Maria de Tal", pais: "Brasil", passaporte: "AB123456", cbo: "Medico clinico",
+  estrangeiro: false, profSaude: true, profSeguranca: false,
+  ufRes: "MG", municipioRes: "Congonhas", bairro: "Centro", logradouro: "Rua das Flores",
+  numero: "1234", complemento: "Casa 2", cep: "36415000", telefone: "(31) 99999-0000", telContato: "(31) 3731-0000",
+  sintomas: ["febre", "tosse", "olfativos", "outros"], sintomaOutros: "Diarreia",
+  condicoes: ["diabetes", "gestante", "puerpera", "cardiaca"],
+  observacoes: "Paciente refere contato com caso confirmado ha tres dias; segue em isolamento domiciliar.",
+};
+
+async function gerarPdf(d) {
+  const doc = await PDFLib.PDFDocument.load(BASE);
+  await D.aplicarNoPdf(PDFLib, doc, C.montarOperacoes(d, HOJE));
+  return doc.save();
+}
+
+async function desenho() {
+  const ops = C.montarOperacoes(COMPLETO, HOJE);
+  const meio = (cx) => [(cx[0] + cx[2]) / 2, (cx[1] + cx[3]) / 2];
+  const xEm = (cx, lista = ops) => lista.some((o) => o.texto === "X" && Math.abs(o.cx - meio(cx)[0]) < 0.5 && Math.abs(o.cy - meio(cx)[1]) < 0.5);
+  ok("Tem CPF ligado marca Sim", xEm(C.CX.temCpf.sim) && !xEm(C.CX.temCpf.nao));
+  ok("Estrangeiro desligado marca Nao", xEm(C.CX.estrangeiro.nao) && !xEm(C.CX.estrangeiro.sim));
+  ok("prof saude Sim, seguranca Nao", xEm(C.CX.profSaude.sim) && xEm(C.CX.profSeguranca.nao));
+  const nenhum = C.montarOperacoes({ ...COMPLETO, temCpf: false, cpf: "" }, HOJE);
+  ok("Tem CPF desligado marca Nao e nao desenha CPF", xEm(C.CX.temCpf.nao, nenhum) && nenhum.every((o) => o.cy !== C.CX.cpf.cy));
+  ok("CPF em 11 celulas", ops.filter((o) => o.tipo === "centro" && /^\d$/.test(o.texto) && o.cy === C.CX.cpf.cy).length === 11);
+  ok("CNS valido em 15 celulas", ops.filter((o) => o.cy === C.CX.cns.cy).length === 15);
+  ok("sem CNS nao desenha pente", C.montarOperacoes({ ...COMPLETO, cns: "" }, HOJE).every((o) => o.cy !== C.CX.cns.cy));
+  ok("CNS invalido nao desenha pente", C.montarOperacoes({ ...COMPLETO, cns: "123456789012345" }, HOJE).every((o) => o.cy !== C.CX.cns.cy));
+  const seg = C.CX.dataNotificacao.segmentos;
+  const noSeg = (t, i) => ops.some((o) => o.texto === t && o.cx > seg[i] && o.cx < seg[i + 1] && Math.abs(o.cy + 0.35 * o.tam - C.CX.dataNotificacao.y) < 0.01);
+  ok("data da notificacao: 25, 11 e 2026 cada um no seu segmento", noSeg("25", 0) && noSeg("11", 1) && noSeg("2026", 2));
+  ok("nenhuma data desenhada como bloco unico", ops.every((o) => !/\d\/\d/.test(o.texto)));
+  ok("sexo F, raca indigena, etnia", xEm(C.CX.sexo.F) && !xEm(C.CX.sexo.M) && xEm(C.RACAS.find((r) => r.v === "indigena").caixa) && ops.some((o) => /GUARANI/.test(o.texto)));
+  ok("etnia so se indigena", C.montarOperacoes({ ...COMPLETO, raca: "branca" }, HOJE).every((o) => !/GUARANI/.test(o.texto)));
+  const cx = (lista, id) => lista.find((i) => i.id === id).caixa;
+  ok("sintomas marcados e so eles", C.SINTOMAS.every((s) => xEm(s.caixa) === COMPLETO.sintomas.includes(s.id)));
+  ok("sintomaOutros ao lado de Outros", ops.some((o) => /DIARREIA/.test(o.texto) && o.x === C.CX.sintomaOutros.x));
+  ok("condicoes marcadas e so elas", C.CONDICOES.every((c) => xEm(c.caixa) === COMPLETO.condicoes.includes(c.id)));
+  const homem = C.montarOperacoes({ ...COMPLETO, sexo: "M" }, HOJE);
+  ok("gestante/puerpera nunca com sexo M", !xEm(cx(C.CONDICOES, "gestante"), homem) && !xEm(cx(C.CONDICOES, "puerpera"), homem) && xEm(cx(C.CONDICOES, "diabetes"), homem));
+  ok("observacoes em bloco nas linhas da ficha", ops.some((o) => o.tipo === "bloco" && o.linhas === C.CX.observacoes.linhas));
+  ok("nada no teste/evolucao/encerramento", ops.filter((o) => o.tipo !== "bloco").every((o) => (o.y !== undefined ? o.y : o.cy) < C.CX.limiteEncerramento));
+  ok("todas as ops na pagina 0", ops.every((o) => o.pg === 0));
+
+  const bytes = await gerarPdf(COMPLETO);
+  ok("PDF abre", (await PDFLib.PDFDocument.load(bytes)).getPageCount() === 1);
+  if (process.env.NOTIF_SAIDA) fs.writeFileSync(path.join(process.env.NOTIF_SAIDA, "covid-completo.pdf"), bytes);
+}
+
 async function main() {
   logica();
+  await desenho();
   const doc = await PDFLib.PDFDocument.load(BASE);
   ok("PDF base e A4 de 1 pagina", doc.getPageCount() === 1 && Math.round(doc.getPage(0).getWidth()) === 595);
-  ok("10 sintomas, 9 condicoes, 6 raças", C.SINTOMAS.length === 10 && C.CONDICOES.length === 9 && C.RACAS.length === 6);
+  ok("10 sintomas, 9 condicoes, 6 racas", C.SINTOMAS.length === 10 && C.CONDICOES.length === 9 && C.RACAS.length === 6);
   ok("ids dos sintomas e condicoes na ordem da ficha",
     C.SINTOMAS.map((s) => s.id).join() === "assintomatico,febre,garganta,dispneia,tosse,coriza,cabeca,gustativos,olfativos,outros" &&
     C.CONDICOES.map((s) => s.id).join() === "respiratoria,diabetes,obesidade,renal,imunossupressao,cromossomica,gestante,cardiaca,puerpera");
