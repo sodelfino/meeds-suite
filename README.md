@@ -35,12 +35,16 @@ desliga num painel, sem reinstalar nada.
 | 📄 **Laudo — Sete Lagoas** | Preenche o Laudo Médico de Alto Custo no formulário oficial da prefeitura. Começa desligado: o médico liga na ⚙️ quando precisar. |
 | 📄 **Laudo — Conceição do Mato Dentro** | Idem, no formulário oficial da prefeitura de Conceição do Mato Dentro. Começa desligado. |
 | 🔎 **Busca de CID-10** | Procura o código pelo nome da doença, na tabela completa, e preenche na própria linha do laudo aberto. |
-| 🧪 **Exames do município** | Mostra os exames que aquele município oferece — Betim, Macaé, Congonhas, Sete Lagoas, Piraí e Pará de Minas — com código, local de realização, especialidade, canal de encaminhamento, a marca de quem exige APAC/Laudo/Alto Custo (💰), e um aviso quando há uma regra específica daquele exame (idade mínima, documento a anexar, justificativa médica obrigatória). Macaé e Piraí também têm uma seção separada de **Encaminhamentos** — serviços de referência como CRA, Clínica do Autista, Especialidades Pediátricas e CEMAIA, que não são exame. O que não está na lista aparece como "não consta" — nunca como exame de outra cidade. |
+| 🧪 **Exames do município** | Mostra os exames que aquele município oferece — Betim, Macaé, Congonhas, Sete Lagoas, Piraí e Pará de Minas — com código, local de realização, especialidade, canal de encaminhamento, a marca de quem exige APAC/Laudo/Alto Custo (💰), e um aviso quando há uma regra específica daquele exame (idade mínima, documento a anexar, justificativa médica obrigatória). Macaé e Piraí também têm uma seção separada de **Encaminhamentos** — serviços de referência como CRA, Clínica do Autista, Especialidades Pediátricas e CEMAIA, que não são exame. O que não está na lista aparece como "não consta" — nunca como exame de outra cidade. Em **Varginha**, no lugar da lista, aparece o **protocolo de solicitação de exames** da especialidade do atendimento (Cardiologia, Endocrinologia e Dermatologia, detectada sozinha): as regras de "Antes de pedir" ficam fixas no topo, a frequência de cada exame em destaque, o que não deve ser pedido em vermelho e o exame preferido em verde. |
 | 💊 **LME — Medicamentos (Minas Gerais)** | Botão "LME — Medicamentos MG" (vem desligado; ligue na engrenagem): preenche o LME do Componente Especializado da Assistência Farmacêutica no novo modelo editável da SES-MG — estabelecimento, paciente, até 6 medicamentos com a quantidade de cada mês, CID-10 (com busca), anamnese, tratamento prévio, atestado de capacidade, médico e quem preencheu. Segue os campos com asterisco do formulário; o documento do paciente e do médico é sempre o CPF. O PDF sai editável (assinatura e carimbo ficam em branco). |
 | 📋 **Ficha de notificação — Dengue/Chikungunya, Leishmaniose Tegumentar e AIDS (13 anos ou mais)** | Botão "Notificação": abre uma escolha da ficha (cartões com desenho e nome) e preenche por cima do PDF oficial do SINAN (Ficha de Investigação) os dados da primeira consulta — agravo, início dos sintomas (até 15 dias), sinais clínicos, sinais de alarme/gravidade, dados do paciente e residência (município com lista do IBGE embutida), telefone e unidade. Valida os obrigatórios, lê o paciente da tela (nome, nascimento, sexo, CPF) e mostra alerta vermelho quando há sinais de alarme. Exames, internação, classificação final e encerramento ficam em branco para a vigilância. Na Leishmaniose: forma clínica e tipo de entrada obrigatórios, cicatrizes (forma mucosa), HIV, exames como "não realizado", tratamento só se iniciado (data, droga e peso) e fotos da lesão anexadas ao final do PDF. Na AIDS: data do diagnóstico, transmissão (vertical, sexual, sanguínea e bloco de transfusão/acidente), exame de HIV, critérios Rio de Janeiro/Caracas e CDC adaptado e critério óbito, conforme o instrumento do SINAN. Ligado por padrão em qualquer município; não guarda histórico. |
-| 💊 **Consulta REMUME** | Consulta os medicamentos do município do atendimento (15 municípios: Barbacena, Betim, Conceição do Mato Dentro, Congonhas, Coronel Fabriciano, Franco da Rocha, Itaúna, Macaé, Mendes, Pará de Minas, Piracema, Piraí, Santa Bárbara, Sete Lagoas e Varginha). Aceita erro de digitação e nome comercial. Os medicamentos de Receita Amarela e Receita Azul (Portaria 344/98) vêm com um aviso: precisam ser prescritos separadamente, para transcrição em receita física por um médico presencial — essas duas receitas ainda não têm aprovação para prescrição digital. |
-| ⚠️ **Avisos do município** | Dentro do atendimento, mostra sozinho o que a teleconsulta resolve no município do paciente e o que deve ir para o presencial — hoje Barbacena, Franco da Rocha, Congonhas, Piraí, unidades de Macaé e as UBS de Pará de Minas. Não aparece fora do atendimento. "Entendi" fecha o aviso e silencia aquela cidade/unidade por 3 horas, mesmo trocando de atendimento; o X fecha só daquele atendimento. |
+| 💊 **Consulta REMUME** | Consulta os medicamentos do município do atendimento (15 municípios: Barbacena, Betim, Conceição do Mato Dentro, Congonhas, Coronel Fabriciano, Franco da Rocha, Itaúna, Macaé, Mendes, Pará de Minas, Piracema, Piraí, Santa Bárbara, Sete Lagoas e Varginha). Aceita erro de digitação e nome comercial. Alguns itens trazem orientação própria do município (ex.: em Macaé, como prescrever 1 g de dipirona com comprimidos de 500 mg; em Pará de Minas, as orientações da REMUME local). Os medicamentos de Receita Amarela e Receita Azul (Portaria 344/98) vêm com um aviso: precisam ser prescritos separadamente, para transcrição em receita física por um médico presencial — essas duas receitas ainda não têm aprovação para prescrição digital. |
+| ⚠️ **Avisos do município** | Dentro do atendimento, mostra sozinho o que a teleconsulta resolve no município do paciente e o que deve ir para o presencial — hoje Barbacena, Franco da Rocha, Congonhas, Piraí, unidades de Macaé e as UBS de Pará de Minas; toda UBS, ESF e PSF dessas cidades também lembra de não usar o campo aberto da Memed e de pedir exames pela tabela SUS. O aviso vem em passos e só libera o atendimento depois de "Li e estou ciente", uma vez por login. Depois disso, um "!" acima da REMUME reabre o aviso da cidade quando quiser. Não aparece fora do atendimento. |
 | 👁️ **Prévia do documento** | Mostra o PDF ao lado do formulário enquanto você preenche a APAC ou um laudo — o mesmo arquivo que será baixado. Sempre ativa. |
+
+As funções ficam numa **lateral** no canto da tela, cada uma com ícone e nome;
+a seta no rodapé recolhe a lateral para só os ícones. A engrenagem (⚙️) liga e
+desliga cada função e mostra um ponto azul quando sai versão nova.
 
 Todas as funções têm um **tutorial guiado** (🎓) — as que têm painel próprio
 oferecem sozinho na primeira vez que você abre; todas ficam disponíveis depois
@@ -136,7 +140,21 @@ npm run sync-fallback   # sincroniza a lista de medicamentos embutida
 npm run sync-cid10      # sincroniza a lista de CID embutida
 npm run montar-exames   # remonta dados/exames.json e sincroniza o embutido
 npm run lint            # só o ESLint
+npm run teste:exames-ui # regressão de interface do painel de Exames (Chromium)
 ```
+
+### Rodar localmente (teste de fumaça)
+
+Não precisa do Meeds de verdade: `tests/smoke.html` imita a tela (cartão de
+paciente, card "Aguardando" e um mock de `GET /api/v1/Atendimento`).
+
+```bash
+npm run build
+python3 -m http.server 8731
+```
+
+Abra <http://localhost:8731/tests/smoke.html>. Precisa ser por HTTP, não
+`file://`. Roteiro completo em [docs/TESTES.md](docs/TESTES.md).
 
 O build **reprova** se um módulo posicionar o próprio botão em pixel,
 declarar a aparência do botão no próprio arquivo (ela vem do bloco
@@ -151,14 +169,16 @@ descreva o que mudou em `dados/changelog.json`. O build avisa se você esquecer.
 bootloader.user.js     o único arquivo que o médico instala
 manifest.json          módulos, textos, versões, ordem dos botões
 seletores.json         rótulos de tela, atualizáveis sem gerar o pacote
-dados/                 formulários, APAC, exames, avisos por município, CID-10, marcas, changelog
+dados/                 formulários, APAC, exames e protocolos, avisos por município, CID-10, marcas, changelog
 core/                  núcleo: dock, rede, leitura de tela, decisão, painel, tutorial
 modules/               uma pasta por função (+ _template para copiar)
-scripts/               build, sincronização e exportações
+scripts/               build, sincronização, exportações e protocolos de exames
 tests/                 testes em Node (npm run verificar) e smoke.html com mock da API
 exports/               planilha-modelo e CSVs de importação nativa da REMUME
 dist/                  pacotes gerados (Tampermonkey e Safari) e a sonda de diagnóstico
-docs/                  arquitetura, instalação, manual do admin, testes, migração
+docs/                  arquitetura, instalação, manual do admin, testes, migração, segurança e release
+docs/instalar/         página de instalação guiada (publicada no GitHub Pages)
+docs/manual/           manual do médico e guia de instalação em HTML e PDF
 ```
 
 ### Documentação
@@ -175,6 +195,11 @@ docs/                  arquitetura, instalação, manual do admin, testes, migra
 | [MODULO-ALARME-FILA.md](docs/MODULO-ALARME-FILA.md) | como o alarme decide que chegou paciente |
 | [COMO-ADICIONAR-MUNICIPIO-EXAMES.md](docs/COMO-ADICIONAR-MUNICIPIO-EXAMES.md) | incluir um município no módulo de Exames |
 | [MIGRACAO-V2.md](docs/MIGRACAO-V2.md) | a passagem para o Meeds novo: evidências, decisões e o que ficou em aberto |
+| [REMUME-PARA-DE-MINAS.md](docs/REMUME-PARA-DE-MINAS.md) | de onde vem a REMUME de Pará de Minas e as orientações por item |
+| [SEGURANCA.md](docs/SEGURANCA.md) | o que fica guardado no navegador e o que nunca sai dele |
+| [AUDITORIA-QUALIDADE.md](docs/AUDITORIA-QUALIDADE.md) | auditoria de qualidade e o que foi corrigido |
+| [RELEASE.md](docs/RELEASE.md) | como publicar uma versão |
+| [manual/](docs/manual/) | manual do médico e guia de instalação (HTML e PDF) |
 
 ---
 
