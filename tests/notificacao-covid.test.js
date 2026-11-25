@@ -107,6 +107,7 @@ async function desenho() {
   ok("Tem CPF desligado marca Nao e nao desenha CPF", xEm(C.CX.temCpf.nao, nenhum) && nenhum.every((o) => o.cy !== C.CX.cpf.cy));
   ok("CPF em 11 celulas", ops.filter((o) => o.tipo === "centro" && /^\d$/.test(o.texto) && o.cy === C.CX.cpf.cy).length === 11);
   ok("CNS valido em 15 celulas", ops.filter((o) => o.cy === C.CX.cns.cy).length === 15);
+  ok("digitos do CNS dentro das 14 celulas impressas", ops.filter((o) => o.cy === C.CX.cns.cy).every((o) => o.cx > 89.3 && o.cx < 313.3));
   ok("sem CNS nao desenha pente", C.montarOperacoes({ ...COMPLETO, cns: "" }, HOJE).every((o) => o.cy !== C.CX.cns.cy));
   ok("CNS invalido nao desenha pente", C.montarOperacoes({ ...COMPLETO, cns: "123456789012345" }, HOJE).every((o) => o.cy !== C.CX.cns.cy));
   const seg = C.CX.dataNotificacao.segmentos;
