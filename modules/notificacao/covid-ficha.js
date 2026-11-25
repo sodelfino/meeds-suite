@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------
  * modules/notificacao/covid-ficha.js - Sindrome gripal suspeita de COVID-19
  * ------------------------------------------------------------------
- * FICHA DE INVESTIGACAO DE SG SUSPEITO DE DOENCA PELO CORONAVIRUS 2019 —
+ * FICHA DE INVESTIGACAO DE SG SUSPEITO DE DOENCA PELO CORONAVIRUS 2019 -
  * COVID-19 (B34.2), e-SUS Notifica, versao 05/10/2020. Mesmo desenho das
  * outras fichas: PDF oficial por baixo, valores desenhados na coordenada
  * da celula, logica pura testada em Node (tests/notificacao-covid.test.js).
