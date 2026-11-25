@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
- * modules/notificacao/covid-ficha.js — Síndrome gripal suspeita de COVID-19
+ * modules/notificacao/covid-ficha.js - Sindrome gripal suspeita de COVID-19
  * ------------------------------------------------------------------
  * FICHA DE INVESTIGACAO DE SG SUSPEITO DE DOENCA PELO CORONAVIRUS 2019 —
  * COVID-19 (B34.2), e-SUS Notifica, versao 05/10/2020. Mesmo desenho das
@@ -92,5 +92,101 @@
     limiteEncerramento: 518.1,
   };
 
-  raiz.MeedsNotificacaoCovid = { SINTOMAS: SINTOMAS, CONDICOES: CONDICOES, RACAS: RACAS, CX: CX };
+  const B = function () { return raiz.MeedsNotificacaoDengue.base; };
+
+  /* CNS definitivo (15 digitos, comeca em 1/2/7/8/9): soma ponderada
+   * dig[i] * (15 - i) divisivel por 11. Todos iguais e recusado. */
+  function cnsValido(v) {
+    const s = String(v == null ? "" : v);
+    if (!/^[12789]\d{14}$/.test(s) || /^(\d)\1+$/.test(s)) return false;
+    let soma = 0;
+    for (let i = 0; i < 15; i++) soma += Number(s.charAt(i)) * (15 - i);
+    return soma % 11 === 0;
+  }
+
+  /* Primeiro numero de exatamente 15 digitos que seja um CNS valido. */
+  function extrairCns(linhas) {
+    const achados = (Array.isArray(linhas) ? linhas : []).join("\n").match(/\d+/g) || [];
+    return achados.filter(function (t) { return t.length === 15 && cnsValido(t); })[0] || "";
+  }
+
+  function validarNotificacao(c) {
+    if (B().vazio(c.d.ufNotif) || B().vazio(c.d.municipioNotif)) {
+      c.erro(B().vazio(c.d.ufNotif) ? "ufNotif" : "municipioNotif", "Falta a UF/o município da notificação — vêm do Vínculo; escolha da lista.");
+    }
+  }
+
+  function validarIdentificacao(c) {
+    const d = c.d;
+    if (d.temCpf && !B().cpfValido(d.cpf)) {
+      c.erro("cpf", "O CPF não é válido (11 dígitos). Confira o número ou marque que o paciente não tem CPF.");
+    }
+    if (!B().vazio(d.cns) && !cnsValido(B().soDigitos(d.cns))) {
+      c.erro("cns", "O CNS tem 15 dígitos e não confere. Confira ou deixe em branco.");
+    }
+  }
+
+  /* Mesmos textos de validarPaciente da dengue, sem gestante e sem "Ignorado". */
+  function validarPaciente(c) {
+    const d = c.d;
+    if (B().vazio(d.nome)) c.erro("nome", "Informe o nome completo do paciente.");
+    if (B().vazio(d.nascimento)) c.erro("nascimento", "Informe a data de nascimento.");
+    else if (!c.nasc) c.erro("nascimento", "A data de nascimento não é uma data válida.");
+    else if (c.nasc.t > c.hoje.t) c.erro("nascimento", "A data de nascimento não pode ser futura.");
+    else if (c.hoje.a - c.nasc.a > 130) c.erro("nascimento", "A data de nascimento indica mais de 130 anos — confira o ano.");
+    if (["M", "F"].indexOf(d.sexo) === -1) c.erro("sexo", "Informe o sexo do paciente.");
+  }
+
+  /* Devolve a data lida, ou null depois de registrar o erro. */
+  function dataObrigatoria(c, campo, nome) {
+    const v = c.d[campo];
+    if (B().vazio(v)) return c.erro(campo, "Informe " + nome + "."), null;
+    const x = B().lerData(v);
+    if (!x) return c.erro(campo, "Esta data não é válida: " + nome + "."), null;
+    if (x.t > c.hoje.t) return c.erro(campo, "Esta data não pode ser futura: " + nome + "."), null;
+    return x;
+  }
+
+  function validarDatas(c) {
+    const notif = dataObrigatoria(c, "dataNotificacao", "a data da notificação");
+    const inicio = dataObrigatoria(c, "inicioSintomas", "o início dos sintomas");
+    if (notif && inicio && inicio.t > notif.t) {
+      c.erro("inicioSintomas", "O início dos sintomas não pode ser depois da data da notificação.");
+    }
+  }
+
+  function validarSintomas(c) {
+    const s = B().lista(c.d.sintomas);
+    if (s.length === 0) return c.erro("sintomas", "Marque ao menos um sintoma ou “Assintomático”.");
+    if (s.indexOf("assintomatico") !== -1 && s.length > 1) {
+      c.erro("sintomas", "“Assintomático” não pode vir junto com outros sintomas — desfaça um dos dois.");
+    }
+    if (s.indexOf("outros") !== -1 && B().vazio(c.d.sintomaOutros)) {
+      c.erro("sintomaOutros", "Você marcou “Outros” nos sintomas: escreva qual.");
+    }
+    return null;
+  }
+
+  function validarOpcionais(c) {
+    const d = c.d;
+    if (!B().vazio(d.cep) && B().soDigitos(d.cep).length !== 8) {
+      c.erro("cep", "O CEP tem 8 dígitos (deixe em branco se o paciente não souber).");
+    }
+    const cond = B().lista(d.condicoes);
+    if (d.sexo !== "F" && (cond.indexOf("gestante") !== -1 || cond.indexOf("puerpera") !== -1)) {
+      c.erro("condicoes", "Gestante e puérpera só valem para paciente do sexo feminino — confira o sexo ou desmarque.");
+    }
+  }
+
+  function validar(d, hojeIso) {
+    const c = B().novoContexto(d, hojeIso);
+    [validarNotificacao, validarIdentificacao, validarPaciente, validarDatas, validarSintomas, validarOpcionais]
+      .forEach(function (etapa) { etapa(c); });
+    return c.erros;
+  }
+
+  raiz.MeedsNotificacaoCovid = {
+    SINTOMAS: SINTOMAS, CONDICOES: CONDICOES, RACAS: RACAS, CX: CX,
+    cnsValido: cnsValido, extrairCns: extrairCns, validar: validar,
+  };
 })(typeof unsafeWindow !== "undefined" ? unsafeWindow : typeof window !== "undefined" ? window : globalThis);
