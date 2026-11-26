@@ -56,6 +56,11 @@ function logica() {
   ok("vinculo do print", JSON.stringify(D.interpretarVinculo(["CONGONHAS - MG", "PSF IDEAL"])) === JSON.stringify({ municipio: "Congonhas", uf: "MG", unidade: "PSF IDEAL" }));
   ok("extrairCnsIgnoraZero", C.extrairCns(["CPF 71305890604", "CNS 0"]) === "");
   ok("extrairCns acha valido", C.extrairCns(["CPF 71305890604", "CNS 700000000000005"]) === "700000000000005");
+  ok("extrairCns com espacos", C.extrairCns(["CNS 700 0000 0000 0005"]) === "700000000000005");
+  ok("extrairCns com pontos", C.extrairCns(["CNS 700.0000.0000.0005"]) === "700000000000005");
+  ok("extrairCns isolado ao lado de CPF", C.extrairCns(["CPF 713.058.906-04 CNS 700000000000005"]) === "700000000000005");
+  ok("extrairCns formatado nao pega CPF", C.extrairCns(["CPF 713.058.906-04 CNS 700 0000 0000 0005"]) === "");
+  ok("extrairCns nao junta linhas", C.extrairCns(["CNS 700 0000", "0000 0005"]) === "");
   ok("cns todo zero recusado", !C.cnsValido("000000000000000"));
   ok("cns com digito errado recusado", !C.cnsValido("700000000000006"));
   ok("semCpfNaoExigeCpf", C.validar({ ...MINIMO, temCpf: false, cpf: "" }, HOJE).length === 0);

@@ -369,7 +369,7 @@
 
   function secaoObservacoes() {
     return '<div class="nt-sec"><h3>Observações e responsável</h3>' +
-      '<div id="nt-obs-wrap"><label class="nt-rot" for="nt-obs">Observações adicionais (opcional — vão para a página 2 da ficha)</label>' +
+      '<div id="nt-obs-wrap"><label class="nt-rot" for="nt-obs">Observações adicionais (opcional — <span class="nt-nao-covid">vão para a página 2 da ficha</span>)</label>' +
       '<textarea id="nt-obs" maxlength="600"></textarea></div>' +
       '<div class="nt-grid3 nt-nao-covid" style="margin-top:8px"><div><label class="nt-rot" for="nt-medico-sel">Médico (preenche o bloco "Investigador")</label><select id="nt-medico-sel"></select></div>' +
       campo("nt-medico-nome", "Nome", 'maxlength="60"') + campo("nt-medico-funcao", "Função", 'maxlength="40"') + "</div></div>";
@@ -905,17 +905,21 @@
       const ign = overlay.elemento.querySelector('input[name="nt-sexo"][value="I"]');
       if (ign && ign.checked) ign.checked = false;
       sincronizarTemCpf();
-      preencherSeVazio("nt-c-cns", CV().extrairCns(d.dom.lerLinhasPorRotulo(["Documentos", "CNS"]) || []));
+      preencherCnsDaTela();
     }
     atualizarCondicionais();
     if (guia) guia.atualizar();
     overlay.elemento.querySelector("#nt-modal").scrollTop = 0;
   }
 
+  function preencherCnsDaTela() {
+    preencherSeVazio("nt-c-cns", CV().extrairCns(d.dom.lerLinhasPorRotulo(["Documentos", "CNS"]) || []));
+  }
+
   function atualizarPaciente() {
     const p = lerDaTela(true);
     pacienteNoFormulario = assinatura(p) || pacienteNoFormulario;
-    if (ficha === "covid") { sincronizarTemCpf(); atualizarCondicionais(); }
+    if (ficha === "covid") { sincronizarTemCpf(); preencherCnsDaTela(); atualizarCondicionais(); }
     const aviso = el("nt-aviso-auto");
     aviso.style.display = "block";
     aviso.textContent = p.nome

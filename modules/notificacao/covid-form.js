@@ -47,7 +47,7 @@
       '<div class="nt-switches">' + interruptor("nt-c-tem-cpf", "Tem CPF?") + interruptor("nt-c-estrangeiro", "Estrangeiro") +
       interruptor("nt-c-prof-saude", "Profissional de saúde") + interruptor("nt-c-prof-seg", "Profissional de segurança") + "</div>" +
       oculto("nt-c-linha-estrangeiro", '<div class="nt-grid2">' + h.campo("nt-c-pais", "País de origem", 'maxlength="30"') +
-        h.campo("nt-c-passaporte", "Passaporte", 'maxlength="9"') + "</div>", "margin-top:8px") +
+        h.campo("nt-c-passaporte", "Passaporte", 'maxlength="8"') + "</div>", "margin-top:8px") +
       oculto("nt-c-linha-cbo", h.campo("nt-c-cbo", "CBO (ocupação do profissional)", 'maxlength="40"'), "margin-top:8px;max-width:360px") +
       '<div class="nt-grid2" style="margin-top:8px">' + h.campo("nt-c-cns", "CNS (opcional — 15 dígitos)", 'inputmode="numeric" maxlength="18"') +
       h.campo("nt-c-tel-contato", "Telefone de contato (opcional)", 'inputmode="tel" maxlength="16"') + "</div>" +

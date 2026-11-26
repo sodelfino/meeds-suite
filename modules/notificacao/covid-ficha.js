@@ -87,7 +87,7 @@
     contato: { x: 431.1, y: 397.4, larg: 138 },
     dataNotificacao: { x: 163.3, y: 411.3, larg: 65, segmentos: [163.3, 182.4, 203.9, 228.3] },
     inicioSintomas: { x: 463.3, y: 411.3, larg: 65, segmentos: [463.3, 482.3, 503.8, 528.3] },
-    sintomaOutros: { x: 412.4, y: 450.0, larg: 144 },
+    sintomaOutros: { x: 415.5, y: 450.0, larg: 144 },
     observacoes: { x: 47, larg: 524, linhas: [804.5, 818.5] },
     /* "Estado do Teste": a partir dessa altura a ficha e da vigilancia
      * (exames, evolucao, classificacao, encerramento) e nada e desenhado. */
@@ -108,8 +108,18 @@
 
   /* Primeiro numero de exatamente 15 digitos que seja um CNS valido. */
   function extrairCns(linhas) {
-    const achados = (Array.isArray(linhas) ? linhas : []).join("\n").match(/\d+/g) || [];
-    return achados.filter(function (t) { return t.length === 15 && cnsValido(t); })[0] || "";
+    const ls = Array.isArray(linhas) ? linhas : [];
+    const achados = ls.join("\n").match(/\d+/g) || [];
+    const junto = achados.filter(function (t) { return t.length === 15 && cnsValido(t); })[0];
+    if (junto) return junto;
+    /* Formatado ("700 0000 0000 0005", "700.0000.0000.0005"): so dentro de UMA linha
+     * e so se, tirado o rotulo CNS, sobrarem apenas digitos, espacos e pontos. */
+    for (let i = 0; i < ls.length; i++) {
+      const resto = String(ls[i]).replace(/^\s*CNS\s*[:-]?/i, "");
+      const dig = resto.replace(/[\s.]/g, "");
+      if (/^[\d\s.]+$/.test(resto) && cnsValido(dig)) return dig;
+    }
+    return "";
   }
 
   function validarNotificacao(c) {

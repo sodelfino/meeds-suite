@@ -17827,7 +17827,7 @@
     contato: { x: 431.1, y: 397.4, larg: 138 },
     dataNotificacao: { x: 163.3, y: 411.3, larg: 65, segmentos: [163.3, 182.4, 203.9, 228.3] },
     inicioSintomas: { x: 463.3, y: 411.3, larg: 65, segmentos: [463.3, 482.3, 503.8, 528.3] },
-    sintomaOutros: { x: 412.4, y: 450.0, larg: 144 },
+    sintomaOutros: { x: 415.5, y: 450.0, larg: 144 },
     observacoes: { x: 47, larg: 524, linhas: [804.5, 818.5] },
     /* "Estado do Teste": a partir dessa altura a ficha e da vigilancia
      * (exames, evolucao, classificacao, encerramento) e nada e desenhado. */
@@ -17848,8 +17848,18 @@
 
   /* Primeiro numero de exatamente 15 digitos que seja um CNS valido. */
   function extrairCns(linhas) {
-    const achados = (Array.isArray(linhas) ? linhas : []).join("\n").match(/\d+/g) || [];
-    return achados.filter(function (t) { return t.length === 15 && cnsValido(t); })[0] || "";
+    const ls = Array.isArray(linhas) ? linhas : [];
+    const achados = ls.join("\n").match(/\d+/g) || [];
+    const junto = achados.filter(function (t) { return t.length === 15 && cnsValido(t); })[0];
+    if (junto) return junto;
+    /* Formatado ("700 0000 0000 0005", "700.0000.0000.0005"): so dentro de UMA linha
+     * e so se, tirado o rotulo CNS, sobrarem apenas digitos, espacos e pontos. */
+    for (let i = 0; i < ls.length; i++) {
+      const resto = String(ls[i]).replace(/^\s*CNS\s*[:-]?/i, "");
+      const dig = resto.replace(/[\s.]/g, "");
+      if (/^[\d\s.]+$/.test(resto) && cnsValido(dig)) return dig;
+    }
+    return "";
   }
 
   function validarNotificacao(c) {
@@ -18077,7 +18087,7 @@
       '<div class="nt-switches">' + interruptor("nt-c-tem-cpf", "Tem CPF?") + interruptor("nt-c-estrangeiro", "Estrangeiro") +
       interruptor("nt-c-prof-saude", "Profissional de saúde") + interruptor("nt-c-prof-seg", "Profissional de segurança") + "</div>" +
       oculto("nt-c-linha-estrangeiro", '<div class="nt-grid2">' + h.campo("nt-c-pais", "País de origem", 'maxlength="30"') +
-        h.campo("nt-c-passaporte", "Passaporte", 'maxlength="9"') + "</div>", "margin-top:8px") +
+        h.campo("nt-c-passaporte", "Passaporte", 'maxlength="8"') + "</div>", "margin-top:8px") +
       oculto("nt-c-linha-cbo", h.campo("nt-c-cbo", "CBO (ocupação do profissional)", 'maxlength="40"'), "margin-top:8px;max-width:360px") +
       '<div class="nt-grid2" style="margin-top:8px">' + h.campo("nt-c-cns", "CNS (opcional — 15 dígitos)", 'inputmode="numeric" maxlength="18"') +
       h.campo("nt-c-tel-contato", "Telefone de contato (opcional)", 'inputmode="tel" maxlength="16"') + "</div>" +
@@ -18556,7 +18566,7 @@
 
   function secaoObservacoes() {
     return '<div class="nt-sec"><h3>Observações e responsável</h3>' +
-      '<div id="nt-obs-wrap"><label class="nt-rot" for="nt-obs">Observações adicionais (opcional — vão para a página 2 da ficha)</label>' +
+      '<div id="nt-obs-wrap"><label class="nt-rot" for="nt-obs">Observações adicionais (opcional — <span class="nt-nao-covid">vão para a página 2 da ficha</span>)</label>' +
       '<textarea id="nt-obs" maxlength="600"></textarea></div>' +
       '<div class="nt-grid3 nt-nao-covid" style="margin-top:8px"><div><label class="nt-rot" for="nt-medico-sel">Médico (preenche o bloco "Investigador")</label><select id="nt-medico-sel"></select></div>' +
       campo("nt-medico-nome", "Nome", 'maxlength="60"') + campo("nt-medico-funcao", "Função", 'maxlength="40"') + "</div></div>";
@@ -19092,17 +19102,21 @@
       const ign = overlay.elemento.querySelector('input[name="nt-sexo"][value="I"]');
       if (ign && ign.checked) ign.checked = false;
       sincronizarTemCpf();
-      preencherSeVazio("nt-c-cns", CV().extrairCns(d.dom.lerLinhasPorRotulo(["Documentos", "CNS"]) || []));
+      preencherCnsDaTela();
     }
     atualizarCondicionais();
     if (guia) guia.atualizar();
     overlay.elemento.querySelector("#nt-modal").scrollTop = 0;
   }
 
+  function preencherCnsDaTela() {
+    preencherSeVazio("nt-c-cns", CV().extrairCns(d.dom.lerLinhasPorRotulo(["Documentos", "CNS"]) || []));
+  }
+
   function atualizarPaciente() {
     const p = lerDaTela(true);
     pacienteNoFormulario = assinatura(p) || pacienteNoFormulario;
-    if (ficha === "covid") { sincronizarTemCpf(); atualizarCondicionais(); }
+    if (ficha === "covid") { sincronizarTemCpf(); preencherCnsDaTela(); atualizarCondicionais(); }
     const aviso = el("nt-aviso-auto");
     aviso.style.display = "block";
     aviso.textContent = p.nome
