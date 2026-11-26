@@ -155,6 +155,25 @@ function carregar() {
   ok("numero curto (ex: ano, 4 digitos) NAO e mascarado", c.api._mascararDigitos("versao 2026") === "versao 2026");
 }
 
+/* 4b. a API devolve CPF e telefone COM pontuacao, e nome em texto: o medico
+ *     cola o diagnostico no WhatsApp, entao nada disso pode ir junto */
+{
+  const c = carregar();
+  c.api.instalar();
+  c.dispararEventoDeRede({
+    url: "https://api-calltech.meeds.com.br/api/v1/Atendimento",
+    metodo: "GET",
+    status: 200,
+    corpo: '{"nomePaciente":"MARIA APARECIDA SOUZA","nomeMae":"JOANA SOUZA","cpf":"123.456.789-09",' +
+      '"telefone":"(22) 99876-5432","status":"Aguardando"}',
+  });
+  const texto = c.api.montarRelatorio({ versao: "2.78.3", modulos: [] });
+  ok("CPF com pontuacao NAO aparece", texto.indexOf("456.789") === -1);
+  ok("telefone com pontuacao NAO aparece", texto.indexOf("99876-5432") === -1);
+  ok("nome do paciente e da mae NAO aparecem", texto.indexOf("MARIA") === -1 && texto.indexOf("JOANA") === -1);
+  ok("o resto do corpo continua legivel", texto.indexOf('"status":"Aguardando"') !== -1);
+}
+
 /* 5. corpo muito longo trunca, para o texto nao ficar gigante */
 {
   const c = carregar();

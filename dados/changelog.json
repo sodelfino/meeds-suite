@@ -2,6 +2,15 @@
   "_leia_me": "Historico de versoes. E a UNICA fonte: alimenta tanto a notificacao que aparece depois de uma atualizacao quanto o historico dentro do painel da engrenagem. ANTES DE PUBLICAR UMA VERSAO NOVA, acrescente o bloco dela no TOPO da lista 'versoes' e rode 'npm run build'. Escreva para o medico, nao para o programador: o que mudou na tela e no dia a dia dele. Tres categorias, todas opcionais: novidades (coisa nova), melhorias (o que ja existia ficou melhor), correcoes (o que estava errado e foi arrumado). Ver docs/MANUAL-ADMIN.md.",
   "versoes": [
     {
+      "versao": "2.78.4",
+      "data": "2026-11-25",
+      "correcoes": [
+        "iPad: quando o navegador não deixa usar o banco de dados (ex.: navegação privada), o cadastro e as preferências não somem mais ao recarregar a página.",
+        "Histórico: \"Reabrir\" traz sempre o documento que está na tela, mesmo que outra aba tenha gerado um documento depois.",
+        "Diagnóstico técnico: CPF e telefone com pontuação, nome do paciente e nome da mãe não vão mais no texto copiado."
+      ]
+    },
+    {
       "versao": "2.78.3",
       "data": "2026-11-24",
       "melhorias": [
