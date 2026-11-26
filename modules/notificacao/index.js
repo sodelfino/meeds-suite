@@ -298,11 +298,12 @@
   const NUMEROS_SINAN = {"nt-nome": "8", "nt-nasc": "9", "nt-gestante": "12", "nt-raca": "13", "nt-escolaridade": "14", "nt-cpf": "15", "nt-mae": "16", "nt-uf-res": "17", "nt-mun-res": "18", "nt-bairro": "20", "nt-logradouro": "21", "nt-numero": "22", "nt-complemento": "23", "nt-referencia": "26", "nt-cep": "27", "nt-telefone": "28", "nt-zona": "29", "nt-uf-notif": "4", "nt-mun-notif": "5", "nt-unidade": "6"};
 
   function num(id) {
-    return NUMEROS_SINAN[id] ? '<span class="nt-num">' + NUMEROS_SINAN[id] + "</span>" : "";
+    return NUMEROS_SINAN[id] ? '<span class="nt-num nt-nao-covid">' + NUMEROS_SINAN[id] + "</span>" : "";
   }
 
-  function campo(id, rotulo, extra) {
-    return '<div><label class="nt-rot" for="' + id + '">' + num(id) + esc(rotulo) + '</label><input type="text" id="' + id + '" autocomplete="off" ' + (extra || "") + "></div>";
+  /* sufixo: trecho do rotulo que so vale fora da COVID (asterisco, dica do SINAN). */
+  function campo(id, rotulo, extra, sufixo) {
+    return '<div><label class="nt-rot" for="' + id + '">' + num(id) + esc(rotulo) + (sufixo ? '<span class="nt-nao-covid">' + sufixo + "</span>" : "") + '</label><input type="text" id="' + id + '" autocomplete="off" ' + (extra || "") + "></div>";
   }
 
   function secaoDoenca() {
@@ -345,16 +346,16 @@
       '<div class="nt-nao-covid"><label class="nt-rot" for="nt-raca">' + num("nt-raca") + 'Raça/cor</label><select id="nt-raca">' + opcoes(F().RACAS) + "</select></div>" +
       '<div class="nt-nao-covid"><label class="nt-rot" for="nt-escolaridade">' + num("nt-escolaridade") + 'Escolaridade</label><select id="nt-escolaridade">' + opcoes(F().ESCOLARIDADES) + "</select></div>" +
       '<div class="nt-nao-covid">' + campo("nt-ocupacao", "Ocupação", 'maxlength="40"') + "</div></div>" +
-      '<div class="nt-grid2" style="margin-top:8px">' + campo("nt-cpf", "CPF (vai no campo do Cartão SUS da ficha)", 'inputmode="numeric" maxlength="14"') + campo("nt-mae", "Nome da mãe", 'maxlength="60"') + "</div></div>";
+      '<div class="nt-grid2" style="margin-top:8px">' + campo("nt-cpf", "CPF", 'inputmode="numeric" maxlength="14"', " (vai no campo do Cartão SUS da ficha)") + campo("nt-mae", "Nome da mãe", 'maxlength="60"') + "</div></div>";
   }
 
   function secaoResidencia() {
     return '<div class="nt-sec"><h3>Residência do paciente</h3>' +
-      '<div class="nt-grid-uf"><div><label class="nt-rot" for="nt-uf-res">' + num("nt-uf-res") + 'UF *</label><select id="nt-uf-res">' + opcoesUf() + "</select></div>" +
-      '<div><label class="nt-rot" for="nt-mun-res">' + num("nt-mun-res") + 'Município de residência *</label><input type="text" id="nt-mun-res" list="nt-lista-mun-res" autocomplete="off" placeholder="digite e escolha da lista"><datalist id="nt-lista-mun-res"></datalist></div></div>' +
+      '<div class="nt-grid-uf"><div><label class="nt-rot" for="nt-uf-res">' + num("nt-uf-res") + 'UF<span class="nt-nao-covid"> *</span></label><select id="nt-uf-res">' + opcoesUf() + "</select></div>" +
+      '<div><label class="nt-rot" for="nt-mun-res">' + num("nt-mun-res") + 'Município de residência<span class="nt-nao-covid"> *</span></label><input type="text" id="nt-mun-res" list="nt-lista-mun-res" autocomplete="off" placeholder="digite e escolha da lista"><datalist id="nt-lista-mun-res"></datalist></div></div>' +
       '<div class="nt-grid3" style="margin-top:8px">' + campo("nt-bairro", "Bairro", 'maxlength="40"') + campo("nt-logradouro", "Logradouro", 'maxlength="60"') + campo("nt-numero", "Número", 'maxlength="8"') + "</div>" +
       '<div class="nt-grid3" style="margin-top:8px">' + campo("nt-complemento", "Complemento", 'maxlength="40"') + '<div class="nt-nao-covid">' + campo("nt-referencia", "Ponto de referência", 'maxlength="40"') + "</div>" + campo("nt-cep", "CEP", 'inputmode="numeric" maxlength="9"') + "</div>" +
-      '<div class="nt-grid3" style="margin-top:8px">' + campo("nt-telefone", "Telefone com DDD *", 'inputmode="tel" maxlength="16" placeholder="(22) 99999-9999"') +
+      '<div class="nt-grid3" style="margin-top:8px">' + campo("nt-telefone", "Telefone com DDD", 'inputmode="tel" maxlength="16" placeholder="(22) 99999-9999"', " *") +
       '<div class="nt-nao-covid"><label class="nt-rot" for="nt-zona">' + num("nt-zona") + 'Zona</label><select id="nt-zona">' + opcoes(F().ZONAS) + "</select></div></div></div>";
   }
 
@@ -879,6 +880,12 @@
     if (guia) guia.atualizar();
   }
 
+  /* "Tem CPF?" acompanha o CPF lido enquanto o medico nao mexer nele. */
+  function sincronizarTemCpf() {
+    const temCpf = el("nt-c-tem-cpf");
+    if (!temCpf.hasAttribute("data-mexido")) temCpf.checked = !!valor("nt-cpf");
+  }
+
   function escolherFicha(id) {
     if (!FICHAS[id]) return;
     ficha = id;
@@ -893,8 +900,11 @@
      * o medico nao mexer nele; o CNS so entra se a tela trouxer um valido. */
     if (id === "covid") {
       if (!valor("nt-c-data-notif")) definir("nt-c-data-notif", hojeIso());
-      const temCpf = el("nt-c-tem-cpf");
-      if (!temCpf.hasAttribute("data-mexido")) temCpf.checked = !!valor("nt-cpf");
+      /* A ficha COVID nao tem "Ignorado": se a tela leu sexo I, solta o radio oculto
+       * para o medico escolher M ou F (a validacao ja cobra). */
+      const ign = overlay.elemento.querySelector('input[name="nt-sexo"][value="I"]');
+      if (ign && ign.checked) ign.checked = false;
+      sincronizarTemCpf();
       preencherSeVazio("nt-c-cns", CV().extrairCns(d.dom.lerLinhasPorRotulo(["Documentos", "CNS"]) || []));
     }
     atualizarCondicionais();
@@ -905,6 +915,7 @@
   function atualizarPaciente() {
     const p = lerDaTela(true);
     pacienteNoFormulario = assinatura(p) || pacienteNoFormulario;
+    if (ficha === "covid") { sincronizarTemCpf(); atualizarCondicionais(); }
     const aviso = el("nt-aviso-auto");
     aviso.style.display = "block";
     aviso.textContent = p.nome
