@@ -156,9 +156,9 @@
     {
       "id": "notificacao",
       "nome": "Ficha de notificação",
-      "resumo": "SINAN: dengue, LTA, AIDS e violência.",
-      "descricao": "Gera a ficha de investigação do SINAN (Dengue e Febre de Chikungunya; Leishmaniose Tegumentar Americana; AIDS; Violência interpessoal/autoprovocada) na primeira consulta, por cima do PDF oficial, com validação dos campos obrigatórios.",
-      "versao": "1.2.0",
+      "resumo": "SINAN/e-SUS: dengue, LTA, AIDS, violência e COVID-19.",
+      "descricao": "Gera a ficha de investigação do SINAN (Dengue e Febre de Chikungunya; Leishmaniose Tegumentar Americana; AIDS; Violência interpessoal/autoprovocada) e a do e-SUS Notifica para COVID-19 na primeira consulta, por cima do PDF oficial, com validação dos campos obrigatórios.",
+      "versao": "1.3.0",
       "arquivo": "modules/notificacao/index.js",
       "origem": "novetech/notificacao",
       "prioridadeBotao": 45,
@@ -170,13 +170,16 @@
         "modules/notificacao/assets/base-pdf-lta.js",
         "modules/notificacao/assets/base-pdf-aids.js",
         "modules/notificacao/assets/base-pdf-violencia.js",
+        "modules/notificacao/assets/base-pdf-covid.js",
         "modules/notificacao/assets/municipios-ibge.js",
         "modules/notificacao/dengue-ficha.js",
         "modules/notificacao/lta-ficha.js",
         "modules/notificacao/aids-ficha.js",
         "modules/notificacao/aids-form.js",
         "modules/notificacao/violencia-ficha.js",
-        "modules/notificacao/violencia-form.js"
+        "modules/notificacao/violencia-form.js",
+        "modules/notificacao/covid-ficha.js",
+        "modules/notificacao/covid-form.js"
       ],
       "apresentacao": {
         "formaBotao": "rotulo",
