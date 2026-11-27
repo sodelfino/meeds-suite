@@ -179,6 +179,23 @@ function ok(nome, cond) {
        c.MeedsSuiteStorage.storageDoNucleo().gravar("modulos", { x: 1 }) === true);
   }
 
+  /* 9b. sem IndexedDB (navegacao privada, banco bloqueado ou lento demais):
+   *     o localStorage e o unico lugar que guarda; o boot nao pode apaga-lo.
+   *     Antes, o cadastro do medico sumia na proxima recarga. */
+  {
+    const ls = { "meeds-suite:medicos": JSON.stringify([{ nome: "Dra X", crm: "123" }]) };
+    let c = novoAmbiente(false, ls, null);
+    await c.MeedsSuiteStorage.carregar();
+    c.MeedsSuiteStorage.storageDoNucleo().gravar("modulos", { cmd: false });
+    const sobrou = c._ls;
+    c = novoAmbiente(false, Object.fromEntries(sobrou), null);
+    await c.MeedsSuiteStorage.carregar();
+    const cad = c.MeedsSuiteStorage.duravel("medicos", "meeds-suite:medicos").ler(null);
+    ok("sem IndexedDB o cadastro sobrevive a recarga", Array.isArray(cad) && cad[0].crm === "123");
+    ok("sem IndexedDB o que foi gravado sobrevive a recarga",
+       c.MeedsSuiteStorage.storageDoNucleo().ler("modulos", {}).cmd === false);
+  }
+
   /* 10. Tampermonkey nao entra no caminho assincrono */
   {
     const c = novoAmbiente(true, {}, new Map());

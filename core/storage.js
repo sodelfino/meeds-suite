@@ -232,7 +232,8 @@
     return abrirBanco().then(function (db) {
       const mapa = {};
       return new Promise(function (resolver) {
-        if (!db) return resolver(mapa);
+        // sem banco o localStorage e o unico lugar que guarda: nao migrar nem apagar
+        if (!db) return resolver(null);
         let req;
         try {
           req = db.transaction(DEPOSITO, "readonly").objectStore(DEPOSITO).openCursor();
@@ -250,6 +251,7 @@
         };
       });
     }).then(function (mapa) {
+      if (!mapa) return;
       cache = mapa;
       migrarLocalParaBanco();
     });

@@ -222,7 +222,8 @@
       }
       elemento.querySelectorAll(".msh-reabrir").forEach(function (btn) {
         btn.addEventListener("click", function () {
-          const e = listar(idModulo)[Number(btn.getAttribute("data-i"))];
+          // a lista desenhada, nao uma releitura: outra aba pode ter posto item novo no topo
+          const e = lista[Number(btn.getAttribute("data-i"))];
           if (e && typeof opcoes.aoReabrir === "function") opcoes.aoReabrir(e);
         });
       });

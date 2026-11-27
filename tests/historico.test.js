@@ -41,7 +41,8 @@ function ambiente() {
       get length() { return ls.size; },
       key: (i) => [...ls.keys()][i],
     },
-    GM_getValue: (k, d) => (gm.has(k) ? gm.get(k) : d),
+    // como o Tampermonkey: devolve copia, nao a referencia guardada
+    GM_getValue: (k, d) => (gm.has(k) ? JSON.parse(JSON.stringify(gm.get(k))) : d),
     GM_setValue: (k, v) => gm.set(k, JSON.parse(JSON.stringify(v))),
     GM_deleteValue: (k) => gm.delete(k),
     _gm: gm,
@@ -149,6 +150,36 @@ const ref = H.referenciaDoPaciente;
   Hist.registrar("apac", { nomePaciente: "X Y", cpfPaciente: "111", titulo: "t" });
   Hist.limpar("apac");
   ok("limpar deixa a lista vazia", Hist.listar("apac").length === 0);
+}
+
+/* 7. "Reabrir" repoe o item que o medico VIU, mesmo que outra aba tenha
+ *    gerado um documento depois de o painel abrir (o historico e
+ *    compartilhado entre abas e a lista novo entra no topo). */
+{
+  const c = ambiente();
+  const Hist = c.MeedsSuiteHistorico;
+  Hist.registrar("cmd", { titulo: "Laudo A", clinico: { cid: "I10" } });
+
+  const botoes = [];
+  const elemento = {
+    set innerHTML(html) {
+      botoes.length = 0;
+      String(html).replace(/class="msh-reabrir" data-i="(\d+)"/g, function (_m, i) {
+        const b = { cliques: [], getAttribute: () => i, addEventListener: (_t, fn) => b.cliques.push(fn) };
+        botoes.push(b);
+      });
+    },
+    querySelector: () => null,
+    querySelectorAll: () => botoes,
+  };
+  let reaberto = null;
+  const painel = Hist.montarPainel(elemento, "cmd", { aoReabrir: (e) => { reaberto = e; } });
+  painel.render();
+
+  Hist.registrar("cmd", { titulo: "Laudo B", clinico: { cid: "J45" } }); // outra aba
+  botoes[0].cliques.forEach((fn) => fn());
+  ok("Reabrir repoe o documento que estava na tela", reaberto && reaberto.clinico.cid === "I10",
+     reaberto && reaberto.titulo);
 }
 
 console.log(falhas ? "\n" + falhas + " FALHA(S)" : "\ntodos passaram");

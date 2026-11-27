@@ -56,9 +56,14 @@
    * Roda em CIMA de tudo que entra no buffer — URL, corpo, console —
    * mesmo agora que o resto entra sem filtro de conteudo. */
   function mascararDigitos(texto) {
-    return String(texto == null ? "" : texto).replace(/\d{6,}/g, function (seq) {
-      return seq.slice(0, 2) + "…" + seq.slice(-2) + "(" + seq.length + "díg)";
-    });
+    return String(texto == null ? "" : texto)
+      // nome em JSON ("nomePaciente", "nomeMae", "email", "endereco"...): valor inteiro some
+      .replace(/("[^"]*(?:nome|mae|email|endereco|logradouro)[^"]*"\s*:\s*)"[^"]*"/gi, '$1"•••"')
+      // 6+ digitos, mesmo com pontuacao no meio: 123.456.789-09, (22) 99876-5432
+      .replace(/\d(?:[ ./()-]{0,2}\d){5,}/g, function (seq) {
+        const d = seq.replace(/\D/g, "");
+        return d.slice(0, 2) + "…" + d.slice(-2) + "(" + d.length + "díg)";
+      });
   }
 
   function truncar(texto, limite) {

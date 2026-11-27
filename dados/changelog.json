@@ -6,6 +6,15 @@
       "data": "2026-11-25",
       "novidades": [
         "Nova ficha de notificação: COVID-19 (síndrome gripal, e-SUS Notifica). UF e município vêm do vínculo, CPF/CNS e dados do paciente da tela; o médico informa data do início dos sintomas e sintomas."
+        ]
+      },
+      {
+      "versao": "2.78.4",
+      "data": "2026-11-25",
+      "correcoes": [
+        "iPad: quando o navegador não deixa usar o banco de dados (ex.: navegação privada), o cadastro e as preferências não somem mais ao recarregar a página.",
+        "Histórico: \"Reabrir\" traz sempre o documento que está na tela, mesmo que outra aba tenha gerado um documento depois.",
+        "Diagnóstico técnico: CPF e telefone com pontuação, nome do paciente e nome da mãe não vão mais no texto copiado."
       ]
     },
     {
