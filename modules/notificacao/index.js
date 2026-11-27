@@ -32,17 +32,18 @@
   const L = function () { return raiz.MeedsNotificacaoLta; };
   const AI = function () { return raiz.MeedsNotificacaoAids; };
   const VL = function () { return raiz.MeedsNotificacaoViolencia; };
+  const CV = function () { return raiz.MeedsNotificacaoCovid; };
   /* As telas proprias de cada ficha (AIDS, violencia) entram juntas no mesmo
    * formulario; cada uma so aparece quando a ficha dela esta escolhida. */
   const U = function () {
-    const uis = [raiz.MeedsNotificacaoAidsUi, raiz.MeedsNotificacaoViolenciaUi];
+    const uis = [raiz.MeedsNotificacaoAidsUi, raiz.MeedsNotificacaoViolenciaUi, raiz.MeedsNotificacaoCovidUi];
     return {
       IDS_DATA: [].concat.apply([], uis.map(function (u) { return u.IDS_DATA; })),
       secao: function (h) { return uis.map(function (u) { return u.secao(h); }).join(""); },
       coletar: function (h) { return Object.assign.apply(null, [{}].concat(uis.map(function (u) { return u.coletar(h); }))); },
       condicionais: function (h, dd) { uis.forEach(function (u) { u.condicionais(h, dd); }); },
       reconciliar: function (h, alvo) { uis.forEach(function (u) { u.reconciliar(h, alvo); }); },
-      obrigatorios: function (h) { return raiz.MeedsNotificacaoViolenciaUi.obrigatorios(h); },
+      obrigatorios: function (h) { return [].concat.apply([], uis.map(function (u) { return u.obrigatorios ? u.obrigatorios(h) : []; })); },
     };
   };
 
@@ -66,6 +67,11 @@
       titulo: "Ficha de notificação — Leishmaniose Tegumentar",
       info: "Ficha do SINAN da primeira consulta. Exames (como “não realizado”), conclusão e encerramento ficam para a vigilância; tratamento só se começou hoje.",
       pdf: "MEEDS_NOTIF_LTA_BASE_PDF_B64",
+    },
+    covid: {
+      titulo: "Ficha de investigação — COVID-19 (síndrome gripal)",
+      info: "Ficha do e-SUS Notifica da primeira consulta. Exames, evolução, classificação e encerramento ficam para a vigilância.",
+      pdf: "MEEDS_NOTIF_COVID_BASE_PDF_B64",
     },
   };
 
@@ -237,8 +243,21 @@
     "#nt-aviso-auto { display:none; background:#fff4e2; color:#8a5200; font-size:12.5px; padding:10px 12px; border-radius:10px; margin-bottom:12px; }",
     ".nt-idade { font-size:12px; color:#5b6573; margin-top:4px; min-height:14px; }",
     ".nt-oculto { display:none; }",
-    ".nt-so-dengue, .nt-so-lta, .nt-so-aids, .nt-so-violencia { display:none; }",
-    "#nt-modal[data-ficha=\"dengue\"] .nt-so-dengue, #nt-modal[data-ficha=\"lta\"] .nt-so-lta, #nt-modal[data-ficha=\"aids\"] .nt-so-aids, #nt-modal[data-ficha=\"violencia\"] .nt-so-violencia { display:block; }",
+    ".nt-so-dengue, .nt-so-lta, .nt-so-aids, .nt-so-violencia, .nt-so-covid { display:none; }",
+    "#nt-modal[data-ficha=\"dengue\"] .nt-so-dengue, #nt-modal[data-ficha=\"lta\"] .nt-so-lta, #nt-modal[data-ficha=\"aids\"] .nt-so-aids, #nt-modal[data-ficha=\"violencia\"] .nt-so-violencia, #nt-modal[data-ficha=\"covid\"] .nt-so-covid { display:block; }",
+    "#nt-modal[data-ficha=\"covid\"] .nt-nao-covid { display:none; }",
+    /* Interruptor: mesmo desenho do .msm-switch do painel (core/manager.js). */
+    ".nt-switches { display:flex; flex-wrap:wrap; gap:10px 22px; }",
+    ".nt-switch { position:relative; display:inline-flex; align-items:center; gap:8px; font-size:13.5px; color:#1f2a37; cursor:pointer; }",
+    "#nt-body .nt-switch input { position:absolute; opacity:0; width:0; height:0; }",
+    ".nt-slider { position:relative; width:42px; height:24px; flex-shrink:0; background:#ced4da; border-radius:999px; transition:background .18s ease; }",
+    ".nt-slider::before { content:''; position:absolute; height:18px; width:18px; margin:3px; background:#fff; border-radius:999px; transition:transform .22s cubic-bezier(.3,1.4,.6,1), width .16s ease; box-shadow:0 1px 3px rgba(0,0,0,.25); }",
+    ".nt-switch input:checked + .nt-slider { background:#0b7285; }",
+    ".nt-switch input:checked + .nt-slider::before { transform:translateX(18px); }",
+    ".nt-switch:active .nt-slider::before { width:23px; }",
+    ".nt-switch:active input:checked + .nt-slider::before { transform:translateX(13px); }",
+    ".nt-switch input:focus-visible + .nt-slider { outline:2px solid #0b7285; outline-offset:2px; }",
+    "@media (prefers-reduced-motion: reduce) { .nt-slider, .nt-slider::before { transition:none; } }",
     "#nt-modal[data-ficha=\"aids\"] #nt-obs-wrap { display:none; }",
     "#nt-modal[data-tela=\"escolha\"] #nt-form, #nt-modal[data-tela=\"escolha\"] #nt-footer, #nt-modal[data-tela=\"escolha\"] #nt-trocar, #nt-modal[data-tela=\"escolha\"] #nt-atualizar { display:none; }",
     "#nt-modal:not([data-tela=\"escolha\"]) #nt-escolha { display:none; }",
@@ -252,8 +271,7 @@
     "#nt-escolha { padding-bottom:12px; }",
     "#nt-escolha h3 { font-size:16px; color:#1f2a37; margin:4px 0 4px; }",
     "#nt-escolha p { font-size:13px; color:#5b6573; margin:0 0 14px; }",
-    ".nt-cartoes { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; }",
-    "@media (max-width:760px) { .nt-cartoes { grid-template-columns:repeat(2, 1fr); } }",
+    ".nt-cartoes { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px; }",
     "button.nt-cartao { --ac:#1a56ad; display:flex; flex-direction:column; align-items:stretch; text-align:left; gap:4px; background:#fff; border:1px solid #e3e7ec; border-radius:14px; padding:8px 8px 14px; cursor:pointer; color:#1f2a37; font-family:inherit; box-shadow:0 1px 3px rgba(15,23,42,.06); transition:border-color .15s, transform .15s, box-shadow .15s; }",
     "button.nt-cartao:hover { border-color:var(--ac); transform:translateY(-2px); box-shadow:0 8px 20px rgba(15,23,42,.1); }",
     "button.nt-cartao:focus-visible { border-color:var(--ac); outline:3px solid var(--ac); outline-offset:2px; }",
@@ -263,7 +281,6 @@
     "button.nt-cartao .nt-cartao-nome { font-size:13px; font-weight:800; line-height:1.25; padding:0 6px; }",
     "button.nt-cartao .nt-cartao-sub { font-size:11.5px; color:#5b6672; line-height:1.4; padding:0 6px; }",
     "button.nt-cartao .nt-cartao-cid { grid-area:1 / 1; align-self:start; justify-self:start; margin:6px; font-size:10.5px; font-weight:800; letter-spacing:.02em; color:var(--ac); background:#fff; border:1px solid var(--ac); border-radius:4px; padding:1px 6px; }",
-    "@media (max-width:620px) { .nt-cartoes { grid-template-columns:1fr; } }",
     "@media (prefers-reduced-motion:reduce) { button.nt-cartao { transition:none; } button.nt-cartao:hover { transform:none; } }",
     "#nt-footer { display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid #eef1f4; background:#fff; position:sticky; bottom:0; border-radius:0 0 20px 20px; }",
     "button.nt-primario { background:#0b7285; color:#fff; border:none; border-radius:10px; padding:11px 20px; font-size:14px; font-weight:700; cursor:pointer; }",
@@ -273,7 +290,7 @@
     "button.nt-secundario:hover { background:#f1f3f5; }",
     "button.nt-primario:focus-visible, button.nt-secundario:focus-visible { outline:2px solid #0b7285; outline-offset:2px; }",
     "details.nt-det > summary { cursor:pointer; font-size:12.5px; font-weight:600; color:#0b7285; margin-bottom:8px; }",
-    "@media (max-width:640px) { .nt-grid2, .nt-grid3, .nt-cartoes { grid-template-columns:1fr; } }",
+    "@media (max-width:640px) { .nt-grid2, .nt-grid3 { grid-template-columns:1fr; } }",
   ].join("\n");
 
   /* Numero do campo na ficha oficial do SINAN (o mesmo que o medico ve
@@ -281,11 +298,12 @@
   const NUMEROS_SINAN = {"nt-nome": "8", "nt-nasc": "9", "nt-gestante": "12", "nt-raca": "13", "nt-escolaridade": "14", "nt-cpf": "15", "nt-mae": "16", "nt-uf-res": "17", "nt-mun-res": "18", "nt-bairro": "20", "nt-logradouro": "21", "nt-numero": "22", "nt-complemento": "23", "nt-referencia": "26", "nt-cep": "27", "nt-telefone": "28", "nt-zona": "29", "nt-uf-notif": "4", "nt-mun-notif": "5", "nt-unidade": "6"};
 
   function num(id) {
-    return NUMEROS_SINAN[id] ? '<span class="nt-num">' + NUMEROS_SINAN[id] + "</span>" : "";
+    return NUMEROS_SINAN[id] ? '<span class="nt-num nt-nao-covid">' + NUMEROS_SINAN[id] + "</span>" : "";
   }
 
-  function campo(id, rotulo, extra) {
-    return '<div><label class="nt-rot" for="' + id + '">' + num(id) + esc(rotulo) + '</label><input type="text" id="' + id + '" autocomplete="off" ' + (extra || "") + "></div>";
+  /* sufixo: trecho do rotulo que so vale fora da COVID (asterisco, dica do SINAN). */
+  function campo(id, rotulo, extra, sufixo) {
+    return '<div><label class="nt-rot" for="' + id + '">' + num(id) + esc(rotulo) + (sufixo ? '<span class="nt-nao-covid">' + sufixo + "</span>" : "") + '</label><input type="text" id="' + id + '" autocomplete="off" ' + (extra || "") + "></div>";
   }
 
   function secaoDoenca() {
@@ -322,23 +340,23 @@
       '<div class="nt-sub">Sexo *</div><div class="nt-radios">' +
       '<label class="nt-radio"><input type="radio" name="nt-sexo" id="nt-sexo-f" value="F"> Feminino</label>' +
       '<label class="nt-radio"><input type="radio" name="nt-sexo" value="M"> Masculino</label>' +
-      '<label class="nt-radio"><input type="radio" name="nt-sexo" value="I"> Ignorado</label></div>' +
-      '<div id="nt-linha-gestante" class="nt-oculto" style="margin-top:8px;max-width:300px"><label class="nt-rot" for="nt-gestante">' + num("nt-gestante") + 'Gestante *</label><select id="nt-gestante">' + opcoes(F().GESTANTE, "Selecione…") + "</select></div>" +
+      '<label class="nt-radio nt-nao-covid"><input type="radio" name="nt-sexo" value="I"> Ignorado</label></div>' +
+      '<div id="nt-linha-gestante" class="nt-oculto nt-nao-covid" style="margin-top:8px;max-width:300px"><label class="nt-rot" for="nt-gestante">' + num("nt-gestante") + 'Gestante *</label><select id="nt-gestante">' + opcoes(F().GESTANTE, "Selecione…") + "</select></div>" +
       '<div class="nt-grid3" style="margin-top:8px">' +
-      '<div><label class="nt-rot" for="nt-raca">' + num("nt-raca") + 'Raça/cor</label><select id="nt-raca">' + opcoes(F().RACAS) + "</select></div>" +
-      '<div><label class="nt-rot" for="nt-escolaridade">' + num("nt-escolaridade") + 'Escolaridade</label><select id="nt-escolaridade">' + opcoes(F().ESCOLARIDADES) + "</select></div>" +
-      campo("nt-ocupacao", "Ocupação", 'maxlength="40"') + "</div>" +
-      '<div class="nt-grid2" style="margin-top:8px">' + campo("nt-cpf", "CPF (vai no campo do Cartão SUS da ficha)", 'inputmode="numeric" maxlength="14"') + campo("nt-mae", "Nome da mãe", 'maxlength="60"') + "</div></div>";
+      '<div class="nt-nao-covid"><label class="nt-rot" for="nt-raca">' + num("nt-raca") + 'Raça/cor</label><select id="nt-raca">' + opcoes(F().RACAS) + "</select></div>" +
+      '<div class="nt-nao-covid"><label class="nt-rot" for="nt-escolaridade">' + num("nt-escolaridade") + 'Escolaridade</label><select id="nt-escolaridade">' + opcoes(F().ESCOLARIDADES) + "</select></div>" +
+      '<div class="nt-nao-covid">' + campo("nt-ocupacao", "Ocupação", 'maxlength="40"') + "</div></div>" +
+      '<div class="nt-grid2" style="margin-top:8px">' + campo("nt-cpf", "CPF", 'inputmode="numeric" maxlength="14"', " (vai no campo do Cartão SUS da ficha)") + campo("nt-mae", "Nome da mãe", 'maxlength="60"') + "</div></div>";
   }
 
   function secaoResidencia() {
     return '<div class="nt-sec"><h3>Residência do paciente</h3>' +
-      '<div class="nt-grid-uf"><div><label class="nt-rot" for="nt-uf-res">' + num("nt-uf-res") + 'UF *</label><select id="nt-uf-res">' + opcoesUf() + "</select></div>" +
-      '<div><label class="nt-rot" for="nt-mun-res">' + num("nt-mun-res") + 'Município de residência *</label><input type="text" id="nt-mun-res" list="nt-lista-mun-res" autocomplete="off" placeholder="digite e escolha da lista"><datalist id="nt-lista-mun-res"></datalist></div></div>' +
+      '<div class="nt-grid-uf"><div><label class="nt-rot" for="nt-uf-res">' + num("nt-uf-res") + 'UF<span class="nt-nao-covid"> *</span></label><select id="nt-uf-res">' + opcoesUf() + "</select></div>" +
+      '<div><label class="nt-rot" for="nt-mun-res">' + num("nt-mun-res") + 'Município de residência<span class="nt-nao-covid"> *</span></label><input type="text" id="nt-mun-res" list="nt-lista-mun-res" autocomplete="off" placeholder="digite e escolha da lista"><datalist id="nt-lista-mun-res"></datalist></div></div>' +
       '<div class="nt-grid3" style="margin-top:8px">' + campo("nt-bairro", "Bairro", 'maxlength="40"') + campo("nt-logradouro", "Logradouro", 'maxlength="60"') + campo("nt-numero", "Número", 'maxlength="8"') + "</div>" +
-      '<div class="nt-grid3" style="margin-top:8px">' + campo("nt-complemento", "Complemento", 'maxlength="40"') + campo("nt-referencia", "Ponto de referência", 'maxlength="40"') + campo("nt-cep", "CEP", 'inputmode="numeric" maxlength="9"') + "</div>" +
-      '<div class="nt-grid3" style="margin-top:8px">' + campo("nt-telefone", "Telefone com DDD *", 'inputmode="tel" maxlength="16" placeholder="(22) 99999-9999"') +
-      '<div><label class="nt-rot" for="nt-zona">' + num("nt-zona") + 'Zona</label><select id="nt-zona">' + opcoes(F().ZONAS) + "</select></div></div></div>";
+      '<div class="nt-grid3" style="margin-top:8px">' + campo("nt-complemento", "Complemento", 'maxlength="40"') + '<div class="nt-nao-covid">' + campo("nt-referencia", "Ponto de referência", 'maxlength="40"') + "</div>" + campo("nt-cep", "CEP", 'inputmode="numeric" maxlength="9"') + "</div>" +
+      '<div class="nt-grid3" style="margin-top:8px">' + campo("nt-telefone", "Telefone com DDD", 'inputmode="tel" maxlength="16" placeholder="(22) 99999-9999"', " *") +
+      '<div class="nt-nao-covid"><label class="nt-rot" for="nt-zona">' + num("nt-zona") + 'Zona</label><select id="nt-zona">' + opcoes(F().ZONAS) + "</select></div></div></div>";
   }
 
   function secaoUnidade() {
@@ -346,14 +364,14 @@
       '<div class="nt-grid-uf"><div><label class="nt-rot" for="nt-uf-notif">' + num("nt-uf-notif") + 'UF</label><select id="nt-uf-notif">' + opcoesUf() + "</select></div>" +
       '<div><label class="nt-rot" for="nt-mun-notif">' + num("nt-mun-notif") + 'Município da notificação</label><input type="text" id="nt-mun-notif" list="nt-lista-mun-notif" autocomplete="off"><datalist id="nt-lista-mun-notif"></datalist></div></div>' +
       '<div class="nt-grid2" style="margin-top:8px"><div><label class="nt-rot" for="nt-unidade">' + num("nt-unidade") + 'Unidade de saúde</label><input type="text" id="nt-unidade" list="nt-lista-unidades" autocomplete="off"><datalist id="nt-lista-unidades"></datalist></div>' +
-      campo("nt-cnes", "CNES (7 dígitos, opcional)", 'inputmode="numeric" maxlength="7"') + "</div></details>";
+      '<div class="nt-nao-covid">' + campo("nt-cnes", "CNES (7 dígitos, opcional)", 'inputmode="numeric" maxlength="7"') + "</div></div></details>";
   }
 
   function secaoObservacoes() {
     return '<div class="nt-sec"><h3>Observações e responsável</h3>' +
-      '<div id="nt-obs-wrap"><label class="nt-rot" for="nt-obs">Observações adicionais (opcional — vão para a página 2 da ficha)</label>' +
+      '<div id="nt-obs-wrap"><label class="nt-rot" for="nt-obs">Observações adicionais (opcional — <span class="nt-nao-covid">vão para a página 2 da ficha</span>)</label>' +
       '<textarea id="nt-obs" maxlength="600"></textarea></div>' +
-      '<div class="nt-grid3" style="margin-top:8px"><div><label class="nt-rot" for="nt-medico-sel">Médico (preenche o bloco "Investigador")</label><select id="nt-medico-sel"></select></div>' +
+      '<div class="nt-grid3 nt-nao-covid" style="margin-top:8px"><div><label class="nt-rot" for="nt-medico-sel">Médico (preenche o bloco "Investigador")</label><select id="nt-medico-sel"></select></div>' +
       campo("nt-medico-nome", "Nome", 'maxlength="60"') + campo("nt-medico-funcao", "Função", 'maxlength="40"') + "</div></div>";
   }
 
@@ -414,6 +432,21 @@
     '<rect x="62" y="54" width="37" height="33" rx="11" fill="#6a3fb5"/>' +
     '<path d="M70 72 Q80 80 90 72" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.6" stroke-linecap="round"/>');
 
+  /* COVID-19: o virion de perfil — envelope com as espiculas (proteina S)
+   * em volta, so ele na cor da doenca; duas goticulas ao lado. */
+  const SVG_COVID = prancha("covid", "#e7f3ec", "#bfdcc9",
+    '<g stroke="#14263f" stroke-width="1.6" stroke-linecap="round">' +
+    [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map(function (a) {
+      const r = a * Math.PI / 180;
+      const x1 = (80 + 30 * Math.cos(r)).toFixed(1), y1 = (55 + 30 * Math.sin(r)).toFixed(1);
+      const x2 = (80 + 41 * Math.cos(r)).toFixed(1), y2 = (55 + 41 * Math.sin(r)).toFixed(1);
+      return '<path d="M' + x1 + " " + y1 + " L" + x2 + " " + y2 + '"/><circle cx="' + x2 + '" cy="' + y2 + '" r="3.6" fill="#2f7d4f" stroke-width="1.1"/>';
+    }).join("") + "</g>" +
+    '<circle cx="80" cy="55" r="30" fill="#2f7d4f" stroke="#14263f" stroke-width="1.6"/>' +
+    '<g fill="#fff" fill-opacity=".45"><circle cx="70" cy="47" r="4.5"/><circle cx="88" cy="62" r="3.2"/><circle cx="76" cy="66" r="2.4"/><circle cx="91" cy="45" r="2"/></g>' +
+    '<path d="M62 40 C66 34 72 31 79 30" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2.2" stroke-linecap="round"/>' +
+    '<g fill="none" stroke="#14263f" stroke-width="1.1"><circle cx="138" cy="24" r="4"/><circle cx="146" cy="38" r="2.6"/><circle cx="22" cy="86" r="3.4"/></g>');
+
   /* O carimbo do CID fica sobre a prancha; a cor da doenca vem de --ac. */
   function cartaoFicha(c) {
     return '<button type="button" class="nt-cartao" data-ficha="' + c.id + '" style="--ac:' + c.cor + '">' +
@@ -428,6 +461,7 @@
     cartaoFicha({ id: "lta", cor: "#b86a14", svg: SVG_LTA, nome: "Leishmaniose Tegumentar Americana", sub: "Úlcera na pele ou nas mucosas — flebotomíneo", cid: "B55.1" }) +
     cartaoFicha({ id: "violencia", cor: "#6a3fb5", svg: SVG_VIOLENCIA, nome: "Violência interpessoal ou autoprovocada", sub: "Notificação compulsória e sigilosa — todas as idades", cid: "Y09" }) +
     cartaoFicha({ id: "aids", cor: "#c8102e", svg: SVG_AIDS, nome: "AIDS (13 anos ou mais)", sub: "Infecção pelo HIV — notificação compulsória e sigilosa", cid: "B24" }) +
+    cartaoFicha({ id: "covid", cor: "#2f7d4f", svg: SVG_COVID, nome: "COVID-19 (síndrome gripal)", sub: "Quadro respiratório agudo — e-SUS Notifica", cid: "B34.2" }) +
     "</div></div>";
 
   function radios(nome, itens) {
@@ -499,6 +533,7 @@
   function soLta() { return ficha === "lta"; }
 
   function soAids() { return ficha === "aids"; }
+  function naoCovid() { return ficha !== "covid"; }
   function blocoTransf() { return soAids() && AI().precisaBlocoTransf(coletar()); }
 
   const OBRIGATORIOS = [
@@ -531,15 +566,16 @@
     { campo: "nascimento", id: "nt-nasc", rotulo: "Data de nascimento", descricao: "a data de nascimento", comoResolver: "clique em “Atualizar paciente” para ler da tela" },
     { campo: "sexo", id: "nt-sexo-f", rotulo: "Sexo", descricao: "o sexo do paciente", comoResolver: "clique em “Atualizar paciente” para ler da tela" },
     { campo: "gestante", id: "nt-gestante", rotulo: "Gestante", descricao: "se a paciente está gestante", comoResolver: "escolha o trimestre ou “Não”",
-      so: function () { return radio("nt-sexo") === "F"; } },
-    { campo: "ufRes", id: "nt-uf-res", rotulo: "UF de residência", descricao: "a UF de residência", comoResolver: "é onde a vigilância vai agir" },
-    { campo: "municipioRes", id: "nt-mun-res", rotulo: "Município de residência", descricao: "o município de residência", comoResolver: "escolha um da lista da UF" },
-    { campo: "telefone", id: "nt-telefone", rotulo: "Telefone", descricao: "o telefone de contato", comoResolver: "com DDD — é por ele que a vigilância acompanha o paciente" },
+      so: function () { return naoCovid() && radio("nt-sexo") === "F"; } },
+    { campo: "ufRes", id: "nt-uf-res", rotulo: "UF de residência", descricao: "a UF de residência", comoResolver: "é onde a vigilância vai agir", so: naoCovid },
+    { campo: "municipioRes", id: "nt-mun-res", rotulo: "Município de residência", descricao: "o município de residência", comoResolver: "escolha um da lista da UF", so: naoCovid },
+    { campo: "telefone", id: "nt-telefone", rotulo: "Telefone", descricao: "o telefone de contato", comoResolver: "com DDD — é por ele que a vigilância acompanha o paciente", so: naoCovid },
   ];
 
   function logicaDaFicha() {
     if (ficha === "lta") return L();
     if (ficha === "violencia") return VL();
+    if (ficha === "covid") return CV();
     return ficha === "aids" ? AI() : F();
   }
 
@@ -787,6 +823,7 @@
     definir("nt-lab-irm", L().PADRAO_LAB.irm);
     definir("nt-lab-histo", L().PADRAO_LAB.histopatologia);
     definir("nt-aids-obito", "2");
+    el("nt-c-tem-cpf").removeAttribute("data-mexido");
     limparFotos();
     el("nt-aviso-auto").style.display = "none";
     el("nt-erro").style.display = "none";
@@ -843,6 +880,12 @@
     if (guia) guia.atualizar();
   }
 
+  /* "Tem CPF?" acompanha o CPF lido enquanto o medico nao mexer nele. */
+  function sincronizarTemCpf() {
+    const temCpf = el("nt-c-tem-cpf");
+    if (!temCpf.hasAttribute("data-mexido")) temCpf.checked = !!valor("nt-cpf");
+  }
+
   function escolherFicha(id) {
     if (!FICHAS[id]) return;
     ficha = id;
@@ -853,14 +896,30 @@
     /* AIDS: a data do diagnostico nasce como hoje (o medico troca se o
      * diagnostico for de outro dia). */
     if (id === "aids" && !valor("nt-aids-diag")) definir("nt-aids-diag", hojeIso());
+    /* COVID: notificacao nasce hoje; "Tem CPF?" acompanha o CPF lido enquanto
+     * o medico nao mexer nele; o CNS so entra se a tela trouxer um valido. */
+    if (id === "covid") {
+      if (!valor("nt-c-data-notif")) definir("nt-c-data-notif", hojeIso());
+      /* A ficha COVID nao tem "Ignorado": se a tela leu sexo I, solta o radio oculto
+       * para o medico escolher M ou F (a validacao ja cobra). */
+      const ign = overlay.elemento.querySelector('input[name="nt-sexo"][value="I"]');
+      if (ign && ign.checked) ign.checked = false;
+      sincronizarTemCpf();
+      preencherCnsDaTela();
+    }
     atualizarCondicionais();
     if (guia) guia.atualizar();
     overlay.elemento.querySelector("#nt-modal").scrollTop = 0;
   }
 
+  function preencherCnsDaTela() {
+    preencherSeVazio("nt-c-cns", CV().extrairCns(d.dom.lerLinhasPorRotulo(["Documentos", "CNS"]) || []));
+  }
+
   function atualizarPaciente() {
     const p = lerDaTela(true);
     pacienteNoFormulario = assinatura(p) || pacienteNoFormulario;
+    if (ficha === "covid") { sincronizarTemCpf(); preencherCnsDaTela(); atualizarCondicionais(); }
     const aviso = el("nt-aviso-auto");
     aviso.style.display = "block";
     aviso.textContent = p.nome
@@ -940,7 +999,7 @@
     }
     const bytes = await doc.save();
     const slug = String(dados.nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 50);
-    const doenca = ficha === "lta" ? "LEISHMANIOSE" : ficha === "aids" ? "AIDS" : ficha === "violencia" ? "VIOLENCIA" : dados.agravo === "chikungunya" ? "CHIKUNGUNYA" : "DENGUE";
+    const doenca = ficha === "lta" ? "LEISHMANIOSE" : ficha === "aids" ? "AIDS" : ficha === "violencia" ? "VIOLENCIA" : ficha === "covid" ? "COVID19" : dados.agravo === "chikungunya" ? "CHIKUNGUNYA" : "DENGUE";
     return { bytes: bytes, filename: "NOTIFICACAO_" + doenca + "_" + (slug || "PACIENTE") + ".pdf", nome: dados.nome };
   }
 
@@ -1057,9 +1116,9 @@
       titulo: "Ficha de notificação",
       passos: [
         { icone: "📋", titulo: "O que esta função faz",
-          texto: "Preenche a ficha de investigação do SINAN por cima do PDF oficial, na primeira consulta: Dengue e Febre de Chikungunya, Leishmaniose Tegumentar Americana, Violência interpessoal/autoprovocada ou AIDS (13 anos ou mais). Você escolhe a ficha pelo desenho e o nome. Exames, tratamento, classificação final e encerramento ficam em branco para a vigilância epidemiológica." },
+          texto: "Preenche a ficha de investigação do SINAN por cima do PDF oficial, na primeira consulta: Dengue e Febre de Chikungunya, Leishmaniose Tegumentar Americana, Violência interpessoal/autoprovocada, AIDS (13 anos ou mais) ou COVID-19 (síndrome gripal, ficha do e-SUS Notifica). Você escolhe a ficha pelo desenho e o nome. Exames, tratamento, classificação final e encerramento ficam em branco para a vigilância epidemiológica." },
         { icone: "🩺", titulo: "O que você precisa informar",
-          texto: "Dengue/Chikungunya: a doença suspeita, o início dos sintomas (no máximo 15 dias atrás), ao menos um sinal clínico, a confirmação das doenças pré-existentes e a dos sinais de alarme e de gravidade. Leishmaniose: a forma clínica (cutânea ou mucosa) e o tipo de entrada; se iniciou o tratamento, também a droga e o peso. AIDS: os campos obrigatórios do instrumento do SINAN (transmissão, exame de HIV, critérios e critério óbito). Violência: a data e o local da ocorrência, os tipos de violência e os meios de agressão, o provável autor e o encaminhamento; onde a ficha pede 1-Sim/2-Não, você marca o que houve ou confirma “Ignorado”/“Nenhum”. Na Leishmaniose dá para anexar fotos da lesão, que vão no final do PDF. Nome, nascimento, sexo, CPF e telefone vêm da tela do atendimento; confira. O CPF é sempre o número do paciente na ficha." },
+          texto: "Dengue/Chikungunya: a doença suspeita, o início dos sintomas (no máximo 15 dias atrás), ao menos um sinal clínico, a confirmação das doenças pré-existentes e a dos sinais de alarme e de gravidade. Leishmaniose: a forma clínica (cutânea ou mucosa) e o tipo de entrada; se iniciou o tratamento, também a droga e o peso. AIDS: os campos obrigatórios do instrumento do SINAN (transmissão, exame de HIV, critérios e critério óbito). Violência: a data e o local da ocorrência, os tipos de violência e os meios de agressão, o provável autor e o encaminhamento; onde a ficha pede 1-Sim/2-Não, você marca o que houve ou confirma “Ignorado”/“Nenhum”. COVID-19: a data da notificação (já vem com hoje), o início dos sintomas, os sintomas e, se houver, as condições; os quatro Sim/Não são interruptores e o CNS entra se a tela trouxer um válido. Na Leishmaniose dá para anexar fotos da lesão, que vão no final do PDF. Nome, nascimento, sexo, CPF e telefone vêm da tela do atendimento; confira. O CPF é sempre o número do paciente na ficha." },
         { icone: "🚨", titulo: "Sinais de alarme (dengue)",
           texto: "Marque os sinais presentes ou escolha “Sem sinais de alarme nem de gravidade”. Se houver algum sinal, aparece um aviso vermelho: oriente o deslocamento imediato a um serviço de pronto atendimento presencial." },
         { icone: "📍", titulo: "Onde o paciente mora",
@@ -1073,8 +1132,8 @@
   raiz.MeedsSuite.registerModule({
     id: "notificacao",
     nome: "Ficha de notificação",
-    descricao: "Gera a ficha de investigação do SINAN (Dengue e Febre de Chikungunya; Leishmaniose Tegumentar Americana; AIDS; Violência interpessoal/autoprovocada) na primeira consulta, com validação dos campos obrigatórios.",
-    versao: "1.2.0",
+    descricao: "Gera a ficha de investigação do SINAN (Dengue e Febre de Chikungunya; Leishmaniose Tegumentar Americana; AIDS; Violência interpessoal/autoprovocada) e a do e-SUS Notifica para COVID-19 na primeira consulta, com validação dos campos obrigatórios.",
+    versao: "1.3.0",
     configPadrao: {},
     temBotao: true,
     assinaturasRede: [],
